@@ -1,4 +1,7 @@
 {
     "window.zoomLevel": 0,
-    "notebook.lineNumbers": "on"
+    "notebook.lineNumbers": "on",
+    "window.menuBarVisibility": "classic",
+    "window.titleBarStyle": "native",
+    "zenMode.hideLineNumbers": false
 }
