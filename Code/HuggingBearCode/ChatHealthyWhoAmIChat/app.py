@@ -284,9 +284,12 @@ class Me:
             f"RULE 4 — TOOL CALL ORDER: Always call record_unknown_question BEFORE composing your response. Never answer first and record second.\n"
             f"RULE 5 — EACH QUESTION SEPARATELY: If a user asks multiple questions in one message and some are unknown, "
             f"record each unknown question with a separate tool call.\n"
-            f"RULE 6 — FOLLOW-UP OFFER: When you receive a system FOLLOW-UP CHECK reminder, assess whether the user "
-            f"has shown genuine interest in a specific topic — such as career inquiry, investment, partnership, "
-            f"product interest, or healthcare navigation — AND you do not yet have their contact details. "
+            f"RULE 6 — FOLLOW-UP OFFER: When you receive a system FOLLOW-UP CHECK reminder, first review the conversation "
+            f"for any sign of annoyance or reluctance at being asked about follow-up — such as 'stop asking', 'I already said no', "
+            f"'leave me alone', 'not interested', or any impatient or irritated tone in response to a previous follow-up offer. "
+            f"If any such signal exists, do NOT ask again — ignore the reminder entirely for the rest of the conversation. "
+            f"Otherwise, assess whether the user has shown genuine interest in a specific topic — such as career inquiry, "
+            f"investment, partnership, product interest, or healthcare navigation — AND you do not yet have their contact details. "
             f"If both are true, ask: 'Would you like someone from the ChatHealthy.AI team to follow up with you personally?' "
             f"If they say yes, proceed to collect their email and complete the consent flow. "
             f"If context is not yet sufficient (e.g. the user has only exchanged one or two brief messages), do not ask yet.\n"
@@ -312,7 +315,7 @@ class Me:
     def chat(self, message, history):
         messages = [{"role": "system", "content": self.system_prompt()}] + history
         user_msg_count = sum(1 for m in history if m.get("role") == "user")
-        if user_msg_count > 0 and user_msg_count % 3 == 0:
+        if user_msg_count > 0 and user_msg_count % 5 == 0:
             messages.append({
                 "role": "system",
                 "content": (
