@@ -284,6 +284,12 @@ class Me:
             f"RULE 4 — TOOL CALL ORDER: Always call record_unknown_question BEFORE composing your response. Never answer first and record second.\n"
             f"RULE 5 — EACH QUESTION SEPARATELY: If a user asks multiple questions in one message and some are unknown, "
             f"record each unknown question with a separate tool call.\n"
+            f"RULE 6 — FOLLOW-UP OFFER: When you receive a system FOLLOW-UP CHECK reminder, assess whether the user "
+            f"has shown genuine interest in a specific topic — such as career inquiry, investment, partnership, "
+            f"product interest, or healthcare navigation — AND you do not yet have their contact details. "
+            f"If both are true, ask: 'Would you like someone from the ChatHealthy.AI team to follow up with you personally?' "
+            f"If they say yes, proceed to collect their email and complete the consent flow. "
+            f"If context is not yet sufficient (e.g. the user has only exchanged one or two brief messages), do not ask yet.\n"
             f"\n## EXAMPLES\n"
             f"User: What is your favorite poem?\n"
             f"WRONG: 'While I appreciate poetry, I don't have a specific favorite.' [no tool call — this is a violation]\n"
@@ -304,7 +310,18 @@ class Me:
         )
 
     def chat(self, message, history):
-        messages = [{"role": "system", "content": self.system_prompt()}] + history + [{"role": "user", "content": message}]
+        messages = [{"role": "system", "content": self.system_prompt()}] + history
+        user_msg_count = sum(1 for m in history if m.get("role") == "user")
+        if user_msg_count > 0 and user_msg_count % 3 == 0:
+            messages.append({
+                "role": "system",
+                "content": (
+                    "FOLLOW-UP CHECK: Review the conversation. If the user has shown genuine interest "
+                    "in a specific topic and you do not yet have their contact details, ask now: "
+                    "'Would you like someone from the ChatHealthy.AI team to follow up with you personally?'"
+                )
+            })
+        messages.append({"role": "user", "content": message})
         done = False
         while not done:
             response = self.openai.chat.completions.create(model="gpt-4o-mini", messages=messages, tools=tools)
