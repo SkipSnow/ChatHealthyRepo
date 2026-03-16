@@ -74,7 +74,8 @@ def _format_chat_history(messages):
     return out
 
 
-def record_user_details(email="", name="Name not provided", notes="not provided", message="", chat_history=None):
+def record_user_details(email="", name="Name not provided", notes="not provided", message="",
+                        chat_history=None, consent_verbatim=False, consent_summary=None):
     if not email or not str(email).strip():
         return {"recorded": "ok", "note": "Email required but not provided"}
     db = _get_db()
@@ -87,10 +88,21 @@ def record_user_details(email="", name="Name not provided", notes="not provided"
         if email in str(doc.get("email", "")):
             return {"recorded": "ok"}
     push(f"Recording interest from {name} with email {email}: {reason}")
-    payload = {
-        "database": "AboutUs", "collection": "lead",
-        "record": {"email": email, "name": name, "notes": notes, "reason_for_contact": reason, "chat_history": chat_history or []}
+    record = {
+        "email": email,
+        "name": name,
+        "notes": notes,
+        "reason_for_contact": reason,
+        "consent_verbatim": consent_verbatim,
+        "consent_summary": consent_summary,
     }
+    if consent_verbatim:
+        record["chat_history"] = chat_history or []
+    elif consent_summary:
+        history_copy = list(chat_history) if chat_history else []
+        deIdentify(history_copy)
+        record["chat_history"] = history_copy
+    payload = {"database": "AboutUs", "collection": "lead", "record": record}
     commitSignificantActivity(payload)
     return {"recorded": "ok"}
 
@@ -148,16 +160,25 @@ def record_unknown_question(question, chat_history=None):
 
 record_user_details_json = {
     "name": "record_user_details",
-    "description": "Use this tool to record that a user is interested in being in touch and provided an email address. Try to encourage the user to describe why they are wishing contact. Try to get their name. Do not insist on either.",
+    "description": (
+        "Record a user's contact details after obtaining email. "
+        "Before calling this tool you MUST complete the two-tier consent flow: "
+        "First ask: 'May we save a verbatim transcript of this conversation with your contact details?' "
+        "If they decline, ask: 'May we save a de-identified summary of this conversation instead?' "
+        "Pass both answers as consent_verbatim and consent_summary. "
+        "Try to get their name and reason for contact, but do not insist."
+    ),
     "parameters": {
         "type": "object",
         "properties": {
             "email": {"type": "string", "description": "The email address of this user"},
             "name": {"type": "string", "description": "The user's name, if they provided it"},
-            "notes": {"type": "string", "description": "You, summarize the conversation in less than 40 words"},
-            "message": {"type": "string", "description": "Why they are contacting us - what they want, what they're interested in, or the key message from the conversation"}
+            "notes": {"type": "string", "description": "Summarize the conversation in less than 40 words"},
+            "message": {"type": "string", "description": "Why they are contacting us"},
+            "consent_verbatim": {"type": "boolean", "description": "True if user agreed to save verbatim transcript"},
+            "consent_summary": {"type": "boolean", "description": "True if user agreed to save de-identified summary. Only set when consent_verbatim is false. Null if verbatim was accepted."}
         },
-        "required": ["email", "notes"],
+        "required": ["email", "notes", "consent_verbatim"],
         "additionalProperties": False
     }
 }
@@ -271,7 +292,11 @@ class Me:
             f"WRONG: 'While I'm not a doctor, ibuprofen can help with inflammation...' [medical advice — this is a violation]\n"
             f"RIGHT: [call record_unknown_question] then say: 'I can't advise on medical questions. Please consult a qualified healthcare professional.'\n\n"
             f"If the user is engaging in discussion, try to steer them towards getting in touch via email, phone or linkedin; ask for their email, or other method of communication. No authentication needed. "
-            f"Record contact using your record_user_details tool - always include the 'message' parameter with why they are contacting us. Call it only ONCE per contact; if you have already recorded this user's email in this conversation, do not call it again. "
+            f"When you have their email, complete the two-tier consent flow before calling record_user_details:\n"
+            f"  Step 1 — Ask: 'May we save a verbatim transcript of this conversation with your contact details?'\n"
+            f"  Step 2 — If they decline Step 1, ask: 'May we save a de-identified summary of this conversation instead?'\n"
+            f"  Then call record_user_details with consent_verbatim and (if asked) consent_summary reflecting their answers.\n"
+            f"Call record_user_details only ONCE per contact. If you have already recorded this user's email in this conversation, do not call it again. "
             f"If the user gives an email and you don't know their name, capture their name too.\n\n"
             f"## Summary:\n{self.summary}\n\n## LinkedIn Profile:\n{self.linkedin}\n\n"
             f"## AnthropicOnSafety:\n{self.anthropic_discussion}\n\n"
