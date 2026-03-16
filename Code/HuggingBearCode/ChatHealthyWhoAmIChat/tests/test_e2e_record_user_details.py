@@ -55,16 +55,9 @@ class TestE2ERecordUserDetails(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Verify MongoDB is reachable and clean up any prior test records."""
+        """Verify MongoDB is reachable before running any tests."""
         if app._get_db() is None:
             raise RuntimeError("MongoDB unavailable — cannot run e2e tests.")
-        _get_lead_coll().delete_many({"testdata": True})
-
-    @classmethod
-    def tearDownClass(cls):
-        """Delete all automated test records from lead collection."""
-        deleted = _get_lead_coll().delete_many({"testdata": True})
-        print(f"\nTeardown complete — {deleted.deleted_count} test record(s) deleted from lead.")
 
     # ── Case 1: Full consent ──────────────────────────────────────────────────
     def test_case1_full_consent(self):
