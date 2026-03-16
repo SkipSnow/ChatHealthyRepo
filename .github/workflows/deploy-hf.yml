@@ -1,0 +1,51 @@
+name: Deploy to HuggingFace Space
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'Code/HuggingBearCode/ChatHealthyWhoAmIChat/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          lfs: true
+
+      - name: Push to HuggingFace Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git config --global user.email "skip.snow@gmail.com"
+          git config --global user.name "SkipSnow"
+
+          # Clone the HuggingFace Space
+          git clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/ChatHealthyWhoAmIChat hf_space
+
+          # Remove existing files (keep .git metadata)
+          find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
+
+          # Copy app files — explicitly exclude .env and caches
+          rsync -av \
+            --exclude='.env' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='.venv' \
+            Code/HuggingBearCode/ChatHealthyWhoAmIChat/ hf_space/
+
+          # Commit and push only if there are changes
+          cd hf_space
+          git add .
+          if git diff --staged --quiet; then
+            echo "No changes to deploy."
+          else
+            git commit -m "Deploy from GitHub commit ${{ github.sha }}"
+            git push
+            echo "Deployed successfully."
+          fi
