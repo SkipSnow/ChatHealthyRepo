@@ -107,13 +107,14 @@ class TestRecordUserDetailsConsentFlow(unittest.TestCase):
     @patch("app.push")
     @patch("app.commitSignificantActivity")
     @patch("app._get_db")
-    def test_case2_summary_consent_deidentifies(self, mock_get_db, mock_commit, mock_push):
-        """Case 2: consent_verbatim=False, consent_summary=True — de-identified copy saved.
-        Original SAMPLE_HISTORY must be untouched (deep copy verified)."""
+    def test_case2_summary_consent_stores_deidentified_summary_in_notes(self, mock_get_db, mock_commit, mock_push):
+        """Case 2: consent_verbatim=False, consent_summary=True.
+        LLM summarizes the conversation, deIdentify scrubs PII from the summary,
+        result stored in notes. No chat_history saved."""
         mock_get_db.return_value = _make_mock_db()
-        original_first_content = SAMPLE_HISTORY[0]["content"]
 
-        with patch("app.deIdentify", side_effect=_fake_deidentify) as mock_deidentify:
+        with patch("app._summarize_conversation", return_value="User Jane Doe from New York discussed hospital network management.") as mock_summarize, \
+             patch("app.deIdentify", side_effect=_fake_deidentify) as mock_deidentify:
             result = app.record_user_details(
                 email=EMAIL,
                 name=NAME,
@@ -123,7 +124,8 @@ class TestRecordUserDetailsConsentFlow(unittest.TestCase):
                 consent_summary=True,
             )
 
-        # deIdentify MUST be called exactly once
+        # Both summarize and deIdentify must be called
+        mock_summarize.assert_called_once_with(SAMPLE_HISTORY)
         mock_deidentify.assert_called_once()
 
         mock_commit.assert_called_once()
@@ -131,12 +133,10 @@ class TestRecordUserDetailsConsentFlow(unittest.TestCase):
 
         self.assertEqual(record["consent_verbatim"], False)
         self.assertEqual(record["consent_summary"], True)
-        # Saved content must be de-identified
-        for msg in record["chat_history"]:
-            self.assertEqual(msg["content"], "[DEIDENTIFIED]")
-        # Original SAMPLE_HISTORY must be untouched (deep copy, not shallow)
-        self.assertEqual(SAMPLE_HISTORY[0]["content"], original_first_content)
-        # Explicit datetime must be present
+        # De-identified summary must be in notes
+        self.assertEqual(record["notes"], "[DEIDENTIFIED]")
+        # No chat_history — only a summary
+        self.assertNotIn("chat_history", record)
         self.assertIn("datetime", record)
         self.assertIsInstance(record["datetime"], str)
         self.assertEqual(result, {"recorded": "ok"})

@@ -1,7 +1,6 @@
 from dotenv import load_dotenv
 from openai import OpenAI
 from anthropic import Anthropic
-import copy
 import json
 import os
 import requests
@@ -103,12 +102,33 @@ def record_user_details(email="", name="Name not provided", notes="not provided"
     if consent_verbatim:
         record["chat_history"] = chat_history or []
     elif consent_summary:
-        history_copy = copy.deepcopy(chat_history) if chat_history else []
-        deIdentify(history_copy)
-        record["chat_history"] = history_copy
+        summary = _summarize_conversation(chat_history)
+        summary_msg = [{"role": "user", "content": summary}]
+        deIdentify(summary_msg)
+        record["notes"] = summary_msg[0]["content"]
     payload = {"database": "AboutUs", "collection": "lead", "record": record}
     commitSignificantActivity(payload)
     return {"recorded": "ok"}
+
+
+def _summarize_conversation(chat_history):
+    """Ask Claude Haiku to produce a brief 2-3 sentence summary of the conversation."""
+    if not chat_history:
+        return ""
+    client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
+    chat_json = json.dumps(
+        [{"role": m.get("role", ""), "content": m.get("content") or ""} for m in chat_history],
+        indent=2
+    )
+    response = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=256,
+        messages=[{"role": "user", "content": (
+            "Summarize this conversation in 2-3 sentences. Focus on what the user wanted "
+            "and any key information they shared. Be concise.\n\n" + chat_json
+        )}],
+    )
+    return response.content[0].text.strip()
 
 
 def deIdentify(argChat_history):

@@ -26,10 +26,11 @@ load_dotenv(os.path.join(_APP_DIR, "..", "..", ".env"), override=True)
 
 import app
 
-# ── Shared fixtures ───────────────────────────────────────────────────────────
-EMAIL_C1 = "e2e.case1@testchathealthy.com"
-EMAIL_C2 = "e2e.case2@testchathealthy.com"
-EMAIL_C3 = "e2e.case3@testchathealthy.com"
+# ── Unique run ID ensures fresh records each run (history accumulates in DB) ──
+_RUN_ID  = datetime.now().strftime("%Y%m%d_%H%M%S")
+EMAIL_C1 = f"e2e.case1.{_RUN_ID}@testchathealthy.com"
+EMAIL_C2 = f"e2e.case2.{_RUN_ID}@testchathealthy.com"
+EMAIL_C3 = f"e2e.case3.{_RUN_ID}@testchathealthy.com"
 NAME     = "Jane Doe"
 
 SAMPLE_HISTORY = [
@@ -97,11 +98,9 @@ class TestE2ERecordUserDetails(unittest.TestCase):
     def test_case2_summary_consent(self):
         """
         Case 2: consent_verbatim=False, consent_summary=True
-        Expects: de-identified chat_history (real Anthropic call), PII removed,
-                 original SAMPLE_HISTORY untouched (deep copy verified).
+        Expects: LLM-generated summary de-identified and stored in notes.
+                 No chat_history in record.
         """
-        original_first = SAMPLE_HISTORY[0]["content"]
-
         result = app.record_user_details(
             email=EMAIL_C2,
             name=NAME,
@@ -120,18 +119,20 @@ class TestE2ERecordUserDetails(unittest.TestCase):
         self.assertFalse(record["consent_verbatim"])
         self.assertTrue(record["consent_summary"])
 
-        self.assertIn("chat_history", record)
-        full_text = " ".join(m["content"] for m in record["chat_history"])
-        for pii in PII_MARKERS:
-            self.assertNotIn(pii, full_text, f"PII '{pii}' should have been removed by deIdentify")
+        # Summary stored in notes — no transcript
+        self.assertNotIn("chat_history", record)
+        self.assertIn("notes", record)
+        self.assertIsInstance(record["notes"], str)
+        self.assertGreater(len(record["notes"]), 0)
 
-        self.assertEqual(SAMPLE_HISTORY[0]["content"], original_first,
-                         "deIdentify mutated original SAMPLE_HISTORY — deep copy failed")
+        # PII must not appear in the stored summary
+        for pii in PII_MARKERS:
+            self.assertNotIn(pii, record["notes"], f"PII '{pii}' should have been removed from summary")
 
         self.assertIn("datetime", record)
         datetime.fromisoformat(record["datetime"])
 
-        print(f"\n[Case 2] consent_summary=True | PII removed | sample: {record['chat_history'][0]['content'][:80]}")
+        print(f"\n[Case 2] consent_summary=True | de-identified summary in notes: {record['notes']}")
 
     # ── Case 3: Contact info only ─────────────────────────────────────────────
     def test_case3_contact_only(self):
