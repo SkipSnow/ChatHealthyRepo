@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChatHealthy FindCare — Architecture</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      color: #000;
+      background: #fff;
+      padding: 40px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    h1 { font-size: 26px; margin-bottom: 4px; }
+    h2 { font-size: 18px; margin: 32px 0 12px; border-bottom: 2px solid #000; padding-bottom: 4px; }
+    h3 { font-size: 14px; margin: 20px 0 8px; }
+
+    .subtitle { font-size: 13px; color: #444; margin-bottom: 40px; }
+
+    /* ── Diagrams ──────────────────────────────────────────── */
+    .diagram {
+      border: 1px solid #000;
+      padding: 24px;
+      margin: 16px 0;
+      background: #fff;
+    }
+
+    .diagram-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      margin: 8px 0;
+    }
+
+    .box {
+      border: 2px solid #000;
+      padding: 8px 14px;
+      background: #fff;
+      text-align: center;
+      min-width: 130px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .box strong { display: block; font-size: 13px; }
+    .box small  { display: block; font-size: 11px; color: #444; margin-top: 2px; }
+
+    .box-wide   { min-width: 200px; }
+    .box-narrow { min-width: 100px; }
+
+    .arrow-right {
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .arrow-down {
+      text-align: center;
+      font-size: 18px;
+      line-height: 1;
+      margin: 2px 0;
+    }
+
+    .indent { margin-left: 40px; }
+    .indent2 { margin-left: 80px; }
+
+    /* vertical connector */
+    .vline {
+      width: 2px;
+      background: #000;
+      margin: 0 auto;
+      height: 16px;
+    }
+
+    .center { display: flex; justify-content: center; }
+
+    /* ── Tables ────────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 13px;
+    }
+    th {
+      background: #000;
+      color: #fff;
+      padding: 7px 10px;
+      text-align: left;
+    }
+    td {
+      border: 1px solid #888;
+      padding: 7px 10px;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f5f5f5; }
+
+    /* ── Consent flow ──────────────────────────────────────── */
+    .flow-step {
+      border: 2px solid #000;
+      padding: 8px 14px;
+      margin: 4px 0 0 0;
+      font-size: 13px;
+    }
+    .flow-yes { margin-left: 40px; border-left: 4px solid #000; padding-left: 12px; font-size: 12px; color: #222; margin-top: 4px; margin-bottom: 8px; }
+
+    /* ── Print ─────────────────────────────────────────────── */
+    @media print {
+      body { padding: 20px; }
+      h2 { page-break-before: auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>ChatHealthy FindCare</h1>
+  <h1>Architecture Overview</h1>
+  <p class="subtitle">Version 2.0 &nbsp;·&nbsp; March 2026 &nbsp;·&nbsp; Confidential</p>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>1. Product Vision</h2>
+  <p>
+    FindCare is a conversational AI that helps users navigate healthcare — finding providers,
+    understanding symptoms, researching clinical trials, and producing transcripts they can share
+    with their care team. All of this happens within a single AI session using a ChatGPT / Claude.ai
+    style interface. There is no separate "About Us" application; transparency about the product is
+    one intent path within the same session.
+  </p>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>2. Infrastructure Overview</h2>
+
+  <div class="diagram">
+    <div class="center">
+      <div class="box box-wide">
+        <strong>User Browser</strong>
+        <small>www.chathealthy.ai</small>
+      </div>
+    </div>
+    <div class="arrow-down center">↓</div>
+    <div class="center">
+      <div class="box box-wide">
+        <strong>Cloudflare</strong>
+        <small>Static pages · DNS · iframe embed</small>
+      </div>
+    </div>
+    <div class="arrow-down center">↓</div>
+    <div class="center">
+      <div class="box box-wide">
+        <strong>HuggingFace Space</strong>
+        <small>React + FastAPI · Layer 1</small>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:center; gap:60px; margin-top:0;">
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div class="vline"></div>
+        <div class="box">
+          <strong>Anthropic API</strong>
+          <small>Claude (chat)</small>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div class="vline"></div>
+        <div class="box">
+          <strong>Azure Functions</strong>
+          <small>CrewAI · Layer 2</small>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div class="vline"></div>
+        <div class="box">
+          <strong>MongoDB Atlas</strong>
+          <small>ChatHealthyDB_dev</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>3. Two-Layer Application Architecture</h2>
+
+  <h3>Layer 1 — Conversational Interface (HuggingFace)</h3>
+  <table>
+    <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+    <tr><td>Frontend</td><td>React + shadcn/ui</td><td>Chat interface; inline maps, charts, provider cards</td></tr>
+    <tr><td>Backend</td><td>FastAPI (Python)</td><td>API routes, tool definitions, session management</td></tr>
+    <tr><td>AI</td><td>Anthropic SDK — Claude</td><td>Intent routing, tool calling, response generation</td></tr>
+    <tr><td>Hosting</td><td>HuggingFace Docker Space</td><td>GPU-enabled, free tier available</td></tr>
+  </table>
+
+  <h3>Layer 2 — Background Workflows (Azure)</h3>
+  <table>
+    <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+    <tr><td>Orchestration</td><td>CrewAI</td><td>Multi-agent coordination; multi-LLM support</td></tr>
+    <tr><td>Runtime</td><td>Azure Function App</td><td>Pay-per-use; Python 3.12.10</td></tr>
+    <tr><td>Library</td><td>ChatHealthyLib.pipelines</td><td>Core pipeline logic</td></tr>
+    <tr><td>Trigger</td><td>API call from Layer 1</td><td>Invoked when complex workflow needed</td></tr>
+  </table>
+
+  <p style="margin-top:12px;">
+    <strong>Why CrewAI?</strong> Multi-LLM support — each agent can use the best model for its task
+    (Claude for reasoning, GPT-4o-mini for cost-sensitive tasks, specialist models as available).
+    The Anthropic Agent SDK is Claude-only and was not chosen for this reason.
+  </p>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>4. Session and Routing Model</h2>
+
+  <div class="diagram">
+    <div class="center">
+      <div class="box box-wide">
+        <strong>User Message</strong>
+        <small>"Find me an oncologist near me"</small>
+      </div>
+    </div>
+    <div class="arrow-down center">↓</div>
+    <div class="center">
+      <div class="box box-wide">
+        <strong>Claude — Intent Router</strong>
+        <small>Classifies intent within the same session</small>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:center; gap:24px; margin-top:0;">
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div class="vline"></div>
+        <div class="box box-narrow"><strong>Find Care</strong><small>providers, cost</small></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div class="vline"></div>
+        <div class="box box-narrow"><strong>Research</strong><small>trials, symptoms</small></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div class="vline"></div>
+        <div class="box box-narrow"><strong>About App</strong><small>transparency</small></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div class="vline"></div>
+        <div class="box box-narrow"><strong>Transcript</strong><small>export for doc</small></div>
+      </div>
+    </div>
+    <div class="arrow-down center" style="margin-top:8px;">↓</div>
+    <div class="center">
+      <div class="box box-wide">
+        <strong>Response + Inline Components</strong>
+        <small>Text · Map · Chart · Cards · Download button</small>
+      </div>
+    </div>
+  </div>
+
+  <p>
+    The user never sees the routing. Every intent path stays within the same conversation thread.
+    The session transcript is a first-class output — users can download and share it with their doctor.
+  </p>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>5. Example Workflow — Clinical Trial Research</h2>
+
+  <div class="diagram">
+    <div class="center">
+      <div class="box box-wide">
+        <strong>Layer 1: Claude</strong>
+        <small>User: "I have stage 3 pancreatic cancer. Find me trials."</small>
+      </div>
+    </div>
+    <div class="arrow-down center">↓ API call to Azure</div>
+    <div class="center">
+      <div class="box box-wide">
+        <strong>Layer 2: CrewAI Crew</strong>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:center; gap:24px; margin-top:0;">
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div class="vline"></div>
+        <div class="box box-narrow"><strong>Search Agent</strong><small>ClinicalTrials.gov<br/>GPT-4o-mini</small></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div class="vline"></div>
+        <div class="box box-narrow"><strong>Eligibility Agent</strong><small>criteria matching<br/>Claude</small></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div class="vline"></div>
+        <div class="box box-narrow"><strong>Docs Agent</strong><small>application drafts<br/>Claude</small></div>
+      </div>
+    </div>
+    <div class="arrow-down center" style="margin-top:8px;">↓ Results returned to Layer 1</div>
+    <div class="center">
+      <div class="box box-wide">
+        <strong>Layer 1: Claude presents results inline</strong>
+        <small>Trial cards · eligibility summary · next steps</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>6. Data and Privacy</h2>
+
+  <h3>HIPAA Consent Flow</h3>
+  <div class="diagram">
+    <div class="flow-step"><strong>Q1:</strong> "May we save a verbatim transcript of this conversation with your contact details?"</div>
+    <div class="flow-yes">Yes → Store full chat history (PII intact, consent exchange included as evidence)</div>
+    <div class="flow-step"><strong>Q2 (if Q1 declined):</strong> "May we save a de-identified summary instead?"</div>
+    <div class="flow-yes">Yes → LLM summarizes → deIdentify() scrubs PII → stored in notes field only</div>
+    <div class="flow-step"><strong>Neither consented:</strong> Contact fields only — no history stored</div>
+  </div>
+
+  <h3>MongoDB Lead Record Schema</h3>
+  <table>
+    <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+    <tr><td>email</td><td>string</td><td>User contact</td></tr>
+    <tr><td>name</td><td>string</td><td>User contact</td></tr>
+    <tr><td>notes</td><td>string</td><td>De-identified summary if consent_summary=true</td></tr>
+    <tr><td>reason_for_contact</td><td>string</td><td>Extracted by AI</td></tr>
+    <tr><td>consent_verbatim</td><td>boolean</td><td>Explicit verbatim consent</td></tr>
+    <tr><td>consent_summary</td><td>boolean / null</td><td>Explicit summary consent</td></tr>
+    <tr><td>chat_history</td><td>array</td><td>Present only if consent_verbatim=true</td></tr>
+    <tr><td>datetime</td><td>ISO string</td><td>Record creation timestamp</td></tr>
+    <tr><td>testdata</td><td>boolean</td><td>true for automated test records only</td></tr>
+  </table>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>7. DevOps</h2>
+
+  <table>
+    <tr><th>Concern</th><th>Tool</th><th>Detail</th></tr>
+    <tr><td>Source control</td><td>GitHub</td><td>SkipSnow/findCare · SkipSnow/ChatHealthyDataPipeline</td></tr>
+    <tr><td>App deploy</td><td>GitHub Actions</td><td>Push to master → rsync to HuggingFace Space</td></tr>
+    <tr><td>Pipeline deploy</td><td>GitHub Actions</td><td>Push to master → deploy to Azure Function App</td></tr>
+    <tr><td>Secrets</td><td>GitHub Secrets</td><td>HF_TOKEN, OPENAI_API_KEY, Anthropic_API_KEY, MONGO_connectionString</td></tr>
+    <tr><td>IDE</td><td>Cursor / VS Code + Claude Code</td><td>Claude Code for all AI-assisted development</td></tr>
+  </table>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>8. Deferred</h2>
+  <ul style="margin-left:20px; line-height:2;">
+    <li>FHIR / Epic EMR integration — Layer 2, future phase</li>
+    <li>User authentication and cross-session persistence</li>
+    <li>Production MongoDB cluster (currently dev only)</li>
+    <li>MongoDB connection pooling design</li>
+  </ul>
+
+  <br/><br/>
+  <p style="font-size:11px; color:#888; text-align:center;">
+    ChatHealthy FindCare &nbsp;·&nbsp; Architecture v2.0 &nbsp;·&nbsp; March 2026 &nbsp;·&nbsp; Confidential
+  </p>
+
+</body>
+</html>
