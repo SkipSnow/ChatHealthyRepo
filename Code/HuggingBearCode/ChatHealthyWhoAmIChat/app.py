@@ -1,9 +1,11 @@
 from dotenv import load_dotenv
 from openai import OpenAI
 from anthropic import Anthropic
+import copy
 import json
 import os
 import requests
+from datetime import datetime
 from pypdf import PdfReader
 import gradio as gr
 from ChatHealthyMongoUtilities import ChatHealthyMongoUtilities
@@ -95,11 +97,12 @@ def record_user_details(email="", name="Name not provided", notes="not provided"
         "reason_for_contact": reason,
         "consent_verbatim": consent_verbatim,
         "consent_summary": consent_summary,
+        "datetime": datetime.now().isoformat(),
     }
     if consent_verbatim:
         record["chat_history"] = chat_history or []
     elif consent_summary:
-        history_copy = list(chat_history) if chat_history else []
+        history_copy = copy.deepcopy(chat_history) if chat_history else []
         deIdentify(history_copy)
         record["chat_history"] = history_copy
     payload = {"database": "AboutUs", "collection": "lead", "record": record}

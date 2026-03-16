@@ -31,12 +31,13 @@ jobs:
           # Remove existing files (keep .git metadata)
           find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
 
-          # Copy app files — explicitly exclude .env and caches
+          # Copy app files — explicitly exclude .env, caches, and tests
           rsync -av \
             --exclude='.env' \
             --exclude='__pycache__' \
             --exclude='*.pyc' \
             --exclude='.venv' \
+            --exclude='tests/' \
             Code/HuggingBearCode/ChatHealthyWhoAmIChat/ hf_space/
 
           # Commit and push only if there are changes
