@@ -296,4 +296,9 @@ class Me:
 
 if __name__ == "__main__":
     me = Me()
-    gr.ChatInterface(me.chat, type="messages", title="Chat Healthy: About Us").launch(share=True)
+    gr.ChatInterface(
+        me.chat,
+        type="messages",
+        title="Chat Healthy: About Us",
+        css="footer { display: none !important; }",
+    ).launch(share=True, show_api=False)
