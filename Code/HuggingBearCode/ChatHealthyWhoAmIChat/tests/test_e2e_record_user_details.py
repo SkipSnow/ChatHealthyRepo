@@ -33,14 +33,41 @@ EMAIL_C2 = f"e2e.case2.{_RUN_ID}@testchathealthy.com"
 EMAIL_C3 = f"e2e.case3.{_RUN_ID}@testchathealthy.com"
 NAME     = "Jane Doe"
 
-SAMPLE_HISTORY = [
+SAMPLE_HISTORY_NO_CONSENT = [
     {"role": "user",      "content": "Hi, my name is Jane Doe, I was born on 03/15/1972, and I live in Los Angeles."},
     {"role": "assistant", "content": "Hello Jane! How can I help you today?"},
     {"role": "user",      "content": "I run a hospital network and want to learn about ChatHealthy.AI."},
     {"role": "assistant", "content": "I'd love to tell you more."},
 ]
 
+# Case 1: includes the verbatim consent exchange — self-evidencing in the stored transcript
+SAMPLE_HISTORY_VERBATIM_CONSENT = SAMPLE_HISTORY_NO_CONSENT + [
+    {"role": "assistant", "content": "May we save a verbatim transcript of this conversation with your contact details?"},
+    {"role": "user",      "content": "Yes, that's fine."},
+]
+
+# Cases 2 & 3: consent exchange for summary (or none) — no verbatim transcript stored
+SAMPLE_HISTORY_SUMMARY_CONSENT = SAMPLE_HISTORY_NO_CONSENT + [
+    {"role": "assistant", "content": "May we save a verbatim transcript of this conversation with your contact details?"},
+    {"role": "user",      "content": "No."},
+    {"role": "assistant", "content": "May we save a de-identified summary of this conversation instead?"},
+    {"role": "user",      "content": "Yes, a summary is fine."},
+]
+
+SAMPLE_HISTORY_NO_HISTORY_CONSENT = SAMPLE_HISTORY_NO_CONSENT + [
+    {"role": "assistant", "content": "May we save a verbatim transcript of this conversation with your contact details?"},
+    {"role": "user",      "content": "No."},
+    {"role": "assistant", "content": "May we save a de-identified summary of this conversation instead?"},
+    {"role": "user",      "content": "No, please don't save anything."},
+]
+
 PII_MARKERS = ["Jane Doe", "03/15/1972", "Los Angeles"]
+
+# Consent phrases that must appear in the verbatim transcript
+CONSENT_MARKERS = [
+    "May we save a verbatim transcript",
+    "Yes, that's fine.",
+]
 
 
 def _get_lead_coll():
@@ -70,7 +97,7 @@ class TestE2ERecordUserDetails(unittest.TestCase):
             email=EMAIL_C1,
             name=NAME,
             notes="E2E test — full consent",
-            chat_history=SAMPLE_HISTORY,
+            chat_history=SAMPLE_HISTORY_VERBATIM_CONSENT,
             consent_verbatim=True,
             consent_summary=None,
             testdata=True,
@@ -88,11 +115,14 @@ class TestE2ERecordUserDetails(unittest.TestCase):
         full_text = " ".join(m["content"] for m in record["chat_history"])
         for pii in PII_MARKERS:
             self.assertIn(pii, full_text, f"Expected PII '{pii}' intact in verbatim record")
+        # Consent exchange must be present in the transcript — self-evidencing
+        for phrase in CONSENT_MARKERS:
+            self.assertIn(phrase, full_text, f"Consent phrase '{phrase}' missing from verbatim transcript")
 
         self.assertIn("datetime", record)
         datetime.fromisoformat(record["datetime"])
 
-        print(f"\n[Case 1] consent_verbatim=True | PII intact | datetime={record['datetime']}")
+        print(f"\n[Case 1] consent_verbatim=True | PII intact | consent exchange present | datetime={record['datetime']}")
 
     # ── Case 2: Summary consent ───────────────────────────────────────────────
     def test_case2_summary_consent(self):
@@ -105,7 +135,7 @@ class TestE2ERecordUserDetails(unittest.TestCase):
             email=EMAIL_C2,
             name=NAME,
             notes="E2E test — summary consent",
-            chat_history=SAMPLE_HISTORY,
+            chat_history=SAMPLE_HISTORY_SUMMARY_CONSENT,
             consent_verbatim=False,
             consent_summary=True,
             testdata=True,
@@ -144,7 +174,7 @@ class TestE2ERecordUserDetails(unittest.TestCase):
             email=EMAIL_C3,
             name=NAME,
             notes="E2E test — contact only",
-            chat_history=SAMPLE_HISTORY,
+            chat_history=SAMPLE_HISTORY_NO_HISTORY_CONSENT,
             consent_verbatim=False,
             consent_summary=False,
             testdata=True,

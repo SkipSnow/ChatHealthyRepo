@@ -41,12 +41,18 @@ EMAIL = "john.smith@hospital.org"
 NAME  = "John Smith"
 NOTES = "Interested in hospital network management."
 
-# Contains PII — used to verify verbatim vs de-identified behaviour
-SAMPLE_HISTORY = [
+# Base conversation with PII
+_BASE_HISTORY = [
     {"role": "user",      "content": "Hi, I am John Smith, DOB 01/01/1980, from New York."},
     {"role": "assistant", "content": "Hello John! How can I help you today?"},
     {"role": "user",      "content": "I want to learn more about ChatHealthy for my hospital."},
     {"role": "assistant", "content": "I'd be happy to tell you more."},
+]
+
+# Case 1: verbatim consent exchange included — self-evidencing in stored transcript
+SAMPLE_HISTORY = _BASE_HISTORY + [
+    {"role": "assistant", "content": "May we save a verbatim transcript of this conversation with your contact details?"},
+    {"role": "user",      "content": "Yes, that's fine."},
 ]
 
 
