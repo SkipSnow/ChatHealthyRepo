@@ -77,7 +77,7 @@ def _format_chat_history(messages):
 
 
 def record_user_details(email="", name="Name not provided", notes="not provided", message="",
-                        chat_history=None, consent_verbatim=False, consent_summary=None):
+                        chat_history=None, consent_verbatim=False, consent_summary=None, testdata=False):
     if not email or not str(email).strip():
         return {"recorded": "ok", "note": "Email required but not provided"}
     db = _get_db()
@@ -98,6 +98,7 @@ def record_user_details(email="", name="Name not provided", notes="not provided"
         "consent_verbatim": consent_verbatim,
         "consent_summary": consent_summary,
         "datetime": datetime.now().isoformat(),
+        "testdata": testdata,
     }
     if consent_verbatim:
         record["chat_history"] = chat_history or []

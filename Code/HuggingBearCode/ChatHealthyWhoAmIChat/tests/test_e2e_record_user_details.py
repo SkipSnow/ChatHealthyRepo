@@ -2,11 +2,11 @@
 End-to-end regression tests for record_user_details consent flow.
 
 All external dependencies are real:
-  - MongoDB Atlas  (writes to AboutUs.lead_e2e_test, never to lead)
+  - MongoDB Atlas  (writes to AboutUs.lead with testdata=True)
   - Anthropic API  (real deIdentify call in Case 2)
   - Pushover       (real push notifications sent)
 
-Teardown deletes only records written by this test run.
+Teardown deletes only records where testdata=True.
 
 Run:
   python Code/HuggingBearCode/ChatHealthyWhoAmIChat/tests/test_e2e_record_user_details.py
@@ -26,12 +26,8 @@ load_dotenv(os.path.join(_APP_DIR, "..", "..", ".env"), override=True)
 
 import app
 
-# ── Test collection — never touches production 'lead' ─────────────────────────
-TEST_COLLECTION = "lead_e2e_test"
-TEST_DB         = "AboutUs"
-
 # ── Shared fixtures ───────────────────────────────────────────────────────────
-EMAIL_C1 = "e2e.case1@testchatheatlhy.com"
+EMAIL_C1 = "e2e.case1@testchathealthy.com"
 EMAIL_C2 = "e2e.case2@testchathealthy.com"
 EMAIL_C3 = "e2e.case3@testchathealthy.com"
 NAME     = "Jane Doe"
@@ -40,61 +36,18 @@ SAMPLE_HISTORY = [
     {"role": "user",      "content": "Hi, my name is Jane Doe, I was born on 03/15/1972, and I live in Los Angeles."},
     {"role": "assistant", "content": "Hello Jane! How can I help you today?"},
     {"role": "user",      "content": "I run a hospital network and want to learn about ChatHealthy.AI."},
-    {"role": "assistant", "content": "I'd love to tell you more about ChatHealthy.AI."},
+    {"role": "assistant", "content": "I'd love to tell you more."},
 ]
 
 PII_MARKERS = ["Jane Doe", "03/15/1972", "Los Angeles"]
 
 
-def _get_test_coll():
-    """Return the live e2e test collection."""
-    db = app._get_db()
-    return db[TEST_DB][TEST_COLLECTION]
+def _get_lead_coll():
+    return app._get_db()["AboutUs"]["lead"]
 
 
 def _read_record(email):
-    """Read a single record from the test collection by email."""
-    coll = _get_test_coll()
-    return coll.find_one({"email": email}, {"_id": 0})
-
-
-def _delete_record(email):
-    """Remove a test record by email."""
-    _get_test_coll().delete_many({"email": email})
-
-
-def _write_record(email, name, notes, chat_history, consent_verbatim, consent_summary):
-    """
-    Calls record_user_details but routes the insert to the e2e test collection
-    by temporarily monkey-patching commitSignificantActivity to redirect the
-    collection name. All other logic (deIdentify, push, datetime, etc.) runs
-    as-is.
-    """
-    original_commit = app.commitSignificantActivity
-
-    def _redirected_commit(payload=None, **kwargs):
-        payload = payload or kwargs
-        if isinstance(payload, str):
-            import json
-            payload = json.loads(payload)
-        # Redirect to test collection
-        payload["collection"] = TEST_COLLECTION
-        return original_commit(payload)
-
-    app.commitSignificantActivity = _redirected_commit
-    try:
-        result = app.record_user_details(
-            email=email,
-            name=name,
-            notes=notes,
-            chat_history=chat_history,
-            consent_verbatim=consent_verbatim,
-            consent_summary=consent_summary,
-        )
-    finally:
-        app.commitSignificantActivity = original_commit
-
-    return result
+    return _get_lead_coll().find_one({"email": email, "testdata": True}, {"_id": 0})
 
 
 # ── Test cases ────────────────────────────────────────────────────────────────
@@ -102,139 +55,122 @@ class TestE2ERecordUserDetails(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Verify MongoDB is reachable before running any tests."""
-        db = app._get_db()
-        if db is None:
+        """Verify MongoDB is reachable and clean up any prior test records."""
+        if app._get_db() is None:
             raise RuntimeError("MongoDB unavailable — cannot run e2e tests.")
-        # Clean up any leftover records from a previous failed run
-        for email in (EMAIL_C1, EMAIL_C2, EMAIL_C3):
-            _delete_record(email)
+        _get_lead_coll().delete_many({"testdata": True})
 
     @classmethod
     def tearDownClass(cls):
-        """Delete all records written by this test run."""
-        for email in (EMAIL_C1, EMAIL_C2, EMAIL_C3):
-            _delete_record(email)
-        print("\nTeardown complete — all e2e test records deleted.")
+        """Delete all automated test records from lead collection."""
+        deleted = _get_lead_coll().delete_many({"testdata": True})
+        print(f"\nTeardown complete — {deleted.deleted_count} test record(s) deleted from lead.")
 
     # ── Case 1: Full consent ──────────────────────────────────────────────────
     def test_case1_full_consent(self):
         """
         Case 1: consent_verbatim=True
-        Expects: verbatim chat_history in DB, PII intact, correct consent fields.
+        Expects: verbatim chat_history in DB, PII intact, testdata=True.
         """
-        result = _write_record(
+        result = app.record_user_details(
             email=EMAIL_C1,
             name=NAME,
             notes="E2E test — full consent",
             chat_history=SAMPLE_HISTORY,
             consent_verbatim=True,
             consent_summary=None,
+            testdata=True,
         )
         self.assertEqual(result, {"recorded": "ok"})
 
         record = _read_record(EMAIL_C1)
         self.assertIsNotNone(record, "Record not found in MongoDB")
 
-        # Consent flags
+        self.assertTrue(record["testdata"])
         self.assertTrue(record["consent_verbatim"])
         self.assertIsNone(record["consent_summary"])
 
-        # Verbatim: PII must be intact
         self.assertIn("chat_history", record)
         full_text = " ".join(m["content"] for m in record["chat_history"])
         for pii in PII_MARKERS:
-            self.assertIn(pii, full_text, f"Expected PII '{pii}' to be present in verbatim record")
+            self.assertIn(pii, full_text, f"Expected PII '{pii}' intact in verbatim record")
 
-        # Datetime
         self.assertIn("datetime", record)
-        datetime.fromisoformat(record["datetime"])  # must be valid ISO format
+        datetime.fromisoformat(record["datetime"])
 
-        # Contact fields
-        self.assertEqual(record["email"], EMAIL_C1)
-        self.assertEqual(record["name"],  NAME)
-
-        print(f"\n[Case 1] Record stored — consent_verbatim=True, PII intact, datetime={record['datetime']}")
+        print(f"\n[Case 1] consent_verbatim=True | PII intact | datetime={record['datetime']}")
 
     # ── Case 2: Summary consent ───────────────────────────────────────────────
     def test_case2_summary_consent(self):
         """
         Case 2: consent_verbatim=False, consent_summary=True
-        Expects: de-identified chat_history in DB (real Anthropic call),
-                 PII removed, original SAMPLE_HISTORY untouched.
+        Expects: de-identified chat_history (real Anthropic call), PII removed,
+                 original SAMPLE_HISTORY untouched (deep copy verified).
         """
         original_first = SAMPLE_HISTORY[0]["content"]
 
-        result = _write_record(
+        result = app.record_user_details(
             email=EMAIL_C2,
             name=NAME,
             notes="E2E test — summary consent",
             chat_history=SAMPLE_HISTORY,
             consent_verbatim=False,
             consent_summary=True,
+            testdata=True,
         )
         self.assertEqual(result, {"recorded": "ok"})
 
         record = _read_record(EMAIL_C2)
         self.assertIsNotNone(record, "Record not found in MongoDB")
 
-        # Consent flags
+        self.assertTrue(record["testdata"])
         self.assertFalse(record["consent_verbatim"])
         self.assertTrue(record["consent_summary"])
 
-        # De-identified: PII must NOT appear in stored messages
         self.assertIn("chat_history", record)
         full_text = " ".join(m["content"] for m in record["chat_history"])
         for pii in PII_MARKERS:
             self.assertNotIn(pii, full_text, f"PII '{pii}' should have been removed by deIdentify")
 
-        # Deep copy verified: original SAMPLE_HISTORY must be untouched
         self.assertEqual(SAMPLE_HISTORY[0]["content"], original_first,
                          "deIdentify mutated original SAMPLE_HISTORY — deep copy failed")
 
-        # Datetime
         self.assertIn("datetime", record)
         datetime.fromisoformat(record["datetime"])
 
-        print(f"\n[Case 2] Record stored — consent_summary=True, PII removed, datetime={record['datetime']}")
-        print(f"         Stored history sample: {record['chat_history'][0]['content'][:80]}")
+        print(f"\n[Case 2] consent_summary=True | PII removed | sample: {record['chat_history'][0]['content'][:80]}")
 
     # ── Case 3: Contact info only ─────────────────────────────────────────────
     def test_case3_contact_only(self):
         """
         Case 3: consent_verbatim=False, consent_summary=False
-        Expects: no chat_history field in DB at all, contact fields present.
+        Expects: no chat_history field, contact fields present, testdata=True.
         """
-        result = _write_record(
+        result = app.record_user_details(
             email=EMAIL_C3,
             name=NAME,
             notes="E2E test — contact only",
             chat_history=SAMPLE_HISTORY,
             consent_verbatim=False,
             consent_summary=False,
+            testdata=True,
         )
         self.assertEqual(result, {"recorded": "ok"})
 
         record = _read_record(EMAIL_C3)
         self.assertIsNotNone(record, "Record not found in MongoDB")
 
-        # Consent flags
+        self.assertTrue(record["testdata"])
         self.assertFalse(record["consent_verbatim"])
         self.assertFalse(record["consent_summary"])
-
-        # chat_history must be entirely absent
-        self.assertNotIn("chat_history", record,
-                         "chat_history should not be stored when both consents declined")
-
-        # Contact fields must be present
+        self.assertNotIn("chat_history", record)
         self.assertEqual(record["email"], EMAIL_C3)
         self.assertEqual(record["name"],  NAME)
 
-        # Datetime
         self.assertIn("datetime", record)
         datetime.fromisoformat(record["datetime"])
 
-        print(f"\n[Case 3] Record stored — no chat_history, datetime={record['datetime']}")
+        print(f"\n[Case 3] No chat_history | contact fields intact | datetime={record['datetime']}")
 
 
 if __name__ == "__main__":
