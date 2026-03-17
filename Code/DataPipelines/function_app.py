@@ -39,7 +39,6 @@ def dev_pipeline_management(req: func.HttpRequest) -> func.HttpResponse:
         body = json.dumps({
             "success": True,
             "message": f"Hello, {user_id}! Welcome to the secured pipeline.",
-            "router": PileLineRouter,
             "ChatHealthyTask": task,
         })
         return func.HttpResponse(
