@@ -37,8 +37,7 @@ jobs:
           cd Code/DataPipelines
           cp requirements-pipeline.txt requirements.txt
           zip -r deploy.zip . --exclude "*.pyc" --exclude "__pycache__/*" --exclude "venv/*" --exclude "venv_func/*" --exclude "local.settings.json" --exclude ".env"
-          az functionapp deploy \
+          az functionapp deployment source config-zip \
             --resource-group FindCareDataPipelines-Dev \
             --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \
-            --src-path deploy.zip \
-            --type zip
+            --src deploy.zip
