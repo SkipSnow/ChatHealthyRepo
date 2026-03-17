@@ -25,9 +25,9 @@ for _mod in _STUBS:
     sys.modules.setdefault(_mod, MagicMock())
 
 # Provide minimal env vars so module-level app code doesn't crash
-os.environ.setdefault("MONGO_connectionString", "")
-os.environ.setdefault("OPENAI_API_KEY",         "test-key")
-os.environ.setdefault("Anthropic_API_KEY",       "test-key")
+os.environ.setdefault("MONGO_CONNECTION_STRING", "")
+os.environ.setdefault("OPENAI_API_KEY",          "test-key")
+os.environ.setdefault("ANTHROPIC_API_KEY",        "test-key")
 os.environ.setdefault("PUSHOVER_USER",           "test")
 os.environ.setdefault("PUSHOVER_TOKEN",          "test")
 

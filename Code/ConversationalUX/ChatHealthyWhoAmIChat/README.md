@@ -12,10 +12,10 @@ Add these in your Space's **Settings** → **Variables and Secrets** section:
 | Variable Name | Description |
 |---------------|-------------|
 | `OPENAI_API_KEY` | OpenAI API key for the chat model |
-| `MONGO_connectionString` | MongoDB connection string |
+| `MONGO_CONNECTION_STRING` | MongoDB connection string |
 | `PUSHOVER_USER` | Pushover user key (for notifications) |
 | `PUSHOVER_TOKEN` | Pushover API token |
-| `Anthropic_API_KEY` | Anthropic API key (for HIPAA deidentification) |
+| `ANTHROPIC_API_KEY` | Anthropic API key (for HIPAA deidentification) |
 
 ### MongoDB Atlas (if using Atlas)
 

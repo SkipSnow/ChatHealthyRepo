@@ -30,7 +30,7 @@ jobs:
           python -m pytest Code/ConversationalUX/ChatHealthyWhoAmIChat/tests/test_record_user_details.py -v
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          Anthropic_API_KEY: ${{ secrets.Anthropic_API_KEY }}
-          MONGO_connectionString: ${{ secrets.MONGO_connectionString }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MONGO_CONNECTION_STRING: ${{ secrets.MONGO_CONNECTION_STRING }}
           PUSHOVER_USER: ${{ secrets.PUSHOVER_USER }}
           PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}

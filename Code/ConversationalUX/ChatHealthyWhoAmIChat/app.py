@@ -13,7 +13,7 @@ from ChatHealthyMongoUtilities import ChatHealthyMongoUtilities
 load_dotenv(override=True)
 
 # MongoDB - lazy connection (connects on first use; app starts even if Mongo is unreachable)
-_mongo_conn_str = os.getenv("MONGO_connectionString") or ""
+_mongo_conn_str = os.getenv("MONGO_CONNECTION_STRING") or ""
 DBManager = ChatHealthyMongoUtilities(
     _mongo_conn_str,
     connect_timeout_ms=10000,
@@ -115,7 +115,7 @@ def _summarize_conversation(chat_history):
     """Ask Claude Haiku to produce a brief 2-3 sentence summary of the conversation."""
     if not chat_history:
         return ""
-    client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
+    client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     chat_json = json.dumps(
         [{"role": m.get("role", ""), "content": m.get("content") or ""} for m in chat_history],
         indent=2
@@ -139,7 +139,7 @@ def deIdentify(argChat_history):
     """
     if not argChat_history:
         return
-    client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
+    client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     model = "claude-haiku-4-5-20251001"
     chat_json = json.dumps([{"role": m.get("role", ""), "content": m.get("content") or ""} for m in argChat_history], indent=2)
     deidentify_prompt = """Deidentify the following chat conversation so it meets HIPAA Safe Harbor requirements for research data.
