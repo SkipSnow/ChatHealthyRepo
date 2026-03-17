@@ -5,6 +5,8 @@ import io
 import requests
 from bs4 import BeautifulSoup
 from azure.storage.blob import BlobServiceClient
+from openai import OpenAI
+from pymongo import UpdateOne
 
 from ChatHealthyMongoUtilities import ChatHealthyMongoUtilities
 
@@ -148,6 +150,55 @@ class ChatHealthyLoadSpecialtyData:
             mongo.close()
 
 
+    # ------------------------------------------------------------------
+    # Step 4: Generate and store embeddings
+    # ------------------------------------------------------------------
+
+    def generate_embeddings(self) -> int:
+        """Embed each record using text-embedding-3-small and write back to MongoDB.
+
+        Embedding text: Classification | Specialization | Display Name | Definition
+        Returns number of records updated.
+        """
+        openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        mongo = ChatHealthyMongoUtilities(os.getenv("MONGO_connectionString"))
+        try:
+            col = mongo.getConnection()[self.db_name][self.collection_name]
+            docs = list(col.find({}, {"_id": 1, "Classification": 1, "Specialization": 1,
+                                      "Display Name": 1, "Definition": 1}))
+            print(f"Generating embeddings for {len(docs):,} records...")
+
+            BATCH = 128
+            updated = 0
+            for i in range(0, len(docs), BATCH):
+                batch = docs[i:i + BATCH]
+                texts = [
+                    " | ".join(filter(None, [
+                        d.get("Classification", ""),
+                        d.get("Specialization", ""),
+                        d.get("Display Name", ""),
+                        d.get("Definition", ""),
+                    ]))
+                    for d in batch
+                ]
+                response = openai_client.embeddings.create(
+                    model="text-embedding-3-small",
+                    input=texts,
+                )
+                ops = [
+                    UpdateOne({"_id": doc["_id"]}, {"$set": {"embedding": item.embedding}})
+                    for doc, item in zip(batch, response.data)
+                ]
+                col.bulk_write(ops, ordered=False)
+                updated += len(ops)
+                print(f"  Embedded {updated:,}/{len(docs):,}")
+
+            print(f"Embeddings written for {updated:,} records.")
+            return updated
+        finally:
+            mongo.close()
+
+
 # ------------------------------------------------------------------
 # Entry point called from function_app.py dispatch
 # ------------------------------------------------------------------
@@ -158,4 +209,5 @@ def run_load_specialty_data() -> dict:
     loader.fetch_csv()
     blob_name = loader.store_to_blob()
     count = loader.load_to_mongo()
-    return {"blob": blob_name, "inserted": count}
+    embedded = loader.generate_embeddings()
+    return {"blob": blob_name, "inserted": count, "embedded": embedded}
