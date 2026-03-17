@@ -170,6 +170,41 @@ Chat conversation:
             argChat_history[i]["content"] = content
 
 
+def find_specialty_codes(query: str) -> dict:
+    """Embed query and vector-search NUCC taxonomy. Returns matching specialty codes."""
+    db = _get_db()
+    if db is None:
+        return {"error": "Database unavailable"}
+    openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    query_vector = openai_client.embeddings.create(
+        model="text-embedding-3-small",
+        input=query,
+    ).data[0].embedding
+    pipeline = [
+        {
+            "$vectorSearch": {
+                "index": "specialty_vector_index",
+                "path": "embedding",
+                "queryVector": query_vector,
+                "numCandidates": 50,
+                "limit": 10,
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "Code": 1,
+                "Classification": 1,
+                "Specialization": 1,
+                "Display Name": 1,
+                "score": {"$meta": "vectorSearchScore"},
+            }
+        },
+    ]
+    results = list(db["PublicHealthData"]["SpecialtyMetaData"].aggregate(pipeline))
+    return {"specialties": results}
+
+
 def record_unknown_question(question, chat_history=None):
     if chat_history is not None:
         deIdentify(chat_history)
@@ -243,10 +278,29 @@ commitSignificantActivity_json = {
     }
 }
 
+find_specialty_codes_json = {
+    "name": "find_specialty_codes",
+    "description": (
+        "Look up NUCC provider taxonomy codes matching a medical specialty or provider type. "
+        "Call this when the user asks about a type of doctor, specialist, or medical provider — "
+        "for example 'cardiologist', 'OB-GYN', 'pediatrician', 'heart doctor'. "
+        "Returns matching taxonomy codes with classification and specialization details."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "query": {"type": "string", "description": "The specialty or provider type to look up (e.g. 'cardiologist', 'pediatric surgeon')"}
+        },
+        "required": ["query"],
+        "additionalProperties": False
+    }
+}
+
 tools = [
     {"type": "function", "function": record_user_details_json},
     {"type": "function", "function": record_unknown_question_json},
-    {"type": "function", "function": commitSignificantActivity_json}
+    {"type": "function", "function": commitSignificantActivity_json},
+    {"type": "function", "function": find_specialty_codes_json},
 ]
 
 
@@ -302,9 +356,10 @@ class Me:
             f"RULE 2 — NO HEDGING: You are PROHIBITED from using any hedging language: 'I think', 'probably', 'might', "
             f"'I believe', 'I'm not sure', 'it seems', 'I'd imagine', 'I'd guess', or similar. "
             f"If you would reach for any of these words, that is your signal to call record_unknown_question instead of answering.\n"
-            f"RULE 3 — MEDICAL/HEALTH TOPICS: ANY question touching on medical advice, clinical information, treatments, diagnoses, "
-            f"or health recommendations must be declined without exception. Call record_unknown_question first, "
-            f"then tell the user this is not something you can advise on and they should consult a qualified professional.\n"
+            f"RULE 3 — MEDICAL/HEALTH TOPICS: Questions about medical advice, diagnoses, treatments, or clinical recommendations "
+            f"must be declined — call record_unknown_question first, then refer the user to a qualified professional. "
+            f"EXCEPTION: Questions about types of medical specialists or provider categories (e.g. 'what is a cardiologist?', "
+            f"'what kinds of heart doctors are there?') are allowed — use the find_specialty_codes tool to look them up.\n"
             f"RULE 4 — TOOL CALL ORDER: Always call record_unknown_question BEFORE composing your response. Never answer first and record second.\n"
             f"RULE 5 — EACH QUESTION SEPARATELY: If a user asks multiple questions in one message and some are unknown, "
             f"record each unknown question with a separate tool call.\n"
