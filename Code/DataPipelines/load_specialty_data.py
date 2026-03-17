@@ -124,12 +124,16 @@ class ChatHealthyLoadSpecialtyData:
             col.delete_many({})
             print(f"Cleared {self.db_name}.{self.collection_name}")
 
+            version = self._csv_filename.rsplit("_", 1)[-1].split(".")[0]
+
             reader = csv.DictReader(io.StringIO(self._csv_content))
             batch = []
             inserted = 0
 
-            for row in reader:
+            for record_number, row in enumerate(reader, start=1):
                 doc = {field: (row.get(field) or "").strip() for field in EXPECTED_FIELDS}
+                doc["version"] = version
+                doc["record_number"] = record_number
                 batch.append(doc)
                 if len(batch) >= 128:
                     inserted += len(col.insert_many(batch, ordered=False).inserted_ids)
