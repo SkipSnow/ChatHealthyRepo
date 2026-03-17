@@ -8,4 +8,8 @@ Authorization: Bearer 6PVi_lZfZYOriyQ1oU-sPfNm5gcFGK0SbVJ0OtZdAsE
 ### DevPipelineManagmentService - POST
 POST {{baseUrl}}/api/Router
 Authorization: Bearer 6PVi_lZfZYOriyQ1oU-sPfNm5gcFGK0SbVJ0OtZdAsE
-Content-Type: text/plain
+Content-Type: application/json
+
+{
+    "ChatHealthyTask": "LoadSpecialtyData"
+}
