@@ -11,6 +11,7 @@ load_dotenv(_env_path)
 import azure.functions as func
 
 from auth import require_auth
+from load_specialty_data import run_load_specialty_data
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -20,7 +21,7 @@ PileLineRouter="Router"
 def dev_pipeline_management(req: func.HttpRequest) -> func.HttpResponse:
     """Dev Pipeline Management Service - requires Bearer token, returns greeting for authenticated user."""
     try:
-        user_id, err = require_auth(req)
+        _user_id, err = require_auth(req)
         if err:
             status_code, message = err
             return func.HttpResponse(
@@ -39,11 +40,18 @@ def dev_pipeline_management(req: func.HttpRequest) -> func.HttpResponse:
         except Exception:
             req_body = {}
         task = req_body.get("ChatHealthyTask", "not provided")
-        body = json.dumps({
-            "success": True,
-            "message": f"Hello, {user_id}! Welcome to the secured pipeline.",
-            "ChatHealthyTask": task,
-        })
+
+        match task:
+            case "LoadSpecialtyData":
+                result = run_load_specialty_data()
+                body = json.dumps({"success": True, "ChatHealthyTask": task, **result})
+            case _:
+                body = json.dumps({
+                    "success": False,
+                    "message": f"Unknown task: {task}",
+                    "ChatHealthyTask": task,
+                })
+
         return func.HttpResponse(
             body=body,
             status_code=200,
