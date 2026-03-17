@@ -243,6 +243,18 @@ def find_specialty_codes(query: str) -> dict:
             seen.add(doc["Code"])
             all_codes.append(doc)
 
+    # --- DEV CODE START ---
+    if "debug" in query.lower():
+        return {
+            "debug": True,
+            "query": query,
+            "stems_used_for_regex": stems,
+            "regex_fields_searched": ["Specialization", "Display Name"],
+            "classifications_from_vector_search": classifications,
+            "total_codes_found": len(all_codes),
+        }
+    # --- DEV CODE END ---
+
     return {"specialties": all_codes, "matched_classifications": classifications, "stems": stems}
 
 
