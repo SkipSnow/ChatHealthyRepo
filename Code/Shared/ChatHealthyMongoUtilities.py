@@ -24,7 +24,7 @@ class ChatHealthyMongoUtilities:
 
     Behavior:
     - Constructor creates and validates a MongoClient via ping
-    - get_connection() returns the existing client after ping validation
+    - getConnection() returns the existing client after ping validation
     - Raises exceptions if connection or ping fails
     - Automatically closes the client when the object is destroyed
     - Supports context-manager usage (with ...)
@@ -93,7 +93,7 @@ class ChatHealthyMongoUtilities:
     # Context manager support
     # ------------------------------------------------------------------
     def __enter__(self) -> MongoClient:
-        return self.get_connection()
+        return self.getConnection()
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.close()
