@@ -35,6 +35,7 @@ jobs:
       - name: Deploy to Azure Functions
         run: |
           cd Code/DataPipelines
+          cp requirements-pipeline.txt requirements.txt
           zip -r deploy.zip . --exclude "*.pyc" --exclude "__pycache__/*" --exclude "venv/*" --exclude "venv_func/*" --exclude "local.settings.json" --exclude ".env"
           az functionapp deploy \
             --resource-group FindCareDataPipelines-Dev \
