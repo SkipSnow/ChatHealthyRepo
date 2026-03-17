@@ -1,4 +1,4 @@
-# Replace with your Function App URL from Azure Portal (Overview → URL)
+# Function App URL from Azure Portal (Overview → URL)
 @baseUrl = https://devpipelinemanagmentservice-hqa9f5b0b7b4hqgg.eastus2-01.azurewebsites.net
 @ChatHealthyTask = LoadSpecialtyData
 
