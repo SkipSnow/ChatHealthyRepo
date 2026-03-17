@@ -170,50 +170,80 @@ Chat conversation:
             argChat_history[i]["content"] = content
 
 
+def _expand_query_terms(query: str) -> list[str]:
+    """Use Haiku to expand a specialty query into keyword stems for regex search."""
+    client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
+    response = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=128,
+        messages=[{"role": "user", "content": (
+            "You are helping search a medical provider taxonomy database. "
+            "Given the specialty query, return a JSON array of 2-5 lowercase keyword stems "
+            "to search for in Specialization and Display Name fields. "
+            "Return ONLY the JSON array, no other text.\n\n"
+            "Examples:\n"
+            "Query: pediatrician -> [\"pediatric\", \"child\"]\n"
+            "Query: cardiologist -> [\"cardio\", \"cardiac\", \"cardiovascular\"]\n"
+            "Query: OB-GYN -> [\"obstetric\", \"gynecolog\", \"maternal\", \"fetal\"]\n\n"
+            f"Query: {query}"
+        )}],
+    )
+    return json.loads(response.content[0].text.strip())
+
+
 def find_specialty_codes(query: str) -> dict:
-    """Find all NUCC codes for a specialty by first identifying matching classifications
-    via vector search, then fetching every code in those classifications."""
+    """Hybrid search: vector search for matching classifications + regex search for
+    keyword stems. Returns the complete set of matching NUCC codes."""
     db = _get_db()
     if db is None:
         return {"error": "Database unavailable"}
 
+    projection = {"_id": 0, "Code": 1, "Classification": 1, "Specialization": 1, "Display Name": 1}
+
+    # Step 1: expand query to keyword stems via Haiku
+    stems = _expand_query_terms(query)
+
+    # Step 2: vector search → identify best-matching classifications → fetch all codes
     openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     query_vector = openai_client.embeddings.create(
         model="text-embedding-3-small",
         input=query,
     ).data[0].embedding
 
-    # Step 1: vector search to identify the best-matching classifications
-    pipeline = [
-        {
-            "$vectorSearch": {
-                "index": "specialty_vector_index",
-                "path": "embedding",
-                "queryVector": query_vector,
-                "numCandidates": 100,
-                "limit": 5,
-            }
-        },
-        {
-            "$project": {
-                "_id": 0,
-                "Classification": 1,
-                "score": {"$meta": "vectorSearchScore"},
-            }
-        },
-    ]
-    top = list(db["PublicHealthData"]["SpecialtyMetaData"].aggregate(pipeline))
+    top = list(db["PublicHealthData"]["SpecialtyMetaData"].aggregate([
+        {"$vectorSearch": {
+            "index": "specialty_vector_index",
+            "path": "embedding",
+            "queryVector": query_vector,
+            "numCandidates": 100,
+            "limit": 5,
+        }},
+        {"$project": {"_id": 0, "Classification": 1, "score": {"$meta": "vectorSearchScore"}}},
+    ]))
     classifications = list({m["Classification"] for m in top if m.get("score", 0) > 0.4})
+    vector_codes = list(db["PublicHealthData"]["SpecialtyMetaData"].find(
+        {"Classification": {"$in": classifications}}, projection
+    )) if classifications else []
 
-    if not classifications:
-        return {"specialties": [], "matched_classifications": []}
+    # Step 3: regex search — any stem in Specialization or Display Name
+    regex_clauses = [
+        {field: {"$regex": stem, "$options": "i"}}
+        for stem in stems
+        for field in ("Specialization", "Display Name")
+    ]
+    regex_codes = list(db["PublicHealthData"]["SpecialtyMetaData"].find(
+        {"$or": regex_clauses}, projection
+    )) if regex_clauses else []
 
-    # Step 2: fetch ALL codes for those classifications
-    all_codes = list(db["PublicHealthData"]["SpecialtyMetaData"].find(
-        {"Classification": {"$in": classifications}},
-        {"_id": 0, "Code": 1, "Classification": 1, "Specialization": 1, "Display Name": 1},
-    ))
-    return {"specialties": all_codes, "matched_classifications": classifications}
+    # Step 4: union, deduplicate by Code
+    seen = set()
+    all_codes = []
+    for doc in vector_codes + regex_codes:
+        if doc["Code"] not in seen:
+            seen.add(doc["Code"])
+            all_codes.append(doc)
+
+    return {"specialties": all_codes, "matched_classifications": classifications, "stems": stems}
 
 
 def record_unknown_question(question, chat_history=None):
