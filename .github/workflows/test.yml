@@ -23,6 +23,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          pip install pytest
           pip install -r Code/ConversationalUX/ChatHealthyWhoAmIChat/requirements.txt
 
       - name: Run unit tests
