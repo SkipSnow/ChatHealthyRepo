@@ -171,38 +171,49 @@ Chat conversation:
 
 
 def find_specialty_codes(query: str) -> dict:
-    """Embed query and vector-search NUCC taxonomy. Returns matching specialty codes."""
+    """Find all NUCC codes for a specialty by first identifying matching classifications
+    via vector search, then fetching every code in those classifications."""
     db = _get_db()
     if db is None:
         return {"error": "Database unavailable"}
+
     openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     query_vector = openai_client.embeddings.create(
         model="text-embedding-3-small",
         input=query,
     ).data[0].embedding
+
+    # Step 1: vector search to identify the best-matching classifications
     pipeline = [
         {
             "$vectorSearch": {
                 "index": "specialty_vector_index",
                 "path": "embedding",
                 "queryVector": query_vector,
-                "numCandidates": 50,
-                "limit": 10,
+                "numCandidates": 100,
+                "limit": 5,
             }
         },
         {
             "$project": {
                 "_id": 0,
-                "Code": 1,
                 "Classification": 1,
-                "Specialization": 1,
-                "Display Name": 1,
                 "score": {"$meta": "vectorSearchScore"},
             }
         },
     ]
-    results = list(db["PublicHealthData"]["SpecialtyMetaData"].aggregate(pipeline))
-    return {"specialties": results}
+    top = list(db["PublicHealthData"]["SpecialtyMetaData"].aggregate(pipeline))
+    classifications = list({m["Classification"] for m in top if m.get("score", 0) > 0.4})
+
+    if not classifications:
+        return {"specialties": [], "matched_classifications": []}
+
+    # Step 2: fetch ALL codes for those classifications
+    all_codes = list(db["PublicHealthData"]["SpecialtyMetaData"].find(
+        {"Classification": {"$in": classifications}},
+        {"_id": 0, "Code": 1, "Classification": 1, "Specialization": 1, "Display Name": 1},
+    ))
+    return {"specialties": all_codes, "matched_classifications": classifications}
 
 
 def record_unknown_question(question, chat_history=None):
