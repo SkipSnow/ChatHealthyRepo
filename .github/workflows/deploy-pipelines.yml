@@ -36,7 +36,8 @@ jobs:
         run: |
           cd Code/DataPipelines
           zip -r deploy.zip . --exclude "*.pyc" --exclude "__pycache__/*" --exclude "venv/*" --exclude "venv_func/*" --exclude "local.settings.json" --exclude ".env"
-          az functionapp deployment source config-zip \
+          az functionapp deploy \
             --resource-group FindCareDataPipelines-Dev \
             --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \
-            --src deploy.zip
+            --src-path deploy.zip \
+            --type zip
