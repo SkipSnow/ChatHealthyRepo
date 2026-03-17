@@ -7,3 +7,4 @@ Use of the code is governed by the FindCare Evaluation License (FEL-1.0), locate
 
 ./legal/licence.txt
 # trigger
+# verify secrets
