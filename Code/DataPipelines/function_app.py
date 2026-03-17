@@ -34,7 +34,10 @@ def dev_pipeline_management(req: func.HttpRequest) -> func.HttpResponse:
                 status_code=405,
                 mimetype="text/plain",
             )
-        req_body = req.get_json(silent=True) or {}
+        try:
+            req_body = req.get_json()
+        except Exception:
+            req_body = {}
         task = req_body.get("ChatHealthyTask", "not provided")
         body = json.dumps({
             "success": True,
