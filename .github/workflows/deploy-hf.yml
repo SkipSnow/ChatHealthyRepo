@@ -5,7 +5,7 @@ on:
     branches:
       - master
     paths:
-      - 'Code/HuggingBearCode/ChatHealthyWhoAmIChat/**'
+      - 'Code/ConversationalUX/ChatHealthyWhoAmIChat/**'
 
 jobs:
   deploy:
@@ -38,7 +38,7 @@ jobs:
             --exclude='*.pyc' \
             --exclude='.venv' \
             --exclude='tests/' \
-            Code/HuggingBearCode/ChatHealthyWhoAmIChat/ hf_space/
+            Code/ConversationalUX/ChatHealthyWhoAmIChat/ hf_space/
 
           # Commit and push only if there are changes
           cd hf_space

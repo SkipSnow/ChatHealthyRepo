@@ -8,6 +8,19 @@ Code/.env
 ~*
 *.tmp
 
+# Notebooks belong in ChatHealthyLabRepo, not here
+*.ipynb
+
+# Virtual environments
+.venv/
+venv/
+venv_func/
+__pycache__/
+*.pyc
+
+# Claude Code local settings
+.claude/
+
 # Explicitly allow .evv directory and contents
 !.evv/
 !.evv/**

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChatHealthy.ai — Find Care with AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Design tokens ─────────────────────────────── */
+    :root {
+      --ink:        #0d1117;
+      --ink-soft:   #4a5568;
+      --surface:    #ffffff;
+      --teal:       #0b7a75;
+      --teal-light: #e6f4f3;
+      --teal-mid:   #d0eeec;
+      --accent:     #f0a500;
+      --border:     #d8e2e1;
+      --radius:     6px;
+      --max-w:      1160px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: 'DM Sans', sans-serif;
+      background: var(--surface);
+      color: var(--ink);
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ── Header ────────────────────────────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 6px rgba(11,122,117,0.06);
+    }
+
+    .header-inner {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 40px;
+    }
+
+    /* Logo */
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+
+    .logo-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--teal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-mark svg {
+      width: 20px;
+      height: 20px;
+      fill: white;
+    }
+
+    .logo-text {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.25rem;
+      color: var(--teal);
+      letter-spacing: -0.01em;
+    }
+
+    .logo-text span {
+      color: var(--accent);
+    }
+
+    /* ── Header nav (desktop) ──────────────────────── */
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .header-nav a {
+      font-size: 0.875rem;
+      font-weight: 400;
+      color: var(--ink-soft);
+      text-decoration: none;
+      padding: 6px 14px;
+      border-radius: var(--radius);
+      transition: color 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+
+    .header-nav a:hover { color: var(--teal); background: var(--teal-light); }
+    .header-nav a.active { color: var(--teal); font-weight: 500; }
+
+    /* Coming Soon button in nav */
+    .header-nav .nav-coming-soon,
+    .mobile-nav .nav-coming-soon {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 400;
+      color: var(--ink-soft);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 14px;
+      border-radius: var(--radius);
+      transition: color 0.15s, background 0.15s;
+      white-space: nowrap;
+      position: relative;
+    }
+    .header-nav .nav-coming-soon:hover,
+    .mobile-nav .nav-coming-soon:hover { color: var(--teal); background: var(--teal-light); }
+
+    .nav-coming-soon::after {
+      content: attr(data-tip);
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-4px);
+      background: var(--ink);
+      color: #fff;
+      font-size: 0.72rem;
+      white-space: nowrap;
+      padding: 5px 10px;
+      border-radius: 4px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.18s, transform 0.18s;
+    }
+    .nav-coming-soon:hover::after,
+    .nav-coming-soon:focus::after,
+    .nav-coming-soon.show-tip::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .mobile-nav .nav-coming-soon {
+      font-size: 0.95rem;
+      text-align: left;
+      padding: 10px 12px;
+    }
+
+    /* ── Hamburger button (hidden on desktop) ──────── */
+    .menu-toggle {
+      display: none;
+      margin-left: auto;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: var(--radius);
+      color: var(--ink-soft);
+      transition: background 0.15s;
+    }
+    .menu-toggle:hover { background: var(--teal-light); color: var(--teal); }
+    .menu-toggle svg { display: block; width: 22px; height: 22px; }
+
+    /* ── Mobile drawer ─────────────────────────────── */
+    .mobile-nav {
+      display: none;
+      flex-direction: column;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 16px 14px;
+    }
+    .mobile-nav.open { display: flex; }
+    .mobile-nav a {
+      font-size: 0.95rem;
+      color: var(--ink-soft);
+      text-decoration: none;
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      transition: color 0.15s, background 0.15s;
+    }
+    .mobile-nav a:hover { color: var(--teal); background: var(--teal-light); }
+
+    /* ── Main / chat embed ─────────────────────────── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: var(--max-w);
+      width: 100%;
+      margin: 0 auto;
+      padding: clamp(12px, 3vw, 28px) clamp(12px, 4vw, 24px);
+      gap: 12px;
+    }
+
+    .chat-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--teal);
+    }
+
+    .chat-frame-wrapper {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(11,122,117,0.08);
+      /* Fills available vertical space; minimum sensible height on phone */
+      min-height: clamp(420px, 70dvh, 800px);
+      position: relative;
+      background: #f7fbfa;
+    }
+
+    .chat-frame-wrapper iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    /* Loading placeholder */
+    .frame-loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: #f7fbfa;
+      pointer-events: none;
+      transition: opacity 0.4s;
+    }
+    .frame-loading.hidden { opacity: 0; }
+
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--teal-mid);
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .frame-loading p { font-size: 0.85rem; color: var(--ink-soft); }
+
+    /* ── Footer ────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .footer-inner {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 16px clamp(12px, 4vw, 24px);
+      width: 100%;
+    }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      justify-content: space-evenly;
+      width: 100%;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .footer-links a,
+    .footer-links button {
+      font-family: 'DM Sans', sans-serif;
+      font-size: clamp(0.72rem, 2vw, 0.82rem);
+      font-style: italic;
+      color: var(--ink-soft);
+      text-decoration: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: var(--radius);
+      transition: color 0.15s, background 0.15s;
+      line-height: 1;
+      min-height: 36px; /* tap-friendly */
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .footer-links a:hover,
+    .footer-links button:hover { color: var(--teal); background: var(--teal-light); }
+
+    /* Coming Soon popup — works on hover (desktop) and focus/active (touch) */
+    .footer-links button { position: relative; }
+
+    .footer-links button::after {
+      content: 'Coming Soon';
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      background: var(--ink);
+      color: #fff;
+      font-size: 0.72rem;
+      font-style: normal;
+      white-space: nowrap;
+      padding: 5px 10px;
+      border-radius: 4px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.18s, transform 0.18s;
+    }
+
+    .footer-links button:hover::after,
+    .footer-links button:focus::after,
+    .footer-links button.show-tip::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── Responsive breakpoints ────────────────────── */
+
+    /* Tablet: collapse nav to hamburger */
+    @media (max-width: 600px) {
+      .header-inner { gap: 16px; }
+      .header-nav { display: none; }
+      .menu-toggle { display: flex; align-items: center; justify-content: center; }
+    }
+
+    /* Phone: tighten footer to 2×2 grid */
+    @media (max-width: 400px) {
+      .footer-links {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        justify-items: center;
+        gap: 4px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ══ HEADER ══════════════════════════════════════ -->
+  <header>
+    <div class="header-inner">
+
+      <a class="logo" href="/" title="ChatHealthy.ai home">
+        <div class="logo-mark">
+          <!-- simple cross / health icon -->
+          <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="2" width="4" height="16" rx="1"/>
+            <rect x="2" y="8" width="16" height="4" rx="1"/>
+          </svg>
+        </div>
+        <span class="logo-text">Chat<span>Healthy</span>.ai</span>
+      </a>
+
+      <nav class="header-nav">
+        <button type="button" class="nav-coming-soon" data-tip="You are already home">Home</button>
+        <button type="button" class="nav-coming-soon" data-tip="Coming Soon">Products &amp; Services</button>
+      </nav>
+
+      <!-- Hamburger (visible on mobile only) -->
+      <button class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false">
+        <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6"  x2="19" y2="6"  />
+          <line x1="3" y1="11" x2="19" y2="11" />
+          <line x1="3" y1="16" x2="19" y2="16" />
+        </svg>
+      </button>
+
+    </div>
+  </header>
+
+  <!-- Mobile nav drawer -->
+  <nav class="mobile-nav" id="mobileNav">
+    <button type="button" class="nav-coming-soon" data-tip="You are already home" onclick="closeMobileNav()">Home</button>
+    <button type="button" class="nav-coming-soon" data-tip="Coming Soon" onclick="closeMobileNav()">Products &amp; Services</button>
+  </nav>
+
+
+  <!-- ══ MAIN — chat embed ════════════════════════════ -->
+  <main>
+    <span class="chat-label">Chat with Find Care AI</span>
+
+    <div class="chat-frame-wrapper">
+
+      <!-- Loading placeholder -->
+      <div class="frame-loading" id="frameLoading">
+        <div class="spinner"></div>
+        <p>Loading Find Care AI…</p>
+      </div>
+
+      <!--
+        CoreChatUX embedded from HuggingFace Space:
+        SkipSnow/ChatHealthyWhoAmIChat  →  www.hf.chathealthy.ai
+      -->
+      <iframe
+        id="coreChatFrame"
+        src="https://hf.chathealthy.ai"
+        title="Find Care — CoreChatUX"
+        allow="microphone; clipboard-write"
+        loading="lazy"
+        onload="document.getElementById('frameLoading').classList.add('hidden')"
+      ></iframe>
+
+    </div>
+  </main>
+
+  <!-- ══ FOOTER ═══════════════════════════════════════ -->
+  <footer>
+    <div class="footer-inner">
+      <nav class="footer-links">
+        <a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener noreferrer"
+           style="font-style:italic;">© 2025 Skip Snow</a>
+        <button type="button">About</button>
+        <button type="button">Contact</button>
+        <button type="button">Privacy Policy</button>
+      </nav>
+    </div>
+  </footer>
+
+  <script>
+    // Hamburger menu
+    const toggle = document.getElementById('menuToggle');
+    const mobileNav = document.getElementById('mobileNav');
+    toggle.addEventListener('click', () => {
+      const open = mobileNav.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', open);
+    });
+    function closeMobileNav() { mobileNav.classList.remove('open'); }
+
+    // Coming Soon — nav button
+    document.querySelectorAll('.nav-coming-soon').forEach(btn => {
+      btn.addEventListener('click', e => {
+        const wasShown = btn.classList.contains('show-tip');
+        document.querySelectorAll('.nav-coming-soon').forEach(b => b.classList.remove('show-tip'));
+        if (!wasShown) btn.classList.add('show-tip');
+      });
+    });
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.nav-coming-soon')) {
+        document.querySelectorAll('.nav-coming-soon').forEach(b => b.classList.remove('show-tip'));
+      }
+    });
+
+    // Coming Soon — footer buttons
+    document.querySelectorAll('.footer-links button').forEach(btn => {
+      btn.addEventListener('click', e => {
+        const wasShown = btn.classList.contains('show-tip');
+        document.querySelectorAll('.footer-links button').forEach(b => b.classList.remove('show-tip'));
+        if (!wasShown) btn.classList.add('show-tip');
+      });
+    });
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.footer-links button')) {
+        document.querySelectorAll('.footer-links button').forEach(b => b.classList.remove('show-tip'));
+      }
+    });
+  </script>
+</body>
+</html>

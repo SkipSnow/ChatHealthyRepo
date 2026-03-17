@@ -1,0 +1,36 @@
+name: Run Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r Code/ConversationalUX/ChatHealthyWhoAmIChat/requirements.txt
+
+      - name: Run unit tests
+        run: |
+          python -m pytest Code/ConversationalUX/ChatHealthyWhoAmIChat/tests/test_record_user_details.py -v
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          Anthropic_API_KEY: ${{ secrets.Anthropic_API_KEY }}
+          MONGO_connectionString: ${{ secrets.MONGO_connectionString }}
+          PUSHOVER_USER: ${{ secrets.PUSHOVER_USER }}
+          PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
