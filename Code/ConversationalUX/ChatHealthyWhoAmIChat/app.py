@@ -278,6 +278,29 @@ def find_specialty_codes(query: str) -> dict:
     return {"specialties": all_codes, "matched_classifications": classifications, "stems": stems}
 
 
+def search_clinical_trials(condition: str, location: str = "", max_results: int = 5) -> dict:
+    """Call the Azure DataPipeline ClinicalTrialSearch crew and return structured trial cards."""
+    url = os.getenv("PIPELINE_URL", "")
+    token = os.getenv("PIPELINE_TOKEN", "")
+    if not url or not token:
+        return {"error": "Clinical trial search is not configured on this server."}
+    try:
+        response = requests.post(
+            url,
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            json={
+                "ChatHealthyTask": "ClinicalTrialSearch",
+                "payload": {"condition": condition, "location": location, "max_results": max_results},
+            },
+            timeout=120,
+        )
+        response.raise_for_status()
+        data = response.json()
+        return data.get("data", data)
+    except Exception as exc:
+        return {"error": f"Clinical trial search failed: {exc}"}
+
+
 def record_unknown_question(question, chat_history=None):
     if chat_history is not None:
         deIdentify(chat_history)
@@ -370,11 +393,32 @@ find_specialty_codes_json = {
     }
 }
 
+search_clinical_trials_json = {
+    "name": "search_clinical_trials",
+    "description": (
+        "Search for actively recruiting clinical trials on ClinicalTrials.gov. "
+        "Call this when the user asks to find trials, studies, or research programs for a medical condition. "
+        "Returns trial cards with title, phase, locations, eligibility match, and a direct link to each trial. "
+        "This is healthcare navigation — not medical advice."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "condition": {"type": "string", "description": "The medical condition or diagnosis to search for (e.g. 'stage 3 pancreatic cancer', 'type 2 diabetes')"},
+            "location": {"type": "string", "description": "Optional city/state to filter by proximity (e.g. 'New York, NY')"},
+            "max_results": {"type": "integer", "description": "Number of trials to return (default 5, max 10)"},
+        },
+        "required": ["condition"],
+        "additionalProperties": False,
+    },
+}
+
 tools = [
     {"type": "function", "function": record_user_details_json},
     {"type": "function", "function": record_unknown_question_json},
     {"type": "function", "function": commitSignificantActivity_json},
     {"type": "function", "function": find_specialty_codes_json},
+    {"type": "function", "function": search_clinical_trials_json},
 ]
 
 
@@ -430,10 +474,14 @@ class Me:
             f"RULE 2 — NO HEDGING: You are PROHIBITED from using any hedging language: 'I think', 'probably', 'might', "
             f"'I believe', 'I'm not sure', 'it seems', 'I'd imagine', 'I'd guess', or similar. "
             f"If you would reach for any of these words, that is your signal to call record_unknown_question instead of answering.\n"
-            f"RULE 3 — MEDICAL/HEALTH TOPICS: Questions about medical advice, diagnoses, treatments, or clinical recommendations "
-            f"must be declined — call record_unknown_question first, then refer the user to a qualified professional. "
-            f"EXCEPTION: Questions about types of medical specialists or provider categories (e.g. 'what is a cardiologist?', "
-            f"'what kinds of heart doctors are there?') are allowed — use the find_specialty_codes tool to look them up.\n"
+            f"RULE 3 — MEDICAL ADVICE vs HEALTHCARE NAVIGATION: These are different things.\n"
+            f"  DECLINE (call record_unknown_question first): Personal medical advice — diagnosis, treatment recommendations, "
+            f"medication guidance, 'should I take X', 'is my symptom serious', interpreting test results. "
+            f"Always refer the user to a qualified healthcare professional.\n"
+            f"  ALLOWED — Healthcare navigation: This is the core purpose of ChatHealthy.ai. "
+            f"Use find_specialty_codes when the user asks about types of doctors or specialists. "
+            f"Use search_clinical_trials when the user asks to find clinical trials or research studies for a condition — "
+            f"this is navigation, not advice. Present the results clearly with trial names, phases, locations, and links.\n"
             f"RULE 4 — TOOL CALL ORDER: Always call record_unknown_question BEFORE composing your response. Never answer first and record second.\n"
             f"RULE 5 — EACH QUESTION SEPARATELY: If a user asks multiple questions in one message and some are unknown, "
             f"record each unknown question with a separate tool call.\n"
@@ -451,8 +499,11 @@ class Me:
             f"WRONG: 'While I appreciate poetry, I don't have a specific favorite.' [no tool call — this is a violation]\n"
             f"RIGHT: [call record_unknown_question] then say: 'I don't have that information — I've noted your question and will follow up.'\n"
             f"User: Should I take ibuprofen for my back pain?\n"
-            f"WRONG: 'While I'm not a doctor, ibuprofen can help with inflammation...' [medical advice — this is a violation]\n"
-            f"RIGHT: [call record_unknown_question] then say: 'I can't advise on medical questions. Please consult a qualified healthcare professional.'\n\n"
+            f"WRONG: 'While I'm not a doctor, ibuprofen can help with inflammation...' [medical advice — violation]\n"
+            f"RIGHT: [call record_unknown_question] then say: 'I can't advise on medication or treatment. Please consult a qualified healthcare professional.'\n\n"
+            f"User: I have stage 3 pancreatic cancer. Find me trials.\n"
+            f"WRONG: [call record_unknown_question and decline] [navigation request — violation]\n"
+            f"RIGHT: [call search_clinical_trials with condition='stage 3 pancreatic cancer'] then present the trial cards.\n\n"
             f"If the user is engaging in discussion, try to steer them towards getting in touch via email, phone or linkedin; ask for their email, or other method of communication. No authentication needed. "
             f"When you have their email, complete the two-tier consent flow before calling record_user_details:\n"
             f"  Step 1 — Ask: 'May we save a verbatim transcript of this conversation with your contact details?'\n"
