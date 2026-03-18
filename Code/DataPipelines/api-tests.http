@@ -1,16 +1,30 @@
 # Function App URL from Azure Portal (Overview → URL)
 @baseUrl = https://devpipelinemanagmentservice-hqa9f5b0b7b4hqgg.eastus2-01.azurewebsites.net
-@ChatHealthyTask = LoadSpecialtyData
+@token = Bearer 6PVi_lZfZYOriyQ1oU-sPfNm5gcFGK0SbVJ0OtZdAsE
 
-### DevPipelineManagmentService - GET with token in header
+### Smoke test (GET — expects 405)
 GET {{baseUrl}}/api/Router
-Authorization: Bearer 6PVi_lZfZYOriyQ1oU-sPfNm5gcFGK0SbVJ0OtZdAsE
+Authorization: {{token}}
 
-### DevPipelineManagmentService - POST
+### LoadSpecialtyData
 POST {{baseUrl}}/api/Router
-Authorization: Bearer 6PVi_lZfZYOriyQ1oU-sPfNm5gcFGK0SbVJ0OtZdAsE
+Authorization: {{token}}
 Content-Type: application/json
 
 {
-    "ChatHealthyTask": "{{ChatHealthyTask}}"
+    "ChatHealthyTask": "LoadSpecialtyData"
+}
+
+### ClinicalTrialSearch — stage 3 pancreatic cancer
+POST {{baseUrl}}/api/Router
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+    "ChatHealthyTask": "ClinicalTrialSearch",
+    "payload": {
+        "condition": "stage 3 pancreatic cancer",
+        "location": "New York, NY",
+        "max_results": 3
+    }
 }

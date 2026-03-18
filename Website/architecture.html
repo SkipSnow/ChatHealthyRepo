@@ -368,6 +368,7 @@
         <li>Production MongoDB cluster (currently dev only)</li>
         <li>MongoDB connection pooling design</li>
         <li>Data deletion agent — Azure Function with email verification, MongoDB deletion, SendGrid confirmation</li>
+        <li><strong>Migrate Layer 1 off HuggingFace → Azure Static Web Apps.</strong> HuggingFace has a 60-second request timeout (too short for multi-agent workflows), spaces sleep on inactivity, and free-tier compute is undersized for production. Azure Static Web Apps places the React frontend on Azure CDN and the FastAPI backend as an Azure Function — same infrastructure already running DataPipelines, single vendor, single deploy pipeline. HuggingFace stays live until Layer 1 is replaced.</li>
       </ul>
 
     </div>
