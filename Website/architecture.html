@@ -244,9 +244,12 @@
       </div>
 
       <!-- 4 -->
-      <h2>4. Two-Layer Application Architecture</h2>
+      <h2>4. Three-Application Architecture</h2>
 
-      <h3>Layer 1 — Conversational Interface (HuggingFace)</h3>
+      <h3>App 1 — Static Website (Cloudflare)</h3>
+      <p>Static HTML, CSS, and JavaScript only. No business logic, no LLM calls, no database access. Embeds App 2 via iframe. That is the only coupling.</p>
+
+      <h3>App 2 — Chat Window (HuggingFace)</h3>
       <div class="table-wrap">
         <table>
           <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
@@ -257,14 +260,14 @@
         </table>
       </div>
 
-      <h3>Layer 2 — Background Workflows (Azure)</h3>
+      <h3>App 3 — Data Management &amp; Pipelines (Azure Functions)</h3>
       <div class="table-wrap">
         <table>
           <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
           <tr><td>Orchestration</td><td>CrewAI</td><td>Multi-agent coordination; multi-LLM support</td></tr>
           <tr><td>Runtime</td><td>Azure Function App</td><td>Pay-per-use; Python 3.12.10</td></tr>
           <tr><td>Library</td><td>ChatHealthyLib.pipelines</td><td>Core pipeline logic</td></tr>
-          <tr><td>Trigger</td><td>API call from Layer 1</td><td>Invoked when complex workflow needed</td></tr>
+          <tr><td>Trigger</td><td>API call from App 2</td><td>Invoked when complex workflow needed</td></tr>
         </table>
       </div>
 
@@ -299,16 +302,13 @@
       <h2>6. Example Workflow — Clinical Trial Research</h2>
       <div class="diagram">
         <div class="diagram-inner">
-          <div class="d-center"><div class="d-box d-box-wide"><strong>Layer 1: LLM</strong><small>User: "I have stage 3 pancreatic cancer. Find me trials."</small></div></div>
-          <div class="d-down">↓ API call to Azure</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>Layer 2: CrewAI Crew</strong></div></div>
-          <div class="d-row" style="margin-top:0;">
-            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Search Agent</strong><small>ClinicalTrials.gov<br/>GPT-4o-mini</small></div></div>
-            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Eligibility Agent</strong><small>criteria matching<br/>LLM</small></div></div>
-            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Docs Agent</strong><small>application drafts<br/>LLM</small></div></div>
-          </div>
-          <div class="d-down" style="margin-top:8px;">↓ Results returned to Layer 1</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>Layer 1: LLM presents results inline</strong><small>Trial cards · eligibility summary · next steps</small></div></div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>User</strong><small>"I have stage 3 pancreatic cancer. Find me trials."</small></div></div>
+          <div class="d-down">↓</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>App 2 — Chat Window</strong><small>LLM calls search_clinical_trials tool</small></div></div>
+          <div class="d-down">↓ direct HTTP</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>ClinicalTrials.gov API</strong><small>v2 · recruiting trials · condition + location filter</small></div></div>
+          <div class="d-down">↓ trial cards returned</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>App 2 — LLM formats and presents inline</strong><small>Trial cards · eligibility criteria · direct links</small></div></div>
         </div>
       </div>
 

@@ -91,7 +91,6 @@ The system is exactly three applications. Keep them rigorous and separate.
 - App 1 → App 2: iframe embed only
 - App 2 → App 3: HTTP POST to `/api/Router` with `Bearer` token, JSON payload `{ ChatHealthyTask, payload }`
 - App 3 → App 2: JSON response only — no callbacks, no direct coupling
-- No app accesses another app's datastore directly
 
 ### Decision rule
 Before adding any code, ask: which application owns this concern? If it crosses a boundary, use the prescribed integration pattern — never bypass it.
@@ -116,8 +115,8 @@ Before adding any code, ask: which application owns this concern? If it crosses 
 ### Layer 2 — DataPipelines (Azure Functions)
 - CrewAI multi-agent orchestration
 - Multi-LLM: each agent uses the best model for its task
-- Triggered by Layer 1 via API call for complex workflows
-- Example: clinical trial search, eligibility matching, document generation
+- Triggered by App 2 via API call for complex workflows
+- Example: eligibility matching, document generation, data ingestion
 
 ### Why CrewAI over Anthropic Agent SDK
 - CrewAI supports multiple LLMs per agent — needed for cost and capability optimization
