@@ -12,6 +12,7 @@ if _env_path.exists():
 import azure.functions as func
 
 from auth import require_auth
+from clinical_trials_crew import run_clinical_trial_search
 from load_specialty_data import run_load_specialty_data
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
@@ -20,6 +21,7 @@ PIPELINE_ROUTE = "Router"
 
 TASK_HANDLERS = {
     "LoadSpecialtyData": run_load_specialty_data,
+    "ClinicalTrialSearch": run_clinical_trial_search,
 }
 
 
