@@ -198,7 +198,7 @@
           <div class="d-down">↓</div>
           <div class="d-center"><div class="d-box d-box-wide"><strong>HuggingFace Space</strong><small>React + FastAPI · Layer 1</small></div></div>
           <div class="d-row" style="margin-top:0;">
-            <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>Anthropic API</strong><small>Claude (chat)</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>LLM APIs</strong><small>Anthropic · OpenAI · Groq</small></div></div>
             <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>Azure Functions</strong><small>CrewAI · Layer 2</small></div></div>
             <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>MongoDB Atlas</strong><small>ChatHealthyDB_dev</small></div></div>
           </div>
@@ -252,7 +252,7 @@
           <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
           <tr><td>Frontend</td><td>React + shadcn/ui</td><td>Chat interface; inline maps, charts, provider cards</td></tr>
           <tr><td>Backend</td><td>FastAPI (Python)</td><td>API routes, tool definitions, session management</td></tr>
-          <tr><td>AI</td><td>Anthropic SDK — Claude</td><td>Intent routing, tool calling, response generation</td></tr>
+          <tr><td>AI</td><td>LLM APIs (Anthropic, OpenAI, Groq)</td><td>Intent routing, tool calling, response generation</td></tr>
           <tr><td>Hosting</td><td>HuggingFace Docker Space</td><td>GPU-enabled, free tier available</td></tr>
         </table>
       </div>
@@ -269,9 +269,8 @@
       </div>
 
       <p>
-        <strong>Why CrewAI?</strong> Multi-LLM support — each agent can use the best model for its task
-        (Claude for reasoning, GPT-4o-mini for cost-sensitive tasks, specialist models as available).
-        The Anthropic Agent SDK is Claude-only and was not chosen for this reason.
+        <strong>Why CrewAI?</strong> Multi-LLM support — each agent can use the best model for its task.
+        No single vendor lock-in; models are swapped as the landscape evolves.
       </p>
 
       <!-- 5 -->
@@ -280,7 +279,7 @@
         <div class="diagram-inner">
           <div class="d-center"><div class="d-box d-box-wide"><strong>User Message</strong><small>"Find me an oncologist near me"</small></div></div>
           <div class="d-down">↓</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>Claude — Intent Router</strong><small>Classifies intent within the same session</small></div></div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>LLM — Intent Router</strong><small>Classifies intent within the same session</small></div></div>
           <div class="d-row" style="margin-top:0;">
             <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Find Care</strong><small>providers, cost</small></div></div>
             <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Research</strong><small>trials, symptoms</small></div></div>
@@ -300,16 +299,16 @@
       <h2>6. Example Workflow — Clinical Trial Research</h2>
       <div class="diagram">
         <div class="diagram-inner">
-          <div class="d-center"><div class="d-box d-box-wide"><strong>Layer 1: Claude</strong><small>User: "I have stage 3 pancreatic cancer. Find me trials."</small></div></div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Layer 1: LLM</strong><small>User: "I have stage 3 pancreatic cancer. Find me trials."</small></div></div>
           <div class="d-down">↓ API call to Azure</div>
           <div class="d-center"><div class="d-box d-box-wide"><strong>Layer 2: CrewAI Crew</strong></div></div>
           <div class="d-row" style="margin-top:0;">
             <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Search Agent</strong><small>ClinicalTrials.gov<br/>GPT-4o-mini</small></div></div>
-            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Eligibility Agent</strong><small>criteria matching<br/>Claude</small></div></div>
-            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Docs Agent</strong><small>application drafts<br/>Claude</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Eligibility Agent</strong><small>criteria matching<br/>LLM</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Docs Agent</strong><small>application drafts<br/>LLM</small></div></div>
           </div>
           <div class="d-down" style="margin-top:8px;">↓ Results returned to Layer 1</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>Layer 1: Claude presents results inline</strong><small>Trial cards · eligibility summary · next steps</small></div></div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Layer 1: LLM presents results inline</strong><small>Trial cards · eligibility summary · next steps</small></div></div>
         </div>
       </div>
 
