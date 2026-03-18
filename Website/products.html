@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Products &amp; Services — ChatHealthy.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --ink:        #0d1117;
+      --ink-soft:   #4a5568;
+      --surface:    #ffffff;
+      --teal:       #0b7a75;
+      --teal-light: #e6f4f3;
+      --teal-mid:   #d0eeec;
+      --accent:     #f0a500;
+      --border:     #d8e2e1;
+      --radius:     6px;
+      --max-w:      1160px;
+      --content-w:  740px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── Minimal header ─────────────────────────────── */
+    header { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: 0 1px 6px rgba(11,122,117,0.06); }
+    .header-inner { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+    .logo-mark { width: 32px; height: 32px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; }
+    .logo-mark svg { width: 18px; height: 18px; fill: white; }
+    .logo-text { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--teal); letter-spacing: -0.01em; }
+    .logo-text span { color: var(--accent); }
+
+    /* ── Main ───────────────────────────────────────── */
+    main { flex: 1; max-width: var(--max-w); width: 100%; margin: 0 auto; padding: clamp(20px,4vw,48px) clamp(16px,4vw,24px); }
+
+    .page-header { border-bottom: 2px solid var(--teal-mid); padding-bottom: 20px; margin-bottom: 36px; }
+    .page-header .eyebrow { font-size: 0.72rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 6px; }
+    .page-header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(1.5rem,4vw,2.25rem); color: var(--ink); line-height: 1.15; margin-bottom: 8px; }
+    .page-header .tagline { font-size: 0.92rem; color: var(--ink-soft); line-height: 1.6; }
+
+    /* ── Action bars ────────────────────────────────── */
+    .action-bar { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+    .action-bar-top { margin-bottom: 20px; }
+    .action-bar-bottom { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border); }
+
+    .action-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: none; border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--ink-soft); font-family: 'DM Sans', sans-serif; font-size: 0.82rem;
+      cursor: pointer; padding: 6px 14px; text-decoration: none;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .action-btn:hover { color: var(--teal); background: var(--teal-light); border-color: var(--teal-mid); }
+
+    .close-btn { display: none; }
+    .in-panel .close-btn { display: inline-flex; }
+
+    /* ── Section labels ─────────────────────────────── */
+    .section-label {
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 16px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--teal-mid);
+    }
+
+    /* ── Cards ──────────────────────────────────────── */
+    .card-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      max-width: var(--content-w);
+      margin-bottom: 44px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .card-header {
+      background: var(--teal-light);
+      border-bottom: 1px solid var(--teal-mid);
+      padding: 16px 20px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .card-title { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--ink); }
+    .card-badge {
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--teal);
+      background: var(--teal-mid);
+      padding: 3px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .card-body { padding: 20px; }
+    .card-body p { font-size: 0.92rem; line-height: 1.7; color: var(--ink); margin-bottom: 10px; }
+    .card-body p:last-child { margin-bottom: 0; }
+    .card-body ul { margin: 6px 0 10px 20px; font-size: 0.92rem; line-height: 1.7; }
+    .card-body ul li { margin-bottom: 4px; }
+
+    /* ── Pricing block ──────────────────────────────── */
+    .pricing-block {
+      margin-top: 16px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .pricing-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 10px 16px;
+      font-size: 0.88rem;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .pricing-row:last-child { border-bottom: none; }
+
+    .pricing-label { color: var(--ink-soft); }
+    .pricing-value { font-weight: 500; color: var(--ink); text-align: right; }
+    .pricing-note  { font-size: 0.78rem; color: var(--ink-soft); font-style: italic; text-align: right; }
+
+    /* ── Contact CTA ────────────────────────────────── */
+    .contact-cta {
+      max-width: var(--content-w);
+      background: var(--teal-light);
+      border: 1px solid var(--teal-mid);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 8px;
+    }
+    .contact-cta p { font-size: 0.92rem; line-height: 1.7; color: var(--ink); margin-bottom: 8px; }
+    .contact-cta p:last-child { margin-bottom: 0; }
+    .contact-cta a { color: var(--teal); text-decoration: none; font-weight: 500; }
+    .contact-cta a:hover { text-decoration: underline; }
+
+    /* ── Footer ─────────────────────────────────────── */
+    footer { border-top: 1px solid var(--border); background: var(--surface); }
+    .footer-inner { max-width: var(--max-w); margin: 0 auto; padding: 14px clamp(16px,4vw,24px); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .footer-copy { font-size: 0.78rem; color: var(--ink-soft); font-style: italic; }
+    .footer-copy a { color: var(--ink-soft); text-decoration: none; }
+    .footer-copy a:hover { color: var(--teal); }
+
+    @media (max-width: 480px) { .footer-inner { justify-content: center; text-align: center; } }
+
+    /* ── Print ──────────────────────────────────────── */
+    @media print {
+      header, footer, .action-bar { display: none !important; }
+      body { font-size: 11pt; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="header-inner">
+      <a class="logo" href="/" target="_top" title="Back to ChatHealthy.ai">
+        <div class="logo-mark">
+          <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="2" width="4" height="16" rx="1"/>
+            <rect x="2" y="8" width="16" height="4" rx="1"/>
+          </svg>
+        </div>
+        <span class="logo-text">Chat<span>Healthy</span>.ai</span>
+      </a>
+    </div>
+  </header>
+
+  <main>
+
+    <div class="page-header">
+      <p class="eyebrow">What We Offer</p>
+      <h1>Products &amp; Services</h1>
+      <p class="tagline">Consumer based, AI-powered website, for healthcare navigation, and expert consulting to help your Healthcare organization roll out safe and fast solutions.</p>
+    </div>
+
+    <!-- ── Products ──────────────────────────────────── -->
+    <p class="section-label">Products</p>
+    <div class="card-grid">
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">ChatHealthy.ai — FindCare</span>
+          <span class="card-badge">Available Now</span>
+        </div>
+        <div class="card-body">
+          <p>
+            A conversational AI that helps patients navigate the US healthcare system. Users can find
+            providers, research symptoms, explore clinical trial eligibility, and generate transcripts
+            to share with their care team — all within a single, continuous AI session.
+          </p>
+          <ul>
+            <li>Natural-language provider search with specialty, location, and insurance filters</li>
+            <li>Clinical trial matching against ClinicalTrials.gov</li>
+            <li>Session transcript export — shareable with physicians</li>
+            <li>HIPAA-capable data handling with explicit consent flow</li>
+            <li>Accessible at <strong>www.chathealthy.ai</strong></li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Services ──────────────────────────────────── -->
+    <p class="section-label">Services</p>
+    <div class="card-grid">
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Healthcare AI Consulting</span>
+          <span class="card-badge">Accepting Engagements</span>
+        </div>
+        <div class="card-body">
+          <p>
+            Expert consulting to help healthcare organizations design, evaluate, and deploy AI systems.
+            Engagements typically cover AI strategy, LLM selection and integration, data privacy
+            compliance, and clinical workflow automation.
+          </p>
+          <ul>
+            <li>AI strategy and vendor evaluation</li>
+            <li>LLM integration architecture (Azure, AWS, HuggingFace)</li>
+            <li>HIPAA-capable system design and BAA guidance</li>
+            <li>End-to-end AI and Agentic AI engineering and architecture</li>
+            <li>AI — model selection, fine-tuning, and pipeline development</li>
+            <li>Agentic — agent design and multi-agent workflow orchestration</li>
+            <li>Security review and responsible AI assessment</li>
+          </ul>
+
+          <div class="pricing-block">
+            <div class="pricing-row">
+              <span class="pricing-label">Hourly rate</span>
+              <span class="pricing-value">$250.00 / hr</span>
+            </div>
+            <div class="pricing-row">
+              <span class="pricing-label">Minimum engagement</span>
+              <div>
+                <div class="pricing-value">$20,000</div>
+                <div class="pricing-note">Non-refundable retainer, due at engagement start</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Contact CTA ────────────────────────────────── -->
+    <div class="contact-cta">
+      <p>Interested in a consulting engagement or have questions about ChatHealthy.ai?</p>
+      <p>Reach out directly: <a href="mailto:skip.snow@gmail.com">skip.snow@gmail.com</a> &nbsp;·&nbsp; <a href="tel:+16464088999">646-408-8999</a></p>
+    </div>
+
+    <!-- ── Action bar — bottom ────────────────────────── -->
+    <div class="action-bar action-bar-bottom">
+      <button class="action-btn close-btn" onclick="window.parent.closePanel()">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="10" y2="10"/><line x1="10" y1="1" x2="1" y2="10"/></svg>
+        Close
+      </button>
+      <button class="action-btn print-btn" onclick="window.print()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print
+      </button>
+    </div>
+
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <span class="footer-copy"><a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener">© 2025 Skip Snow</a></span>
+    </div>
+  </footer>
+
+  <script>
+    if (window !== window.top) {
+      document.querySelector('header').style.display = 'none';
+      document.body.classList.add('in-panel');
+    }
+  </script>
+</body>
+</html>

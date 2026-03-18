@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — ChatHealthy.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --ink:        #0d1117;
+      --ink-soft:   #4a5568;
+      --surface:    #ffffff;
+      --teal:       #0b7a75;
+      --teal-light: #e6f4f3;
+      --teal-mid:   #d0eeec;
+      --accent:     #f0a500;
+      --border:     #d8e2e1;
+      --radius:     6px;
+      --max-w:      1160px;
+      --content-w:  740px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── Minimal header ─────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 6px rgba(11,122,117,0.06);
+    }
+    .header-inner {
+      max-width: var(--max-w); margin: 0 auto;
+      padding: 0 24px; height: 56px;
+      display: flex; align-items: center;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+    .logo-mark {
+      width: 32px; height: 32px; border-radius: 50%; background: var(--teal);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-mark svg { width: 18px; height: 18px; fill: white; }
+    .logo-text { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--teal); letter-spacing: -0.01em; }
+    .logo-text span { color: var(--accent); }
+
+    /* ── Main ───────────────────────────────────────── */
+    main { flex: 1; max-width: var(--max-w); width: 100%; margin: 0 auto; padding: clamp(20px,4vw,48px) clamp(16px,4vw,24px); }
+
+    .page-header { border-bottom: 2px solid var(--teal-mid); padding-bottom: 20px; margin-bottom: 36px; }
+    .page-header .eyebrow { font-size: 0.72rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 6px; }
+    .page-header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(1.5rem,4vw,2.25rem); color: var(--ink); line-height: 1.15; margin-bottom: 8px; }
+    .page-header .effective { font-size: 0.82rem; color: var(--ink-soft); }
+
+    /* ── Action bars (print + close) ───────────────── */
+    .action-bar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+    }
+    .action-bar-top { margin-bottom: 20px; }
+    .action-bar-bottom { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border); }
+
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--ink-soft);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.82rem;
+      cursor: pointer;
+      padding: 6px 14px;
+      text-decoration: none;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .action-btn:hover { color: var(--teal); background: var(--teal-light); border-color: var(--teal-mid); }
+
+    /* Close button hidden until inside panel iframe */
+    .close-btn { display: none; }
+    .in-panel .close-btn { display: inline-flex; }
+
+    /* ── Policy content ─────────────────────────────── */
+    .policy-body { max-width: var(--content-w); }
+    .policy-body section { margin-bottom: 36px; }
+    .policy-body h2 { font-family: 'DM Serif Display', serif; font-size: 1.15rem; color: var(--teal); margin-bottom: 12px; }
+    .policy-body p { font-size: 0.92rem; line-height: 1.7; color: var(--ink); margin-bottom: 10px; }
+    .policy-body p:last-child { margin-bottom: 0; }
+    .policy-body ul { margin: 6px 0 10px 20px; font-size: 0.92rem; line-height: 1.7; }
+    .policy-body ul li { margin-bottom: 4px; }
+    .policy-body a { color: var(--teal); text-decoration: none; }
+    .policy-body a:hover { text-decoration: underline; }
+
+    /* ── Tables ─────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 12px 0 16px; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 420px; }
+    .data-table th { text-align: left; font-weight: 500; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); border-bottom: 2px solid var(--teal-mid); padding: 5px 14px 7px 0; white-space: nowrap; }
+    .data-table td { padding: 9px 14px 9px 0; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.5; }
+    .data-table td a { color: var(--teal); text-decoration: none; font-size: 0.82rem; }
+    .data-table td a:hover { text-decoration: underline; }
+
+    /* ── Callout / info boxes ───────────────────────── */
+    .callout { background: #fff8e6; border-left: 4px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0; padding: 12px 16px; font-size: 0.88rem; line-height: 1.6; margin: 10px 0 14px; }
+    .callout strong { color: #a06800; }
+    .callout a { color: #a06800; }
+
+    .info-box { background: var(--teal-light); border: 1px solid var(--teal-mid); border-radius: var(--radius); padding: 14px 18px; font-size: 0.88rem; line-height: 1.65; margin: 10px 0; }
+    .info-box p { margin-bottom: 6px; font-size: 0.88rem; }
+    .info-box p:last-child { margin-bottom: 0; }
+
+    /* ── Footer ─────────────────────────────────────── */
+    footer { border-top: 1px solid var(--border); background: var(--surface); }
+    .footer-inner { max-width: var(--max-w); margin: 0 auto; padding: 14px clamp(16px,4vw,24px); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .footer-copy { font-size: 0.78rem; color: var(--ink-soft); font-style: italic; }
+    .footer-copy a { color: var(--ink-soft); text-decoration: none; }
+    .footer-copy a:hover { color: var(--teal); }
+    .footer-legal { display: flex; gap: 16px; font-size: 0.78rem; font-style: italic; }
+    .footer-legal a { color: var(--ink-soft); text-decoration: none; }
+    .footer-legal a:hover { color: var(--teal); }
+
+    @media (max-width: 480px) { .footer-inner { justify-content: center; text-align: center; } }
+
+    /* ── Print ──────────────────────────────────────── */
+    @media print {
+      header, footer, .action-bar { display: none !important; }
+      body { font-size: 11pt; }
+      .policy-body { max-width: 100%; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="header-inner">
+      <a class="logo" href="/" target="_top" title="Back to ChatHealthy.ai">
+        <div class="logo-mark">
+          <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="2" width="4" height="16" rx="1"/>
+            <rect x="2" y="8" width="16" height="4" rx="1"/>
+          </svg>
+        </div>
+        <span class="logo-text">Chat<span>Healthy</span>.ai</span>
+      </a>
+    </div>
+  </header>
+
+  <main>
+
+    <div class="page-header">
+      <p class="eyebrow">Legal</p>
+      <h1>Privacy Policy</h1>
+      <p class="effective">Effective date: March 18, 2026</p>
+    </div>
+
+    <div class="policy-body">
+
+      <section>
+        <h2>Who We Are</h2>
+        <p>ChatHealthy.ai is an AI-native application that helps consumers find appropriate healthcare services. It is operated by Skip Snow, an individual US citizen.</p>
+        <p>ChatHealthy.ai is capable of HIPAA compliance and can be deployed within a HIPAA context without modification, but doing so would require a <a href="#legal-status">Business Associate Agreement (BAA)</a> with any covered entity. See <a href="#legal-status">Legal Status &amp; HIPAA</a> below.</p>
+      </section>
+
+      <section>
+        <h2>What We Collect</h2>
+        <p><strong>Contact information</strong> — When you choose to share your name and email, we retain it solely to follow up on your inquiry.</p>
+        <p><strong>Conversation data</strong> — When you provide contact information, we ask for consent to store your conversation:</p>
+        <ul>
+          <li><strong>Verbatim consent:</strong> your complete conversation is stored with your contact record.</li>
+          <li><strong>Summary consent only</strong> (if verbatim is declined): an AI-generated, de-identified summary is stored instead. No identifying information is retained.</li>
+          <li><strong>No consent:</strong> your contact information only. No conversation stored.</li>
+        </ul>
+        <p><strong>Unanswered questions</strong> — Regardless of consent, when ChatHealthy.ai cannot answer a question, it records the question and a de-identified version of the conversation leading to it. These records contain no personally identifying information and are used solely to improve ChatHealthy.ai's capabilities.</p>
+        <p>ChatHealthy.ai does not attempt to infer or reverse-engineer the identity of any user — registered or anonymous — from any data it holds.</p>
+      </section>
+
+      <section>
+        <h2>How We Use Your Data</h2>
+        <ul>
+          <li>To respond to your inquiries.</li>
+          <li>To improve ChatHealthy.ai's capabilities (de-identified question data only).</li>
+          <li>We do not sell, rent, or share your data with any third party beyond the vendors listed below, and only for the purpose of delivering this service.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Infrastructure Vendors</h2>
+        <p>All data retained by ChatHealthy.ai is stored in the United States on the following platforms. Each link below opens that vendor's own policy on their website.</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Vendor</th><th>Role</th><th>Privacy Policy</th><th>Terms of Use</th></tr></thead>
+            <tbody>
+              <tr><td>Cloudflare, Inc.</td><td>Website delivery &amp; DNS</td><td><a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">Privacy</a></td><td><a href="https://www.cloudflare.com/terms/" target="_blank" rel="noopener">Terms</a></td></tr>
+              <tr><td>Hugging Face, Inc.</td><td>Conversational UX hosting</td><td><a href="https://huggingface.co/privacy" target="_blank" rel="noopener">Privacy</a></td><td><a href="https://huggingface.co/terms-of-service" target="_blank" rel="noopener">Terms</a></td></tr>
+              <tr><td>Microsoft Corporation</td><td>Compute &amp; storage (Azure)</td><td><a href="https://privacy.microsoft.com/en-us/privacystatement" target="_blank" rel="noopener">Privacy</a></td><td><a href="https://www.microsoft.com/en-us/servicesagreement" target="_blank" rel="noopener">Terms</a></td></tr>
+              <tr><td>MongoDB, Inc.</td><td>Database (Atlas)</td><td><a href="https://www.mongodb.com/legal/privacy-policy" target="_blank" rel="noopener">Privacy</a></td><td><a href="https://www.mongodb.com/legal/terms-and-conditions" target="_blank" rel="noopener">Terms</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>AI &amp; Language Model Vendors</h2>
+        <p>ChatHealthy.ai uses multiple AI language models. Your conversation content may be processed by one or more of the following. Each link opens that vendor's own policy on their website.</p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Vendor</th><th>Privacy Policy</th><th>Terms of Use</th></tr></thead>
+            <tbody>
+              <tr><td>Anthropic, PBC</td><td><a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener">Privacy</a></td><td><a href="https://www.anthropic.com/legal/consumer-terms" target="_blank" rel="noopener">Terms</a></td></tr>
+              <tr><td>OpenAI, LLC</td><td><a href="https://openai.com/privacy/" target="_blank" rel="noopener">Privacy</a></td><td><a href="https://openai.com/terms/" target="_blank" rel="noopener">Terms</a></td></tr>
+              <tr><td>Google LLC</td><td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Privacy</a></td><td><a href="https://policies.google.com/terms" target="_blank" rel="noopener">Terms</a></td></tr>
+              <tr><td>Groq, Inc.</td><td><a href="https://groq.com/privacy-policy/" target="_blank" rel="noopener">Privacy</a></td><td><a href="https://groq.com/terms-of-use/" target="_blank" rel="noopener">Terms</a></td></tr>
+              <tr><td>Hugging Face, Inc.</td><td><a href="https://huggingface.co/privacy" target="_blank" rel="noopener">Privacy</a></td><td><a href="https://huggingface.co/terms-of-service" target="_blank" rel="noopener">Terms</a></td></tr>
+              <tr>
+                <td>Ollama (open-source)</td>
+                <td colspan="2" style="color:var(--ink-soft);font-size:0.82rem;">Runs within ChatHealthy's infrastructure — data does not leave ChatHealthy's servers. <a href="https://ollama.com" target="_blank" rel="noopener">ollama.com</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout">
+          <strong>Note on DeepSeek AI:</strong> ChatHealthy.ai may use DeepSeek AI, a product of DeepSeek AI Co., Ltd., headquartered in the People's Republic of China. Data processed by DeepSeek may be transmitted to and processed in China and is not subject to US data residency requirements. By using ChatHealthy.ai you acknowledge this possibility.
+          <a href="https://www.deepseek.com/privacy_policy" target="_blank" rel="noopener">Privacy Policy →</a>
+        </div>
+      </section>
+
+      <section id="legal-status">
+        <h2>Legal Status &amp; HIPAA</h2>
+        <p>ChatHealthy.ai is operated by Skip Snow as an individual US citizen and is currently structured as a website and technology solution — not as a HIPAA Covered Entity or Business Associate.</p>
+        <p>ChatHealthy.ai does not hold a <strong>Business Associate Agreement (BAA)</strong> — a contract governing how protected health information may be handled — with any of its vendors, and is therefore subject only to each vendor's general terms of service.</p>
+        <p>ChatHealthy.ai is committed to handling all health-related information with care, discretion, and ethical responsibility that goes beyond what any legal obligation alone would require.</p>
+      </section>
+
+      <section>
+        <h2>Your Right to Delete Your Data</h2>
+        <p>You have the right to request deletion of any personal data we hold about you.</p>
+        <div class="info-box">
+          <p><strong>Automated:</strong> A self-service deletion tool is coming soon.</p>
+          <p><strong>Manual:</strong> Email <a href="mailto:skip.snow@gmail.com?subject=Data Deletion Request">skip.snow@gmail.com</a> with subject <em>Data Deletion Request</em> and your email address. We will confirm deletion within 5 business days.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Cookies</h2>
+        <p>ChatHealthy.ai's website is served through Cloudflare, which may set cookies for security and performance. ChatHealthy.ai itself does not set tracking or advertising cookies.</p>
+      </section>
+
+      <section>
+        <h2>Children's Privacy</h2>
+        <p>ChatHealthy.ai is not directed to children under 13 and does not knowingly collect personal information from anyone under 13. Contact <a href="mailto:skip.snow@gmail.com">skip.snow@gmail.com</a> if you believe a child has provided information through this service.</p>
+      </section>
+
+      <section>
+        <h2>Clinical Disclaimer</h2>
+        <p>ChatHealthy.ai is a technology tool — not a medical provider — and cannot give clinical advice. See our <a href="terms.html" target="_top">Terms of Use</a> for a full disclaimer.</p>
+      </section>
+
+      <section>
+        <h2>Changes to This Policy</h2>
+        <p>The effective date above reflects the most recent revision. Continued use of ChatHealthy.ai after changes are posted constitutes acceptance.</p>
+      </section>
+
+      <section>
+        <h2>Contact</h2>
+        <p>Privacy questions: <a href="mailto:skip.snow@gmail.com">skip.snow@gmail.com</a></p>
+      </section>
+
+    </div>
+
+    <!-- ── Action bar — bottom ────────────────────────── -->
+    <div class="action-bar action-bar-bottom">
+      <button class="action-btn close-btn" onclick="window.parent.closePanel()">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="10" y2="10"/><line x1="10" y1="1" x2="1" y2="10"/></svg>
+        Close
+      </button>
+      <button class="action-btn print-btn" onclick="window.print()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print
+      </button>
+    </div>
+
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <span class="footer-copy"><a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener">© 2025 Skip Snow</a></span>
+      <nav class="footer-legal"><a href="terms.html" target="_top">Terms of Use</a></nav>
+    </div>
+  </footer>
+
+  <script>
+    if (window !== window.top) {
+      document.querySelector('header').style.display = 'none';
+      document.body.classList.add('in-panel');
+    }
+  </script>
+</body>
+</html>
