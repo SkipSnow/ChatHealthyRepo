@@ -506,8 +506,7 @@ if __name__ == "__main__":
     gr.ChatInterface(
         me.chat,
         type="messages",
-        title="Chat Healthy: About Us",
-        css="footer { display: none !important; }",
+        css="footer { display: none !important; } h1 { display: none !important; }",
         chatbot=gr.Chatbot(
             value=[{"role": "assistant", "content": welcome}],
             type="messages",
