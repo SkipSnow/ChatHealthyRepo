@@ -203,7 +203,7 @@ class ChatHealthyLoadSpecialtyData:
 # Entry point called from function_app.py dispatch
 # ------------------------------------------------------------------
 
-def run_load_specialty_data() -> dict:
+def run_load_specialty_data(payload: dict = None) -> dict:
     collection_fqn = os.getenv("SPECIALTY_COLLECTION", "PublicHealthData.SpecialtyMetaData")
     loader = ChatHealthyLoadSpecialtyData(collection_fqn)
     loader.fetch_csv()
