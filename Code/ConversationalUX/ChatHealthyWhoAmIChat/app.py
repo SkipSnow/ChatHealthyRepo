@@ -494,9 +494,22 @@ class Me:
 
 if __name__ == "__main__":
     me = Me()
+    welcome = (
+        "**Welcome to ChatHealthy.ai**\n\n"
+        "I'm your AI guide to **US healthcare navigation**. Ask me about:\n\n"
+        "- **Medical specialties and provider types**\n"
+        "- **FindCare** — our AI-powered healthcare navigation platform\n"
+        "- **Healthcare AI Consulting** — strategy, architecture, and deployment\n"
+        "- **The team behind ChatHealthy.ai**\n\n"
+        "**Chat away.**"
+    )
     gr.ChatInterface(
         me.chat,
         type="messages",
         title="Chat Healthy: About Us",
         css="footer { display: none !important; }",
+        chatbot=gr.Chatbot(
+            value=[{"role": "assistant", "content": welcome}],
+            type="messages",
+        ),
     ).launch(share=True, show_api=False)
