@@ -76,7 +76,7 @@ The system is exactly three applications. Keep them rigorous and separate.
 ### Boundary rules — enforced without exception
 
 - **App 1 (Website)** contains only static content: HTML, CSS, JS, images. No business logic, no LLM calls, no database access. It embeds App 2 via iframe. That is the only coupling.
-- **App 2 (Chat)** handles all user interaction and real-time UX: LLM conversation, tool calls, inline components. It may call App 3 via authenticated REST API for complex or long-running work. It never touches the database directly — all persistence goes through App 3's API.
+- **App 2 (Chat)** handles all user interaction and real-time UX: LLM conversation, tool calls, inline components. It reads from the database directly for fast UX lookups (e.g. specialty vector search). It calls App 3 via authenticated REST API for complex, long-running, or write operations.
 - **App 3 (Pipelines)** owns all data management: MongoDB, Azure Blob, embeddings, CrewAI workflows. It exposes a REST API (`/api/Router`). It has no UX and no knowledge of the chat session.
 
 ### What belongs where
@@ -84,8 +84,8 @@ The system is exactly three applications. Keep them rigorous and separate.
 | Concern | App |
 |---|---|
 | Page content, navigation, legal, marketing | 1 — Website |
-| Conversation, intent routing, tool calls, provider lookup, clinical trial display | 2 — Chat |
-| Data ingestion, embeddings, multi-agent workflows, document generation, DB writes | 3 — Pipelines |
+| Conversation, intent routing, tool calls, DB reads for UX, provider lookup, clinical trial display | 2 — Chat |
+| Data ingestion, embeddings, multi-agent workflows, document generation, all DB writes | 3 — Pipelines |
 
 ### Integration pattern
 - App 1 → App 2: iframe embed only
