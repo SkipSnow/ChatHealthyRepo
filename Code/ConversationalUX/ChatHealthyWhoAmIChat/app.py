@@ -279,26 +279,57 @@ def find_specialty_codes(query: str) -> dict:
 
 
 def search_clinical_trials(condition: str, location: str = "", max_results: int = 5) -> dict:
-    """Call the Azure DataPipeline ClinicalTrialSearch crew and return structured trial cards."""
-    url = os.getenv("PIPELINE_URL", "")
-    token = os.getenv("PIPELINE_TOKEN", "")
-    if not url or not token:
-        return {"error": "Clinical trial search is not configured on this server."}
+    """Search ClinicalTrials.gov directly and return recruiting trial cards."""
+    params = {
+        "query.cond": condition,
+        "filter.overallStatus": "RECRUITING",
+        "pageSize": min(int(max_results), 10),
+        "format": "json",
+    }
+    if location:
+        params["query.locn"] = location
     try:
-        response = requests.post(
-            url,
-            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-            json={
-                "ChatHealthyTask": "ClinicalTrialSearch",
-                "payload": {"condition": condition, "location": location, "max_results": max_results},
-            },
-            timeout=120,
+        response = requests.get(
+            "https://clinicaltrials.gov/api/v2/studies",
+            params=params,
+            timeout=15,
         )
         response.raise_for_status()
-        data = response.json()
-        return data.get("data", data)
+        studies = response.json().get("studies", [])
     except Exception as exc:
-        return {"error": f"Clinical trial search failed: {exc}"}
+        return {"error": f"ClinicalTrials.gov search failed: {exc}"}
+
+    if not studies:
+        return {"trials": [], "message": "No recruiting trials found for this condition."}
+
+    trials = []
+    for study in studies:
+        ps = study.get("protocolSection", {})
+        id_mod = ps.get("identificationModule", {})
+        status_mod = ps.get("statusModule", {})
+        desc_mod = ps.get("descriptionModule", {})
+        elig_mod = ps.get("eligibilityModule", {})
+        contacts_mod = ps.get("contactsLocationsModule", {})
+        design_mod = ps.get("designModule", {})
+
+        nct_id = id_mod.get("nctId", "")
+        raw_locs = contacts_mod.get("locations", [])
+        location_strs = [
+            ", ".join(filter(None, [loc.get("facility"), loc.get("city"), loc.get("state")]))
+            for loc in raw_locs[:3]
+        ]
+        trials.append({
+            "nct_id": nct_id,
+            "title": id_mod.get("briefTitle", ""),
+            "status": status_mod.get("overallStatus", ""),
+            "phase": ", ".join(design_mod.get("phases", [])) or "N/A",
+            "locations": location_strs or ["See ClinicalTrials.gov"],
+            "summary": (desc_mod.get("briefSummary") or "")[:400],
+            "eligibility": (elig_mod.get("eligibilityCriteria") or "")[:600],
+            "url": f"https://clinicaltrials.gov/study/{nct_id}",
+        })
+
+    return {"trials": trials}
 
 
 def record_unknown_question(question, chat_history=None):
