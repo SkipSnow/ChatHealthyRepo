@@ -199,6 +199,26 @@ def find_specialty_codes(query: str) -> dict:
         return {"error": "Database unavailable"}
 
     projection = {"_id": 0, "Code": 1, "Classification": 1, "Specialization": 1, "Display Name": 1}
+    individual_provider_groupings = [
+        "Allopathic & Osteopathic Physicians",
+        "Behavioral Health & Social Service Providers",
+        "Chiropractic Providers",
+        "Dental Providers",
+        "Dietary & Nutritional Service Providers",
+        "Emergency Medical Service Providers",
+        "Eye and Vision Services Providers",
+        "Nursing Service Providers",
+        "Nursing Service Related Providers",
+        "Other Service Providers",
+        "Pharmacy Service Providers",
+        "Physician Assistants & Advanced Practice Nursing Providers",
+        "Podiatric Medicine & Surgery Service Providers",
+        "Respiratory, Developmental, Rehabilitative and Restorative Service Providers",
+        "Speech, Language and Hearing Service Providers",
+        "Student, Health Care",
+        "Technologists, Technicians & Other Technical Service Providers",
+    ]
+    individual_filter = {"Grouping": {"$in": individual_provider_groupings}}
 
     # Step 1: expand query to keyword stems via Haiku
     stems = _expand_query_terms(query)
@@ -222,7 +242,7 @@ def find_specialty_codes(query: str) -> dict:
     ]))
     classifications = list({m["Classification"] for m in top if m.get("score", 0) > 0.4})
     vector_codes = list(db["PublicHealthData"]["SpecialtyMetaData"].find(
-        {"Classification": {"$in": classifications}}, projection
+        {"$and": [{"Classification": {"$in": classifications}}, individual_filter]}, projection
     )) if classifications else []
 
     # Step 3: regex search — any stem in Specialization or Display Name
@@ -232,7 +252,7 @@ def find_specialty_codes(query: str) -> dict:
         for field in ("Specialization", "Display Name")
     ]
     regex_codes = list(db["PublicHealthData"]["SpecialtyMetaData"].find(
-        {"$or": regex_clauses}, projection
+        {"$and": [{"$or": regex_clauses}, individual_filter]}, projection
     )) if regex_clauses else []
 
     # Step 4: union, deduplicate by Code
@@ -337,7 +357,8 @@ find_specialty_codes_json = {
         "Look up NUCC provider taxonomy codes matching a medical specialty or provider type. "
         "Call this when the user asks about a type of doctor, specialist, or medical provider — "
         "for example 'cardiologist', 'OB-GYN', 'pediatrician', 'heart doctor'. "
-        "Returns matching taxonomy codes with classification and specialization details."
+        "Returns matching taxonomy codes with classification and specialization details. "
+        "If the result contains 'debug': true, display the full JSON result verbatim to the user — do not paraphrase it."
     ),
     "parameters": {
         "type": "object",
