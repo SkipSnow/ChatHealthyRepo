@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture — ChatHealthy.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --ink:        #0d1117;
+      --ink-soft:   #4a5568;
+      --surface:    #ffffff;
+      --teal:       #0b7a75;
+      --teal-light: #e6f4f3;
+      --teal-mid:   #d0eeec;
+      --accent:     #f0a500;
+      --border:     #d8e2e1;
+      --radius:     6px;
+      --max-w:      1160px;
+      --content-w:  860px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── Minimal header ─────────────────────────────── */
+    header { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: 0 1px 6px rgba(11,122,117,0.06); }
+    .header-inner { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+    .logo-mark { width: 32px; height: 32px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; }
+    .logo-mark svg { width: 18px; height: 18px; fill: white; }
+    .logo-text { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--teal); letter-spacing: -0.01em; }
+    .logo-text span { color: var(--accent); }
+
+    /* ── Main ───────────────────────────────────────── */
+    main { flex: 1; max-width: var(--max-w); width: 100%; margin: 0 auto; padding: clamp(20px,4vw,48px) clamp(16px,4vw,24px); }
+
+    .page-header { border-bottom: 2px solid var(--teal-mid); padding-bottom: 20px; margin-bottom: 36px; }
+    .page-header .eyebrow { font-size: 0.72rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 6px; }
+    .page-header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(1.5rem,4vw,2.25rem); color: var(--ink); line-height: 1.15; margin-bottom: 8px; }
+    .page-header .effective { font-size: 0.82rem; color: var(--ink-soft); }
+
+    /* ── Action bars ────────────────────────────────── */
+    .action-bar { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+    .action-bar-top { margin-bottom: 20px; }
+    .action-bar-bottom { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border); }
+
+    .action-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: none; border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--ink-soft); font-family: 'DM Sans', sans-serif; font-size: 0.82rem;
+      cursor: pointer; padding: 6px 14px; text-decoration: none;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .action-btn:hover { color: var(--teal); background: var(--teal-light); border-color: var(--teal-mid); }
+
+    .close-btn { display: none; }
+    .in-panel .close-btn { display: inline-flex; }
+
+    /* ── Content ────────────────────────────────────── */
+    .arch-body { max-width: var(--content-w); }
+
+    .arch-body h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.15rem;
+      color: var(--teal);
+      margin: 36px 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--teal-mid);
+    }
+    .arch-body h2:first-child { margin-top: 0; }
+
+    .arch-body h3 {
+      font-size: 0.88rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      margin: 24px 0 8px;
+    }
+
+    .arch-body p { font-size: 0.92rem; line-height: 1.7; color: var(--ink); margin-bottom: 10px; }
+    .arch-body p:last-child { margin-bottom: 0; }
+    .arch-body ul { margin: 6px 0 10px 20px; font-size: 0.92rem; line-height: 1.7; }
+    .arch-body ul li { margin-bottom: 4px; }
+
+    /* ── Tables ─────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 12px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 480px; }
+    th { background: var(--ink); color: #fff; padding: 8px 12px; text-align: left; font-weight: 500; font-size: 0.82rem; letter-spacing: 0.03em; }
+    td { border: 1px solid var(--border); padding: 8px 12px; vertical-align: top; line-height: 1.5; }
+    tr:nth-child(even) td { background: var(--teal-light); }
+
+    /* ── Diagrams ───────────────────────────────────── */
+    .diagram {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 24px;
+      margin: 16px 0;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .diagram-inner { min-width: 480px; }
+
+    .d-center { display: flex; justify-content: center; }
+    .d-down { text-align: center; font-size: 1.1rem; line-height: 1; margin: 4px 0; color: var(--ink-soft); }
+
+    .d-box {
+      border: 2px solid var(--ink);
+      padding: 8px 16px;
+      background: #fff;
+      text-align: center;
+      min-width: 140px;
+      line-height: 1.4;
+      border-radius: 2px;
+    }
+    .d-box strong { display: block; font-size: 0.88rem; }
+    .d-box small  { display: block; font-size: 0.78rem; color: var(--ink-soft); margin-top: 2px; }
+    .d-box-wide   { min-width: 220px; }
+    .d-box-narrow { min-width: 110px; }
+
+    .d-vline { width: 2px; background: var(--ink); margin: 0 auto; height: 16px; }
+    .d-row { display: flex; justify-content: center; gap: 32px; margin-top: 0; }
+    .d-col { display: flex; flex-direction: column; align-items: center; }
+
+    /* flow steps (consent diagram) */
+    .flow-step { border: 2px solid var(--ink); padding: 8px 14px; margin: 4px 0 0; font-size: 0.88rem; border-radius: 2px; }
+    .flow-yes  { margin: 4px 0 8px 28px; border-left: 3px solid var(--teal); padding-left: 12px; font-size: 0.82rem; color: var(--ink-soft); }
+
+    /* ── Footer ─────────────────────────────────────── */
+    footer { border-top: 1px solid var(--border); background: var(--surface); }
+    .footer-inner { max-width: var(--max-w); margin: 0 auto; padding: 14px clamp(16px,4vw,24px); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .footer-copy { font-size: 0.78rem; color: var(--ink-soft); font-style: italic; }
+    .footer-copy a { color: var(--ink-soft); text-decoration: none; }
+    .footer-copy a:hover { color: var(--teal); }
+
+    @media (max-width: 480px) { .footer-inner { justify-content: center; text-align: center; } }
+
+    /* ── Print ──────────────────────────────────────── */
+    @media print {
+      header, footer, .action-bar { display: none !important; }
+      body { font-size: 11pt; }
+      .arch-body { max-width: 100%; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="header-inner">
+      <a class="logo" href="/" target="_top" title="Back to ChatHealthy.ai">
+        <div class="logo-mark">
+          <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="2" width="4" height="16" rx="1"/>
+            <rect x="2" y="8" width="16" height="4" rx="1"/>
+          </svg>
+        </div>
+        <span class="logo-text">Chat<span>Healthy</span>.ai</span>
+      </a>
+    </div>
+  </header>
+
+  <main>
+
+    <div class="page-header">
+      <p class="eyebrow">Technical Reference</p>
+      <h1>Architecture Overview</h1>
+      <p class="effective">Version 2.1 &nbsp;·&nbsp; March 2026 &nbsp;·&nbsp; Confidential</p>
+    </div>
+
+    <div class="arch-body">
+
+      <!-- 1 -->
+      <h2>1. Product Vision</h2>
+      <p>
+        FindCare is a conversational AI that helps users navigate healthcare — finding providers,
+        understanding symptoms, researching clinical trials, and producing transcripts they can share
+        with their care team. All of this happens within a single AI session using a ChatGPT / Claude.ai
+        style interface. There is no separate "About Us" application; transparency about the product is
+        one intent path within the same session.
+      </p>
+
+      <!-- 2 -->
+      <h2>2. Infrastructure Overview</h2>
+      <div class="diagram">
+        <div class="diagram-inner">
+          <div class="d-center"><div class="d-box d-box-wide"><strong>User Browser</strong><small>www.chathealthy.ai</small></div></div>
+          <div class="d-down">↓</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Cloudflare</strong><small>Static pages · DNS · iframe embed</small></div></div>
+          <div class="d-down">↓</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>HuggingFace Space</strong><small>React + FastAPI · Layer 1</small></div></div>
+          <div class="d-row" style="margin-top:0;">
+            <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>Anthropic API</strong><small>Claude (chat)</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>Azure Functions</strong><small>CrewAI · Layer 2</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>MongoDB Atlas</strong><small>ChatHealthyDB_dev</small></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 -->
+      <h2>3. Website — Static Layer (Cloudflare)</h2>
+      <p>
+        The <code>Website/</code> directory is served as static pages by Cloudflare at
+        <strong>www.chathealthy.ai</strong>. It contains no server-side code — all behavior is
+        plain HTML, CSS, and vanilla JavaScript.
+      </p>
+
+      <h3>Pages</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>File</th><th>Purpose</th></tr>
+          <tr><td>index.html</td><td>Main landing page. Embeds the HuggingFace chat space via iframe. Contains navigation, footer, and the slide-in panel.</td></tr>
+          <tr><td>privacy.html</td><td>Privacy Policy. Loads standalone or inside the panel iframe.</td></tr>
+          <tr><td>terms.html</td><td>Terms of Use. Same dual-mode design as privacy.html.</td></tr>
+          <tr><td>architecture.html</td><td>This document. Technical architecture reference. Same dual-mode design.</td></tr>
+        </table>
+      </div>
+
+      <h3>Non-Modal Slide-In Panel</h3>
+      <p>
+        Pages open inside a slide-in panel anchored to the right edge of the viewport.
+        The chat iframe remains alive underneath — the panel is not modal and does not block interaction.
+        Each page detects whether it is loaded inside the panel (via <code>window !== window.top</code>)
+        and adds an <code>in-panel</code> class to <code>&lt;body&gt;</code>, which reveals Close buttons
+        and hides the page header.
+      </p>
+
+      <h3>Iframe Recursion Prevention</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Mechanism</th><th>Where</th><th>Effect</th></tr>
+          <tr><td>No <code>openPanel()</code> calls</td><td>All panel-loaded pages</td><td>Panel pages cannot trigger another panel — tested by the unit suite</td></tr>
+          <tr><td><code>target="_top"</code> on logo links</td><td>All panel-loaded page headers</td><td>Logo click navigates the top window, not the iframe</td></tr>
+          <tr><td><code>window !== window.top</code> JS check</td><td>Inline script on each page</td><td>Hides header and adds <code>in-panel</code> class when loaded in iframe</td></tr>
+        </table>
+      </div>
+
+      <!-- 4 -->
+      <h2>4. Two-Layer Application Architecture</h2>
+
+      <h3>Layer 1 — Conversational Interface (HuggingFace)</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+          <tr><td>Frontend</td><td>React + shadcn/ui</td><td>Chat interface; inline maps, charts, provider cards</td></tr>
+          <tr><td>Backend</td><td>FastAPI (Python)</td><td>API routes, tool definitions, session management</td></tr>
+          <tr><td>AI</td><td>Anthropic SDK — Claude</td><td>Intent routing, tool calling, response generation</td></tr>
+          <tr><td>Hosting</td><td>HuggingFace Docker Space</td><td>GPU-enabled, free tier available</td></tr>
+        </table>
+      </div>
+
+      <h3>Layer 2 — Background Workflows (Azure)</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+          <tr><td>Orchestration</td><td>CrewAI</td><td>Multi-agent coordination; multi-LLM support</td></tr>
+          <tr><td>Runtime</td><td>Azure Function App</td><td>Pay-per-use; Python 3.12.10</td></tr>
+          <tr><td>Library</td><td>ChatHealthyLib.pipelines</td><td>Core pipeline logic</td></tr>
+          <tr><td>Trigger</td><td>API call from Layer 1</td><td>Invoked when complex workflow needed</td></tr>
+        </table>
+      </div>
+
+      <p>
+        <strong>Why CrewAI?</strong> Multi-LLM support — each agent can use the best model for its task
+        (Claude for reasoning, GPT-4o-mini for cost-sensitive tasks, specialist models as available).
+        The Anthropic Agent SDK is Claude-only and was not chosen for this reason.
+      </p>
+
+      <!-- 5 -->
+      <h2>5. Session and Routing Model</h2>
+      <div class="diagram">
+        <div class="diagram-inner">
+          <div class="d-center"><div class="d-box d-box-wide"><strong>User Message</strong><small>"Find me an oncologist near me"</small></div></div>
+          <div class="d-down">↓</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Claude — Intent Router</strong><small>Classifies intent within the same session</small></div></div>
+          <div class="d-row" style="margin-top:0;">
+            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Find Care</strong><small>providers, cost</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Research</strong><small>trials, symptoms</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>About App</strong><small>transparency</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Transcript</strong><small>export for doc</small></div></div>
+          </div>
+          <div class="d-down" style="margin-top:8px;">↓</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Response + Inline Components</strong><small>Text · Map · Chart · Cards · Download button</small></div></div>
+        </div>
+      </div>
+      <p>
+        The user never sees the routing. Every intent path stays within the same conversation thread.
+        The session transcript is a first-class output — users can download and share it with their doctor.
+      </p>
+
+      <!-- 6 -->
+      <h2>6. Example Workflow — Clinical Trial Research</h2>
+      <div class="diagram">
+        <div class="diagram-inner">
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Layer 1: Claude</strong><small>User: "I have stage 3 pancreatic cancer. Find me trials."</small></div></div>
+          <div class="d-down">↓ API call to Azure</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Layer 2: CrewAI Crew</strong></div></div>
+          <div class="d-row" style="margin-top:0;">
+            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Search Agent</strong><small>ClinicalTrials.gov<br/>GPT-4o-mini</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Eligibility Agent</strong><small>criteria matching<br/>Claude</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Docs Agent</strong><small>application drafts<br/>Claude</small></div></div>
+          </div>
+          <div class="d-down" style="margin-top:8px;">↓ Results returned to Layer 1</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Layer 1: Claude presents results inline</strong><small>Trial cards · eligibility summary · next steps</small></div></div>
+        </div>
+      </div>
+
+      <!-- 7 -->
+      <h2>7. Data and Privacy</h2>
+
+      <h3>HIPAA Consent Flow</h3>
+      <div class="diagram">
+        <div class="diagram-inner">
+          <div class="flow-step"><strong>Q1:</strong> "May we save a verbatim transcript of this conversation with your contact details?"</div>
+          <div class="flow-yes">Yes → Store full chat history (PII intact, consent exchange included as evidence)</div>
+          <div class="flow-step"><strong>Q2 (if Q1 declined):</strong> "May we save a de-identified summary instead?"</div>
+          <div class="flow-yes">Yes → LLM summarizes → deIdentify() scrubs PII → stored in notes field only</div>
+          <div class="flow-step">Neither consented → Contact fields only; no history stored</div>
+          <div class="flow-step" style="margin-top:8px;">Unknown questions always de-identified and recorded regardless of consent</div>
+        </div>
+      </div>
+
+      <h3>MongoDB Lead Record Schema</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+          <tr><td>email</td><td>string</td><td>User contact</td></tr>
+          <tr><td>name</td><td>string</td><td>User contact</td></tr>
+          <tr><td>notes</td><td>string</td><td>De-identified summary if consent_summary=true</td></tr>
+          <tr><td>reason_for_contact</td><td>string</td><td>Extracted by AI</td></tr>
+          <tr><td>consent_verbatim</td><td>boolean</td><td>Explicit verbatim consent</td></tr>
+          <tr><td>consent_summary</td><td>boolean / null</td><td>Explicit summary consent</td></tr>
+          <tr><td>chat_history</td><td>array</td><td>Present only if consent_verbatim=true</td></tr>
+          <tr><td>datetime</td><td>ISO string</td><td>Record creation timestamp</td></tr>
+          <tr><td>testdata</td><td>boolean</td><td>true for automated test records only</td></tr>
+        </table>
+      </div>
+
+      <!-- 8 -->
+      <h2>8. DevOps</h2>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Concern</th><th>Tool</th><th>Detail</th></tr>
+          <tr><td>Source control</td><td>GitHub</td><td>SkipSnow/findCare · SkipSnow/ChatHealthyDataPipeline</td></tr>
+          <tr><td>App deploy</td><td>GitHub Actions</td><td>Push to master → rsync to HuggingFace Space (path filter: Code/ConversationalUX/**)</td></tr>
+          <tr><td>Pipeline deploy</td><td>GitHub Actions</td><td>Push to master → deploy to Azure Function App (path filter: Code/DataPipelines/**)</td></tr>
+          <tr><td>Website deploy</td><td>Cloudflare</td><td>Website/ served as static pages — no build step</td></tr>
+          <tr><td>Website tests</td><td>Playwright + pytest</td><td>Website/tests/ — 32 browser-driven tests</td></tr>
+          <tr><td>App unit tests</td><td>pytest (mocked)</td><td>Code/ConversationalUX/…/tests/test_record_user_details.py</td></tr>
+          <tr><td>App e2e tests</td><td>pytest (real systems)</td><td>Code/ConversationalUX/…/tests/test_e2e_record_user_details.py</td></tr>
+          <tr><td>Secrets</td><td>GitHub Secrets</td><td>HF_TOKEN, OPENAI_API_KEY, Anthropic_API_KEY, MONGO_connectionString, PUSHOVER_USER, PUSHOVER_TOKEN, AZURE_FUNCTION_APP_NAME, AZURE_FUNCTION_PUBLISH_PROFILE</td></tr>
+          <tr><td>IDE</td><td>Cursor / VS Code + Claude Code</td><td>Claude Code for all AI-assisted development</td></tr>
+        </table>
+      </div>
+
+      <!-- 9 -->
+      <h2>9. Deferred</h2>
+      <ul>
+        <li>FHIR / EMR integration — Layer 2, future phase</li>
+        <li>User authentication and cross-session persistence</li>
+        <li>Production MongoDB cluster (currently dev only)</li>
+        <li>MongoDB connection pooling design</li>
+        <li>Data deletion agent — Azure Function with email verification, MongoDB deletion, SendGrid confirmation</li>
+      </ul>
+
+    </div>
+
+    <!-- ── Action bar — bottom ────────────────────────── -->
+    <div class="action-bar action-bar-bottom">
+      <button class="action-btn close-btn" onclick="window.parent.closePanel()">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="10" y2="10"/><line x1="10" y1="1" x2="1" y2="10"/></svg>
+        Close
+      </button>
+      <button class="action-btn print-btn" onclick="window.print()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print
+      </button>
+    </div>
+
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <span class="footer-copy"><a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener">© 2025 Skip Snow</a></span>
+    </div>
+  </footer>
+
+  <script>
+    if (window !== window.top) {
+      document.querySelector('header').style.display = 'none';
+      document.body.classList.add('in-panel');
+    }
+  </script>
+</body>
+</html>

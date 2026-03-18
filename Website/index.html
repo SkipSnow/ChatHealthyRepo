@@ -116,6 +116,27 @@
     .header-nav a:hover { color: var(--teal); background: var(--teal-light); }
     .header-nav a.active { color: var(--teal); font-weight: 500; }
 
+    /* Legal panel trigger buttons styled as nav links */
+    .header-nav button:not(.nav-coming-soon),
+    .mobile-nav button:not(.nav-coming-soon) {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 400;
+      color: var(--ink-soft);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 14px;
+      border-radius: var(--radius);
+      transition: color 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+    .header-nav button:not(.nav-coming-soon):hover,
+    .mobile-nav button:not(.nav-coming-soon):hover {
+      color: var(--teal);
+      background: var(--teal-light);
+    }
+
     /* Coming Soon button in nav */
     .header-nav .nav-coming-soon,
     .mobile-nav .nav-coming-soon {
@@ -313,7 +334,7 @@
     .footer-links button { position: relative; }
 
     .footer-links button::after {
-      content: 'Coming Soon';
+      content: attr(data-tip);
       position: absolute;
       bottom: calc(100% + 8px);
       left: 50%;
@@ -337,6 +358,99 @@
       transform: translateX(-50%) translateY(0);
     }
 
+    /* ── Legal panel (non-modal slide-in) ─────────── */
+    .legal-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(520px, 100vw);
+      height: 100vh;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      box-shadow: -4px 0 24px rgba(11,122,117,0.10);
+      display: flex;
+      flex-direction: column;
+      z-index: 200;
+      transform: translateX(100%);
+      transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .legal-panel.open {
+      transform: translateX(0);
+    }
+
+    .legal-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 52px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .legal-panel-title {
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--teal);
+    }
+
+    .legal-panel-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: var(--radius);
+      color: var(--ink-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .legal-panel-close:hover {
+      background: var(--teal-light);
+      color: var(--teal);
+    }
+
+    .legal-panel-close svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .legal-panel iframe {
+      flex: 1;
+      border: none;
+      width: 100%;
+    }
+
+    /* ── Panel resize handle ───────────────────────── */
+    .panel-resize-handle {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 6px;
+      cursor: col-resize;
+      border-left: 2px solid transparent;
+      transition: border-color 0.15s, background 0.15s;
+      z-index: 1;
+    }
+    .panel-resize-handle:hover,
+    .panel-resize-handle.dragging { border-left-color: var(--teal); background: var(--teal-light); }
+
+    .legal-panel-actions { display: flex; align-items: center; gap: 2px; }
+
+    .legal-panel-expand {
+      background: none; border: none; cursor: pointer;
+      padding: 6px; border-radius: var(--radius);
+      color: var(--ink-soft);
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .legal-panel-expand:hover { background: var(--teal-light); color: var(--teal); }
+    .legal-panel-expand svg { width: 16px; height: 16px; }
+
     /* ── Responsive breakpoints ────────────────────── */
 
     /* Tablet: collapse nav to hamburger */
@@ -344,6 +458,8 @@
       .header-inner { gap: 16px; }
       .header-nav { display: none; }
       .menu-toggle { display: flex; align-items: center; justify-content: center; }
+      .panel-resize-handle,
+      .legal-panel-expand { display: none; }
     }
 
     /* Phone: tighten footer to 2×2 grid */
@@ -377,7 +493,7 @@
 
       <nav class="header-nav">
         <button type="button" class="nav-coming-soon" data-tip="You are already home">Home</button>
-        <button type="button" class="nav-coming-soon" data-tip="Coming Soon">Products &amp; Services</button>
+        <button type="button" onclick="openPanel('products.html','Products &amp; Services')">Products &amp; Services</button>
       </nav>
 
       <!-- Hamburger (visible on mobile only) -->
@@ -395,9 +511,32 @@
   <!-- Mobile nav drawer -->
   <nav class="mobile-nav" id="mobileNav">
     <button type="button" class="nav-coming-soon" data-tip="You are already home" onclick="closeMobileNav()">Home</button>
-    <button type="button" class="nav-coming-soon" data-tip="Coming Soon" onclick="closeMobileNav()">Products &amp; Services</button>
+    <button type="button" onclick="closeMobileNav(); openPanel('products.html','Products &amp; Services')">Products &amp; Services</button>
   </nav>
 
+
+  <!-- ══ LEGAL PANEL ═════════════════════════════════ -->
+  <div class="legal-panel" id="legalPanel" role="complementary" aria-label="Legal document">
+    <div class="panel-resize-handle" id="panelResizeHandle" title="Drag to resize · Double-click to reset"></div>
+    <div class="legal-panel-header">
+      <span class="legal-panel-title" id="legalPanelTitle"></span>
+      <div class="legal-panel-actions">
+        <button class="legal-panel-expand" id="panelExpandBtn" aria-label="Expand panel">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="10,4 6,8 10,12"/>
+            <polyline points="6,4 2,8 6,12"/>
+          </svg>
+        </button>
+        <button class="legal-panel-close" onclick="closePanel()" aria-label="Close">
+          <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="3" x2="15" y2="15"/>
+            <line x1="15" y1="3" x2="3" y2="15"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <iframe id="legalPanelFrame" src="" title="Legal document" tabindex="0"></iframe>
+  </div>
 
   <!-- ══ MAIN — chat embed ════════════════════════════ -->
   <main>
@@ -433,9 +572,10 @@
       <nav class="footer-links">
         <a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener noreferrer"
            style="font-style:italic;">© 2025 Skip Snow</a>
-        <button type="button">About</button>
-        <button type="button">Contact</button>
-        <button type="button">Privacy Policy</button>
+        <button type="button" data-tip="646-408-8999  ·  skip.snow@gmail.com">Contact</button>
+        <button type="button" onclick="openPanel('privacy.html','Privacy Policy')">Privacy Policy</button>
+        <button type="button" onclick="openPanel('terms.html','Terms of Use')">Terms of Use</button>
+        <button type="button" onclick="openPanel('architecture.html','Architecture')">Architecture</button>
       </nav>
     </div>
   </footer>
@@ -464,18 +604,101 @@
       }
     });
 
-    // Coming Soon — footer buttons
-    document.querySelectorAll('.footer-links button').forEach(btn => {
+    // Contact tooltip — footer buttons with data-tip but no onclick
+    document.querySelectorAll('.footer-links button[data-tip]:not([onclick])').forEach(btn => {
       btn.addEventListener('click', e => {
         const wasShown = btn.classList.contains('show-tip');
-        document.querySelectorAll('.footer-links button').forEach(b => b.classList.remove('show-tip'));
+        document.querySelectorAll('.footer-links button[data-tip]:not([onclick])').forEach(b => b.classList.remove('show-tip'));
         if (!wasShown) btn.classList.add('show-tip');
       });
     });
     document.addEventListener('click', e => {
-      if (!e.target.closest('.footer-links button')) {
-        document.querySelectorAll('.footer-links button').forEach(b => b.classList.remove('show-tip'));
+      if (!e.target.closest('.footer-links button[data-tip]:not([onclick])')) {
+        document.querySelectorAll('.footer-links button[data-tip]:not([onclick])').forEach(b => b.classList.remove('show-tip'));
       }
+    });
+
+    // Legal panel
+    function openPanel(src, title) {
+      document.getElementById('legalPanelFrame').src = src;
+      document.getElementById('legalPanelTitle').textContent = title;
+      document.getElementById('legalPanel').classList.add('open');
+    }
+
+    function closePanel() {
+      const panel = document.getElementById('legalPanel');
+      panel.classList.remove('open');
+      // Clear src after animation so it doesn't keep running in background
+      setTimeout(() => { document.getElementById('legalPanelFrame').src = ''; }, 300);
+    }
+
+    // Close panel on Escape key
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closePanel();
+    });
+
+    // ── Panel resize ──────────────────────────────────
+    const _panel       = document.getElementById('legalPanel');
+    const _handle      = document.getElementById('panelResizeHandle');
+    const _expandBtn   = document.getElementById('panelExpandBtn');
+    const PANEL_DEFAULT = 520;
+    const PANEL_WIDE    = 800;
+    let   _expanded     = false;
+
+    function setPanelWidth(w) {
+      const min     = 340;
+      const max     = Math.floor(window.innerWidth * 0.92);
+      const clamped = Math.max(min, Math.min(max, w));
+      _panel.style.width = clamped + 'px';
+      localStorage.setItem('ch_panelWidth', clamped);
+    }
+
+    // Restore saved width on desktop
+    if (window.innerWidth > 600) {
+      const saved = parseInt(localStorage.getItem('ch_panelWidth') || PANEL_DEFAULT);
+      setPanelWidth(saved);
+    }
+
+    // Drag to resize
+    _handle.addEventListener('mousedown', e => {
+      e.preventDefault();
+      _handle.classList.add('dragging');
+      const startX     = e.clientX;
+      const startWidth = _panel.offsetWidth;
+      function onMove(e) { setPanelWidth(startWidth + (startX - e.clientX)); }
+      function onUp()   {
+        _handle.classList.remove('dragging');
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+
+    // Double-click handle: reset to default
+    _handle.addEventListener('dblclick', () => {
+      _expanded = false;
+      _syncExpandIcon();
+      setPanelWidth(PANEL_DEFAULT);
+    });
+
+    // Expand toggle button
+    function _syncExpandIcon() {
+      if (_expanded) {
+        _expandBtn.setAttribute('aria-label', 'Collapse panel');
+        _expandBtn.querySelector('svg').innerHTML =
+          '<polyline points="6,4 10,8 6,12"/><polyline points="10,4 14,8 10,12"/>';
+      } else {
+        _expandBtn.setAttribute('aria-label', 'Expand panel');
+        _expandBtn.querySelector('svg').innerHTML =
+          '<polyline points="10,4 6,8 10,12"/><polyline points="6,4 2,8 6,12"/>';
+      }
+    }
+
+    _expandBtn.addEventListener('click', () => {
+      _expanded = !_expanded;
+      setPanelWidth(_expanded ? PANEL_WIDE : PANEL_DEFAULT);
+      _syncExpandIcon();
     });
   </script>
 </body>
