@@ -580,6 +580,7 @@ if __name__ == "__main__":
         "**Welcome to ChatHealthy.ai**\n\n"
         "I'm your AI guide to **US healthcare navigation**. Ask me about:\n\n"
         "- **Medical specialties and provider types**\n"
+        "- **Clinical trials** — find recruiting studies for any condition\n"
         "- **FindCare** — our AI-powered healthcare navigation platform\n"
         "- **Healthcare AI Consulting** — strategy, architecture, and deployment\n"
         "- **The team behind ChatHealthy.ai**\n\n"
