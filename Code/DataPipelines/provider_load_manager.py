@@ -76,34 +76,41 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     config = {**config, "load_id": load_id}
 
     # Step 1: Download zip to blob (auto-discovers URL + version if not supplied)
+    context.set_custom_status("Step 1/8: Downloading NPI zip from CMS")
     download_result = yield context.call_activity("download_zip_activity", config)
     zip_path = download_result["zip_path"]
     config = {**config, "version": download_result["version"]}
 
     # Step 2: Extract CSV from zip to blob
+    context.set_custom_status(f"Step 2/8: Extracting CSV (version: {config['version']})")
     csv_path = yield context.call_activity(
         "extract_csv_activity", {**config, "zip_path": zip_path}
     )
 
     # Step 3: Compute byte-aligned partitions
+    context.set_custom_status("Step 3/8: Partitioning file")
     partitions = yield context.call_activity(
         "partition_file_activity", {**config, "csv_path": csv_path}
     )
 
     # Step 4: Clear staging collection — remove all existing records before this load
+    context.set_custom_status("Step 4/8: Clearing staging collection")
     yield context.call_activity("clear_staging_activity", config)
 
     # Step 5: Ensure staging indexes exist before workers start (idempotent)
+    context.set_custom_status("Step 5/8: Ensuring indexes")
     yield context.call_activity("ensure_indexes_activity", config)
 
     # Step 6: Write one metadata record per worker
+    context.set_custom_status(f"Step 6/8: Writing metadata ({len(partitions)} workers)")
     metadata_ids = yield context.call_activity(
         "write_metadata_activity",
         {**config, "csv_path": csv_path, "partitions": partitions},
     )
 
-    # Step 6: Fan-out — each worker+enrichment pair is a sub-orchestrator
+    # Step 7: Fan-out — each worker+enrichment pair is a sub-orchestrator
     # Each pair starts immediately and chains enrichment on completion.
+    context.set_custom_status(f"Step 7/8: Loading — {len(partitions)} workers running")
     pair_tasks = [
         context.call_sub_orchestrator(
             "worker_enrichment_pair",
@@ -113,13 +120,15 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     ]
     pair_results = yield context.task_all(pair_tasks)
 
-    # Step 7: Reconcile — count newlines in CSV vs loaded records
+    # Step 8: Reconcile — count newlines in CSV vs loaded records
+    context.set_custom_status("Step 8/8: Reconciling record counts")
     reconcile_result = yield context.call_activity(
         "reconcile_activity",
         {**config, "csv_path": csv_path, "pair_results": pair_results},
     )
 
-    # Step 8: Report — write to admin.PipelineDiscrepancyReport → Pushover
+    # Step 9: Report — write to admin.PipelineDiscrepancyReport → Pushover
+    context.set_custom_status("Step 9/9: Writing report")
     yield context.call_activity(
         "report_activity",
         {**config, "pair_results": pair_results, "reconcile_result": reconcile_result},
@@ -129,8 +138,10 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     any_failed = any(not r.get("worker", {}).get("success", True) for r in pair_results)
     # Per 2.5: mark entire load FAILED if any worker failed.
     # Successful inserts are NOT rolled back — load_id isolates this run.
+    status = "failed" if any_failed else "complete"
+    context.set_custom_status(f"Done — {status}, {total:,} records loaded")
     return {
-        "status": "failed" if any_failed else "complete",
+        "status": status,
         "records_loaded": total,
     }
 
