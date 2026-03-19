@@ -15,6 +15,7 @@ import azure.functions as func
 from auth import require_auth
 from load_specialty_data import run_load_specialty_data
 from provider_load_manager import (
+    clear_staging_fn,
     county_enrich_fn,
     download_zip_fn,
     ensure_indexes_fn,
@@ -144,6 +145,11 @@ def extract_csv_activity(config: dict) -> str:
 @app.activity_trigger(input_name="config")
 def partition_file_activity(config: dict) -> list:
     return partition_file_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def clear_staging_activity(config: dict) -> dict:
+    return clear_staging_fn(config)
 
 
 @app.activity_trigger(input_name="config")
