@@ -228,7 +228,7 @@
         <tr><td><code>staging_collection</code></td><td>str</td><td><code>PublicHealthData.providers_staging</code></td><td>Target collection for raw provider records.</td></tr>
         <tr><td><code>metadata_collection</code></td><td>str</td><td><code>admin.DataLoadMetadata</code></td><td>Load tracking collection. Never deleted by the system.</td></tr>
         <tr><td><code>version</code></td><td>str</td><td>—</td><td>NPI file version string (e.g. <code>"2026-03"</code>). Auto-discovered if omitted.</td></tr>
-        <tr><td><code>max_records</code></td><td>int / null</td><td><code>None</code></td><td>Approximate cap on records loaded (byte-estimate, ±5%). Omit (or pass <code>null</code>) for a full production load. Pass <code>200000</code> for a dev test run.</td></tr>
+        <tr><td><code>max_bytes</code></td><td>int / null</td><td><code>None</code></td><td>Hard byte limit on data rows read (excludes header). Omit (or pass <code>null</code>) for a full production load. Pass <code>50000000</code> (~50 MB, ~42K records) for a dev test run.</td></tr>
       </table>
     </div>
 
@@ -301,7 +301,7 @@
         <tr><td>8</td><td><code>MAX_ROWS_PER_WORKER</code> implicit — magic number <code>1,000,000,000</code> inline in worker code.</td><td>Extracted to named constant <code>MAX_ROWS_PER_WORKER = 1_000_000_000</code> at module level.</td></tr>
         <tr><td>9</td><td>Excel detail tab unbounded — could produce a multi-GB spreadsheet for large failure sets.</td><td>Detail tab capped at <code>DETAIL_ROW_LIMIT = 10,000</code> rows with truncation notice.</td></tr>
         <tr><td>10</td><td><code>download_zip_fn</code> returned <code>str</code> in original design — auto-discovered <code>version</code> was lost.</td><td>Returns <code>dict {"zip_path", "version"}</code>. Orchestrator propagates <code>version</code> into config for all downstream activities. <em>(Fixed in Rev 1.)</em></td></tr>
-        <tr><td>11</td><td><code>max_records</code> is approximate — byte estimate (500 bytes/row) may over- or under-shoot by up to ±5%.</td><td>Accepted. Used for dev limiting only; production runs omit <code>max_records</code>. Documented.</td></tr>
+        <tr><td>11</td><td><code>max_records</code> was approximate — required sampling rows to estimate a byte offset, adding complexity and a ±5% error margin.</td><td>Replaced with <code>max_bytes</code>: a direct byte limit applied to the data region after the header. No sampling needed. Used for dev limiting only; production runs omit the parameter.</td></tr>
         <tr><td>12</td><td>Partial failure strategy unspecified — if 1 of 5 workers fails, what happens?</td><td>All pairs run to completion (no short-circuit). If any worker fails, the orchestrator returns <code>status: "failed"</code>. Successful inserts are NOT rolled back — <code>load_id</code> isolates this run. A re-run is safe due to upsert idempotency.</td></tr>
       </table>
     </div>

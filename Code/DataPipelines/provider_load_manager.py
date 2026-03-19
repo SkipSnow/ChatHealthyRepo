@@ -221,7 +221,7 @@ def extract_csv_fn(config: dict) -> str:
 def partition_file_fn(config: dict) -> list:
     """Compute byte-aligned partitions. Returns list of partition dicts."""
     num_workers = config.get("num_workers", 5)
-    max_records = config.get("max_records")  # None = full file; pass explicitly for dev
+    max_bytes = config.get("max_bytes")  # None = full file; pass explicitly for dev/testing
     csv_path = config["csv_path"]
     container = config.get("blob_container", "provider-data")
 
@@ -240,18 +240,8 @@ def partition_file_fn(config: dict) -> list:
     header_end = len(header_line.encode("utf-8")) + 1  # +1 for \n
     logging.info("Header parsed: %d fields, header_end=%d", len(header), header_end)
 
-    # If max_records set, sample actual row sizes to estimate byte limit.
-    # Sample 512KB of data rows (gives ~400 rows at NPI's ~1200 bytes/row).
-    # Add 10% headroom so rounding never leaves us short of max_records rows.
-    if max_records:
-        sample_raw = blob_client.download_blob(offset=header_end, length=524288).readall()
-        sample_lines = sample_raw.split(b"\n")
-        complete_lines = [ln for ln in sample_lines[:-1] if ln]  # drop trailing partial
-        avg_row_bytes = len(sample_raw) / len(complete_lines) if complete_lines else 1200
-        logging.info(
-            "Sampled avg row size: %.0f bytes from %d rows", avg_row_bytes, len(complete_lines)
-        )
-        effective_end = min(file_size, header_end + int(max_records * avg_row_bytes * 1.1))
+    if max_bytes:
+        effective_end = min(file_size, header_end + max_bytes)
     else:
         effective_end = file_size
 
