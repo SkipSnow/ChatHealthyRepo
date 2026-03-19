@@ -152,7 +152,7 @@
         <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Durable Orchestrator — ProviderLoadManager</strong><small>no timeout · Azure manages state and restarts</small></div></div>
 
         <div class="d-down">↓ Step 1</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>Download ZIP → Azure Blob</strong><small>CMS NPPES URL · stored for audit trail</small></div></div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Download ZIP → Azure Blob</strong><small>Scrapes cms.gov/nppes to discover latest file URL · no manual URL needed · stored for audit trail</small></div></div>
 
         <div class="d-down">↓ Step 2</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>Extract CSV → Azure Blob</strong><small>unzip in-stream · CSV stays in blob for all workers</small></div></div>
@@ -209,7 +209,7 @@
     <div class="table-wrap">
       <table>
         <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Notes</th></tr>
-        <tr><td><code>file_url</code></td><td>str</td><td>—</td><td>CMS NPPES download URL. Required.</td></tr>
+        <tr><td><code>file_url</code></td><td>str / null</td><td><code>None</code></td><td>CMS NPPES download URL. If omitted, <code>download_zip_fn</code> scrapes <code>cms.gov/nppes</code> to auto-discover the latest file. No human intervention required.</td></tr>
         <tr><td><code>num_workers</code></td><td>int</td><td>5</td><td>Number of parallel workers. Each gets an equal byte slice. Default 5 for dev; scale to 50 for full production load.</td></tr>
         <tr><td><code>report_blob_container</code></td><td>str</td><td><code>provider-data</code></td><td>Azure Blob container where the Excel report is uploaded. SAS URL sent via Pushover.</td></tr>
         <tr><td><code>blob_container</code></td><td>str</td><td><code>provider-data</code></td><td>Azure Blob container for zip and CSV storage.</td></tr>
