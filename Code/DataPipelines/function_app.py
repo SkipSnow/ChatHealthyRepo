@@ -13,6 +13,7 @@ import azure.functions as func
 
 from auth import require_auth
 from load_specialty_data import run_load_specialty_data
+from load_provider_data import run_load_provider_data
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -20,6 +21,7 @@ PIPELINE_ROUTE = "Router"
 
 TASK_HANDLERS = {
     "LoadSpecialtyData": run_load_specialty_data,
+    "LoadProviderData": run_load_provider_data,
 }
 
 
