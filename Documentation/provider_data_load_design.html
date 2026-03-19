@@ -228,7 +228,7 @@
         <tr><td><code>staging_collection</code></td><td>str</td><td><code>PublicHealthData.providers_staging</code></td><td>Target collection for raw provider records.</td></tr>
         <tr><td><code>metadata_collection</code></td><td>str</td><td><code>admin.DataLoadMetadata</code></td><td>Load tracking collection. Never deleted by the system.</td></tr>
         <tr><td><code>version</code></td><td>str</td><td>—</td><td>NPI file version string (e.g. <code>"2026-03"</code>). Auto-discovered if omitted.</td></tr>
-        <tr><td><code>max_records</code></td><td>int / null</td><td><code>200000</code></td><td>Approximate cap on records loaded (byte-estimate, ±5%). <code>None</code> loads the full file. Default 200K for dev; omit for full production load.</td></tr>
+        <tr><td><code>max_records</code></td><td>int / null</td><td><code>None</code></td><td>Approximate cap on records loaded (byte-estimate, ±5%). Omit (or pass <code>null</code>) for a full production load. Pass <code>200000</code> for a dev test run.</td></tr>
       </table>
     </div>
 
