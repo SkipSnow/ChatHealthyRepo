@@ -218,7 +218,7 @@ def extract_csv_fn(config: dict) -> str:
 def partition_file_fn(config: dict) -> list:
     """Compute byte-aligned partitions. Returns list of partition dicts."""
     num_workers = config.get("num_workers", 5)
-    max_records = config.get("max_records", 200_000)
+    max_records = config.get("max_records")  # None = full file; pass explicitly for dev
     csv_path = config["csv_path"]
     container = config.get("blob_container", "provider-data")
 
