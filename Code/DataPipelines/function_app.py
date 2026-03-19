@@ -9,19 +9,36 @@ _env_path = Path(__file__).resolve().parent / ".env"
 if _env_path.exists():
     load_dotenv(_env_path)
 
+import azure.durable_functions as df
 import azure.functions as func
 
 from auth import require_auth
 from load_specialty_data import run_load_specialty_data
-from load_provider_data import run_load_provider_data
+from provider_load_manager import (
+    county_enrich_fn,
+    download_zip_fn,
+    extract_csv_fn,
+    partition_file_fn,
+    provider_load_orchestrator_fn,
+    provider_worker_fn,
+    reconcile_fn,
+    report_fn,
+    write_metadata_fn,
+    worker_enrichment_pair_fn,
+)
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 PIPELINE_ROUTE = "Router"
 
-TASK_HANDLERS = {
+# Synchronous tasks — called directly, return 200
+SYNC_TASK_HANDLERS = {
     "LoadSpecialtyData": run_load_specialty_data,
-    "LoadProviderData": run_load_provider_data,
+}
+
+# Asynchronous tasks — start a Durable orchestrator, return 202 + status URL
+ASYNC_TASK_ORCHESTRATORS = {
+    "LoadProviderData": "provider_load_orchestrator",
 }
 
 
@@ -35,18 +52,17 @@ def json_response(payload: dict, status_code: int) -> func.HttpResponse:
 
 @app.function_name(name="DevPipelineManagementService")
 @app.route(route=PIPELINE_ROUTE)
-def dev_pipeline_management(req: func.HttpRequest) -> func.HttpResponse:
-    """Dev Pipeline Management Service - requires Bearer token, routes supported tasks."""
+@app.durable_client_input(client_name="client")
+async def dev_pipeline_management(
+    req: func.HttpRequest, client: df.DurableOrchestrationClient
+) -> func.HttpResponse:
+    """Pipeline Router — authenticates, routes sync and async tasks."""
     try:
         user_id, err = require_auth(req)
         if err:
             status_code, message = err
             logging.warning("Authentication failed for route '%s': %s", PIPELINE_ROUTE, message)
-            return func.HttpResponse(
-                body=message,
-                status_code=status_code,
-                mimetype="text/plain",
-            )
+            return func.HttpResponse(body=message, status_code=status_code, mimetype="text/plain")
 
         if req.method == "GET":
             return func.HttpResponse(
@@ -71,24 +87,84 @@ def dev_pipeline_management(req: func.HttpRequest) -> func.HttpResponse:
             )
 
         task = task.strip()
+        payload = req_body.get("payload") or {}
         logging.info("User '%s' requested task '%s'", user_id, task)
 
-        handler = TASK_HANDLERS.get(task)
-        if handler is None:
-            return json_response(
-                {"success": False, "error": f"Unknown task: {task}", "task": task},
-                400,
+        # Synchronous path
+        if task in SYNC_TASK_HANDLERS:
+            result = SYNC_TASK_HANDLERS[task](payload)
+            logging.info("Task '%s' completed for user '%s'", task, user_id)
+            return json_response({"success": True, "task": task, "data": result}, 200)
+
+        # Asynchronous path — start Durable orchestrator, return 202
+        if task in ASYNC_TASK_ORCHESTRATORS:
+            orchestrator_name = ASYNC_TASK_ORCHESTRATORS[task]
+            instance_id = await client.start_new(orchestrator_name, None, payload)
+            logging.info(
+                "Started orchestrator '%s' instance '%s' for user '%s'",
+                orchestrator_name, instance_id, user_id,
             )
+            return client.create_check_status_response(req, instance_id)
 
-        result = handler(req_body.get("payload") or {})
-
-        logging.info("Task '%s' completed successfully for user '%s'", task, user_id)
-        return json_response({"success": True, "task": task, "data": result}, 200)
+        return json_response(
+            {"success": False, "error": f"Unknown task: {task}", "task": task},
+            400,
+        )
 
     except Exception:
         logging.exception("Unhandled error in DevPipelineManagementService")
-        return func.HttpResponse(
-            body="Internal server error",
-            status_code=500,
-            mimetype="text/plain",
-        )
+        return func.HttpResponse(body="Internal server error", status_code=500, mimetype="text/plain")
+
+
+# ── Durable Orchestrators ─────────────────────────────────────────────────────
+
+@app.orchestration_trigger(context_name="context")
+def provider_load_orchestrator(context: df.DurableOrchestrationContext):
+    return provider_load_orchestrator_fn(context)
+
+
+@app.orchestration_trigger(context_name="context")
+def worker_enrichment_pair(context: df.DurableOrchestrationContext):
+    return worker_enrichment_pair_fn(context)
+
+
+# ── Durable Activities ────────────────────────────────────────────────────────
+
+@app.activity_trigger(input_name="config")
+def download_zip_activity(config: dict) -> str:
+    return download_zip_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def extract_csv_activity(config: dict) -> str:
+    return extract_csv_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def partition_file_activity(config: dict) -> list:
+    return partition_file_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def write_metadata_activity(config: dict) -> list:
+    return write_metadata_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def provider_worker_activity(config: dict) -> dict:
+    return provider_worker_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def county_enrich_activity(config: dict) -> dict:
+    return county_enrich_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def reconcile_activity(config: dict) -> dict:
+    return reconcile_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def report_activity(config: dict) -> dict:
+    return report_fn(config)

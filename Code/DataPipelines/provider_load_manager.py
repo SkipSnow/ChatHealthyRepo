@@ -1,0 +1,278 @@
+"""Provider Load Manager — orchestrator and all activity implementations.
+
+All I/O lives in activity functions. The orchestrator is deterministic
+and replayable (no direct I/O).
+"""
+
+import csv
+import io
+import logging
+import os
+import tempfile
+import zipfile
+from datetime import datetime, timezone
+
+import azure.durable_functions as df
+import requests
+from azure.storage.blob import BlobServiceClient
+from pymongo import MongoClient
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _blob_service() -> BlobServiceClient:
+    return BlobServiceClient.from_connection_string(
+        os.environ["AZURE_STORAGE_CONNECTION_STRING"]
+    )
+
+
+def _ensure_container(container: str) -> None:
+    try:
+        _blob_service().get_container_client(container).create_container()
+    except Exception:
+        pass  # already exists
+
+
+# ── Orchestrators ─────────────────────────────────────────────────────────────
+
+def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
+    """Main orchestrator. No timeouts — Azure manages state."""
+    config = context.get_input()
+
+    # Step 1: Download zip to blob
+    zip_path = yield context.call_activity("download_zip_activity", config)
+
+    # Step 2: Extract CSV from zip to blob
+    csv_path = yield context.call_activity(
+        "extract_csv_activity", {**config, "zip_path": zip_path}
+    )
+
+    # Step 3: Compute byte-aligned partitions
+    partitions = yield context.call_activity(
+        "partition_file_activity", {**config, "csv_path": csv_path}
+    )
+
+    # Step 4: Write one metadata record per worker
+    metadata_ids = yield context.call_activity(
+        "write_metadata_activity",
+        {**config, "csv_path": csv_path, "partitions": partitions},
+    )
+
+    # Step 5: Fan-out — each worker+enrichment pair is a sub-orchestrator
+    # Each pair starts immediately and chains enrichment on completion.
+    pair_tasks = [
+        context.call_sub_orchestrator(
+            "worker_enrichment_pair",
+            {**config, "csv_path": csv_path, "metadata_id": metadata_ids[i], **partition},
+        )
+        for i, partition in enumerate(partitions)
+    ]
+    pair_results = yield context.task_all(pair_tasks)
+
+    # Step 6: Reconcile — count newlines in CSV vs loaded records
+    reconcile_result = yield context.call_activity(
+        "reconcile_activity",
+        {**config, "csv_path": csv_path, "pair_results": pair_results},
+    )
+
+    # Step 7: Report — Excel → blob → SAS URL → Pushover
+    yield context.call_activity(
+        "report_activity",
+        {**config, "pair_results": pair_results, "reconcile_result": reconcile_result},
+    )
+
+    total = sum(r.get("worker", {}).get("num_records", 0) for r in pair_results)
+    return {"status": "complete", "records_loaded": total}
+
+
+def worker_enrichment_pair_fn(context: df.DurableOrchestrationContext):
+    """Sub-orchestrator: load one chunk, then immediately enrich it."""
+    config = context.get_input()
+
+    worker_result = yield context.call_activity("provider_worker_activity", config)
+
+    enrich_result = yield context.call_activity(
+        "county_enrich_activity", {**config, "worker_result": worker_result}
+    )
+
+    return {"worker": worker_result, "enrich": enrich_result}
+
+
+# ── Activity implementations ──────────────────────────────────────────────────
+
+def download_zip_fn(config: dict) -> str:
+    """Stream NPI zip from CMS URL to Azure Blob. Returns blob name."""
+    file_url = config["file_url"]
+    container = config.get("blob_container", "provider-data")
+    version = config.get("version", "latest")
+    blob_name = f"npi_{version}.zip"
+
+    _ensure_container(container)
+    service = _blob_service()
+    blob_client = service.get_container_client(container).get_blob_client(blob_name)
+
+    logging.info("Downloading NPI zip from %s", file_url)
+    with requests.get(file_url, stream=True, timeout=600) as r:
+        r.raise_for_status()
+        blob_client.upload_blob(r.raw, overwrite=True)
+
+    logging.info("ZIP uploaded to blob: %s", blob_name)
+    return blob_name
+
+
+def extract_csv_fn(config: dict) -> str:
+    """Extract CSV from zip blob, upload CSV blob. Returns csv blob name."""
+    zip_blob_name = config["zip_path"]
+    container = config.get("blob_container", "provider-data")
+    version = config.get("version", "latest")
+    csv_blob_name = f"npi_{version}.csv"
+
+    service = _blob_service()
+    container_client = service.get_container_client(container)
+
+    # Download zip to temp file (zip is ~500MB, fits in /tmp on Azure Functions)
+    with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
+        tmp_path = tmp.name
+        container_client.get_blob_client(zip_blob_name).download_blob().readinto(tmp)
+
+    # Stream-extract CSV directly to blob (8GB CSV never touches /tmp)
+    csv_blob = container_client.get_blob_client(csv_blob_name)
+    with zipfile.ZipFile(tmp_path) as zf:
+        csv_name = next(
+            n for n in zf.namelist()
+            if n.lower().endswith(".csv") and "npidata" in n.lower()
+        )
+        with zf.open(csv_name) as csv_stream:
+            csv_blob.upload_blob(csv_stream, overwrite=True)
+
+    os.unlink(tmp_path)
+    logging.info("CSV extracted to blob: %s", csv_blob_name)
+    return csv_blob_name
+
+
+def partition_file_fn(config: dict) -> list:
+    """Compute byte-aligned partitions. Returns list of partition dicts."""
+    num_workers = config.get("num_workers", 5)
+    max_records = config.get("max_records", 200_000)
+    csv_path = config["csv_path"]
+    container = config.get("blob_container", "provider-data")
+
+    service = _blob_service()
+    blob_client = service.get_container_client(container).get_blob_client(csv_path)
+    file_size = blob_client.get_blob_properties().size
+
+    # Read header row
+    header_bytes = blob_client.download_blob(offset=0, length=8192).readall()
+    header_line = header_bytes.decode("utf-8", errors="replace").split("\n")[0]
+    header = list(csv.reader([header_line]))[0]
+    header_end = len(header_line.encode("utf-8")) + 1  # +1 for \n
+
+    # If max_records set, estimate byte limit using avg NPI row size (~500 bytes)
+    if max_records:
+        effective_end = min(file_size, header_end + max_records * 500)
+    else:
+        effective_end = file_size
+
+    data_size = effective_end - header_end
+    chunk_size = data_size // num_workers
+
+    # Compute newline-aligned boundaries so no record is split or skipped
+    boundaries = [header_end]
+    for i in range(1, num_workers):
+        nominal = header_end + i * chunk_size
+        window = blob_client.download_blob(offset=nominal, length=256).readall()
+        newline_pos = window.find(b"\n")
+        true_boundary = nominal + newline_pos + 1 if newline_pos >= 0 else nominal
+        boundaries.append(true_boundary)
+    boundaries.append(effective_end)
+
+    partitions = []
+    for i in range(num_workers):
+        partitions.append({
+            "worker_id": i + 1,
+            "start_byte": boundaries[i],
+            "end_byte": boundaries[i + 1],
+            "header": header,
+        })
+
+    logging.info("Computed %d partitions from %d bytes of data", len(partitions), data_size)
+    return partitions
+
+
+def write_metadata_fn(config: dict) -> list:
+    """Write one metadata record per worker. Returns list of inserted _id strings."""
+    partitions = config["partitions"]
+    csv_path = config["csv_path"]
+    version = config.get("version", "latest")
+    metadata_collection = config.get("metadata_collection", "admin.DataLoadMetadata")
+    now = datetime.now(timezone.utc).isoformat()
+
+    db_name, coll_name = metadata_collection.split(".", 1)
+    client = MongoClient(os.environ["MONGO_connectionString"])
+    try:
+        collection = client[db_name][coll_name]
+        docs = [
+            {
+                "type": "ProviderData",
+                "date": now,
+                "version": version,
+                "worker_id": p["worker_id"],
+                "file_location": csv_path,
+                "start_byte": p["start_byte"],
+                "end_byte": p["end_byte"],
+                "num_records": 0,
+                "status": 0,
+                "error_detail": None,
+            }
+            for p in partitions
+        ]
+        result = collection.insert_many(docs)
+    finally:
+        client.close()
+
+    return [str(oid) for oid in result.inserted_ids]
+
+
+def reconcile_fn(config: dict) -> dict:
+    """Stream CSV counting newlines. Compare to sum of worker num_records."""
+    csv_path = config["csv_path"]
+    container = config.get("blob_container", "provider-data")
+    pair_results = config.get("pair_results", [])
+
+    service = _blob_service()
+    blob_client = service.get_container_client(container).get_blob_client(csv_path)
+
+    total_newlines = 0
+    for chunk in blob_client.download_blob().chunks():
+        total_newlines += chunk.count(b"\n")
+    csv_record_count = total_newlines - 1  # subtract header row
+
+    loaded_count = sum(
+        r.get("worker", {}).get("num_records", 0) for r in pair_results
+    )
+    match = csv_record_count == loaded_count
+
+    logging.info(
+        "Reconciliation: CSV=%d  Loaded=%d  Match=%s",
+        csv_record_count, loaded_count, match,
+    )
+    return {
+        "csv_record_count": csv_record_count,
+        "loaded_count": loaded_count,
+        "match": match,
+    }
+
+
+def report_fn(config: dict) -> dict:
+    from discrepancy_reporter import DiscrepancyReporter
+    return DiscrepancyReporter().send(config)
+
+
+def county_enrich_fn(config: dict) -> dict:
+    from county_enrichment_job import CountyEnrichmentJob
+    return CountyEnrichmentJob().enrich(config)
+
+
+def provider_worker_fn(config: dict) -> dict:
+    from provider_worker import ProviderWorker
+    return ProviderWorker(config).run()
