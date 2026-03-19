@@ -123,7 +123,13 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     )
 
     total = sum(r.get("worker", {}).get("num_records", 0) for r in pair_results)
-    return {"status": "complete", "records_loaded": total}
+    any_failed = any(not r.get("worker", {}).get("success", True) for r in pair_results)
+    # Per 2.5: mark entire load FAILED if any worker failed.
+    # Successful inserts are NOT rolled back — load_id isolates this run.
+    return {
+        "status": "failed" if any_failed else "complete",
+        "records_loaded": total,
+    }
 
 
 def worker_enrichment_pair_fn(context: df.DurableOrchestrationContext):
@@ -236,6 +242,10 @@ def partition_file_fn(config: dict) -> list:
     chunk_size = data_size // num_workers
 
     # Compute newline-aligned boundaries so no record is split or skipped.
+    # ASSUMPTION: NPPES CSV does NOT contain embedded newlines in quoted fields.
+    # This is empirically consistent with CMS data. If violated, workers will
+    # produce malformed rows (wrong field count) which are counted as rows_failed,
+    # and the reconciliation step will detect the resulting record-count mismatch.
     # Scan 1024 bytes (NPI rows average ~500 bytes; 1024 guarantees finding \n).
     boundaries = [header_end]
     for i in range(1, num_workers):
@@ -340,15 +350,19 @@ def reconcile_fn(config: dict) -> dict:
     loaded_count = sum(
         r.get("worker", {}).get("num_records", 0) for r in pair_results
     )
+    failed_records = sum(
+        r.get("worker", {}).get("rows_failed", 0) for r in pair_results
+    )
     match = csv_record_count == loaded_count
 
     logging.info(
-        "Reconciliation: CSV=%d  Loaded=%d  Match=%s",
-        csv_record_count, loaded_count, match,
+        "Reconciliation: expected=%d  inserted=%d  failed=%d  Match=%s",
+        csv_record_count, loaded_count, failed_records, match,
     )
     return {
-        "csv_record_count": csv_record_count,
-        "loaded_count": loaded_count,
+        "expected_records": csv_record_count,
+        "inserted_records": loaded_count,
+        "failed_records": failed_records,
         "match": match,
     }
 

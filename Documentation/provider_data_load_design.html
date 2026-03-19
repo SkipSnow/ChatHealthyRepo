@@ -109,7 +109,7 @@
   <div class="page-header">
     <p class="eyebrow">Internal Design Document</p>
     <h1>Provider Data Load — Design</h1>
-    <p class="effective">Draft &nbsp;·&nbsp; March 2026 &nbsp;·&nbsp; Rev 2 (post design review) &nbsp;·&nbsp; Confidential</p>
+    <p class="effective">Draft &nbsp;·&nbsp; March 2026 &nbsp;·&nbsp; Rev 3 (architecture directive) &nbsp;·&nbsp; Confidential</p>
   </div>
 
   <div class="arch-body">
@@ -184,10 +184,10 @@
         <div class="d-label">CountyEnrichmentJob runs per-worker immediately on completion · stub returning success · all pairs run concurrently</div>
 
         <div class="d-down">↓ Step 7 — fan-in · all worker+enrichment pairs complete</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>Record Count Reconciliation</strong><small>stream CSV · count newlines · handles trailing newline edge case · compare to sum of worker num_records · mismatch → fail + report</small></div></div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Record Count Reconciliation</strong><small>stream CSV · count newlines (trailing-newline safe) · compare expected_records vs inserted_records · report failed_records · mismatch → fail + report</small></div></div>
 
         <div class="d-down">↓ Step 8 — counts match</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>DiscrepancyReporter</strong><small>generate Excel (Summary + Detail tabs) → upload to Azure Blob → SAS URL → Pushover notification with link</small></div></div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>DiscrepancyReporter</strong><small>write full run data as JSON blob · generate Excel (Summary + Detail tabs, capped at 10K rows, JSON blob reference) · SAS URL · Pushover notification</small></div></div>
 
       </div>
     </div>
@@ -205,7 +205,7 @@
     <p>Stub. Accepts a list of record numbers. Returns <code>{"success": True, "failed": []}</code>.</p>
 
     <h3>DiscrepancyReporter</h3>
-    <p>Reads all metadata records for this load run. Generates an Excel workbook with two tabs: <strong>Summary</strong> (file loaded, total records, reconciliation result, worker success/failure counts) and <strong>Detail</strong> (per-worker load and enrichment results). The Detail tab is capped at 10,000 rows; a truncation notice is appended if exceeded. Uploads the workbook to Azure Blob Storage. Generates a 24-hour SAS token URL. Sends a Pushover notification with the link.</p>
+    <p>Always writes the complete run data (all <code>pair_results</code> + reconciliation) as a JSON blob to Azure Blob Storage — this is the authoritative full failure dataset. Generates an Excel workbook with two tabs: <strong>Summary</strong> (<code>expected_records</code>, <code>inserted_records</code>, <code>failed_records</code>, match result, reference to JSON blob) and <strong>Detail</strong> (per-worker load and enrichment results). The Detail tab is capped at 10,000 rows; a truncation notice with the JSON blob path is appended if exceeded. Uploads the workbook to Azure Blob Storage. Generates a 24-hour SAS token URL. Sends a Pushover notification with the link.</p>
 
     <!-- 5. Constructor -->
     <h2>5. ProviderLoadManager — Constructor Parameters</h2>
@@ -258,8 +258,27 @@
       </table>
     </div>
 
-    <!-- 8. Design Review Notes -->
-    <h2>8. Design Review Notes</h2>
+    <!-- 8. Assumptions -->
+    <h2>8. Assumptions</h2>
+    <div class="note">
+      <strong>NPPES CSV — No Embedded Newlines in Quoted Fields</strong><br />
+      The byte-based partition boundary logic scans for the next <code>\n</code> to align partition boundaries.
+      This is correct only if NPPES data does not contain embedded newlines inside quoted CSV fields.
+      This assumption is empirically consistent with all CMS NPPES dissemination files observed to date.
+      If CMS changes this, partition boundaries will be misaligned, workers will produce rows with wrong field counts
+      (counted as <code>rows_failed</code>), and the reconciliation step will detect the resulting
+      <code>expected_records ≠ inserted_records</code> mismatch. No silent data loss occurs.
+    </div>
+    <div class="note">
+      <strong>Worker Partition Alignment — Newline-Aligned Boundaries</strong><br />
+      <code>partition_file_fn</code> aligns each boundary to the next <code>\n</code> by scanning a 1024-byte window.
+      In the rare edge case where no <code>\n</code> is found in 1024 bytes (extraordinarily long row),
+      the boundary falls at the nominal byte offset (mid-row). Workers 2–N defensively discard their first row
+      if it has the wrong field count. Complete first rows (normal aligned case) are processed normally.
+    </div>
+
+    <!-- 9. Design Review Notes -->
+    <h2>9. Design Review Notes</h2>
     <p>The following issues were identified in an external design review and resolved in Rev 2.</p>
     <div class="table-wrap">
       <table>
@@ -279,8 +298,8 @@
       </table>
     </div>
 
-    <!-- 9. Deferred -->
-    <h2>9. Deferred</h2>
+    <!-- 10. Deferred -->
+    <h2>10. Deferred</h2>
     <ul>
       <li>County enrichment implementation — <code>CountyEnrichmentJob</code> is a stub returning success</li>
       <li>Incremental / delta loads — current design always loads the full NPI file</li>
