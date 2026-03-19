@@ -143,6 +143,13 @@
 
     @media (max-width: 480px) { .footer-inner { justify-content: center; text-align: center; } }
 
+    /* ── Table of Contents ──────────────────────────── */
+    .toc { background: var(--teal-light); border: 1px solid var(--teal-mid); border-radius: var(--radius); padding: 18px 24px; margin-bottom: 36px; max-width: var(--content-w); }
+    .toc h3 { font-size: 0.78rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 10px; }
+    .toc ol { margin: 0 0 0 18px; font-size: 0.88rem; line-height: 1.9; }
+    .toc ol li a { color: var(--teal); text-decoration: none; }
+    .toc ol li a:hover { text-decoration: underline; }
+
     /* ── Print ──────────────────────────────────────── */
     @media print {
       header, footer, .action-bar { display: none !important; }
@@ -173,13 +180,33 @@
     <div class="page-header">
       <p class="eyebrow">Technical Reference</p>
       <h1>Architecture Overview</h1>
-      <p class="effective">Version 2.1 &nbsp;·&nbsp; March 2026 &nbsp;·&nbsp; Confidential</p>
+      <p class="effective">Version 2.1 &nbsp;·&nbsp; March 2026 &nbsp;·&nbsp; &copy; 2026 Skip Snow</p>
     </div>
 
     <div class="arch-body">
 
+      <p>ChatHealthy is being built openly. All source code, architecture, and design documents are public. Skip Snow is available as a consultant for AI and healthcare technology projects — <a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener" style="color:var(--teal);">LinkedIn</a>.</p>
+
+      <nav class="toc" aria-label="Table of contents">
+        <h3>Contents</h3>
+        <ol>
+          <li><a href="#product-vision">Product Vision</a></li>
+          <li><a href="#infrastructure">Infrastructure Overview</a></li>
+          <li><a href="#website">Website — Static Layer (Cloudflare)</a></li>
+          <li><a href="#three-app">Three-Application Architecture</a></li>
+          <li><a href="#session-routing">Session and Routing Model</a></li>
+          <li><a href="#workflow">Example Workflow — Clinical Trial Research</a></li>
+          <li><a href="#data-privacy">Data and Privacy</a></li>
+          <li><a href="#devops">DevOps</a></li>
+          <li><a href="#deferred">Deferred</a></li>
+        </ol>
+        <ul style="margin:8px 0 0 18px; font-size:0.88rem; line-height:1.9; list-style:disc;">
+          <li><strong>Designs:</strong> <a href="provider-data-load.html" target="_blank" style="color:var(--teal); text-decoration:none;">Provider Data Load</a></li>
+        </ul>
+      </nav>
+
       <!-- 1 -->
-      <h2>1. Product Vision</h2>
+      <h2 id="product-vision">1. Product Vision</h2>
       <p>
         FindCare is a conversational AI that helps users navigate healthcare — finding providers,
         understanding symptoms, researching clinical trials, and producing transcripts they can share
@@ -189,7 +216,7 @@
       </p>
 
       <!-- 2 -->
-      <h2>2. Infrastructure Overview</h2>
+      <h2 id="infrastructure">2. Infrastructure Overview</h2>
       <div class="diagram">
         <div class="diagram-inner">
           <div class="d-center"><div class="d-box d-box-wide"><strong>User Browser</strong><small>www.chathealthy.ai</small></div></div>
@@ -206,7 +233,7 @@
       </div>
 
       <!-- 3 -->
-      <h2>3. Website — Static Layer (Cloudflare)</h2>
+      <h2 id="website">3. Website — Static Layer (Cloudflare)</h2>
       <p>
         The <code>Website/</code> directory is served as static pages by Cloudflare at
         <strong>www.chathealthy.ai</strong>. It contains no server-side code — all behavior is
@@ -221,6 +248,7 @@
           <tr><td>privacy.html</td><td>Privacy Policy. Loads standalone or inside the panel iframe.</td></tr>
           <tr><td>terms.html</td><td>Terms of Use. Same dual-mode design as privacy.html.</td></tr>
           <tr><td>architecture.html</td><td>This document. Technical architecture reference. Same dual-mode design.</td></tr>
+          <tr><td>designs.html</td><td>Design document index. Links to detailed design docs for each pipeline and subsystem.</td></tr>
         </table>
       </div>
 
@@ -244,7 +272,7 @@
       </div>
 
       <!-- 4 -->
-      <h2>4. Three-Application Architecture</h2>
+      <h2 id="three-app">4. Three-Application Architecture</h2>
 
       <h3>App 1 — Static Website (Cloudflare)</h3>
       <p>Static HTML, CSS, and JavaScript only. No business logic, no LLM calls, no database access. Embeds App 2 via iframe. That is the only coupling.</p>
@@ -277,7 +305,7 @@
       </p>
 
       <!-- 5 -->
-      <h2>5. Session and Routing Model</h2>
+      <h2 id="session-routing">5. Session and Routing Model</h2>
       <div class="diagram">
         <div class="diagram-inner">
           <div class="d-center"><div class="d-box d-box-wide"><strong>User Message</strong><small>"Find me an oncologist near me"</small></div></div>
@@ -299,7 +327,7 @@
       </p>
 
       <!-- 6 -->
-      <h2>6. Example Workflow — Clinical Trial Research</h2>
+      <h2 id="workflow">6. Example Workflow — Clinical Trial Research</h2>
       <div class="diagram">
         <div class="diagram-inner">
           <div class="d-center"><div class="d-box d-box-wide"><strong>User</strong><small>"I have stage 3 pancreatic cancer. Find me trials."</small></div></div>
@@ -313,7 +341,7 @@
       </div>
 
       <!-- 7 -->
-      <h2>7. Data and Privacy</h2>
+      <h2 id="data-privacy">7. Data and Privacy</h2>
 
       <h3>HIPAA Consent Flow</h3>
       <div class="diagram">
@@ -344,7 +372,7 @@
       </div>
 
       <!-- 8 -->
-      <h2>8. DevOps</h2>
+      <h2 id="devops">8. DevOps</h2>
       <div class="table-wrap">
         <table>
           <tr><th>Concern</th><th>Tool</th><th>Detail</th></tr>
@@ -361,7 +389,7 @@
       </div>
 
       <!-- 9 -->
-      <h2>9. Deferred</h2>
+      <h2 id="deferred">9. Deferred</h2>
       <ul>
         <li>FHIR / EMR integration — Layer 2, future phase</li>
         <li>User authentication and cross-session persistence</li>
@@ -389,7 +417,7 @@
 
   <footer>
     <div class="footer-inner">
-      <span class="footer-copy"><a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener">© 2025 Skip Snow</a></span>
+      <span class="footer-copy"><a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener">&copy; 2026 Skip Snow</a></span>
     </div>
   </footer>
 
