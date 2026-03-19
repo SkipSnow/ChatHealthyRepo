@@ -119,10 +119,18 @@
     <p>
       <code>LoadProviderData</code> ingests the NPPES NPI file (~8 GB unzipped, ~8 million records —
       Type 1 individual providers and Type 2 organizational facilities) from CMS into the
-      <code>PublicHealthData</code> staging collection. The load runs for hours and cannot be held open
-      in a synchronous HTTP call. The Router returns immediately with a status URL; the load runs
-      asynchronously via Azure Durable Functions. Progress is tracked in <code>admin.DataLoadMetadata</code>.
+      <code>PublicHealthData</code> staging collection. The load cannot be held open in a synchronous
+      HTTP call. The Router returns immediately with a status URL; the load runs asynchronously via
+      Azure Durable Functions. Progress is tracked in <code>admin.DataLoadMetadata</code>.
       A load report is sent via Pushover on completion.
+    </p>
+    <div class="note">
+      <strong>SLA: full 8M-record load completes in under 1 hour</strong> (estimated ~25 minutes
+      with 5 workers on Azure East US 2 + MongoDB Atlas M20 co-located in the same region).
+      Sequential single-threaded load of the same file took all night; the parallel fan-out design
+      is specifically sized to meet this SLA within the current infrastructure.
+    </div>
+    <p>
     </p>
 
     <!-- 2. Async Handoff -->
@@ -138,7 +146,7 @@
             <div class="d-box d-box-narrow"><strong>Caller</strong><small>receives status_url · polls for progress</small></div>
           </div>
           <div class="d-col">
-            <div class="d-box d-box-narrow d-box-teal"><strong>Durable Orchestrator</strong><small>runs independently · hours · Azure managed</small></div>
+            <div class="d-box d-box-narrow d-box-teal"><strong>Durable Orchestrator</strong><small>runs independently · SLA &lt;1 hr · Azure managed</small></div>
           </div>
         </div>
       </div>
@@ -149,7 +157,7 @@
     <div class="diagram">
       <div class="diagram-inner">
 
-        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Durable Orchestrator — ProviderLoadManager</strong><small>no timeout · Azure manages state and restarts</small></div></div>
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Durable Orchestrator — ProviderLoadManager</strong><small>SLA &lt;1 hr (est. ~25 min) · no timeout · Azure manages state and restarts</small></div></div>
 
         <div class="d-down">↓ Step 1</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>Download ZIP → Azure Blob</strong><small>Scrapes cms.gov/nppes to discover latest file URL · no manual URL needed · stored for audit trail</small></div></div>
