@@ -8,7 +8,6 @@ any workers start, so duplicate inserts on retry are silently ignored.
 """
 
 import csv
-import io
 import logging
 import os
 import time
@@ -21,6 +20,21 @@ from pymongo import MongoClient, UpdateOne
 # NPI is the business key — record_id is for internal dedup only.
 # Must be large enough that no worker can ever produce more rows than this.
 MAX_ROWS_PER_WORKER = 1_000_000_000
+
+STATUS_LABELS = {
+    0:  "New",
+    10: "Load invoked",
+    11: "Load failed",
+    12: "Load succeeded",
+    20: "Enrich invoked",
+    21: "Enrich failed",
+    22: "Enrich succeeded",
+}
+
+
+def status_fields(code: int) -> dict:
+    """Return status and status_text fields for a metadata update."""
+    return {"status": code, "status_text": STATUS_LABELS.get(code, str(code))}
 
 
 # ── Field normalization constants ─────────────────────────────────────────────
@@ -118,6 +132,18 @@ def _normalize_row(header: list, row: list) -> dict:
     return doc
 
 
+def _iter_lines(stream):
+    """Yield decoded lines from a blob StorageStreamDownloader without loading all bytes."""
+    buffer = b""
+    for chunk in stream.chunks():
+        buffer += chunk
+        while b"\n" in buffer:
+            line, buffer = buffer.split(b"\n", 1)
+            yield line.decode("utf-8", errors="replace")
+    if buffer:
+        yield buffer.decode("utf-8", errors="replace")
+
+
 class ProviderWorker:
 
     def __init__(self, config: dict):
@@ -178,8 +204,7 @@ class ProviderWorker:
             .get_blob_client(self.csv_path)
         )
         length = self.end_byte - self.start_byte
-        raw_bytes = blob_client.download_blob(offset=self.start_byte, length=length).readall()
-        content = raw_bytes.decode("utf-8", errors="replace")
+        stream = blob_client.download_blob(offset=self.start_byte, length=length)
 
         db_name, coll_name = self.staging_collection.split(".", 1)
         mongo_client = MongoClient(os.environ["MONGO_connectionString"])
@@ -192,7 +217,7 @@ class ProviderWorker:
         is_first_row = True
 
         try:
-            reader = csv.reader(io.StringIO(content))
+            reader = csv.reader(_iter_lines(stream))
             for row in reader:
                 if not any(f.strip() for f in row):   # skip blank/whitespace-only lines
                     continue
@@ -244,7 +269,7 @@ class ProviderWorker:
         db_name, coll_name = self.metadata_collection.split(".", 1)
         client = MongoClient(os.environ["MONGO_connectionString"])
         try:
-            update: dict = {"$set": {"status": status}}
+            update: dict = {"$set": status_fields(status)}
             if error:
                 update["$set"]["error_detail"] = error
             if num_records:
