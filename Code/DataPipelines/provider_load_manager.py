@@ -226,11 +226,16 @@ def partition_file_fn(config: dict) -> list:
     blob_client = service.get_container_client(container).get_blob_client(csv_path)
     file_size = blob_client.get_blob_properties().size
 
-    # Read header row
-    header_bytes = blob_client.download_blob(offset=0, length=8192).readall()
-    header_line = header_bytes.decode("utf-8", errors="replace").split("\n")[0]
+    # Read header row — NPI CSV header is ~12KB (330 columns × ~35 bytes each).
+    # Read 32KB to guarantee we capture the full header line regardless of file version.
+    header_bytes = blob_client.download_blob(offset=0, length=32768).readall()
+    header_text = header_bytes.decode("utf-8", errors="replace")
+    if "\n" not in header_text:
+        raise RuntimeError("Header line exceeds 32KB — unexpected CSV format.")
+    header_line = header_text.split("\n")[0]
     header = list(csv.reader([header_line]))[0]
     header_end = len(header_line.encode("utf-8")) + 1  # +1 for \n
+    logging.info("Header parsed: %d fields, header_end=%d", len(header), header_end)
 
     # If max_records set, estimate byte limit using avg NPI row size (~500 bytes)
     if max_records:
