@@ -13,6 +13,10 @@ from azure.storage.blob import BlobServiceClient, BlobSasPermissions, generate_b
 
 PUSHOVER_API = "https://api.pushover.net/1/messages.json"
 
+# Excel detail tab row cap. If pair_results exceeds this, only the first
+# DETAIL_ROW_LIMIT worker rows are written. The full set is always in the blob.
+DETAIL_ROW_LIMIT = 10_000
+
 
 class DiscrepancyReporter:
 
@@ -52,10 +56,15 @@ class DiscrepancyReporter:
         ws.append(["Loaded Count", reconcile.get("loaded_count", "N/A")])
         ws.append(["Match", "YES" if reconcile.get("match") else "NO — INVESTIGATE"])
 
-        # Detail tab
+        # Detail tab — capped at DETAIL_ROW_LIMIT rows
         wd = wb.create_sheet("Detail")
         wd.append(["Worker ID", "Stage", "Success", "Records", "Error / Failed Records"])
+        rows_written = 0
+        truncated = False
         for r in pair_results:
+            if rows_written >= DETAIL_ROW_LIMIT:
+                truncated = True
+                break
             w = r.get("worker", {})
             wd.append([
                 w.get("worker_id", ""),
@@ -64,6 +73,11 @@ class DiscrepancyReporter:
                 w.get("num_records", 0),
                 w.get("error", ""),
             ])
+            rows_written += 1
+
+            if rows_written >= DETAIL_ROW_LIMIT:
+                truncated = True
+                break
             e = r.get("enrich", {})
             failed_list = ", ".join(str(f) for f in e.get("failed", []))
             wd.append([
@@ -72,6 +86,14 @@ class DiscrepancyReporter:
                 "YES" if e.get("success") else "NO",
                 "",
                 failed_list or "",
+            ])
+            rows_written += 1
+
+        if truncated:
+            wd.append([
+                "", "", "",
+                f"** Truncated at {DETAIL_ROW_LIMIT} rows. Full results in blob. **",
+                "",
             ])
 
         # ── Upload to blob ────────────────────────────────────────────────────
