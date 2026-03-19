@@ -1,6 +1,8 @@
 # Function App URL from Azure Portal (Overview → URL)
 @baseUrl = https://devpipelinemanagmentservice-hqa9f5b0b7b4hqgg.eastus2-01.azurewebsites.net
 @token = Bearer 6PVi_lZfZYOriyQ1oU-sPfNm5gcFGK0SbVJ0OtZdAsE
+# Paste instance_id from the 202 response before using the status check below
+@instanceId = paste-instance-id-here
 
 ### Smoke test (GET — expects 405)
 GET {{baseUrl}}/api/Router
@@ -15,11 +17,23 @@ Content-Type: application/json
     "ChatHealthyTask": "LoadSpecialtyData"
 }
 
-### LoadProviderData
+### LoadProviderData — dev run (200K records, 5 workers)
 POST {{baseUrl}}/api/Router
 Authorization: {{token}}
 Content-Type: application/json
 
 {
-    "ChatHealthyTask": "LoadProviderData"
+    "ChatHealthyTask": "LoadProviderData",
+    "payload": {
+        "file_url": "https://download.cms.gov/nppes/NPPES_Data_Dissemination_April_2025.zip",
+        "version": "2025-04",
+        "num_workers": 5,
+        "max_records": 200000,
+        "batch_size": 500,
+        "blob_container": "provider-data"
+    }
 }
+
+### LoadProviderData — check orchestration status (paste instance_id from 202 response)
+GET {{baseUrl}}/runtime/webhooks/durabletask/instances/{{instanceId}}
+Authorization: {{token}}
