@@ -306,8 +306,22 @@
       </table>
     </div>
 
-    <!-- 10. Deferred -->
-    <h2>10. Deferred</h2>
+    <!-- 10. Open Issues -->
+    <h2>10. Open Issues</h2>
+    <div class="warn">
+      <strong>SECURITY — Durable Functions status URL exposes orchestration state without our auth layer</strong><br />
+      The <code>202 Accepted</code> response returned to the caller includes a <code>statusQueryGetUri</code>
+      containing an Azure-generated webhook <code>code</code> parameter. Anyone in possession of that URL
+      can poll the run status (load ID, record counts, worker results) without a Bearer token.
+      This is standard Azure Durable Functions behavior but fails enterprise security review —
+      a hospital or insurance company would flag it.<br /><br />
+      <strong>Fix (before enterprise sale):</strong> Proxy the status check through our own
+      <code>/api/Router</code> endpoint (authenticated with Bearer token), strip <code>statusQueryGetUri</code>
+      from the 202 response, and store the webhook URL server-side keyed by <code>load_id</code>.
+    </div>
+
+    <!-- 11. Deferred -->
+    <h2>11. Deferred</h2>
     <ul>
       <li>County enrichment implementation — <code>CountyEnrichmentJob</code> is a stub returning success</li>
       <li>Incremental / delta loads — current design always loads the full NPI file</li>
