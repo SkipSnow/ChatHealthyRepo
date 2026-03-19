@@ -195,7 +195,7 @@
         <div class="d-center"><div class="d-box d-box-wide"><strong>Record Count Reconciliation</strong><small>stream CSV · count newlines (trailing-newline safe) · compare expected_records vs inserted_records · report failed_records · mismatch → fail + report</small></div></div>
 
         <div class="d-down">↓ Step 8 — report always generated (match or mismatch)</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>DiscrepancyReporter</strong><small>write full run data as JSON blob · generate Excel (Summary + Detail tabs, capped at 10K rows, JSON blob reference) · SAS URL · Pushover notification</small></div></div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>DiscrepancyReporter</strong><small>write full run data to admin.PipelineDiscrepancyReport · Pushover notification with key stats + load_id</small></div></div>
 
       </div>
     </div>
@@ -213,7 +213,7 @@
     <p>Stub. Accepts a list of record numbers. Returns <code>{"success": True, "failed": []}</code>.</p>
 
     <h3>DiscrepancyReporter</h3>
-    <p>Always writes the complete run data (all <code>pair_results</code> + reconciliation) as a JSON blob to Azure Blob Storage — this is the authoritative full failure dataset. Generates an Excel workbook with two tabs: <strong>Summary</strong> (<code>expected_records</code>, <code>inserted_records</code>, <code>failed_records</code>, match result, reference to JSON blob) and <strong>Detail</strong> (per-worker load and enrichment results). The Detail tab is capped at 10,000 rows; a truncation notice with the JSON blob path is appended if exceeded. Uploads the workbook to Azure Blob Storage. Generates a 24-hour SAS token URL. Sends a Pushover notification with the link.</p>
+    <p>Writes the complete run data (all <code>pair_results</code> + reconciliation + summary) as a document to <code>admin.PipelineDiscrepancyReport</code> in MongoDB. Sends a Pushover notification with key stats and the <code>load_id</code> for lookup. No blob storage or file generation.</p>
 
     <!-- 5. API Payload -->
     <h2>5. LoadProviderData — API Payload Fields</h2>
@@ -299,7 +299,7 @@
         <tr><td>6</td><td>Partition scan window too small (256 bytes) — NPI rows average ~500 bytes; window could miss the newline.</td><td>Increased scan window to 1024 bytes in <code>partition_file_fn</code>.</td></tr>
         <tr><td>7</td><td>No observability metrics from workers — no way to diagnose throughput or partial failures post-run.</td><td><code>ProviderWorker.run()</code> now returns <code>rows_processed</code>, <code>rows_failed</code>, <code>duration_seconds</code>, <code>rows_per_second</code>.</td></tr>
         <tr><td>8</td><td><code>MAX_ROWS_PER_WORKER</code> implicit — magic number <code>1,000,000,000</code> inline in worker code.</td><td>Extracted to named constant <code>MAX_ROWS_PER_WORKER = 1_000_000_000</code> at module level.</td></tr>
-        <tr><td>9</td><td>Excel detail tab unbounded — could produce a multi-GB spreadsheet for large failure sets.</td><td>Detail tab capped at <code>DETAIL_ROW_LIMIT = 10,000</code> rows with truncation notice.</td></tr>
+        <tr><td>9</td><td>Excel report added unnecessary complexity — blob storage, SAS URLs, openpyxl dependency, and a 10K-row cap workaround.</td><td>Replaced with a MongoDB document written to <code>admin.PipelineDiscrepancyReport</code>. Full run data stored directly; no file generation or blob storage needed for reporting.</td></tr>
         <tr><td>10</td><td><code>download_zip_fn</code> returned <code>str</code> in original design — auto-discovered <code>version</code> was lost.</td><td>Returns <code>dict {"zip_path", "version"}</code>. Orchestrator propagates <code>version</code> into config for all downstream activities. <em>(Fixed in Rev 1.)</em></td></tr>
         <tr><td>11</td><td><code>max_records</code> was approximate — required sampling rows to estimate a byte offset, adding complexity and a ±5% error margin.</td><td>Replaced with <code>max_bytes</code>: a direct byte limit applied to the data region after the header. No sampling needed. Used for dev limiting only; production runs omit the parameter.</td></tr>
         <tr><td>12</td><td>Partial failure strategy unspecified — if 1 of 5 workers fails, what happens?</td><td>All pairs run to completion (no short-circuit). If any worker fails, the orchestrator returns <code>status: "failed"</code>. Successful inserts are NOT rolled back — <code>load_id</code> isolates this run. A re-run is safe due to upsert idempotency.</td></tr>
