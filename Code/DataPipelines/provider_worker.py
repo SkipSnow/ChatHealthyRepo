@@ -1,16 +1,26 @@
 """ProviderWorker — reads one byte-range slice of the NPI CSV from Azure Blob,
 parses rows, normalizes multi-valued fields to arrays,
-and batch-inserts to the MongoDB staging collection.
+and batch-upserts to the MongoDB staging collection.
+
+Idempotency: each document is upserted on (load_id, record_id).
+The unique index on that pair is created by ensure_indexes_activity before
+any workers start, so duplicate inserts on retry are silently ignored.
 """
 
 import csv
 import io
 import logging
 import os
+import time
 
 from azure.storage.blob import BlobServiceClient
 from bson import ObjectId
-from pymongo import MongoClient, InsertOne
+from pymongo import MongoClient, UpdateOne
+
+# Synthetic record IDs: worker_id * MAX_ROWS_PER_WORKER + local_row_index.
+# NPI is the business key — record_id is for internal dedup only.
+# Must be large enough that no worker can ever produce more rows than this.
+MAX_ROWS_PER_WORKER = 1_000_000_000
 
 
 # ── Field normalization constants ─────────────────────────────────────────────
@@ -116,6 +126,7 @@ class ProviderWorker:
         self.end_byte = config["end_byte"]
         self.header = config["header"]
         self.csv_path = config["csv_path"]
+        self.load_id = config["load_id"]
         self.metadata_id = config["metadata_id"]
         self.batch_size = config.get("batch_size", 500)
         self.staging_collection = config.get(
@@ -126,22 +137,36 @@ class ProviderWorker:
 
     def run(self) -> dict:
         self._update_status(10, None)
+        start_time = time.monotonic()
         try:
-            num_records = self._load()
+            num_records, rows_failed = self._load()
+            duration = time.monotonic() - start_time
+            rows_per_second = round(num_records / duration, 1) if duration > 0 else 0
             self._update_status(12, None, num_records=num_records)
-            logging.info("Worker %d loaded %d records", self.worker_id, num_records)
-            return {"worker_id": self.worker_id, "num_records": num_records, "success": True}
+            logging.info(
+                "Worker %d loaded %d records in %.1fs (%.1f rows/s, %d failed)",
+                self.worker_id, num_records, duration, rows_per_second, rows_failed,
+            )
+            return {
+                "worker_id": self.worker_id,
+                "num_records": num_records,
+                "rows_failed": rows_failed,
+                "duration_seconds": round(duration, 2),
+                "rows_per_second": rows_per_second,
+                "success": True,
+            }
         except Exception as exc:
             logging.exception("Worker %d failed", self.worker_id)
             self._update_status(11, str(exc))
             return {
                 "worker_id": self.worker_id,
                 "num_records": 0,
+                "rows_failed": 0,
                 "success": False,
                 "error": str(exc),
             }
 
-    def _load(self) -> int:
+    def _load(self) -> tuple[int, int]:
         # Read byte range from blob
         service = BlobServiceClient.from_connection_string(
             os.environ["AZURE_STORAGE_CONNECTION_STRING"]
@@ -161,6 +186,7 @@ class ProviderWorker:
         batch = []
         local_index = 0
         num_records = 0
+        rows_failed = 0
 
         try:
             reader = csv.reader(io.StringIO(content))
@@ -168,14 +194,22 @@ class ProviderWorker:
                 if not any(f.strip() for f in row):   # skip blank lines
                     continue
                 if len(row) != len(self.header):       # skip malformed rows
+                    rows_failed += 1
                     continue
 
                 doc = _normalize_row(self.header, row)
-                # Synthetic ID: unique across all workers, no coordination needed
-                # NPI is the business key — this is for internal tracking only
-                doc["record_id"] = self.worker_id * 1_000_000_000 + local_index
+                record_id = self.worker_id * MAX_ROWS_PER_WORKER + local_index
+                doc["load_id"] = self.load_id
+                doc["record_id"] = record_id
                 doc["worker_id"] = self.worker_id
-                batch.append(InsertOne(doc))
+
+                # Upsert on (load_id, record_id) — safe to retry; duplicate
+                # inserts are ignored by the unique index created before workers start.
+                batch.append(UpdateOne(
+                    {"load_id": self.load_id, "record_id": record_id},
+                    {"$setOnInsert": doc},
+                    upsert=True,
+                ))
                 local_index += 1
                 num_records += 1
 
@@ -188,7 +222,7 @@ class ProviderWorker:
         finally:
             mongo_client.close()
 
-        return num_records
+        return num_records, rows_failed
 
     def _update_status(
         self, status: int, error: str | None, num_records: int = 0

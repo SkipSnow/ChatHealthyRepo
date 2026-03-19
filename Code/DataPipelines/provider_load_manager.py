@@ -21,6 +21,12 @@ from pymongo import MongoClient
 
 NPPES_INDEX_URL = "https://download.cms.gov/nppes/NPI_Files.html"
 
+# Last-known URL used as fallback when CMS page scraping fails.
+# Update this whenever the scraper is repaired or a manual download is done.
+NPPES_FALLBACK_URL = (
+    "https://download.cms.gov/nppes/NPPES_Data_Dissemination_April_2025.zip"
+)
+
 
 def _discover_nppes_url() -> tuple[str, str]:
     """Scrape CMS NPPES page and return (zip_url, version_string) for the latest full file."""
@@ -64,6 +70,11 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     """Main orchestrator. No timeouts — Azure manages state."""
     config = context.get_input()
 
+    # Propagate load_id (= orchestration instance_id) through all activities.
+    # Used for idempotency on retry: unique index on (load_id, record_id).
+    load_id = context.instance_id
+    config = {**config, "load_id": load_id}
+
     # Step 1: Download zip to blob (auto-discovers URL + version if not supplied)
     download_result = yield context.call_activity("download_zip_activity", config)
     zip_path = download_result["zip_path"]
@@ -79,13 +90,16 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
         "partition_file_activity", {**config, "csv_path": csv_path}
     )
 
-    # Step 4: Write one metadata record per worker
+    # Step 4: Ensure staging indexes exist before workers start (idempotent)
+    yield context.call_activity("ensure_indexes_activity", config)
+
+    # Step 5: Write one metadata record per worker
     metadata_ids = yield context.call_activity(
         "write_metadata_activity",
         {**config, "csv_path": csv_path, "partitions": partitions},
     )
 
-    # Step 5: Fan-out — each worker+enrichment pair is a sub-orchestrator
+    # Step 6: Fan-out — each worker+enrichment pair is a sub-orchestrator
     # Each pair starts immediately and chains enrichment on completion.
     pair_tasks = [
         context.call_sub_orchestrator(
@@ -96,13 +110,13 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     ]
     pair_results = yield context.task_all(pair_tasks)
 
-    # Step 6: Reconcile — count newlines in CSV vs loaded records
+    # Step 7: Reconcile — count newlines in CSV vs loaded records
     reconcile_result = yield context.call_activity(
         "reconcile_activity",
         {**config, "csv_path": csv_path, "pair_results": pair_results},
     )
 
-    # Step 7: Report — Excel → blob → SAS URL → Pushover
+    # Step 8: Report — Excel → blob → SAS URL → Pushover
     yield context.call_activity(
         "report_activity",
         {**config, "pair_results": pair_results, "reconcile_result": reconcile_result},
@@ -131,7 +145,8 @@ def download_zip_fn(config: dict) -> dict:
     """Discover (if needed) and stream NPI zip from CMS to Azure Blob.
 
     If file_url is not in config, scrapes cms.gov/nppes to find the latest file.
-    Returns {"zip_path": blob_name, "version": version} so the orchestrator
+    Falls back to NPPES_FALLBACK_URL if scraping fails.
+    Returns {\"zip_path\": blob_name, \"version\": version} so the orchestrator
     can propagate the discovered version to downstream activities.
     """
     file_url = config.get("file_url")
@@ -139,7 +154,16 @@ def download_zip_fn(config: dict) -> dict:
     container = config.get("blob_container", "provider-data")
 
     if not file_url:
-        file_url, version = _discover_nppes_url()
+        try:
+            file_url, version = _discover_nppes_url()
+        except Exception as exc:
+            logging.warning(
+                "CMS NPPES auto-discovery failed (%s). "
+                "Falling back to last-known URL: %s",
+                exc, NPPES_FALLBACK_URL,
+            )
+            file_url = NPPES_FALLBACK_URL
+            version = version or "fallback"
 
     blob_name = f"npi_{version}.zip"
     _ensure_container(container)
@@ -211,11 +235,12 @@ def partition_file_fn(config: dict) -> list:
     data_size = effective_end - header_end
     chunk_size = data_size // num_workers
 
-    # Compute newline-aligned boundaries so no record is split or skipped
+    # Compute newline-aligned boundaries so no record is split or skipped.
+    # Scan 1024 bytes (NPI rows average ~500 bytes; 1024 guarantees finding \n).
     boundaries = [header_end]
     for i in range(1, num_workers):
         nominal = header_end + i * chunk_size
-        window = blob_client.download_blob(offset=nominal, length=256).readall()
+        window = blob_client.download_blob(offset=nominal, length=1024).readall()
         newline_pos = window.find(b"\n")
         true_boundary = nominal + newline_pos + 1 if newline_pos >= 0 else nominal
         boundaries.append(true_boundary)
@@ -234,11 +259,32 @@ def partition_file_fn(config: dict) -> list:
     return partitions
 
 
+def ensure_indexes_fn(config: dict) -> None:
+    """Create staging collection indexes before workers start. Idempotent."""
+    staging_collection = config.get(
+        "staging_collection", "PublicHealthData.providers_staging"
+    )
+    db_name, coll_name = staging_collection.split(".", 1)
+    client = MongoClient(os.environ["MONGO_connectionString"])
+    try:
+        collection = client[db_name][coll_name]
+        collection.create_index(
+            [("load_id", 1), ("record_id", 1)],
+            unique=True,
+            background=True,
+            name="load_record_unique",
+        )
+        logging.info("Indexes ensured on %s", staging_collection)
+    finally:
+        client.close()
+
+
 def write_metadata_fn(config: dict) -> list:
     """Write one metadata record per worker. Returns list of inserted _id strings."""
     partitions = config["partitions"]
     csv_path = config["csv_path"]
     version = config.get("version", "latest")
+    load_id = config.get("load_id")
     metadata_collection = config.get("metadata_collection", "admin.DataLoadMetadata")
     now = datetime.now(timezone.utc).isoformat()
 
@@ -249,6 +295,7 @@ def write_metadata_fn(config: dict) -> list:
         docs = [
             {
                 "type": "ProviderData",
+                "load_id": load_id,
                 "date": now,
                 "version": version,
                 "worker_id": p["worker_id"],
@@ -278,9 +325,17 @@ def reconcile_fn(config: dict) -> dict:
     blob_client = service.get_container_client(container).get_blob_client(csv_path)
 
     total_newlines = 0
+    last_chunk = b""
     for chunk in blob_client.download_blob().chunks():
         total_newlines += chunk.count(b"\n")
+        if chunk:
+            last_chunk = chunk
+
+    # Each row (including header) ends with \n → total_newlines = N_data + 1.
+    # If the file has no trailing newline on the last row, add 1 to compensate.
     csv_record_count = total_newlines - 1  # subtract header row
+    if last_chunk and last_chunk[-1:] != b"\n":
+        csv_record_count += 1
 
     loaded_count = sum(
         r.get("worker", {}).get("num_records", 0) for r in pair_results

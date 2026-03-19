@@ -17,6 +17,7 @@ from load_specialty_data import run_load_specialty_data
 from provider_load_manager import (
     county_enrich_fn,
     download_zip_fn,
+    ensure_indexes_fn,
     extract_csv_fn,
     partition_file_fn,
     provider_load_orchestrator_fn,
@@ -143,6 +144,11 @@ def extract_csv_activity(config: dict) -> str:
 @app.activity_trigger(input_name="config")
 def partition_file_activity(config: dict) -> list:
     return partition_file_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def ensure_indexes_activity(config: dict) -> None:
+    return ensure_indexes_fn(config)
 
 
 @app.activity_trigger(input_name="config")
