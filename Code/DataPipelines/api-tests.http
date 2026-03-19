@@ -15,16 +15,11 @@ Content-Type: application/json
     "ChatHealthyTask": "LoadSpecialtyData"
 }
 
-### ClinicalTrialSearch — stage 3 pancreatic cancer
+### LoadProviderData
 POST {{baseUrl}}/api/Router
 Authorization: {{token}}
 Content-Type: application/json
 
 {
-    "ChatHealthyTask": "ClinicalTrialSearch",
-    "payload": {
-        "condition": "stage 3 pancreatic cancer",
-        "location": "New York, NY",
-        "max_results": 3
-    }
+    "ChatHealthyTask": "LoadProviderData"
 }
