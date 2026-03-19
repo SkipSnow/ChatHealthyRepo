@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Provider Data Load Design — ChatHealthy.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink:        #0d1117;
+      --ink-soft:   #4a5568;
+      --surface:    #ffffff;
+      --teal:       #0b7a75;
+      --teal-light: #e6f4f3;
+      --teal-mid:   #d0eeec;
+      --accent:     #f0a500;
+      --warn:       #c0392b;
+      --border:     #d8e2e1;
+      --radius:     6px;
+      --max-w:      1160px;
+      --content-w:  900px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    header { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: 0 1px 6px rgba(11,122,117,0.06); }
+    .header-inner { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark { width: 32px; height: 32px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; }
+    .logo-mark svg { width: 18px; height: 18px; fill: white; }
+    .logo-text { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--teal); }
+    .logo-text span { color: var(--accent); }
+
+    main { flex: 1; max-width: var(--max-w); width: 100%; margin: 0 auto; padding: clamp(20px,4vw,48px) clamp(16px,4vw,24px); }
+
+    .page-header { border-bottom: 2px solid var(--teal-mid); padding-bottom: 20px; margin-bottom: 36px; }
+    .page-header .eyebrow { font-size: 0.72rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 6px; }
+    .page-header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(1.5rem,4vw,2.1rem); color: var(--ink); line-height: 1.15; margin-bottom: 8px; }
+    .page-header .effective { font-size: 0.82rem; color: var(--ink-soft); }
+
+    .arch-body { max-width: var(--content-w); }
+    .arch-body h2 { font-family: 'DM Serif Display', serif; font-size: 1.15rem; color: var(--teal); margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--teal-mid); }
+    .arch-body h2:first-child { margin-top: 0; }
+    .arch-body h3 { font-size: 0.88rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); margin: 24px 0 8px; }
+    .arch-body p { font-size: 0.92rem; line-height: 1.7; color: var(--ink); margin-bottom: 10px; }
+    .arch-body ul { margin: 6px 0 10px 20px; font-size: 0.92rem; line-height: 1.7; }
+    .arch-body ul li { margin-bottom: 4px; }
+
+    .note { background: var(--teal-light); border-left: 3px solid var(--teal); padding: 10px 14px; border-radius: 0 var(--radius) var(--radius) 0; margin: 12px 0; font-size: 0.88rem; line-height: 1.6; }
+    .warn { background: #fdf3f2; border-left: 3px solid var(--warn); padding: 10px 14px; border-radius: 0 var(--radius) var(--radius) 0; margin: 12px 0; font-size: 0.88rem; line-height: 1.6; }
+    .warn strong { color: var(--warn); }
+
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 12px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 480px; }
+    th { background: var(--ink); color: #fff; padding: 8px 12px; text-align: left; font-weight: 500; font-size: 0.82rem; letter-spacing: 0.03em; }
+    td { border: 1px solid var(--border); padding: 8px 12px; vertical-align: top; line-height: 1.5; }
+    tr:nth-child(even) td { background: var(--teal-light); }
+    code { font-family: monospace; font-size: 0.85em; background: #f4f4f4; padding: 1px 5px; border-radius: 3px; }
+
+    .diagram { border: 1px solid var(--border); border-radius: var(--radius); background: #fff; padding: 24px; margin: 16px 0; font-size: 0.85rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .diagram-inner { min-width: 560px; }
+    .d-center { display: flex; justify-content: center; }
+    .d-down { text-align: center; font-size: 1.1rem; line-height: 1; margin: 4px 0; color: var(--ink-soft); }
+    .d-box { border: 2px solid var(--ink); padding: 8px 16px; background: #fff; text-align: center; min-width: 140px; line-height: 1.4; border-radius: 2px; }
+    .d-box strong { display: block; font-size: 0.88rem; }
+    .d-box small { display: block; font-size: 0.78rem; color: var(--ink-soft); margin-top: 2px; }
+    .d-box-wide { min-width: 260px; }
+    .d-box-narrow { min-width: 110px; }
+    .d-box-teal { border-color: var(--teal); background: var(--teal-light); }
+    .d-box-warn { border-color: var(--warn); background: #fdf3f2; }
+    .d-vline { width: 2px; background: var(--ink); margin: 0 auto; height: 16px; }
+    .d-row { display: flex; justify-content: center; gap: 24px; }
+    .d-col { display: flex; flex-direction: column; align-items: center; }
+    .d-label { font-size: 0.75rem; color: var(--ink-soft); margin: 2px 0; text-align: center; }
+
+    /* parallel workers */
+    .d-fan { display: flex; justify-content: center; gap: 12px; margin: 4px 0; }
+    .d-fan-box { border: 2px solid var(--ink); padding: 6px 10px; background: #fff; text-align: center; min-width: 80px; border-radius: 2px; font-size: 0.78rem; }
+    .d-fan-box strong { display: block; font-size: 0.78rem; }
+    .d-fan-box small { display: block; font-size: 0.7rem; color: var(--ink-soft); }
+
+    footer { border-top: 1px solid var(--border); background: var(--surface); }
+    .footer-inner { max-width: var(--max-w); margin: 0 auto; padding: 14px clamp(16px,4vw,24px); }
+    .footer-copy { font-size: 0.78rem; color: var(--ink-soft); font-style: italic; }
+
+    @media print { header, footer { display: none !important; } body { font-size: 11pt; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="/" target="_top" title="Back to ChatHealthy.ai">
+      <div class="logo-mark">
+        <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="2" width="4" height="16" rx="1"/>
+          <rect x="2" y="8" width="16" height="4" rx="1"/>
+        </svg>
+      </div>
+      <span class="logo-text">Chat<span>Healthy</span>.ai</span>
+    </a>
+  </div>
+</header>
+
+<main>
+  <div class="page-header">
+    <p class="eyebrow">Design Document</p>
+    <h1>Provider Data Load — Design</h1>
+    <p class="effective">Rev 3 &nbsp;·&nbsp; March 2026 &nbsp;·&nbsp; &copy; 2026 Skip Snow</p>
+  </div>
+
+  <div class="arch-body">
+
+    <!-- 1. Overview -->
+    <h2>1. Overview</h2>
+    <p>
+      <code>LoadProviderData</code> ingests the NPPES NPI file (~8 GB unzipped, ~8 million records —
+      Type 1 individual providers and Type 2 organizational facilities) from CMS into the
+      <code>PublicHealthData</code> staging collection. The load cannot be held open in a synchronous
+      HTTP call. The Router returns immediately with a status URL; the load runs asynchronously via
+      Azure Durable Functions. Progress is tracked in <code>admin.DataLoadMetadata</code>.
+      A load report is sent via Pushover on completion.
+    </p>
+    <div class="note">
+      <strong>SLA: full 8M-record load completes in under 1 hour</strong> (estimated ~25 minutes
+      with 5 workers on Azure East US 2 + MongoDB Atlas M20 co-located in the same region).
+      Sequential single-threaded load of the same file took all night; the parallel fan-out design
+      is specifically sized to meet this SLA within the current infrastructure.
+    </div>
+    <p>
+    </p>
+
+    <!-- 2. Async Handoff -->
+    <h2>2. Async Handoff</h2>
+    <div class="diagram">
+      <div class="diagram-inner">
+        <div class="d-center"><div class="d-box d-box-wide"><strong>POST /api/Router</strong><small>ChatHealthyTask: LoadProviderData</small></div></div>
+        <div class="d-down">↓</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>function_app.py — Router</strong><small>ASYNC_TASK_ORCHESTRATORS routes to provider_load_orchestrator · returns immediately</small></div></div>
+        <div class="d-down">↓ 202 Accepted</div>
+        <div class="d-row">
+          <div class="d-col">
+            <div class="d-box d-box-narrow"><strong>Caller</strong><small>receives status_url · polls for progress</small></div>
+          </div>
+          <div class="d-col">
+            <div class="d-box d-box-narrow d-box-teal"><strong>Durable Orchestrator</strong><small>runs independently · SLA &lt;1 hr · Azure managed</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Full Load Flow -->
+    <h2>3. Full Load Flow</h2>
+    <div class="diagram">
+      <div class="diagram-inner">
+
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Durable Orchestrator — ProviderLoadManager</strong><small>SLA &lt;1 hr (est. ~25 min) · no timeout · Azure manages state and restarts</small></div></div>
+
+        <div class="d-down">↓ Step 1</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Download ZIP → Azure Blob</strong><small>Scrapes cms.gov/nppes to discover latest file URL · no manual URL needed · stored for audit trail</small></div></div>
+
+        <div class="d-down">↓ Step 2</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Extract CSV → Azure Blob</strong><small>unzip in-stream · CSV stays in blob for all workers</small></div></div>
+
+        <div class="d-down">↓ Step 3</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Partition File (byte-based)</strong><small>file_size / N workers → byte ranges · each aligned to next newline</small></div></div>
+
+        <div class="d-down">↓ Step 4</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Ensure Staging Indexes</strong><small>unique index on (load_id, record_id) · idempotent · runs before any worker</small></div></div>
+
+        <div class="d-down">↓ Step 5</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Write N Metadata Records</strong><small>admin.DataLoadMetadata · one per worker · status: 0 (new)</small></div></div>
+
+        <div class="d-down">↓ Step 6 — fan-out · each pair is a Durable activity chain · own 10-min budget per activity</div>
+        <div class="d-fan">
+          <div class="d-fan-box"><strong>Worker 1</strong><small>load chunk</small></div>
+          <div class="d-fan-box"><strong>Worker 2</strong><small>load chunk</small></div>
+          <div class="d-fan-box"><strong>Worker 3</strong><small>…</small></div>
+          <div class="d-fan-box"><strong>Worker N</strong><small>remainder</small></div>
+        </div>
+        <div class="d-label">Each worker: read byte range → skip leading blanks → parse CSV → normalize fields → batch insert to staging → update metadata status</div>
+        <div class="d-down">↓ each worker chains immediately — no waiting for others</div>
+        <div class="d-fan">
+          <div class="d-fan-box d-box-teal"><strong>Enrich 1</strong><small>worker 1 records</small></div>
+          <div class="d-fan-box d-box-teal"><strong>Enrich 2</strong><small>worker 2 records</small></div>
+          <div class="d-fan-box d-box-teal"><strong>Enrich 3</strong><small>…</small></div>
+          <div class="d-fan-box d-box-teal"><strong>Enrich N</strong><small>worker N records</small></div>
+        </div>
+        <div class="d-label">CountyEnrichmentJob runs per-worker immediately on completion · stub returning success · all pairs run concurrently</div>
+
+        <div class="d-down">↓ Step 7 — fan-in · all worker+enrichment pairs complete</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Record Count Reconciliation</strong><small>stream CSV · count newlines (trailing-newline safe) · compare expected_records vs inserted_records · report failed_records · mismatch → fail + report</small></div></div>
+
+        <div class="d-down">↓ Step 8 — report always generated (match or mismatch)</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>DiscrepancyReporter</strong><small>write full run data to admin.PipelineDiscrepancyReport · Pushover notification with key stats + load_id</small></div></div>
+
+      </div>
+    </div>
+
+    <!-- 4. Class Responsibilities -->
+    <h2>4. Classes</h2>
+
+    <h3>ProviderLoadManager</h3>
+    <p>Durable orchestrator. Owns blob I/O, byte-based partitioning, metadata writes, and fan-out of worker+enrichment pairs. Each worker chains immediately into its own <code>CountyEnrichmentJob</code> on completion — no batch wait. Fan-in waits for all pairs, then runs reconciliation and report. No timeout.</p>
+
+    <h3>ProviderWorker</h3>
+    <p>Reads one byte-range slice of the CSV from blob. Partition boundaries are newline-aligned; workers 2–N defensively discard their first row if it has the wrong field count (partial row from alignment fallback). Parses rows. Skips blank/whitespace-only lines. Normalizes multi-valued fields to arrays (e.g. <code>practice_address</code>). Assigns a synthetic <code>record_id = worker_id × MAX_ROWS_PER_WORKER + local_row_index</code> (<code>MAX_ROWS_PER_WORKER = 1,000,000,000</code>) — unique across all workers, no coordination needed. NPI is the business key. Stamps each document with <code>load_id</code> (= Durable orchestration instance ID). Batch-upserts to <code>PublicHealthData.providers_staging</code> using <code>$setOnInsert</code> on <code>(load_id, record_id)</code> — safe to retry; duplicates are silently ignored. Returns observability metrics: <code>rows_processed</code>, <code>num_records</code>, <code>rows_failed</code>, <code>duration_seconds</code>, <code>rows_per_second</code>. Updates its metadata record on completion or failure.</p>
+
+    <h3>CountyEnrichmentJob</h3>
+    <p>Stub. Accepts a list of record numbers. Returns <code>{"success": True, "failed": []}</code>.</p>
+
+    <h3>DiscrepancyReporter</h3>
+    <p>Writes the complete run data (all <code>pair_results</code> + reconciliation + summary) as a document to <code>admin.PipelineDiscrepancyReport</code> in MongoDB. Sends a Pushover notification with key stats and the <code>load_id</code> for lookup. No blob storage or file generation.</p>
+
+    <!-- 5. API Payload -->
+    <h2>5. LoadProviderData — API Payload Fields</h2>
+    <p>Passed as the <code>payload</code> object in the POST to <code>/api/Router</code>. All fields are optional — omit entirely for a full production run with auto-discovered file URL.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Field</th><th>Type</th><th>Default</th><th>Notes</th></tr>
+        <tr><td><code>file_url</code></td><td>str / null</td><td><code>None</code></td><td>CMS NPPES download URL. If omitted, scrapes <code>cms.gov/nppes</code> to auto-discover the latest file. Falls back to <code>NPPES_FALLBACK_URL</code> constant if scraping fails.</td></tr>
+        <tr><td><code>num_workers</code></td><td>int</td><td>5</td><td>Number of parallel workers. Each gets an equal byte slice. Default 5 for dev; scale to 50 for full production load.</td></tr>
+        <tr><td><code>blob_container</code></td><td>str</td><td><code>provider-data</code></td><td>Azure Blob container for zip, CSV, and report storage.</td></tr>
+        <tr><td><code>batch_size</code></td><td>int</td><td>500</td><td>MongoDB <code>bulk_write</code> batch size per worker insert cycle.</td></tr>
+        <tr><td><code>staging_collection</code></td><td>str</td><td><code>PublicHealthData.providers_staging</code></td><td>Target collection for raw provider records.</td></tr>
+        <tr><td><code>metadata_collection</code></td><td>str</td><td><code>admin.DataLoadMetadata</code></td><td>Load tracking collection. Never deleted by the system.</td></tr>
+        <tr><td><code>version</code></td><td>str</td><td>—</td><td>NPI file version string (e.g. <code>"2026-03"</code>). Auto-discovered if omitted.</td></tr>
+        <tr><td><code>max_bytes</code></td><td>int / null</td><td><code>None</code></td><td>Hard byte limit on data rows read (excludes header). Omit (or pass <code>null</code>) for a full production load. Pass <code>50000000</code> (~50 MB, ~42K records) for a dev test run.</td></tr>
+      </table>
+    </div>
+
+    <!-- 6. Status Codes -->
+    <h2>6. Status Codes — admin.DataLoadMetadata</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Code</th><th>Meaning</th></tr>
+        <tr><td><code>0</code></td><td>New — metadata record created, worker not yet started</td></tr>
+        <tr><td><code>10</code></td><td>Load invoked — worker started</td></tr>
+        <tr><td><code>11</code></td><td>Load failed — worker error, see error_detail field</td></tr>
+        <tr><td><code>12</code></td><td>Load succeeded — all records inserted for this worker</td></tr>
+        <tr><td><code>20</code></td><td>Enrich invoked — county enrichment started for this worker's records</td></tr>
+        <tr><td><code>21</code></td><td>Enrich failed — enrichment error, see error_detail field</td></tr>
+        <tr><td><code>22</code></td><td>Enrich succeeded — all records enriched for this worker</td></tr>
+      </table>
+    </div>
+
+    <!-- 7. Metadata Schema -->
+    <h2>7. admin.DataLoadMetadata — Record Schema</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+        <tr><td><code>type</code></td><td>string</td><td><code>"ProviderData"</code></td></tr>
+        <tr><td><code>load_id</code></td><td>string</td><td>Durable orchestration instance ID — ties all workers in one run together</td></tr>
+        <tr><td><code>date</code></td><td>ISO string</td><td>Load run start timestamp</td></tr>
+        <tr><td><code>version</code></td><td>string</td><td>NPI file version (e.g. <code>"2026-03"</code>)</td></tr>
+        <tr><td><code>worker_id</code></td><td>int</td><td>1-based sequential, one per worker per run</td></tr>
+        <tr><td><code>file_location</code></td><td>string</td><td>Azure Blob path to the extracted CSV</td></tr>
+        <tr><td><code>start_byte</code></td><td>int</td><td>Byte offset of first record (newline-aligned)</td></tr>
+        <tr><td><code>end_byte</code></td><td>int</td><td>Byte offset past last record (newline-aligned)</td></tr>
+        <tr><td><code>num_records</code></td><td>int</td><td>Actual records processed by this worker</td></tr>
+        <tr><td><code>status</code></td><td>int</td><td>See status code table above</td></tr>
+        <tr><td><code>error_detail</code></td><td>string / null</td><td>Error message on status 11 or 21</td></tr>
+      </table>
+    </div>
+
+    <!-- 8. Assumptions -->
+    <h2>8. Assumptions</h2>
+    <div class="note">
+      <strong>NPPES CSV — No Embedded Newlines in Quoted Fields</strong><br />
+      The byte-based partition boundary logic scans for the next <code>\n</code> to align partition boundaries.
+      This is correct only if NPPES data does not contain embedded newlines inside quoted CSV fields.
+      This assumption is empirically consistent with all CMS NPPES dissemination files observed to date.
+      If CMS changes this, partition boundaries will be misaligned, workers will produce rows with wrong field counts
+      (counted as <code>rows_failed</code>), and the reconciliation step will detect the resulting
+      <code>expected_records ≠ inserted_records</code> mismatch. No silent data loss occurs.
+    </div>
+    <div class="note">
+      <strong>Worker Partition Alignment — Newline-Aligned Boundaries</strong><br />
+      <code>partition_file_fn</code> aligns each boundary to the next <code>\n</code> by scanning a 1024-byte window.
+      In the rare edge case where no <code>\n</code> is found in 1024 bytes (extraordinarily long row),
+      the boundary falls at the nominal byte offset (mid-row). Workers 2–N defensively discard their first row
+      if it has the wrong field count. Complete first rows (normal aligned case) are processed normally.
+    </div>
+
+    <!-- 9. Design Review Notes -->
+    <h2>9. Design Review Notes</h2>
+    <p>The following issues were identified in an external design review and resolved in Rev 2.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>#</th><th>Issue</th><th>Resolution</th></tr>
+        <tr><td>1</td><td><code>load_id</code> not propagated — workers had no shared run identifier; retries could not be deduped.</td><td>Orchestrator sets <code>load_id = context.instance_id</code> at start and propagates through all config dicts. Every staging document and metadata record carries <code>load_id</code>.</td></tr>
+        <tr><td>2</td><td>No idempotency on retry — <code>InsertOne</code> would duplicate records on orchestration replay.</td><td>Changed to <code>UpdateOne($setOnInsert)</code> upsert on <code>(load_id, record_id)</code>. Safe to replay any number of times.</td></tr>
+        <tr><td>3</td><td>No staging index — upsert filter had no supporting index; full collection scans on every row.</td><td>Added <code>ensure_indexes_activity</code> (Step 4) before workers start. Creates unique compound index on <code>(load_id, record_id)</code>. Idempotent.</td></tr>
+        <tr><td>4</td><td>CMS scraping had no fallback — runtime failure on CMS page change would abort the entire load.</td><td>Added <code>NPPES_FALLBACK_URL</code> constant. <code>download_zip_fn</code> catches scrape failures and falls back to last-known URL with a warning log.</td></tr>
+        <tr><td>5</td><td>Reconciliation miscounted trailing newline — file ending without <code>\n</code> was undercounted by 1.</td><td>Track last chunk; if last byte ≠ <code>\n</code>, add 1 to <code>csv_record_count</code>.</td></tr>
+        <tr><td>6</td><td>Partition scan window too small (256 bytes) — NPI rows average ~500 bytes; window could miss the newline.</td><td>Increased scan window to 1024 bytes in <code>partition_file_fn</code>.</td></tr>
+        <tr><td>7</td><td>No observability metrics from workers — no way to diagnose throughput or partial failures post-run.</td><td><code>ProviderWorker.run()</code> now returns <code>rows_processed</code>, <code>rows_failed</code>, <code>duration_seconds</code>, <code>rows_per_second</code>.</td></tr>
+        <tr><td>8</td><td><code>MAX_ROWS_PER_WORKER</code> implicit — magic number <code>1,000,000,000</code> inline in worker code.</td><td>Extracted to named constant <code>MAX_ROWS_PER_WORKER = 1_000_000_000</code> at module level.</td></tr>
+        <tr><td>9</td><td>Excel report added unnecessary complexity — blob storage, SAS URLs, openpyxl dependency, and a 10K-row cap workaround.</td><td>Replaced with a MongoDB document written to <code>admin.PipelineDiscrepancyReport</code>. Full run data stored directly; no file generation or blob storage needed for reporting.</td></tr>
+        <tr><td>10</td><td><code>download_zip_fn</code> returned <code>str</code> in original design — auto-discovered <code>version</code> was lost.</td><td>Returns <code>dict {"zip_path", "version"}</code>. Orchestrator propagates <code>version</code> into config for all downstream activities. <em>(Fixed in Rev 1.)</em></td></tr>
+        <tr><td>11</td><td><code>max_records</code> was approximate — required sampling rows to estimate a byte offset, adding complexity and a ±5% error margin.</td><td>Replaced with <code>max_bytes</code>: a direct byte limit applied to the data region after the header. No sampling needed. Used for dev limiting only; production runs omit the parameter.</td></tr>
+        <tr><td>12</td><td>Partial failure strategy unspecified — if 1 of 5 workers fails, what happens?</td><td>All pairs run to completion (no short-circuit). If any worker fails, the orchestrator returns <code>status: "failed"</code>. Successful inserts are NOT rolled back — <code>load_id</code> isolates this run. A re-run is safe due to upsert idempotency.</td></tr>
+      </table>
+    </div>
+
+    <!-- 10. Open Issues -->
+    <h2>10. Open Issues</h2>
+    <div class="warn">
+      <strong>SECURITY — Durable Functions status URL exposes orchestration state without our auth layer</strong><br />
+      The <code>202 Accepted</code> response returned to the caller includes a <code>statusQueryGetUri</code>
+      containing an Azure-generated webhook <code>code</code> parameter. Anyone in possession of that URL
+      can poll the run status (load ID, record counts, worker results) without a Bearer token.
+      This is standard Azure Durable Functions behavior but fails enterprise security review —
+      a hospital or insurance company would flag it.<br /><br />
+      <strong>Fix (before enterprise sale):</strong> Proxy the status check through our own
+      <code>/api/Router</code> endpoint (authenticated with Bearer token), strip <code>statusQueryGetUri</code>
+      from the 202 response, and store the webhook URL server-side keyed by <code>load_id</code>.
+    </div>
+
+    <!-- 11. Deferred -->
+    <h2>11. Deferred</h2>
+    <ul>
+      <li>County enrichment implementation — <code>CountyEnrichmentJob</code> is a stub returning success</li>
+      <li>Incremental / delta loads — current design always loads the full NPI file</li>
+      <li>Duplicate detection across load runs — staging documents carry <code>load_id</code> but cross-run dedup is deferred to a downstream clean step</li>
+      <li>Update <code>NPPES_FALLBACK_URL</code> constant whenever a new monthly file is confirmed working</li>
+    </ul>
+
+  </div>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <p class="footer-copy"><a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">&copy; 2026 Skip Snow</a> &nbsp;·&nbsp; ChatHealthy.ai</p>
+  </div>
+</footer>
+
+<script>
+  if (window !== window.top) {
+    document.querySelector('header').style.display = 'none';
+    document.body.classList.add('in-panel');
+  }
+</script>
+</body>
+</html>
