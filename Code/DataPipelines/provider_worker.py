@@ -1,3 +1,9 @@
+# Copyright © 2026 Skip Snow. All rights reserved.
+# Licensed under the FindCare Evaluation License (FEL-1.0).
+#
+# Coded by Claude Sonnet 4.6 (Anthropic).
+# Developed in collaboration with ChatGPT (OpenAI).
+
 """ProviderWorker — reads one byte-range slice of the NPI CSV from Azure Blob,
 parses rows, normalizes multi-valued fields to arrays,
 and batch-upserts to the MongoDB staging collection.
