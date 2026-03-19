@@ -169,12 +169,15 @@
         <div class="d-center"><div class="d-box d-box-wide"><strong>Partition File (byte-based)</strong><small>file_size / N workers → byte ranges · each aligned to next newline</small></div></div>
 
         <div class="d-down">↓ Step 4</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>Ensure Staging Indexes</strong><small>unique index on (load_id, record_id) · idempotent · runs before any worker</small></div></div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Clear Staging Collection</strong><small>delete_many({}) on providers_staging · removes all records from prior loads before this run begins</small></div></div>
 
         <div class="d-down">↓ Step 5</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Ensure Staging Indexes</strong><small>unique index on (load_id, record_id) · idempotent · runs before any worker</small></div></div>
+
+        <div class="d-down">↓ Step 6</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>Write N Metadata Records</strong><small>admin.DataLoadMetadata · one per worker · status: 0 (new)</small></div></div>
 
-        <div class="d-down">↓ Step 6 — fan-out · each pair is a Durable activity chain · own 10-min budget per activity</div>
+        <div class="d-down">↓ Step 7 — fan-out · each pair is a Durable activity chain · own 10-min budget per activity</div>
         <div class="d-fan">
           <div class="d-fan-box"><strong>Worker 1</strong><small>load chunk</small></div>
           <div class="d-fan-box"><strong>Worker 2</strong><small>load chunk</small></div>
@@ -191,10 +194,10 @@
         </div>
         <div class="d-label">CountyEnrichmentJob runs per-worker immediately on completion · stub returning success · all pairs run concurrently</div>
 
-        <div class="d-down">↓ Step 7 — fan-in · all worker+enrichment pairs complete</div>
+        <div class="d-down">↓ Step 8 — fan-in · all worker+enrichment pairs complete</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>Record Count Reconciliation</strong><small>stream CSV · count newlines (trailing-newline safe) · compare expected_records vs inserted_records · report failed_records · mismatch → fail + report</small></div></div>
 
-        <div class="d-down">↓ Step 8 — report always generated (match or mismatch)</div>
+        <div class="d-down">↓ Step 9 — report always generated (match or mismatch)</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>DiscrepancyReporter</strong><small>write full run data to admin.PipelineDiscrepancyReport · Pushover notification with key stats + load_id</small></div></div>
 
       </div>
@@ -294,7 +297,7 @@
         <tr><th>#</th><th>Issue</th><th>Resolution</th></tr>
         <tr><td>1</td><td><code>load_id</code> not propagated — workers had no shared run identifier; retries could not be deduped.</td><td>Orchestrator sets <code>load_id = context.instance_id</code> at start and propagates through all config dicts. Every staging document and metadata record carries <code>load_id</code>.</td></tr>
         <tr><td>2</td><td>No idempotency on retry — <code>InsertOne</code> would duplicate records on orchestration replay.</td><td>Changed to <code>UpdateOne($setOnInsert)</code> upsert on <code>(load_id, record_id)</code>. Safe to replay any number of times.</td></tr>
-        <tr><td>3</td><td>No staging index — upsert filter had no supporting index; full collection scans on every row.</td><td>Added <code>ensure_indexes_activity</code> (Step 4) before workers start. Creates unique compound index on <code>(load_id, record_id)</code>. Idempotent.</td></tr>
+        <tr><td>3</td><td>No staging index — upsert filter had no supporting index; full collection scans on every row.</td><td>Added <code>ensure_indexes_activity</code> (Step 5) before workers start. Creates unique compound index on <code>(load_id, record_id)</code>. Idempotent.</td></tr>
         <tr><td>4</td><td>CMS scraping had no fallback — runtime failure on CMS page change would abort the entire load.</td><td>Added <code>NPPES_FALLBACK_URL</code> constant. <code>download_zip_fn</code> catches scrape failures and falls back to last-known URL with a warning log.</td></tr>
         <tr><td>5</td><td>Reconciliation miscounted trailing newline — file ending without <code>\n</code> was undercounted by 1.</td><td>Track last chunk; if last byte ≠ <code>\n</code>, add 1 to <code>csv_record_count</code>.</td></tr>
         <tr><td>6</td><td>Partition scan window too small (256 bytes) — NPI rows average ~500 bytes; window could miss the newline.</td><td>Increased scan window to 1024 bytes in <code>partition_file_fn</code>.</td></tr>
