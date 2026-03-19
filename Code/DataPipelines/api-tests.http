@@ -18,6 +18,7 @@ Content-Type: application/json
 }
 
 ### LoadProviderData — dev run (200K records, 5 workers)
+### file_url and version are optional — omit to auto-discover from cms.gov/nppes
 POST {{baseUrl}}/api/Router
 Authorization: {{token}}
 Content-Type: application/json
@@ -25,8 +26,6 @@ Content-Type: application/json
 {
     "ChatHealthyTask": "LoadProviderData",
     "payload": {
-        "file_url": "https://download.cms.gov/nppes/NPPES_Data_Dissemination_April_2025.zip",
-        "version": "2025-04",
         "num_workers": 5,
         "max_records": 200000,
         "batch_size": 500,

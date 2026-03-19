@@ -8,6 +8,7 @@ import csv
 import io
 import logging
 import os
+import re
 import tempfile
 import zipfile
 from datetime import datetime, timezone
@@ -15,7 +16,31 @@ from datetime import datetime, timezone
 import azure.durable_functions as df
 import requests
 from azure.storage.blob import BlobServiceClient
+from bs4 import BeautifulSoup
 from pymongo import MongoClient
+
+NPPES_INDEX_URL = "https://download.cms.gov/nppes/NPI_Files.html"
+
+
+def _discover_nppes_url() -> tuple[str, str]:
+    """Scrape CMS NPPES page and return (zip_url, version_string) for the latest full file."""
+    resp = requests.get(NPPES_INDEX_URL, timeout=30)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    for link in soup.find_all("a", href=True):
+        href = link["href"]
+        # Full dissemination file — matches e.g. NPPES_Data_Dissemination_March_2026.zip
+        match = re.search(
+            r"NPPES_Data_Dissemination_(\w+_\d{4})\.zip", href, re.IGNORECASE
+        )
+        if match:
+            version = match.group(1).replace("_", "-").lower()  # e.g. "march-2026"
+            url = href if href.startswith("http") else f"https://download.cms.gov/nppes/{href}"
+            logging.info("Discovered NPPES file: %s (version: %s)", url, version)
+            return url, version
+
+    raise RuntimeError("Could not find NPPES full dissemination zip on CMS page.")
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -39,8 +64,10 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     """Main orchestrator. No timeouts — Azure manages state."""
     config = context.get_input()
 
-    # Step 1: Download zip to blob
-    zip_path = yield context.call_activity("download_zip_activity", config)
+    # Step 1: Download zip to blob (auto-discovers URL + version if not supplied)
+    download_result = yield context.call_activity("download_zip_activity", config)
+    zip_path = download_result["zip_path"]
+    config = {**config, "version": download_result["version"]}
 
     # Step 2: Extract CSV from zip to blob
     csv_path = yield context.call_activity(
@@ -100,13 +127,21 @@ def worker_enrichment_pair_fn(context: df.DurableOrchestrationContext):
 
 # ── Activity implementations ──────────────────────────────────────────────────
 
-def download_zip_fn(config: dict) -> str:
-    """Stream NPI zip from CMS URL to Azure Blob. Returns blob name."""
-    file_url = config["file_url"]
-    container = config.get("blob_container", "provider-data")
-    version = config.get("version", "latest")
-    blob_name = f"npi_{version}.zip"
+def download_zip_fn(config: dict) -> dict:
+    """Discover (if needed) and stream NPI zip from CMS to Azure Blob.
 
+    If file_url is not in config, scrapes cms.gov/nppes to find the latest file.
+    Returns {"zip_path": blob_name, "version": version} so the orchestrator
+    can propagate the discovered version to downstream activities.
+    """
+    file_url = config.get("file_url")
+    version = config.get("version")
+    container = config.get("blob_container", "provider-data")
+
+    if not file_url:
+        file_url, version = _discover_nppes_url()
+
+    blob_name = f"npi_{version}.zip"
     _ensure_container(container)
     service = _blob_service()
     blob_client = service.get_container_client(container).get_blob_client(blob_name)
@@ -117,7 +152,7 @@ def download_zip_fn(config: dict) -> str:
         blob_client.upload_blob(r.raw, overwrite=True)
 
     logging.info("ZIP uploaded to blob: %s", blob_name)
-    return blob_name
+    return {"zip_path": blob_name, "version": version}
 
 
 def extract_csv_fn(config: dict) -> str:
