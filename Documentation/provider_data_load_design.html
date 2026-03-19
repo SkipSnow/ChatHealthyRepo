@@ -122,7 +122,7 @@
       <code>PublicHealthData</code> staging collection. The load runs for hours and cannot be held open
       in a synchronous HTTP call. The Router returns immediately with a status URL; the load runs
       asynchronously via Azure Durable Functions. Progress is tracked in <code>admin.DataLoadMetadata</code>.
-      A discrepancy report is emailed on completion or catastrophic failure.
+      A load report is sent via Pushover on completion.
     </p>
 
     <!-- 2. Async Handoff -->
@@ -131,7 +131,7 @@
       <div class="diagram-inner">
         <div class="d-center"><div class="d-box d-box-wide"><strong>POST /api/Router</strong><small>ChatHealthyTask: LoadProviderData</small></div></div>
         <div class="d-down">↓</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>load_provider_data.py</strong><small>starts Durable orchestrator · returns immediately</small></div></div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>function_app.py — Router</strong><small>ASYNC_TASK_ORCHESTRATORS routes to provider_load_orchestrator · returns immediately</small></div></div>
         <div class="d-down">↓ 202 Accepted</div>
         <div class="d-row">
           <div class="d-col">
@@ -186,7 +186,7 @@
         <div class="d-down">↓ Step 7 — fan-in · all worker+enrichment pairs complete</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>Record Count Reconciliation</strong><small>stream CSV · count newlines (trailing-newline safe) · compare expected_records vs inserted_records · report failed_records · mismatch → fail + report</small></div></div>
 
-        <div class="d-down">↓ Step 8 — counts match</div>
+        <div class="d-down">↓ Step 8 — report always generated (match or mismatch)</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>DiscrepancyReporter</strong><small>write full run data as JSON blob · generate Excel (Summary + Detail tabs, capped at 10K rows, JSON blob reference) · SAS URL · Pushover notification</small></div></div>
 
       </div>
@@ -199,7 +199,7 @@
     <p>Durable orchestrator. Owns blob I/O, byte-based partitioning, metadata writes, and fan-out of worker+enrichment pairs. Each worker chains immediately into its own <code>CountyEnrichmentJob</code> on completion — no batch wait. Fan-in waits for all pairs, then runs reconciliation and report. No timeout.</p>
 
     <h3>ProviderWorker</h3>
-    <p>Reads one byte-range slice of the CSV from blob. All partition boundaries are newline-aligned by <code>partition_file_fn</code>, so every worker starts at a complete row — no row is split or skipped. Parses rows. Normalizes multi-valued fields to arrays (e.g. <code>practice_address</code>). Assigns a synthetic <code>record_id = worker_id × MAX_ROWS_PER_WORKER + local_row_index</code> (<code>MAX_ROWS_PER_WORKER = 1,000,000,000</code>) — unique across all workers, no coordination needed. NPI is the business key. Stamps each document with <code>load_id</code> (= Durable orchestration instance ID). Batch-upserts to <code>PublicHealthData.providers_staging</code> using <code>$setOnInsert</code> on <code>(load_id, record_id)</code> — safe to retry; duplicates are silently ignored. Returns observability metrics: <code>num_records</code>, <code>rows_failed</code>, <code>duration_seconds</code>, <code>rows_per_second</code>. Updates its metadata record on completion or failure.</p>
+    <p>Reads one byte-range slice of the CSV from blob. Partition boundaries are newline-aligned; workers 2–N defensively discard their first row if it has the wrong field count (partial row from alignment fallback). Parses rows. Skips blank/whitespace-only lines. Normalizes multi-valued fields to arrays (e.g. <code>practice_address</code>). Assigns a synthetic <code>record_id = worker_id × MAX_ROWS_PER_WORKER + local_row_index</code> (<code>MAX_ROWS_PER_WORKER = 1,000,000,000</code>) — unique across all workers, no coordination needed. NPI is the business key. Stamps each document with <code>load_id</code> (= Durable orchestration instance ID). Batch-upserts to <code>PublicHealthData.providers_staging</code> using <code>$setOnInsert</code> on <code>(load_id, record_id)</code> — safe to retry; duplicates are silently ignored. Returns observability metrics: <code>rows_processed</code>, <code>num_records</code>, <code>rows_failed</code>, <code>duration_seconds</code>, <code>rows_per_second</code>. Updates its metadata record on completion or failure.</p>
 
     <h3>CountyEnrichmentJob</h3>
     <p>Stub. Accepts a list of record numbers. Returns <code>{"success": True, "failed": []}</code>.</p>
@@ -207,20 +207,20 @@
     <h3>DiscrepancyReporter</h3>
     <p>Always writes the complete run data (all <code>pair_results</code> + reconciliation) as a JSON blob to Azure Blob Storage — this is the authoritative full failure dataset. Generates an Excel workbook with two tabs: <strong>Summary</strong> (<code>expected_records</code>, <code>inserted_records</code>, <code>failed_records</code>, match result, reference to JSON blob) and <strong>Detail</strong> (per-worker load and enrichment results). The Detail tab is capped at 10,000 rows; a truncation notice with the JSON blob path is appended if exceeded. Uploads the workbook to Azure Blob Storage. Generates a 24-hour SAS token URL. Sends a Pushover notification with the link.</p>
 
-    <!-- 5. Constructor -->
-    <h2>5. ProviderLoadManager — Constructor Parameters</h2>
+    <!-- 5. API Payload -->
+    <h2>5. LoadProviderData — API Payload Fields</h2>
+    <p>Passed as the <code>payload</code> object in the POST to <code>/api/Router</code>. All fields are optional — omit entirely for a full production run with auto-discovered file URL.</p>
     <div class="table-wrap">
       <table>
-        <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Notes</th></tr>
-        <tr><td><code>file_url</code></td><td>str / null</td><td><code>None</code></td><td>CMS NPPES download URL. If omitted, <code>download_zip_fn</code> scrapes <code>cms.gov/nppes</code> to auto-discover the latest file. No human intervention required.</td></tr>
+        <tr><th>Field</th><th>Type</th><th>Default</th><th>Notes</th></tr>
+        <tr><td><code>file_url</code></td><td>str / null</td><td><code>None</code></td><td>CMS NPPES download URL. If omitted, scrapes <code>cms.gov/nppes</code> to auto-discover the latest file. Falls back to <code>NPPES_FALLBACK_URL</code> constant if scraping fails.</td></tr>
         <tr><td><code>num_workers</code></td><td>int</td><td>5</td><td>Number of parallel workers. Each gets an equal byte slice. Default 5 for dev; scale to 50 for full production load.</td></tr>
-        <tr><td><code>report_blob_container</code></td><td>str</td><td><code>provider-data</code></td><td>Azure Blob container where the Excel report is uploaded. SAS URL sent via Pushover.</td></tr>
-        <tr><td><code>blob_container</code></td><td>str</td><td><code>provider-data</code></td><td>Azure Blob container for zip and CSV storage.</td></tr>
-        <tr><td><code>batch_size</code></td><td>int</td><td>500</td><td>MongoDB bulk_write batch size per worker insert cycle.</td></tr>
+        <tr><td><code>blob_container</code></td><td>str</td><td><code>provider-data</code></td><td>Azure Blob container for zip, CSV, and report storage.</td></tr>
+        <tr><td><code>batch_size</code></td><td>int</td><td>500</td><td>MongoDB <code>bulk_write</code> batch size per worker insert cycle.</td></tr>
         <tr><td><code>staging_collection</code></td><td>str</td><td><code>PublicHealthData.providers_staging</code></td><td>Target collection for raw provider records.</td></tr>
         <tr><td><code>metadata_collection</code></td><td>str</td><td><code>admin.DataLoadMetadata</code></td><td>Load tracking collection. Never deleted by the system.</td></tr>
-        <tr><td><code>version</code></td><td>str</td><td>—</td><td>NPI file version/date string (e.g. <code>"2026-03"</code>). Stored in metadata.</td></tr>
-        <tr><td><code>max_records</code></td><td>int / null</td><td><code>200000</code></td><td>Cap the load at N records. <code>None</code> loads the full file. Default 200K for dev; set to <code>None</code> for full production load.</td></tr>
+        <tr><td><code>version</code></td><td>str</td><td>—</td><td>NPI file version string (e.g. <code>"2026-03"</code>). Auto-discovered if omitted.</td></tr>
+        <tr><td><code>max_records</code></td><td>int / null</td><td><code>200000</code></td><td>Approximate cap on records loaded (byte-estimate, ±5%). <code>None</code> loads the full file. Default 200K for dev; omit for full production load.</td></tr>
       </table>
     </div>
 
@@ -289,12 +289,12 @@
         <tr><td>4</td><td>CMS scraping had no fallback — runtime failure on CMS page change would abort the entire load.</td><td>Added <code>NPPES_FALLBACK_URL</code> constant. <code>download_zip_fn</code> catches scrape failures and falls back to last-known URL with a warning log.</td></tr>
         <tr><td>5</td><td>Reconciliation miscounted trailing newline — file ending without <code>\n</code> was undercounted by 1.</td><td>Track last chunk; if last byte ≠ <code>\n</code>, add 1 to <code>csv_record_count</code>.</td></tr>
         <tr><td>6</td><td>Partition scan window too small (256 bytes) — NPI rows average ~500 bytes; window could miss the newline.</td><td>Increased scan window to 1024 bytes in <code>partition_file_fn</code>.</td></tr>
-        <tr><td>7</td><td>No observability metrics from workers — no way to diagnose throughput or partial failures post-run.</td><td><code>ProviderWorker.run()</code> now returns <code>rows_failed</code>, <code>duration_seconds</code>, <code>rows_per_second</code>.</td></tr>
+        <tr><td>7</td><td>No observability metrics from workers — no way to diagnose throughput or partial failures post-run.</td><td><code>ProviderWorker.run()</code> now returns <code>rows_processed</code>, <code>rows_failed</code>, <code>duration_seconds</code>, <code>rows_per_second</code>.</td></tr>
         <tr><td>8</td><td><code>MAX_ROWS_PER_WORKER</code> implicit — magic number <code>1,000,000,000</code> inline in worker code.</td><td>Extracted to named constant <code>MAX_ROWS_PER_WORKER = 1_000_000_000</code> at module level.</td></tr>
         <tr><td>9</td><td>Excel detail tab unbounded — could produce a multi-GB spreadsheet for large failure sets.</td><td>Detail tab capped at <code>DETAIL_ROW_LIMIT = 10,000</code> rows with truncation notice.</td></tr>
         <tr><td>10</td><td><code>download_zip_fn</code> returned <code>str</code> in original design — auto-discovered <code>version</code> was lost.</td><td>Returns <code>dict {"zip_path", "version"}</code>. Orchestrator propagates <code>version</code> into config for all downstream activities. <em>(Fixed in Rev 1.)</em></td></tr>
         <tr><td>11</td><td><code>max_records</code> is approximate — byte estimate (500 bytes/row) may over- or under-shoot by up to ±5%.</td><td>Accepted. Used for dev limiting only; production runs omit <code>max_records</code>. Documented.</td></tr>
-        <tr><td>12</td><td>Partial failure strategy unspecified — if 1 of 5 workers fails, what happens?</td><td>Accepted with note: the orchestrator does not short-circuit on partial worker failure. All pairs run to completion; failures appear in the report. A manual re-run with the same load_id is safe due to upsert idempotency.</td></tr>
+        <tr><td>12</td><td>Partial failure strategy unspecified — if 1 of 5 workers fails, what happens?</td><td>All pairs run to completion (no short-circuit). If any worker fails, the orchestrator returns <code>status: "failed"</code>. Successful inserts are NOT rolled back — <code>load_id</code> isolates this run. A re-run is safe due to upsert idempotency.</td></tr>
       </table>
     </div>
 
