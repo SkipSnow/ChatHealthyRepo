@@ -1,3 +1,9 @@
+# Copyright © 2026 Skip Snow. All rights reserved.
+# Licensed under the FindCare Evaluation License (FEL-1.0).
+#
+# Coded by Claude Sonnet 4.6 (Anthropic).
+# Developed in collaboration with ChatGPT (OpenAI).
+
 """
 Pytest configuration for Website tests.
 Starts a local HTTP server serving the Website/ directory so Playwright

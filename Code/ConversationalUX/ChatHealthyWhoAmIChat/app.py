@@ -1,3 +1,9 @@
+# Copyright © 2026 Skip Snow. All rights reserved.
+# Licensed under the FindCare Evaluation License (FEL-1.0).
+#
+# Coded by Claude Sonnet 4.6 (Anthropic).
+# Developed in collaboration with ChatGPT (OpenAI).
+
 from dotenv import load_dotenv
 from openai import OpenAI
 from anthropic import Anthropic

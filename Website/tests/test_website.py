@@ -1,3 +1,9 @@
+# Copyright © 2026 Skip Snow. All rights reserved.
+# Licensed under the FindCare Evaluation License (FEL-1.0).
+#
+# Coded by Claude Sonnet 4.6 (Anthropic).
+# Developed in collaboration with ChatGPT (OpenAI).
+
 """
 Unit tests for Website/index.html — legal panel and navigation behavior.
 Run from the repo root:
