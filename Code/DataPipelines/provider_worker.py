@@ -139,16 +139,18 @@ class ProviderWorker:
         self._update_status(10, None)
         start_time = time.monotonic()
         try:
-            num_records, rows_failed = self._load()
+            rows_processed, num_records, rows_failed = self._load()
             duration = time.monotonic() - start_time
-            rows_per_second = round(num_records / duration, 1) if duration > 0 else 0
+            rows_per_second = round(rows_processed / duration, 1) if duration > 0 else 0
             self._update_status(12, None, num_records=num_records)
             logging.info(
-                "Worker %d loaded %d records in %.1fs (%.1f rows/s, %d failed)",
-                self.worker_id, num_records, duration, rows_per_second, rows_failed,
+                "Worker %d: processed=%d inserted=%d failed=%d %.1fs (%.1f rows/s)",
+                self.worker_id, rows_processed, num_records, rows_failed,
+                duration, rows_per_second,
             )
             return {
                 "worker_id": self.worker_id,
+                "rows_processed": rows_processed,
                 "num_records": num_records,
                 "rows_failed": rows_failed,
                 "duration_seconds": round(duration, 2),
@@ -166,7 +168,7 @@ class ProviderWorker:
                 "error": str(exc),
             }
 
-    def _load(self) -> tuple[int, int]:
+    def _load(self) -> tuple[int, int, int]:
         # Read byte range from blob
         service = BlobServiceClient.from_connection_string(
             os.environ["AZURE_STORAGE_CONNECTION_STRING"]
@@ -187,13 +189,24 @@ class ProviderWorker:
         local_index = 0
         num_records = 0
         rows_failed = 0
+        is_first_row = True
 
         try:
             reader = csv.reader(io.StringIO(content))
             for row in reader:
-                if not any(f.strip() for f in row):   # skip blank lines
+                if not any(f.strip() for f in row):   # skip blank/whitespace-only lines
                     continue
-                if len(row) != len(self.header):       # skip malformed rows
+
+                # Workers 2-N: partition boundaries are newline-aligned, so the
+                # first row is normally complete. If the alignment fallback fired
+                # (no \n found in scan window), the first bytes may be mid-row.
+                # Discard that partial leading row silently — not counted as rows_failed.
+                if is_first_row:
+                    is_first_row = False
+                    if self.worker_id > 1 and len(row) != len(self.header):
+                        continue  # partial leading row — discard
+
+                if len(row) != len(self.header):       # malformed non-first row
                     rows_failed += 1
                     continue
 
@@ -222,7 +235,8 @@ class ProviderWorker:
         finally:
             mongo_client.close()
 
-        return num_records, rows_failed
+        rows_processed = num_records + rows_failed
+        return rows_processed, num_records, rows_failed
 
     def _update_status(
         self, status: int, error: str | None, num_records: int = 0
