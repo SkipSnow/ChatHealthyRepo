@@ -119,7 +119,7 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
         {**config, "csv_path": csv_path, "pair_results": pair_results},
     )
 
-    # Step 8: Report — Excel → blob → SAS URL → Pushover
+    # Step 8: Report — write to admin.PipelineDiscrepancyReport → Pushover
     yield context.call_activity(
         "report_activity",
         {**config, "pair_results": pair_results, "reconcile_result": reconcile_result},
@@ -316,6 +316,7 @@ def ensure_indexes_fn(config: dict) -> None:
 
 def write_metadata_fn(config: dict) -> list:
     """Write one metadata record per worker. Returns list of inserted _id strings."""
+    from provider_worker import status_fields
     partitions = config["partitions"]
     csv_path = config["csv_path"]
     version = config.get("version", "latest")
@@ -338,7 +339,7 @@ def write_metadata_fn(config: dict) -> list:
                 "start_byte": p["start_byte"],
                 "end_byte": p["end_byte"],
                 "num_records": 0,
-                "status": 0,
+                **status_fields(0),
                 "error_detail": None,
             }
             for p in partitions
