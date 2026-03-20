@@ -171,7 +171,7 @@ class ProviderWorker:
         self._update_status(10, None)
         start_time = time.monotonic()
         try:
-            rows_processed, num_records, rows_failed = self._load()
+            rows_processed, num_records, rows_failed, failed_rows = self._load()
             duration = time.monotonic() - start_time
             rows_per_second = round(rows_processed / duration, 1) if duration > 0 else 0
             self._update_status(12, None, num_records=num_records)
@@ -185,6 +185,7 @@ class ProviderWorker:
                 "rows_processed": rows_processed,
                 "num_records": num_records,
                 "rows_failed": rows_failed,
+                "failed_rows": failed_rows,
                 "duration_seconds": round(duration, 2),
                 "rows_per_second": rows_per_second,
                 "success": True,
@@ -220,6 +221,7 @@ class ProviderWorker:
         local_index = 0
         num_records = 0
         rows_failed = 0
+        failed_rows = []          # captured samples (max 20)
         is_first_row = True
 
         try:
@@ -239,6 +241,19 @@ class ProviderWorker:
 
                 if len(row) != len(self.header):       # malformed non-first row
                     rows_failed += 1
+                    entry = {
+                        "row_number": local_index,
+                        "field_count": len(row),
+                        "expected": len(self.header),
+                        "raw": ",".join(row[:20]),  # first 20 fields for identification
+                    }
+                    if len(failed_rows) < 20:
+                        failed_rows.append(entry)
+                    else:
+                        logging.error(
+                            "Worker %d failed row overflow (row %d): fields=%d expected=%d raw=%.120s",
+                            self.worker_id, local_index, len(row), len(self.header), entry["raw"],
+                        )
                     continue
 
                 doc = _normalize_row(self.header, row)
@@ -267,7 +282,7 @@ class ProviderWorker:
             mongo_client.close()
 
         rows_processed = num_records + rows_failed
-        return rows_processed, num_records, rows_failed
+        return rows_processed, num_records, rows_failed, failed_rows
 
     def _update_status(
         self, status: int, error: str | None, num_records: int = 0

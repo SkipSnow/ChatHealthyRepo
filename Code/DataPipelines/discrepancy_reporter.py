@@ -42,6 +42,13 @@ class DiscrepancyReporter:
             r for r in pair_results if not r.get("enrich", {}).get("success", True)
         ]
 
+        # ── Collect failed rows across all workers ────────────────────────────
+        all_failed_rows = [
+            {"worker_id": r["worker"]["worker_id"], **row}
+            for r in pair_results
+            for row in r.get("worker", {}).get("failed_rows", [])
+        ]
+
         # ── Write report to MongoDB ───────────────────────────────────────────
         report = {
             "load_id": load_id,
@@ -54,6 +61,7 @@ class DiscrepancyReporter:
                 "failed_enrichment_workers": len(failed_enrichments),
                 "total_loaded": total_loaded,
             },
+            "failed_rows": all_failed_rows,  # up to 20 per worker; overflow in Azure logs
             "pair_results": pair_results,
         }
 
