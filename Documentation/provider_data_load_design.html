@@ -174,15 +174,12 @@
         <div class="d-center"><div class="d-box d-box-wide"><strong>Partition File (byte-based)</strong><small>file_size / N workers → byte ranges · each aligned to next newline</small></div></div>
 
         <div class="d-down">↓ Step 4</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>Clear Staging Collection</strong><small>delete_many({}) on providers_staging · removes all records from prior loads before this run begins</small></div></div>
-
-        <div class="d-down">↓ Step 5</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>Ensure Staging Indexes</strong><small>unique index on (load_id, record_id) · idempotent · runs before any worker</small></div></div>
 
-        <div class="d-down">↓ Step 6</div>
+        <div class="d-down">↓ Step 5</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>Write N Metadata Records</strong><small>admin.DataLoadMetadata · one per worker · status: 0 (new)</small></div></div>
 
-        <div class="d-down">↓ Step 7 — fan-out · each worker is an independent Durable activity · own 10-min budget</div>
+        <div class="d-down">↓ Step 6 — fan-out · each worker is an independent Durable activity · own 10-min budget</div>
         <div class="d-fan">
           <div class="d-fan-box"><strong>Worker 1</strong><small>load chunk</small></div>
           <div class="d-fan-box"><strong>Worker 2</strong><small>load chunk</small></div>
@@ -191,13 +188,13 @@
         </div>
         <div class="d-label">Each worker: read byte range → skip leading blanks → parse CSV → normalize fields → batch insert to staging → update metadata status</div>
 
-        <div class="d-down">↓ Step 8 — fan-in · all workers complete</div>
+        <div class="d-down">↓ Step 7 — fan-in · all workers complete</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>Record Count Reconciliation</strong><small>stream CSV · count newlines (trailing-newline safe) · compare expected_records vs inserted_records · report failed_records · mismatch → fail + report</small></div></div>
 
-        <div class="d-down">↓ Step 9 — report always generated (match or mismatch)</div>
+        <div class="d-down">↓ Step 8 — report always generated (match or mismatch)</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>DiscrepancyReporter</strong><small>write full run data to admin.PipelineDiscrepancyReport · Pushover notification with key stats + load_id</small></div></div>
 
-        <div class="d-down">↓ Step 10 — trigger enrichment job (async, separate orchestration)</div>
+        <div class="d-down">↓ Step 9 — trigger enrichment job (async, separate orchestration)</div>
         <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>CountyEnrichmentOrchestrator</strong><small>separate Durable Function · triggered on load completion · see Section 4</small></div></div>
 
       </div>
@@ -381,6 +378,7 @@
         <tr><td>10</td><td><code>download_zip_fn</code> returned <code>str</code> in original design — auto-discovered <code>version</code> was lost.</td><td>Returns <code>dict {"zip_path", "version"}</code>. Orchestrator propagates <code>version</code> into config for all downstream activities. <em>(Fixed in Rev 1.)</em></td></tr>
         <tr><td>11</td><td><code>max_records</code> was approximate — required sampling rows to estimate a byte offset, adding complexity and a ±5% error margin.</td><td>Replaced with <code>max_bytes</code>: a direct byte limit applied to the data region after the header. No sampling needed. Used for dev limiting only; production runs omit the parameter.</td></tr>
         <tr><td>12</td><td>Partial failure strategy unspecified — if 1 of 5 workers fails, what happens?</td><td>All pairs run to completion (no short-circuit). If any worker fails, the orchestrator returns <code>status: "failed"</code>. Successful inserts are NOT rolled back — <code>load_id</code> isolates this run. A re-run is safe due to upsert idempotency.</td></tr>
+        <tr><td>13</td><td><code>delete_many({})</code> on staging before each load — destructive, bypasses <code>load_id</code> isolation, risks data loss if a concurrent run exists.</td><td>Removed <code>clear_staging_activity</code> (Step 4) entirely. Staging is never cleared by the load job. Each run's documents are isolated by <code>load_id</code>. Cleanup of prior runs happens automatically when the Batch Manager renames <code>providers_staging</code> during the collection swap (Job 4).</td></tr>
       </table>
     </div>
 
