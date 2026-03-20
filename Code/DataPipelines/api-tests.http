@@ -46,3 +46,29 @@ GET {{startProviderLoad.response.body.$.statusQueryGetUri}}
 GET {{baseUrl}}/runtime/webhooks/durabletask/instances/5e802309caa249ebb36f6bcdb148822c?taskHub=DevPipelineManagmentService&connection=Storage&code=<DURABLE_TASK_CODE>
 
 ###
+
+### CountyEnrichment — full run
+# @name startCountyEnrichment
+POST {{baseUrl}}/api/Router
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+    "ChatHealthyTask": "CountyEnrichment",
+    "payload": {
+        "num_workers": 200,
+        "addr_batch_size": 50
+    }
+}
+
+###
+
+### CountyEnrichment — check status (auto-uses instance_id from the POST above)
+GET {{startCountyEnrichment.response.body.$.statusQueryGetUri}}
+
+###
+
+### CountyEnrichment — check status by instance_id (replace with actual id)
+# GET {{baseUrl}}/runtime/webhooks/durabletask/instances/<INSTANCE_ID>?taskHub=DevPipelineManagmentService&connection=Storage&code=<DURABLE_TASK_CODE>
+
+###
