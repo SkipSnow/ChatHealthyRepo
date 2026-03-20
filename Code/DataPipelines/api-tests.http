@@ -47,6 +47,17 @@ GET {{baseUrl}}/runtime/webhooks/durabletask/instances/5e802309caa249ebb36f6bcdb
 
 ###
 
+### CopyToFrontEnd — copy runtime-read collections from ChatHealthyDataPipelines → ChatHealthyFrontEnd
+POST {{baseUrl}}/api/Router
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+    "ChatHealthyTask": "CopyToFrontEnd"
+}
+
+###
+
 ### MigrateFromLegacy — one-time copy of ZipCountyCrosswalk + providers_staging from LearnAI → ChatHealthyDataPipelines
 POST {{baseUrl}}/api/Router
 Authorization: {{token}}
