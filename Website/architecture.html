@@ -127,6 +127,7 @@
     .d-box-narrow { min-width: 110px; }
 
     .d-vline { width: 2px; background: var(--ink); margin: 0 auto; height: 16px; }
+    .d-hbar  { height: 2px; background: var(--ink); margin: 0 auto; }
     .d-row { display: flex; justify-content: center; gap: 32px; margin-top: 0; }
     .d-col { display: flex; flex-direction: column; align-items: center; }
 
@@ -180,18 +181,16 @@
     <div class="page-header">
       <p class="eyebrow">Technical Reference</p>
       <h1>Architecture Overview</h1>
-      <p class="effective">Version 2.1 &nbsp;·&nbsp; March 2026 &nbsp;·&nbsp; &copy; 2026 Skip Snow</p>
+      <p class="effective">Version 0.1 &nbsp;·&nbsp; March 2026 &nbsp;·&nbsp; &copy; 2026 Skip Snow</p>
     </div>
 
     <div class="arch-body">
-
-      <p>ChatHealthy is being built openly. All source code, architecture, and design documents are public. Skip Snow is available as a consultant for AI and healthcare technology projects — <a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener" style="color:var(--teal);">LinkedIn</a>.</p>
 
       <nav class="toc" aria-label="Table of contents">
         <h3>Contents</h3>
         <ol>
           <li><a href="#product-vision">Product Vision</a></li>
-          <li><a href="#infrastructure">Infrastructure Overview</a></li>
+          <li><a href="#infrastructure">Components</a></li>
           <li><a href="#website">Website — Static Layer (Cloudflare)</a></li>
           <li><a href="#three-app">Three-Application Architecture</a></li>
           <li><a href="#session-routing">Session and Routing Model</a></li>
@@ -200,6 +199,7 @@
           <li><a href="#devops">DevOps</a></li>
           <li><a href="#pipeline-architecture">Data Pipeline Architecture</a></li>
           <li><a href="#environment">Environment &amp; Data Model</a></li>
+          <li><a href="#networking">Networking</a></li>
           <li><a href="#deferred">Deferred</a></li>
 
         </ol>
@@ -213,15 +213,26 @@
       <!-- 1 -->
       <h2 id="product-vision">1. Product Vision</h2>
       <p>
-        FindCare is a conversational AI that helps users navigate healthcare — finding providers,
-        understanding symptoms, researching clinical trials, and producing transcripts they can share
-        with their care team. All of this happens within a single AI session using a ChatGPT / Claude.ai
-        style interface. There is no separate "About Us" application; transparency about the product is
-        one intent path within the same session.
+        ChatHealthy / FindCare is a unified healthcare discovery platform that turns fragmented
+        public provider data into a living, queryable knowledge system. A continuously updated
+        data pipeline ingests national provider datasets, normalizes and enriches them with
+        geographic intelligence (ZIP → county → state), and organizes the result into structured
+        collections and vectorized knowledge layers.
+      </p>
+      <p>
+        On top of this foundation, domain-specific AI agents guide users to meaningful healthcare
+        queries — finding specialists by geography, understanding provider distribution, exploring
+        care options — with precise, quantitative, and explainable answers. Users engage through
+        a dynamic interface where healthcare data is visual, navigable, and actionable, supporting
+        everything from high-level regional insights to individual care decisions.
+      </p>
+      <p>
+        The goal is to democratize healthcare intelligence — making complex provider ecosystems
+        understandable and useful for real-world decision-making.
       </p>
 
       <!-- 2 -->
-      <h2 id="infrastructure">2. Infrastructure Overview</h2>
+      <h2 id="infrastructure">2. Components</h2>
       <div class="diagram">
         <div class="diagram-inner">
           <div class="d-center"><div class="d-box d-box-wide"><strong>User Browser</strong><small>www.chathealthy.ai</small></div></div>
@@ -229,6 +240,8 @@
           <div class="d-center"><div class="d-box d-box-wide"><strong>Cloudflare</strong><small>Static pages · DNS · iframe embed</small></div></div>
           <div class="d-down">↓</div>
           <div class="d-center"><div class="d-box d-box-wide"><strong>HuggingFace Space</strong><small>React + FastAPI · Layer 1</small></div></div>
+          <div class="d-vline"></div>
+          <div class="d-hbar" style="width:58%"></div>
           <div class="d-row" style="margin-top:0;">
             <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>LLM APIs</strong><small>Anthropic · OpenAI · Groq</small></div></div>
             <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>Azure Functions</strong><small>CrewAI · Layer 2</small></div></div>
@@ -316,13 +329,16 @@
           <div class="d-center"><div class="d-box d-box-wide"><strong>User Message</strong><small>"Find me an oncologist near me"</small></div></div>
           <div class="d-down">↓</div>
           <div class="d-center"><div class="d-box d-box-wide"><strong>LLM — Intent Router</strong><small>Classifies intent within the same session</small></div></div>
+          <div class="d-vline"></div>
+          <div class="d-hbar" style="width:65%"></div>
           <div class="d-row" style="margin-top:0;">
             <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Find Care</strong><small>providers, cost</small></div></div>
             <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Research</strong><small>trials, symptoms</small></div></div>
             <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>About App</strong><small>transparency</small></div></div>
             <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Transcript</strong><small>export for doc</small></div></div>
           </div>
-          <div class="d-down" style="margin-top:8px;">↓</div>
+          <div class="d-hbar" style="width:65%"></div>
+          <div class="d-vline"></div>
           <div class="d-center"><div class="d-box d-box-wide"><strong>Response + Inline Components</strong><small>Text · Map · Chart · Cards · Download button</small></div></div>
         </div>
       </div>
@@ -526,7 +542,58 @@
       </ul>
 
       <!-- 11 -->
-      <h2 id="deferred">11. Deferred</h2>
+      <h2 id="networking">11. Networking</h2>
+      <p>
+        The DataPipelines Function App runs inside a dedicated Azure Virtual Network.
+        Outbound connections to MongoDB Atlas route through the VNet via peering — traffic
+        stays on Azure backbone and never traverses the public internet.
+      </p>
+
+      <div class="diagram">
+        <div class="diagram-inner">
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Azure Function App</strong><small>DevPipelineManagmentService · East US 2</small></div></div>
+          <div class="d-down">↓ outbound VNet integration</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>functions-subnet</strong><small>10.0.1.0/24 · inside ChatHealthy-VNet (10.0.0.0/16)</small></div></div>
+          <div class="d-down">↓ VNet peering</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>MongoDB Atlas peering endpoint</strong><small>Atlas container 192.168.248.0/21</small></div></div>
+          <div class="d-down">↓</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>ChatHealthyDataPipelines cluster</strong><small>East US 2 · M10 – M200 autoscale</small></div></div>
+        </div>
+      </div>
+
+      <h3>VNet Configuration</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Resource</th><th>Value</th></tr>
+          <tr><td>VNet name</td><td>ChatHealthy-VNet</td></tr>
+          <tr><td>Address space</td><td>10.0.0.0/16</td></tr>
+          <tr><td>Region</td><td>East US 2</td></tr>
+          <tr><td>Resource group</td><td>FindCareDataPipelines-Dev</td></tr>
+          <tr><td>Subnet</td><td>functions-subnet · 10.0.1.0/24 · Microsoft.Web/serverFarms delegation</td></tr>
+        </table>
+      </div>
+
+      <h3>Atlas VNet Peering</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Item</th><th>Value</th></tr>
+          <tr><td>Atlas container CIDR</td><td>192.168.248.0/21</td></tr>
+          <tr><td>Peered VNet</td><td>ChatHealthy-VNet (10.0.0.0/16)</td></tr>
+          <tr><td>Status</td><td>Initiated — confirm AVAILABLE in Atlas portal before locking down IP allowlist</td></tr>
+        </table>
+      </div>
+
+      <h3>IP Allowlist (plan)</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Cluster</th><th>Current</th><th>Target</th></tr>
+          <tr><td>ChatHealthyDataPipelines</td><td>0.0.0.0/0 (temporary)</td><td>10.0.0.0/16 (VNet only) once peering is AVAILABLE</td></tr>
+          <tr><td>ChatHealthyFrontEnd</td><td>0.0.0.0/0 (temporary)</td><td>HuggingFace egress IPs · VNet CIDR for pipeline writes</td></tr>
+        </table>
+      </div>
+
+      <!-- 12 -->
+      <h2 id="deferred">12. Deferred</h2>
       <ul>
         <li>FHIR / EMR integration — Layer 2, future phase</li>
         <li>User authentication and cross-session persistence</li>
