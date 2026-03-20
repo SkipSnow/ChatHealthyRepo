@@ -25,6 +25,7 @@ from azure.storage.blob import BlobServiceClient
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
 
+from atlas_cluster_manager import scale_up, scale_down
 from data_fetcher_base import DataFetcherBase
 
 NPPES_INDEX_URL = "https://download.cms.gov/nppes/NPI_Files.html"
