@@ -23,7 +23,7 @@ from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
 from migrate_from_legacy import run_migrate_from_legacy
 from copy_to_frontend import run_copy_to_frontend
-from atlas_cluster_manager import scale_up, scale_down
+from atlas_cluster_manager import scale_down, resize_cluster
 from county_enrichment_job import (
     county_enrichment_orchestrator_fn,
     enrich_by_address_batch_fn,
@@ -38,11 +38,14 @@ from provider_load_manager import (
     download_zip_fn,
     ensure_indexes_fn,
     extract_csv_fn,
+    full_provider_pipeline_orchestrator_fn,
     partition_file_fn,
     provider_load_orchestrator_fn,
     provider_worker_fn,
     reconcile_fn,
     report_fn,
+    scale_down_activity_fn,
+    scale_up_activity_fn,
     write_metadata_fn,
     worker_enrichment_pair_fn,
 )
@@ -57,7 +60,10 @@ SYNC_TASK_HANDLERS = {
     "LoadICD10": load_icd10,
     "MigrateFromLegacy": run_migrate_from_legacy,
     "CopyToFrontEnd": run_copy_to_frontend,
-    "ScaleUp": lambda config: scale_up(config.get("cluster", "ChatHealthyDataPipelines")) or {"status": "scaled_up"},
+    # ScaleUp/ScaleDown are fire-and-forget — they submit the resize and return immediately.
+    # For a blocking wait (required before heavy jobs), use FullProviderPipeline which
+    # runs scale_up_activity inside a Durable orchestrator where long waits are safe.
+    "ScaleUp": lambda config: resize_cluster(config.get("cluster", "ChatHealthyDataPipelines"), "M30", "M200") or {"status": "scale_up_submitted"},
     "ScaleDown": lambda config: scale_down(config.get("cluster", "ChatHealthyDataPipelines")) or {"status": "scaled_down"},
 }
 
@@ -65,6 +71,7 @@ SYNC_TASK_HANDLERS = {
 ASYNC_TASK_ORCHESTRATORS = {
     "LoadProviderData": "provider_load_orchestrator",
     "CountyEnrichment": "county_enrichment_orchestrator",
+    "FullProviderPipeline": "full_provider_pipeline_orchestrator",
 }
 
 
@@ -145,6 +152,11 @@ async def dev_pipeline_management(
 # ── Durable Orchestrators ─────────────────────────────────────────────────────
 
 @app.orchestration_trigger(context_name="context")
+def full_provider_pipeline_orchestrator(context: df.DurableOrchestrationContext):
+    return full_provider_pipeline_orchestrator_fn(context)
+
+
+@app.orchestration_trigger(context_name="context")
 def provider_load_orchestrator(context: df.DurableOrchestrationContext):
     return provider_load_orchestrator_fn(context)
 
@@ -200,6 +212,16 @@ def reconcile_activity(config: dict) -> dict:
 @app.activity_trigger(input_name="config")
 def report_activity(config: dict) -> dict:
     return report_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def scale_up_activity(config: dict) -> dict:
+    return scale_up_activity_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def scale_down_activity(config: dict) -> dict:
+    return scale_down_activity_fn(config)
 
 
 # ── County Enrichment Orchestrator + Activities ───────────────────────────────

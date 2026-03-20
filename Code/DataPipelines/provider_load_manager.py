@@ -424,3 +424,49 @@ def county_enrich_fn(config: dict) -> dict:
 def provider_worker_fn(config: dict) -> dict:
     from provider_worker import ProviderWorker
     return ProviderWorker(config).run()
+
+
+# ── Full Pipeline Orchestrator ────────────────────────────────────────────────
+
+def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
+    """Top-level orchestrator: ScaleUp → LoadProviders → CountyEnrichment → ScaleDown.
+    Single kick-off, no human steps required until Pushover fires on completion.
+    """
+    config = context.get_input() or {}
+    cluster = config.get("cluster", "ChatHealthyDataPipelines")
+
+    context.set_custom_status("Step 1/4: Scaling up cluster")
+    yield context.call_activity("scale_up_activity", {"cluster": cluster})
+
+    context.set_custom_status("Step 2/4: Loading provider data")
+    load_config = {
+        "num_workers": config.get("num_workers", 50),
+        "batch_size": config.get("batch_size", 500),
+        "blob_container": config.get("blob_container", "provider-data"),
+    }
+    load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
+
+    context.set_custom_status("Step 3/4: Running county enrichment")
+    enrich_config = {
+        "num_workers": config.get("enrich_workers", 200),
+        "addr_batch_size": config.get("addr_batch_size", 50),
+    }
+    enrich_result = yield context.call_sub_orchestrator("county_enrichment_orchestrator", enrich_config)
+
+    context.set_custom_status("Step 4/4: Scaling down cluster")
+    yield context.call_activity("scale_down_activity", {"cluster": cluster})
+
+    context.set_custom_status(f"Done — {load_result.get('status', 'unknown')}")
+    return {"load": load_result, "enrichment": enrich_result}
+
+
+def scale_up_activity_fn(config: dict) -> dict:
+    cluster = config.get("cluster", "ChatHealthyDataPipelines")
+    scale_up(cluster)
+    return {"status": "scaled_up", "cluster": cluster}
+
+
+def scale_down_activity_fn(config: dict) -> dict:
+    cluster = config.get("cluster", "ChatHealthyDataPipelines")
+    scale_down(cluster)
+    return {"status": "scaled_down", "cluster": cluster}
