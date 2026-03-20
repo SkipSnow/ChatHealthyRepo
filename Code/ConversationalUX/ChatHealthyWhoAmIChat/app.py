@@ -237,9 +237,10 @@ def find_specialty_codes(query: str) -> dict:
             for stem in stems
             for field in ("Specialization", "Display Name")
         ]
-        return list(db["PublicHealthData"]["SpecialtyMetaData"].find(
+        codes = list(db["PublicHealthData"]["SpecialtyMetaData"].find(
             {"$and": [{"$or": regex_clauses}, individual_filter]}, projection
         )) if regex_clauses else []
+        return codes, stems
 
     def vector_pipeline():
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -255,15 +256,16 @@ def find_specialty_codes(query: str) -> dict:
             {"$project": {"_id": 0, "Classification": 1, "score": {"$meta": "vectorSearchScore"}}},
         ]))
         classifications = list({m["Classification"] for m in top if m.get("score", 0) > 0.4})
-        return list(db["PublicHealthData"]["SpecialtyMetaData"].find(
+        codes = list(db["PublicHealthData"]["SpecialtyMetaData"].find(
             {"$and": [{"Classification": {"$in": classifications}}, individual_filter]}, projection
         )) if classifications else []
+        return codes, classifications
 
     with ThreadPoolExecutor(max_workers=2) as ex:
         rf = ex.submit(regex_pipeline)
         vf = ex.submit(vector_pipeline)
-        regex_codes = rf.result()
-        vector_codes = vf.result()
+        regex_codes, stems = rf.result()
+        vector_codes, classifications = vf.result()
 
     # Step 4: union, deduplicate by Code
     seen = set()
