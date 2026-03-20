@@ -36,6 +36,7 @@ from county_enrichment_job import (
 from provider_load_manager import (
     county_enrich_fn,
     download_zip_fn,
+    drain_staging_fn,
     ensure_indexes_fn,
     extract_csv_fn,
     full_provider_pipeline_orchestrator_fn,
@@ -182,6 +183,11 @@ def extract_csv_activity(config: dict) -> str:
 def partition_file_activity(config: dict) -> list:
     return partition_file_fn(config)
 
+
+
+@app.activity_trigger(input_name="config")
+def drain_staging_activity(config: dict) -> dict:
+    return drain_staging_fn(config)
 
 
 @app.activity_trigger(input_name="config")
