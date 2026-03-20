@@ -90,7 +90,7 @@ def record_user_details(email="", name="Name not provided", notes="not provided"
         push(f"Recording interest from {name} with email {email} (DB unavailable)")
         return {"recorded": "ok", "note": "MongoDB unavailable; contact logged via push only"}
     reason = message or notes
-    lead_coll = db["AboutUs"]["lead"]
+    lead_coll = db["Users"]["prospects"]
     for doc in lead_coll.find():
         if email in str(doc.get("email", "")):
             return {"recorded": "ok"}
@@ -343,7 +343,7 @@ def record_unknown_question(question, chat_history=None):
         deIdentify(chat_history)
     push(f"Recording a user question I could not answer: {question}")
     payload = {
-        "database": "AboutUs", "collection": "AboutSkip",
+        "database": "DeidentifiedSessions", "collection": "unknown_questions",
         "record": {"question": question, "chat_history": chat_history or []}
     }
     commitSignificantActivity(payload)
