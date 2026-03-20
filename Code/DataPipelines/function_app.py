@@ -20,6 +20,15 @@ import azure.functions as func
 
 from auth import require_auth
 from load_specialty_data import run_load_specialty_data
+from county_enrichment_job import (
+    county_enrichment_orchestrator_fn,
+    enrich_by_address_batch_fn,
+    enrich_by_zip_batch_fn,
+    enrichment_report_fn,
+    get_distinct_zips_fn,
+    get_unenriched_fn,
+    lookup_crosswalk_fn,
+)
 from provider_load_manager import (
     county_enrich_fn,
     download_zip_fn,
@@ -46,6 +55,7 @@ SYNC_TASK_HANDLERS = {
 # Asynchronous tasks — start a Durable orchestrator, return 202 + status URL
 ASYNC_TASK_ORCHESTRATORS = {
     "LoadProviderData": "provider_load_orchestrator",
+    "CountyEnrichment": "county_enrichment_orchestrator",
 }
 
 
@@ -181,3 +191,40 @@ def reconcile_activity(config: dict) -> dict:
 @app.activity_trigger(input_name="config")
 def report_activity(config: dict) -> dict:
     return report_fn(config)
+
+
+# ── County Enrichment Orchestrator + Activities ───────────────────────────────
+
+@app.orchestration_trigger(context_name="context")
+def county_enrichment_orchestrator(context: df.DurableOrchestrationContext):
+    return county_enrichment_orchestrator_fn(context)
+
+
+@app.activity_trigger(input_name="config")
+def get_distinct_zips_activity(config: dict) -> dict:
+    return get_distinct_zips_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def lookup_crosswalk_activity(config: dict) -> dict:
+    return lookup_crosswalk_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def enrich_by_zip_batch_activity(config: dict) -> dict:
+    return enrich_by_zip_batch_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def get_unenriched_activity(config: dict) -> dict:
+    return get_unenriched_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def enrich_by_address_batch_activity(config: dict) -> dict:
+    return enrich_by_address_batch_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def enrichment_report_activity(config: dict) -> dict:
+    return enrichment_report_fn(config)
