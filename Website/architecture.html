@@ -199,7 +199,9 @@
           <li><a href="#data-privacy">Data and Privacy</a></li>
           <li><a href="#devops">DevOps</a></li>
           <li><a href="#pipeline-architecture">Data Pipeline Architecture</a></li>
+          <li><a href="#environment">Environment &amp; Data Model</a></li>
           <li><a href="#deferred">Deferred</a></li>
+
         </ol>
         <ul style="margin:8px 0 0 18px; font-size:0.88rem; line-height:1.9; list-style:disc;">
           <li><strong>Designs:</strong>
@@ -457,7 +459,66 @@
       data has a problem, the rollback is a single rename.</p>
 
       <!-- 10 -->
-      <h2 id="deferred">10. Deferred</h2>
+      <h2 id="environment">10. Environment &amp; Data Model</h2>
+
+      <h3>MongoDB Atlas — ChatHealthyDev Project</h3>
+      <p>Two dedicated clusters, each with a distinct role. Security and access are enforced at the cluster level.</p>
+
+      <table style="width:100%; border-collapse:collapse; font-size:0.9rem; margin:16px 0;">
+        <thead>
+          <tr style="background:#f4f4f4;">
+            <th style="text-align:left; padding:8px; border:1px solid #ddd;">Database</th>
+            <th style="text-align:left; padding:8px; border:1px solid #ddd;">Collections</th>
+            <th style="text-align:left; padding:8px; border:1px solid #ddd;">Cluster</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:8px; border:1px solid #ddd;"><code>Users</code></td>
+            <td style="padding:8px; border:1px solid #ddd;"><code>prospects</code>, <code>users</code></td>
+            <td style="padding:8px; border:1px solid #ddd;">ChatHealthyFrontEnd</td>
+          </tr>
+          <tr style="background:#fafafa;">
+            <td style="padding:8px; border:1px solid #ddd;"><code>DeidentifiedSessions</code></td>
+            <td style="padding:8px; border:1px solid #ddd;"><code>sessions</code>, <code>unknown_questions</code></td>
+            <td style="padding:8px; border:1px solid #ddd;">ChatHealthyFrontEnd</td>
+          </tr>
+          <tr>
+            <td style="padding:8px; border:1px solid #ddd;"><code>PublicHealthData</code></td>
+            <td style="padding:8px; border:1px solid #ddd;"><code>providers</code>, <code>ICD10Codes</code>, <code>SpecialtyMetaData</code>, <code>ZipCountyCrosswalk</code> (runtime reads)</td>
+            <td style="padding:8px; border:1px solid #ddd;">ChatHealthyFrontEnd</td>
+          </tr>
+          <tr style="background:#fafafa;">
+            <td style="padding:8px; border:1px solid #ddd;"><code>FindCareAdmin</code></td>
+            <td style="padding:8px; border:1px solid #ddd;">pipeline metadata, incidents, product catalog</td>
+            <td style="padding:8px; border:1px solid #ddd;">ChatHealthyFrontEnd</td>
+          </tr>
+          <tr>
+            <td style="padding:8px; border:1px solid #ddd;"><code>Labs</code></td>
+            <td style="padding:8px; border:1px solid #ddd;">experiments</td>
+            <td style="padding:8px; border:1px solid #ddd;">ChatHealthyFrontEnd</td>
+          </tr>
+          <tr style="background:#fafafa;">
+            <td style="padding:8px; border:1px solid #ddd;"><code>PublicHealthData</code></td>
+            <td style="padding:8px; border:1px solid #ddd;"><code>providers_staging</code>, enrichment working data</td>
+            <td style="padding:8px; border:1px solid #ddd;">ChatHealthyDataPipelines</td>
+          </tr>
+          <tr>
+            <td style="padding:8px; border:1px solid #ddd;"><code>admin</code></td>
+            <td style="padding:8px; border:1px solid #ddd;"><code>DataLoadMetadata</code>, <code>PipelineDiscrepancyReport</code>, <code>DataSourceRegistry</code></td>
+            <td style="padding:8px; border:1px solid #ddd;">ChatHealthyDataPipelines</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Database Users</h3>
+      <ul>
+        <li><strong>PipelineUser</strong> — read/write on ChatHealthyDataPipelines; write access to ChatHealthyFrontEnd for collection swap</li>
+        <li><strong>FrontEndUser</strong> — read-only on ChatHealthyFrontEnd; used by the chat app</li>
+      </ul>
+
+      <!-- 11 -->
+      <h2 id="deferred">11. Deferred</h2>
       <ul>
         <li>FHIR / EMR integration — Layer 2, future phase</li>
         <li>User authentication and cross-session persistence</li>
