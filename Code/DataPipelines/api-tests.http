@@ -1,6 +1,6 @@
 # Function App URL from Azure Portal (Overview → URL)
 @baseUrl = https://devpipelinemanagmentservice-hqa9f5b0b7b4hqgg.eastus2-01.azurewebsites.net
-@token = Bearer <YOUR_FUNCTION_KEY>
+@token = Bearer 6PVi_lZfZYOriyQ1oU-sPfNm5gcFGK0SbVJ0OtZdAsE
 
 ### Smoke test (GET — expects 405)
 GET {{baseUrl}}/api/Router
@@ -44,6 +44,41 @@ GET {{startProviderLoad.response.body.$.statusQueryGetUri}}
 
 ### LoadProviderData — check status for instance 5e802309 (fired via curl 2026-03-19 20:32 UTC)
 GET {{baseUrl}}/runtime/webhooks/durabletask/instances/5e802309caa249ebb36f6bcdb148822c?taskHub=DevPipelineManagmentService&connection=Storage&code=<DURABLE_TASK_CODE>
+
+###
+
+### MigrateFromLegacy — one-time copy of ZipCountyCrosswalk + providers_staging from LearnAI → ChatHealthyDataPipelines
+POST {{baseUrl}}/api/Router
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+    "ChatHealthyTask": "MigrateFromLegacy"
+}
+
+###
+
+### ScaleUp — pre-scale ChatHealthyDataPipelines to M30/M200 before heavy jobs
+POST {{baseUrl}}/api/Router
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+    "ChatHealthyTask": "ScaleUp",
+    "payload": { "cluster": "ChatHealthyDataPipelines" }
+}
+
+###
+
+### ScaleDown — scale ChatHealthyDataPipelines back to M10/M20 after jobs
+POST {{baseUrl}}/api/Router
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+    "ChatHealthyTask": "ScaleDown",
+    "payload": { "cluster": "ChatHealthyDataPipelines" }
+}
 
 ###
 
