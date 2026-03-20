@@ -105,13 +105,18 @@ def county_enrichment_orchestrator_fn(context):
     context.set_custom_status("Step 6/7: Reconciling enrichment counts")
     total_enriched = pass1_modified + pass2_modified
     still_unenriched = total_providers - total_enriched
+    pass2_attempted = pass2_modified + pass2_failed
     reconcile = {
         "total_providers": total_providers,
-        "pass1_modified": pass1_modified,
-        "pass2_modified": pass2_modified,
+        # Pass 1: ZIP-based bulk enrichment (res_ratio >= 0.98)
+        "pass1_zip_enrichments": pass1_modified,
+        # Pass 2: Address-based Census Geocoder enrichment (split ZIPs)
+        "pass2_address_lookups_attempted": pass2_attempted,
+        "pass2_address_lookups_succeeded": pass2_modified,
+        "pass2_address_lookups_failed": pass2_failed,
+        # Totals
         "total_enriched": total_enriched,
         "still_unenriched": still_unenriched,
-        "pass2_failed": pass2_failed,
         "match": still_unenriched == 0,
     }
 
@@ -324,7 +329,20 @@ def enrichment_report_fn(config: dict) -> dict:
     client = MongoClient(os.environ["MONGO_connectionString"])
     try:
         client[db_name][coll_name].insert_one(report)
-        logging.info("Enrichment report written for load_id %s", load_id)
+        logging.info(
+            "Enrichment report — load_id: %s | "
+            "Pass 1 ZIP enrichments: %d | "
+            "Pass 2 address lookups: %d attempted, %d succeeded, %d failed | "
+            "Total enriched: %d/%d | Match: %s",
+            load_id,
+            reconcile.get("pass1_zip_enrichments", 0),
+            reconcile.get("pass2_address_lookups_attempted", 0),
+            reconcile.get("pass2_address_lookups_succeeded", 0),
+            reconcile.get("pass2_address_lookups_failed", 0),
+            reconcile.get("total_enriched", 0),
+            reconcile.get("total_providers", 0),
+            reconcile.get("match"),
+        )
     finally:
         client.close()
 
