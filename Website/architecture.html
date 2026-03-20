@@ -470,6 +470,7 @@
             <th style="text-align:left; padding:8px; border:1px solid #ddd;">Database</th>
             <th style="text-align:left; padding:8px; border:1px solid #ddd;">Collections</th>
             <th style="text-align:left; padding:8px; border:1px solid #ddd;">Cluster</th>
+            <th style="text-align:left; padding:8px; border:1px solid #ddd;">Notes</th>
           </tr>
         </thead>
         <tbody>
@@ -477,36 +478,43 @@
             <td style="padding:8px; border:1px solid #ddd;"><code>Users</code></td>
             <td style="padding:8px; border:1px solid #ddd;"><code>prospects</code>, <code>users</code></td>
             <td style="padding:8px; border:1px solid #ddd;">ChatHealthyFrontEnd</td>
+            <td style="padding:8px; border:1px solid #ddd;">PII — restricted access</td>
           </tr>
           <tr style="background:#fafafa;">
             <td style="padding:8px; border:1px solid #ddd;"><code>DeidentifiedSessions</code></td>
             <td style="padding:8px; border:1px solid #ddd;"><code>sessions</code>, <code>unknown_questions</code></td>
             <td style="padding:8px; border:1px solid #ddd;">ChatHealthyFrontEnd</td>
+            <td style="padding:8px; border:1px solid #ddd;">No PII — broader read access</td>
           </tr>
           <tr>
             <td style="padding:8px; border:1px solid #ddd;"><code>PublicHealthData</code></td>
             <td style="padding:8px; border:1px solid #ddd;"><code>providers</code>, <code>ICD10Codes</code>, <code>SpecialtyMetaData</code>, <code>ZipCountyCrosswalk</code> (runtime reads)</td>
             <td style="padding:8px; border:1px solid #ddd;">ChatHealthyFrontEnd</td>
+            <td style="padding:8px; border:1px solid #ddd;">100% public data sourced from CMS and US Census — no special security required</td>
           </tr>
           <tr style="background:#fafafa;">
             <td style="padding:8px; border:1px solid #ddd;"><code>FindCareAdmin</code></td>
             <td style="padding:8px; border:1px solid #ddd;">pipeline metadata, incidents, product catalog</td>
             <td style="padding:8px; border:1px solid #ddd;">ChatHealthyFrontEnd</td>
+            <td style="padding:8px; border:1px solid #ddd;">Internal ops — admin access only</td>
           </tr>
           <tr>
             <td style="padding:8px; border:1px solid #ddd;"><code>Labs</code></td>
             <td style="padding:8px; border:1px solid #ddd;">experiments</td>
             <td style="padding:8px; border:1px solid #ddd;">ChatHealthyFrontEnd</td>
+            <td style="padding:8px; border:1px solid #ddd;">Dev experiments — no production data</td>
           </tr>
           <tr style="background:#fafafa;">
             <td style="padding:8px; border:1px solid #ddd;"><code>PublicHealthData</code></td>
             <td style="padding:8px; border:1px solid #ddd;"><code>providers_staging</code>, enrichment working data</td>
             <td style="padding:8px; border:1px solid #ddd;">ChatHealthyDataPipelines</td>
+            <td style="padding:8px; border:1px solid #ddd;">100% public data — pipeline working area, ephemeral</td>
           </tr>
           <tr>
             <td style="padding:8px; border:1px solid #ddd;"><code>admin</code></td>
             <td style="padding:8px; border:1px solid #ddd;"><code>DataLoadMetadata</code>, <code>PipelineDiscrepancyReport</code>, <code>DataSourceRegistry</code></td>
             <td style="padding:8px; border:1px solid #ddd;">ChatHealthyDataPipelines</td>
+            <td style="padding:8px; border:1px solid #ddd;">Pipeline operations metadata</td>
           </tr>
         </tbody>
       </table>
