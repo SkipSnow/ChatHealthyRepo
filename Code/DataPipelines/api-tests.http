@@ -47,6 +47,17 @@ GET {{baseUrl}}/runtime/webhooks/durabletask/instances/5e802309caa249ebb36f6bcdb
 
 ###
 
+### LoadICD10 — fetch and load ICD-10-CM codes (skips if unchanged)
+POST {{baseUrl}}/api/Router
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+    "ChatHealthyTask": "LoadICD10"
+}
+
+###
+
 ### CountyEnrichment — full run
 # @name startCountyEnrichment
 POST {{baseUrl}}/api/Router
