@@ -7,6 +7,7 @@
 from dotenv import load_dotenv
 from openai import OpenAI
 from anthropic import Anthropic
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import requests
@@ -226,40 +227,43 @@ def find_specialty_codes(query: str) -> dict:
     ]
     individual_filter = {"Grouping": {"$in": individual_provider_groupings}}
 
-    # Step 1: expand query to keyword stems via Haiku
-    stems = _expand_query_terms(query)
+    # Two fully independent pipelines run in parallel:
+    # Pipeline 1: Haiku expands stems → regex search
+    # Pipeline 2: OpenAI embedding → vector search
+    def regex_pipeline():
+        stems = _expand_query_terms(query)
+        regex_clauses = [
+            {field: {"$regex": stem, "$options": "i"}}
+            for stem in stems
+            for field in ("Specialization", "Display Name")
+        ]
+        return list(db["PublicHealthData"]["SpecialtyMetaData"].find(
+            {"$and": [{"$or": regex_clauses}, individual_filter]}, projection
+        )) if regex_clauses else []
 
-    # Step 2: vector search → identify best-matching classifications → fetch all codes
-    openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    query_vector = openai_client.embeddings.create(
-        model="text-embedding-3-small",
-        input=query,
-    ).data[0].embedding
+    def vector_pipeline():
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        query_vector = client.embeddings.create(model="text-embedding-3-small", input=query).data[0].embedding
+        top = list(db["PublicHealthData"]["SpecialtyMetaData"].aggregate([
+            {"$vectorSearch": {
+                "index": "specialty_vector_index",
+                "path": "embedding",
+                "queryVector": query_vector,
+                "numCandidates": 100,
+                "limit": 5,
+            }},
+            {"$project": {"_id": 0, "Classification": 1, "score": {"$meta": "vectorSearchScore"}}},
+        ]))
+        classifications = list({m["Classification"] for m in top if m.get("score", 0) > 0.4})
+        return list(db["PublicHealthData"]["SpecialtyMetaData"].find(
+            {"$and": [{"Classification": {"$in": classifications}}, individual_filter]}, projection
+        )) if classifications else []
 
-    top = list(db["PublicHealthData"]["SpecialtyMetaData"].aggregate([
-        {"$vectorSearch": {
-            "index": "specialty_vector_index",
-            "path": "embedding",
-            "queryVector": query_vector,
-            "numCandidates": 100,
-            "limit": 5,
-        }},
-        {"$project": {"_id": 0, "Classification": 1, "score": {"$meta": "vectorSearchScore"}}},
-    ]))
-    classifications = list({m["Classification"] for m in top if m.get("score", 0) > 0.4})
-    vector_codes = list(db["PublicHealthData"]["SpecialtyMetaData"].find(
-        {"$and": [{"Classification": {"$in": classifications}}, individual_filter]}, projection
-    )) if classifications else []
-
-    # Step 3: regex search — any stem in Specialization or Display Name
-    regex_clauses = [
-        {field: {"$regex": stem, "$options": "i"}}
-        for stem in stems
-        for field in ("Specialization", "Display Name")
-    ]
-    regex_codes = list(db["PublicHealthData"]["SpecialtyMetaData"].find(
-        {"$and": [{"$or": regex_clauses}, individual_filter]}, projection
-    )) if regex_clauses else []
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        rf = ex.submit(regex_pipeline)
+        vf = ex.submit(vector_pipeline)
+        regex_codes = rf.result()
+        vector_codes = vf.result()
 
     # Step 4: union, deduplicate by Code
     seen = set()
