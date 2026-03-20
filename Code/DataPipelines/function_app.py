@@ -21,6 +21,8 @@ import azure.functions as func
 from auth import require_auth
 from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
+from migrate_from_legacy import run_migrate_from_legacy
+from atlas_cluster_manager import scale_up, scale_down
 from county_enrichment_job import (
     county_enrichment_orchestrator_fn,
     enrich_by_address_batch_fn,
@@ -52,6 +54,9 @@ PIPELINE_ROUTE = "Router"
 SYNC_TASK_HANDLERS = {
     "LoadSpecialtyData": run_load_specialty_data,
     "LoadICD10": load_icd10,
+    "MigrateFromLegacy": run_migrate_from_legacy,
+    "ScaleUp": lambda config: scale_up(config.get("cluster", "ChatHealthyDataPipelines")) or {"status": "scaled_up"},
+    "ScaleDown": lambda config: scale_down(config.get("cluster", "ChatHealthyDataPipelines")) or {"status": "scaled_down"},
 }
 
 # Asynchronous tasks — start a Durable orchestrator, return 202 + status URL
