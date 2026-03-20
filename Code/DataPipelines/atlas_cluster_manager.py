@@ -70,6 +70,7 @@ def resize_cluster(cluster_name: str, instance_size: str, max_size: str) -> None
         "replicationSpecs": [{
             "regionConfigs": [{
                 "providerName": "AZURE",
+                "regionName": "US_EAST_2",
                 "priority": 7,
                 "electableSpecs": {"instanceSize": instance_size, "nodeCount": 3},
                 "autoScaling": {
