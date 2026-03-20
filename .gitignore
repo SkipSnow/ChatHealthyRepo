@@ -21,6 +21,9 @@ __pycache__/
 # Claude Code local settings
 .claude/
 
+# DataPipelines HTTP test file — contains bearer token and instance URLs
+Code/DataPipelines/api-tests.http
+
 # Explicitly allow .evv directory and contents
 !.evv/
 !.evv/**
