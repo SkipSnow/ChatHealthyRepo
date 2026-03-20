@@ -107,9 +107,9 @@
 
 <main>
   <div class="page-header">
-    <p class="eyebrow">Internal Design Document</p>
-    <h1>Provider Data Load — Design</h1>
-    <p class="effective">Draft &nbsp;·&nbsp; March 2026 &nbsp;·&nbsp; Rev 3 (architecture directive) &nbsp;·&nbsp; Confidential</p>
+    <p class="eyebrow">Design Document</p>
+    <h1>Provider Data Load &amp; County Enrichment — Design</h1>
+    <p class="effective">Draft &nbsp;·&nbsp; March 2026 &nbsp;·&nbsp; Rev 4 (enrichment redesign)</p>
   </div>
 
   <div class="arch-body">
@@ -125,10 +125,9 @@
       A load report is sent via Pushover on completion.
     </p>
     <div class="note">
-      <strong>SLA: full 8M-record load completes in under 1 hour</strong> (estimated ~25 minutes
-      with 5 workers on Azure East US 2 + MongoDB Atlas M20 co-located in the same region).
-      Sequential single-threaded load of the same file took all night; the parallel fan-out design
-      is specifically sized to meet this SLA within the current infrastructure.
+      <strong>SLA: full 8M-record load completes in under 1 hour.</strong> First production run
+      (2026-03-19): 8,858,520 records loaded in ~35 minutes with 50 workers on Azure East US 2
+      + MongoDB Atlas M40. County enrichment runs as a separate job after load completes.
     </div>
     <p>
     </p>
@@ -177,7 +176,7 @@
         <div class="d-down">↓ Step 6</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>Write N Metadata Records</strong><small>admin.DataLoadMetadata · one per worker · status: 0 (new)</small></div></div>
 
-        <div class="d-down">↓ Step 7 — fan-out · each pair is a Durable activity chain · own 10-min budget per activity</div>
+        <div class="d-down">↓ Step 7 — fan-out · each worker is an independent Durable activity · own 10-min budget</div>
         <div class="d-fan">
           <div class="d-fan-box"><strong>Worker 1</strong><small>load chunk</small></div>
           <div class="d-fan-box"><strong>Worker 2</strong><small>load chunk</small></div>
@@ -185,22 +184,77 @@
           <div class="d-fan-box"><strong>Worker N</strong><small>remainder</small></div>
         </div>
         <div class="d-label">Each worker: read byte range → skip leading blanks → parse CSV → normalize fields → batch insert to staging → update metadata status</div>
-        <div class="d-down">↓ each worker chains immediately — no waiting for others</div>
-        <div class="d-fan">
-          <div class="d-fan-box d-box-teal"><strong>Enrich 1</strong><small>worker 1 records</small></div>
-          <div class="d-fan-box d-box-teal"><strong>Enrich 2</strong><small>worker 2 records</small></div>
-          <div class="d-fan-box d-box-teal"><strong>Enrich 3</strong><small>…</small></div>
-          <div class="d-fan-box d-box-teal"><strong>Enrich N</strong><small>worker N records</small></div>
-        </div>
-        <div class="d-label">CountyEnrichmentJob runs per-worker immediately on completion · stub returning success · all pairs run concurrently</div>
 
-        <div class="d-down">↓ Step 8 — fan-in · all worker+enrichment pairs complete</div>
+        <div class="d-down">↓ Step 8 — fan-in · all workers complete</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>Record Count Reconciliation</strong><small>stream CSV · count newlines (trailing-newline safe) · compare expected_records vs inserted_records · report failed_records · mismatch → fail + report</small></div></div>
 
         <div class="d-down">↓ Step 9 — report always generated (match or mismatch)</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>DiscrepancyReporter</strong><small>write full run data to admin.PipelineDiscrepancyReport · Pushover notification with key stats + load_id</small></div></div>
 
+        <div class="d-down">↓ Step 10 — trigger enrichment job (async, separate orchestration)</div>
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>CountyEnrichmentOrchestrator</strong><small>separate Durable Function · triggered on load completion · see Section 4</small></div></div>
+
       </div>
+    </div>
+
+    <!-- 3b. County Enrichment Flow -->
+    <h2>3b. County Enrichment Flow</h2>
+    <p>County enrichment runs as a separate Durable Function after the provider load completes.
+    The key insight: ~8.8M provider records contain ~40K distinct ZIP codes. Rather than enriching
+    each record individually (8.8M operations), we fan out over ZIP codes and issue one
+    <code>updateMany</code> per ZIP — roughly 220× fewer operations.</p>
+    <div class="diagram">
+      <div class="diagram-inner">
+
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>CountyEnrichmentOrchestrator</strong><small>triggered by ProviderLoadManager on completion · separate Durable orchestration instance</small></div></div>
+
+        <div class="d-down">↓ Step 1</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Load HUD USPS Crosswalk</strong><small>verify PublicHealthData.ZipCountyCrosswalk is populated · source: huduser.gov quarterly ZIP→county file</small></div></div>
+
+        <div class="d-down">↓ Step 2</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Get Distinct ZIP Codes</strong><small>distinct() on providers_staging.provider_address.zip · ~40K values</small></div></div>
+
+        <div class="d-down">↓ Step 3 — Pass 1: fan-out over high-confidence ZIP batches (res_ratio ≥ 0.98)</div>
+        <div class="d-fan">
+          <div class="d-fan-box"><strong>Batch 1</strong><small>ZIP codes 1–N</small></div>
+          <div class="d-fan-box"><strong>Batch 2</strong><small>ZIP codes N+1–2N</small></div>
+          <div class="d-fan-box"><strong>Batch 3</strong><small>…</small></div>
+          <div class="d-fan-box"><strong>Batch M</strong><small>remainder</small></div>
+        </div>
+        <div class="d-label">Each worker: for each ZIP → lookup county in crosswalk → updateMany on providers_staging → return modified count</div>
+
+        <div class="d-down">↓ Step 4 — fan-in · Pass 1 complete · identify unenriched records</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Get Unenriched Providers</strong><small>query providers_staging where county_fips is null · these are in split ZIPs (res_ratio &lt; 0.98)</small></div></div>
+
+        <div class="d-down">↓ Step 5 — Pass 2: fan-out over unenriched provider batches</div>
+        <div class="d-fan">
+          <div class="d-fan-box"><strong>Batch 1</strong><small>providers 1–N</small></div>
+          <div class="d-fan-box"><strong>Batch 2</strong><small>providers N+1–2N</small></div>
+          <div class="d-fan-box"><strong>Batch 3</strong><small>…</small></div>
+          <div class="d-fan-box"><strong>Batch M</strong><small>remainder</small></div>
+        </div>
+        <div class="d-label">Each worker: for each provider → submit address to Census Geocoder API → extract county FIPS → updateOne on providers_staging</div>
+
+        <div class="d-down">↓ Step 6 — fan-in · Pass 2 complete</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Reconciliation</strong><small>total enriched (Pass 1 + Pass 2) vs total provider records · report any still-unenriched</small></div></div>
+
+        <div class="d-down">↓ Step 7</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>DiscrepancyReporter</strong><small>write enrichment report to admin.PipelineDiscrepancyReport · Pushover notification</small></div></div>
+
+      </div>
+    </div>
+    <div class="note">
+      <strong>Pass 1 data source:</strong> HUD USPS ZIP-to-county crosswalk
+      (<code>huduser.gov/portal/datasets/usps_crosswalk.html</code>), published quarterly.
+      Only ZIP codes with <code>res_ratio ≥ 0.98</code> are resolved in Pass 1 — these are
+      effectively single-county ZIPs. The crosswalk is loaded into
+      <code>PublicHealthData.ZipCountyCrosswalk</code> as a prerequisite before enrichment runs.
+    </div>
+    <div class="note">
+      <strong>Pass 2 data source:</strong> US Census Geocoder API (free, US-only — ideal for NPI
+      provider addresses). For providers in split ZIPs (<code>res_ratio &lt; 0.98</code>), the
+      provider's actual address is submitted to the Census Geocoder which returns the FIPS county
+      code directly. Pass 2 is record-by-record — <code>updateOne</code> per provider.
     </div>
 
     <!-- 4. Class Responsibilities -->
@@ -212,8 +266,23 @@
     <h3>ProviderWorker</h3>
     <p>Reads one byte-range slice of the CSV from blob. Partition boundaries are newline-aligned; workers 2–N defensively discard their first row if it has the wrong field count (partial row from alignment fallback). Parses rows. Skips blank/whitespace-only lines. Normalizes multi-valued fields to arrays (e.g. <code>practice_address</code>). Assigns a synthetic <code>record_id = worker_id × MAX_ROWS_PER_WORKER + local_row_index</code> (<code>MAX_ROWS_PER_WORKER = 1,000,000,000</code>) — unique across all workers, no coordination needed. NPI is the business key. Stamps each document with <code>load_id</code> (= Durable orchestration instance ID). Batch-upserts to <code>PublicHealthData.providers_staging</code> using <code>$setOnInsert</code> on <code>(load_id, record_id)</code> — safe to retry; duplicates are silently ignored. Returns observability metrics: <code>rows_processed</code>, <code>num_records</code>, <code>rows_failed</code>, <code>duration_seconds</code>, <code>rows_per_second</code>. Updates its metadata record on completion or failure.</p>
 
-    <h3>CountyEnrichmentJob</h3>
-    <p>Stub. Accepts a list of record numbers. Returns <code>{"success": True, "failed": []}</code>.</p>
+    <h3>CountyEnrichmentOrchestrator</h3>
+    <p>Separate Durable Function orchestrator — not paired with load workers. Triggered after
+    <code>ProviderLoadManager</code> completes. Shares the same fan-out/fan-in base pattern.
+    See Section 4b for full flow.</p>
+
+    <h3>ZipEnrichmentWorker (Pass 1)</h3>
+    <p>Accepts a batch of ZIP codes where <code>res_ratio ≥ 0.98</code>. For each ZIP: looks up
+    the county FIPS code from <code>PublicHealthData.ZipCountyCrosswalk</code> and issues one
+    <code>updateMany</code> on <code>providers_staging</code>, adding <code>county_fips</code>
+    and <code>county_name</code> to all matching provider records. Returns count of documents
+    modified.</p>
+
+    <h3>AddressEnrichmentWorker (Pass 2)</h3>
+    <p>Accepts a batch of provider records whose <code>county_fips</code> is still null after
+    Pass 1 (i.e. their ZIP spans multiple counties). For each provider: submits the provider
+    address to the US Census Geocoder API and extracts the returned FIPS county code. Issues one
+    <code>updateOne</code> per provider. Returns counts of enriched, failed, and API errors.</p>
 
     <h3>DiscrepancyReporter</h3>
     <p>Writes the complete run data (all <code>pair_results</code> + reconciliation + summary) as a document to <code>admin.PipelineDiscrepancyReport</code> in MongoDB. Sends a Pushover notification with key stats and the <code>load_id</code> for lookup. No blob storage or file generation.</p>
@@ -326,7 +395,7 @@
     <!-- 11. Deferred -->
     <h2>11. Deferred</h2>
     <ul>
-      <li>County enrichment implementation — <code>CountyEnrichmentJob</code> is a stub returning success</li>
+      <li>Load HUD crosswalk into <code>PublicHealthData.ZipCountyCrosswalk</code> — prerequisite for enrichment</li>
       <li>Incremental / delta loads — current design always loads the full NPI file</li>
       <li>Duplicate detection across load runs — staging documents carry <code>load_id</code> but cross-run dedup is deferred to a downstream clean step</li>
       <li>Update <code>NPPES_FALLBACK_URL</code> constant whenever a new monthly file is confirmed working</li>
@@ -337,7 +406,7 @@
 
 <footer>
   <div class="footer-inner">
-    <p class="footer-copy">ChatHealthy.ai &nbsp;·&nbsp; Internal Design Document &nbsp;·&nbsp; Confidential</p>
+    <p class="footer-copy">© 2026 Skip Snow &nbsp;·&nbsp; ChatHealthy.ai &nbsp;·&nbsp; Design Document</p>
   </div>
 </footer>
 
