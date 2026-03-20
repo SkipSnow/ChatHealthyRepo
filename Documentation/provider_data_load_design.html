@@ -117,6 +117,12 @@
     <!-- 1. Overview -->
     <h2>1. Overview</h2>
     <p>
+      This document covers the detailed design for Jobs 1 and 2 of the ChatHealthy Batch Manager
+      pipeline. For the two-cluster strategy, Batch Manager job sequence, and blue-green collection
+      swap pattern, see the
+      <a href="architecture.html#pipeline-architecture" style="color:var(--teal);">Architecture Overview — Section 9</a>.
+    </p>
+    <p>
       <code>LoadProviderData</code> ingests the NPPES NPI file (~8 GB unzipped, ~8 million records —
       Type 1 individual providers and Type 2 organizational facilities) from CMS into the
       <code>PublicHealthData</code> staging collection. The load cannot be held open in a synchronous

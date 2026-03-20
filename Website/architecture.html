@@ -198,10 +198,13 @@
           <li><a href="#workflow">Example Workflow — Clinical Trial Research</a></li>
           <li><a href="#data-privacy">Data and Privacy</a></li>
           <li><a href="#devops">DevOps</a></li>
+          <li><a href="#pipeline-architecture">Data Pipeline Architecture</a></li>
           <li><a href="#deferred">Deferred</a></li>
         </ol>
         <ul style="margin:8px 0 0 18px; font-size:0.88rem; line-height:1.9; list-style:disc;">
-          <li><strong>Designs:</strong> <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('provider-data-load.html'),('Provider Data Load'));return false;" style="color:var(--teal); text-decoration:none;">Provider Data Load</a></li>
+          <li><strong>Designs:</strong>
+            <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('provider-data-load.html'),('Provider Data Load'));return false;" style="color:var(--teal); text-decoration:none;">Provider Data Load &amp; County Enrichment</a>
+          </li>
         </ul>
       </nav>
 
@@ -389,7 +392,57 @@
       </div>
 
       <!-- 9 -->
-      <h2 id="deferred">9. Deferred</h2>
+      <h2 id="pipeline-architecture">9. Data Pipeline Architecture</h2>
+
+      <p>Public health data (providers, specialties, crosswalks) is loaded and enriched by App 3
+      on a monthly cadence and made available to the Runtime cluster for app queries. The pipeline
+      is managed by a <strong>Batch Manager</strong> — a Durable Functions orchestrator that runs
+      jobs sequentially, enforces dependencies, and handles MongoDB scaling automatically.</p>
+
+      <h3>Two MongoDB Clusters</h3>
+      <p>Pipeline and runtime workloads are separated into two MongoDB Atlas clusters to keep
+      bulk write operations from impacting app query performance:</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Cluster</th><th>Tier</th><th>Purpose</th></tr>
+          <tr><td><strong>Pipeline</strong></td><td>M40 (scaled up during load, M0 at rest)</td><td>Batch writes — provider load, enrichment, copy. Scaled up before each monthly run and back down after.</td></tr>
+          <tr><td><strong>Runtime</strong></td><td>M10/M20 (always-on)</td><td>App reads — provider queries, specialty lookups, chat tool calls. Never touched by pipeline writes.</td></tr>
+        </table>
+      </div>
+
+      <h3>Batch Manager — Job Sequence</h3>
+      <p>The Batch Manager runs four jobs in dependency order. If any job fails, all downstream
+      jobs are skipped. Each job records its status in <code>admin.BatchManager</code>.</p>
+      <div class="diagram">
+        <div class="diagram-inner">
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Batch Manager</strong><small>triggered by monthly scheduler or POST /api/Router · scales Pipeline cluster up before Job 1</small></div></div>
+          <div class="d-down">↓ Job 1</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>LoadProviderData</strong><small>8.8M NPI records · 50-worker fan-out · ~35 min · writes to providers_staging (Pipeline cluster)</small></div></div>
+          <div class="d-down">↓ Job 2 — depends on Job 1</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>CountyEnrichment</strong><small>Pass 1: ZIP→county via HUD crosswalk (updateMany) · Pass 2: Census Geocoder for split ZIPs (updateOne)</small></div></div>
+          <div class="d-down">↓ Job 3 — depends on Job 2</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>CopyToRuntime</strong><small>fan-out copy of providers_staging → providers_new on Runtime cluster</small></div></div>
+          <div class="d-down">↓ Job 4 — depends on Job 3</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>CollectionSwap</strong><small>atomic rename: providers → providers_archive · providers_new → providers · scale Pipeline cluster down</small></div></div>
+        </div>
+      </div>
+
+      <h3>Blue-Green Collection Swap</h3>
+      <p>The app always reads from <code>providers</code> on the Runtime cluster. The swap (Job 4)
+      is a three-step atomic rename — from the app's perspective the collection is never missing:</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Step</th><th>Operation</th></tr>
+          <tr><td>1</td><td>Rename <code>providers</code> → <code>providers_archive</code></td></tr>
+          <tr><td>2</td><td>Rename <code>providers_new</code> → <code>providers</code></td></tr>
+          <tr><td>3</td><td>Drop <code>providers_archive</code> after next successful run</td></tr>
+        </table>
+      </div>
+      <p>The previous collection is kept as <code>providers_archive</code> for one cycle. If the new
+      data has a problem, the rollback is a single rename.</p>
+
+      <!-- 10 -->
+      <h2 id="deferred">10. Deferred</h2>
       <ul>
         <li>FHIR / EMR integration — Layer 2, future phase</li>
         <li>User authentication and cross-session persistence</li>
