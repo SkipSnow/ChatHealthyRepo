@@ -388,8 +388,10 @@ record_unknown_question_json = {
         "(1) The answer is not explicitly stated in the provided Summary, LinkedIn, or Anthropic documents. "
         "(2) You would use any hedging word such as 'I think', 'probably', 'might', 'I believe', 'I'm not sure', "
         "'it seems', 'I'd imagine', 'I'd guess', or any similar qualifier. "
-        "(3) The question involves any medical, clinical, health, or treatment topic — always record and decline these, "
-        "no exceptions and no caveats. "
+        "(3) The question is personal medical advice: diagnosis, treatment recommendations, medication guidance, "
+        "'should I take X', 'is my symptom serious', interpreting test results. "
+        "Do NOT apply this to healthcare navigation questions such as 'what does a [specialty] do?', "
+        "'find me a [provider type]', or 'what kind of doctor treats X?' — those are allowed and use find_specialty_codes. "
         "(4) You are inferring or extrapolating rather than directly quoting the provided documents. "
         "Do NOT answer first and record second. The correct order is: call this tool, then tell the user you don't have that information."
     ),
@@ -423,6 +425,9 @@ find_specialty_codes_json = {
         "Look up NUCC provider taxonomy codes matching a medical specialty or provider type. "
         "Call this when the user asks about a type of doctor, specialist, or medical provider — "
         "for example 'cardiologist', 'OB-GYN', 'pediatrician', 'heart doctor'. "
+        "Also call this when the user asks what a specific provider type does — "
+        "for example 'what does a respiratory therapist do?', 'what is a neonatologist?'. "
+        "Use the returned classification and specialization fields to explain the role. "
         "Returns matching taxonomy codes with classification and specialization details. "
         "If the result contains 'debug': true, display the full JSON result verbatim to the user — do not paraphrase it."
     ),
