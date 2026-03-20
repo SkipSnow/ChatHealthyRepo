@@ -10,8 +10,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load .env for local development only
-_env_path = Path(__file__).resolve().parent / ".env"
+# Load .env for local development only (shared file lives one level up at Code/.env)
+_env_path = Path(__file__).resolve().parent.parent / ".env"
 if _env_path.exists():
     load_dotenv(_env_path)
 

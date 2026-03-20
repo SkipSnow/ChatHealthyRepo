@@ -149,7 +149,7 @@ if __name__ == "__main__":
     import sys
     from pathlib import Path
     from dotenv import load_dotenv
-    load_dotenv(Path(__file__).parent / ".env")
+    load_dotenv(Path(__file__).parent.parent / ".env")
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     result = load_crosswalk()
     print(result)
