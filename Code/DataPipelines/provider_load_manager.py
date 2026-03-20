@@ -25,6 +25,8 @@ from azure.storage.blob import BlobServiceClient
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
 
+from data_fetcher_base import DataFetcherBase
+
 NPPES_INDEX_URL = "https://download.cms.gov/nppes/NPI_Files.html"
 
 # Last-known URL used as fallback when CMS page scraping fails.
@@ -53,6 +55,34 @@ def _discover_nppes_url() -> tuple[str, str]:
             return url, version
 
     raise RuntimeError("Could not find NPPES full dissemination zip on CMS page.")
+
+
+class NppesFetcher(DataFetcherBase):
+    """NPPES NPI full dissemination zip fetcher.
+
+    Auto-discovers the current month's URL from the CMS index page.
+    Falls back to NPPES_FALLBACK_URL if scraping fails.
+    """
+    source_name = "nppes_npi"
+
+    def __init__(self, config: dict = None):
+        super().__init__(config)
+        # Discover URL and version at construction time
+        try:
+            self.source_url, self._version = _discover_nppes_url()
+        except Exception as exc:
+            logging.warning(
+                "NPPES auto-discovery failed (%s). Using fallback URL.", exc
+            )
+            self.source_url = NPPES_FALLBACK_URL
+            self._version = config.get("version", "fallback") if config else "fallback"
+
+    def blob_name(self) -> str:
+        return f"npi_{self._version}.zip"
+
+    @property
+    def version(self) -> str:
+        return self._version
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -165,41 +195,27 @@ def worker_enrichment_pair_fn(context: df.DurableOrchestrationContext):
 # ── Activity implementations ──────────────────────────────────────────────────
 
 def download_zip_fn(config: dict) -> dict:
-    """Discover (if needed) and stream NPI zip from CMS to Azure Blob.
+    """Fetch NPI zip from CMS to Azure Blob via NppesFetcher.
 
-    If file_url is not in config, scrapes cms.gov/nppes to find the latest file.
-    Falls back to NPPES_FALLBACK_URL if scraping fails.
-    Returns {\"zip_path\": blob_name, \"version\": version} so the orchestrator
-    can propagate the discovered version to downstream activities.
+    Uses ETag/checksum guard — if the file is unchanged since the last
+    download, logs "already landed" and returns the existing blob path
+    without re-downloading. Returns {"zip_path": blob_name, "version": version}.
     """
-    file_url = config.get("file_url")
-    version = config.get("version")
-    container = config.get("blob_container", "provider-data")
+    fetcher = NppesFetcher(config)
+    result = fetcher.fetch()
 
-    if not file_url:
-        try:
-            file_url, version = _discover_nppes_url()
-        except Exception as exc:
-            logging.warning(
-                "CMS NPPES auto-discovery failed (%s). "
-                "Falling back to last-known URL: %s",
-                exc, NPPES_FALLBACK_URL,
-            )
-            file_url = NPPES_FALLBACK_URL
-            version = version or "fallback"
+    if result["skipped"]:
+        logging.info(
+            "NPI zip already landed (version: %s, blob: %s) — skipping download.",
+            result["version"], result["blob_path"],
+        )
+    else:
+        logging.info(
+            "NPI zip downloaded (version: %s, blob: %s, sha256: %s…).",
+            result["version"], result["blob_path"], result["checksum_sha256"][:16],
+        )
 
-    blob_name = f"npi_{version}.zip"
-    _ensure_container(container)
-    service = _blob_service()
-    blob_client = service.get_container_client(container).get_blob_client(blob_name)
-
-    logging.info("Downloading NPI zip from %s", file_url)
-    with requests.get(file_url, stream=True, timeout=600) as r:
-        r.raise_for_status()
-        blob_client.upload_blob(r.raw, overwrite=True)
-
-    logging.info("ZIP uploaded to blob: %s", blob_name)
-    return {"zip_path": blob_name, "version": version}
+    return {"zip_path": result["blob_path"], "version": result["version"]}
 
 
 def extract_csv_fn(config: dict) -> str:

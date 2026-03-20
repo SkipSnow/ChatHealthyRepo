@@ -30,6 +30,20 @@ from datetime import datetime, timezone
 import requests
 from pymongo import MongoClient, UpdateOne
 
+from data_fetcher_base import DataFetcherBase
+
+
+class CrosswalkFetcher(DataFetcherBase):
+    """US Census ZCTA-to-county relationship file fetcher."""
+    source_name = "census_zcta_county"
+    source_url = (
+        "https://www2.census.gov/geo/docs/maps-data/data/rel2020/"
+        "zcta520/tab20_zcta520_county20_natl.txt"
+    )
+
+    def blob_name(self) -> str:
+        return "census_zcta_county_2020.txt"
+
 CENSUS_ZCTA_COUNTY_URL = (
     "https://www2.census.gov/geo/docs/maps-data/data/rel2020/"
     "zcta520/tab20_zcta520_county20_natl.txt"
@@ -40,18 +54,44 @@ SPLIT_THRESHOLD = 0.98
 
 
 def load_crosswalk(config: dict = None) -> dict:
-    """Download Census ZCTA-county file and upsert into MongoDB.
+    """Download Census ZCTA-county file (if changed) and upsert into MongoDB.
 
+    Uses ETag/checksum guard — skips download if file is unchanged.
     Returns summary dict with counts.
     """
     config = config or {}
     collection_name = config.get("crosswalk_collection", CROSSWALK_COLLECTION)
     db_name, coll_name = collection_name.split(".", 1)
 
-    logging.info("Downloading Census ZCTA-to-county relationship file...")
-    resp = requests.get(CENSUS_ZCTA_COUNTY_URL, timeout=120)
-    resp.raise_for_status()
-    content = resp.content.decode("utf-8-sig")
+    fetcher = CrosswalkFetcher(config)
+    fetch_result = fetcher.fetch()
+
+    if fetch_result["skipped"]:
+        logging.info(
+            "Census crosswalk already landed (blob: %s) — reading from blob.",
+            fetch_result["blob_path"],
+        )
+    else:
+        logging.info(
+            "Census crosswalk downloaded (blob: %s, sha256: %s…).",
+            fetch_result["blob_path"], fetch_result["checksum_sha256"][:16],
+        )
+
+    # Always read from blob — never re-download from CMS
+    from azure.storage.blob import BlobServiceClient
+    blob_service = BlobServiceClient.from_connection_string(
+        os.environ["AZURE_STORAGE_CONNECTION_STRING"]
+    )
+    container = config.get("blob_container", "provider-data")
+    raw_bytes = (
+        blob_service
+        .get_container_client(container)
+        .get_blob_client(fetch_result["blob_path"])
+        .download_blob()
+        .readall()
+    )
+    logging.info("Parsing Census ZCTA-to-county relationship file from blob...")
+    content = raw_bytes.decode("utf-8-sig")
     lines = content.splitlines()
 
     # Parse pipe-delimited file
