@@ -427,6 +427,21 @@
         </div>
       </div>
 
+      <h3>Batch Run Lifecycle States</h3>
+      <p>Every batch run transitions through explicit states stored in <code>admin.BatchManager</code>.
+      No run can skip a state or move backwards.</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>State</th><th>Meaning</th></tr>
+          <tr><td><code>requested</code></td><td>Run triggered — scheduler or API call received</td></tr>
+          <tr><td><code>running</code></td><td>One or more jobs currently executing</td></tr>
+          <tr><td><code>validated</code></td><td>All jobs complete, reconciliation passed</td></tr>
+          <tr><td><code>published</code></td><td>Collection swap complete — new data is live on Runtime cluster</td></tr>
+          <tr><td><code>failed</code></td><td>One or more jobs failed — downstream jobs skipped</td></tr>
+          <tr><td><code>rolled_back</code></td><td>Swap reversed — previous archive promoted back to live</td></tr>
+        </table>
+      </div>
+
       <h3>Blue-Green Collection Swap</h3>
       <p>The app always reads from <code>providers</code> on the Runtime cluster. The swap (Job 4)
       is a three-step atomic rename — from the app's perspective the collection is never missing:</p>

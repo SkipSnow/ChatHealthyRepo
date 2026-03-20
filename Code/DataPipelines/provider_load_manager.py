@@ -99,24 +99,21 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
         "partition_file_activity", {**config, "csv_path": csv_path}
     )
 
-    # Step 4: Clear staging collection — remove all existing records before this load
-    context.set_custom_status("Step 4/8: Clearing staging collection")
-    yield context.call_activity("clear_staging_activity", config)
-
-    # Step 5: Ensure staging indexes exist before workers start (idempotent)
-    context.set_custom_status("Step 5/8: Ensuring indexes")
+    # Step 4: Ensure staging indexes exist before workers start (idempotent)
+    context.set_custom_status("Step 4/8: Ensuring indexes")
     yield context.call_activity("ensure_indexes_activity", config)
 
-    # Step 6: Write one metadata record per worker
-    context.set_custom_status(f"Step 6/8: Writing metadata ({len(partitions)} workers)")
+    # Step 5: Write one metadata record per worker
+    context.set_custom_status(f"Step 5/8: Writing metadata ({len(partitions)} workers)")
     metadata_ids = yield context.call_activity(
         "write_metadata_activity",
         {**config, "csv_path": csv_path, "partitions": partitions},
     )
 
-    # Step 7: Fan-out — each worker+enrichment pair is a sub-orchestrator
-    # Each pair starts immediately and chains enrichment on completion.
-    context.set_custom_status(f"Step 7/8: Loading — {len(partitions)} workers running")
+    # Step 6: Fan-out — each worker+enrichment pair is a sub-orchestrator
+    # Staging is NOT cleared before load. Each run is isolated by load_id.
+    # Cleanup of prior runs happens via the collection swap in the Batch Manager.
+    context.set_custom_status(f"Step 6/8: Loading — {len(partitions)} workers running")
     pair_tasks = [
         context.call_sub_orchestrator(
             "worker_enrichment_pair",
@@ -126,15 +123,15 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     ]
     pair_results = yield context.task_all(pair_tasks)
 
-    # Step 8: Reconcile — count newlines in CSV vs loaded records
-    context.set_custom_status("Step 8/8: Reconciling record counts")
+    # Step 7: Reconcile — count newlines in CSV vs loaded records
+    context.set_custom_status("Step 7/8: Reconciling record counts")
     reconcile_result = yield context.call_activity(
         "reconcile_activity",
         {**config, "csv_path": csv_path, "pair_results": pair_results},
     )
 
-    # Step 9: Report — write to admin.PipelineDiscrepancyReport → Pushover
-    context.set_custom_status("Step 9/9: Writing report")
+    # Step 8: Report — write to admin.PipelineDiscrepancyReport → Pushover
+    context.set_custom_status("Step 8/8: Writing report")
     yield context.call_activity(
         "report_activity",
         {**config, "pair_results": pair_results, "reconcile_result": reconcile_result},
@@ -292,23 +289,6 @@ def partition_file_fn(config: dict) -> list:
     logging.info("Computed %d partitions from %d bytes of data", len(partitions), data_size)
     return partitions
 
-
-def clear_staging_fn(config: dict) -> dict:
-    """Delete all documents from staging collection before a new load."""
-    staging_collection = config.get(
-        "staging_collection", "PublicHealthData.providers_staging"
-    )
-    db_name, coll_name = staging_collection.split(".", 1)
-    client = MongoClient(os.environ["MONGO_connectionString"])
-    try:
-        result = client[db_name][coll_name].delete_many({})
-        logging.info(
-            "Cleared staging collection %s: %d documents deleted",
-            staging_collection, result.deleted_count,
-        )
-        return {"deleted_count": result.deleted_count}
-    finally:
-        client.close()
 
 
 def ensure_indexes_fn(config: dict) -> None:
