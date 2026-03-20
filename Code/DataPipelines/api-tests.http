@@ -19,6 +19,30 @@ Content-Type: application/json
 
 ###
 
+### FullProviderPipeline — ScaleUp → LoadProviderData → CountyEnrichment → ScaleDown (one kick-off)
+# @name startFullProviderPipeline
+POST {{baseUrl}}/api/Router
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+    "ChatHealthyTask": "FullProviderPipeline",
+    "payload": {
+        "num_workers": 50,
+        "batch_size": 500,
+        "blob_container": "provider-data",
+        "enrich_workers": 200,
+        "addr_batch_size": 50
+    }
+}
+
+###
+
+### FullProviderPipeline — check status
+GET {{startFullProviderPipeline.response.body.$.statusQueryGetUri}}
+
+###
+
 ### LoadProviderData — full run (50 workers); for dev add: "max_bytes": 50000000, "num_workers": 10
 # @name startProviderLoad
 POST {{baseUrl}}/api/Router
