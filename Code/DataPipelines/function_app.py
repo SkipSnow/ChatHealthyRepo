@@ -20,6 +20,7 @@ import azure.functions as func
 
 from auth import require_auth
 from load_specialty_data import run_load_specialty_data
+from icd10_loader import load_icd10
 from county_enrichment_job import (
     county_enrichment_orchestrator_fn,
     enrich_by_address_batch_fn,
@@ -50,6 +51,7 @@ PIPELINE_ROUTE = "Router"
 # Synchronous tasks — called directly, return 200
 SYNC_TASK_HANDLERS = {
     "LoadSpecialtyData": run_load_specialty_data,
+    "LoadICD10": load_icd10,
 }
 
 # Asynchronous tasks — start a Durable orchestrator, return 202 + status URL
