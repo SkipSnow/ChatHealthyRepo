@@ -306,6 +306,11 @@ def ensure_indexes_fn(config: dict) -> None:
             background=True,
             name="load_record_unique",
         )
+        collection.create_index(
+            "practice_address.zip",
+            background=True,
+            name="practice_zip",
+        )
         logging.info("Indexes ensured on %s", staging_collection)
     finally:
         client.close()
