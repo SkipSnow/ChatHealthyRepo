@@ -25,7 +25,7 @@ from azure.storage.blob import BlobServiceClient
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
 
-from atlas_cluster_manager import scale_up, scale_down
+from atlas_cluster_manager import resume_for_job, scale_down
 
 _mongo: MongoClient | None = None
 
@@ -429,7 +429,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     config = context.get_input() or {}
     cluster = config.get("cluster", "ChatHealthyDataPipelines")
 
-    context.set_custom_status("Step 1/4: Scaling up cluster")
+    context.set_custom_status("Step 1/4: Resuming cluster")
     yield context.call_activity("scale_up_activity", {"cluster": cluster})
 
     context.set_custom_status("Step 2/4: Loading provider data")
@@ -456,8 +456,8 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
 
 def scale_up_activity_fn(config: dict) -> dict:
     cluster = config.get("cluster", "ChatHealthyDataPipelines")
-    scale_up(cluster)
-    return {"status": "scaled_up", "cluster": cluster}
+    resume_for_job(cluster)
+    return {"status": "resumed", "cluster": cluster}
 
 
 def scale_down_activity_fn(config: dict) -> dict:

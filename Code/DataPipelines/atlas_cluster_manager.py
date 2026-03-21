@@ -154,6 +154,25 @@ def resume_cluster(cluster_name: str) -> None:
     wait_for_idle(cluster_name)
 
 
+def resume_for_job(cluster_name: str) -> None:
+    """Resume a paused cluster for a job run. No resize — cluster stays at its current tier.
+    If already running and IDLE, returns immediately. If transitioning, waits for IDLE.
+    """
+    info = get_cluster_info(cluster_name)
+
+    if info["paused"]:
+        log.info("Resuming %s for job run (no resize)...", cluster_name)
+        resume_cluster(cluster_name)
+        return
+
+    if info["state"] == "IDLE":
+        log.info("%s is already running at %s — ready.", cluster_name, info["tier"])
+        return
+
+    log.info("%s is %s — waiting for IDLE...", cluster_name, info["state"])
+    wait_for_idle(cluster_name)
+
+
 def scale_up(cluster_name: str) -> None:
     log.info("Scaling UP %s → %s (max %s)", cluster_name, JOB_TIER, JOB_MAX)
     info = get_cluster_info(cluster_name)
