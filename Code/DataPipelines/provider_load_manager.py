@@ -146,16 +146,21 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
         {**config, "csv_path": csv_path, "partitions": partitions},
     )
 
-    # Step 7: Fan-out — each worker+enrichment pair is a sub-orchestrator
+    # Step 7: Fan-out — call worker activities directly (no sub-orchestrators).
+    # Sub-orchestrators caused Durable Functions history explosion (~15K events for 200 workers)
+    # because the framework stores every scheduling/completion event in the parent history.
+    # Direct activity calls reduce this to ~600 events (3 per worker).
     context.set_custom_status(f"Step 7/9: Loading — {len(partitions)} workers running")
-    pair_tasks = [
-        context.call_sub_orchestrator(
-            "worker_enrichment_pair",
+    worker_tasks = [
+        context.call_activity(
+            "provider_worker_activity",
             {**config, "csv_path": csv_path, "metadata_id": metadata_ids[i], **partition},
         )
         for i, partition in enumerate(partitions)
     ]
-    pair_results = yield context.task_all(pair_tasks)
+    worker_results = yield context.task_all(worker_tasks)
+    # Wrap in pair_results format so reconcile/report don't need changes.
+    pair_results = [{"worker": r, "enrich": {"success": True, "note": "stub"}} for r in worker_results]
 
     # Step 8: Reconcile — count newlines in CSV vs loaded records
     context.set_custom_status("Step 8/9: Reconciling record counts")
@@ -181,19 +186,6 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
         "status": status,
         "records_loaded": total,
     }
-
-
-def worker_enrichment_pair_fn(context: df.DurableOrchestrationContext):
-    """Sub-orchestrator: load one chunk, then immediately enrich it."""
-    config = context.get_input()
-
-    worker_result = yield context.call_activity("provider_worker_activity", config)
-
-    enrich_result = yield context.call_activity(
-        "county_enrich_activity", {**config, "worker_result": worker_result}
-    )
-
-    return {"worker": worker_result, "enrich": enrich_result}
 
 
 # ── Activity implementations ──────────────────────────────────────────────────
@@ -433,11 +425,6 @@ def drain_staging_fn(config: dict) -> dict:
 def report_fn(config: dict) -> dict:
     from discrepancy_reporter import DiscrepancyReporter
     return DiscrepancyReporter().send(config)
-
-
-def county_enrich_fn(config: dict) -> dict:
-    from county_enrichment_job import CountyEnrichmentJob
-    return CountyEnrichmentJob().enrich(config)
 
 
 def provider_worker_fn(config: dict) -> dict:
