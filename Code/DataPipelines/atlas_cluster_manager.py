@@ -40,8 +40,8 @@ PROJECT_ID    = os.environ["ATLAS_PROJECT_ID"]
 # Tier config
 JOB_TIER      = "M30"    # pre-scale before heavy jobs
 JOB_MAX       = "M200"   # autoscale ceiling during jobs
-IDLE_TIER     = "M10"    # base tier when idle
-IDLE_MAX      = "M20"    # autoscale ceiling when idle
+IDLE_TIER     = "M10"    # autoscale floor (used in resize payload; cluster is paused between jobs, not resized)
+IDLE_MAX      = "M20"    # autoscale ceiling (used in resize payload)
 
 POLL_INTERVAL = 15       # seconds between state checks
 TIMEOUT_MIN   = 30       # give up after this many minutes

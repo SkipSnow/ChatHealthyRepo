@@ -22,10 +22,21 @@ from azure.storage.blob import BlobServiceClient
 from bson import ObjectId
 from pymongo import MongoClient, UpdateOne
 
+_mongo: MongoClient | None = None
+
+
+def _get_mongo_client() -> MongoClient:
+    global _mongo
+    if _mongo is None:
+        _mongo = MongoClient(os.environ["MONGO_connectionString"])
+    return _mongo
+
+
 # Synthetic record IDs: worker_id * MAX_ROWS_PER_WORKER + local_row_index.
 # NPI is the business key — record_id is for internal dedup only.
-# Must be large enough that no worker can ever produce more rows than this.
-MAX_ROWS_PER_WORKER = 1_000_000_000
+# Workers are always dispatched in sufficient number to keep each under 1,000,000 rows.
+# Max record_id = 200 * 1,000,000 = 200,000,000 — fits in a 32-bit signed int.
+MAX_ROWS_PER_WORKER = 1_000_000
 
 STATUS_LABELS = {
     0:  "New",
@@ -214,8 +225,7 @@ class ProviderWorker:
         stream = blob_client.download_blob(offset=self.start_byte, length=length)
 
         db_name, coll_name = self.staging_collection.split(".", 1)
-        mongo_client = MongoClient(os.environ["MONGO_connectionString"])
-        collection = mongo_client[db_name][coll_name]
+        collection = _get_mongo_client()[db_name][coll_name]
 
         batch = []
         local_index = 0
@@ -278,8 +288,6 @@ class ProviderWorker:
 
             if batch:
                 collection.bulk_write(batch, ordered=False)
-        finally:
-            mongo_client.close()
 
         rows_processed = num_records + rows_failed
         return rows_processed, num_records, rows_failed, failed_rows
@@ -288,15 +296,11 @@ class ProviderWorker:
         self, status: int, error: str | None, num_records: int = 0
     ) -> None:
         db_name, coll_name = self.metadata_collection.split(".", 1)
-        client = MongoClient(os.environ["MONGO_connectionString"])
-        try:
-            update: dict = {"$set": status_fields(status)}
-            if error:
-                update["$set"]["error_detail"] = error
-            if num_records:
-                update["$set"]["num_records"] = num_records
-            client[db_name][coll_name].update_one(
-                {"_id": ObjectId(self.metadata_id)}, update
-            )
-        finally:
-            client.close()
+        update: dict = {"$set": status_fields(status)}
+        if error:
+            update["$set"]["error_detail"] = error
+        if num_records:
+            update["$set"]["num_records"] = num_records
+        _get_mongo_client()[db_name][coll_name].update_one(
+            {"_id": ObjectId(self.metadata_id)}, update
+        )

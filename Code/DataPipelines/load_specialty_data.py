@@ -12,9 +12,16 @@ import requests
 from bs4 import BeautifulSoup
 from azure.storage.blob import BlobServiceClient
 from openai import OpenAI
-from pymongo import UpdateOne
+from pymongo import MongoClient, UpdateOne
 
-from ChatHealthyMongoUtilities import ChatHealthyMongoUtilities
+_mongo: MongoClient | None = None
+
+
+def _get_mongo_client() -> MongoClient:
+    global _mongo
+    if _mongo is None:
+        _mongo = MongoClient(os.environ["MONGO_connectionString"])
+    return _mongo
 
 NUCC_PAGE_URL = (
     "https://www.nucc.org/index.php/code-sets-mainmenu-41/"
@@ -54,15 +61,15 @@ class ChatHealthyLoadSpecialtyData:
         """Fetch current NUCC taxonomy CSV. Scrapes page first, falls back to Haiku."""
         csv_url = self._scrape_csv_url()
         if not csv_url:
-            print("Scrape failed — falling back to Haiku agent.")
+            logging.warning("Scrape failed — falling back to Haiku agent.")
             csv_url = self._agent_find_csv_url()
 
-        print(f"Fetching CSV from: {csv_url}")
+        logging.info("Fetching CSV from: %s", csv_url)
         response = requests.get(csv_url, timeout=30)
         response.raise_for_status()
         self._csv_content = response.text
         self._csv_filename = csv_url.split("/")[-1].split("?")[0] or "nucc_taxonomy.csv"
-        print(f"Fetched {len(self._csv_content):,} bytes as '{self._csv_filename}'")
+        logging.info("Fetched %d bytes as '%s'", len(self._csv_content), self._csv_filename)
 
     def _scrape_csv_url(self) -> str | None:
         try:
@@ -74,7 +81,7 @@ class ChatHealthyLoadSpecialtyData:
                 if href.lower().endswith(".csv"):
                     return href if href.startswith("http") else "https://www.nucc.org" + href
         except Exception as e:
-            print(f"Scrape error: {e}")
+            logging.warning("Scrape error: %s", e)
         return None
 
     def _agent_find_csv_url(self) -> str:
@@ -114,7 +121,7 @@ class ChatHealthyLoadSpecialtyData:
             container=container, blob=self._csv_filename
         )
         blob_client.upload_blob(self._csv_content.encode("utf-8"), overwrite=True)
-        print(f"Stored '{self._csv_filename}' to container '{container}'")
+        logging.info("Stored '%s' to container '%s'", self._csv_filename, container)
         return self._csv_filename
 
     # ------------------------------------------------------------------
@@ -126,34 +133,30 @@ class ChatHealthyLoadSpecialtyData:
         if self._csv_content is None:
             raise RuntimeError("Call fetch_csv() before load_to_mongo()")
 
-        mongo = ChatHealthyMongoUtilities(os.getenv("MONGO_connectionString"))
-        try:
-            col = mongo.getConnection()[self.db_name][self.collection_name]
-            col.delete_many({})
-            print(f"Cleared {self.db_name}.{self.collection_name}")
+        col = _get_mongo_client()[self.db_name][self.collection_name]
+        col.delete_many({})
+        logging.info("Cleared %s.%s", self.db_name, self.collection_name)
 
-            version = self._csv_filename.rsplit("_", 1)[-1].split(".")[0]
+        version = self._csv_filename.rsplit("_", 1)[-1].split(".")[0]
 
-            reader = csv.DictReader(io.StringIO(self._csv_content))
-            batch = []
-            inserted = 0
+        reader = csv.DictReader(io.StringIO(self._csv_content))
+        batch = []
+        inserted = 0
 
-            for record_number, row in enumerate(reader, start=1):
-                doc = {field: (row.get(field) or "").strip() for field in EXPECTED_FIELDS}
-                doc["version"] = version
-                doc["record_number"] = record_number
-                batch.append(doc)
-                if len(batch) >= 128:
-                    inserted += len(col.insert_many(batch, ordered=False).inserted_ids)
-                    batch.clear()
-
-            if batch:
+        for record_number, row in enumerate(reader, start=1):
+            doc = {field: (row.get(field) or "").strip() for field in EXPECTED_FIELDS}
+            doc["version"] = version
+            doc["record_number"] = record_number
+            batch.append(doc)
+            if len(batch) >= 128:
                 inserted += len(col.insert_many(batch, ordered=False).inserted_ids)
+                batch.clear()
 
-            print(f"Inserted {inserted:,} records into {self.db_name}.{self.collection_name}")
-            return inserted
-        finally:
-            mongo.close()
+        if batch:
+            inserted += len(col.insert_many(batch, ordered=False).inserted_ids)
+
+        logging.info("Inserted %d records into %s.%s", inserted, self.db_name, self.collection_name)
+        return inserted
 
 
     # ------------------------------------------------------------------
@@ -167,42 +170,38 @@ class ChatHealthyLoadSpecialtyData:
         Returns number of records updated.
         """
         openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        mongo = ChatHealthyMongoUtilities(os.getenv("MONGO_connectionString"))
-        try:
-            col = mongo.getConnection()[self.db_name][self.collection_name]
-            docs = list(col.find({}, {"_id": 1, "Classification": 1, "Specialization": 1,
-                                      "Display Name": 1, "Definition": 1}))
-            print(f"Generating embeddings for {len(docs):,} records...")
+        col = _get_mongo_client()[self.db_name][self.collection_name]
+        docs = list(col.find({}, {"_id": 1, "Classification": 1, "Specialization": 1,
+                                  "Display Name": 1, "Definition": 1}))
+        logging.info("Generating embeddings for %d records...", len(docs))
 
-            BATCH = 128
-            updated = 0
-            for i in range(0, len(docs), BATCH):
-                batch = docs[i:i + BATCH]
-                texts = [
-                    " | ".join(filter(None, [
-                        d.get("Classification", ""),
-                        d.get("Specialization", ""),
-                        d.get("Display Name", ""),
-                        d.get("Definition", ""),
-                    ]))
-                    for d in batch
-                ]
-                response = openai_client.embeddings.create(
-                    model="text-embedding-3-small",
-                    input=texts,
-                )
-                ops = [
-                    UpdateOne({"_id": doc["_id"]}, {"$set": {"embedding": item.embedding}})
-                    for doc, item in zip(batch, response.data)
-                ]
-                col.bulk_write(ops, ordered=False)
-                updated += len(ops)
-                print(f"  Embedded {updated:,}/{len(docs):,}")
+        BATCH = 128
+        updated = 0
+        for i in range(0, len(docs), BATCH):
+            batch = docs[i:i + BATCH]
+            texts = [
+                " | ".join(filter(None, [
+                    d.get("Classification", ""),
+                    d.get("Specialization", ""),
+                    d.get("Display Name", ""),
+                    d.get("Definition", ""),
+                ]))
+                for d in batch
+            ]
+            response = openai_client.embeddings.create(
+                model="text-embedding-3-small",
+                input=texts,
+            )
+            ops = [
+                UpdateOne({"_id": doc["_id"]}, {"$set": {"embedding": item.embedding}})
+                for doc, item in zip(batch, response.data)
+            ]
+            col.bulk_write(ops, ordered=False)
+            updated += len(ops)
+            logging.info("Embedded %d/%d", updated, len(docs))
 
-            print(f"Embeddings written for {updated:,} records.")
-            return updated
-        finally:
-            mongo.close()
+        logging.info("Embeddings written for %d records.", updated)
+        return updated
 
 
 # ------------------------------------------------------------------

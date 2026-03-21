@@ -26,6 +26,15 @@ from bs4 import BeautifulSoup
 from pymongo import MongoClient
 
 from atlas_cluster_manager import scale_up, scale_down
+
+_mongo: MongoClient | None = None
+
+
+def _get_mongo_client() -> MongoClient:
+    global _mongo
+    if _mongo is None:
+        _mongo = MongoClient(os.environ["MONGO_connectionString"])
+    return _mongo
 from data_fetcher_base import DataFetcherBase
 
 NPPES_INDEX_URL = "https://download.cms.gov/nppes/NPI_Files.html"
@@ -113,19 +122,19 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     config = {**config, "load_id": load_id}
 
     # Step 1: Download zip to blob (auto-discovers URL + version if not supplied)
-    context.set_custom_status("Step 1/8: Downloading NPI zip from CMS")
+    context.set_custom_status("Step 1/9: Downloading NPI zip from CMS")
     download_result = yield context.call_activity("download_zip_activity", config)
     zip_path = download_result["zip_path"]
     config = {**config, "version": download_result["version"]}
 
     # Step 2: Extract CSV from zip to blob
-    context.set_custom_status(f"Step 2/8: Extracting CSV (version: {config['version']})")
+    context.set_custom_status(f"Step 2/9: Extracting CSV (version: {config['version']})")
     csv_path = yield context.call_activity(
         "extract_csv_activity", {**config, "zip_path": zip_path}
     )
 
     # Step 3: Compute byte-aligned partitions
-    context.set_custom_status("Step 3/8: Partitioning file")
+    context.set_custom_status("Step 3/9: Partitioning file")
     partitions = yield context.call_activity(
         "partition_file_activity", {**config, "csv_path": csv_path}
     )
@@ -169,7 +178,7 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
         {**config, "csv_path": csv_path, "pair_results": pair_results},
     )
 
-    # Step 9: Report — write to admin.PipelineDiscrepancyReport → Pushover
+    # Step 9: Report — write to admin.PipelineDiscrepancyReport → SparkPost email
     context.set_custom_status("Step 9/9: Writing report")
     yield context.call_activity(
         "report_activity",
@@ -309,23 +318,17 @@ def ensure_indexes_fn(config: dict) -> None:
         "staging_collection", "PublicHealthData.providers_staging"
     )
     db_name, coll_name = staging_collection.split(".", 1)
-    client = MongoClient(os.environ["MONGO_connectionString"])
-    try:
-        collection = client[db_name][coll_name]
-        collection.create_index(
-            [("load_id", 1), ("record_id", 1)],
-            unique=True,
-            background=True,
-            name="load_record_unique",
-        )
-        collection.create_index(
-            "practice_address.zip",
-            background=True,
-            name="practice_zip",
-        )
-        logging.info("Indexes ensured on %s", staging_collection)
-    finally:
-        client.close()
+    collection = _get_mongo_client()[db_name][coll_name]
+    collection.create_index(
+        [("load_id", 1), ("record_id", 1)],
+        unique=True,
+        name="load_record_unique",
+    )
+    collection.create_index(
+        "practice_address.zip",
+        name="practice_zip",
+    )
+    logging.info("Indexes ensured on %s", staging_collection)
 
 
 def write_metadata_fn(config: dict) -> list:
@@ -339,29 +342,24 @@ def write_metadata_fn(config: dict) -> list:
     now = datetime.now(timezone.utc).isoformat()
 
     db_name, coll_name = metadata_collection.split(".", 1)
-    client = MongoClient(os.environ["MONGO_connectionString"])
-    try:
-        collection = client[db_name][coll_name]
-        docs = [
-            {
-                "type": "ProviderData",
-                "load_id": load_id,
-                "date": now,
-                "version": version,
-                "worker_id": p["worker_id"],
-                "file_location": csv_path,
-                "start_byte": p["start_byte"],
-                "end_byte": p["end_byte"],
-                "num_records": 0,
-                **status_fields(0),
-                "error_detail": None,
-            }
-            for p in partitions
-        ]
-        result = collection.insert_many(docs)
-    finally:
-        client.close()
-
+    collection = _get_mongo_client()[db_name][coll_name]
+    docs = [
+        {
+            "type": "ProviderData",
+            "load_id": load_id,
+            "date": now,
+            "version": version,
+            "worker_id": p["worker_id"],
+            "file_location": csv_path,
+            "start_byte": p["start_byte"],
+            "end_byte": p["end_byte"],
+            "num_records": 0,
+            **status_fields(0),
+            "error_detail": None,
+        }
+        for p in partitions
+    ]
+    result = collection.insert_many(docs)
     return [str(oid) for oid in result.inserted_ids]
 
 
@@ -413,13 +411,9 @@ def drain_staging_fn(config: dict) -> dict:
     """
     staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
     db_name, coll_name = staging_collection.split(".", 1)
-    client = MongoClient(os.environ["MONGO_connectionString"])
-    try:
-        result = client[db_name][coll_name].delete_many({})
-        logging.info("Drained staging: deleted %d records", result.deleted_count)
-        return {"drained": result.deleted_count}
-    finally:
-        client.close()
+    result = _get_mongo_client()[db_name][coll_name].delete_many({})
+    logging.info("Drained staging: deleted %d records", result.deleted_count)
+    return {"drained": result.deleted_count}
 
 
 def report_fn(config: dict) -> dict:
@@ -436,7 +430,7 @@ def provider_worker_fn(config: dict) -> dict:
 
 def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
     """Top-level orchestrator: ScaleUp → LoadProviders → CountyEnrichment → ScaleDown.
-    Single kick-off, no human steps required until Pushover fires on completion.
+    Single kick-off, no human steps required until SparkPost email fires on completion.
     """
     config = context.get_input() or {}
     cluster = config.get("cluster", "ChatHealthyDataPipelines")

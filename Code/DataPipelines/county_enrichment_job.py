@@ -31,6 +31,16 @@ except ImportError:
 import requests
 from pymongo import MongoClient, UpdateOne
 
+_mongo: MongoClient | None = None
+
+
+def _get_mongo_client() -> MongoClient:
+    global _mongo
+    if _mongo is None:
+        _mongo = MongoClient(os.environ["MONGO_connectionString"])
+    return _mongo
+
+
 SPLIT_THRESHOLD = 0.98
 CENSUS_GEOCODER_URL = "https://geocoding.geo.census.gov/geocoder/geographies/address"
 CROSSWALK_COLLECTION = "PublicHealthData.ZipCountyCrosswalk"
@@ -137,19 +147,15 @@ def get_distinct_zips_fn(config: dict) -> dict:
     """Return total provider count and list of distinct 5-digit ZIPs."""
     collection = config.get("staging_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
-    client = MongoClient(os.environ["MONGO_connectionString"])
-    try:
-        coll = client[db_name][coll_name]
-        total = coll.count_documents({})
-        pipeline = [
-            {"$project": {"zip5": {"$substr": ["$practice_address.zip", 0, 5]}}},
-            {"$group": {"_id": "$zip5"}},
-        ]
-        zips = [doc["_id"] for doc in coll.aggregate(pipeline) if doc["_id"]]
-        logging.info("Found %d providers, %d distinct ZIPs", total, len(zips))
-        return {"total_providers": total, "distinct_zips": zips}
-    finally:
-        client.close()
+    coll = _get_mongo_client()[db_name][coll_name]
+    total = coll.count_documents({})
+    pipeline = [
+        {"$project": {"zip5": {"$substr": ["$practice_address.zip", 0, 5]}}},
+        {"$group": {"_id": "$zip5"}},
+    ]
+    zips = [doc["_id"] for doc in coll.aggregate(pipeline) if doc["_id"]]
+    logging.info("Found %d providers, %d distinct ZIPs", total, len(zips))
+    return {"total_providers": total, "distinct_zips": zips}
 
 
 def lookup_crosswalk_fn(config: dict) -> dict:
@@ -157,26 +163,22 @@ def lookup_crosswalk_fn(config: dict) -> dict:
     zips = config["zips"]
     xwalk_collection = config.get("crosswalk_collection", CROSSWALK_COLLECTION)
     db_name, coll_name = xwalk_collection.split(".", 1)
-    client = MongoClient(os.environ["MONGO_connectionString"])
-    try:
-        docs = list(client[db_name][coll_name].find(
-            {"zip": {"$in": zips}},
-            {"zip": 1, "county_fips": 1, "county_name": 1, "res_ratio": 1, "is_split": 1}
-        ))
-        found_zips = {d["zip"] for d in docs}
-        confident = [
-            {"zip": d["zip"], "county_fips": d["county_fips"], "county_name": d["county_name"]}
-            for d in docs if not d.get("is_split", True)
-        ]
-        ambiguous = [z for z in zips if z not in found_zips or
-                     next((d for d in docs if d["zip"] == z and d.get("is_split")), None)]
-        logging.info(
-            "Crosswalk lookup: %d confident, %d ambiguous",
-            len(confident), len(ambiguous)
-        )
-        return {"confident": confident, "ambiguous": ambiguous}
-    finally:
-        client.close()
+    docs = list(_get_mongo_client()[db_name][coll_name].find(
+        {"zip": {"$in": zips}},
+        {"zip": 1, "county_fips": 1, "county_name": 1, "res_ratio": 1, "is_split": 1}
+    ))
+    found_zips = {d["zip"] for d in docs}
+    confident = [
+        {"zip": d["zip"], "county_fips": d["county_fips"], "county_name": d["county_name"]}
+        for d in docs if not d.get("is_split", True)
+    ]
+    ambiguous = [z for z in zips if z not in found_zips or
+                 next((d for d in docs if d["zip"] == z and d.get("is_split")), None)]
+    logging.info(
+        "Crosswalk lookup: %d confident, %d ambiguous",
+        len(confident), len(ambiguous)
+    )
+    return {"confident": confident, "ambiguous": ambiguous}
 
 
 def enrich_by_zip_batch_fn(config: dict) -> dict:
@@ -184,47 +186,39 @@ def enrich_by_zip_batch_fn(config: dict) -> dict:
     zip_batch = config["zip_batch"]  # list of {zip, county_fips, county_name}
     collection = config.get("staging_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
-    client = MongoClient(os.environ["MONGO_connectionString"])
-    try:
-        coll = client[db_name][coll_name]
-        total_modified = 0
-        for entry in zip_batch:
-            zip5 = entry["zip"]
-            result = coll.update_many(
-                {
-                    "county_fips": {"$exists": False},
-                    "practice_address.zip": {"$regex": f"^{zip5}"},
-                },
-                {"$set": {
-                    "county_fips": entry["county_fips"],
-                    "county_name": entry["county_name"],
-                    "county_source": "crosswalk_pass1",
-                }},
-            )
-            total_modified += result.modified_count
-        return {"modified": total_modified}
-    finally:
-        client.close()
+    coll = _get_mongo_client()[db_name][coll_name]
+    total_modified = 0
+    for entry in zip_batch:
+        zip5 = entry["zip"]
+        result = coll.update_many(
+            {
+                "county_fips": {"$exists": False},
+                "practice_address.zip": {"$regex": f"^{zip5}"},
+            },
+            {"$set": {
+                "county_fips": entry["county_fips"],
+                "county_name": entry["county_name"],
+                "county_source": "crosswalk_pass1",
+            }},
+        )
+        total_modified += result.modified_count
+    return {"modified": total_modified}
 
 
 def get_unenriched_fn(config: dict) -> dict:
     """Return _id list of providers without county_fips."""
     collection = config.get("staging_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
-    client = MongoClient(os.environ["MONGO_connectionString"])
-    try:
-        coll = client[db_name][coll_name]
-        ids = [
-            str(doc["_id"])
-            for doc in coll.find(
-                {"county_fips": {"$exists": False}},
-                {"_id": 1}
-            )
-        ]
-        logging.info("Unenriched providers for Pass 2: %d", len(ids))
-        return {"count": len(ids), "provider_ids": ids}
-    finally:
-        client.close()
+    coll = _get_mongo_client()[db_name][coll_name]
+    ids = [
+        str(doc["_id"])
+        for doc in coll.find(
+            {"county_fips": {"$exists": False}},
+            {"_id": 1}
+        )
+    ]
+    logging.info("Unenriched providers for Pass 2: %d", len(ids))
+    return {"count": len(ids), "provider_ids": ids}
 
 
 def _geocode_address(street: str, city: str, state: str, zip_code: str) -> dict | None:
@@ -269,47 +263,43 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
     db_name, coll_name = collection.split(".", 1)
 
     from bson import ObjectId
-    client = MongoClient(os.environ["MONGO_connectionString"])
-    try:
-        coll = client[db_name][coll_name]
-        object_ids = [ObjectId(i) for i in id_batch]
-        providers = list(coll.find(
-            {"_id": {"$in": object_ids}},
-            {"_id": 1, "practice_address": 1}
-        ))
+    coll = _get_mongo_client()[db_name][coll_name]
+    object_ids = [ObjectId(i) for i in id_batch]
+    providers = list(coll.find(
+        {"_id": {"$in": object_ids}},
+        {"_id": 1, "practice_address": 1}
+    ))
 
-        ops = []
-        modified = 0
-        failed = 0
+    ops = []
+    modified = 0
+    failed = 0
 
-        for provider in providers:
-            addr = provider.get("practice_address", {})
-            result = _geocode_address(
-                street=addr.get("line1", ""),
-                city=addr.get("city", ""),
-                state=addr.get("state", ""),
-                zip_code=addr.get("zip", ""),
-            )
-            if result:
-                ops.append(UpdateOne(
-                    {"_id": provider["_id"]},
-                    {"$set": {
-                        "county_fips": result["county_fips"],
-                        "county_name": result["county_name"],
-                        "county_source": "geocoder_pass2",
-                    }}
-                ))
-                modified += 1
-            else:
-                failed += 1
-            time.sleep(0.05)  # 20 req/sec — Census Geocoder rate limit
+    for provider in providers:
+        addr = provider.get("practice_address", {})
+        result = _geocode_address(
+            street=addr.get("line1", ""),
+            city=addr.get("city", ""),
+            state=addr.get("state", ""),
+            zip_code=addr.get("zip", ""),
+        )
+        if result:
+            ops.append(UpdateOne(
+                {"_id": provider["_id"]},
+                {"$set": {
+                    "county_fips": result["county_fips"],
+                    "county_name": result["county_name"],
+                    "county_source": "geocoder_pass2",
+                }}
+            ))
+            modified += 1
+        else:
+            failed += 1
+        time.sleep(0.05)  # 20 req/sec — Census Geocoder rate limit
 
-        if ops:
-            coll.bulk_write(ops, ordered=False)
+    if ops:
+        coll.bulk_write(ops, ordered=False)
 
-        return {"modified": modified, "failed": failed}
-    finally:
-        client.close()
+    return {"modified": modified, "failed": failed}
 
 
 def enrichment_report_fn(config: dict) -> dict:
@@ -326,32 +316,21 @@ def enrichment_report_fn(config: dict) -> dict:
         "reconciliation": reconcile,
     }
 
-    client = MongoClient(os.environ["MONGO_connectionString"])
-    try:
-        client[db_name][coll_name].insert_one(report)
-        logging.info(
-            "Enrichment report — load_id: %s | "
-            "Pass 1 ZIP enrichments: %d | "
-            "Pass 2 address lookups: %d attempted, %d succeeded, %d failed | "
-            "Total enriched: %d/%d | Match: %s",
-            load_id,
-            reconcile.get("pass1_zip_enrichments", 0),
-            reconcile.get("pass2_address_lookups_attempted", 0),
-            reconcile.get("pass2_address_lookups_succeeded", 0),
-            reconcile.get("pass2_address_lookups_failed", 0),
-            reconcile.get("total_enriched", 0),
-            reconcile.get("total_providers", 0),
-            reconcile.get("match"),
-        )
-    finally:
-        client.close()
-
+    _get_mongo_client()[db_name][coll_name].insert_one(report)
+    logging.info(
+        "Enrichment report — load_id: %s | "
+        "Pass 1 ZIP enrichments: %d | "
+        "Pass 2 address lookups: %d attempted, %d succeeded, %d failed | "
+        "Total enriched: %d/%d | Match: %s",
+        load_id,
+        reconcile.get("pass1_zip_enrichments", 0),
+        reconcile.get("pass2_address_lookups_attempted", 0),
+        reconcile.get("pass2_address_lookups_succeeded", 0),
+        reconcile.get("pass2_address_lookups_failed", 0),
+        reconcile.get("total_enriched", 0),
+        reconcile.get("total_providers", 0),
+        reconcile.get("match"),
+    )
     return report
 
 
-# ── Legacy stub interface (keeps worker_enrichment_pair working) ──────────────
-
-class CountyEnrichmentJob:
-    """Legacy stub — enrichment is now CountyEnrichmentOrchestrator."""
-    def enrich(self, _config: dict) -> dict:
-        return {"success": True, "failed": [], "note": "stub"}

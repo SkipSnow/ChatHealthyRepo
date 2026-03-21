@@ -10,6 +10,33 @@
 # Co-Author: GPT-5
 # Copyright (c) 2025 Skip Snow. All rights reserved.
 # -------------------------------------------------------------------------------
+#
+# WHEN TO USE THIS CLASS
+# ----------------------
+# Use ChatHealthyMongoUtilities in GUI / conversational UX code (Layer 1 —
+# ConversationalUX / HuggingFace) where:
+#   - A single request may call getConnection() multiple times across methods.
+#   - An explicit ping-on-access health check is desirable to detect stale
+#     connections in long-lived session processes.
+#   - The connection lifecycle is managed at the object level (create, use, close).
+#
+# DO NOT USE in DataPipelines (Layer 2 — Azure Functions).
+# Pipeline activity functions use a module-level lazy MongoClient singleton
+# instead:
+#
+#   _mongo: MongoClient | None = None
+#
+#   def _get_mongo_client() -> MongoClient:
+#       global _mongo
+#       if _mongo is None:
+#           _mongo = MongoClient(os.environ["MONGO_connectionString"])
+#       return _mongo
+#
+# PyMongo's MongoClient is itself a connection pool. Creating one instance per
+# module and never closing it is the correct pattern for Azure Functions — the
+# pool persists across warm invocations on the same worker process, eliminating
+# per-invocation connection overhead.
+# -------------------------------------------------------------------------------
 
 from __future__ import annotations
 
