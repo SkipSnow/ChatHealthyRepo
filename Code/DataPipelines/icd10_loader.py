@@ -33,6 +33,15 @@ from pymongo import MongoClient, UpdateOne
 
 from data_fetcher_base import DataFetcherBase
 
+_mongo: MongoClient | None = None
+
+
+def _get_mongo_client() -> MongoClient:
+    global _mongo
+    if _mongo is None:
+        _mongo = MongoClient(os.environ["MONGO_connectionString"])
+    return _mongo
+
 ICD10_COLLECTION = "PublicHealthData.ICD10Codes"
 
 # CMS releases ICD-10-CM annually (Oct 1) with a mid-year update (Apr 1).
@@ -195,38 +204,34 @@ def load_icd10(config: dict = None) -> dict:
     codes = _parse_icd10_zip(zip_bytes)
 
     # Upsert into MongoDB
-    client = MongoClient(os.environ["MONGO_connectionString"])
-    try:
-        collection = client[db_name][coll_name]
-        collection.create_index("code", unique=True, background=True)
+    collection = _get_mongo_client()[db_name][coll_name]
+    collection.create_index("code", unique=True)
 
-        batch_size = 1000
-        upserted = 0
-        for i in range(0, len(codes), batch_size):
-            batch = codes[i:i + batch_size]
-            ops = [
-                UpdateOne({"code": c["code"]}, {"$set": c}, upsert=True)
-                for c in batch
-            ]
-            result = collection.bulk_write(ops, ordered=False)
-            upserted += result.upserted_count + result.modified_count
+    batch_size = 1000
+    upserted = 0
+    for i in range(0, len(codes), batch_size):
+        batch = codes[i:i + batch_size]
+        ops = [
+            UpdateOne({"code": c["code"]}, {"$set": c}, upsert=True)
+            for c in batch
+        ]
+        result = collection.bulk_write(ops, ordered=False)
+        upserted += result.upserted_count + result.modified_count
 
-        total = collection.count_documents({})
-        billable = collection.count_documents({"is_header": False})
-        logging.info(
-            "ICD-10-CM loaded: %d total codes (%d billable, %d headers)",
-            total, billable, total - billable,
-        )
-        return {
-            "skipped": False,
-            "version": fetch_result["version"],
-            "total_codes": total,
-            "billable_codes": billable,
-            "header_codes": total - billable,
-            "upserted": upserted,
-        }
-    finally:
-        client.close()
+    total = collection.count_documents({})
+    billable = collection.count_documents({"is_header": False})
+    logging.info(
+        "ICD-10-CM loaded: %d total codes (%d billable, %d headers)",
+        total, billable, total - billable,
+    )
+    return {
+        "skipped": False,
+        "version": fetch_result["version"],
+        "total_codes": total,
+        "billable_codes": billable,
+        "header_codes": total - billable,
+        "upserted": upserted,
+    }
 
 
 if __name__ == "__main__":

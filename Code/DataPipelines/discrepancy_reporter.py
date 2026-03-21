@@ -5,17 +5,26 @@
 # Developed in collaboration with ChatGPT (OpenAI).
 
 """DiscrepancyReporter — writes pipeline run results to admin.PipelineDiscrepancyReport
-and sends a Pushover notification on completion.
+and sends an email notification via SparkPost on completion.
 """
 
 import logging
 import os
 from datetime import datetime, timezone
 
-import requests
 from pymongo import MongoClient
+from sparkpost import SparkPost
 
-PUSHOVER_API = "https://api.pushover.net/1/messages.json"
+_mongo: MongoClient | None = None
+
+
+def _get_mongo_client() -> MongoClient:
+    global _mongo
+    if _mongo is None:
+        _mongo = MongoClient(os.environ["MONGO_connectionString"])
+    return _mongo
+
+
 REPORT_COLLECTION = "admin.PipelineDiscrepancyReport"
 
 
@@ -66,16 +75,13 @@ class DiscrepancyReporter:
         }
 
         db_name, coll_name = REPORT_COLLECTION.split(".", 1)
-        client = MongoClient(os.environ["MONGO_connectionString"])
-        try:
-            client[db_name][coll_name].insert_one(report)
-            logging.info("Discrepancy report written to %s for load_id=%s", REPORT_COLLECTION, load_id)
-        finally:
-            client.close()
+        _get_mongo_client()[db_name][coll_name].insert_one(report)
+        logging.info("Discrepancy report written to %s for load_id=%s", REPORT_COLLECTION, load_id)
 
-        # ── Pushover notification ─────────────────────────────────────────────
+        # ── SparkPost email notification ──────────────────────────────────────
         status_line = "Reconciled OK" if reconcile_match else "MISMATCH — INVESTIGATE"
-        message = (
+        subject = f"NPI Load {'OK' if reconcile_match else 'MISMATCH'} — v{version}"
+        body = (
             f"NPI Load complete — v{version}\n"
             f"Expected: {expected_records}  Inserted: {inserted_records}  Failed: {failed_records}\n"
             f"Reconciliation: {status_line}\n"
@@ -83,22 +89,23 @@ class DiscrepancyReporter:
             f"Load ID: {load_id}"
         )
 
-        pushover_token = os.environ.get("PUSHOVER_TOKEN")
-        pushover_user = os.environ.get("PUSHOVER_USER")
-        if pushover_token and pushover_user:
-            resp = requests.post(
-                PUSHOVER_API,
-                data={
-                    "token": pushover_token,
-                    "user": pushover_user,
-                    "message": message,
-                    "title": f"NPI Load — {version}",
-                },
-                timeout=10,
-            )
-            logging.info("Pushover response: %s", resp.status_code)
+        api_key    = os.environ.get("SPARKMAIL_API_KEY")
+        from_email = os.environ.get("NOTIFICATION_FROM_EMAIL")
+        to_email   = os.environ.get("NOTIFICATION_TO_EMAIL")
+        if api_key and from_email and to_email:
+            try:
+                sp = SparkPost(api_key)
+                sp.transmissions.send(
+                    recipients=[to_email],
+                    from_email=from_email,
+                    subject=subject,
+                    text=body,
+                )
+                logging.info("SparkPost email sent to %s", to_email)
+            except Exception as exc:
+                logging.error("SparkPost send failed: %s", exc)
         else:
-            logging.warning("Pushover credentials not configured — load_id: %s", load_id)
+            logging.warning("SparkPost credentials not configured — load_id: %s", load_id)
 
         return {
             "report_collection": REPORT_COLLECTION,

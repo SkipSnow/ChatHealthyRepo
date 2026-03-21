@@ -34,8 +34,9 @@ for _mod in _STUBS:
 os.environ.setdefault("MONGO_connectionString", "")
 os.environ.setdefault("OPENAI_API_KEY",         "test-key")
 os.environ.setdefault("Anthropic_API_KEY",       "test-key")
-os.environ.setdefault("PUSHOVER_USER",           "test")
-os.environ.setdefault("PUSHOVER_TOKEN",          "test")
+os.environ.setdefault("SPARKMAIL_API_KEY",        "test")
+os.environ.setdefault("NOTIFICATION_FROM_EMAIL",  "test@example.com")
+os.environ.setdefault("NOTIFICATION_TO_EMAIL",    "test@example.com")
 
 # Add app directory to path and import
 _APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

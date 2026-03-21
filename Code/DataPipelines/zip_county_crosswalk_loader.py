@@ -32,6 +32,15 @@ from pymongo import MongoClient, UpdateOne
 
 from data_fetcher_base import DataFetcherBase
 
+_mongo: MongoClient | None = None
+
+
+def _get_mongo_client() -> MongoClient:
+    global _mongo
+    if _mongo is None:
+        _mongo = MongoClient(os.environ["MONGO_connectionString"])
+    return _mongo
+
 
 class CrosswalkFetcher(DataFetcherBase):
     """US Census ZCTA-to-county relationship file fetcher."""
@@ -159,30 +168,26 @@ def load_crosswalk(config: dict = None) -> dict:
         ops.append(UpdateOne({"zip": zip_code}, {"$set": doc}, upsert=True))
 
     # Batch upsert
-    client = MongoClient(os.environ["MONGO_connectionString"])
-    try:
-        collection = client[db_name][coll_name]
-        collection.create_index("zip", unique=True, background=True)
+    collection = _get_mongo_client()[db_name][coll_name]
+    collection.create_index("zip", unique=True)
 
-        batch_size = 1000
-        upserted = 0
-        for i in range(0, len(ops), batch_size):
-            result = collection.bulk_write(ops[i:i + batch_size], ordered=False)
-            upserted += result.upserted_count + result.modified_count
+    batch_size = 1000
+    upserted = 0
+    for i in range(0, len(ops), batch_size):
+        result = collection.bulk_write(ops[i:i + batch_size], ordered=False)
+        upserted += result.upserted_count + result.modified_count
 
-        total = collection.count_documents({})
-        split_count = collection.count_documents({"is_split": True})
-        logging.info(
-            "Crosswalk loaded: %d total ZIPs, %d split (ratio < %.0f%%)",
-            total, split_count, SPLIT_THRESHOLD * 100,
-        )
-        return {
-            "total_zips": total,
-            "split_zips": split_count,
-            "single_county_zips": total - split_count,
-        }
-    finally:
-        client.close()
+    total = collection.count_documents({})
+    split_count = collection.count_documents({"is_split": True})
+    logging.info(
+        "Crosswalk loaded: %d total ZIPs, %d split (ratio < %.0f%%)",
+        total, split_count, SPLIT_THRESHOLD * 100,
+    )
+    return {
+        "total_zips": total,
+        "split_zips": split_count,
+        "single_county_zips": total - split_count,
+    }
 
 
 if __name__ == "__main__":

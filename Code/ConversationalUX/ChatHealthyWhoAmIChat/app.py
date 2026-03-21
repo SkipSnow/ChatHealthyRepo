@@ -40,16 +40,28 @@ def _get_db():
         return None
 
 
-# Pushover
-pushover_user = os.getenv("PUSHOVER_USER")
-pushover_token = os.getenv("PUSHOVER_TOKEN")
-pushover_url = "https://api.pushover.net/1/messages.json"
+# SparkPost email notifications
+_SPARKMAIL_API_KEY = os.getenv("SPARKMAIL_API_KEY")
+_SPARKMAIL_FROM    = os.getenv("NOTIFICATION_FROM_EMAIL")
+_SPARKMAIL_TO      = os.getenv("NOTIFICATION_TO_EMAIL")
 
 
 def push(message):
     print(f"Push: {message}")
-    payload = {"user": pushover_user, "token": pushover_token, "message": message}
-    requests.post(pushover_url, data=payload)
+    if not (_SPARKMAIL_API_KEY and _SPARKMAIL_FROM and _SPARKMAIL_TO):
+        print("SparkPost credentials not configured — notification suppressed.")
+        return
+    try:
+        from sparkpost import SparkPost
+        sp = SparkPost(_SPARKMAIL_API_KEY)
+        sp.transmissions.send(
+            recipients=[_SPARKMAIL_TO],
+            from_email=_SPARKMAIL_FROM,
+            subject="ChatHealthy — Activity",
+            text=message,
+        )
+    except Exception as exc:
+        print(f"SparkPost send failed: {exc}")
 
 
 def commitSignificantActivity(payload=None, **kwargs):

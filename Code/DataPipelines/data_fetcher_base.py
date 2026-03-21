@@ -37,6 +37,15 @@ from pymongo import MongoClient
 
 REGISTRY_COLLECTION = "admin.DataSourceRegistry"
 
+_mongo: MongoClient | None = None
+
+
+def _get_mongo_client() -> MongoClient:
+    global _mongo
+    if _mongo is None:
+        _mongo = MongoClient(os.environ["MONGO_connectionString"])
+    return _mongo
+
 
 class DataFetcherBase:
     source_name: str = NotImplemented
@@ -156,14 +165,10 @@ class DataFetcherBase:
     def _load_registry(self) -> dict | None:
         """Load existing registry entry for this source."""
         db_name, coll_name = REGISTRY_COLLECTION.split(".", 1)
-        client = MongoClient(os.environ["MONGO_connectionString"])
-        try:
-            return client[db_name][coll_name].find_one(
-                {"source_name": self.source_name},
-                {"_id": 0},
-            )
-        finally:
-            client.close()
+        return _get_mongo_client()[db_name][coll_name].find_one(
+            {"source_name": self.source_name},
+            {"_id": 0},
+        )
 
     def _update_registry(
         self,
@@ -175,21 +180,17 @@ class DataFetcherBase:
     ) -> None:
         """Upsert registry entry for this source."""
         db_name, coll_name = REGISTRY_COLLECTION.split(".", 1)
-        client = MongoClient(os.environ["MONGO_connectionString"])
-        try:
-            client[db_name][coll_name].update_one(
-                {"source_name": self.source_name},
-                {"$set": {
-                    "source_name": self.source_name,
-                    "source_url": self.source_url,
-                    "blob_path": blob_path,
-                    "checksum_sha256": checksum,
-                    "remote_signature": remote_signature,
-                    "version": version,
-                    "size_bytes": size_bytes,
-                    "last_downloaded": datetime.now(timezone.utc).isoformat(),
-                }},
-                upsert=True,
-            )
-        finally:
-            client.close()
+        _get_mongo_client()[db_name][coll_name].update_one(
+            {"source_name": self.source_name},
+            {"$set": {
+                "source_name": self.source_name,
+                "source_url": self.source_url,
+                "blob_path": blob_path,
+                "checksum_sha256": checksum,
+                "remote_signature": remote_signature,
+                "version": version,
+                "size_bytes": size_bytes,
+                "last_downloaded": datetime.now(timezone.utc).isoformat(),
+            }},
+            upsert=True,
+        )
