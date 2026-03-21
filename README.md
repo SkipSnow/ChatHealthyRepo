@@ -15,14 +15,15 @@ Three cleanly separated applications:
 | Layer | Host | Stack |
 |---|---|---|
 | Static Website | Cloudflare | HTML/CSS/JS |
-| Conversational UX | HuggingFace | React, FastAPI, Anthropic Claude |
+| Conversational UX | HuggingFace | Gradio 5.22, OpenAI gpt-4o-mini, Claude Haiku |
 | Data Pipelines | Azure Functions | Python, Azure Durable Functions, MongoDB |
 
 **Data pipeline highlights:**
 - Ingests the full CMS NPPES public provider dataset (~8M records, ~8GB CSV)
-- 50-worker fan-out via Azure Durable Functions — target load time under 1 hour
+- 200-worker fan-out via Azure Durable Functions — first production run loaded 8.8M records in ~35 min
 - Streaming blob reads, byte-aligned partitioning, idempotent upserts
-- County enrichment, reconciliation, and Pushover alerting on completion
+- County enrichment via ZIP crosswalk (Pass 1) and Census Geocoder API (Pass 2)
+- SparkPost email notification on completion
 
 Full architecture and design documents: [chathealthy.ai](https://chathealthy.ai)
 

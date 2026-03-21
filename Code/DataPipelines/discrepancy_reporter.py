@@ -31,7 +31,7 @@ REPORT_COLLECTION = "admin.PipelineDiscrepancyReport"
 class DiscrepancyReporter:
 
     def send(self, config: dict) -> dict:
-        pair_results = config.get("pair_results", [])
+        worker_results = config.get("worker_results", [])
         reconcile = config.get("reconcile_result", {})
         version = config.get("version", "unknown")
         load_id = config.get("load_id", "unknown")
@@ -41,21 +41,14 @@ class DiscrepancyReporter:
         failed_records = reconcile.get("failed_records", "N/A")
         reconcile_match = reconcile.get("match", False)
 
-        total_loaded = sum(
-            r.get("worker", {}).get("num_records", 0) for r in pair_results
-        )
-        failed_workers = [
-            r for r in pair_results if not r.get("worker", {}).get("success", True)
-        ]
-        failed_enrichments = [
-            r for r in pair_results if not r.get("enrich", {}).get("success", True)
-        ]
+        total_loaded = sum(r.get("num_records", 0) for r in worker_results)
+        failed_workers = [r for r in worker_results if not r.get("success", True)]
 
         # ── Collect failed rows across all workers ────────────────────────────
         all_failed_rows = [
-            {"worker_id": r["worker"]["worker_id"], **row}
-            for r in pair_results
-            for row in r.get("worker", {}).get("failed_rows", [])
+            {"worker_id": r["worker_id"], **row}
+            for r in worker_results
+            for row in r.get("failed_rows", [])
         ]
 
         # ── Write report to MongoDB ───────────────────────────────────────────
@@ -65,13 +58,12 @@ class DiscrepancyReporter:
             "datetime": datetime.now(timezone.utc).isoformat(),
             "reconciliation": reconcile,
             "summary": {
-                "total_workers": len(pair_results),
-                "failed_load_workers": len(failed_workers),
-                "failed_enrichment_workers": len(failed_enrichments),
+                "total_workers": len(worker_results),
+                "failed_workers": len(failed_workers),
                 "total_loaded": total_loaded,
             },
             "failed_rows": all_failed_rows,  # up to 20 per worker; overflow in Azure logs
-            "pair_results": pair_results,
+            "worker_results": worker_results,
         }
 
         db_name, coll_name = REPORT_COLLECTION.split(".", 1)
