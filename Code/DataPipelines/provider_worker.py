@@ -286,8 +286,8 @@ class ProviderWorker:
             if batch:
                 collection.bulk_write(batch, ordered=False)
 
-        rows_processed = num_records + rows_failed
-        return rows_processed, num_records, rows_failed, failed_rows
+            rows_processed = num_records + rows_failed
+            return rows_processed, num_records, rows_failed, failed_rows
 
     def _update_status(
         self, status: int, error: str | None, num_records: int = 0
