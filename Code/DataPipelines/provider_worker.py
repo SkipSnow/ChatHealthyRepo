@@ -231,63 +231,62 @@ class ProviderWorker:
         failed_rows = []          # captured samples (max 20)
         is_first_row = True
 
-        try:
-            reader = csv.reader(_iter_lines(stream))
-            for row in reader:
-                if not any(f.strip() for f in row):   # skip blank/whitespace-only lines
-                    continue
+        reader = csv.reader(_iter_lines(stream))
+        for row in reader:
+            if not any(f.strip() for f in row):   # skip blank/whitespace-only lines
+                continue
 
-                # Workers 2-N: partition boundaries are newline-aligned, so the
-                # first row is normally complete. If the alignment fallback fired
-                # (no \n found in scan window), the first bytes may be mid-row.
-                # Discard that partial leading row silently — not counted as rows_failed.
-                if is_first_row:
-                    is_first_row = False
-                    if self.worker_id > 1 and len(row) != len(self.header):
-                        continue  # partial leading row — discard
+            # Workers 2-N: partition boundaries are newline-aligned, so the
+            # first row is normally complete. If the alignment fallback fired
+            # (no \n found in scan window), the first bytes may be mid-row.
+            # Discard that partial leading row silently — not counted as rows_failed.
+            if is_first_row:
+                is_first_row = False
+                if self.worker_id > 1 and len(row) != len(self.header):
+                    continue  # partial leading row — discard
 
-                if len(row) != len(self.header):       # malformed non-first row
-                    rows_failed += 1
-                    entry = {
-                        "row_number": local_index,
-                        "field_count": len(row),
-                        "expected": len(self.header),
-                        "raw": ",".join(row[:20]),  # first 20 fields for identification
-                    }
-                    if len(failed_rows) < 20:
-                        failed_rows.append(entry)
-                    else:
-                        logging.error(
-                            "Worker %d failed row overflow (row %d): fields=%d expected=%d raw=%.120s",
-                            self.worker_id, local_index, len(row), len(self.header), entry["raw"],
-                        )
-                    continue
+            if len(row) != len(self.header):       # malformed non-first row
+                rows_failed += 1
+                entry = {
+                    "row_number": local_index,
+                    "field_count": len(row),
+                    "expected": len(self.header),
+                    "raw": ",".join(row[:20]),  # first 20 fields for identification
+                }
+                if len(failed_rows) < 20:
+                    failed_rows.append(entry)
+                else:
+                    logging.error(
+                        "Worker %d failed row overflow (row %d): fields=%d expected=%d raw=%.120s",
+                        self.worker_id, local_index, len(row), len(self.header), entry["raw"],
+                    )
+                continue
 
-                doc = _normalize_row(self.header, row)
-                record_id = self.worker_id * MAX_ROWS_PER_WORKER + local_index
-                doc["load_id"] = self.load_id
-                doc["record_id"] = record_id
-                doc["worker_id"] = self.worker_id
+            doc = _normalize_row(self.header, row)
+            record_id = self.worker_id * MAX_ROWS_PER_WORKER + local_index
+            doc["load_id"] = self.load_id
+            doc["record_id"] = record_id
+            doc["worker_id"] = self.worker_id
 
-                # Upsert on (load_id, record_id) — safe to retry; duplicate
-                # inserts are ignored by the unique index created before workers start.
-                batch.append(UpdateOne(
-                    {"load_id": self.load_id, "record_id": record_id},
-                    {"$setOnInsert": doc},
-                    upsert=True,
-                ))
-                local_index += 1
-                num_records += 1
+            # Upsert on (load_id, record_id) — safe to retry; duplicate
+            # inserts are ignored by the unique index created before workers start.
+            batch.append(UpdateOne(
+                {"load_id": self.load_id, "record_id": record_id},
+                {"$setOnInsert": doc},
+                upsert=True,
+            ))
+            local_index += 1
+            num_records += 1
 
-                if len(batch) >= self.batch_size:
-                    collection.bulk_write(batch, ordered=False)
-                    batch = []
-
-            if batch:
+            if len(batch) >= self.batch_size:
                 collection.bulk_write(batch, ordered=False)
+                batch = []
 
-            rows_processed = num_records + rows_failed
-            return rows_processed, num_records, rows_failed, failed_rows
+        if batch:
+            collection.bulk_write(batch, ordered=False)
+
+        rows_processed = num_records + rows_failed
+        return rows_processed, num_records, rows_failed, failed_rows
 
     def _update_status(
         self, status: int, error: str | None, num_records: int = 0
