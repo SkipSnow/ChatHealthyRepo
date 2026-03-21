@@ -18,8 +18,7 @@ ChatHealthyRepo/
       ChatHealthyWhoAmIChat/  ← current About Us chatbot (Gradio, active)
     DataPipelines/            ← Layer 2: Azure Function App (CrewAI workflows)
     Shared/                   ← ChatHealthyMongoUtilities, common types
-  Website/                    ← Static site (Cloudflare)
-  Documentation/              ← Architecture docs
+  Website/                    ← Static site (Cloudflare) — single source of truth for all design docs
   Legal/
   .github/
     workflows/
