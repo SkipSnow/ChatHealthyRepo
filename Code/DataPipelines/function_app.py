@@ -6,6 +6,7 @@
 
 import json
 import logging
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -14,6 +15,13 @@ from dotenv import load_dotenv
 _env_path = Path(__file__).resolve().parent.parent / ".env"
 if _env_path.exists():
     load_dotenv(_env_path)
+
+# Logging level — set PIPELINE_DEBUG=true in Azure Function App settings to enable debug output.
+# Default is INFO (operational messages). Noisy third-party libraries are always capped at WARNING.
+_debug = os.environ.get("PIPELINE_DEBUG", "false").lower() == "true"
+logging.getLogger().setLevel(logging.DEBUG if _debug else logging.INFO)
+for _noisy in ("azure", "pymongo", "urllib3", "requests"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
 
 import azure.durable_functions as df
 import azure.functions as func
@@ -24,6 +32,7 @@ from icd10_loader import load_icd10
 from migrate_from_legacy import run_migrate_from_legacy
 from copy_to_frontend import run_copy_to_frontend
 from atlas_cluster_manager import scale_down, resize_cluster, pause_cluster, resume_cluster
+from idle_monitor import check_and_pause
 from county_enrichment_job import (
     county_enrichment_orchestrator_fn,
     enrich_by_address_batch_fn,
@@ -122,6 +131,13 @@ async def dev_pipeline_management(
 
         task = task.strip()
         payload = req_body.get("payload") or {}
+
+        # Per-request debug override — set "debug": true in the payload to enable DEBUG logging.
+        if payload.get("debug"):
+            logging.getLogger().setLevel(logging.DEBUG)
+            for _lib in ("azure", "pymongo", "urllib3", "requests"):
+                logging.getLogger(_lib).setLevel(logging.WARNING)
+
         logging.info("User '%s' requested task '%s'", user_id, task)
 
         # Synchronous path
@@ -148,6 +164,14 @@ async def dev_pipeline_management(
     except Exception:
         logging.exception("Unhandled error in DevPipelineManagementService")
         return func.HttpResponse(body="Internal server error", status_code=500, mimetype="text/plain")
+
+
+# ── Idle Monitor (Timer Trigger) ──────────────────────────────────────────────
+
+@app.timer_trigger(schedule="0 */30 * * * *", arg_name="timer", run_on_startup=False)
+def idle_monitor_timer(_timer: func.TimerRequest) -> None:
+    """Auto-pause ChatHealthyDataPipelines if idle longer than IDLE_MONITOR_THRESHOLD_HOURS."""
+    check_and_pause()
 
 
 # ── Durable Orchestrators ─────────────────────────────────────────────────────
