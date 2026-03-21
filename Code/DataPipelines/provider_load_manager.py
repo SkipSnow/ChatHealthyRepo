@@ -168,25 +168,23 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
         for i, partition in enumerate(partitions)
     ]
     worker_results = yield context.task_all(worker_tasks)
-    # Wrap in pair_results format so reconcile/report don't need changes.
-    pair_results = [{"worker": r, "enrich": {"success": True, "note": "stub"}} for r in worker_results]
 
     # Step 8: Reconcile — count newlines in CSV vs loaded records
     context.set_custom_status("Step 8/9: Reconciling record counts")
     reconcile_result = yield context.call_activity(
         "reconcile_activity",
-        {**config, "csv_path": csv_path, "pair_results": pair_results},
+        {**config, "csv_path": csv_path, "worker_results": worker_results},
     )
 
     # Step 9: Report — write to admin.PipelineDiscrepancyReport → SparkPost email
     context.set_custom_status("Step 9/9: Writing report")
     yield context.call_activity(
         "report_activity",
-        {**config, "pair_results": pair_results, "reconcile_result": reconcile_result},
+        {**config, "worker_results": worker_results, "reconcile_result": reconcile_result},
     )
 
-    total = sum(r.get("worker", {}).get("num_records", 0) for r in pair_results)
-    any_failed = any(not r.get("worker", {}).get("success", True) for r in pair_results)
+    total = sum(r.get("num_records", 0) for r in worker_results)
+    any_failed = any(not r.get("success", True) for r in worker_results)
     # Per 2.5: mark entire load FAILED if any worker failed.
     # Successful inserts are NOT rolled back — load_id isolates this run.
     status = "failed" if any_failed else "complete"
@@ -367,7 +365,6 @@ def reconcile_fn(config: dict) -> dict:
     """Stream CSV counting newlines. Compare to sum of worker num_records."""
     csv_path = config["csv_path"]
     container = config.get("blob_container", "provider-data")
-    pair_results = config.get("pair_results", [])
 
     service = _blob_service()
     blob_client = service.get_container_client(container).get_blob_client(csv_path)
@@ -385,12 +382,9 @@ def reconcile_fn(config: dict) -> dict:
     if last_chunk and last_chunk[-1:] != b"\n":
         csv_record_count += 1
 
-    loaded_count = sum(
-        r.get("worker", {}).get("num_records", 0) for r in pair_results
-    )
-    failed_records = sum(
-        r.get("worker", {}).get("rows_failed", 0) for r in pair_results
-    )
+    worker_results = config.get("worker_results", [])
+    loaded_count = sum(r.get("num_records", 0) for r in worker_results)
+    failed_records = sum(r.get("rows_failed", 0) for r in worker_results)
     match = csv_record_count == loaded_count
 
     logging.info(

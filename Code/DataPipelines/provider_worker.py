@@ -43,9 +43,6 @@ STATUS_LABELS = {
     10: "Load invoked",
     11: "Load failed",
     12: "Load succeeded",
-    20: "Enrich invoked",
-    21: "Enrich failed",
-    22: "Enrich succeeded",
 }
 
 
