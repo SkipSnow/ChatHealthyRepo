@@ -168,8 +168,8 @@ async def dev_pipeline_management(
 
 # ── Idle Monitor (Timer Trigger) ──────────────────────────────────────────────
 
-@app.timer_trigger(schedule="0 */30 * * * *", arg_name="timer", run_on_startup=False)
-def idle_monitor_timer(_timer: func.TimerRequest) -> None:
+@app.timer_trigger(schedule="0 */30 * * * *", arg_name="myTimer", run_on_startup=False)
+def idle_monitor_timer(myTimer: func.TimerRequest) -> None:
     """Auto-pause ChatHealthyDataPipelines if idle longer than IDLE_MONITOR_THRESHOLD_HOURS."""
     check_and_pause()
 
