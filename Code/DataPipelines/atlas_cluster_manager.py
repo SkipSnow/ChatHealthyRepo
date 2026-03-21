@@ -55,13 +55,34 @@ def _headers():
             "Content-Type": "application/json"}
 
 
-def get_cluster_state(cluster_name: str) -> str:
+TIER_ORDER = ["M10", "M20", "M30", "M40", "M50", "M60", "M80", "M140", "M200"]
+
+
+def _tier_index(tier: str) -> int:
+    try:
+        return TIER_ORDER.index(tier)
+    except ValueError:
+        return -1
+
+
+def get_cluster_info(cluster_name: str) -> dict:
+    """Return {'state': str, 'tier': str} for the cluster."""
     r = requests.get(
         f"{ATLAS_BASE}/groups/{PROJECT_ID}/clusters/{cluster_name}",
         auth=_auth(), headers=_headers(), timeout=30
     )
     r.raise_for_status()
-    return r.json().get("stateName", "UNKNOWN")
+    data = r.json()
+    state = data.get("stateName", "UNKNOWN")
+    try:
+        tier = data["replicationSpecs"][0]["regionConfigs"][0]["electableSpecs"]["instanceSize"]
+    except (KeyError, IndexError):
+        tier = "UNKNOWN"
+    return {"state": state, "tier": tier}
+
+
+def get_cluster_state(cluster_name: str) -> str:
+    return get_cluster_info(cluster_name)["state"]
 
 
 def resize_cluster(cluster_name: str, instance_size: str, max_size: str) -> None:
@@ -108,10 +129,16 @@ def wait_for_idle(cluster_name: str) -> None:
 
 def scale_up(cluster_name: str) -> None:
     log.info("Scaling UP %s → %s (max %s)", cluster_name, JOB_TIER, JOB_MAX)
-    state = get_cluster_state(cluster_name)
-    if state != "IDLE":
-        log.info("Cluster is %s — waiting for IDLE before resizing...", state)
+    info = get_cluster_info(cluster_name)
+    if info["state"] != "IDLE":
+        log.info("Cluster is %s — waiting for IDLE before resizing...", info["state"])
         wait_for_idle(cluster_name)
+        info = get_cluster_info(cluster_name)
+
+    if _tier_index(info["tier"]) >= _tier_index(JOB_TIER):
+        log.info("%s already at %s — no resize needed.", cluster_name, info["tier"])
+        return
+
     resize_cluster(cluster_name, JOB_TIER, JOB_MAX)
     wait_for_idle(cluster_name)
     log.info("%s is ready at %s.", cluster_name, JOB_TIER)
