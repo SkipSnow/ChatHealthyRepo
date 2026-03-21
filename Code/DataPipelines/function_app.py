@@ -23,7 +23,7 @@ from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
 from migrate_from_legacy import run_migrate_from_legacy
 from copy_to_frontend import run_copy_to_frontend
-from atlas_cluster_manager import scale_down, resize_cluster
+from atlas_cluster_manager import scale_down, resize_cluster, pause_cluster, resume_cluster
 from county_enrichment_job import (
     county_enrichment_orchestrator_fn,
     enrich_by_address_batch_fn,
@@ -34,7 +34,6 @@ from county_enrichment_job import (
     lookup_crosswalk_fn,
 )
 from provider_load_manager import (
-    county_enrich_fn,
     download_zip_fn,
     drain_staging_fn,
     ensure_indexes_fn,
@@ -48,7 +47,6 @@ from provider_load_manager import (
     scale_down_activity_fn,
     scale_up_activity_fn,
     write_metadata_fn,
-    worker_enrichment_pair_fn,
 )
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
@@ -66,6 +64,8 @@ SYNC_TASK_HANDLERS = {
     # runs scale_up_activity inside a Durable orchestrator where long waits are safe.
     "ScaleUp": lambda config: resize_cluster(config.get("cluster", "ChatHealthyDataPipelines"), "M30", "M200") or {"status": "scale_up_submitted"},
     "ScaleDown": lambda config: scale_down(config.get("cluster", "ChatHealthyDataPipelines")) or {"status": "scaled_down"},
+    "PauseCluster": lambda config: pause_cluster(config.get("cluster", "ChatHealthyDataPipelines")) or {"status": "paused"},
+    "ResumeCluster": lambda config: resume_cluster(config.get("cluster", "ChatHealthyDataPipelines")) or {"status": "resumed"},
 }
 
 # Asynchronous tasks — start a Durable orchestrator, return 202 + status URL
@@ -162,11 +162,6 @@ def provider_load_orchestrator(context: df.DurableOrchestrationContext):
     return provider_load_orchestrator_fn(context)
 
 
-@app.orchestration_trigger(context_name="context")
-def worker_enrichment_pair(context: df.DurableOrchestrationContext):
-    return worker_enrichment_pair_fn(context)
-
-
 # ── Durable Activities ────────────────────────────────────────────────────────
 
 @app.activity_trigger(input_name="config")
@@ -203,11 +198,6 @@ def write_metadata_activity(config: dict) -> list:
 @app.activity_trigger(input_name="config")
 def provider_worker_activity(config: dict) -> dict:
     return provider_worker_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def county_enrich_activity(config: dict) -> dict:
-    return county_enrich_fn(config)
 
 
 @app.activity_trigger(input_name="config")

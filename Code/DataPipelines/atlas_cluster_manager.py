@@ -10,9 +10,10 @@ Usage (CLI):
     python atlas_cluster_manager.py scale-up   ChatHealthyDataPipelines
     python atlas_cluster_manager.py scale-down ChatHealthyDataPipelines
 
-Scales up to JOB_TIER (M30) with JOB_MAX (M200) ceiling before heavy jobs.
-Scales back down to IDLE_TIER (M10) with IDLE_MAX (M20) ceiling after jobs.
-Waits for IDLE before returning so callers can fire work immediately after.
+scale-up:  Resume cluster if paused, then resize to JOB_TIER (M30) / JOB_MAX (M200).
+           Waits for IDLE before returning so callers can fire work immediately after.
+scale-down: Pause the cluster completely (zero compute cost, data retained).
+            Waits for IDLE before pausing if cluster is still transitioning.
 
 Used by migrate_to_new_cluster.py and can be called from any pipeline script.
 """
@@ -66,7 +67,7 @@ def _tier_index(tier: str) -> int:
 
 
 def get_cluster_info(cluster_name: str) -> dict:
-    """Return {'state': str, 'tier': str} for the cluster."""
+    """Return {'state': str, 'tier': str, 'paused': bool} for the cluster."""
     r = requests.get(
         f"{ATLAS_BASE}/groups/{PROJECT_ID}/clusters/{cluster_name}",
         auth=_auth(), headers=_headers(), timeout=30
@@ -74,11 +75,12 @@ def get_cluster_info(cluster_name: str) -> dict:
     r.raise_for_status()
     data = r.json()
     state = data.get("stateName", "UNKNOWN")
+    paused = data.get("paused", False)
     try:
         tier = data["replicationSpecs"][0]["regionConfigs"][0]["electableSpecs"]["instanceSize"]
     except (KeyError, IndexError):
         tier = "UNKNOWN"
-    return {"state": state, "tier": tier}
+    return {"state": state, "tier": tier, "paused": paused}
 
 
 def get_cluster_state(cluster_name: str) -> str:
@@ -127,9 +129,40 @@ def wait_for_idle(cluster_name: str) -> None:
     raise TimeoutError(f"{cluster_name} did not reach IDLE within {TIMEOUT_MIN} minutes")
 
 
+def pause_cluster(cluster_name: str) -> None:
+    """Pause the cluster. Zero compute cost, data retained."""
+    r = requests.patch(
+        f"{ATLAS_BASE}/groups/{PROJECT_ID}/clusters/{cluster_name}",
+        auth=_auth(), headers=_headers(), json={"paused": True}, timeout=30
+    )
+    if r.status_code not in (200, 202):
+        log.error("Pause failed: %s %s", r.status_code, r.text)
+        r.raise_for_status()
+    log.info("%s pause submitted.", cluster_name)
+
+
+def resume_cluster(cluster_name: str) -> None:
+    """Resume a paused cluster and wait for IDLE."""
+    r = requests.patch(
+        f"{ATLAS_BASE}/groups/{PROJECT_ID}/clusters/{cluster_name}",
+        auth=_auth(), headers=_headers(), json={"paused": False}, timeout=30
+    )
+    if r.status_code not in (200, 202):
+        log.error("Resume failed: %s %s", r.status_code, r.text)
+        r.raise_for_status()
+    log.info("%s resume requested — waiting for IDLE...", cluster_name)
+    wait_for_idle(cluster_name)
+
+
 def scale_up(cluster_name: str) -> None:
     log.info("Scaling UP %s → %s (max %s)", cluster_name, JOB_TIER, JOB_MAX)
     info = get_cluster_info(cluster_name)
+
+    if info["paused"]:
+        log.info("%s is paused — resuming first...", cluster_name)
+        resume_cluster(cluster_name)
+        info = get_cluster_info(cluster_name)
+
     if info["state"] != "IDLE":
         log.info("Cluster is %s — waiting for IDLE before resizing...", info["state"])
         wait_for_idle(cluster_name)
@@ -145,22 +178,33 @@ def scale_up(cluster_name: str) -> None:
 
 
 def scale_down(cluster_name: str) -> None:
-    log.info("Scaling DOWN %s → %s (max %s)", cluster_name, IDLE_TIER, IDLE_MAX)
-    state = get_cluster_state(cluster_name)
-    if state != "IDLE":
-        log.info("Cluster is %s — waiting for IDLE before resizing...", state)
+    log.info("Pausing %s (zero compute cost, data retained)", cluster_name)
+    info = get_cluster_info(cluster_name)
+
+    if info["paused"]:
+        log.info("%s is already paused.", cluster_name)
+        return
+
+    if info["state"] != "IDLE":
+        log.info("Cluster is %s — waiting for IDLE before pausing...", info["state"])
         wait_for_idle(cluster_name)
-    resize_cluster(cluster_name, IDLE_TIER, IDLE_MAX)
-    log.info("Scale-down submitted. Cluster will resize in background.")
+
+    pause_cluster(cluster_name)
+    log.info("%s paused. No compute charges until next scale-up.", cluster_name)
 
 
 if __name__ == "__main__":
     import sys
-    if len(sys.argv) != 3 or sys.argv[1] not in ("scale-up", "scale-down"):
-        print("Usage: python atlas_cluster_manager.py <scale-up|scale-down> <cluster-name>")
+    actions = ("scale-up", "scale-down", "pause", "resume")
+    if len(sys.argv) != 3 or sys.argv[1] not in actions:
+        print(f"Usage: python atlas_cluster_manager.py <{'|'.join(actions)}> <cluster-name>")
         sys.exit(1)
     action, name = sys.argv[1], sys.argv[2]
     if action == "scale-up":
         scale_up(name)
-    else:
+    elif action == "scale-down":
         scale_down(name)
+    elif action == "pause":
+        pause_cluster(name)
+    elif action == "resume":
+        resume_cluster(name)
