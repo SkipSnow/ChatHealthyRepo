@@ -25,7 +25,7 @@ Three cleanly separated applications:
 - County enrichment via ZIP crosswalk (Pass 1) and Census Geocoder API (Pass 2)
 - SparkPost email notification on completion
 
-Full architecture and design documents: [chathealthy.ai](https://chathealthy.ai)
+Full architecture and design documentation is published at **[chathealthy.ai](https://chathealthy.ai)** — including pipeline design, data models, and system architecture. The source for all documentation is in `Website/` in this repository.
 
 ## License
 
