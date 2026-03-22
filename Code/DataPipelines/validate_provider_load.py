@@ -63,10 +63,8 @@ PROJECTION = {
     "provider_organization_name_legal_business_name": 1,
     "entity_type_code": 1,
     "practice_address": 1,
-    "taxonomy_codes": 1,
-    "county_fips": 1,
-    "county_name": 1,
-    "county_source": 1,
+    "taxonomies": 1,
+    "county": 1,
 }
 
 
@@ -189,7 +187,7 @@ def _compare(our_doc: dict, nppes: dict) -> dict:
         }
 
     # ── Taxonomy ───────────────────────────────────────────────────────────────
-    our_tax = (our_doc.get("taxonomy_codes") or [""])[0]
+    our_tax = next((t["code"] for t in our_doc.get("taxonomies", []) if t.get("primary")), "")
     nppes_tax = next(
         (t.get("code", "") for t in nppes.get("taxonomies", []) if t.get("primary")),
         (nppes.get("taxonomies") or [{}])[0].get("code", "") if nppes.get("taxonomies") else "",
@@ -201,12 +199,13 @@ def _compare(our_doc: dict, nppes: dict) -> dict:
     }
 
     # ── County enrichment ─────────────────────────────────────────────────────
-    has_county = bool(our_doc.get("county_fips"))
+    county = our_doc.get("county", {})
+    has_county = bool(county.get("fips"))
     checks["county_enriched"] = {
         "result": PASS_EMOJI if has_county else FAIL_EMOJI,
-        "county_fips": our_doc.get("county_fips", "MISSING"),
-        "county_name": our_doc.get("county_name", ""),
-        "county_source": our_doc.get("county_source", ""),
+        "fips": county.get("fips", "MISSING"),
+        "name": county.get("name", ""),
+        "source": county.get("source", ""),
     }
 
     return checks

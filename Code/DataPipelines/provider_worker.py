@@ -17,6 +17,7 @@ import csv
 import logging
 import os
 import time
+from datetime import datetime, timezone
 
 from azure.storage.blob import BlobServiceClient
 from bson import ObjectId
@@ -54,10 +55,13 @@ def status_fields(code: int) -> dict:
 # ── Field normalization constants ─────────────────────────────────────────────
 
 # Numbered field groups → collapsed into arrays
+BOUNDARY_EXTRA = 8192  # extra bytes read past end_byte to complete the last row
+
+TAX_CODE_PREFIX = "Healthcare Provider Taxonomy Code_"
+TAX_SWITCH_PREFIX = "Healthcare Provider Primary Taxonomy Switch_"
+TAX_GROUP_PREFIX = "Healthcare Provider Taxonomy Group_"
+
 ARRAY_FIELD_GROUPS = [
-    ("Healthcare Provider Taxonomy Code_", "taxonomy_codes"),
-    ("Healthcare Provider Primary Taxonomy Switch_", "taxonomy_primary_switches"),
-    ("Healthcare Provider Taxonomy Group_", "taxonomy_groups"),
     ("Provider License Number_", "license_numbers"),
     ("Provider License Number State Code_", "license_states"),
     ("Other Provider Identifier_", "other_identifiers"),
@@ -95,6 +99,24 @@ def _normalize_row(header: list, row: list) -> dict:
     raw = dict(zip(header, row))
     doc = {}
     consumed = set()
+
+    # Collapse taxonomy parallel arrays into array of objects
+    for prefix in (TAX_CODE_PREFIX, TAX_SWITCH_PREFIX, TAX_GROUP_PREFIX):
+        consumed.update(h for h in header if h.startswith(prefix))
+    taxonomies = []
+    for h in sorted(h for h in header if h.startswith(TAX_CODE_PREFIX)):
+        idx = h[len(TAX_CODE_PREFIX):]
+        code = raw.get(h, "").strip()
+        if not code:
+            continue
+        switch = raw.get(f"{TAX_SWITCH_PREFIX}{idx}", "").strip()
+        group = raw.get(f"{TAX_GROUP_PREFIX}{idx}", "").strip()
+        entry = {"code": code, "primary": switch.upper() == "Y"}
+        if group:
+            entry["group"] = group
+        taxonomies.append(entry)
+    if taxonomies:
+        doc["taxonomies"] = taxonomies
 
     # Collapse numbered groups into arrays
     for prefix, key in ARRAY_FIELD_GROUPS:
@@ -146,14 +168,23 @@ def _normalize_row(header: list, row: list) -> dict:
     return doc
 
 
-def _iter_lines(stream):
-    """Yield decoded lines from a blob StorageStreamDownloader without loading all bytes."""
+def _iter_lines(stream, stop_after: int | None = None):
+    """Yield decoded lines from a blob StorageStreamDownloader without loading all bytes.
+
+    stop_after: if set, stop after the first complete line where cumulative bytes >= stop_after.
+    This allows a worker to read slightly past its logical end_byte to complete the last row,
+    without processing rows that belong to the next worker.
+    """
     buffer = b""
+    bytes_consumed = 0
     for chunk in stream.chunks():
         buffer += chunk
         while b"\n" in buffer:
             line, buffer = buffer.split(b"\n", 1)
+            bytes_consumed += len(line) + 1  # +1 for the \n
             yield line.decode("utf-8", errors="replace")
+            if stop_after is not None and bytes_consumed >= stop_after:
+                return
     if buffer:
         yield buffer.decode("utf-8", errors="replace")
 
@@ -168,7 +199,7 @@ class ProviderWorker:
         self.csv_path = config["csv_path"]
         self.load_id = config["load_id"]
         self.metadata_id = config["metadata_id"]
-        self.batch_size = config.get("batch_size", 500)
+        self.batch_size = config.get("batch_size", 5000)
         self.staging_collection = config.get(
             "staging_collection", "PublicHealthData.providers_staging"
         )
@@ -177,10 +208,12 @@ class ProviderWorker:
 
     def run(self) -> dict:
         self._update_status(10, None)
+        started_at = datetime.now(timezone.utc).isoformat()
         start_time = time.monotonic()
         try:
             rows_processed, num_records, rows_failed, failed_rows = self._load()
             duration = time.monotonic() - start_time
+            finished_at = datetime.now(timezone.utc).isoformat()
             rows_per_second = round(rows_processed / duration, 1) if duration > 0 else 0
             self._update_status(12, None, num_records=num_records)
             logging.info(
@@ -190,6 +223,8 @@ class ProviderWorker:
             )
             return {
                 "worker_id": self.worker_id,
+                "started_at": started_at,
+                "finished_at": finished_at,
                 "rows_processed": rows_processed,
                 "num_records": num_records,
                 "rows_failed": rows_failed,
@@ -203,6 +238,8 @@ class ProviderWorker:
             self._update_status(11, str(exc))
             return {
                 "worker_id": self.worker_id,
+                "started_at": started_at,
+                "finished_at": datetime.now(timezone.utc).isoformat(),
                 "num_records": 0,
                 "rows_failed": 0,
                 "success": False,
@@ -218,7 +255,10 @@ class ProviderWorker:
             service.get_container_client(self.blob_container)
             .get_blob_client(self.csv_path)
         )
-        length = self.end_byte - self.start_byte
+        logical_end = self.end_byte
+        actual_end = self.end_byte + BOUNDARY_EXTRA
+        length = actual_end - self.start_byte
+        stop_after = logical_end - self.start_byte
         stream = blob_client.download_blob(offset=self.start_byte, length=length)
 
         db_name, coll_name = self.staging_collection.split(".", 1)
@@ -231,7 +271,7 @@ class ProviderWorker:
         failed_rows = []          # captured samples (max 20)
         is_first_row = True
 
-        reader = csv.reader(_iter_lines(stream))
+        reader = csv.reader(_iter_lines(stream, stop_after=stop_after))
         for row in reader:
             if not any(f.strip() for f in row):   # skip blank/whitespace-only lines
                 continue
@@ -267,6 +307,7 @@ class ProviderWorker:
             doc["load_id"] = self.load_id
             doc["record_id"] = record_id
             doc["worker_id"] = self.worker_id
+            doc["county"] = {"fips": None}  # stub — enriched by county_enrichment_job
 
             # Upsert on (load_id, record_id) — safe to retry; duplicate
             # inserts are ignored by the unique index created before workers start.

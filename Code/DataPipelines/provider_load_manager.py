@@ -122,44 +122,46 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     config = {**config, "load_id": load_id}
 
     # Step 1: Download zip to blob (auto-discovers URL + version if not supplied)
-    context.set_custom_status("Step 1/9: Downloading NPI zip from CMS")
+    context.set_custom_status("Step 1/10: Downloading NPI zip from CMS")
     download_result = yield context.call_activity("download_zip_activity", config)
     zip_path = download_result["zip_path"]
     config = {**config, "version": download_result["version"]}
 
     # Step 2: Extract CSV from zip to blob
-    context.set_custom_status(f"Step 2/9: Extracting CSV (version: {config['version']})")
+    context.set_custom_status(f"Step 2/10: Extracting CSV (version: {config['version']})")
     csv_path = yield context.call_activity(
         "extract_csv_activity", {**config, "zip_path": zip_path}
     )
 
     # Step 3: Compute byte-aligned partitions
-    context.set_custom_status("Step 3/9: Partitioning file")
+    context.set_custom_status("Step 3/10: Partitioning file")
     partitions = yield context.call_activity(
         "partition_file_activity", {**config, "csv_path": csv_path}
     )
 
     # Step 4: Drain staging — drop all existing records before loading new data.
     # New data is verified viable (download + extract + partition succeeded) before we drop.
-    context.set_custom_status("Step 4/9: Draining staging collection")
+    context.set_custom_status("Step 4/10: Draining staging collection")
     yield context.call_activity("drain_staging_activity", config)
 
-    # Step 5: Ensure staging indexes exist before workers start (idempotent)
-    context.set_custom_status("Step 5/9: Ensuring indexes")
-    yield context.call_activity("ensure_indexes_activity", config)
+    # Step 5: Pre-load index only — unique compound index for idempotency on retry.
+    # Secondary indexes are deferred to Step 8 (post-load) to eliminate write
+    # amplification during the bulk insert phase.
+    context.set_custom_status("Step 5/10: Ensuring pre-load index")
+    yield context.call_activity("ensure_preload_indexes_activity", config)
 
     # Step 6: Write one metadata record per worker
-    context.set_custom_status(f"Step 6/9: Writing metadata ({len(partitions)} workers)")
+    context.set_custom_status(f"Step 6/10: Writing metadata ({len(partitions)} workers)")
     metadata_ids = yield context.call_activity(
         "write_metadata_activity",
         {**config, "csv_path": csv_path, "partitions": partitions},
     )
 
-    # Step 7: Fan-out — call worker activities directly (no sub-orchestrators).
-    # Sub-orchestrators caused Durable Functions history explosion (~15K events for 200 workers)
-    # because the framework stores every scheduling/completion event in the parent history.
-    # Direct activity calls reduce this to ~600 events (3 per worker).
-    context.set_custom_status(f"Step 7/9: Loading — {len(partitions)} workers running")
+    # Step 7: Fan-out — all workers run simultaneously (no chunking).
+    # 32 partitions → 32 concurrent MongoDB writers → ~25% WiredTiger write ticket utilization.
+    # Sub-orchestrators are avoided (direct activity calls) to prevent Durable Functions
+    # history explosion (~15K events for 200 workers vs ~600 with direct calls).
+    context.set_custom_status(f"Step 7/10: Loading — {len(partitions)} workers")
     worker_tasks = [
         context.call_activity(
             "provider_worker_activity",
@@ -169,15 +171,18 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     ]
     worker_results = yield context.task_all(worker_tasks)
 
-    # Step 8: Reconcile — count newlines in CSV vs loaded records
-    context.set_custom_status("Step 8/9: Reconciling record counts")
-    reconcile_result = yield context.call_activity(
+    # Steps 8+9 run in parallel: index build (MongoDB) and reconcile (blob read) are independent.
+    context.set_custom_status("Step 8-9/10: Building indexes + reconciling (parallel)")
+    postload_task = context.call_activity("ensure_postload_indexes_activity", config)
+    reconcile_task = context.call_activity(
         "reconcile_activity",
         {**config, "csv_path": csv_path, "worker_results": worker_results},
     )
+    parallel_results = yield context.task_all([postload_task, reconcile_task])
+    reconcile_result = parallel_results[1]
 
-    # Step 9: Report — write to admin.PipelineDiscrepancyReport → SparkPost email
-    context.set_custom_status("Step 9/9: Writing report")
+    # Step 10: Report — write to admin.PipelineDiscrepancyReport → SparkPost email
+    context.set_custom_status("Step 10/10: Writing report")
     yield context.call_activity(
         "report_activity",
         {**config, "worker_results": worker_results, "reconcile_result": reconcile_result},
@@ -310,8 +315,12 @@ def partition_file_fn(config: dict) -> list:
 
 
 
-def ensure_indexes_fn(config: dict) -> None:
-    """Create staging collection indexes before workers start. Idempotent."""
+def ensure_preload_indexes_fn(config: dict) -> None:
+    """Create unique index before workers start. Idempotent.
+    Only the compound unique index is needed pre-load — it enforces idempotency
+    on retry. Secondary indexes are deferred to after load to reduce write
+    amplification during the bulk insert phase.
+    """
     staging_collection = config.get(
         "staging_collection", "PublicHealthData.providers_staging"
     )
@@ -322,11 +331,32 @@ def ensure_indexes_fn(config: dict) -> None:
         unique=True,
         name="load_record_unique",
     )
+    logging.info("Pre-load index ensured on %s", staging_collection)
+
+
+def ensure_postload_indexes_fn(config: dict) -> None:
+    """Create secondary indexes after load completes. Idempotent.
+    Also called at the start of county enrichment to guarantee indexes
+    exist when CountyEnrichment is run standalone.
+    """
+    staging_collection = config.get(
+        "staging_collection", "PublicHealthData.providers_staging"
+    )
+    db_name, coll_name = staging_collection.split(".", 1)
+    collection = _get_mongo_client()[db_name][coll_name]
     collection.create_index(
         "practice_address.zip",
         name="practice_zip",
     )
-    logging.info("Indexes ensured on %s", staging_collection)
+    collection.create_index(
+        "county.fips",
+        name="county_fips",
+    )
+    collection.create_index(
+        "worker_id",
+        name="worker_id",
+    )
+    logging.info("Post-load indexes ensured on %s", staging_collection)
 
 
 def write_metadata_fn(config: dict) -> list:
@@ -423,35 +453,57 @@ def provider_worker_fn(config: dict) -> dict:
 # ── Full Pipeline Orchestrator ────────────────────────────────────────────────
 
 def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
-    """Top-level orchestrator: ScaleUp → LoadProviders → CountyEnrichment → ScaleDown.
+    """Top-level orchestrator: ScaleUp → Load → Pass1 → Pass2 → ScaleDown.
     Single kick-off, no human steps required until SparkPost email fires on completion.
     """
+    from county_enrichment_job import _build_enrichment_reconcile
+
     config = context.get_input() or {}
     cluster = config.get("cluster", "ChatHealthyDataPipelines")
+    load_id = context.instance_id
 
-    context.set_custom_status("Step 1/4: Resuming cluster")
+    enrich_config = {
+        "load_id": load_id,
+        "num_workers": config.get("enrich_workers", 200),
+        "addr_batch_size": config.get("addr_batch_size", 50),
+    }
+
+    context.set_custom_status("Step 1/5: Resuming cluster")
     yield context.call_activity("scale_up_activity", {"cluster": cluster})
 
-    context.set_custom_status("Step 2/4: Loading provider data")
+    context.set_custom_status("Step 2/5: Loading provider data")
     load_config = {
-        "num_workers": config.get("num_workers", 50),
-        "batch_size": config.get("batch_size", 500),
+        "num_workers": config.get("num_workers", 32),
+        "batch_size": config.get("batch_size", 5000),
         "blob_container": config.get("blob_container", "provider-data"),
     }
     load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
 
-    context.set_custom_status("Step 3/4: Running county enrichment")
-    enrich_config = {
-        "num_workers": config.get("enrich_workers", 200),
-        "addr_batch_size": config.get("addr_batch_size", 50),
-    }
-    enrich_result = yield context.call_sub_orchestrator("county_enrichment_orchestrator", enrich_config)
+    context.set_custom_status("Step 3/5: County enrichment — Pass 1 (ZIP bulk)")
+    pass1_result = yield context.call_sub_orchestrator(
+        "county_enrichment_pass1_orchestrator", enrich_config
+    )
 
-    context.set_custom_status("Step 4/4: Scaling down cluster")
+    context.set_custom_status("Step 4/5: County enrichment — Pass 2 (Census Geocoder)")
+    pass2_result = yield context.call_sub_orchestrator(
+        "county_enrichment_pass2_orchestrator", enrich_config
+    )
+
+    reconcile = _build_enrichment_reconcile(pass1_result, pass2_result)
+    yield context.call_activity(
+        "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
+    )
+
+    context.set_custom_status("Step 5/5: Scaling down cluster")
     yield context.call_activity("scale_down_activity", {"cluster": cluster})
 
-    context.set_custom_status(f"Done — {load_result.get('status', 'unknown')}")
-    return {"load": load_result, "enrichment": enrich_result}
+    enrich_status = "complete" if reconcile["match"] else "partial"
+    context.set_custom_status(
+        f"Done — load {load_result.get('status', 'unknown')}, "
+        f"enrichment {enrich_status} "
+        f"({reconcile['total_enriched']:,}/{reconcile['total_providers']:,})"
+    )
+    return {"load": load_result, "enrichment": reconcile}
 
 
 def scale_up_activity_fn(config: dict) -> dict:
