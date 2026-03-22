@@ -33,5 +33,3 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           Anthropic_API_KEY: ${{ secrets.Anthropic_API_KEY }}
           MONGO_connectionString: ${{ secrets.MONGO_connectionString }}
-          PUSHOVER_USER: ${{ secrets.PUSHOVER_USER }}
-          PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}

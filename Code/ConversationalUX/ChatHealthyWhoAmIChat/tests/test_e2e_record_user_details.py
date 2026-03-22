@@ -10,7 +10,6 @@ End-to-end regression tests for record_user_details consent flow.
 All external dependencies are real:
   - MongoDB Atlas  (writes to AboutUs.lead with testdata=True)
   - Anthropic API  (real deIdentify call in Case 2)
-  - Pushover       (real push notifications sent)
 
 Teardown deletes only records where testdata=True.
 

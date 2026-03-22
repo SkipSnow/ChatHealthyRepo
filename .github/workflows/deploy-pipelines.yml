@@ -46,7 +46,7 @@ jobs:
 
           APP_URL="https://${{ secrets.AZURE_FUNCTION_APP_NAME }}.azurewebsites.net"
           RESPONSE=$(curl -s --max-time 15 \
-            "${APP_URL}/runtime/webhooks/durabletask/instances?runtimeStatus=Running&code=${MASTER_KEY}" \
+            "${APP_URL}/runtime/webhooks/durabletask/instances?runtimeStatus=Running&taskHub=DevPipelineManagmentService&code=${MASTER_KEY}" \
             || echo "[]")
 
           RUNNING=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else 0)" 2>/dev/null || echo "0")

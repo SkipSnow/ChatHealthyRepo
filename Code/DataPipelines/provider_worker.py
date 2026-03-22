@@ -64,9 +64,10 @@ TAX_CODE_PREFIX = "Healthcare Provider Taxonomy Code_"
 TAX_SWITCH_PREFIX = "Healthcare Provider Primary Taxonomy Switch_"
 TAX_GROUP_PREFIX = "Healthcare Provider Taxonomy Group_"
 
+LICENSE_NUMBER_PREFIX = "Provider License Number_"
+LICENSE_STATE_PREFIX  = "Provider License Number State Code_"
+
 ARRAY_FIELD_GROUPS = [
-    ("Provider License Number_", "license_numbers"),
-    ("Provider License Number State Code_", "license_states"),
     ("Other Provider Identifier_", "other_identifiers"),
     ("Other Provider Identifier Type Code_", "other_identifier_types"),
     ("Other Provider Identifier State_", "other_identifier_states"),
@@ -121,6 +122,25 @@ def _normalize_row(header: list, row: list) -> dict:
     if taxonomies:
         doc["taxonomies"] = taxonomies
 
+    # Collapse license parallel arrays into array of objects
+    consumed.update(h for h in header if h.startswith(LICENSE_NUMBER_PREFIX))
+    consumed.update(h for h in header if h.startswith(LICENSE_STATE_PREFIX))
+    licenses = []
+    for h in sorted(h for h in header if h.startswith(LICENSE_NUMBER_PREFIX)):
+        idx = h[len(LICENSE_NUMBER_PREFIX):]
+        number = raw.get(h, "").strip()
+        state  = raw.get(f"{LICENSE_STATE_PREFIX}{idx}", "").strip()
+        if not number and not state:
+            continue
+        entry = {}
+        if state:
+            entry["state"] = state
+        if number:
+            entry["number"] = number
+        licenses.append(entry)
+    if licenses:
+        doc["licenses"] = licenses
+
     # Collapse numbered groups into arrays
     for prefix, key in ARRAY_FIELD_GROUPS:
         values = [
@@ -139,6 +159,8 @@ def _normalize_row(header: list, row: list) -> dict:
         if raw.get(field, "").strip()
     }
     consumed.update(PRACTICE_ADDRESS_FIELDS)
+    if "zip" in practice:
+        practice["zip"] = practice["zip"][:5]
     if practice:
         doc["practice_address"] = practice
 
@@ -149,6 +171,8 @@ def _normalize_row(header: list, row: list) -> dict:
         if raw.get(field, "").strip()
     }
     consumed.update(MAILING_ADDRESS_FIELDS)
+    if "zip" in mailing:
+        mailing["zip"] = mailing["zip"][:5]
     if mailing:
         doc["mailing_address"] = mailing
 
