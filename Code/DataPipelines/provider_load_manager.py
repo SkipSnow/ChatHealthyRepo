@@ -506,9 +506,38 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     return {"load": load_result, "enrichment": reconcile}
 
 
+def _wait_for_mongo_ready(timeout_minutes: int = 5) -> None:
+    """Poll MongoDB until it accepts connections after a cluster resume.
+
+    Atlas reports stateName=IDLE before the replica set has finished electing
+    a primary. Workers that start immediately will hit NotPrimaryError /
+    InterruptedDueToReplStateChange. This ping loop waits until a real
+    connection succeeds.
+    """
+    import time
+    deadline = time.time() + timeout_minutes * 60
+    conn_str = os.environ["MONGO_connectionString"]
+    while time.time() < deadline:
+        try:
+            client = MongoClient(
+                conn_str,
+                serverSelectionTimeoutMS=10_000,
+                connectTimeoutMS=10_000,
+            )
+            client.admin.command("ping")
+            client.close()
+            logging.info("MongoDB is ready — replica set has a primary.")
+            return
+        except Exception as exc:
+            logging.info("MongoDB not ready yet (%s) — retrying in 15s...", exc)
+            time.sleep(15)
+    raise TimeoutError(f"MongoDB did not become ready within {timeout_minutes} minutes")
+
+
 def scale_up_activity_fn(config: dict) -> dict:
     cluster = config.get("cluster", "ChatHealthyDataPipelines")
     resume_for_job(cluster)
+    _wait_for_mongo_ready()
     return {"status": "resumed", "cluster": cluster}
 
 
