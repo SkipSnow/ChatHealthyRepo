@@ -72,21 +72,28 @@ PROVIDERS_COLLECTION = "PublicHealthData.providers_staging"
 # ── Orchestrators ─────────────────────────────────────────────────────────────
 
 def _build_enrichment_reconcile(pass1_result: dict, pass2_result: dict) -> dict:
-    """Build combined reconcile dict from Pass 1 and Pass 2 orchestrator results."""
-    total_providers = pass1_result["total_providers"]
-    pass1_modified = pass1_result["pass1_modified"]
-    pass2_modified = pass2_result["pass2_modified"]
-    pass2_failed = pass2_result["pass2_failed"]
+    """Build combined reconcile dict from Pass 1 and Pass 2 orchestrator results.
+
+    pass1_result may be empty ({}) when start_step > 3 skips Pass 1.
+    In that case total_providers comes from pass2_result (set by get_unenriched_fn).
+    """
+    total_providers = (
+        pass1_result.get("total_providers")
+        or pass2_result.get("total_providers", 0)
+    )
+    pass1_modified = pass1_result.get("pass1_modified", 0)
+    pass2_modified = pass2_result.get("pass2_modified", 0)
+    pass2_failed = pass2_result.get("pass2_failed", 0)
     total_enriched = pass1_modified + pass2_modified
     still_unenriched = total_providers - total_enriched
     return {
         "total_providers": total_providers,
         "pass1_zip_enrichments": pass1_modified,
-        "pass1_batch_results": pass1_result["pass1_batch_results"],
+        "pass1_batch_results": pass1_result.get("pass1_batch_results", []),
         "pass2_address_lookups_attempted": pass2_modified + pass2_failed,
         "pass2_address_lookups_succeeded": pass2_modified,
         "pass2_address_lookups_failed": pass2_failed,
-        "pass2_batch_results": pass2_result["pass2_batch_results"],
+        "pass2_batch_results": pass2_result.get("pass2_batch_results", []),
         "total_enriched": total_enriched,
         "still_unenriched": still_unenriched,
         "match": still_unenriched == 0,
@@ -296,10 +303,11 @@ def enrich_by_zip_batch_fn(config: dict) -> dict:
 
 
 def get_unenriched_fn(config: dict) -> dict:
-    """Return _id list of providers without county.fips."""
+    """Return _id list of providers without county.fips, plus total provider count."""
     collection = config.get("staging_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
+    total_providers = coll.count_documents({})
     ids = [
         str(doc["_id"])
         for doc in coll.find(
@@ -307,8 +315,8 @@ def get_unenriched_fn(config: dict) -> dict:
             {"_id": 1}
         )
     ]
-    logging.info("Unenriched providers for Pass 2: %d", len(ids))
-    return {"count": len(ids), "provider_ids": ids}
+    logging.info("Unenriched providers for Pass 2: %d / %d total", len(ids), total_providers)
+    return {"count": len(ids), "provider_ids": ids, "total_providers": total_providers}
 
 
 def _geocode_address(street: str, city: str, state: str, zip_code: str) -> dict | None:
