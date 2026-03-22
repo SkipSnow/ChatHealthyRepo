@@ -239,7 +239,10 @@ def get_distinct_zips_fn(config: dict) -> dict:
     coll = _get_mongo_client()[db_name][coll_name]
     total = coll.count_documents({})
     pipeline = [
-        {"$project": {"zip5": {"$substr": ["$practice_address.zip", 0, 5]}}},
+        {"$project": {"zip5": {"$substr": [
+            {"$ifNull": [{"$toString": "$practice_address.zip"}, ""]},
+            0, 5
+        ]}}},
         {"$group": {"_id": "$zip5"}},
     ]
     zips = [doc["_id"] for doc in coll.aggregate(pipeline) if doc["_id"]]
@@ -303,7 +306,12 @@ def enrich_by_zip_batch_fn(config: dict) -> dict:
 
 
 def get_unenriched_fn(config: dict) -> dict:
-    """Return _id list of providers without county.fips, plus total provider count."""
+    """Return _id list of providers without county.fips, plus total provider count.
+
+    Excludes records already attempted by Pass 2 (county.source = geocoder_failed
+    or geocoder_no_address) — these are permanently unresolvable and must not be
+    re-attempted on subsequent runs.
+    """
     collection = config.get("staging_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
@@ -311,7 +319,10 @@ def get_unenriched_fn(config: dict) -> dict:
     ids = [
         str(doc["_id"])
         for doc in coll.find(
-            {"county.fips": None},
+            {
+                "county.fips": None,
+                "county.source": {"$nin": ["geocoder_failed", "geocoder_no_address"]},
+            },
             {"_id": 1}
         )
     ]
@@ -375,26 +386,34 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
     failed = 0
 
     for provider in providers:
-        addr = provider.get("practice_address", {})
-        result = _geocode_address(
-            street=addr.get("line1", ""),
-            city=addr.get("city", ""),
-            state=addr.get("state", ""),
-            zip_code=addr.get("zip", ""),
-        )
+        addr = provider.get("practice_address") or {}
+        street = addr.get("line1", "").strip()
+        city   = addr.get("city",  "").strip()
+        state  = addr.get("state", "").strip()
+        zip_code = addr.get("zip", "").strip()
+
+        # Blank address — no geocoder call, mark permanently unresolvable
+        if not street and not city:
+            ops.append(UpdateOne(
+                {"_id": provider["_id"]},
+                {"$set": {"county": {"fips": None, "source": "geocoder_no_address"}}}
+            ))
+            failed += 1
+            continue
+
+        result = _geocode_address(street=street, city=city, state=state, zip_code=zip_code)
         if result:
             ops.append(UpdateOne(
                 {"_id": provider["_id"]},
-                {"$set": {
-                    "county": {
-                        "fips": result["fips"],
-                        "name": result["name"],
-                        "source": "geocoder_pass2",
-                    },
-                }}
+                {"$set": {"county": {"fips": result["fips"], "name": result["name"], "source": "geocoder_pass2"}}}
             ))
             modified += 1
         else:
+            # Geocoder returned no match — mark so Pass 2 never re-attempts this record
+            ops.append(UpdateOne(
+                {"_id": provider["_id"]},
+                {"$set": {"county": {"fips": None, "source": "geocoder_failed"}}}
+            ))
             failed += 1
         time.sleep(0.05)  # 20 req/sec — Census Geocoder rate limit
 
