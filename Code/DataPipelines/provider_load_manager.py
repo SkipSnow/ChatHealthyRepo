@@ -25,7 +25,6 @@ from blob_client import get_blob_service
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
 
-from atlas_cluster_manager import scale_up, scale_down
 
 _mongo: MongoClient | None = None
 
@@ -459,13 +458,13 @@ def provider_worker_fn(config: dict) -> dict:
 # ── Full Pipeline Orchestrator ────────────────────────────────────────────────
 
 def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
-    """Top-level orchestrator: ScaleUp → Load → Pass1 → Pass2 → ScaleDown.
+    """Top-level orchestrator: Load → Pass1 → Pass2.
     Single kick-off, no human steps required until SparkPost email fires on completion.
+    Cluster management is handled manually — start the cluster before firing this.
     """
     from county_enrichment_job import _build_enrichment_reconcile
 
     config = context.get_input() or {}
-    cluster = config.get("cluster", "ChatHealthyDataPipelines")
     load_id = context.instance_id
 
     enrich_config = {
@@ -474,10 +473,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         "addr_batch_size": config.get("addr_batch_size", 50),
     }
 
-    context.set_custom_status("Step 1/5: Resuming cluster")
-    yield context.call_activity("scale_up_activity", {"cluster": cluster})
-
-    context.set_custom_status("Step 2/5: Loading provider data")
+    context.set_custom_status("Step 1/3: Loading provider data")
     load_config = {
         "num_workers": config.get("num_workers", 32),
         "batch_size": config.get("batch_size", 5000),
@@ -485,12 +481,12 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     }
     load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
 
-    context.set_custom_status("Step 3/5: County enrichment — Pass 1 (ZIP bulk)")
+    context.set_custom_status("Step 2/3: County enrichment — Pass 1 (ZIP bulk)")
     pass1_result = yield context.call_sub_orchestrator(
         "county_enrichment_pass1_orchestrator", enrich_config
     )
 
-    context.set_custom_status("Step 4/5: County enrichment — Pass 2 (Census Geocoder)")
+    context.set_custom_status("Step 3/3: County enrichment — Pass 2 (Census Geocoder)")
     pass2_result = yield context.call_sub_orchestrator(
         "county_enrichment_pass2_orchestrator", enrich_config
     )
@@ -499,9 +495,6 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     yield context.call_activity(
         "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
     )
-
-    context.set_custom_status("Step 5/5: Scaling down cluster")
-    yield context.call_activity("scale_down_activity", {"cluster": cluster})
 
     enrich_status = "complete" if reconcile["match"] else "partial"
     context.set_custom_status(
@@ -512,42 +505,3 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     return {"load": load_result, "enrichment": reconcile}
 
 
-def _wait_for_mongo_ready(timeout_minutes: int = 5) -> None:
-    """Poll MongoDB until it accepts connections after a cluster resume.
-
-    Atlas reports stateName=IDLE before the replica set has finished electing
-    a primary. Workers that start immediately will hit NotPrimaryError /
-    InterruptedDueToReplStateChange. This ping loop waits until a real
-    connection succeeds.
-    """
-    import time
-    deadline = time.time() + timeout_minutes * 60
-    conn_str = os.environ["MONGO_connectionString"]
-    while time.time() < deadline:
-        try:
-            client = MongoClient(
-                conn_str,
-                serverSelectionTimeoutMS=10_000,
-                connectTimeoutMS=10_000,
-            )
-            client.admin.command("ping")
-            client.close()
-            logging.info("MongoDB is ready — replica set has a primary.")
-            return
-        except Exception as exc:
-            logging.info("MongoDB not ready yet (%s) — retrying in 15s...", exc)
-            time.sleep(15)
-    raise TimeoutError(f"MongoDB did not become ready within {timeout_minutes} minutes")
-
-
-def scale_up_activity_fn(config: dict) -> dict:
-    cluster = config.get("cluster", "ChatHealthyDataPipelines")
-    scale_up(cluster)
-    _wait_for_mongo_ready()
-    return {"status": "resumed", "cluster": cluster}
-
-
-def scale_down_activity_fn(config: dict) -> dict:
-    cluster = config.get("cluster", "ChatHealthyDataPipelines")
-    scale_down(cluster)
-    return {"status": "scaled_down", "cluster": cluster}
