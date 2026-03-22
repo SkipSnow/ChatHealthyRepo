@@ -25,7 +25,7 @@ from blob_client import get_blob_service
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
 
-from atlas_cluster_manager import resume_for_job, scale_down
+from atlas_cluster_manager import scale_up, scale_down
 
 _mongo: MongoClient | None = None
 
@@ -530,7 +530,7 @@ def _wait_for_mongo_ready(timeout_minutes: int = 5) -> None:
 
 def scale_up_activity_fn(config: dict) -> dict:
     cluster = config.get("cluster", "ChatHealthyDataPipelines")
-    resume_for_job(cluster)
+    scale_up(cluster)
     _wait_for_mongo_ready()
     return {"status": "resumed", "cluster": cluster}
 

@@ -29,7 +29,10 @@ _mongo: MongoClient | None = None
 def _get_mongo_client() -> MongoClient:
     global _mongo
     if _mongo is None:
-        _mongo = MongoClient(os.environ["MONGO_connectionString"])
+        _mongo = MongoClient(
+            os.environ["MONGO_connectionString"],
+            serverSelectionTimeoutMS=120_000,  # survive Atlas autoscale elections (~30-90s)
+        )
     return _mongo
 
 
