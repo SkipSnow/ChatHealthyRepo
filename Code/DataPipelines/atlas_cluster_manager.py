@@ -87,8 +87,24 @@ def get_cluster_state(cluster_name: str) -> str:
     return get_cluster_info(cluster_name)["state"]
 
 
-def resize_cluster(cluster_name: str, instance_size: str, max_size: str) -> None:
-    """Submit a resize request. Does not wait for completion."""
+def resize_cluster(cluster_name: str, instance_size: str, max_size: str, lock_tier: bool = False) -> None:
+    """Submit a resize request. Does not wait for completion.
+
+    lock_tier=True disables compute autoscaling for the duration of a job run,
+    preventing mid-run primary elections caused by Atlas autoscale events.
+    """
+    if lock_tier:
+        # Disable compute autoscale — cluster stays at instance_size for entire job.
+        # Atlas cannot scale up or down, so no primary elections during load.
+        compute_autoscale = {"enabled": False}
+    else:
+        compute_autoscale = {
+            "enabled": True,
+            "scaleDownEnabled": True,
+            "minInstanceSize": IDLE_TIER,
+            "maxInstanceSize": max_size,
+        }
+
     payload = {
         "replicationSpecs": [{
             "regionConfigs": [{
@@ -97,12 +113,7 @@ def resize_cluster(cluster_name: str, instance_size: str, max_size: str) -> None
                 "priority": 7,
                 "electableSpecs": {"instanceSize": instance_size, "nodeCount": 3},
                 "autoScaling": {
-                    "compute": {
-                        "enabled": True,
-                        "scaleDownEnabled": True,
-                        "minInstanceSize": IDLE_TIER,
-                        "maxInstanceSize": max_size,
-                    },
+                    "compute": compute_autoscale,
                     "diskGB": {"enabled": True},
                 },
             }]
@@ -115,7 +126,8 @@ def resize_cluster(cluster_name: str, instance_size: str, max_size: str) -> None
     if r.status_code not in (200, 202):
         log.error("Resize failed: %s %s", r.status_code, r.text)
         r.raise_for_status()
-    log.info("Resize to %s requested (max %s). Cluster entering UPDATING.", instance_size, max_size)
+    locked = " (autoscale locked)" if lock_tier else f" (max {max_size})"
+    log.info("Resize to %s requested%s. Cluster entering UPDATING.", instance_size, locked)
 
 
 def wait_for_idle(cluster_name: str) -> None:
@@ -191,9 +203,9 @@ def scale_up(cluster_name: str) -> None:
         log.info("%s already at %s — no resize needed.", cluster_name, info["tier"])
         return
 
-    resize_cluster(cluster_name, JOB_TIER, JOB_MAX)
+    resize_cluster(cluster_name, JOB_TIER, JOB_MAX, lock_tier=True)
     wait_for_idle(cluster_name)
-    log.info("%s is ready at %s.", cluster_name, JOB_TIER)
+    log.info("%s is ready at %s (autoscale locked).", cluster_name, JOB_TIER)
 
 
 def scale_down(cluster_name: str) -> None:
