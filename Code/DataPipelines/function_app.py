@@ -30,7 +30,6 @@ from auth import require_auth
 from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
 from copy_to_frontend import run_copy_to_frontend
-from atlas_cluster_manager import scale_down, resume_for_job, pause_cluster, resume_cluster
 # from idle_monitor import check_and_pause  # disabled — see idle_monitor_timer below
 from county_enrichment_job import (
     county_enrichment_orchestrator_fn,
@@ -55,8 +54,6 @@ from provider_load_manager import (
     provider_worker_fn,
     reconcile_fn,
     report_fn,
-    scale_down_activity_fn,
-    scale_up_activity_fn,
     write_metadata_fn,
 )
 
@@ -69,13 +66,6 @@ SYNC_TASK_HANDLERS = {
     "LoadSpecialtyData": run_load_specialty_data,
     "LoadICD10": load_icd10,
     "CopyToFrontEnd": run_copy_to_frontend,
-    # ScaleUp resumes the cluster from paused state (no resize — cluster stays at its current tier).
-    # For a blocking wait (required before heavy jobs), use FullProviderPipeline which
-    # runs scale_up_activity inside a Durable orchestrator where long waits are safe.
-    "ScaleUp": lambda config: resume_for_job(config.get("cluster", "ChatHealthyDataPipelines")) or {"status": "resumed"},
-    "ScaleDown": lambda config: scale_down(config.get("cluster", "ChatHealthyDataPipelines")) or {"status": "scaled_down"},
-    "PauseCluster": lambda config: pause_cluster(config.get("cluster", "ChatHealthyDataPipelines")) or {"status": "paused"},
-    "ResumeCluster": lambda config: resume_cluster(config.get("cluster", "ChatHealthyDataPipelines")) or {"status": "resumed"},
 }
 
 # Asynchronous tasks — start a Durable orchestrator, return 202 + status URL
@@ -239,16 +229,6 @@ def reconcile_activity(config: dict) -> dict:
 @app.activity_trigger(input_name="config")
 def report_activity(config: dict) -> dict:
     return report_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def scale_up_activity(config: dict) -> dict:
-    return scale_up_activity_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def scale_down_activity(config: dict) -> dict:
-    return scale_down_activity_fn(config)
 
 
 # ── County Enrichment Orchestrator + Activities ───────────────────────────────
