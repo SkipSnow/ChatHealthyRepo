@@ -50,6 +50,7 @@ class DiscrepancyReporter:
             for r in worker_results
             for row in r.get("failed_rows", [])
         ]
+        total_failed_rows = sum(r.get("rows_failed", 0) for r in worker_results)
 
         # ── Write report to MongoDB ───────────────────────────────────────────
         report = {
@@ -61,6 +62,7 @@ class DiscrepancyReporter:
                 "total_workers": len(worker_results),
                 "failed_workers": len(failed_workers),
                 "total_loaded": total_loaded,
+                "total_failed_rows": total_failed_rows,
             },
             "failed_rows": all_failed_rows,  # up to 20 per worker; overflow in Azure logs
             "worker_results": worker_results,

@@ -35,6 +35,8 @@ from atlas_cluster_manager import scale_down, resume_for_job, pause_cluster, res
 from idle_monitor import check_and_pause
 from county_enrichment_job import (
     county_enrichment_orchestrator_fn,
+    county_enrichment_pass1_orchestrator_fn,
+    county_enrichment_pass2_orchestrator_fn,
     enrich_by_address_batch_fn,
     enrich_by_zip_batch_fn,
     enrichment_report_fn,
@@ -45,7 +47,8 @@ from county_enrichment_job import (
 from provider_load_manager import (
     download_zip_fn,
     drain_staging_fn,
-    ensure_indexes_fn,
+    ensure_preload_indexes_fn,
+    ensure_postload_indexes_fn,
     extract_csv_fn,
     full_provider_pipeline_orchestrator_fn,
     partition_file_fn,
@@ -210,8 +213,13 @@ def drain_staging_activity(config: dict) -> dict:
 
 
 @app.activity_trigger(input_name="config")
-def ensure_indexes_activity(config: dict) -> None:
-    return ensure_indexes_fn(config)
+def ensure_preload_indexes_activity(config: dict) -> None:
+    return ensure_preload_indexes_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def ensure_postload_indexes_activity(config: dict) -> None:
+    return ensure_postload_indexes_fn(config)
 
 
 @app.activity_trigger(input_name="config")
@@ -249,6 +257,16 @@ def scale_down_activity(config: dict) -> dict:
 @app.orchestration_trigger(context_name="context")
 def county_enrichment_orchestrator(context: df.DurableOrchestrationContext):
     return county_enrichment_orchestrator_fn(context)
+
+
+@app.orchestration_trigger(context_name="context")
+def county_enrichment_pass1_orchestrator(context: df.DurableOrchestrationContext):
+    return county_enrichment_pass1_orchestrator_fn(context)
+
+
+@app.orchestration_trigger(context_name="context")
+def county_enrichment_pass2_orchestrator(context: df.DurableOrchestrationContext):
+    return county_enrichment_pass2_orchestrator_fn(context)
 
 
 @app.activity_trigger(input_name="config")
