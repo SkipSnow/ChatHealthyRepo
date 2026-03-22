@@ -207,6 +207,9 @@
           <li><strong>Designs:</strong>
             <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('provider-data-load.html'),('Provider Data Load'));return false;" style="color:var(--teal); text-decoration:none;">Provider Data Load &amp; County Enrichment</a>
           </li>
+          <li><strong>Roadmap:</strong>
+            <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('roadmap.html'),('Roadmap'));return false;" style="color:var(--teal); text-decoration:none;">ChatHealthy.ai Product Roadmap</a>
+          </li>
         </ul>
       </nav>
 
@@ -404,7 +407,7 @@
           <tr><td>Website tests</td><td>Playwright + pytest</td><td>Website/tests/ — 32 browser-driven tests</td></tr>
           <tr><td>App unit tests</td><td>pytest (mocked)</td><td>Code/ConversationalUX/…/tests/test_record_user_details.py</td></tr>
           <tr><td>App e2e tests</td><td>pytest (real systems)</td><td>Code/ConversationalUX/…/tests/test_e2e_record_user_details.py</td></tr>
-          <tr><td>Secrets</td><td>GitHub Secrets</td><td>HF_TOKEN, OPENAI_API_KEY, Anthropic_API_KEY, MONGO_connectionString, PUSHOVER_USER, PUSHOVER_TOKEN, AZURE_FUNCTION_APP_NAME, AZURE_FUNCTION_PUBLISH_PROFILE</td></tr>
+          <tr><td>Secrets</td><td>GitHub Secrets</td><td>HF_TOKEN, OPENAI_API_KEY, Anthropic_API_KEY, MONGO_connectionString, SPARKMAIL_API_KEY, NOTIFICATION_FROM_EMAIL, NOTIFICATION_TO_EMAIL, AZURE_FUNCTION_APP_NAME, AZURE_FUNCTION_PUBLISH_PROFILE</td></tr>
           <tr><td>IDE</td><td>Cursor / VS Code + Claude Code</td><td>Claude Code for all AI-assisted development</td></tr>
         </table>
       </div>
@@ -412,67 +415,56 @@
       <!-- 9 -->
       <h2 id="pipeline-architecture">9. Data Pipeline Architecture</h2>
 
-      <p>Public health data (providers, specialties, crosswalks) is loaded and enriched by App 3
-      on a monthly cadence and made available to the Runtime cluster for app queries. The pipeline
-      is managed by a <strong>Batch Manager</strong> — a Durable Functions orchestrator that runs
-      jobs sequentially, enforces dependencies, and handles MongoDB scaling automatically.</p>
+      <p>Public health data (providers, specialties, ICD-10, procedures, prescriptions) is loaded
+      and enriched by App 3 on a monthly cadence. The pipeline is triggered manually via POST to
+      <code>/api/Router</code>. The MongoDB Atlas cluster (<strong>ChatHealthyDataPipelines</strong>)
+      is started manually before each run. A health check at pipeline start pings the cluster,
+      emails the admin, and fails fast if it is unreachable — no workers are launched against a
+      down cluster.</p>
 
-      <h3>Two MongoDB Clusters</h3>
-      <p>Pipeline and runtime workloads are separated into two MongoDB Atlas clusters to keep
-      bulk write operations from impacting app query performance:</p>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Cluster</th><th>Tier</th><th>Purpose</th></tr>
-          <tr><td><strong>Pipeline</strong></td><td>M40 (scaled up during load, M0 at rest)</td><td>Batch writes — provider load, enrichment, copy. Scaled up before each monthly run and back down after.</td></tr>
-          <tr><td><strong>Runtime</strong></td><td>M10/M20 (always-on)</td><td>App reads — provider queries, specialty lookups, chat tool calls. Never touched by pipeline writes.</td></tr>
-        </table>
-      </div>
-
-      <h3>Batch Manager — Job Sequence</h3>
-      <p>The Batch Manager runs four jobs in dependency order. If any job fails, all downstream
-      jobs are skipped. Each job records its status in <code>admin.BatchManager</code>.</p>
+      <h3>FullProviderPipeline — Current Implementation (5 Steps)</h3>
+      <p>All steps run sequentially. Pass <code>start_step</code> (1–5) in the payload to resume
+      from any step without re-running prior completed work. Default: full run from Step 1.</p>
       <div class="diagram">
         <div class="diagram-inner">
-          <div class="d-center"><div class="d-box d-box-wide"><strong>Batch Manager</strong><small>triggered by monthly scheduler or POST /api/Router · scales Pipeline cluster up before Job 1</small></div></div>
-          <div class="d-down">↓ Job 1</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>LoadProviderData</strong><small>8.8M NPI records · 50-worker fan-out · ~35 min · writes to providers_staging (Pipeline cluster)</small></div></div>
-          <div class="d-down">↓ Job 2 — depends on Job 1</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>CountyEnrichment</strong><small>Pass 1: ZIP→county via HUD crosswalk (updateMany) · Pass 2: Census Geocoder for split ZIPs (updateOne)</small></div></div>
-          <div class="d-down">↓ Job 3 — depends on Job 2</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>CopyToRuntime</strong><small>fan-out copy of providers_staging → providers_new on Runtime cluster</small></div></div>
-          <div class="d-down">↓ Job 4 — depends on Job 3</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>CollectionSwap</strong><small>atomic rename: providers → providers_archive · providers_new → providers · scale Pipeline cluster down</small></div></div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>FullProviderPipeline Orchestrator</strong><small>POST /api/Router · ChatHealthyTask: FullProviderPipeline</small></div></div>
+          <div class="d-down">↓ Step 1</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>MongoDB Health Check</strong><small>ping cluster · SparkPost email to admin + fail fast if unreachable</small></div></div>
+          <div class="d-down">↓ Step 2</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>LoadProviderData</strong><small>~8.8M NPI records · 32-worker fan-out · ~25 min · ETag skip guard on download · blob skip guard on CSV extraction</small></div></div>
+          <div class="d-down">↓ Step 3</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment — Pass 1</strong><small>ZIP → county via HUD crosswalk · updateMany · ~40K distinct ZIPs</small></div></div>
+          <div class="d-down">↓ Step 4</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment — Pass 2</strong><small>Census Geocoder for split ZIPs (res_ratio &lt; 0.98) · updateOne per provider</small></div></div>
+          <div class="d-down">↓ Step 5</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Generate Embeddings + Create Atlas Vector Search Index</strong><small>OpenAI text-embedding-3-small · 1536 dims · all meaningful fields · idempotent · provider_vector_index</small></div></div>
         </div>
       </div>
 
-      <h3>Batch Run Lifecycle States</h3>
-      <p>Every batch run transitions through explicit states stored in <code>admin.BatchManager</code>.
-      No run can skip a state or move backwards.</p>
+      <h3>Data Sources (current and planned)</h3>
       <div class="table-wrap">
         <table>
-          <tr><th>State</th><th>Meaning</th></tr>
-          <tr><td><code>requested</code></td><td>Run triggered — scheduler or API call received</td></tr>
-          <tr><td><code>running</code></td><td>One or more jobs currently executing</td></tr>
-          <tr><td><code>validated</code></td><td>All jobs complete, reconciliation passed</td></tr>
-          <tr><td><code>published</code></td><td>Collection swap complete — new data is live on Runtime cluster</td></tr>
-          <tr><td><code>failed</code></td><td>One or more jobs failed — downstream jobs skipped</td></tr>
-          <tr><td><code>rolled_back</code></td><td>Swap reversed — previous archive promoted back to live</td></tr>
+          <tr><th>Dataset</th><th>Task</th><th>Status</th></tr>
+          <tr><td>NPPES NPI providers</td><td>FullProviderPipeline / LoadProviderData</td><td>Live</td></tr>
+          <tr><td>Provider taxonomy / specialties</td><td>LoadSpecialtyData</td><td>Live</td></tr>
+          <tr><td>ICD-10-CM diagnosis codes</td><td>LoadICD10</td><td>Live</td></tr>
+          <tr><td>Procedure codes (CPT/HCPCS)</td><td>LoadProcedureCodes</td><td>Planned — Tuesday 2026-03-24</td></tr>
+          <tr><td>CMS Medicare Part D prescriptions</td><td>LoadPrescriptionData</td><td>Planned — Tuesday 2026-03-24</td></tr>
+          <tr><td>HUD ZIP→county crosswalk</td><td>Loaded as prerequisite</td><td>Live</td></tr>
         </table>
       </div>
 
-      <h3>Blue-Green Collection Swap</h3>
-      <p>The app always reads from <code>providers</code> on the Runtime cluster. The swap (Job 4)
-      is a three-step atomic rename — from the app's perspective the collection is never missing:</p>
+      <h3>Two-Cluster Architecture (planned)</h3>
+      <p>Pipeline and runtime workloads will be separated into two Atlas clusters to prevent bulk
+      write operations from impacting app query performance. Collection swap and CopyToRuntime
+      are deferred (see Section 12):</p>
       <div class="table-wrap">
         <table>
-          <tr><th>Step</th><th>Operation</th></tr>
-          <tr><td>1</td><td>Rename <code>providers</code> → <code>providers_archive</code></td></tr>
-          <tr><td>2</td><td>Rename <code>providers_new</code> → <code>providers</code></td></tr>
-          <tr><td>3</td><td>Drop <code>providers_archive</code> after next successful run</td></tr>
+          <tr><th>Cluster</th><th>Purpose</th></tr>
+          <tr><td><strong>ChatHealthyDataPipelines</strong></td><td>Batch writes — provider load, enrichment, embeddings. Started manually before each monthly run.</td></tr>
+          <tr><td><strong>ChatHealthyFrontEnd</strong></td><td>App reads — provider queries, specialty lookups, chat tool calls. Always on. (Runtime reads currently served from DataPipelines cluster pending CopyToRuntime implementation.)</td></tr>
         </table>
       </div>
-      <p>The previous collection is kept as <code>providers_archive</code> for one cycle. If the new
-      data has a problem, the rollback is a single rename.</p>
 
       <!-- 10 -->
       <h2 id="environment">10. Environment &amp; Data Model</h2>
@@ -522,9 +514,9 @@
           </tr>
           <tr style="background:#fafafa;">
             <td style="padding:8px; border:1px solid #ddd;"><code>PublicHealthData</code></td>
-            <td style="padding:8px; border:1px solid #ddd;"><code>providers_staging</code>, enrichment working data</td>
+            <td style="padding:8px; border:1px solid #ddd;"><code>providers_staging</code> (with <code>embedding</code> float[1536] after Step 5), enrichment working data, <code>ICD10Codes</code>, <code>SpecialtyMetaData</code>, <code>ZipCountyCrosswalk</code></td>
             <td style="padding:8px; border:1px solid #ddd;">ChatHealthyDataPipelines</td>
-            <td style="padding:8px; border:1px solid #ddd; font-size:0.8rem;">100% public data — pipeline working area, ephemeral</td>
+            <td style="padding:8px; border:1px solid #ddd; font-size:0.8rem;">100% public data — pipeline working area. Atlas Vector Search index <code>provider_vector_index</code> (cosine, 1536 dims) on <code>embedding</code> field.</td>
           </tr>
           <tr>
             <td style="padding:8px; border:1px solid #ddd;"><code>admin</code></td>
@@ -595,11 +587,16 @@
       <!-- 12 -->
       <h2 id="deferred">12. Deferred</h2>
       <ul>
+        <li><strong>CopyToRuntime + Blue-Green Collection Swap</strong> — fan-out copy of <code>providers_staging</code> → <code>providers_new</code> on ChatHealthyFrontEnd cluster, then atomic rename swap. Until implemented, runtime reads are served from the DataPipelines cluster.</li>
+        <li><strong>Cluster manager agent</strong> — dedicated agent/service to start/stop the DataPipelines cluster on a schedule, fully decoupled from the pipeline itself. Current approach: manual.</li>
+        <li><strong>Idle monitor re-enable</strong> — auto-pause the DataPipelines cluster when idle. Disabled because it fired mid-pipeline run. Requires a pipeline lock mechanism before re-enabling.</li>
+        <li><strong>ICD-10 → specialty → provider research agent</strong> — given a diagnosis code, identify relevant specialties and surface providers + prescribing patterns (see RESEARCH-002).</li>
+        <li><strong>Multi-location provider aggregation</strong> — NPPES has one practice address per individual NPI. Supplementing with payer directory data would reveal all locations where a provider bills (see RESEARCH-001).</li>
         <li>FHIR / EMR integration — Layer 2, future phase</li>
         <li>User authentication and cross-session persistence</li>
         <li>Production MongoDB cluster (currently dev only)</li>
         <li>MongoDB connection pooling design</li>
-        <li>Data deletion agent — Azure Function with email verification, MongoDB deletion, SendGrid confirmation</li>
+        <li>Data deletion agent — Azure Function with email verification, MongoDB deletion, confirmation email</li>
         <li><strong>Migrate Layer 1 off HuggingFace → Azure Static Web Apps.</strong> HuggingFace has a 60-second request timeout (too short for multi-agent workflows), spaces sleep on inactivity, and free-tier compute is undersized for production. Azure Static Web Apps places the React frontend on Azure CDN and the FastAPI backend as an Azure Function — same infrastructure already running DataPipelines, single vendor, single deploy pipeline. HuggingFace stays live until Layer 1 is replaced.</li>
         <li><strong>Enterprise security hardening.</strong> Current setup uses workstation-cached GitHub credentials and manually managed secrets in Azure portal — acceptable for solo dev, insufficient for enterprise customers. Pre-sales blockers: fine-grained GitHub PAT or SSH key with passphrase; Azure Key Vault for secrets management; GitHub Actions OIDC federation replacing long-lived secrets; GPG-signed commits for verifiable audit trail; separation of deploy and dev credentials.</li>
       </ul>
