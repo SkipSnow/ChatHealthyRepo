@@ -56,7 +56,20 @@ def check_and_pause() -> dict:
         logging.info("IdleMonitor: %s is %s — skipping check.", cluster, info["state"])
         return {"action": "none", "reason": f"cluster_{info['state'].lower()}"}
 
-    # ── 2. Query last completed pipeline run ──────────────────────────────────
+    # ── 2. Check for active load workers ─────────────────────────────────────
+    # status_code=10 means "Load invoked" — worker is actively writing to staging.
+    # Pausing while workers are running causes InterruptedDueToReplStateChange.
+    meta_db, meta_coll = "admin", "DataLoadMetadata"
+    active_workers = _get_mongo_client()[meta_db][meta_coll].count_documents(
+        {"status_code": 10}
+    )
+    if active_workers > 0:
+        logging.info(
+            "IdleMonitor: %d active load worker(s) detected — skipping pause.", active_workers
+        )
+        return {"action": "none", "reason": "load_in_progress", "active_workers": active_workers}
+
+    # ── 3. Query last completed pipeline run ──────────────────────────────────
     db_name, coll_name = REPORT_COLLECTION.split(".", 1)
     last_report = _get_mongo_client()[db_name][coll_name].find_one(
         {}, sort=[("datetime", -1)]
