@@ -31,7 +31,7 @@ from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
 from copy_to_frontend import run_copy_to_frontend
 from atlas_cluster_manager import scale_down, resume_for_job, pause_cluster, resume_cluster
-from idle_monitor import check_and_pause
+# from idle_monitor import check_and_pause  # disabled — see idle_monitor_timer below
 from county_enrichment_job import (
     county_enrichment_orchestrator_fn,
     county_enrichment_pass1_orchestrator_fn,
@@ -169,10 +169,11 @@ async def dev_pipeline_management(
 
 # ── Idle Monitor (Timer Trigger) ──────────────────────────────────────────────
 
-@app.timer_trigger(schedule="0 */30 * * * *", arg_name="myTimer", run_on_startup=False)
-def idle_monitor_timer(myTimer: func.TimerRequest) -> None:
-    """Auto-pause ChatHealthyDataPipelines if idle longer than IDLE_MONITOR_THRESHOLD_HOURS."""
-    check_and_pause()
+# Idle monitor disabled — paused cluster mid-run (fix: pipeline lock needed before re-enabling)
+# @app.timer_trigger(schedule="0 */30 * * * *", arg_name="myTimer", run_on_startup=False)
+# def idle_monitor_timer(myTimer: func.TimerRequest) -> None:
+#     """Auto-pause ChatHealthyDataPipelines if idle longer than IDLE_MONITOR_THRESHOLD_HOURS."""
+#     check_and_pause()
 
 
 # ── Durable Orchestrators ─────────────────────────────────────────────────────
