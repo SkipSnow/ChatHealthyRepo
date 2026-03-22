@@ -473,7 +473,10 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         "addr_batch_size": config.get("addr_batch_size", 50),
     }
 
-    context.set_custom_status("Step 1/3: Loading provider data")
+    context.set_custom_status("Step 1/4: Checking MongoDB health")
+    yield context.call_activity("check_mongo_health_activity", config)
+
+    context.set_custom_status("Step 2/4: Loading provider data")
     load_config = {
         "num_workers": config.get("num_workers", 32),
         "batch_size": config.get("batch_size", 5000),
@@ -481,12 +484,12 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     }
     load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
 
-    context.set_custom_status("Step 2/3: County enrichment — Pass 1 (ZIP bulk)")
+    context.set_custom_status("Step 3/4: County enrichment — Pass 1 (ZIP bulk)")
     pass1_result = yield context.call_sub_orchestrator(
         "county_enrichment_pass1_orchestrator", enrich_config
     )
 
-    context.set_custom_status("Step 3/3: County enrichment — Pass 2 (Census Geocoder)")
+    context.set_custom_status("Step 4/4: County enrichment — Pass 2 (Census Geocoder)")
     pass2_result = yield context.call_sub_orchestrator(
         "county_enrichment_pass2_orchestrator", enrich_config
     )
