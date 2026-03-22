@@ -221,7 +221,11 @@ def download_zip_fn(config: dict) -> dict:
 
 
 def extract_csv_fn(config: dict) -> str:
-    """Extract CSV from zip blob, upload CSV blob. Returns csv blob name."""
+    """Extract CSV from zip blob, upload CSV blob. Returns csv blob name.
+
+    Skip guard: if npi_{version}.csv already exists in blob, skip extraction.
+    The NPPES zip is ~8-9GB — re-extracting on every run costs ~60-90 minutes.
+    """
     zip_blob_name = config["zip_path"]
     container = config.get("blob_container", "provider-data")
     version = config.get("version", "latest")
@@ -230,13 +234,21 @@ def extract_csv_fn(config: dict) -> str:
     service = get_blob_service()
     container_client = service.get_container_client(container)
 
-    # Download zip to temp file (zip is ~500MB, fits in /tmp on Azure Functions)
+    # Skip if CSV already exists for this version
+    csv_blob = container_client.get_blob_client(csv_blob_name)
+    try:
+        csv_blob.get_blob_properties()
+        logging.info("CSV already exists in blob: %s — skipping extraction.", csv_blob_name)
+        return csv_blob_name
+    except Exception:
+        pass  # blob does not exist — proceed with extraction
+
+    # Download zip to temp file, then stream-extract CSV to blob
     with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
         tmp_path = tmp.name
         container_client.get_blob_client(zip_blob_name).download_blob().readinto(tmp)
 
-    # Stream-extract CSV directly to blob (8GB CSV never touches /tmp)
-    csv_blob = container_client.get_blob_client(csv_blob_name)
+    # Stream-extract CSV directly to blob (8GB+ CSV never touches /tmp)
     with zipfile.ZipFile(tmp_path) as zf:
         csv_name = next(
             n for n in zf.namelist()
