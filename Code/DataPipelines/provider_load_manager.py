@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 
 import azure.durable_functions as df
 import requests
-from azure.storage.blob import BlobServiceClient
+from blob_client import get_blob_service
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
 
@@ -97,15 +97,9 @@ class NppesFetcher(DataFetcherBase):
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _blob_service() -> BlobServiceClient:
-    return BlobServiceClient.from_connection_string(
-        os.environ["AZURE_STORAGE_CONNECTION_STRING"]
-    )
-
-
 def _ensure_container(container: str) -> None:
     try:
-        _blob_service().get_container_client(container).create_container()
+        get_blob_service().get_container_client(container).create_container()
     except Exception:
         pass  # already exists
 
@@ -233,7 +227,7 @@ def extract_csv_fn(config: dict) -> str:
     version = config.get("version", "latest")
     csv_blob_name = f"npi_{version}.csv"
 
-    service = _blob_service()
+    service = get_blob_service()
     container_client = service.get_container_client(container)
 
     # Download zip to temp file (zip is ~500MB, fits in /tmp on Azure Functions)
@@ -263,7 +257,7 @@ def partition_file_fn(config: dict) -> list:
     csv_path = config["csv_path"]
     container = config.get("blob_container", "provider-data")
 
-    service = _blob_service()
+    service = get_blob_service()
     blob_client = service.get_container_client(container).get_blob_client(csv_path)
     file_size = blob_client.get_blob_properties().size
 
@@ -295,7 +289,7 @@ def partition_file_fn(config: dict) -> list:
     boundaries = [header_end]
     for i in range(1, num_workers):
         nominal = header_end + i * chunk_size
-        window = blob_client.download_blob(offset=nominal, length=1024).readall()
+        window = blob_client.download_blob(offset=nominal, length=65536).readall()
         newline_pos = window.find(b"\n")
         true_boundary = nominal + newline_pos + 1 if newline_pos >= 0 else nominal
         boundaries.append(true_boundary)
@@ -396,7 +390,7 @@ def reconcile_fn(config: dict) -> dict:
     csv_path = config["csv_path"]
     container = config.get("blob_container", "provider-data")
 
-    service = _blob_service()
+    service = get_blob_service()
     blob_client = service.get_container_client(container).get_blob_client(csv_path)
 
     total_newlines = 0

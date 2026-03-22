@@ -32,7 +32,7 @@ import tempfile
 from datetime import datetime, timezone
 
 import requests
-from azure.storage.blob import BlobServiceClient
+from blob_client import get_blob_service
 from pymongo import MongoClient
 
 REGISTRY_COLLECTION = "admin.DataSourceRegistry"
@@ -137,9 +137,7 @@ class DataFetcherBase:
         Returns (blob_name, sha256_hex, size_bytes).
         """
         name = self.blob_name()
-        service = BlobServiceClient.from_connection_string(
-            os.environ["AZURE_STORAGE_CONNECTION_STRING"]
-        )
+        service = get_blob_service()
         try:
             service.get_container_client(self.container).create_container()
         except Exception:
