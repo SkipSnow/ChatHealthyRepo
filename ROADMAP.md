@@ -109,7 +109,23 @@ Pre-sales requirements: fine-grained GitHub PAT or SSH key with passphrase; Azur
 
 Currently dev-only. Production cluster requires sizing, backup policy, IP allowlist locked to VNet only, and separation of PipelineUser and FrontEndUser credentials.
 
-### INFRA-006: Durable Functions orchestrator versioning
+### INFRA-006: Refactor DataPipelines into packages
+
+**Status:** Open
+**Priority:** Pre-Alpha — before ICD-10 and prescriptions pipelines are written
+
+Flat file structure (19 files) lacks architectural clarity. Restructure into packages so the folder layout reflects the system design:
+
+- `providers/` — NPI load, worker, embedding, validator
+- `enrichment/` — county enrichment, crosswalk loader
+- `loaders/` — ICD-10, specialty, copy-to-frontend, future data sources
+- `infrastructure/` — mongo, blob, auth, health, cluster manager, reporter
+
+**Timing:** Do before writing new loaders so ICD-10 and prescriptions land in `loaders/` from the start. All imports in `function_app.py` and across the codebase will need updating.
+
+---
+
+### INFRA-007: Durable Functions orchestrator versioning
 
 **Status:** Open
 **Priority:** Pre-Alpha — April 25, 2026

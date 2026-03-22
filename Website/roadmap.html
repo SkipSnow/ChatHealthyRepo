@@ -219,6 +219,7 @@
         <!-- Month header -->
         <div class="gantt-head">
           <div class="gantt-head-label"></div>
+          <div class="gantt-planned-hdr">Planned</div>
           <div class="gantt-months">
 
             <div class="gantt-month">Mar</div>
@@ -232,7 +233,6 @@
             <div class="gantt-month">Nov</div>
             <div class="gantt-month">Dec</div>
           </div>
-          <div class="gantt-planned-hdr">Planned</div>
         </div>
 
         <!-- M-001: Data loading  Mar 1 → Mar 24  (0% → 7.7%) -->
@@ -241,11 +241,11 @@
             <span class="gantt-row-id">M-001</span>
             <span class="gantt-row-name">Data loading complete</span>
           </div>
+          <div class="gantt-planned yes">Yes</div>
           <div class="gantt-track">
-            <div class="gantt-bar gb-m001" style="left:0%;width:7.7%"></div>
+            <div class="gantt-bar gb-alpha" style="left:0%;width:7.7%"></div>
             <div class="gantt-milestone gm-m001" style="left:7.7%"></div>
           </div>
-          <div class="gantt-planned yes">Yes</div>
         </div>
 
         <!-- M-002: Alpha launch  Mar 24 → Apr 30  (7.7% → 20%) -->
@@ -254,11 +254,11 @@
             <span class="gantt-row-id">M-002</span>
             <span class="gantt-row-name">Alpha launch</span>
           </div>
+          <div class="gantt-planned yes">Yes</div>
           <div class="gantt-track">
             <div class="gantt-bar gb-alpha" style="left:7.7%;width:12.3%"></div>
             <div class="gantt-milestone gm-m002" style="left:20%"></div>
           </div>
-          <div class="gantt-planned yes">Yes</div>
         </div>
 
         <!-- RESEARCH-002: ICD-10 agent  Apr  (10% → 20%) -->
@@ -267,22 +267,22 @@
             <span class="gantt-row-id">RESEARCH-002</span>
             <span class="gantt-row-name">ICD-10 → specialty agent</span>
           </div>
-          <div class="gantt-track">
-            <div class="gantt-bar gb-research" style="left:10%;width:10%"></div>
-          </div>
           <div class="gantt-planned yes">Yes</div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-alpha" style="left:10%;width:10%"></div>
+          </div>
         </div>
 
-        <!-- INFRA-003: UX → Azure  May–Jul  (20% → 40%) -->
+        <!-- INFRA-003: UX → Azure  now–Apr 25  (7% → 18.3%) -->
         <div class="gantt-row">
           <div class="gantt-row-label">
             <span class="gantt-row-id">INFRA-003</span>
             <span class="gantt-row-name">Chat UI off HuggingFace → Azure</span>
           </div>
-          <div class="gantt-track">
-            <div class="gantt-bar gb-infra" style="left:20%;width:20%"></div>
-          </div>
           <div class="gantt-planned yes">Yes</div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-alpha" style="left:7%;width:11.3%"></div>
+          </div>
         </div>
 
         <!-- INFRA-001: CopyToRuntime  May–Jun  (20% → 30%) -->
@@ -291,34 +291,34 @@
             <span class="gantt-row-id">INFRA-001</span>
             <span class="gantt-row-name">CopyToRuntime swap</span>
           </div>
+          <div class="gantt-planned yes">Yes</div>
           <div class="gantt-track">
             <div class="gantt-bar gb-infra" style="left:20%;width:10%"></div>
           </div>
-          <div class="gantt-planned yes">Yes</div>
         </div>
 
-        <!-- INFRA-002: Cluster manager  May–Jun  (20% → 30%) -->
+        <!-- INFRA-002: Cluster manager  now–Apr 20  (7% → 16.7%) -->
         <div class="gantt-row">
           <div class="gantt-row-label">
             <span class="gantt-row-id">INFRA-002</span>
             <span class="gantt-row-name">Cluster manager agent</span>
           </div>
-          <div class="gantt-track">
-            <div class="gantt-bar gb-infra" style="left:20%;width:10%"></div>
-          </div>
           <div class="gantt-planned yes">Yes</div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-alpha" style="left:7%;width:9.7%"></div>
+          </div>
         </div>
 
-        <!-- INFRA-005: Production MongoDB  May–Jun  (20% → 30%) -->
+        <!-- INFRA-005: Production MongoDB  Apr 30–Jun 1  (20% → 30.3%) -->
         <div class="gantt-row">
           <div class="gantt-row-label">
             <span class="gantt-row-id">INFRA-005</span>
             <span class="gantt-row-name">Production MongoDB cluster</span>
           </div>
-          <div class="gantt-track">
-            <div class="gantt-bar gb-infra" style="left:20%;width:10%"></div>
-          </div>
           <div class="gantt-planned yes">Yes</div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-infra" style="left:20%;width:10.3%"></div>
+          </div>
         </div>
 
         <!-- INFRA-004: Enterprise security  May–Aug  (20% → 50%) — pre-sales blocker -->
@@ -327,22 +327,10 @@
             <span class="gantt-row-id">INFRA-004</span>
             <span class="gantt-row-name">Enterprise security hardening</span>
           </div>
+          <div class="gantt-planned yes">Yes</div>
           <div class="gantt-track">
             <div class="gantt-bar gb-security" style="left:20%;width:30%"></div>
           </div>
-          <div class="gantt-planned yes">Yes</div>
-        </div>
-
-        <!-- BUG-001: Idle monitor  Jun  (30% → 35%) -->
-        <div class="gantt-row">
-          <div class="gantt-row-label">
-            <span class="gantt-row-id">BUG-001</span>
-            <span class="gantt-row-name">Idle monitor fix</span>
-          </div>
-          <div class="gantt-track">
-            <div class="gantt-bar gb-bug" style="left:30%;width:5%"></div>
-          </div>
-          <div class="gantt-planned yes">Yes</div>
         </div>
 
         <!-- RESEARCH-001: Multi-location  Jul–Oct  (40% → 70%) -->
@@ -351,34 +339,32 @@
             <span class="gantt-row-id">RESEARCH-001</span>
             <span class="gantt-row-name">Multi-location payer data</span>
           </div>
+          <div class="gantt-planned yes">Yes</div>
           <div class="gantt-track">
             <div class="gantt-bar gb-research" style="left:40%;width:30%"></div>
           </div>
-          <div class="gantt-planned yes">Yes</div>
         </div>
 
-        <!-- INFRA-006: Orchestrator versioning  now → Apr 25  (7% → 18.3%) -->
+        <!-- INFRA-007: Orchestrator versioning  now → Apr 25  (7% → 18.3%) -->
         <div class="gantt-row">
           <div class="gantt-row-label">
-            <span class="gantt-row-id">INFRA-006</span>
+            <span class="gantt-row-id">INFRA-007</span>
             <span class="gantt-row-name">Orchestrator versioning</span>
           </div>
-          <div class="gantt-track">
-            <div class="gantt-bar gb-infra" style="left:7%;width:11.3%"></div>
-          </div>
           <div class="gantt-planned yes">Yes</div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-alpha" style="left:7%;width:11.3%"></div>
+          </div>
         </div>
 
-        <!-- FUTURE-001: Auth  Apr 15 → May  (15% → 23%) -->
+        <!-- FUTURE-001: Auth — no committed date -->
         <div class="gantt-row">
           <div class="gantt-row-label">
             <span class="gantt-row-id">FUTURE-001</span>
             <span class="gantt-row-name">User authentication</span>
           </div>
-          <div class="gantt-track">
-            <div class="gantt-bar gb-future" style="left:15%;width:8%"></div>
-          </div>
-          <div class="gantt-planned yes">Yes</div>
+          <div class="gantt-planned no">No</div>
+          <div class="gantt-track"></div>
         </div>
 
         <!-- FUTURE-002: Data deletion — no committed date -->
@@ -387,8 +373,8 @@
             <span class="gantt-row-id">FUTURE-002</span>
             <span class="gantt-row-name">Data deletion agent</span>
           </div>
-          <div class="gantt-track"></div>
           <div class="gantt-planned no">No</div>
+          <div class="gantt-track"></div>
         </div>
 
         <!-- FUTURE-003: FHIR — no committed date -->
@@ -397,20 +383,18 @@
             <span class="gantt-row-id">FUTURE-003</span>
             <span class="gantt-row-name">FHIR / Epic EMR</span>
           </div>
-          <div class="gantt-track"></div>
           <div class="gantt-planned no">No</div>
+          <div class="gantt-track"></div>
         </div>
 
       </div><!-- /gantt-grid -->
 
       <div class="gantt-legend">
-        <div class="gl-item"><div class="gl-dot gl-m001"></div> Milestone / current sprint</div>
-        <div class="gl-item"><div class="gl-dot gl-alpha"></div> Alpha launch work</div>
+        <div class="gl-item"><div class="gl-dot gl-alpha"></div> Pre-Alpha &amp; Alpha deliverables</div>
         <div class="gl-item"><div class="gl-dot gl-research"></div> Research agents</div>
-        <div class="gl-item"><div class="gl-dot gl-infra"></div> Infrastructure</div>
+        <div class="gl-item"><div class="gl-dot gl-infra"></div> Infrastructure (post-Alpha)</div>
         <div class="gl-item"><div class="gl-dot gl-security"></div> Enterprise security (pre-sales)</div>
         <div class="gl-item"><div class="gl-dot gl-future"></div> Future phase</div>
-        <div class="gl-item"><div class="gl-dot gl-bug"></div> Bug fix</div>
         <div class="gl-item"><div class="gl-today-line"></div> Today (Mar 22)</div>
       </div>
     </div><!-- /gantt-wrap -->
