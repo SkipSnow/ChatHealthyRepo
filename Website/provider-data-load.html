@@ -109,7 +109,7 @@
   <div class="page-header">
     <p class="eyebrow">Design Document</p>
     <h1>Provider Data Load &amp; County Enrichment — Design</h1>
-    <p class="effective">March 2026 &nbsp;·&nbsp; Rev 5 (accuracy pass — current state only)</p>
+    <p class="effective">March 2026 &nbsp;·&nbsp; Rev 6</p>
   </div>
 
   <div class="arch-body">
@@ -117,27 +117,28 @@
     <!-- 1. Overview -->
     <h2>1. Overview</h2>
     <p>
-      This document covers the detailed design for Jobs 1 and 2 of the ChatHealthy Batch Manager
-      pipeline. For the two-cluster strategy, Batch Manager job sequence, and blue-green collection
-      swap pattern, see the
+      This document covers the design for the provider data pipeline. For the two-cluster strategy
+      and data source roadmap, see the
       <a href="architecture.html#pipeline-architecture" style="color:var(--teal);">Architecture Overview — Section 9</a>.
     </p>
     <p>
-      <code>LoadProviderData</code> ingests the NPPES NPI file (~8 GB unzipped, ~8 million records —
-      Type 1 individual providers and Type 2 organizational facilities) from CMS into the
-      <code>PublicHealthData</code> staging collection. The load cannot be held open in a synchronous
-      HTTP call. The Router returns immediately with a status URL; the load runs asynchronously via
-      Azure Durable Functions. Progress is tracked in <code>admin.DataLoadMetadata</code>.
-      A load report is sent via SparkPost email on completion.
+      The top-level entry point is <code>FullProviderPipeline</code> — a 5-step Durable Functions
+      orchestrator that runs health check → load → county enrichment → embeddings in sequence.
+      All steps are resumable via the <code>start_step</code> payload parameter (default: 1, full run).
+    </p>
+    <p>
+      <code>LoadProviderData</code> (Step 2) ingests the NPPES NPI file (~8 GB unzipped, ~8.8 million
+      records — Type 1 individual providers and Type 2 organizational facilities) from CMS into
+      <code>PublicHealthData.providers_staging</code>. The load runs asynchronously via Azure Durable
+      Functions; the Router returns a status URL immediately. Progress is tracked in
+      <code>admin.DataLoadMetadata</code>. A load report is sent via SparkPost email on completion.
     </p>
     <div class="note">
       <strong>SLA: full 8M-record load completes in under 1 hour.</strong> First production run
-      (2026-03-19): 8,858,520 records loaded in ~35 minutes with 50 workers on Azure East US 2
-      + MongoDB Atlas M40. Current production default: 200 workers. County enrichment runs as
-      a separate job after load completes.
+      (2026-03-19): 8,858,520 records loaded in ~35 minutes with 32 workers on Azure East US 2
+      + MongoDB Atlas M30. County enrichment and embedding generation run as Steps 3–5 of
+      FullProviderPipeline after load completes.
     </div>
-    <p>
-    </p>
 
     <!-- 2. Async Handoff -->
     <h2>2. Async Handoff</h2>
@@ -156,6 +157,40 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- 2b. FullProviderPipeline -->
+    <h2>2b. FullProviderPipeline — Outer Orchestrator</h2>
+    <p>Triggered via <code>POST /api/Router</code> with <code>ChatHealthyTask: FullProviderPipeline</code>.
+    Runs five steps in sequence. Pass <code>start_step</code> to skip completed steps on resume.</p>
+    <div class="diagram">
+      <div class="diagram-inner">
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>FullProviderPipeline</strong><small>outer Durable orchestrator · no timeout · Azure manages state</small></div></div>
+        <div class="d-down">↓ Step 1</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>MongoDB Health Check</strong><small>ping cluster · SparkPost email to admin + RuntimeError if unreachable</small></div></div>
+        <div class="d-down">↓ Step 2</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>LoadProviderData (sub-orchestrator)</strong><small>10-step inner orchestrator — see Section 3</small></div></div>
+        <div class="d-down">↓ Step 3</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment — Pass 1 (sub-orchestrator)</strong><small>ZIP → county via HUD crosswalk · updateMany</small></div></div>
+        <div class="d-down">↓ Step 4</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment — Pass 2 (sub-orchestrator)</strong><small>Census Geocoder for split ZIPs · updateOne per provider</small></div></div>
+        <div class="d-down">↓ Step 5 — fan-out · one activity per load worker</div>
+        <div class="d-fan">
+          <div class="d-fan-box"><strong>Embed 1</strong><small>worker_id=1</small></div>
+          <div class="d-fan-box"><strong>Embed 2</strong><small>worker_id=2</small></div>
+          <div class="d-fan-box"><strong>Embed 3</strong><small>…</small></div>
+          <div class="d-fan-box"><strong>Embed N</strong><small>remainder</small></div>
+        </div>
+        <div class="d-label">Each embedding worker: read docs for worker_id → build embed text (all meaningful fields) → OpenAI text-embedding-3-small batches of 500 → bulk update embedding field</div>
+        <div class="d-down">↓ fan-in · all embedding workers complete</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Create Atlas Vector Search Index</strong><small>provider_vector_index · cosine · 1536 dims · idempotent</small></div></div>
+      </div>
+    </div>
+    <div class="note">
+      <strong>Idempotent at every step.</strong> Download uses ETag guard (skip if unchanged).
+      CSV extraction checks if blob already exists (skip if present). Embedding worker skips
+      documents that already have an <code>embedding</code> field. Vector index creation
+      catches "already exists" and continues.
     </div>
 
     <!-- 3. Full Load Flow -->
@@ -268,7 +303,17 @@
     <p>Durable orchestrator. 9 steps: download ZIP, extract CSV, partition file, drain staging, ensure indexes, write metadata, fan-out up to 200 load workers, reconcile record counts, write report. No timeout. County enrichment is a separate orchestrator triggered by FullProviderPipeline after this orchestrator completes.</p>
 
     <h3>ProviderWorker</h3>
-    <p>Reads one byte-range slice of the CSV from blob. Partition boundaries are newline-aligned; workers 2–N defensively discard their first row if it has the wrong field count (partial row from alignment fallback). Parses rows. Skips blank/whitespace-only lines. Normalizes multi-valued fields to arrays (e.g. <code>practice_address</code>). Assigns a synthetic <code>record_id = worker_id × MAX_ROWS_PER_WORKER + local_row_index</code> (<code>MAX_ROWS_PER_WORKER = 1,000,000</code>; max 200 workers × 1,000,000 = 200,000,000 — fits in a 32-bit signed int) — unique across all workers, no coordination needed. NPI is the business key. Stamps each document with <code>load_id</code> (= Durable orchestration instance ID). Batch-upserts to <code>PublicHealthData.providers_staging</code> using <code>$setOnInsert</code> on <code>(load_id, record_id)</code> — safe to retry; duplicates are silently ignored. Returns observability metrics: <code>rows_processed</code>, <code>num_records</code>, <code>rows_failed</code>, <code>duration_seconds</code>, <code>rows_per_second</code>. Updates its metadata record on completion or failure.</p>
+    <p>Reads one byte-range slice of the CSV from blob. Partition boundaries are newline-aligned; workers 2–N defensively discard their first row if it has the wrong field count (partial row from alignment fallback). Parses rows. Skips blank/whitespace-only lines. Normalizes fields: taxonomy codes → <code>taxonomies: [{code, primary, group}]</code>; license numbers + states → <code>licenses: [{state, number}]</code>; practice and mailing addresses → sub-documents with ZIP truncated to 5 digits; other identifiers → arrays. Assigns a synthetic <code>record_id = worker_id × MAX_ROWS_PER_WORKER + local_row_index</code> (<code>MAX_ROWS_PER_WORKER = 1,000,000</code>; max 200 workers × 1,000,000 = 200,000,000 — fits in a 32-bit signed int) — unique across all workers, no coordination needed. NPI is the business key. Stamps each document with <code>load_id</code> (= Durable orchestration instance ID) and a stub <code>county: {fips: null}</code> enriched by CountyEnrichment. Batch-upserts to <code>PublicHealthData.providers_staging</code> using <code>$setOnInsert</code> on <code>(load_id, record_id)</code> — safe to retry; duplicates are silently ignored. Returns observability metrics: <code>rows_processed</code>, <code>num_records</code>, <code>rows_failed</code>, <code>duration_seconds</code>, <code>rows_per_second</code>. Updates its metadata record on completion or failure.</p>
+
+    <h3>EmbeddingWorker</h3>
+    <p>Reads all documents for a given <code>worker_id</code> that do not yet have an
+    <code>embedding</code> field (idempotent on retry). Builds a text representation from all
+    meaningful fields — name, taxonomies, licenses, addresses, credentials, identifiers — by
+    recursively extracting string values and joining them. Excludes internal housekeeping fields
+    (<code>record_id</code>, <code>load_id</code>, <code>worker_id</code>, <code>county</code>,
+    <code>embedding</code>). Calls OpenAI <code>text-embedding-3-small</code> in batches of 500,
+    stores the returned 1536-dimension float array as <code>embedding</code> on each document via
+    <code>bulk_write</code>.</p>
 
     <h3>CountyEnrichmentOrchestrator</h3>
     <p>Separate Durable Function orchestrator — not part of ProviderLoadManager. Triggered by
@@ -294,19 +339,22 @@
     <p>Writes the complete run data (all worker results + reconciliation + summary) as a document to <code>admin.PipelineDiscrepancyReport</code> in MongoDB. Sends a SparkPost email notification with key stats and the <code>load_id</code> for lookup. No blob storage or file generation.</p>
 
     <!-- 5. API Payload -->
-    <h2>5. LoadProviderData — API Payload Fields</h2>
-    <p>Passed as the <code>payload</code> object in the POST to <code>/api/Router</code>. All fields are optional — omit entirely for a full production run with auto-discovered file URL.</p>
+    <h2>5. FullProviderPipeline — API Payload Fields</h2>
+    <p>Passed as the <code>payload</code> object in the POST to <code>/api/Router</code>
+    with <code>ChatHealthyTask: FullProviderPipeline</code>. All fields are optional — omit
+    entirely for a full production run.</p>
     <div class="table-wrap">
       <table>
         <tr><th>Field</th><th>Type</th><th>Default</th><th>Notes</th></tr>
-        <tr><td><code>file_url</code></td><td>str / null</td><td><code>None</code></td><td>CMS NPPES download URL. If omitted, scrapes <code>cms.gov/nppes</code> to auto-discover the latest file. Falls back to <code>NPPES_FALLBACK_URL</code> constant if scraping fails.</td></tr>
-        <tr><td><code>num_workers</code></td><td>int</td><td>5</td><td>Number of parallel workers. Each gets an equal byte slice. Default 5 for dev; scale to 200 for full production load.</td></tr>
-        <tr><td><code>blob_container</code></td><td>str</td><td><code>provider-data</code></td><td>Azure Blob container for zip, CSV, and report storage.</td></tr>
-        <tr><td><code>batch_size</code></td><td>int</td><td>500</td><td>MongoDB <code>bulk_write</code> batch size per worker insert cycle.</td></tr>
-        <tr><td><code>staging_collection</code></td><td>str</td><td><code>PublicHealthData.providers_staging</code></td><td>Target collection for raw provider records.</td></tr>
-        <tr><td><code>metadata_collection</code></td><td>str</td><td><code>admin.DataLoadMetadata</code></td><td>Load tracking collection. Never deleted by the system.</td></tr>
-        <tr><td><code>version</code></td><td>str</td><td>—</td><td>NPI file version string (e.g. <code>"2026-03"</code>). Auto-discovered if omitted.</td></tr>
-        <tr><td><code>max_bytes</code></td><td>int / null</td><td><code>None</code></td><td>Hard byte limit on data rows read (excludes header). Omit (or pass <code>null</code>) for a full production load. Pass <code>50000000</code> (~50 MB, ~42K records) for a dev test run.</td></tr>
+        <tr><td><code>start_step</code></td><td>int</td><td>1</td><td>Resume from this step (1–5). Use to skip completed steps after a partial failure. 1=health check, 2=load, 3=enrichment pass 1, 4=enrichment pass 2, 5=embeddings.</td></tr>
+        <tr><td><code>num_workers</code></td><td>int</td><td>32</td><td>Number of parallel load workers (Step 2) and embedding workers (Step 5). Each load worker gets an equal byte slice of the CSV.</td></tr>
+        <tr><td><code>batch_size</code></td><td>int</td><td>5000</td><td>MongoDB <code>bulk_write</code> batch size per load worker insert cycle.</td></tr>
+        <tr><td><code>blob_container</code></td><td>str</td><td><code>provider-data</code></td><td>Azure Blob container for zip and CSV storage.</td></tr>
+        <tr><td><code>enrich_workers</code></td><td>int</td><td>200</td><td>Number of parallel county enrichment workers (Steps 3–4).</td></tr>
+        <tr><td><code>addr_batch_size</code></td><td>int</td><td>50</td><td>Providers per Census Geocoder batch in Pass 2.</td></tr>
+        <tr><td><code>staging_collection</code></td><td>str</td><td><code>PublicHealthData.providers_staging</code></td><td>Target collection for provider records and embeddings.</td></tr>
+        <tr><td><code>max_bytes</code></td><td>int / null</td><td><code>None</code></td><td>Hard byte limit on CSV rows read (excludes header). Omit for full production load. Pass <code>50000000</code> (~50 MB, ~42K records) for a dev test run.</td></tr>
+        <tr><td><code>debug</code></td><td>bool</td><td>false</td><td>Enables DEBUG-level logging for this request only.</td></tr>
       </table>
     </div>
 
@@ -400,11 +448,14 @@
     <h2>11. Deferred</h2>
     <ul>
       <li>Incremental / delta loads — current design always loads the full NPI file</li>
-      <li>Duplicate detection across load runs — staging documents carry <code>load_id</code> but cross-run dedup is deferred to a downstream clean step</li>
+      <li>Duplicate NPI detection — some individual providers have multiple NPIs; deduplication requires fuzzy matching on name + taxonomy + credential (see RESEARCH-001 backlog)</li>
+      <li>Multi-location provider data — NPPES captures one practice address per individual NPI; supplementing with payer directory data would surface all billing locations (see RESEARCH-001 backlog)</li>
       <li>Update <code>NPPES_FALLBACK_URL</code> constant whenever a new monthly file is confirmed working</li>
       <li>Durable Functions status URL exposes orchestration state without our auth layer — proxy through <code>/api/Router</code> before enterprise sale (see Open Issues)</li>
-      <li>SparkPost sender domain verification — <code>Skip.Snow@chatHealthy.ai</code> must be verified in SparkPost portal</li>
+      <li>SparkPost sender domain verification — <code>Skip.Snow@mail.chatHealthy.ai</code> must be verified in SparkPost portal</li>
       <li>Timer Triggers — autonomous pipeline scheduling (monthly NPI load, weekly specialty data) not yet wired</li>
+      <li>Idle monitor re-enable — disabled because it paused the cluster mid-run; requires pipeline lock mechanism</li>
+      <li>Cluster manager agent — dedicated service to start/stop ChatHealthyDataPipelines on schedule, decoupled from the pipeline</li>
     </ul>
 
   </div>

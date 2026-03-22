@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Roadmap — ChatHealthy.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --ink:        #0d1117;
+      --ink-soft:   #4a5568;
+      --surface:    #ffffff;
+      --teal:       #0b7a75;
+      --teal-light: #e6f4f3;
+      --teal-mid:   #d0eeec;
+      --accent:     #f0a500;
+      --warn:       #c0392b;
+      --border:     #d8e2e1;
+      --radius:     6px;
+      --max-w:      1160px;
+      --content-w:  860px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    header { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: 0 1px 6px rgba(11,122,117,0.06); }
+    .header-inner { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+    .logo-mark { width: 32px; height: 32px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; }
+    .logo-mark svg { width: 18px; height: 18px; fill: white; }
+    .logo-text { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--teal); letter-spacing: -0.01em; }
+    .logo-text span { color: var(--accent); }
+
+    main { flex: 1; max-width: var(--max-w); width: 100%; margin: 0 auto; padding: clamp(20px,4vw,48px) clamp(16px,4vw,24px); }
+
+    .page-header { border-bottom: 2px solid var(--teal-mid); padding-bottom: 20px; margin-bottom: 36px; }
+    .page-header .eyebrow { font-size: 0.72rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 6px; }
+    .page-header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(1.5rem,4vw,2.25rem); color: var(--ink); line-height: 1.15; margin-bottom: 8px; }
+    .page-header .effective { font-size: 0.82rem; color: var(--ink-soft); }
+
+    .action-bar { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+    .action-bar-top { margin-bottom: 20px; }
+    .action-bar-bottom { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border); }
+    .action-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: none; border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--ink-soft); font-family: 'DM Sans', sans-serif; font-size: 0.82rem;
+      cursor: pointer; padding: 6px 14px; text-decoration: none;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .action-btn:hover { color: var(--teal); background: var(--teal-light); border-color: var(--teal-mid); }
+    .close-btn { display: none; }
+    .in-panel .close-btn { display: inline-flex; }
+
+    .arch-body { max-width: var(--content-w); }
+    .arch-body h2 { font-family: 'DM Serif Display', serif; font-size: 1.15rem; color: var(--teal); margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--teal-mid); }
+    .arch-body h2:first-child { margin-top: 0; }
+    .arch-body h3 { font-size: 0.88rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); margin: 24px 0 8px; }
+    .arch-body p { font-size: 0.92rem; line-height: 1.7; color: var(--ink); margin-bottom: 10px; }
+    .arch-body p:last-child { margin-bottom: 0; }
+    .arch-body ul { margin: 6px 0 10px 20px; font-size: 0.92rem; line-height: 1.7; }
+    .arch-body ul li { margin-bottom: 4px; }
+    code { font-family: monospace; font-size: 0.85em; background: #f4f4f4; padding: 1px 5px; border-radius: 3px; }
+
+    .item {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin: 16px 0;
+    }
+    .item-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .item-id { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+    .item-title { font-family: 'DM Serif Display', serif; font-size: 1rem; color: var(--ink); flex: 1; }
+    .badge {
+      font-size: 0.72rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 20px; white-space: nowrap;
+    }
+    .badge-open    { background: #fff3cd; color: #7d5a00; border: 1px solid #f0d080; }
+    .badge-postmvp { background: var(--teal-light); color: var(--teal); border: 1px solid var(--teal-mid); }
+    .badge-tuesday { background: #fdf0e0; color: #9a5000; border: 1px solid #f0c880; }
+    .badge-low     { background: #f4f4f4; color: var(--ink-soft); border: 1px solid var(--border); }
+
+    .item p { font-size: 0.88rem; line-height: 1.65; color: var(--ink); margin-bottom: 8px; }
+    .item p:last-child { margin-bottom: 0; }
+    .item ul { margin: 4px 0 8px 18px; font-size: 0.88rem; line-height: 1.65; }
+    .item ul li { margin-bottom: 3px; }
+
+    .item-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; font-size: 0.8rem; color: var(--ink-soft); }
+    .item-meta strong { color: var(--ink); }
+
+    .note { background: var(--teal-light); border-left: 3px solid var(--teal); padding: 10px 14px; border-radius: 0 var(--radius) var(--radius) 0; margin: 12px 0; font-size: 0.88rem; line-height: 1.6; }
+
+    footer { border-top: 1px solid var(--border); background: var(--surface); }
+    .footer-inner { max-width: var(--max-w); margin: 0 auto; padding: 14px clamp(16px,4vw,24px); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .footer-copy { font-size: 0.78rem; color: var(--ink-soft); font-style: italic; }
+    .footer-copy a { color: var(--ink-soft); text-decoration: none; }
+    .footer-copy a:hover { color: var(--teal); }
+
+    @media print { header, footer, .action-bar { display: none !important; } body { font-size: 11pt; } .arch-body { max-width: 100%; } }
+
+    /* --- Gantt ---------------------------------------------------- */
+    .gantt-wrap { margin: 20px 0 36px; overflow-x: auto; }
+    .gantt-grid { min-width: 600px; }
+
+    .gantt-head { display: flex; border-bottom: 2px solid var(--border); padding-bottom: 6px; margin-bottom: 2px; }
+    .gantt-head-label { width: 150px; flex-shrink: 0; }
+    .gantt-months { display: flex; flex: 1; }
+    .gantt-month { flex: 1; text-align: center; font-size: 0.68rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-soft); border-left: 1px solid var(--border); padding-bottom: 2px; }
+    .gantt-month:first-child { border-left: none; }
+
+    .gantt-row { display: flex; align-items: center; border-bottom: 1px solid #f0f4f3; min-height: 30px; }
+    .gantt-row:last-child { border-bottom: none; }
+    .gantt-row-label { width: 150px; flex-shrink: 0; padding: 4px 10px 4px 0; }
+    .gantt-row-id { display: block; font-size: 0.64rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-soft); }
+    .gantt-row-name { display: block; font-size: 0.76rem; color: var(--ink); line-height: 1.25; }
+
+    .gantt-track {
+      flex: 1; position: relative; height: 30px;
+      background: repeating-linear-gradient(
+        to right,
+        transparent 0%, transparent calc(10% - 1px),
+        #e8f0ef calc(10% - 1px), #e8f0ef 10%
+      );
+    }
+    .gantt-track::before {
+      content: ''; position: absolute;
+      top: 0; bottom: 0; left: 7%;
+      width: 1px; background: var(--warn); opacity: 0.45; z-index: 1;
+    }
+
+    .gantt-bar { position: absolute; height: 12px; top: 50%; transform: translateY(-50%); border-radius: 2px; z-index: 2; min-width: 3px; }
+    .gb-m001     { background: var(--accent); }
+    .gb-alpha    { background: var(--teal); }
+    .gb-research { background: #2563eb; }
+    .gb-infra    { background: #6b7280; }
+    .gb-security { background: var(--warn); }
+    .gb-future   { background: #7c3aed; }
+    .gb-bug      { background: #9a5000; }
+
+    .gantt-milestone {
+      position: absolute; top: 50%; z-index: 3;
+      transform: translate(-50%, -50%) rotate(45deg);
+      width: 9px; height: 9px; border-width: 2px; border-style: solid;
+    }
+    .gm-m001 { background: var(--accent); border-color: #8a5c00; }
+    .gm-m002 { background: var(--teal); border-color: #065955; }
+
+    .gantt-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 0.74rem; color: var(--ink-soft); }
+    .gl-item { display: flex; align-items: center; gap: 5px; }
+    .gl-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .gl-m001     { background: var(--accent); }
+    .gl-alpha    { background: var(--teal); }
+    .gl-research { background: #2563eb; }
+    .gl-infra    { background: #6b7280; }
+    .gl-security { background: var(--warn); }
+    .gl-future   { background: #7c3aed; }
+    .gl-bug      { background: #9a5000; }
+    .gl-today-line { width: 1px; height: 12px; background: var(--warn); opacity: 0.65; flex-shrink: 0; }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="/" target="_top" title="Back to ChatHealthy.ai">
+      <div class="logo-mark">
+        <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="2" width="4" height="16" rx="1"/>
+          <rect x="2" y="8" width="16" height="4" rx="1"/>
+        </svg>
+      </div>
+      <span class="logo-text">Chat<span>Healthy</span>.ai</span>
+    </a>
+  </div>
+</header>
+
+<main>
+  <div class="page-header">
+    <p class="eyebrow">ChatHealthy.ai</p>
+    <h1>Product Roadmap</h1>
+    <p class="effective">March 2026 &nbsp;·&nbsp; Source of record: <code>ROADMAP.md</code></p>
+  </div>
+
+  <div class="action-bar action-bar-top">
+    <button class="action-btn close-btn" onclick="window.parent.closePanel()">
+      <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="10" y2="10"/><line x1="10" y1="1" x2="1" y2="10"/></svg>
+      Close
+    </button>
+    <button class="action-btn print-btn" onclick="window.print()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print
+    </button>
+  </div>
+
+  <div class="arch-body">
+
+    <div class="note">
+      This page reflects the roadmap as of the last deploy. The authoritative source is
+      <code>ROADMAP.md</code> in the repository.
+    </div>
+
+    <!-- Timeline / Gantt -->
+    <h2>Timeline</h2>
+    <div class="gantt-wrap">
+      <div class="gantt-grid">
+
+        <!-- Month header -->
+        <div class="gantt-head">
+          <div class="gantt-head-label"></div>
+          <div class="gantt-months">
+            <div class="gantt-month">Mar</div>
+            <div class="gantt-month">Apr</div>
+            <div class="gantt-month">May</div>
+            <div class="gantt-month">Jun</div>
+            <div class="gantt-month">Jul</div>
+            <div class="gantt-month">Aug</div>
+            <div class="gantt-month">Sep</div>
+            <div class="gantt-month">Oct</div>
+            <div class="gantt-month">Nov</div>
+            <div class="gantt-month">Dec</div>
+          </div>
+        </div>
+
+        <!-- M-001: Data loading  Mar 1 → Mar 24  (0% → 7.7%) -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">M-001</span>
+            <span class="gantt-row-name">Data loading complete</span>
+          </div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-m001" style="left:0%;width:7.7%"></div>
+            <div class="gantt-milestone gm-m001" style="left:7.7%"></div>
+          </div>
+        </div>
+
+        <!-- M-002: Alpha launch  Mar 24 → Apr 30  (7.7% → 20%) -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">M-002</span>
+            <span class="gantt-row-name">Alpha launch</span>
+          </div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-alpha" style="left:7.7%;width:12.3%"></div>
+            <div class="gantt-milestone gm-m002" style="left:20%"></div>
+          </div>
+        </div>
+
+        <!-- RESEARCH-002: ICD-10 agent  Apr  (10% → 20%) -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">RESEARCH-002</span>
+            <span class="gantt-row-name">ICD-10 → specialty agent</span>
+          </div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-research" style="left:10%;width:10%"></div>
+          </div>
+        </div>
+
+        <!-- INFRA-003: UX → Azure  May–Jul  (20% → 40%) -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">INFRA-003</span>
+            <span class="gantt-row-name">UX → Azure Static Web Apps</span>
+          </div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-infra" style="left:20%;width:20%"></div>
+          </div>
+        </div>
+
+        <!-- INFRA-001: CopyToRuntime  May–Jun  (20% → 30%) -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">INFRA-001</span>
+            <span class="gantt-row-name">CopyToRuntime swap</span>
+          </div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-infra" style="left:20%;width:10%"></div>
+          </div>
+        </div>
+
+        <!-- INFRA-002: Cluster manager  May–Jun  (20% → 30%) -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">INFRA-002</span>
+            <span class="gantt-row-name">Cluster manager agent</span>
+          </div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-infra" style="left:20%;width:10%"></div>
+          </div>
+        </div>
+
+        <!-- INFRA-005: Production MongoDB  May–Jun  (20% → 30%) -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">INFRA-005</span>
+            <span class="gantt-row-name">Production MongoDB cluster</span>
+          </div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-infra" style="left:20%;width:10%"></div>
+          </div>
+        </div>
+
+        <!-- INFRA-004: Enterprise security  May–Aug  (20% → 50%) — pre-sales blocker -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">INFRA-004</span>
+            <span class="gantt-row-name">Enterprise security hardening</span>
+          </div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-security" style="left:20%;width:30%"></div>
+          </div>
+        </div>
+
+        <!-- BUG-001: Idle monitor  Jun  (30% → 35%) -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">BUG-001</span>
+            <span class="gantt-row-name">Idle monitor fix</span>
+          </div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-bug" style="left:30%;width:5%"></div>
+          </div>
+        </div>
+
+        <!-- RESEARCH-001: Multi-location  Jul–Oct  (40% → 70%) -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">RESEARCH-001</span>
+            <span class="gantt-row-name">Multi-location payer data</span>
+          </div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-research" style="left:40%;width:30%"></div>
+          </div>
+        </div>
+
+        <!-- FUTURE-001: Auth  Jun–Sep  (30% → 60%) -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">FUTURE-001</span>
+            <span class="gantt-row-name">User authentication</span>
+          </div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-future" style="left:30%;width:30%"></div>
+          </div>
+        </div>
+
+        <!-- FUTURE-002: Data deletion  Jun–Jul  (30% → 40%) -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">FUTURE-002</span>
+            <span class="gantt-row-name">Data deletion agent</span>
+          </div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-future" style="left:30%;width:10%"></div>
+          </div>
+        </div>
+
+        <!-- FUTURE-003: FHIR  Oct–Dec  (70% → 90%) -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">FUTURE-003</span>
+            <span class="gantt-row-name">FHIR / Epic EMR</span>
+          </div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-future" style="left:70%;width:20%"></div>
+          </div>
+        </div>
+
+      </div><!-- /gantt-grid -->
+
+      <div class="gantt-legend">
+        <div class="gl-item"><div class="gl-dot gl-m001"></div> Milestone / current sprint</div>
+        <div class="gl-item"><div class="gl-dot gl-alpha"></div> Alpha launch work</div>
+        <div class="gl-item"><div class="gl-dot gl-research"></div> Research agents</div>
+        <div class="gl-item"><div class="gl-dot gl-infra"></div> Infrastructure</div>
+        <div class="gl-item"><div class="gl-dot gl-security"></div> Enterprise security (pre-sales)</div>
+        <div class="gl-item"><div class="gl-dot gl-future"></div> Future phase</div>
+        <div class="gl-item"><div class="gl-dot gl-bug"></div> Bug fix</div>
+        <div class="gl-item"><div class="gl-today-line"></div> Today (Mar 22)</div>
+      </div>
+    </div><!-- /gantt-wrap -->
+
+    <!-- Milestones -->
+    <h2>Milestones</h2>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">M-001</span>
+        <span class="item-title">Data loading complete</span>
+        <span class="badge badge-tuesday">Tuesday 2026-03-24</span>
+      </div>
+      <ul>
+        <li>ICD-10 diagnosis codes loaded — <code>LoadICD10</code> already in pipeline router</li>
+        <li>Procedure codes (CPT/HCPCS) — new pipeline</li>
+        <li>CMS Medicare Part D prescription data — new pipeline</li>
+        <li>Pipeline fixes deployed: MongoDB health check, embeddings + Atlas Vector Search, <code>start_step</code> resume, license normalization, ZIP truncation</li>
+      </ul>
+    </div>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">M-002</span>
+        <span class="item-title">Alpha Launch</span>
+        <span class="badge badge-open" style="background:#e8f4e8; color:#1a6b1a; border-color:#90c890;">April 30, 2026</span>
+      </div>
+      <p>A working end-to-end ChatHealthy.ai product: users describe a health need in natural language
+      and receive relevant provider results with geographic and specialty context.</p>
+      <ul>
+        <li>All data loaded and embedded: providers, ICD-10, procedures, prescriptions, specialties, crosswalk</li>
+        <li>Vector search wired into ConversationalUX — natural language provider queries</li>
+        <li>ICD-10 → specialty → provider linking agent (RESEARCH-002)</li>
+        <li>Provider cards, maps, and inline components in the chat UI</li>
+        <li>Session transcript export</li>
+      </ul>
+    </div>
+
+    <!-- Research Agents -->
+    <h2>Research Agents</h2>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">RESEARCH-001</span>
+        <span class="item-title">Multi-location provider data — payer directory agent</span>
+        <span class="badge badge-postmvp">Post-Alpha</span>
+      </div>
+      <div class="item-meta">
+        <span><strong>Status:</strong> Open</span>
+      </div>
+      <p>NPPES NPI data captures only one practice address per individual provider (Type 1 NPI).
+      If a provider practices at multiple locations, only their primary address appears in FindCare.</p>
+      <p><strong>The gap:</strong> Users searching by location may miss providers who practice nearby
+      but list a different primary address in NPPES.</p>
+      <p><strong>Proposed solution:</strong> A research agent that supplements NPPES with payer network
+      directory data. Payer directories are location-level (providers must register each billing
+      location to get paid) and kept more current than NPI.</p>
+      <p><strong>Data sources to investigate:</strong></p>
+      <ul>
+        <li>Payer network directories — per-payer, not a single public feed (BCBS, Aetna, UHC, Cigna)</li>
+        <li>CMS Medicare Provider Enrollment data — facilities where a provider has billed Medicare</li>
+        <li>CMS Open Payments — facility-level billing activity</li>
+        <li>CAQH — provider self-reported, credentialing-focused, not public</li>
+      </ul>
+      <p><strong>Why an agent:</strong> Each payer directory has a different API/format; an agent
+      handles per-payer variation, retry logic, and reconciliation across sources.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">RESEARCH-002</span>
+        <span class="item-title">ICD-10 → specialty → provider linking agent</span>
+        <span class="badge badge-open" style="background:#e8f4e8; color:#1a6b1a; border-color:#90c890;">Alpha — April 30, 2026</span>
+      </div>
+      <div class="item-meta">
+        <span><strong>Status:</strong> Open</span>
+        <span><strong>Depends on:</strong> ICD-10, procedure codes, and CMS Part D data loaded first</span>
+      </div>
+      <p>Given a patient's diagnosis (ICD-10 code), FindCare needs to identify which provider
+      specialties treat that condition and surface relevant providers along with their prescribing
+      patterns.</p>
+      <p><strong>The problem:</strong> ICD-10 codes and provider taxonomy (specialty) codes are
+      separate classification systems with no built-in mapping between them. A user saying
+      "I have Type 2 diabetes" should find endocrinologists and primary care providers — but that
+      linkage doesn't exist in the raw data.</p>
+      <p><strong>Proposed approach:</strong></p>
+      <ul>
+        <li>Map ICD-10 codes → relevant taxonomy codes — likely LLM-assisted or via CMS/AMA published mappings</li>
+        <li>Use taxonomy codes to filter providers from the NPI dataset</li>
+        <li>Join with CMS Medicare Part D prescriber data to show prescribing patterns for that condition</li>
+      </ul>
+      <p><strong>Data sources:</strong></p>
+      <ul>
+        <li>ICD-10-CM codes — <code>LoadICD10</code> exists in pipeline router</li>
+        <li>Provider taxonomy codes — loaded via <code>LoadSpecialtyData</code></li>
+        <li>Procedure codes — planned pipeline (Tuesday milestone)</li>
+        <li>CMS Medicare Part D prescriber data — planned pipeline (Tuesday milestone)</li>
+      </ul>
+      <p><strong>Why an agent:</strong> The ICD-10 → specialty mapping requires reasoning — one
+      condition may involve multiple specialties and some mappings are nuanced. An LLM agent is
+      better suited than a static lookup table.</p>
+    </div>
+
+    <!-- Infrastructure -->
+    <h2>Infrastructure</h2>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">INFRA-001</span>
+        <span class="item-title">CopyToRuntime + Blue-Green Collection Swap</span>
+        <span class="badge badge-postmvp">Post-Alpha</span>
+      </div>
+      <div class="item-meta"><span><strong>Status:</strong> Open</span></div>
+      <p>Fan-out copy of <code>providers_staging</code> → <code>providers_new</code> on the
+      ChatHealthyFrontEnd cluster, followed by an atomic three-step rename swap. Until implemented,
+      runtime reads are served directly from the DataPipelines cluster.</p>
+      <ul>
+        <li>Step 1: rename <code>providers</code> → <code>providers_archive</code></li>
+        <li>Step 2: rename <code>providers_new</code> → <code>providers</code></li>
+        <li>Step 3: drop <code>providers_archive</code> after next successful run</li>
+      </ul>
+    </div>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">INFRA-002</span>
+        <span class="item-title">Cluster manager agent</span>
+        <span class="badge badge-postmvp">Post-Alpha</span>
+      </div>
+      <div class="item-meta"><span><strong>Status:</strong> Open</span></div>
+      <p>Dedicated agent/service to start and stop the ChatHealthyDataPipelines cluster on a
+      schedule, fully decoupled from the pipeline itself. Current approach: manual start before
+      each run. The idle monitor (BUG-001) cannot be safely re-enabled without this.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">INFRA-003</span>
+        <span class="item-title">Migrate ConversationalUX off HuggingFace → Azure Static Web Apps</span>
+        <span class="badge badge-postmvp">Post-Alpha</span>
+      </div>
+      <div class="item-meta"><span><strong>Status:</strong> Open</span></div>
+      <p>HuggingFace has a 60-second request timeout (too short for multi-agent workflows), spaces
+      sleep on inactivity, and free-tier compute is undersized for production. Azure Static Web Apps
+      places the React frontend on Azure CDN and the FastAPI backend as an Azure Function —
+      same infrastructure already running DataPipelines, single vendor, single deploy pipeline.
+      HuggingFace stays live until migration is complete.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">INFRA-004</span>
+        <span class="item-title">Enterprise security hardening</span>
+        <span class="badge badge-postmvp">Pre-sales blocker</span>
+      </div>
+      <div class="item-meta"><span><strong>Status:</strong> Open</span></div>
+      <p>Current setup uses workstation-cached GitHub credentials and manually managed secrets in
+      Azure portal — acceptable for solo dev, insufficient for enterprise customers.</p>
+      <ul>
+        <li>Fine-grained GitHub PAT or SSH key with passphrase</li>
+        <li>Azure Key Vault for secrets management</li>
+        <li>GitHub Actions OIDC federation replacing long-lived secrets</li>
+        <li>GPG-signed commits for verifiable audit trail</li>
+        <li>Separation of deploy and dev credentials</li>
+      </ul>
+    </div>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">INFRA-005</span>
+        <span class="item-title">Production MongoDB cluster</span>
+        <span class="badge badge-postmvp">Post-Alpha</span>
+      </div>
+      <div class="item-meta"><span><strong>Status:</strong> Open</span></div>
+      <p>Currently dev-only. Production cluster requires sizing, backup policy, IP allowlist
+      locked to VNet only, and separation of PipelineUser and FrontEndUser credentials.</p>
+    </div>
+
+    <!-- Future -->
+    <h2>Future</h2>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">FUTURE-001</span>
+        <span class="item-title">User authentication and cross-session persistence</span>
+        <span class="badge badge-postmvp">Post-Alpha</span>
+      </div>
+      <div class="item-meta"><span><strong>Status:</strong> Open</span></div>
+      <p>Users can currently save a session transcript but have no persistent identity across
+      sessions. Authentication would enable saved searches, provider favourites, and longitudinal
+      session history.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">FUTURE-002</span>
+        <span class="item-title">Data deletion agent</span>
+        <span class="badge badge-postmvp">Post-Alpha</span>
+      </div>
+      <div class="item-meta"><span><strong>Status:</strong> Open</span></div>
+      <p>Azure Function triggered by email verification: deletes user record from MongoDB,
+      sends confirmation email. Required for GDPR/CCPA compliance before any EU or California
+      user data is collected.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">FUTURE-003</span>
+        <span class="item-title">FHIR / Epic EMR integration</span>
+        <span class="badge badge-postmvp">Future phase</span>
+      </div>
+      <div class="item-meta"><span><strong>Status:</strong> Deferred</span></div>
+      <p>FHIR API integration with Epic and other EMR systems to pull patient context directly
+      into the session (conditions, medications, care team). Plugs into Layer 2 (DataPipelines).
+      Deferred until core provider search is live and validated.</p>
+    </div>
+
+    <!-- Bugs -->
+    <h2>Bugs</h2>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">BUG-001</span>
+        <span class="item-title">Idle monitor can pause cluster while user is in Atlas GUI</span>
+        <span class="badge badge-low">Low — dev inconvenience</span>
+      </div>
+      <div class="item-meta">
+        <span><strong>Status:</strong> Open (idle monitor currently disabled)</span>
+      </div>
+      <p>The idle monitor fired every 30 minutes and paused <code>ChatHealthyDataPipelines</code>
+      if no active load workers were detected and the last completed pipeline report was older than
+      <code>IDLE_MONITOR_THRESHOLD_HOURS</code> (default 2h). It had no awareness of a human
+      browsing the Atlas console or of a pipeline run in its early steps (before workers start).</p>
+      <p><strong>Current state:</strong> Timer trigger is commented out in <code>function_app.py</code>.
+      Cluster is managed manually.</p>
+      <p><strong>Fix options:</strong> Re-enable only after adding a pipeline lock mechanism that
+      the idle monitor respects. Alternatively, implement the cluster manager as a separate agent
+      fully decoupled from the pipeline.</p>
+    </div>
+
+  </div>
+
+  <div class="action-bar action-bar-bottom">
+    <button class="action-btn close-btn" onclick="window.parent.closePanel()">
+      <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="10" y2="10"/><line x1="10" y1="1" x2="1" y2="10"/></svg>
+      Close
+    </button>
+    <button class="action-btn print-btn" onclick="window.print()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1-2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print
+    </button>
+  </div>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <span class="footer-copy"><a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener">&copy; 2026 Skip Snow</a></span>
+  </div>
+</footer>
+
+<script>
+  if (window !== window.top) {
+    document.querySelector('header').style.display = 'none';
+    document.body.classList.add('in-panel');
+  }
+</script>
+
+</body>
+</html>
