@@ -31,6 +31,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pymongo import MongoClient, UpdateOne
 
+from blob_client import get_blob_service
 from data_fetcher_base import DataFetcherBase
 
 _mongo: MongoClient | None = None
@@ -188,11 +189,8 @@ def load_icd10(config: dict = None) -> dict:
     )
 
     # Read from blob
-    from azure.storage.blob import BlobServiceClient
     container = config.get("blob_container", "provider-data")
-    blob_service = BlobServiceClient.from_connection_string(
-        os.environ["AZURE_STORAGE_CONNECTION_STRING"]
-    )
+    blob_service = get_blob_service()
     zip_bytes = (
         blob_service
         .get_container_client(container)

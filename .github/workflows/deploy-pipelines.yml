@@ -32,6 +32,33 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Check for active orchestrations
+        run: |
+          MASTER_KEY=$(az functionapp keys list \
+            --resource-group FindCareDataPipelines-Dev \
+            --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \
+            --query "masterKey" -o tsv 2>/dev/null || echo "")
+
+          if [ -z "$MASTER_KEY" ]; then
+            echo "Could not retrieve master key — app may be stopped. Safe to deploy."
+            exit 0
+          fi
+
+          APP_URL="https://${{ secrets.AZURE_FUNCTION_APP_NAME }}.azurewebsites.net"
+          RESPONSE=$(curl -s --max-time 15 \
+            "${APP_URL}/runtime/webhooks/durabletask/instances?runtimeStatus=Running&code=${MASTER_KEY}" \
+            || echo "[]")
+
+          RUNNING=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else 0)" 2>/dev/null || echo "0")
+
+          if [ "$RUNNING" -gt 0 ]; then
+            echo "DEPLOY BLOCKED: $RUNNING active orchestration(s) running."
+            echo "Wait for all pipeline runs to complete before pushing orchestrator changes."
+            exit 1
+          fi
+
+          echo "No active orchestrations — safe to deploy."
+
       - name: Deploy to Azure Functions
         run: |
           cd Code/DataPipelines

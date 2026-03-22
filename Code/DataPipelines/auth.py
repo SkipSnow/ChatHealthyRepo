@@ -55,8 +55,6 @@ def require_auth(req) -> tuple[Optional[str], Optional[tuple[int, str]]]:
     token = None
     if auth_header and auth_header.startswith("Bearer "):
         token = auth_header[7:].strip()
-    elif req.params.get("token"):
-        token = req.params.get("token")
 
     is_valid, user_id = validate_bearer_token(
         f"Bearer {token}" if token else None

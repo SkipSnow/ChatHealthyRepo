@@ -19,7 +19,7 @@ import os
 import time
 from datetime import datetime, timezone
 
-from azure.storage.blob import BlobServiceClient
+from blob_client import get_blob_service
 from bson import ObjectId
 from pymongo import MongoClient, UpdateOne
 
@@ -246,11 +246,9 @@ class ProviderWorker:
                 "error": str(exc),
             }
 
-    def _load(self) -> tuple[int, int, int]:
+    def _load(self) -> tuple[int, int, int, list]:
         # Read byte range from blob
-        service = BlobServiceClient.from_connection_string(
-            os.environ["AZURE_STORAGE_CONNECTION_STRING"]
-        )
+        service = get_blob_service()
         blob_client = (
             service.get_container_client(self.blob_container)
             .get_blob_client(self.csv_path)
@@ -336,7 +334,7 @@ class ProviderWorker:
         update: dict = {"$set": status_fields(status)}
         if error:
             update["$set"]["error_detail"] = error
-        if num_records:
+        if num_records is not None:
             update["$set"]["num_records"] = num_records
         _get_mongo_client()[db_name][coll_name].update_one(
             {"_id": ObjectId(self.metadata_id)}, update

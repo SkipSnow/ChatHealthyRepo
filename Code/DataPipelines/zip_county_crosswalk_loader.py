@@ -30,6 +30,7 @@ from datetime import datetime, timezone
 import requests
 from pymongo import MongoClient, UpdateOne
 
+from blob_client import get_blob_service
 from data_fetcher_base import DataFetcherBase
 
 _mongo: MongoClient | None = None
@@ -87,10 +88,7 @@ def load_crosswalk(config: dict = None) -> dict:
         )
 
     # Always read from blob — never re-download from CMS
-    from azure.storage.blob import BlobServiceClient
-    blob_service = BlobServiceClient.from_connection_string(
-        os.environ["AZURE_STORAGE_CONNECTION_STRING"]
-    )
+    blob_service = get_blob_service()
     container = config.get("blob_container", "provider-data")
     raw_bytes = (
         blob_service
