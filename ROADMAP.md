@@ -109,6 +109,17 @@ Pre-sales requirements: fine-grained GitHub PAT or SSH key with passphrase; Azur
 
 Currently dev-only. Production cluster requires sizing, backup policy, IP allowlist locked to VNet only, and separation of PipelineUser and FrontEndUser credentials.
 
+### INFRA-006: Durable Functions orchestrator versioning
+
+**Status:** Open
+**Priority:** Pre-Alpha — April 25, 2026
+
+Deploying new orchestrator code while a pipeline run is in progress causes a non-deterministic replay failure (confirmed March 22, 2026). The deploy guard in `deploy-pipelines.yml` now blocks deploys during active runs, but does not protect against `Pending` or `ContinuedAsNew` states, and relies on the developer not triggering a manual deploy.
+
+Full solution: side-by-side orchestrator versioning so old instances replay against the version they started with, and new deployments route to the new version. Each orchestrator is suffixed with a version number; old versions remain in the codebase until all in-flight instances complete.
+
+**Decision needed before Alpha:** confirm whether the fixed guard is sufficient for Alpha scale, or whether full versioning is required.
+
 ---
 
 ## Future

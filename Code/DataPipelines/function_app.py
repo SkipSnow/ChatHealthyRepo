@@ -44,8 +44,10 @@ from county_enrichment_job import (
     lookup_crosswalk_fn,
 )
 from provider_load_manager import (
+    create_vector_index_fn,
     download_zip_fn,
     drain_staging_fn,
+    embed_worker_fn,
     ensure_preload_indexes_fn,
     ensure_postload_indexes_fn,
     extract_csv_fn,
@@ -236,6 +238,16 @@ def reconcile_activity(config: dict) -> dict:
 @app.activity_trigger(input_name="config")
 def report_activity(config: dict) -> dict:
     return report_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def embed_worker_activity(config: dict) -> dict:
+    return embed_worker_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def create_vector_index_activity(config: dict) -> dict:
+    return create_vector_index_fn(config)
 
 
 # ── County Enrichment Orchestrator + Activities ───────────────────────────────

@@ -148,7 +148,7 @@
       width: 9px; height: 9px; border-width: 2px; border-style: solid;
     }
     .gm-m001 { background: var(--accent); border-color: #8a5c00; }
-    .gm-m002 { background: var(--teal); border-color: #065955; }
+    .gm-m002 { background: var(--teal); border-color: #065955; width: 14px; height: 14px; border-width: 3px; }
 
     .gantt-planned-hdr { width: 58px; flex-shrink: 0; text-align: center; font-size: 0.68rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-soft); padding-bottom: 2px; }
     .gantt-planned { width: 58px; flex-shrink: 0; text-align: center; font-size: 0.76rem; font-weight: 500; }
@@ -357,6 +357,18 @@
           <div class="gantt-planned yes">Yes</div>
         </div>
 
+        <!-- INFRA-006: Orchestrator versioning  now → Apr 25  (7% → 18.3%) -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">INFRA-006</span>
+            <span class="gantt-row-name">Orchestrator versioning</span>
+          </div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-infra" style="left:7%;width:11.3%"></div>
+          </div>
+          <div class="gantt-planned yes">Yes</div>
+        </div>
+
         <!-- FUTURE-001: Auth  Apr 15 → May  (15% → 23%) -->
         <div class="gantt-row">
           <div class="gantt-row-label">
@@ -420,10 +432,11 @@
       </ul>
     </div>
 
-    <div class="item">
+    <div class="item" style="border-color:var(--teal); border-width:2px; background:var(--teal-light);">
       <div class="item-header">
         <span class="item-id">M-002</span>
-        <span class="item-title">Alpha Launch</span>
+        <span class="item-title" style="font-size:1.1rem;">Alpha Launch</span>
+        <span class="badge" style="background:var(--teal); color:#fff; border-color:var(--teal);">Major Milestone</span>
         <span class="badge badge-open" style="background:#e8f4e8; color:#1a6b1a; border-color:#90c890;">April 30, 2026</span>
       </div>
       <p>A working end-to-end ChatHealthy.ai product: users describe a health need in natural language
@@ -575,6 +588,22 @@
       <div class="item-meta"><span><strong>Status:</strong> Open</span></div>
       <p>Currently dev-only. Production cluster requires sizing, backup policy, IP allowlist
       locked to VNet only, and separation of PipelineUser and FrontEndUser credentials.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">INFRA-006</span>
+        <span class="item-title">Durable Functions orchestrator versioning</span>
+        <span class="badge badge-open" style="background:#e8f4e8; color:#1a6b1a; border-color:#90c890;">April 25, 2026</span>
+      </div>
+      <div class="item-meta">
+        <span><strong>Status:</strong> Open</span>
+        <span><strong>Priority:</strong> Pre-Alpha</span>
+      </div>
+      <p>Deploying new pipeline code while a run is in progress causes a replay failure —
+      confirmed March 22, 2026. A deploy guard is now in place but does not cover all edge cases.
+      Full solution: side-by-side orchestrator versioning so in-flight runs complete against
+      the version they started with while new deploys route to the updated version.</p>
     </div>
 
     <!-- Future -->

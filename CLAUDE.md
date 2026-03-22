@@ -58,7 +58,7 @@ MongoDB Atlas
 - **Repo**: `SkipSnow/ChatHealthyRepo`
 - **Lab/experiments**: `SkipSnow/ChatHealthyLabRepo`
 - CI/CD: push to master → GitHub Actions path-filtered deploy
-- Secrets: HF_TOKEN, OPENAI_API_KEY, Anthropic_API_KEY, MONGO_connectionString, PUSHOVER_USER, PUSHOVER_TOKEN, AZURE_FUNCTION_APP_NAME, AZURE_FUNCTION_PUBLISH_PROFILE
+- Secrets: HF_TOKEN, OPENAI_API_KEY, Anthropic_API_KEY, MONGO_connectionString, AZURE_FUNCTION_APP_NAME, AZURE_FUNCTION_PUBLISH_PROFILE
 
 ---
 
@@ -190,7 +190,7 @@ Keep running until FindCare ConversationalUX replaces it.
 
 - No auto-commit — only commit when explicitly asked
 - No teardown on test data — records stay in dev DB
-- End-to-end tests use real systems (MongoDB, Anthropic, Pushover) — no mocks
+- End-to-end tests use real systems (MongoDB, Anthropic) — no mocks
 - Keep solutions simple — no over-engineering, no speculative features
 - FHIR is later — don't design for it now
 - Notebooks go in ChatHealthyLabRepo, not here

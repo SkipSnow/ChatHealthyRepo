@@ -455,17 +455,61 @@ def provider_worker_fn(config: dict) -> dict:
     return ProviderWorker(config).run()
 
 
+def embed_worker_fn(config: dict) -> dict:
+    from embedding_worker import EmbeddingWorker
+    return EmbeddingWorker(config).run()
+
+
+def create_vector_index_fn(config: dict) -> dict:
+    """Create Atlas Vector Search index on providers_staging. Idempotent."""
+    staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
+    db_name, coll_name = staging_collection.split(".", 1)
+    collection = _get_mongo_client()[db_name][coll_name]
+    index_name = "provider_vector_index"
+    try:
+        collection.create_search_index({
+            "name": index_name,
+            "type": "vectorSearch",
+            "definition": {
+                "fields": [
+                    {
+                        "type": "vector",
+                        "path": "embedding",
+                        "numDimensions": 1536,
+                        "similarity": "cosine",
+                    }
+                ]
+            },
+        })
+        logging.info("Vector search index '%s' created on %s", index_name, staging_collection)
+    except Exception as exc:
+        if "already exists" in str(exc).lower() or "duplicate" in str(exc).lower():
+            logging.info("Vector search index '%s' already exists — skipping.", index_name)
+        else:
+            raise
+    return {"index": index_name, "status": "ready"}
+
+
 # ── Full Pipeline Orchestrator ────────────────────────────────────────────────
 
 def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
-    """Top-level orchestrator: Load → Pass1 → Pass2.
-    Single kick-off, no human steps required until SparkPost email fires on completion.
-    Cluster management is handled manually — start the cluster before firing this.
+    """Top-level orchestrator: health check → load → enrichment → embeddings.
+
+    start_step (1–5): skip all steps before this number. Default 1 (full run).
+    Pass start_step in the payload to resume after a partial failure.
+
+    Steps:
+      1 — MongoDB health check
+      2 — Download + extract + load provider records
+      3 — County enrichment Pass 1 (ZIP bulk)
+      4 — County enrichment Pass 2 (Census Geocoder)
+      5 — Generate embeddings + create Atlas Vector Search index
     """
     from county_enrichment_job import _build_enrichment_reconcile
 
     config = context.get_input() or {}
     load_id = context.instance_id
+    start_step = config.get("start_step", 1)
 
     enrich_config = {
         "load_id": load_id,
@@ -473,38 +517,81 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         "addr_batch_size": config.get("addr_batch_size", 50),
     }
 
-    context.set_custom_status("Step 1/4: Checking MongoDB health")
-    yield context.call_activity("check_mongo_health_activity", config)
+    # Step 1: MongoDB health check
+    if start_step <= 1:
+        context.set_custom_status("Step 1/5: Checking MongoDB health")
+        yield context.call_activity("check_mongo_health_activity", config)
 
-    context.set_custom_status("Step 2/4: Loading provider data")
-    load_config = {
-        "num_workers": config.get("num_workers", 32),
-        "batch_size": config.get("batch_size", 5000),
-        "blob_container": config.get("blob_container", "provider-data"),
-    }
-    load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
+    # Step 2: Load provider data
+    load_result = {"status": "skipped"}
+    if start_step <= 2:
+        context.set_custom_status("Step 2/5: Loading provider data")
+        load_config = {
+            "num_workers": config.get("num_workers", 32),
+            "batch_size": config.get("batch_size", 5000),
+            "blob_container": config.get("blob_container", "provider-data"),
+        }
+        load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
 
-    context.set_custom_status("Step 3/4: County enrichment — Pass 1 (ZIP bulk)")
-    pass1_result = yield context.call_sub_orchestrator(
-        "county_enrichment_pass1_orchestrator", enrich_config
+    # Step 3: County enrichment — Pass 1 (ZIP bulk)
+    pass1_result = None
+    if start_step <= 3:
+        context.set_custom_status("Step 3/5: County enrichment — Pass 1 (ZIP bulk)")
+        pass1_result = yield context.call_sub_orchestrator(
+            "county_enrichment_pass1_orchestrator", enrich_config
+        )
+
+    # Step 4: County enrichment — Pass 2 (Census Geocoder)
+    pass2_result = None
+    if start_step <= 4:
+        context.set_custom_status("Step 4/5: County enrichment — Pass 2 (Census Geocoder)")
+        pass2_result = yield context.call_sub_orchestrator(
+            "county_enrichment_pass2_orchestrator", enrich_config
+        )
+
+    # Enrichment reconcile report — only if at least one pass ran
+    reconcile = None
+    if pass1_result is not None or pass2_result is not None:
+        reconcile = _build_enrichment_reconcile(pass1_result or {}, pass2_result or {})
+        yield context.call_activity(
+            "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
+        )
+
+    # Step 5: Generate embeddings + create Atlas Vector Search index
+    embed_results = []
+    if start_step <= 5:
+        num_workers = config.get("num_workers", 32)
+        staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
+        context.set_custom_status(f"Step 5/5: Generating embeddings ({num_workers} workers)")
+        embed_tasks = [
+            context.call_activity(
+                "embed_worker_activity",
+                {"worker_id": i + 1, "staging_collection": staging_collection},
+            )
+            for i in range(num_workers)
+        ]
+        embed_results = yield context.task_all(embed_tasks)
+
+        context.set_custom_status("Step 5/5: Creating vector search index")
+        yield context.call_activity(
+            "create_vector_index_activity", {"staging_collection": staging_collection}
+        )
+
+    total_embedded = sum(r.get("embedded", 0) for r in embed_results)
+    enrich_status = (
+        "complete" if reconcile and reconcile["match"]
+        else "partial" if reconcile
+        else "skipped"
     )
-
-    context.set_custom_status("Step 4/4: County enrichment — Pass 2 (Census Geocoder)")
-    pass2_result = yield context.call_sub_orchestrator(
-        "county_enrichment_pass2_orchestrator", enrich_config
-    )
-
-    reconcile = _build_enrichment_reconcile(pass1_result, pass2_result)
-    yield context.call_activity(
-        "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
-    )
-
-    enrich_status = "complete" if reconcile["match"] else "partial"
     context.set_custom_status(
         f"Done — load {load_result.get('status', 'unknown')}, "
-        f"enrichment {enrich_status} "
-        f"({reconcile['total_enriched']:,}/{reconcile['total_providers']:,})"
+        f"enrichment {enrich_status}, "
+        f"embedded {total_embedded:,}"
     )
-    return {"load": load_result, "enrichment": reconcile}
+    return {
+        "load": load_result,
+        "enrichment": reconcile,
+        "embeddings": {"total_embedded": total_embedded},
+    }
 
 
