@@ -29,7 +29,6 @@ import azure.functions as func
 from auth import require_auth
 from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
-from migrate_from_legacy import run_migrate_from_legacy
 from copy_to_frontend import run_copy_to_frontend
 from atlas_cluster_manager import scale_down, resume_for_job, pause_cluster, resume_cluster
 from idle_monitor import check_and_pause
@@ -69,7 +68,6 @@ PIPELINE_ROUTE = "Router"
 SYNC_TASK_HANDLERS = {
     "LoadSpecialtyData": run_load_specialty_data,
     "LoadICD10": load_icd10,
-    "MigrateFromLegacy": run_migrate_from_legacy,
     "CopyToFrontEnd": run_copy_to_frontend,
     # ScaleUp resumes the cluster from paused state (no resize — cluster stays at its current tier).
     # For a blocking wait (required before heavy jobs), use FullProviderPipeline which
