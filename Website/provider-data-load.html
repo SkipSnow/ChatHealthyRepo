@@ -569,6 +569,58 @@
       from the 202 response, and store the webhook URL server-side keyed by <code>load_id</code>.
     </div>
 
+    <!-- 10b. Release Gates -->
+    <h2>10b. Release Gates — Promoting Data to Production</h2>
+    <p>Pipeline success alone is not sufficient to deploy. Two independent gates must pass
+    before data is promoted from <code>ChatHealthyDataPipelines</code> to
+    <code>ChatHealthyFrontEnd</code>. These are product/business decisions, not engineering
+    decisions — thresholds are defined here, not in the pipeline code.</p>
+
+    <h3>Gate 1 — SIT (System Integration Testing)</h3>
+    <p>Automated. Run <code>qa_provider_load.py</code> after the pipeline declares done.
+    Exit code 0 = pass; exit code 1 = fail, do not promote.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Check</th><th>Threshold</th><th>Action if failed</th></tr>
+        <tr><td>Total record count</td><td>8.5M – 10.5M; warn if &gt;5% from last known good (8.9M)</td><td>Investigate load — possible source file change or partial load</td></tr>
+        <tr><td>Enrichment ratio</td><td>≥ 95% of addressable providers have <code>county.fips</code></td><td>Do not promote — re-run enrichment or investigate failures</td></tr>
+        <tr><td>Any state coverage</td><td>≥ 85% enrichment per state</td><td>Investigate that state — bad ZIP data, geocoder outage</td></tr>
+        <tr><td>Missing NPI</td><td>= 0</td><td>Hard stop — data integrity failure</td></tr>
+        <tr><td>Spot check error rate</td><td>0 errors across 64 random samples (2 per NPI partition)</td><td>Investigate flagged NPIs before promoting</td></tr>
+        <tr><td>FIPS–state agreement</td><td>county.fips state prefix matches practice_address.state</td><td>Enrichment bug — investigate crosswalk or geocoder output</td></tr>
+      </table>
+    </div>
+
+    <h3>Gate 2 — UAT (User Acceptance Testing)</h3>
+    <p>Manual. A human (currently: Skip) asks 3–5 real FindCare questions against the
+    chat UI after data is promoted to <code>ChatHealthyFrontEnd</code> and wired into
+    the HuggingFace app. Questions must cover different intents and geographies.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Scenario</th><th>Pass criteria</th></tr>
+        <tr><td>"Find me a cardiologist in Denver, Colorado"</td><td>Returns ≥1 result with correct specialty, Colorado address, county populated</td></tr>
+        <tr><td>"Who are the top oncologists in New York?"</td><td>Returns relevant results; no obviously wrong specialties or states</td></tr>
+        <tr><td>Provider lookup by name — a known NPI</td><td>Correct name, address, and specialty returned</td></tr>
+        <tr><td>Edge case — rural ZIP with low provider density</td><td>Returns honest "no results nearby" or nearest match — does not crash or hallucinate</td></tr>
+        <tr><td>Out-of-scope provider (inactive or foreign NPI)</td><td>Not returned in results</td></tr>
+      </table>
+    </div>
+    <p>UAT sign-off is a human decision. If any scenario fails or the answers feel wrong,
+    the data does not go to production regardless of SIT result.</p>
+
+    <h3>Handoff Protocol</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Step</th><th>Who</th><th>Action</th></tr>
+        <tr><td>1</td><td>Dev (pipeline)</td><td>Pipeline completes — enrichment reconciliation written to <code>admin.PipelineDiscrepancyReport</code></td></tr>
+        <tr><td>2</td><td>QA</td><td>Run <code>qa_provider_load.py</code> — review SIT report</td></tr>
+        <tr><td>3</td><td>QA</td><td>SIT pass → trigger <code>CopyToFrontEnd</code> API call</td></tr>
+        <tr><td>4</td><td>QA / human</td><td>Run Step 6 embeddings (<code>start_step: 6, embedding_enabled: true</code>) if not already done</td></tr>
+        <tr><td>5</td><td>Human</td><td>UAT — 3–5 real FindCare questions against the live chat UI</td></tr>
+        <tr><td>6</td><td>Human</td><td>UAT pass → declare release. UAT fail → file defect, do not ship.</td></tr>
+      </table>
+    </div>
+
     <!-- 11. Deferred -->
     <h2>11. Deferred</h2>
     <ul>
