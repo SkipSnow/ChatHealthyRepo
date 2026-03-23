@@ -150,6 +150,14 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
         {**config, "csv_path": csv_path, "partitions": partitions},
     )
 
+    # Step 6.5: Pre-warm Flex Consumption instances before fan-out.
+    # Sets always_ready = num_workers via Azure Management API (MSI auth), then waits
+    # 3× PATCH latency for propagation. Prevents cold-start stacking (OOM, two-wave pattern).
+    # Non-fatal if MSI role not yet assigned — warm-up is skipped and fan-out proceeds.
+    context.set_custom_status(f"Step 6.5/10: Pre-warming {config.get('num_workers', 32)} instances")
+    warm_metrics = yield context.call_activity("warm_instances_activity", config)
+    logging.info("Warm-up metrics: %s", warm_metrics)
+
     # Step 7: Fan-out — all workers run simultaneously (no chunking).
     # 32 partitions → 32 concurrent MongoDB writers → ~25% WiredTiger write ticket utilization.
     # Sub-orchestrators are avoided (direct activity calls) to prevent Durable Functions
@@ -163,6 +171,9 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
         for i, partition in enumerate(partitions)
     ]
     worker_results = yield context.task_all(worker_tasks)
+
+    # Step 7.5: Reset always_ready = 0 — no standby cost between runs.
+    yield context.call_activity("cool_instances_activity", config)
 
     # Steps 8+9 run in parallel: index build (MongoDB) and reconcile (blob read) are independent.
     context.set_custom_status("Step 8-9/10: Building indexes + reconciling (parallel)")
