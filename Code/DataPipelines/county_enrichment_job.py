@@ -165,15 +165,42 @@ def county_enrichment_pass1_orchestrator_fn(context):
     }
 
 
+def reset_geocoder_failed_fn(config: dict) -> dict:
+    """Reset providers marked geocoder_failed so the batch geocoder can retry them.
+
+    Previous runs using individual geocoder calls marked 499K providers as
+    geocoder_failed due to rate limiting — not genuine address failures.
+    This clears that flag so get_unenriched_fn picks them up again.
+    Only call this when switching geocoder strategy; not on routine reruns.
+    """
+    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    db_name, coll_name = collection.split(".", 1)
+    result = _get_mongo_client()[db_name][coll_name].update_many(
+        {"county.source": "geocoder_failed"},
+        {"$set": {"county": {"fips": None}}},
+    )
+    logging.info("Reset %d geocoder_failed records for retry", result.modified_count)
+    return {"reset": result.modified_count}
+
+
 def county_enrichment_pass2_orchestrator_fn(context):
-    """Pass 2: Census Geocoder enrichment for providers with split or unknown ZIPs.
+    """Pass 2: Census Geocoder batch enrichment for providers with split or unknown ZIPs.
 
     Queries providers still missing county.fips, fans out Census Geocoder
-    lookups, and returns results for the caller to combine with Pass 1.
+    batch lookups, and returns results for the caller to combine with Pass 1.
+
+    reset_failed (bool, default False): reset geocoder_failed records before
+    querying so the batch geocoder can retry them. Use when switching from
+    the old individual-call approach.
     """
     config = context.get_input() or {}
     load_id = config.get("load_id", context.instance_id)
     config = {**config, "load_id": load_id}
+
+    # Optional: reset geocoder_failed records so batch geocoder can retry them
+    if config.get("reset_failed", False):
+        context.set_custom_status("Step 0/2: Resetting geocoder_failed records for retry")
+        yield context.call_activity("reset_geocoder_failed_activity", config)
 
     # Step 1: Get providers not yet enriched by Pass 1
     context.set_custom_status("Step 1/2: Getting unenriched providers")
@@ -532,6 +559,7 @@ def enrichment_report_fn(config: dict) -> dict:
     }
 
     _get_mongo_client()[db_name][coll_name].insert_one(report)
+    report.pop("_id", None)  # insert_one adds ObjectId in place; strip before returning
     logging.info(
         "Enrichment report — load_id: %s | "
         "Pass 1 ZIP: %d | "
