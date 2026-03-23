@@ -495,15 +495,16 @@ def create_vector_index_fn(config: dict) -> dict:
 def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
     """Top-level orchestrator: health check → load → enrichment → embeddings.
 
-    start_step (1–5): skip all steps before this number. Default 1 (full run).
+    start_step (1–6): skip all steps before this number. Default 1 (full run).
     Pass start_step in the payload to resume after a partial failure.
 
     Steps:
       1 — MongoDB health check
       2 — Download + extract + load provider records
-      3 — County enrichment Pass 1 (ZIP bulk)
-      4 — County enrichment Pass 2 (Census Geocoder)
-      5 — Generate embeddings + create Atlas Vector Search index
+      3 — County enrichment Pass 1 (mark out_of_scope + ZIP bulk)
+      4 — County enrichment Pass 2 (Census Geocoder batch)
+      5 — County enrichment Pass 3 (billing address retry)
+      6 — Generate embeddings + create Atlas Vector Search index
     """
     from county_enrichment_job import _build_enrichment_reconcile
 
@@ -534,30 +535,20 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         }
         load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
 
-    # Step 3: County enrichment — Pass 1 (ZIP bulk)
+    # Step 3: County enrichment — Pass 1 (mark out_of_scope + ZIP bulk)
     pass1_result = None
     if start_step <= 3:
-        context.set_custom_status("Step 3/5: County enrichment — Pass 1 (ZIP bulk)")
+        context.set_custom_status("Step 3/6: County enrichment — Pass 1 (ZIP bulk)")
         pass1_result = yield context.call_sub_orchestrator(
             "county_enrichment_pass1_orchestrator", enrich_config
         )
 
-    # Step 4: County enrichment — Pass 2 (Census Geocoder)
+    # Step 4: County enrichment — Pass 2 (Census Geocoder batch)
     pass2_result = None
     if start_step <= 4:
-        context.set_custom_status("Step 4/5: County enrichment — Pass 2 (Census Geocoder)")
+        context.set_custom_status("Step 4/6: County enrichment — Pass 2 (Census Geocoder)")
         pass2_result = yield context.call_sub_orchestrator(
             "county_enrichment_pass2_orchestrator", enrich_config
-        )
-
-    # Enrichment reconcile report — only if at least one pass ran
-    reconcile = None
-    if pass1_result is not None or pass2_result is not None:
-        reconcile = _build_enrichment_reconcile(
-            pass1_result or {}, pass2_result or {}, pass3_result or {}
-        )
-        yield context.call_activity(
-            "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
         )
 
     # Step 5: County enrichment — Pass 3 (billing address retry)
@@ -566,6 +557,16 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         context.set_custom_status("Step 5/6: County enrichment — Pass 3 (billing address retry)")
         pass3_result = yield context.call_sub_orchestrator(
             "county_enrichment_pass3_orchestrator", enrich_config
+        )
+
+    # Enrichment reconcile report — runs after all passes, so pass3 is included
+    reconcile = None
+    if pass1_result is not None or pass2_result is not None or pass3_result is not None:
+        reconcile = _build_enrichment_reconcile(
+            pass1_result or {}, pass2_result or {}, pass3_result or {}
+        )
+        yield context.call_activity(
+            "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
         )
 
     # Step 6: Generate embeddings + create Atlas Vector Search index
