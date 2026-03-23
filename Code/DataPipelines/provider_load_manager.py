@@ -553,7 +553,9 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     # Enrichment reconcile report — only if at least one pass ran
     reconcile = None
     if pass1_result is not None or pass2_result is not None:
-        reconcile = _build_enrichment_reconcile(pass1_result or {}, pass2_result or {})
+        reconcile = _build_enrichment_reconcile(
+            pass1_result or {}, pass2_result or {}, pass3_result or {}
+        )
         yield context.call_activity(
             "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
         )

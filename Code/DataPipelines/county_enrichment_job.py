@@ -76,38 +76,53 @@ PROVIDERS_COLLECTION = "PublicHealthData.providers_staging"
 
 # ── Orchestrators ─────────────────────────────────────────────────────────────
 
-def _build_enrichment_reconcile(pass1_result: dict, pass2_result: dict) -> dict:
-    """Build combined reconcile dict from Pass 1 and Pass 2 orchestrator results.
+def _build_enrichment_reconcile(
+    pass1_result: dict,
+    pass2_result: dict,
+    pass3_result: dict | None = None,
+) -> dict:
+    """Build combined reconcile dict from Pass 1, Pass 2, and Pass 3 results.
 
     pass1_result may be empty ({}) when start_step > 3 skips Pass 1.
-    In that case total_providers comes from pass2_result (set by get_unenriched_fn).
+    still_unenriched and match are computed against addressable providers
+    (total minus out_of_scope) so inactive/foreign providers do not prevent
+    a complete match.
     """
+    pass3_result = pass3_result or {}
     total_providers = (
         pass1_result.get("total_providers")
         or pass2_result.get("total_providers", 0)
     )
+    out_of_scope           = pass1_result.get("out_of_scope", 0)
+    addressable            = total_providers - out_of_scope
     pass1_modified         = pass1_result.get("pass1_modified", 0)
     pass2_modified         = pass2_result.get("pass2_modified", 0)
     pass2_billing_modified = pass2_result.get("pass2_billing_modified", 0)
     pass2_geocoder_failed  = pass2_result.get("pass2_geocoder_failed", pass2_result.get("pass2_failed", 0))
     pass2_no_address       = pass2_result.get("pass2_no_address", 0)
     pass2_failed           = pass2_geocoder_failed + pass2_no_address
-    total_enriched = pass1_modified + pass2_modified + pass2_billing_modified
-    still_unenriched = total_providers - total_enriched
+    pass3_modified         = pass3_result.get("pass3_modified", 0)
+    total_enriched         = pass1_modified + pass2_modified + pass2_billing_modified + pass3_modified
+    # still_unenriched = addressable providers not yet enriched and not permanently failed
+    still_unenriched       = addressable - total_enriched - pass2_failed
     return {
-        "total_providers": total_providers,
-        "pass1_zip_enrichments": pass1_modified,
-        "pass1_batch_results": pass1_result.get("pass1_batch_results", []),
+        "total_providers":                total_providers,
+        "out_of_scope":                   out_of_scope,
+        "addressable":                    addressable,
+        "pass1_zip_enrichments":          pass1_modified,
+        "pass1_batch_results":            pass1_result.get("pass1_batch_results", []),
         "pass2_address_lookups_attempted": pass2_modified + pass2_billing_modified + pass2_failed,
-        "pass2_practice_enrichments": pass2_modified,
-        "pass2_billing_enrichments": pass2_billing_modified,
-        "pass2_geocoder_failed": pass2_geocoder_failed,
-        "pass2_no_address": pass2_no_address,
-        "pass2_address_lookups_failed": pass2_failed,
-        "pass2_batch_results": pass2_result.get("pass2_batch_results", []),
-        "total_enriched": total_enriched,
-        "still_unenriched": still_unenriched,
-        "match": still_unenriched == 0,
+        "pass2_practice_enrichments":     pass2_modified,
+        "pass2_billing_enrichments":      pass2_billing_modified,
+        "pass2_geocoder_failed":          pass2_geocoder_failed,
+        "pass2_no_address":               pass2_no_address,
+        "pass2_address_lookups_failed":   pass2_failed,
+        "pass2_batch_results":            pass2_result.get("pass2_batch_results", []),
+        "pass3_billing_enrichments":      pass3_modified,
+        "pass3_batch_results":            pass3_result.get("pass3_batch_results", []),
+        "total_enriched":                 total_enriched,
+        "still_unenriched":               still_unenriched,
+        "match":                          still_unenriched == 0,
     }
 
 
@@ -130,7 +145,8 @@ def county_enrichment_pass1_orchestrator_fn(context):
     # Step 2: Mark inactive and foreign providers as out_of_scope before any enrichment.
     # Pass 1's updateMany excludes out_of_scope so these are never enriched.
     context.set_custom_status("Step 2/5: Marking inactive and foreign providers as out_of_scope")
-    yield context.call_activity("mark_out_of_scope_activity", config)
+    out_of_scope_result = yield context.call_activity("mark_out_of_scope_activity", config)
+    out_of_scope_count = out_of_scope_result.get("marked_out_of_scope", 0)
 
     # Step 3: Get distinct ZIPs
     context.set_custom_status("Step 3/5: Getting distinct ZIPs from staging")
@@ -162,11 +178,17 @@ def county_enrichment_pass1_orchestrator_fn(context):
     pass1_results = yield context.task_all(pass1_tasks)
     pass1_modified = sum(r.get("modified", 0) for r in pass1_results)
 
-    context.set_custom_status(f"Done — {pass1_modified:,} enriched via ZIP crosswalk")
+    addressable = total_providers - out_of_scope_count
+    context.set_custom_status(
+        f"Done — {pass1_modified:,} enriched via ZIP crosswalk; "
+        f"{out_of_scope_count:,} out_of_scope; {addressable:,} addressable"
+    )
     return {
-        "total_providers": total_providers,
-        "confident_zips": len(confident_zips),
-        "pass1_modified": pass1_modified,
+        "total_providers":   total_providers,
+        "out_of_scope":      out_of_scope_count,
+        "addressable":       addressable,
+        "confident_zips":    len(confident_zips),
+        "pass1_modified":    pass1_modified,
         "pass1_batch_results": pass1_results,
     }
 
