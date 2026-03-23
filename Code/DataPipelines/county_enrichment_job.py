@@ -758,36 +758,106 @@ def enrich_by_billing_batch_fn(config: dict) -> dict:
 
 
 def enrichment_report_fn(config: dict) -> dict:
-    """Write enrichment run report to admin.PipelineDiscrepancyReport."""
+    """Write enrichment run report to admin.PipelineDiscrepancyReport.
+
+    Queries providers_staging by county.source to build a live summary with
+    two percentages per bucket:
+      pct_of_total       — share of all 8.8M NPI providers
+      pct_of_addressable — share of active US providers (total minus out_of_scope)
+    """
     reconcile = config["reconcile"]
     load_id = config.get("load_id", "unknown")
     report_collection = config.get("report_collection", "admin.PipelineDiscrepancyReport")
-    db_name, coll_name = report_collection.split(".", 1)
+    staging_collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    db_name_r, coll_name_r = report_collection.split(".", 1)
+    db_name_s, coll_name_s = staging_collection.split(".", 1)
+
+    client = _get_mongo_client()
+
+    # Live count by county.source (null source = never touched)
+    source_counts: dict = {
+        doc["_id"]: doc["count"]
+        for doc in client[db_name_s][coll_name_s].aggregate([
+            {"$group": {"_id": "$county.source", "count": {"$sum": 1}}}
+        ])
+    }
+
+    total      = sum(source_counts.values())
+    out_of_scope = source_counts.get("out_of_scope", 0)
+    addressable  = total - out_of_scope  # providers the geocoder can reach
+
+    def pct(n: int, d: int) -> float:
+        return round(n / d * 100, 1) if d else 0.0
+
+    def bucket(keys: list[str | None]) -> dict:
+        count = sum(source_counts.get(k, 0) for k in keys)
+        return {
+            "count":            count,
+            "pct_of_total":     pct(count, total),
+            "pct_of_addressable": pct(count, addressable),
+        }
+
+    summary = {
+        "pass1_zip":        bucket(["crosswalk_pass1"]),
+        "pass2_individual": bucket(["geocoder_pass2", "geocoder_pass2_billing"]),
+        "pass2_batch":      bucket(["geocoder_pass2_batch", "geocoder_pass2_batch_billing"]),
+        "pass3_billing":    bucket(["geocoder_pass3_billing"]),
+        "geocoder_failed":  bucket(["geocoder_failed"]),
+        "no_address":       bucket(["geocoder_no_address"]),
+        "out_of_scope":     {   # pct_of_addressable is N/A — these ARE the excluded set
+            "count":              out_of_scope,
+            "pct_of_total":       pct(out_of_scope, total),
+            "pct_of_addressable": None,
+        },
+        "unenriched":       bucket([None]),
+        "total_enriched": {
+            "count": (
+                source_counts.get("crosswalk_pass1", 0)
+                + source_counts.get("geocoder_pass2", 0)
+                + source_counts.get("geocoder_pass2_billing", 0)
+                + source_counts.get("geocoder_pass2_batch", 0)
+                + source_counts.get("geocoder_pass2_batch_billing", 0)
+                + source_counts.get("geocoder_pass3_billing", 0)
+            ),
+            "pct_of_total":       pct(
+                source_counts.get("crosswalk_pass1", 0)
+                + source_counts.get("geocoder_pass2", 0)
+                + source_counts.get("geocoder_pass2_billing", 0)
+                + source_counts.get("geocoder_pass2_batch", 0)
+                + source_counts.get("geocoder_pass2_batch_billing", 0)
+                + source_counts.get("geocoder_pass3_billing", 0),
+                total,
+            ),
+            "pct_of_addressable": pct(
+                source_counts.get("crosswalk_pass1", 0)
+                + source_counts.get("geocoder_pass2", 0)
+                + source_counts.get("geocoder_pass2_billing", 0)
+                + source_counts.get("geocoder_pass2_batch", 0)
+                + source_counts.get("geocoder_pass2_batch_billing", 0)
+                + source_counts.get("geocoder_pass3_billing", 0),
+                addressable,
+            ),
+        },
+        "total":       total,
+        "addressable": addressable,
+    }
 
     report = {
         "job": "CountyEnrichment",
         "load_id": load_id,
         "datetime": datetime.now(timezone.utc).isoformat(),
         "reconciliation": reconcile,
+        "summary": summary,
     }
 
-    _get_mongo_client()[db_name][coll_name].insert_one(report)
-    report.pop("_id", None)  # insert_one adds ObjectId in place; strip before returning
+    client[db_name_r][coll_name_r].insert_one(report)
+    report.pop("_id", None)
     logging.info(
-        "Enrichment report — load_id: %s | "
-        "Pass 1 ZIP: %d | "
-        "Pass 2 practice: %d, billing fallback: %d | "
-        "Pass 2 geocoder failed: %d, no address: %d | "
-        "Total enriched: %d/%d | Match: %s",
-        load_id,
-        reconcile.get("pass1_zip_enrichments", 0),
-        reconcile.get("pass2_practice_enrichments", 0),
-        reconcile.get("pass2_billing_enrichments", 0),
-        reconcile.get("pass2_geocoder_failed", 0),
-        reconcile.get("pass2_no_address", 0),
-        reconcile.get("total_enriched", 0),
-        reconcile.get("total_providers", 0),
-        reconcile.get("match"),
+        "Enrichment report — %d/%d addressable enriched (%.1f%%) | %d/%d total (%.1f%%)",
+        summary["total_enriched"]["count"], addressable,
+        summary["total_enriched"]["pct_of_addressable"],
+        summary["total_enriched"]["count"], total,
+        summary["total_enriched"]["pct_of_total"],
     )
     return report
 
