@@ -192,7 +192,7 @@ def county_enrichment_pass2_orchestrator_fn(context):
         context.call_activity("enrich_by_address_batch_activity", {**config, "id_batch": batch})
         for batch in addr_batches
     ]
-    pass2_results = yield context.task_all(pass2_tasks)
+    pass2_results = (yield context.task_all(pass2_tasks)) if pass2_tasks else []
     pass2_modified         = sum(r.get("modified",          0) for r in pass2_results)
     pass2_billing_modified = sum(r.get("billing_modified",  0) for r in pass2_results)
     pass2_geocoder_failed  = sum(r.get("geocoder_failed",   0) for r in pass2_results)
