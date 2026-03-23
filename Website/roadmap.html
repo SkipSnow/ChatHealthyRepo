@@ -89,7 +89,8 @@
     }
     .badge-open    { background: #fff3cd; color: #7d5a00; border: 1px solid #f0d080; }
     .badge-postmvp { background: var(--teal-light); color: var(--teal); border: 1px solid var(--teal-mid); }
-    .badge-tuesday { background: #fdf0e0; color: #9a5000; border: 1px solid #f0c880; }
+    .badge-tuesday    { background: #fdf0e0; color: #9a5000; border: 1px solid #f0c880; }
+    .badge-wednesday  { background: #edf4ff; color: #1a4b8a; border: 1px solid #a8c8f0; }
     .badge-low     { background: #f4f4f4; color: var(--ink-soft); border: 1px solid var(--border); }
 
     .item p { font-size: 0.88rem; line-height: 1.65; color: var(--ink); margin-bottom: 8px; }
@@ -402,7 +403,7 @@
         <div class="gl-item"><div class="gl-dot gl-infra"></div> Infrastructure (post-Alpha)</div>
         <div class="gl-item"><div class="gl-dot gl-security"></div> Enterprise security (pre-sales)</div>
         <div class="gl-item"><div class="gl-dot gl-future"></div> Future phase</div>
-        <div class="gl-item"><div class="gl-today-line"></div> Today (Mar 22)</div>
+        <div class="gl-item"><div class="gl-today-line"></div> Today (Mar 23)</div>
       </div>
     </div><!-- /gantt-wrap -->
 
@@ -420,6 +421,42 @@
         <li>Procedure codes (CPT/HCPCS) — new pipeline</li>
         <li>CMS Medicare Part D prescription data — new pipeline</li>
         <li>Pipeline fixes deployed: MongoDB health check, embeddings + Atlas Vector Search, <code>start_step</code> resume, license normalization, ZIP truncation</li>
+      </ul>
+    </div>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">M-001b</span>
+        <span class="item-title">HuggingFace — wire provider data into chat UI</span>
+        <span class="badge badge-tuesday">Tuesday 2026-03-24</span>
+      </div>
+      <p>First end-to-end connection between the provider dataset and the conversational UI.
+      Users can ask natural language questions about providers and get results from the
+      <code>providers</code> collection on <code>ChatHealthyFrontEnd</code>.</p>
+      <ul>
+        <li>Provider data deployed to <code>ChatHealthyFrontEnd</code> cluster (via <code>CopyToFrontEnd</code> after QA sign-off)</li>
+        <li>MongoDB query tool added to the HuggingFace chat app — find providers by name, specialty, location</li>
+        <li>Basic provider card response in the chat (name, specialty, address, county)</li>
+        <li>Smoke test: ask for a provider by name and verify correct result returned</li>
+      </ul>
+    </div>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">M-001c</span>
+        <span class="item-title">Dev/QA agent architecture — pipeline release management</span>
+        <span class="badge badge-wednesday">Wednesday 2026-03-25</span>
+      </div>
+      <p>Formalize the separation between pipeline execution (Dev) and data validation (QA)
+      as two distinct roles with a defined handoff protocol. Design now; agent implementation
+      follows as CrewAI agents post-Alpha.</p>
+      <ul>
+        <li>Dev agent: pipeline produces structured enrichment report → writes to <code>admin.PipelineDiscrepancyReport</code></li>
+        <li>QA agent: reads Dev report + runs independent acceptance checks (record count, enrichment ratio, spot check) → writes verdict to <code>admin.QAReport</code></li>
+        <li>Handoff: QA verdict triggers <code>CopyToFrontEnd</code> — pipeline success alone is not sufficient</li>
+        <li>Acceptance criteria documented in <code>provider-data-load.html</code> — thresholds are product decisions, not engineering</li>
+        <li><code>qa_provider_load.py</code> is the QA agent's first implementation (standalone script, human-reviewed)</li>
+        <li>CrewAI agent upgrade path: Dev agent + QA agent with defined tools and handoff protocol</li>
       </ul>
     </div>
 
