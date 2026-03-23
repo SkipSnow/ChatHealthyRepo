@@ -244,6 +244,55 @@ def county_enrichment_pass2_orchestrator_fn(context):
     }
 
 
+def county_enrichment_pass3_orchestrator_fn(context):
+    """Pass 3: retry geocoder_failed providers using mailing/billing address.
+
+    Providers that failed Pass 2 had practice addresses the Census geocoder
+    couldn't match. Their mailing/billing address may be different and geocodable.
+    On success sets county.source = geocoder_pass3_billing.
+    On failure leaves county.source = geocoder_failed unchanged.
+    """
+    config = context.get_input() or {}
+    load_id = config.get("load_id", context.instance_id)
+    config = {**config, "load_id": load_id}
+
+    context.set_custom_status("Step 1/2: Finding geocoder_failed providers with billing addresses")
+    retryable = yield context.call_activity("get_billing_retryable_activity", config)
+    retryable_count = retryable["count"]
+    retryable_ids = retryable["provider_ids"]
+
+    if not retryable_ids:
+        context.set_custom_status("Done — no geocoder_failed providers with billing addresses")
+        return {"pass3_retryable": 0, "pass3_modified": 0, "pass3_failed": 0, "pass3_batch_results": []}
+
+    addr_batch_size = config.get("addr_batch_size", 5_000)
+    addr_batches = [
+        retryable_ids[i:i + addr_batch_size]
+        for i in range(0, len(retryable_ids), addr_batch_size)
+    ]
+    context.set_custom_status(
+        f"Step 2/2: {retryable_count:,} providers via billing address "
+        f"across {len(addr_batches)} workers"
+    )
+    pass3_tasks = [
+        context.call_activity("enrich_by_billing_batch_activity", {**config, "id_batch": batch})
+        for batch in addr_batches
+    ]
+    pass3_results = (yield context.task_all(pass3_tasks)) if pass3_tasks else []
+    pass3_modified = sum(r.get("modified", 0) for r in pass3_results)
+    pass3_failed   = sum(r.get("geocoder_failed", 0) for r in pass3_results)
+
+    context.set_custom_status(
+        f"Done — {pass3_modified:,} billing enriched; {pass3_failed:,} still failed"
+    )
+    return {
+        "pass3_retryable":     retryable_count,
+        "pass3_modified":      pass3_modified,
+        "pass3_failed":        pass3_failed,
+        "pass3_batch_results": pass3_results,
+    }
+
+
 def county_enrichment_orchestrator_fn(context):
     """Standalone county enrichment: Pass 1 → Pass 2 → combined report.
 
@@ -538,6 +587,118 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
         "billing_modified": billing_modified,
         "geocoder_failed":  geocoder_failed,
         "no_address":       no_address,
+        "started_at":       started_at,
+        "finished_at":      datetime.now(timezone.utc).isoformat(),
+        "duration_seconds": round(time.monotonic() - start_time, 2),
+    }
+
+
+def get_billing_retryable_fn(config: dict) -> dict:
+    """Return _id list of geocoder_failed providers that have a usable mailing/billing address."""
+    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    db_name, coll_name = collection.split(".", 1)
+    coll = _get_mongo_client()[db_name][coll_name]
+    ids = [
+        str(doc["_id"])
+        for doc in coll.find(
+            {
+                "county.source": "geocoder_failed",
+                "$or": [
+                    {"mailing_address.line1": {"$nin": [None, ""]}},
+                    {"mailing_address.city":  {"$nin": [None, ""]}},
+                ],
+            },
+            {"_id": 1},
+        )
+    ]
+    logging.info("Pass 3 billing-retryable providers: %d", len(ids))
+    return {"count": len(ids), "provider_ids": ids}
+
+
+def enrich_by_billing_batch_fn(config: dict) -> dict:
+    """Pass 3: geocode geocoder_failed providers using mailing/billing address.
+
+    Sends the mailing/billing address to the Census batch geocoder. On success,
+    sets county.fips and source = geocoder_pass3_billing. On failure, leaves
+    county.source = geocoder_failed unchanged (no write needed).
+    """
+    started_at = datetime.now(timezone.utc).isoformat()
+    start_time = time.monotonic()
+    id_batch   = config["id_batch"]
+    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    db_name, coll_name = collection.split(".", 1)
+    coll = _get_mongo_client()[db_name][coll_name]
+
+    object_ids = [ObjectId(i) for i in id_batch]
+    providers  = list(coll.find(
+        {"_id": {"$in": object_ids}},
+        {"_id": 1, "mailing_address": 1},
+    ))
+
+    geocodable = [
+        p for p in providers
+        if (p.get("mailing_address") or {}).get("line1") or
+           (p.get("mailing_address") or {}).get("city")
+    ]
+
+    modified = geocoder_failed = 0
+    ops: list = []
+
+    if geocodable:
+        buf = io.StringIO()
+        writer = csv.writer(buf, quoting=csv.QUOTE_ALL)
+        for p in geocodable:
+            mailing  = p.get("mailing_address") or {}
+            street   = mailing.get("line1", "").strip()
+            city     = mailing.get("city",  "").strip()
+            state    = mailing.get("state", "").strip()
+            zip_code = mailing.get("zip",   "").strip()
+            writer.writerow([str(p["_id"]), street, city, state, zip_code[:5] if zip_code else ""])
+
+        batch_ok = False
+        matched: dict = {}
+        try:
+            resp = requests.post(
+                CENSUS_BATCH_URL,
+                files={"addressFile": ("addresses.csv", buf.getvalue().encode("utf-8"), "text/csv")},
+                data={"benchmark": "Public_AR_Current", "vintage": "Current_Current"},
+                timeout=300,
+            )
+            resp.raise_for_status()
+            for row in csv.reader(io.StringIO(resp.text)):
+                if len(row) < 10:
+                    continue
+                pid, match, state_fp, county_fp = row[0].strip(), row[2].strip(), row[8].strip(), row[9].strip()
+                if match not in ("Match", "Tie") or not state_fp or not county_fp:
+                    continue
+                if pid not in matched:
+                    matched[pid] = state_fp + county_fp
+            batch_ok = True
+        except Exception as exc:
+            logging.error(
+                "Pass 3 billing batch geocoder failed (%d providers left for retry): %s",
+                len(geocodable), exc,
+            )
+
+        if batch_ok:
+            for p in geocodable:
+                pid = str(p["_id"])
+                if pid in matched:
+                    ops.append(UpdateOne(
+                        {"_id": p["_id"]},
+                        {"$set": {"county": {"fips": matched[pid], "source": "geocoder_pass3_billing"}}},
+                    ))
+                    modified += 1
+                else:
+                    geocoder_failed += 1  # leave county.source = geocoder_failed unchanged
+
+    if ops:
+        coll.bulk_write(ops, ordered=False)
+
+    logging.info("Pass 3 billing batch: %d matched, %d still failed", modified, geocoder_failed)
+    return {
+        "modified":         modified,
+        "geocoder_failed":  geocoder_failed,
         "started_at":       started_at,
         "finished_at":      datetime.now(timezone.utc).isoformat(),
         "duration_seconds": round(time.monotonic() - start_time, 2),

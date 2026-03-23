@@ -558,14 +558,22 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
             "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
         )
 
-    # Step 5: Generate embeddings + create Atlas Vector Search index
+    # Step 5: County enrichment — Pass 3 (billing address retry)
+    pass3_result = None
+    if start_step <= 5:
+        context.set_custom_status("Step 5/6: County enrichment — Pass 3 (billing address retry)")
+        pass3_result = yield context.call_sub_orchestrator(
+            "county_enrichment_pass3_orchestrator", enrich_config
+        )
+
+    # Step 6: Generate embeddings + create Atlas Vector Search index
     # embedding_enabled must be explicitly True — default is False (embeddings are expensive
     # and require OpenAI; skip unless intentionally requested).
     embed_results = []
-    if start_step <= 5 and config.get("embedding_enabled", False):
+    if start_step <= 6 and config.get("embedding_enabled", False):
         num_workers = config.get("num_workers", 32)
         staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
-        context.set_custom_status(f"Step 5/5: Generating embeddings ({num_workers} workers)")
+        context.set_custom_status(f"Step 6/6: Generating embeddings ({num_workers} workers)")
         embed_tasks = [
             context.call_activity(
                 "embed_worker_activity",
@@ -575,12 +583,13 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         ]
         embed_results = yield context.task_all(embed_tasks)
 
-        context.set_custom_status("Step 5/5: Creating vector search index")
+        context.set_custom_status("Step 6/6: Creating vector search index")
         yield context.call_activity(
             "create_vector_index_activity", {"staging_collection": staging_collection}
         )
 
     total_embedded = sum(r.get("embedded", 0) for r in embed_results)
+    pass3_enriched = pass3_result.get("pass3_modified", 0) if pass3_result else 0
     enrich_status = (
         "complete" if reconcile and reconcile["match"]
         else "partial" if reconcile
@@ -589,11 +598,13 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     context.set_custom_status(
         f"Done — load {load_result.get('status', 'unknown')}, "
         f"enrichment {enrich_status}, "
+        f"pass3 billing {pass3_enriched:,}, "
         f"embedded {total_embedded:,}"
     )
     return {
         "load": load_result,
         "enrichment": reconcile,
+        "pass3": pass3_result,
         "embeddings": {"total_embedded": total_embedded},
     }
 
