@@ -869,21 +869,21 @@ def enrichment_report_fn(config: dict) -> dict:
 
     enrichment_sla = 98.0
     pct_enriched = summary["total_enriched"]["pct_of_addressable"] or 0.0
-    job_status = "succeed" if pct_enriched >= enrichment_sla else "fail"
-
-    report = {
-        "job_name": "County Enrichment",
-        "job_status": job_status,
-        "load_id": load_id,
-        "datetime": datetime.now(timezone.utc).isoformat(),
-        "reconciliation": reconcile,
-        "summary": summary,
-    }
-    if job_status == "fail":
-        report["fail_reason"] = (
+    succeeded = pct_enriched >= enrichment_sla
+    job_status: dict = {"status": "succeed" if succeeded else "fail"}
+    if not succeeded:
+        job_status["fail_reason"] = (
             f"Enrichment SLA not met: {pct_enriched:.1f}% enriched "
             f"(required {enrichment_sla:.0f}% of addressable providers)"
         )
+
+    report: dict = {"job_name": "County Enrichment", "job_status": job_status}
+    report.update({
+        "datetime": datetime.now(timezone.utc).isoformat(),
+        "reconciliation": reconcile,
+        "summary": summary,
+        "pipeline_run": {"load_id": load_id},
+    })
 
     client[db_name_r][coll_name_r].insert_one(report)
     report.pop("_id", None)

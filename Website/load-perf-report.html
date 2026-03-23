@@ -139,6 +139,7 @@
           <li><a href="#analysis">Analysis</a></li>
           <li><a href="#implementation">Implementation — Optimizations Applied</a></li>
           <li><a href="#sla">SLA Context</a></li>
+          <li><a href="#results">Results</a></li>
         </ol>
       </nav>
 
@@ -301,6 +302,38 @@
         <tr><td>Projected post-optimization</td><td>~10 minutes (theoretical — 32 workers at observed isolation throughput)</td></tr>
         <tr><td>Conservative SLA (GPT-4o estimate)</td><td>~15 minutes, accounting for coordination overhead and post-load index build</td></tr>
         <tr><td>Actual performance</td><td>Measured on optimized run, 2026-03-23</td></tr>
+      </table>
+
+      <!-- 6. Results -->
+      <h2 id="results">6. Results</h2>
+
+      <h3>Timeline</h3>
+      <table class="kv-table">
+        <tr><td>Performance problem raised</td><td>10:10 AM PST, 2026-03-23</td></tr>
+        <tr><td>Fix committed and deployed</td><td>10:38 AM PST, 2026-03-23 — 28 minutes later</td></tr>
+        <tr><td>Optimized run started</td><td>12:44 PM PST, 2026-03-23</td></tr>
+        <tr><td>Optimized run completed</td><td>In progress</td></tr>
+      </table>
+
+      <h3>Reference vs. Optimized — Load Curve</h3>
+      <p>The reference run loaded records in four contention-degraded waves.
+         The optimized run is linear — 32 workers writing at a steady rate with zero queue depth throughout.</p>
+      <figure style="margin:1.5rem 0; text-align:center;">
+        <img src="load_comparison.png" alt="Reference vs. Optimized load curve" style="max-width:100%; border-radius:var(--radius); border:1px solid var(--border);" />
+      </figure>
+
+      <h3>Optimized Run — Live Progress</h3>
+      <figure style="margin:1.5rem 0; text-align:center;">
+        <img src="load_progress.png" alt="Optimized run progress" style="max-width:100%; border-radius:var(--radius); border:1px solid var(--border);" />
+        <figcaption style="font-size:0.85rem; color:var(--ink-soft); margin-top:0.5rem;">Sampled at 5-minute intervals. R² = 0.9985 — throughput is linear with no contention degradation.</figcaption>
+      </figure>
+
+      <h3>MongoDB Metrics — Optimized Run</h3>
+      <table class="kv-table">
+        <tr><td>Write queues</td><td>Flat zero throughout — no lock contention</td></tr>
+        <tr><td>Operation execution time</td><td>Near zero — inserts completing without blocking</td></tr>
+        <tr><td>Page faults</td><td>Zero — WiredTiger cache absorbing all activity</td></tr>
+        <tr><td>Throughput</td><td>~173K records/min, steady-state, linear</td></tr>
       </table>
 
     </div><!-- /.doc-body -->
