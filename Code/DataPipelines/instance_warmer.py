@@ -38,7 +38,8 @@ import requests
 log = logging.getLogger(__name__)
 
 # Wait at least this long after PATCH ACK regardless of round-trip latency.
-WARM_WAIT_FLOOR_SEC = 30
+# Flex Consumption cold starts take 45-60s — floor must exceed that.
+WARM_WAIT_FLOOR_SEC = 60
 PROPAGATION_MULTIPLIER = 3
 
 
