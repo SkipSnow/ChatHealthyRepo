@@ -515,6 +515,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         "load_id": load_id,
         "num_workers": config.get("enrich_workers", 200),
         "addr_batch_size": config.get("addr_batch_size", 5_000),
+        "reset_failed": config.get("reset_failed", False),
     }
 
     # Step 1: MongoDB health check
