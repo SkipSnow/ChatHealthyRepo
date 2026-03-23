@@ -320,11 +320,21 @@ def partition_file_fn(config: dict) -> list:
 
 
 
-def ensure_preload_indexes_fn(config: dict) -> None:
-    """Create unique index before workers start. Idempotent.
-    Only the compound unique index is needed pre-load — it enforces idempotency
-    on retry. Secondary indexes are deferred to after load to reduce write
-    amplification during the bulk insert phase.
+def ensure_preload_indexes_fn(_config: dict) -> None:
+    """No-op — unique index deferred to post-load for performance.
+    Pure insertMany during load requires no pre-existing unique index.
+    drain_staging guarantees an empty collection before workers start,
+    so duplicate inserts cannot occur on the happy path.
+    """
+    logging.info("Pre-load index step: no-op (index deferred to post-load)")
+
+
+def ensure_postload_indexes_fn(config: dict) -> None:
+    """Create all indexes after load completes. Idempotent.
+    Building indexes over existing data in one pass is significantly faster
+    than maintaining them incrementally during bulk insert.
+    Also called at the start of county enrichment to guarantee indexes
+    exist when CountyEnrichment is run standalone.
     """
     staging_collection = config.get(
         "staging_collection", "PublicHealthData.providers_staging"
@@ -336,19 +346,6 @@ def ensure_preload_indexes_fn(config: dict) -> None:
         unique=True,
         name="load_record_unique",
     )
-    logging.info("Pre-load index ensured on %s", staging_collection)
-
-
-def ensure_postload_indexes_fn(config: dict) -> None:
-    """Create secondary indexes after load completes. Idempotent.
-    Also called at the start of county enrichment to guarantee indexes
-    exist when CountyEnrichment is run standalone.
-    """
-    staging_collection = config.get(
-        "staging_collection", "PublicHealthData.providers_staging"
-    )
-    db_name, coll_name = staging_collection.split(".", 1)
-    collection = _get_mongo_client()[db_name][coll_name]
     collection.create_index(
         "practice_address.zip",
         name="practice_zip",

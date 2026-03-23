@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from blob_client import get_blob_service
 from bson import ObjectId
 from pipeline_worker_base import PipelineWorkerBase
-from pymongo import MongoClient, UpdateOne
+from pymongo import MongoClient, InsertOne
 
 _mongo: MongoClient | None = None
 
@@ -33,6 +33,7 @@ def _get_mongo_client() -> MongoClient:
         _mongo = MongoClient(
             os.environ["MONGO_connectionString"],
             serverSelectionTimeoutMS=120_000,  # survive Atlas autoscale elections (~30-90s)
+            maxPoolSize=64,
         )
     return _mongo
 
@@ -226,7 +227,7 @@ class ProviderWorker(PipelineWorkerBase):
         self.csv_path = config["csv_path"]
         self.load_id = config["load_id"]
         self.metadata_id = config["metadata_id"]
-        self.batch_size = config.get("batch_size", 5000)
+        self.batch_size = config.get("batch_size", 10_000)
         self.staging_collection = config.get(
             "staging_collection", "PublicHealthData.providers_staging"
         )
@@ -300,11 +301,7 @@ class ProviderWorker(PipelineWorkerBase):
         doc["worker_id"] = self.worker_id
         doc["county"] = {"fips": None}  # stub — enriched by county_enrichment_job
 
-        self._batch.append(UpdateOne(
-            {"load_id": self.load_id, "record_id": record_id},
-            {"$setOnInsert": doc},
-            upsert=True,
-        ))
+        self._batch.append(InsertOne(doc))
         self._local_index += 1
         self._num_records += 1
 
