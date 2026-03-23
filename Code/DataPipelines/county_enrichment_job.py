@@ -34,6 +34,7 @@ except ImportError:
 
 import requests
 from bson import ObjectId
+from pipeline_worker_base import PipelineWorkerBase
 from pymongo import MongoClient, UpdateOne
 
 _mongo: MongoClient | None = None
