@@ -45,6 +45,7 @@ from county_enrichment_job import (
     get_distinct_zips_fn,
     get_unenriched_fn,
     lookup_crosswalk_fn,
+    mark_out_of_scope_fn,
     reset_geocoder_failed_fn,
 )
 from provider_load_manager import (
@@ -304,6 +305,11 @@ def enrich_by_address_batch_activity(config: dict) -> dict:
 @app.activity_trigger(input_name="config")
 def reset_geocoder_failed_activity(config: dict) -> dict:
     return reset_geocoder_failed_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def mark_out_of_scope_activity(config: dict) -> dict:
+    return mark_out_of_scope_fn(config)
 
 
 @app.activity_trigger(input_name="config")

@@ -197,13 +197,17 @@ def county_enrichment_pass2_orchestrator_fn(context):
     load_id = config.get("load_id", context.instance_id)
     config = {**config, "load_id": load_id}
 
-    # Optional: reset geocoder_failed records so batch geocoder can retry them
+    # Step 0a: Mark inactive and foreign providers as out_of_scope
+    context.set_custom_status("Step 0/3: Marking inactive and foreign providers as out_of_scope")
+    yield context.call_activity("mark_out_of_scope_activity", config)
+
+    # Step 0b: Optional — reset geocoder_failed records so batch geocoder can retry them
     if config.get("reset_failed", False):
-        context.set_custom_status("Step 0/2: Resetting geocoder_failed records for retry")
+        context.set_custom_status("Step 0/3: Resetting geocoder_failed records for retry")
         yield context.call_activity("reset_geocoder_failed_activity", config)
 
     # Step 1: Get providers not yet enriched by Pass 1
-    context.set_custom_status("Step 1/2: Getting unenriched providers")
+    context.set_custom_status("Step 1/3: Getting unenriched providers")
     unenriched = yield context.call_activity("get_unenriched_activity", config)
     unenriched_count = unenriched["count"]
     unenriched_ids = unenriched["provider_ids"]
@@ -215,7 +219,7 @@ def county_enrichment_pass2_orchestrator_fn(context):
         for i in range(0, len(unenriched_ids), addr_batch_size)
     ]
     context.set_custom_status(
-        f"Step 2/2: {unenriched_count:,} providers via Census Geocoder "
+        f"Step 2/3: {unenriched_count:,} providers via Census Geocoder "
         f"across {len(addr_batches)} workers"
     )
     pass2_tasks = [
@@ -429,12 +433,48 @@ def enrich_by_zip_batch_fn(config: dict) -> dict:
     return ZipEnrichmentWorker(config).pipeline_execute()
 
 
+def mark_out_of_scope_fn(config: dict) -> dict:
+    """Mark deactivated and foreign providers as out_of_scope before geocoding.
+
+    These providers have county.fips = null but the Census geocoder cannot
+    resolve them:
+    - Deactivated: npi_deactivation_date set without a later reactivation date
+    - Foreign: practice_address.country set (Census geocoder is US-only)
+
+    Sets county = {fips: null, source: "out_of_scope"} so they are excluded
+    from all subsequent geocoder passes and clearly visible in reporting.
+    """
+    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    db_name, coll_name = collection.split(".", 1)
+    coll = _get_mongo_client()[db_name][coll_name]
+    result = coll.update_many(
+        {
+            "county.fips": None,
+            "county.source": {"$nin": ["geocoder_failed", "geocoder_no_address", "out_of_scope"]},
+            "$or": [
+                # Deactivated with no reactivation
+                {
+                    "npi_deactivation_date": {"$exists": True},
+                    "npi_reactivation_date": {"$exists": False},
+                },
+                # Foreign provider (country field absent = US in NPPES)
+                {"practice_address.country": {"$exists": True}},
+            ],
+        },
+        {"$set": {"county": {"fips": None, "source": "out_of_scope"}}},
+    )
+    logging.info(
+        "Marked %d providers as out_of_scope (inactive or foreign)", result.modified_count
+    )
+    return {"marked_out_of_scope": result.modified_count}
+
+
 def get_unenriched_fn(config: dict) -> dict:
     """Return _id list of providers without county.fips, plus total provider count.
 
-    Excludes records already attempted by Pass 2 (county.source = geocoder_failed
-    or geocoder_no_address) — these are permanently unresolvable and must not be
-    re-attempted on subsequent runs.
+    Excludes records already resolved or classified by a prior pass:
+    geocoder_failed, geocoder_no_address, out_of_scope.
+    mark_out_of_scope_fn must run before this to tag inactive and foreign providers.
     """
     collection = config.get("staging_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
@@ -445,7 +485,9 @@ def get_unenriched_fn(config: dict) -> dict:
         for doc in coll.find(
             {
                 "county.fips": None,
-                "county.source": {"$nin": ["geocoder_failed", "geocoder_no_address"]},
+                "county.source": {"$nin": [
+                    "geocoder_failed", "geocoder_no_address", "out_of_scope"
+                ]},
             },
             {"_id": 1}
         )
@@ -594,7 +636,10 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
 
 
 def get_billing_retryable_fn(config: dict) -> dict:
-    """Return _id list of geocoder_failed providers that have a usable mailing/billing address."""
+    """Return _id list of geocoder_failed providers that have a usable mailing/billing address.
+
+    Excludes deactivated and foreign providers — same rules as Pass 2.
+    """
     collection = config.get("staging_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
@@ -603,10 +648,17 @@ def get_billing_retryable_fn(config: dict) -> dict:
         for doc in coll.find(
             {
                 "county.source": "geocoder_failed",
-                "$or": [
-                    {"mailing_address.line1": {"$nin": [None, ""]}},
-                    {"mailing_address.city":  {"$nin": [None, ""]}},
+                "$and": [
+                    {"$or": [
+                        {"mailing_address.line1": {"$nin": [None, ""]}},
+                        {"mailing_address.city":  {"$nin": [None, ""]}},
+                    ]},
+                    {"$or": [
+                        {"npi_deactivation_date": {"$exists": False}},
+                        {"npi_reactivation_date": {"$exists": True}},
+                    ]},
                 ],
+                "mailing_address.country": {"$exists": False},
             },
             {"_id": 1},
         )
