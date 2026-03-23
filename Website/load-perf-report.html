@@ -125,7 +125,7 @@
     <div class="page-header">
       <div class="eyebrow">Sample Performance Tuning Report</div>
       <h1>Provider Load Performance Analysis</h1>
-      <div class="meta">Load ID: d8c57580-9909-429e-86ae-a42724b9d2ea:0 &nbsp;·&nbsp; Reference run: 2026-03-23</div>
+      <div class="meta">Reference run: 2026-03-23</div>
       <div class="authors">Analysis by Claude Code Agent (Anthropic) and ChatGPT (OpenAI)</div>
     </div>
 
@@ -163,7 +163,7 @@
         <tr><td>Write pattern</td><td><code>UpdateOne($setOnInsert)</code> upsert on <code>(load_id, record_id)</code></td></tr>
         <tr><td>Index active during load</td><td><code>(load_id, record_id)</code> unique — maintained incrementally during load. Secondary indexes (zip, county.fips, worker_id) created after load completes.</td></tr>
         <tr><td>MongoDB</td><td>Atlas M30 (8 GB RAM, ~4 GB WiredTiger cache), autoscale to M200</td></tr>
-        <tr><td>Collection</td><td><code>PublicHealthData.providers_staging</code> (drained before load)</td></tr>
+        <tr><td>Collection</td><td><code>providers_staging</code> (drained before load)</td></tr>
       </table>
 
       <h2 id="worker-data">Worker Wave Data</h2>
@@ -300,7 +300,7 @@
         <tr><td>Throughput summary</td><td>Fast workers (&gt;400 rows/s): 8 workers, avg 463 rows/s · Medium (200–400): 8 workers, avg 231 rows/s · Slow (&lt;200): 16 workers, avg 170 rows/s</td></tr>
         <tr><td>Projected post-optimization</td><td>~10 minutes (theoretical — 32 workers at observed isolation throughput)</td></tr>
         <tr><td>Conservative SLA (GPT-4o estimate)</td><td>~15 minutes, accounting for coordination overhead and post-load index build</td></tr>
-        <tr><td>Actual performance</td><td>Measured on current run (instance 4a90c30b, 2026-03-23)</td></tr>
+        <tr><td>Actual performance</td><td>Measured on optimized run, 2026-03-23</td></tr>
       </table>
 
     </div><!-- /.doc-body -->
