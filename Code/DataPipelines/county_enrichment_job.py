@@ -114,8 +114,9 @@ def _build_enrichment_reconcile(pass1_result: dict, pass2_result: dict) -> dict:
 def county_enrichment_pass1_orchestrator_fn(context):
     """Pass 1: ZIP-based bulk enrichment via ZipCountyCrosswalk.
 
-    Ensures the county.fips index, computes confident ZIPs, and fans out
-    one updateMany per ZIP. Returns results for the caller to combine with Pass 2.
+    Ensures the county.fips index, marks inactive/foreign providers as
+    out_of_scope, then fans out one updateMany per confident ZIP.
+    Returns results for the caller to combine with Pass 2.
     """
     config = context.get_input() or {}
     load_id = config.get("load_id", context.instance_id)
@@ -123,23 +124,28 @@ def county_enrichment_pass1_orchestrator_fn(context):
 
     # Step 1: Ensure county.fips index. Idempotent — no-op if already exists.
     # Required when Pass 1 is run outside FullProviderPipeline.
-    context.set_custom_status("Step 1/4: Ensuring county.fips index")
+    context.set_custom_status("Step 1/5: Ensuring county.fips index")
     yield context.call_activity("ensure_postload_indexes_activity", config)
 
-    # Step 2: Get distinct ZIPs
-    context.set_custom_status("Step 2/4: Getting distinct ZIPs from staging")
+    # Step 2: Mark inactive and foreign providers as out_of_scope before any enrichment.
+    # Pass 1's updateMany excludes out_of_scope so these are never enriched.
+    context.set_custom_status("Step 2/5: Marking inactive and foreign providers as out_of_scope")
+    yield context.call_activity("mark_out_of_scope_activity", config)
+
+    # Step 3: Get distinct ZIPs
+    context.set_custom_status("Step 3/5: Getting distinct ZIPs from staging")
     zip_data = yield context.call_activity("get_distinct_zips_activity", config)
     total_providers = zip_data["total_providers"]
     distinct_zips = zip_data["distinct_zips"]
 
-    # Step 3: Lookup crosswalk — split into confident vs ambiguous
-    context.set_custom_status(f"Step 3/4: Looking up {len(distinct_zips):,} ZIPs in crosswalk")
+    # Step 4: Lookup crosswalk — split into confident vs ambiguous
+    context.set_custom_status(f"Step 4/5: Looking up {len(distinct_zips):,} ZIPs in crosswalk")
     crosswalk_result = yield context.call_activity(
         "lookup_crosswalk_activity", {**config, "zips": distinct_zips}
     )
     confident_zips = crosswalk_result["confident"]
 
-    # Step 4: Fan-out — one updateMany per ZIP
+    # Step 5: Fan-out — one updateMany per ZIP (excludes out_of_scope providers)
     num_workers = config.get("num_workers", 200)
     batch_size = max(1, len(confident_zips) // num_workers)
     zip_batches = [
@@ -147,7 +153,7 @@ def county_enrichment_pass1_orchestrator_fn(context):
         for i in range(0, len(confident_zips), batch_size)
     ]
     context.set_custom_status(
-        f"Step 4/4: {len(confident_zips):,} confident ZIPs across {len(zip_batches)} workers"
+        f"Step 5/5: {len(confident_zips):,} confident ZIPs across {len(zip_batches)} workers"
     )
     pass1_tasks = [
         context.call_activity("enrich_by_zip_batch_activity", {**config, "zip_batch": batch})
@@ -197,17 +203,13 @@ def county_enrichment_pass2_orchestrator_fn(context):
     load_id = config.get("load_id", context.instance_id)
     config = {**config, "load_id": load_id}
 
-    # Step 0a: Mark inactive and foreign providers as out_of_scope
-    context.set_custom_status("Step 0/3: Marking inactive and foreign providers as out_of_scope")
-    yield context.call_activity("mark_out_of_scope_activity", config)
-
-    # Step 0b: Optional — reset geocoder_failed records so batch geocoder can retry them
+    # Optional: reset geocoder_failed records so batch geocoder can retry them
     if config.get("reset_failed", False):
-        context.set_custom_status("Step 0/3: Resetting geocoder_failed records for retry")
+        context.set_custom_status("Step 0/2: Resetting geocoder_failed records for retry")
         yield context.call_activity("reset_geocoder_failed_activity", config)
 
     # Step 1: Get providers not yet enriched by Pass 1
-    context.set_custom_status("Step 1/3: Getting unenriched providers")
+    context.set_custom_status("Step 1/2: Getting unenriched providers")
     unenriched = yield context.call_activity("get_unenriched_activity", config)
     unenriched_count = unenriched["count"]
     unenriched_ids = unenriched["provider_ids"]
@@ -219,7 +221,7 @@ def county_enrichment_pass2_orchestrator_fn(context):
         for i in range(0, len(unenriched_ids), addr_batch_size)
     ]
     context.set_custom_status(
-        f"Step 2/3: {unenriched_count:,} providers via Census Geocoder "
+        f"Step 2/2: {unenriched_count:,} providers via Census Geocoder "
         f"across {len(addr_batches)} workers"
     )
     pass2_tasks = [
@@ -398,6 +400,7 @@ class ZipEnrichmentWorker(PipelineWorkerBase):
         result = self._collection.update_many(
             {
                 "county.fips": None,
+                "county.source": {"$ne": "out_of_scope"},
                 "practice_address.zip": {"$regex": f"^{zip5}"},
             },
             {"$set": {
