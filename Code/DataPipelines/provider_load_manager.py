@@ -452,12 +452,12 @@ def report_fn(config: dict) -> dict:
 
 def provider_worker_fn(config: dict) -> dict:
     from provider_worker import ProviderWorker
-    return ProviderWorker(config).run()
+    return ProviderWorker(config).pipeline_execute()
 
 
 def embed_worker_fn(config: dict) -> dict:
     from embedding_worker import EmbeddingWorker
-    return EmbeddingWorker(config).run()
+    return EmbeddingWorker(config).pipeline_execute()
 
 
 def create_vector_index_fn(config: dict) -> dict:
@@ -558,8 +558,10 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         )
 
     # Step 5: Generate embeddings + create Atlas Vector Search index
+    # embedding_enabled must be explicitly True — default is False (embeddings are expensive
+    # and require OpenAI; skip unless intentionally requested).
     embed_results = []
-    if start_step <= 5:
+    if start_step <= 5 and config.get("embedding_enabled", False):
         num_workers = config.get("num_workers", 32)
         staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
         context.set_custom_status(f"Step 5/5: Generating embeddings ({num_workers} workers)")
