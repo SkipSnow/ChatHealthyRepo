@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<!--
+  Copyright © 2026 Skip Snow. All rights reserved.
+  Licensed under the FindCare Evaluation License (FEL-1.0).
+
+  Analysis authored by Claude Code Agent (Anthropic) and ChatGPT (OpenAI).
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Provider Load Performance — ChatHealthy.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink:        #0d1117;
+      --ink-soft:   #4a5568;
+      --surface:    #ffffff;
+      --teal:       #0b7a75;
+      --teal-light: #e6f4f3;
+      --teal-mid:   #d0eeec;
+      --accent:     #f0a500;
+      --border:     #d8e2e1;
+      --radius:     6px;
+      --max-w:      1160px;
+      --content-w:  860px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── Header ─────────────────────────────────── */
+    header { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: 0 1px 6px rgba(11,122,117,0.06); }
+    .header-inner { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+    .logo-mark { width: 32px; height: 32px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; }
+    .logo-mark svg { width: 18px; height: 18px; fill: white; }
+    .logo-text { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--teal); letter-spacing: -0.01em; }
+    .logo-text span { color: var(--accent); }
+
+    /* ── Main ───────────────────────────────────── */
+    main { flex: 1; max-width: var(--max-w); width: 100%; margin: 0 auto; padding: clamp(20px,4vw,48px) clamp(16px,4vw,24px); }
+
+    .page-header { border-bottom: 2px solid var(--teal-mid); padding-bottom: 20px; margin-bottom: 36px; }
+    .page-header .eyebrow { font-size: 0.72rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 6px; }
+    .page-header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(1.5rem,4vw,2.25rem); color: var(--ink); line-height: 1.15; margin-bottom: 8px; }
+    .page-header .meta { font-size: 0.82rem; color: var(--ink-soft); margin-top: 6px; }
+    .page-header .authors { font-size: 0.82rem; color: var(--ink-soft); margin-top: 4px; }
+
+    /* ── TOC ────────────────────────────────────── */
+    .toc { background: var(--teal-light); border: 1px solid var(--teal-mid); border-radius: var(--radius); padding: 18px 24px; margin-bottom: 36px; max-width: var(--content-w); }
+    .toc h3 { font-size: 0.78rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 10px; }
+    .toc ol { margin: 0 0 0 18px; font-size: 0.88rem; line-height: 1.9; }
+    .toc ol li a { color: var(--teal); text-decoration: none; }
+    .toc ol li a:hover { text-decoration: underline; }
+
+    /* ── Body ───────────────────────────────────── */
+    .doc-body { max-width: var(--content-w); }
+
+    .doc-body h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.15rem;
+      color: var(--teal);
+      margin: 36px 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--teal-mid);
+    }
+    .doc-body p { font-size: 0.95rem; line-height: 1.75; color: var(--ink); margin-bottom: 14px; }
+
+    /* ── Key-value table ─────────────────────────── */
+    .kv-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 16px 0 24px; }
+    .kv-table tr { border-bottom: 1px solid var(--border); }
+    .kv-table tr:last-child { border-bottom: none; }
+    .kv-table td { padding: 8px 12px; vertical-align: top; }
+    .kv-table td:first-child { width: 220px; font-weight: 500; color: var(--ink-soft); white-space: nowrap; }
+    .kv-table td code { font-family: 'Courier New', monospace; font-size: 0.85rem; background: var(--teal-light); padding: 1px 5px; border-radius: 3px; }
+
+    /* ── Worker wave table ───────────────────────── */
+    .table-wrap { overflow-x: auto; margin: 16px 0 24px; }
+    table.data { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+    table.data thead tr { background: var(--teal); color: white; }
+    table.data thead th { padding: 8px 12px; text-align: right; font-weight: 500; }
+    table.data thead th:first-child { text-align: left; }
+    table.data tbody tr:nth-child(even) { background: var(--teal-light); }
+    table.data tbody td { padding: 7px 12px; text-align: right; border-bottom: 1px solid var(--border); }
+    table.data tbody td:first-child { text-align: left; font-weight: 500; }
+
+    /* ── Callout boxes ───────────────────────────── */
+    .callout { border-left: 3px solid var(--teal); background: var(--teal-light); padding: 14px 18px; border-radius: 0 var(--radius) var(--radius) 0; margin: 20px 0; font-size: 0.9rem; line-height: 1.7; }
+    .callout.warn { border-color: var(--accent); background: #fff8e6; }
+
+    /* ── Numbered list ───────────────────────────── */
+    .doc-body ol { margin: 12px 0 20px 22px; font-size: 0.95rem; line-height: 1.8; }
+    .doc-body ol li { margin-bottom: 10px; }
+    .doc-body ol li ul { margin: 6px 0 0 18px; list-style: disc; font-size: 0.9rem; line-height: 1.7; color: var(--ink-soft); }
+
+    /* ── Footer ─────────────────────────────────── */
+    footer { background: var(--surface); border-top: 1px solid var(--border); margin-top: auto; }
+    .footer-inner { max-width: var(--max-w); margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; color: var(--ink-soft); }
+    .footer-inner a { color: var(--ink-soft); text-decoration: none; }
+    .footer-inner a:hover { color: var(--teal); }
+
+    /* ── Print ──────────────────────────────────── */
+    @media print { header, footer { display: none; } main { padding: 0; } }
+    @media (max-width: 480px) { .footer-inner { justify-content: center; text-align: center; } }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <div class="logo-mark">
+          <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5 14.5 7.62 14.5 9 13.38 11.5 12 11.5z"/></svg>
+        </div>
+        <span class="logo-text">Chat<span>Healthy</span>.ai</span>
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <div class="page-header">
+      <div class="eyebrow">Sample Performance Tuning Report</div>
+      <h1>Provider Load Performance Analysis</h1>
+      <div class="meta">Load ID: d8c57580-9909-429e-86ae-a42724b9d2ea:0 &nbsp;·&nbsp; Reference run: 2026-03-23</div>
+      <div class="authors">Analysis by Claude Code Agent (Anthropic) and ChatGPT (OpenAI)</div>
+    </div>
+
+    <div class="doc-body">
+
+      <nav class="toc" aria-label="Table of contents">
+        <h3>Contents</h3>
+        <ol>
+          <li><a href="#problem">Problem</a></li>
+          <li><a href="#environment">Environment</a></li>
+          <li><a href="#analysis">Analysis</a></li>
+          <li><a href="#implementation">Implementation — Optimizations Applied</a></li>
+          <li><a href="#sla">SLA Context</a></li>
+        </ol>
+      </nav>
+
+      <!-- 1. Problem -->
+      <h2 id="problem">1. Problem</h2>
+      <p>
+        Loading 8.8M NPI provider records into MongoDB took <strong>88.9 minutes</strong> — approximately
+        6× slower than the target SLA. The bottleneck was not hardware saturation. The same workload ran
+        at 460 rows/s per worker in near-isolation but degraded to 170 rows/s under concurrency. The cause
+        was write contention from an upsert pattern that performs a read-before-write on a live unique index,
+        multiplied across 8–12 concurrent workers hitting the same B-tree pages simultaneously.
+      </p>
+
+      <!-- 2. Environment -->
+      <h2 id="environment">2. Environment</h2>
+      <table class="kv-table">
+        <tr><td>Platform</td><td>Azure Durable Functions (Python 3.12, East US 2)</td></tr>
+        <tr><td>Orchestration</td><td>Fan-out/fan-in — orchestrator dispatches all 32 worker activity functions simultaneously; Azure queues and schedules them subject to Function App concurrency limits</td></tr>
+        <tr><td>Workers</td><td>32 ProviderWorker instances</td></tr>
+        <tr><td>Records / worker</td><td>~277,000 (NPI CSV partitioned by byte range)</td></tr>
+        <tr><td>Batch size</td><td>5,000 rows per <code>bulk_write</code> call</td></tr>
+        <tr><td>Write pattern</td><td><code>UpdateOne($setOnInsert)</code> upsert on <code>(load_id, record_id)</code></td></tr>
+        <tr><td>Index active during load</td><td><code>(load_id, record_id)</code> unique — maintained incrementally during load. Secondary indexes (zip, county.fips, worker_id) created after load completes.</td></tr>
+        <tr><td>MongoDB</td><td>Atlas M30 (8 GB RAM, ~4 GB WiredTiger cache), autoscale to M200</td></tr>
+        <tr><td>Collection</td><td><code>PublicHealthData.providers_staging</code> (drained before load)</td></tr>
+      </table>
+
+      <h2 id="worker-data">Worker Wave Data</h2>
+      <div class="table-wrap">
+        <table class="data">
+          <thead>
+            <tr><th>Wave</th><th>Workers</th><th>t_start</th><th>Avg rows/s</th><th>Avg dur (s)</th><th>Concurrent peers</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>8</td><td>0s</td><td>167.9</td><td>1,659</td><td>8</td></tr>
+            <tr><td>2</td><td>12</td><td>1,635s</td><td>310.3</td><td>993</td><td>12</td></tr>
+            <tr><td>3</td><td>8</td><td>3,138s</td><td>171.4</td><td>1,617</td><td>8</td></tr>
+            <tr><td>4</td><td>1</td><td>4,627s</td><td>403.9</td><td>682</td><td>8</td></tr>
+            <tr><td>5</td><td>3</td><td>4,723s</td><td>475.2</td><td>580</td><td>7</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data">
+          <thead>
+            <tr><th>Worker</th><th>t_start</th><th>dur (s)</th><th>Records</th><th>rows/s</th><th>Peers</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>21</td><td>0s</td><td>1,668</td><td>279,034</td><td>167.3</td><td>8</td></tr>
+            <tr><td>19</td><td>0s</td><td>1,661</td><td>277,612</td><td>167.1</td><td>8</td></tr>
+            <tr><td>30</td><td>0s</td><td>1,667</td><td>278,962</td><td>167.4</td><td>8</td></tr>
+            <tr><td>31</td><td>0s</td><td>1,671</td><td>279,365</td><td>167.2</td><td>8</td></tr>
+            <tr><td>27</td><td>0s</td><td>1,667</td><td>278,722</td><td>167.2</td><td>8</td></tr>
+            <tr><td>25</td><td>0s</td><td>1,645</td><td>278,249</td><td>169.2</td><td>8</td></tr>
+            <tr><td>26</td><td>0s</td><td>1,635</td><td>277,847</td><td>169.9</td><td>8</td></tr>
+            <tr><td>23</td><td>0s</td><td>1,660</td><td>278,628</td><td>167.8</td><td>8</td></tr>
+            <tr><td>22</td><td>1,635s</td><td>608</td><td>279,024</td><td>459.0</td><td>16</td></tr>
+            <tr><td>28</td><td>1,645s</td><td>598</td><td>278,610</td><td>465.6</td><td>12</td></tr>
+            <tr><td>4</td><td>1,651s</td><td>1,191</td><td>273,944</td><td>230.1</td><td>12</td></tr>
+            <tr><td>13</td><td>1,651s</td><td>1,192</td><td>276,571</td><td>231.9</td><td>12</td></tr>
+            <tr><td>11</td><td>1,651s</td><td>1,198</td><td>275,572</td><td>230.0</td><td>12</td></tr>
+            <tr><td>3</td><td>1,651s</td><td>1,178</td><td>272,164</td><td>231.0</td><td>12</td></tr>
+            <tr><td>2</td><td>1,651s</td><td>1,181</td><td>273,347</td><td>231.4</td><td>12</td></tr>
+            <tr><td>12</td><td>1,651s</td><td>1,196</td><td>276,088</td><td>230.8</td><td>12</td></tr>
+            <tr><td>9</td><td>1,651s</td><td>1,195</td><td>274,519</td><td>229.7</td><td>12</td></tr>
+            <tr><td>15</td><td>1,651s</td><td>1,201</td><td>276,790</td><td>230.4</td><td>12</td></tr>
+            <tr><td>32</td><td>1,661s</td><td>586</td><td>279,748</td><td>477.1</td><td>12</td></tr>
+            <tr><td>29</td><td>1,661s</td><td>586</td><td>279,353</td><td>476.7</td><td>12</td></tr>
+            <tr><td>18</td><td>3,138s</td><td>1,489</td><td>277,408</td><td>186.3</td><td>8</td></tr>
+            <tr><td>5</td><td>3,147s</td><td>1,575</td><td>274,684</td><td>174.4</td><td>8</td></tr>
+            <tr><td>8</td><td>3,152s</td><td>1,583</td><td>276,347</td><td>174.6</td><td>8</td></tr>
+            <tr><td>14</td><td>3,152s</td><td>1,649</td><td>276,921</td><td>167.9</td><td>8</td></tr>
+            <tr><td>16</td><td>3,152s</td><td>1,681</td><td>277,202</td><td>164.9</td><td>8</td></tr>
+            <tr><td>17</td><td>3,157s</td><td>1,627</td><td>276,998</td><td>170.2</td><td>8</td></tr>
+            <tr><td>7</td><td>3,162s</td><td>1,679</td><td>275,753</td><td>164.3</td><td>8</td></tr>
+            <tr><td>24</td><td>3,162s</td><td>1,651</td><td>277,751</td><td>168.3</td><td>8</td></tr>
+            <tr><td>6</td><td>4,627s</td><td>682</td><td>275,397</td><td>403.9</td><td>8</td></tr>
+            <tr><td>20</td><td>4,723s</td><td>604</td><td>278,278</td><td>460.6</td><td>8</td></tr>
+            <tr><td>1</td><td>4,735s</td><td>589</td><td>272,645</td><td>462.7</td><td>8</td></tr>
+            <tr><td>10</td><td>4,785s</td><td>548</td><td>274,992</td><td>502.3</td><td>6</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 3. Analysis -->
+      <h2 id="analysis">3. Analysis</h2>
+      <p>
+        The orchestrator dispatched all 32 workers simultaneously, but the Azure Function App's concurrency
+        ceiling held execution to ~8 workers at a time. This produced distinct waves — not by design, but as
+        a platform scheduling artifact.
+      </p>
+      <p>
+        Workers running in 8-way concurrency averaged <strong>170 rows/s</strong>. Workers running in
+        near-isolation averaged <strong>460 rows/s</strong> — a 2.7× gap at the same collection size.
+        Critically, the last 4 workers ran against a fully loaded 8.8M-record collection and were the
+        <em>fastest</em> (460–502 rows/s). This rules out index size, collection growth, or WiredTiger
+        cache pressure as root causes.
+      </p>
+      <div class="callout">
+        The bottleneck is write contention on the <code>(load_id, record_id)</code> unique index.
+        <code>UpdateOne($setOnInsert)</code> issues an index lookup before every insert — even when the
+        document is guaranteed not to exist. Under 8-way concurrency, multiple workers compete for
+        overlapping B-tree leaf pages, causing WiredTiger lock contention. The read-before-write overhead
+        scales linearly with concurrency; pure insert does not.
+      </div>
+      <p>
+        The concurrency ceiling (8 simultaneous workers) also means the fan-out never runs at full
+        32-worker throughput. At 460 rows/s × 32 workers the projected duration is <strong>10 minutes</strong>.
+      </p>
+
+      <!-- 4. Implementation -->
+      <h2 id="implementation">4. Implementation — Optimizations Applied</h2>
+      <p>Commit <code>5dcb84d</code>, 2026-03-23. All five changes are active in the current run.</p>
+      <ol>
+        <li>
+          <strong>InsertOne replacing UpdateOne($setOnInsert)</strong>
+          <ul>
+            <li>Eliminates read-before-write on every row</li>
+            <li>Staging collection is drained before load — pure insert is safe</li>
+            <li>Duplicate key errors on retry remain the safety net</li>
+          </ul>
+        </li>
+        <li>
+          <strong><code>(load_id, record_id)</code> unique index deferred to post-load</strong>
+          <ul>
+            <li>Index previously maintained incrementally per batch — every batch triggered B-tree rebalancing</li>
+            <li>Index now built once over the complete dataset after all workers finish</li>
+            <li><code>ensure_preload_indexes_fn</code> made a no-op; index moved to <code>ensure_postload_indexes_fn</code></li>
+          </ul>
+        </li>
+        <li>
+          <strong>Azure Function App concurrency ceiling raised</strong>
+          <ul>
+            <li><code>host.json</code>: <code>maxConcurrentActivityFunctions = 32</code> (was effectively ~8)</li>
+            <li>Allows all 32 workers to execute simultaneously</li>
+            <li>Only fully effective combined with optimizations 1 and 2 above</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Batch size increased 5,000 → 10,000</strong>
+          <ul>
+            <li>Halves the number of round-trips to MongoDB per worker</li>
+            <li>Larger batches amortize per-call network overhead</li>
+          </ul>
+        </li>
+        <li>
+          <strong>MongoClient <code>maxPoolSize</code> raised to 64</strong>
+          <ul>
+            <li>Prevents connection exhaustion under peak fan-out</li>
+          </ul>
+        </li>
+      </ol>
+
+      <!-- 5. SLA -->
+      <h2 id="sla">5. SLA Context</h2>
+      <table class="kv-table">
+        <tr><td>Reference run (pre-optimization)</td><td>88.9 minutes, 8,858,525 records, 0 failures</td></tr>
+        <tr><td>Throughput summary</td><td>Fast workers (&gt;400 rows/s): 8 workers, avg 463 rows/s · Medium (200–400): 8 workers, avg 231 rows/s · Slow (&lt;200): 16 workers, avg 170 rows/s</td></tr>
+        <tr><td>Projected post-optimization</td><td>~10 minutes (theoretical — 32 workers at observed isolation throughput)</td></tr>
+        <tr><td>Conservative SLA (GPT-4o estimate)</td><td>~15 minutes, accounting for coordination overhead and post-load index build</td></tr>
+        <tr><td>Actual performance</td><td>Measured on current run (instance 4a90c30b, 2026-03-23)</td></tr>
+      </table>
+
+    </div><!-- /.doc-body -->
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <span><a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener">&copy; 2026 Skip Snow</a></span>
+      <span>Analysis by Claude Code Agent (Anthropic) and ChatGPT (OpenAI)</span>
+    </div>
+  </footer>
+
+  <script>
+    if (window !== window.top) {
+      document.querySelector('header').style.display = 'none';
+      document.body.classList.add('in-panel');
+    }
+  </script>
+</body>
+</html>
