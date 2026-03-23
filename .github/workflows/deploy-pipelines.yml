@@ -51,11 +51,11 @@ jobs:
           APP_URL="https://${{ secrets.AZURE_FUNCTION_APP_NAME }}.azurewebsites.net"
           BASE="${APP_URL}/runtime/webhooks/durabletask/instances?taskHub=DevPipelineManagmentService&code=${MASTER_KEY}"
 
-          RUNNING_RESP=$(curl -s --max-time 15 --fail "${BASE}&runtimeStatus=Running") || {
+          RUNNING_RESP=$(curl -s --max-time 15 --fail --retry 4 --retry-delay 10 --retry-all-errors "${BASE}&runtimeStatus=Running") || {
             echo "DEPLOY BLOCKED: Could not query running instances — cannot verify safety."
             exit 1
           }
-          PENDING_RESP=$(curl -s --max-time 15 --fail "${BASE}&runtimeStatus=Pending") || {
+          PENDING_RESP=$(curl -s --max-time 15 --fail --retry 4 --retry-delay 10 --retry-all-errors "${BASE}&runtimeStatus=Pending") || {
             echo "DEPLOY BLOCKED: Could not query pending instances — cannot verify safety."
             exit 1
           }
