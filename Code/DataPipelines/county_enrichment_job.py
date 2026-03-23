@@ -30,6 +30,8 @@ except ImportError:
     df = None  # not available in local test environment
 
 import requests
+from bson import ObjectId
+from pipeline_worker_base import PipelineWorkerBase
 from pymongo import MongoClient, UpdateOne
 
 _mongo: MongoClient | None = None
@@ -81,17 +83,23 @@ def _build_enrichment_reconcile(pass1_result: dict, pass2_result: dict) -> dict:
         pass1_result.get("total_providers")
         or pass2_result.get("total_providers", 0)
     )
-    pass1_modified = pass1_result.get("pass1_modified", 0)
-    pass2_modified = pass2_result.get("pass2_modified", 0)
-    pass2_failed = pass2_result.get("pass2_failed", 0)
-    total_enriched = pass1_modified + pass2_modified
+    pass1_modified         = pass1_result.get("pass1_modified", 0)
+    pass2_modified         = pass2_result.get("pass2_modified", 0)
+    pass2_billing_modified = pass2_result.get("pass2_billing_modified", 0)
+    pass2_geocoder_failed  = pass2_result.get("pass2_geocoder_failed", pass2_result.get("pass2_failed", 0))
+    pass2_no_address       = pass2_result.get("pass2_no_address", 0)
+    pass2_failed           = pass2_geocoder_failed + pass2_no_address
+    total_enriched = pass1_modified + pass2_modified + pass2_billing_modified
     still_unenriched = total_providers - total_enriched
     return {
         "total_providers": total_providers,
         "pass1_zip_enrichments": pass1_modified,
         "pass1_batch_results": pass1_result.get("pass1_batch_results", []),
-        "pass2_address_lookups_attempted": pass2_modified + pass2_failed,
-        "pass2_address_lookups_succeeded": pass2_modified,
+        "pass2_address_lookups_attempted": pass2_modified + pass2_billing_modified + pass2_failed,
+        "pass2_practice_enrichments": pass2_modified,
+        "pass2_billing_enrichments": pass2_billing_modified,
+        "pass2_geocoder_failed": pass2_geocoder_failed,
+        "pass2_no_address": pass2_no_address,
         "pass2_address_lookups_failed": pass2_failed,
         "pass2_batch_results": pass2_result.get("pass2_batch_results", []),
         "total_enriched": total_enriched,
@@ -185,15 +193,22 @@ def county_enrichment_pass2_orchestrator_fn(context):
         for batch in addr_batches
     ]
     pass2_results = yield context.task_all(pass2_tasks)
-    pass2_modified = sum(r.get("modified", 0) for r in pass2_results)
-    pass2_failed = sum(r.get("failed", 0) for r in pass2_results)
+    pass2_modified         = sum(r.get("modified",          0) for r in pass2_results)
+    pass2_billing_modified = sum(r.get("billing_modified",  0) for r in pass2_results)
+    pass2_geocoder_failed  = sum(r.get("geocoder_failed",   0) for r in pass2_results)
+    pass2_no_address       = sum(r.get("no_address",        0) for r in pass2_results)
+    pass2_failed = pass2_geocoder_failed + pass2_no_address
 
     context.set_custom_status(
-        f"Done — {pass2_modified:,} enriched via Geocoder, {pass2_failed:,} failed"
+        f"Done — {pass2_modified:,} practice, {pass2_billing_modified:,} billing enriched; "
+        f"{pass2_geocoder_failed:,} geocoder failed, {pass2_no_address:,} no address"
     )
     return {
         "unenriched_count": unenriched_count,
         "pass2_modified": pass2_modified,
+        "pass2_billing_modified": pass2_billing_modified,
+        "pass2_geocoder_failed": pass2_geocoder_failed,
+        "pass2_no_address": pass2_no_address,
         "pass2_failed": pass2_failed,
         "pass2_batch_results": pass2_results,
     }
@@ -271,18 +286,33 @@ def lookup_crosswalk_fn(config: dict) -> dict:
     return {"confident": confident, "ambiguous": ambiguous}
 
 
-def enrich_by_zip_batch_fn(config: dict) -> dict:
-    """Pass 1: updateMany for each ZIP in batch. One command per ZIP."""
-    started_at = datetime.now(timezone.utc).isoformat()
-    start_time = time.monotonic()
-    zip_batch = config["zip_batch"]  # list of {zip, county_fips, county_name} from crosswalk
-    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
-    db_name, coll_name = collection.split(".", 1)
-    coll = _get_mongo_client()[db_name][coll_name]
-    total_modified = 0
-    for entry in zip_batch:
+class ZipEnrichmentWorker(PipelineWorkerBase):
+    """Pass 1: ZIP-based bulk enrichment. One updateMany per ZIP entry."""
+
+    def __init__(self, config: dict):
+        super().__init__(config)
+        self.zip_batch = config["zip_batch"]
+        self.staging_collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+        self._idx: int = -1
+        self._collection = None
+        self._total_modified: int = 0
+        self._started_at: str = ""
+        self._start_time: float = 0.0
+
+    def _pipeline_open(self) -> None:
+        self._started_at = datetime.now(timezone.utc).isoformat()
+        self._start_time = time.monotonic()
+        db_name, coll_name = self.staging_collection.split(".", 1)
+        self._collection = _get_mongo_client()[db_name][coll_name]
+
+    def _pipeline_has_next(self) -> bool:
+        self._idx += 1
+        return self._idx < len(self.zip_batch)
+
+    def _pipeline_process(self) -> None:
+        entry = self.zip_batch[self._idx]
         zip5 = entry["zip"]
-        result = coll.update_many(
+        result = self._collection.update_many(
             {
                 "county.fips": None,
                 "practice_address.zip": {"$regex": f"^{zip5}"},
@@ -296,13 +326,28 @@ def enrich_by_zip_batch_fn(config: dict) -> dict:
                 },
             }},
         )
-        total_modified += result.modified_count
-    return {
-        "modified": total_modified,
-        "started_at": started_at,
-        "finished_at": datetime.now(timezone.utc).isoformat(),
-        "duration_seconds": round(time.monotonic() - start_time, 2),
-    }
+        self._total_modified += result.modified_count
+
+    def _pipeline_row_key(self) -> str:
+        if 0 <= self._idx < len(self.zip_batch):
+            return self.zip_batch[self._idx]["zip"]
+        return f"zip_idx_{self._idx}"
+
+    def _pipeline_resume(self) -> None:
+        pass  # _pipeline_has_next() advances the cursor; no local state to reset
+
+    def _pipeline_build_result(self) -> dict:
+        return {
+            "modified": self._total_modified,
+            "started_at": self._started_at,
+            "finished_at": datetime.now(timezone.utc).isoformat(),
+            "duration_seconds": round(time.monotonic() - self._start_time, 2),
+        }
+
+
+def enrich_by_zip_batch_fn(config: dict) -> dict:
+    """Pass 1: updateMany for each ZIP in batch. One command per ZIP."""
+    return ZipEnrichmentWorker(config).pipeline_execute()
 
 
 def get_unenriched_fn(config: dict) -> dict:
@@ -365,68 +410,125 @@ def _geocode_address(street: str, city: str, state: str, zip_code: str) -> dict 
         return None
 
 
-def enrich_by_address_batch_fn(config: dict) -> dict:
-    """Pass 2: Census Geocoder per provider. One updateOne per provider."""
-    started_at = datetime.now(timezone.utc).isoformat()
-    start_time = time.monotonic()
-    id_batch = config["id_batch"]  # list of _id strings
-    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
-    db_name, coll_name = collection.split(".", 1)
+class AddressEnrichmentWorker(PipelineWorkerBase):
+    """Pass 2: Census Geocoder enrichment per provider.
 
-    from bson import ObjectId
-    coll = _get_mongo_client()[db_name][coll_name]
-    object_ids = [ObjectId(i) for i in id_batch]
-    providers = list(coll.find(
-        {"_id": {"$in": object_ids}},
-        {"_id": 1, "practice_address": 1}
-    ))
+    Pass 2b: when practice_address is blank, falls back to mailing_address.
+    Source provenance:
+      geocoder_pass2         — practice address geocoded successfully
+      geocoder_pass2_billing — mailing address geocoded successfully (Pass 2b fallback)
+      geocoder_failed        — geocoder returned no match on best available address
+      geocoder_no_address    — both practice and mailing addresses are blank
+    """
 
-    ops = []
-    modified = 0
-    failed = 0
+    def __init__(self, config: dict):
+        super().__init__(config)
+        self.id_batch = config["id_batch"]
+        self.staging_collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+        self._providers: list = []
+        self._idx: int = -1
+        self._collection = None
+        self._ops: list = []
+        self._modified: int = 0
+        self._billing_modified: int = 0
+        self._geocoder_failed: int = 0
+        self._no_address: int = 0
+        self._started_at: str = ""
+        self._start_time: float = 0.0
 
-    for provider in providers:
-        addr = provider.get("practice_address") or {}
-        street = addr.get("line1", "").strip()
-        city   = addr.get("city",  "").strip()
-        state  = addr.get("state", "").strip()
-        zip_code = addr.get("zip", "").strip()
+    def _pipeline_open(self) -> None:
+        self._started_at = datetime.now(timezone.utc).isoformat()
+        self._start_time = time.monotonic()
+        db_name, coll_name = self.staging_collection.split(".", 1)
+        self._collection = _get_mongo_client()[db_name][coll_name]
+        object_ids = [ObjectId(i) for i in self.id_batch]
+        self._providers = list(self._collection.find(
+            {"_id": {"$in": object_ids}},
+            {"_id": 1, "practice_address": 1, "mailing_address": 1}
+        ))
 
-        # Blank address — no geocoder call, mark permanently unresolvable
+    def _pipeline_has_next(self) -> bool:
+        self._idx += 1
+        return self._idx < len(self._providers)
+
+    def _pipeline_process(self) -> None:
+        provider = self._providers[self._idx]
+
+        # ── Resolve best available address ────────────────────────────────────
+        practice = provider.get("practice_address") or {}
+        street   = practice.get("line1", "").strip()
+        city     = practice.get("city",  "").strip()
+        state    = practice.get("state", "").strip()
+        zip_code = practice.get("zip",  "").strip()
+        using_billing = False
+
         if not street and not city:
-            ops.append(UpdateOne(
+            # Pass 2b: fall back to mailing address
+            mailing  = provider.get("mailing_address") or {}
+            street   = mailing.get("line1", "").strip()
+            city     = mailing.get("city",  "").strip()
+            state    = mailing.get("state", "").strip()
+            zip_code = mailing.get("zip",   "").strip()
+            using_billing = True
+
+        # ── No usable address at all ──────────────────────────────────────────
+        if not street and not city:
+            self._ops.append(UpdateOne(
                 {"_id": provider["_id"]},
                 {"$set": {"county": {"fips": None, "source": "geocoder_no_address"}}}
             ))
-            failed += 1
-            continue
+            self._no_address += 1
+            return
 
+        # ── Geocoder call ─────────────────────────────────────────────────────
         result = _geocode_address(street=street, city=city, state=state, zip_code=zip_code)
+        time.sleep(0.05)  # 20 req/sec — Census Geocoder rate limit
         if result:
-            ops.append(UpdateOne(
+            source = "geocoder_pass2_billing" if using_billing else "geocoder_pass2"
+            self._ops.append(UpdateOne(
                 {"_id": provider["_id"]},
-                {"$set": {"county": {"fips": result["fips"], "name": result["name"], "source": "geocoder_pass2"}}}
+                {"$set": {"county": {"fips": result["fips"], "name": result["name"], "source": source}}}
             ))
-            modified += 1
+            if using_billing:
+                self._billing_modified += 1
+            else:
+                self._modified += 1
         else:
             # Geocoder returned no match — mark so Pass 2 never re-attempts this record
-            ops.append(UpdateOne(
+            self._ops.append(UpdateOne(
                 {"_id": provider["_id"]},
                 {"$set": {"county": {"fips": None, "source": "geocoder_failed"}}}
             ))
-            failed += 1
-        time.sleep(0.05)  # 20 req/sec — Census Geocoder rate limit
+            self._geocoder_failed += 1
 
-    if ops:
-        coll.bulk_write(ops, ordered=False)
+    def _pipeline_row_key(self) -> str:
+        if 0 <= self._idx < len(self._providers):
+            return str(self._providers[self._idx]["_id"])
+        return f"provider_idx_{self._idx}"
 
-    return {
-        "modified": modified,
-        "failed": failed,
-        "started_at": started_at,
-        "finished_at": datetime.now(timezone.utc).isoformat(),
-        "duration_seconds": round(time.monotonic() - start_time, 2),
-    }
+    def _pipeline_resume(self) -> None:
+        pass  # _pipeline_has_next() advances the cursor; no local state to reset
+
+    def _pipeline_close(self) -> None:
+        if self._ops and self._collection is not None:
+            self._collection.bulk_write(self._ops, ordered=False)
+            self._ops = []
+
+    def _pipeline_build_result(self) -> dict:
+        return {
+            "modified": self._modified,
+            "billing_modified": self._billing_modified,
+            "geocoder_failed": self._geocoder_failed,
+            "no_address": self._no_address,
+            "started_at": self._started_at,
+            "finished_at": datetime.now(timezone.utc).isoformat(),
+            "duration_seconds": round(time.monotonic() - self._start_time, 2),
+        }
+
+
+def enrich_by_address_batch_fn(config: dict) -> dict:
+    """Pass 2: Census Geocoder per provider. One updateOne per provider."""
+    return AddressEnrichmentWorker(config).pipeline_execute()
 
 
 def enrichment_report_fn(config: dict) -> dict:
@@ -446,14 +548,16 @@ def enrichment_report_fn(config: dict) -> dict:
     _get_mongo_client()[db_name][coll_name].insert_one(report)
     logging.info(
         "Enrichment report — load_id: %s | "
-        "Pass 1 ZIP enrichments: %d | "
-        "Pass 2 address lookups: %d attempted, %d succeeded, %d failed | "
+        "Pass 1 ZIP: %d | "
+        "Pass 2 practice: %d, billing fallback: %d | "
+        "Pass 2 geocoder failed: %d, no address: %d | "
         "Total enriched: %d/%d | Match: %s",
         load_id,
         reconcile.get("pass1_zip_enrichments", 0),
-        reconcile.get("pass2_address_lookups_attempted", 0),
-        reconcile.get("pass2_address_lookups_succeeded", 0),
-        reconcile.get("pass2_address_lookups_failed", 0),
+        reconcile.get("pass2_practice_enrichments", 0),
+        reconcile.get("pass2_billing_enrichments", 0),
+        reconcile.get("pass2_geocoder_failed", 0),
+        reconcile.get("pass2_no_address", 0),
         reconcile.get("total_enriched", 0),
         reconcile.get("total_providers", 0),
         reconcile.get("match"),
