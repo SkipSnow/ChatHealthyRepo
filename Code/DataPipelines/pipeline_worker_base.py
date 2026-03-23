@@ -88,7 +88,7 @@ class PipelineWorkerBase(ABC):
     # ── Row-error persistence (internal) ─────────────────────────────────────
 
     def _write_row_errors(self) -> None:
-        """Write row_errors to admin.PipelineDiscrepancyReport if configured.
+        """Write row_errors to admin.PipelineDiscrepancyReports if configured.
 
         Best-effort — logs a warning on failure but never raises.
         No-op when row_errors is empty or report_collection is not set in config.

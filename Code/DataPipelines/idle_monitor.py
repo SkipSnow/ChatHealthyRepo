@@ -27,7 +27,7 @@ from atlas_cluster_manager import get_cluster_info, scale_down
 
 _mongo: MongoClient | None = None
 
-REPORT_COLLECTION = "admin.PipelineDiscrepancyReport"
+REPORT_COLLECTION = "admin.PipelineDiscrepancyReports"
 
 
 def _get_mongo_client() -> MongoClient:
