@@ -32,32 +32,58 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Check for active orchestrations
+      - name: Check for active orchestrations (no overrides — blocks on any error)
         run: |
+          # Rule: if we cannot CONFIRM zero active jobs, we block.
+          # There are no override flags and no escape hatches.
+          # The only way to unblock a deploy is to terminate the running job.
+
           MASTER_KEY=$(az functionapp keys list \
             --resource-group FindCareDataPipelines-Dev \
             --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \
-            --query "masterKey" -o tsv 2>/dev/null || echo "")
+            --query "masterKey" -o tsv 2>/dev/null) || MASTER_KEY=""
 
           if [ -z "$MASTER_KEY" ]; then
-            echo "Could not retrieve master key — app may be stopped. Safe to deploy."
-            exit 0
-          fi
-
-          APP_URL="https://${{ secrets.AZURE_FUNCTION_APP_NAME }}.azurewebsites.net"
-          RESPONSE=$(curl -s --max-time 15 \
-            "${APP_URL}/runtime/webhooks/durabletask/instances?runtimeStatus=Running&taskHub=DevPipelineManagmentService&code=${MASTER_KEY}" \
-            || echo "[]")
-
-          RUNNING=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else 0)" 2>/dev/null || echo "0")
-
-          if [ "$RUNNING" -gt 0 ]; then
-            echo "DEPLOY BLOCKED: $RUNNING active orchestration(s) running."
-            echo "Wait for all pipeline runs to complete before pushing orchestrator changes."
+            echo "DEPLOY BLOCKED: Cannot retrieve master key — cannot verify no pipeline is running."
             exit 1
           fi
 
-          echo "No active orchestrations — safe to deploy."
+          APP_URL="https://${{ secrets.AZURE_FUNCTION_APP_NAME }}.azurewebsites.net"
+          BASE="${APP_URL}/runtime/webhooks/durabletask/instances?taskHub=DevPipelineManagmentService&code=${MASTER_KEY}"
+
+          RUNNING_RESP=$(curl -s --max-time 15 --fail "${BASE}&runtimeStatus=Running") || {
+            echo "DEPLOY BLOCKED: Could not query running instances — cannot verify safety."
+            exit 1
+          }
+          PENDING_RESP=$(curl -s --max-time 15 --fail "${BASE}&runtimeStatus=Pending") || {
+            echo "DEPLOY BLOCKED: Could not query pending instances — cannot verify safety."
+            exit 1
+          }
+
+          RUNNING=$(echo "$RUNNING_RESP" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+if not isinstance(d, list): print('PARSE_ERROR', file=sys.stderr); sys.exit(1)
+print(len(d))
+") || { echo "DEPLOY BLOCKED: Unexpected Running response: $RUNNING_RESP"; exit 1; }
+
+          PENDING=$(echo "$PENDING_RESP" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+if not isinstance(d, list): print('PARSE_ERROR', file=sys.stderr); sys.exit(1)
+print(len(d))
+") || { echo "DEPLOY BLOCKED: Unexpected Pending response: $PENDING_RESP"; exit 1; }
+
+          echo "Guard check — Running: ${RUNNING}  Pending: ${PENDING}"
+
+          TOTAL=$((RUNNING + PENDING))
+          if [ "$TOTAL" -gt 0 ]; then
+            echo "DEPLOY BLOCKED: ${RUNNING} running + ${PENDING} pending orchestration(s) active."
+            echo "Terminate all pipeline runs before deploying orchestrator changes."
+            exit 1
+          fi
+
+          echo "Guard passed — no active orchestrations."
 
       - name: Deploy to Azure Functions
         run: |
