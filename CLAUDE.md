@@ -186,6 +186,20 @@ Keep running until FindCare ConversationalUX replaces it.
 
 ---
 
+## Design Compliance
+
+The design documents in `Website/` are authoritative. All code must comply with them.
+
+- Before writing or modifying code, check the relevant design doc.
+- If code would violate a documented pattern — application boundary rules, pipeline exception handling framework, integration patterns — comply with the doc or raise it before proceeding.
+- If the design changes, update the doc in the same commit as the code.
+
+Key design documents:
+- `Website/architecture.html` — system architecture, three-application boundaries, pipeline overview
+- `Website/provider-data-load.html` — pipeline design, exception handling framework, class contracts
+
+---
+
 ## Dev Preferences
 
 - No auto-commit — only commit when explicitly asked

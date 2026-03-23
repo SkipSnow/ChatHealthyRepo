@@ -1,4 +1,11 @@
 <!DOCTYPE html>
+<!--
+  Copyright © 2026 Skip Snow. All rights reserved.
+  Licensed under the FindCare Evaluation License (FEL-1.0).
+
+  Coded by Claude Sonnet 4.6 (Anthropic).
+  Developed in collaboration with ChatGPT (OpenAI).
+-->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -181,7 +188,7 @@
     <div class="page-header">
       <p class="eyebrow">Technical Reference</p>
       <h1>Architecture Overview</h1>
-      <p class="effective">Version 0.1 &nbsp;·&nbsp; March 2026 &nbsp;·&nbsp; &copy; 2026 Skip Snow</p>
+      <p class="effective">March 2026 &nbsp;·&nbsp; &copy; 2026 Skip Snow &nbsp;·&nbsp; <span style="color:#0b7a75;font-weight:500;">Green = Roadmap</span> &nbsp;·&nbsp; <span style="font-weight:500;">Black = Live</span></p>
     </div>
 
     <div class="arch-body">
@@ -194,7 +201,7 @@
           <li><a href="#website">Website — Static Layer (Cloudflare)</a></li>
           <li><a href="#three-app">Three-Application Architecture</a></li>
           <li><a href="#session-routing">Session and Routing Model</a></li>
-          <li><a href="#workflow">Example Workflow — Clinical Trial Research</a></li>
+          <li><a href="#workflow">Example Workflows</a></li>
           <li><a href="#data-privacy">Data and Privacy</a></li>
           <li><a href="#devops">DevOps</a></li>
           <li><a href="#pipeline-architecture">Data Pipeline Architecture</a></li>
@@ -351,7 +358,9 @@
       </p>
 
       <!-- 6 -->
-      <h2 id="workflow">6. Example Workflow — Clinical Trial Research</h2>
+      <h2 id="workflow">6. Example Workflows</h2>
+
+      <h3>Clinical Trial Research <span style="display:inline-block;background:#0b7a75;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">LIVE</span></h3>
       <div class="diagram">
         <div class="diagram-inner">
           <div class="d-center"><div class="d-box d-box-wide"><strong>User</strong><small>"I have stage 3 pancreatic cancer. Find me trials."</small></div></div>
@@ -361,6 +370,38 @@
           <div class="d-center"><div class="d-box d-box-wide"><strong>ClinicalTrials.gov API</strong><small>v2 · recruiting trials · condition + location filter</small></div></div>
           <div class="d-down">↓ trial cards returned</div>
           <div class="d-center"><div class="d-box d-box-wide"><strong>App 2 — LLM formats and presents inline</strong><small>Trial cards · eligibility criteria · direct links</small></div></div>
+        </div>
+      </div>
+
+      <h3>FindCare — Symptom to Provider <span style="display:inline-block;background:#f0a500;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">ROADMAP</span></h3>
+      <p style="font-size:0.85rem;color:#4a5568;margin-bottom:12px;"><em>Not yet implemented. Planned MVP flow — symptom intake through in-network provider list.</em></p>
+      <div class="diagram" style="border-color:#0b7a75;">
+        <div class="diagram-inner">
+          <div class="d-center"><div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;"><strong>User describes symptom</strong><small>"My left abdomen has sharp pain that gets worse when I jump"</small></div></div>
+          <div class="d-down" style="color:#0b7a75;">↓</div>
+          <div class="d-center"><div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;"><strong>LLM Clinical Triage</strong><small>Urgent vs Non-Critical — reason across symptoms, follow-up Qs</small></div></div>
+          <div style="display:flex;justify-content:center;margin:4px 0;">
+            <div style="width:2px;background:#0b7a75;height:16px;margin:0 60px;"></div>
+            <div style="width:2px;background:#0b7a75;height:16px;margin:0 60px;"></div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:48px;">
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div class="d-box d-box-narrow" style="border-color:#0b7a75;color:#0b7a75;"><strong>Urgent</strong></div>
+              <div style="width:2px;background:#0b7a75;height:12px;"></div>
+              <div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;min-width:180px;"><strong>Emergency Guidance</strong><small>Call 911 · nearest ER · do not drive</small></div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div class="d-box d-box-narrow" style="border-color:#0b7a75;color:#0b7a75;"><strong>Non-Critical</strong></div>
+              <div style="width:2px;background:#0b7a75;height:12px;"></div>
+              <div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;min-width:180px;"><strong>Clinical Summary</strong><small>"Here's what might be going on…"</small></div>
+              <div style="width:2px;background:#0b7a75;height:12px;"></div>
+              <div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;min-width:180px;"><strong>Care Options</strong><small>"Can I give you some care options?"</small></div>
+              <div style="width:2px;background:#0b7a75;height:12px;"></div>
+              <div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;min-width:180px;"><strong>Insurance Capture</strong><small>"What insurance do you have?" · check InsuranceNetworkCache · fetch live if stale</small></div>
+              <div style="width:2px;background:#0b7a75;height:12px;"></div>
+              <div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;min-width:180px;"><strong>Provider List</strong><small>In-network · out-of-network · provider names + locations</small></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -422,8 +463,8 @@
       emails the admin, and fails fast if it is unreachable — no workers are launched against a
       down cluster.</p>
 
-      <h3>FullProviderPipeline — Current Implementation (5 Steps)</h3>
-      <p>All steps run sequentially. Pass <code>start_step</code> (1–5) in the payload to resume
+      <h3>FullProviderPipeline — Current Implementation (6 Steps)</h3>
+      <p>All steps run sequentially. Pass <code>start_step</code> (1–6) in the payload to resume
       from any step without re-running prior completed work. Default: full run from Step 1.</p>
       <div class="diagram">
         <div class="diagram-inner">
@@ -431,12 +472,14 @@
           <div class="d-down">↓ Step 1</div>
           <div class="d-center"><div class="d-box d-box-wide"><strong>MongoDB Health Check</strong><small>ping cluster · SparkPost email to admin + fail fast if unreachable</small></div></div>
           <div class="d-down">↓ Step 2</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>LoadProviderData</strong><small>~8.8M NPI records · 32-worker fan-out · ~25 min · ETag skip guard on download · blob skip guard on CSV extraction</small></div></div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>LoadProviderData</strong><small>~8.9M NPI records · 32-worker fan-out · ETag skip guard on download · blob skip guard on CSV extraction</small></div></div>
           <div class="d-down">↓ Step 3</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment — Pass 1</strong><small>ZIP → county via HUD crosswalk · updateMany · ~40K distinct ZIPs</small></div></div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment — Pass 1</strong><small>Mark inactive/foreign providers out_of_scope · ZIP → county via HUD crosswalk · updateMany · ~40K distinct ZIPs</small></div></div>
           <div class="d-down">↓ Step 4</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment — Pass 2</strong><small>Census Geocoder for split ZIPs (res_ratio &lt; 0.98) · updateOne per provider</small></div></div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment — Pass 2</strong><small>Census Geocoder batch for split ZIPs · practice address, with mailing address fallback · fan-out 5K-address batches</small></div></div>
           <div class="d-down">↓ Step 5</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment — Pass 3</strong><small>Billing address retry for all geocoder_failed providers · Census Geocoder batch · active US providers only</small></div></div>
+          <div class="d-down">↓ Step 6</div>
           <div class="d-center"><div class="d-box d-box-wide"><strong>Generate Embeddings + Create Atlas Vector Search Index</strong><small>OpenAI text-embedding-3-small · 1536 dims · all meaningful fields · idempotent · provider_vector_index</small></div></div>
         </div>
       </div>
@@ -451,8 +494,78 @@
           <tr><td>Procedure codes (CPT/HCPCS)</td><td>LoadProcedureCodes</td><td>Planned — Tuesday 2026-03-24</td></tr>
           <tr><td>CMS Medicare Part D prescriptions</td><td>LoadPrescriptionData</td><td>Planned — Tuesday 2026-03-24</td></tr>
           <tr><td>HUD ZIP→county crosswalk</td><td>Loaded as prerequisite</td><td>Live</td></tr>
+          <tr><td style="color:#0b7a75;">InsuranceNetworkCache (payer API)</td><td style="color:#0b7a75;">Opportunistic — fetched on-demand during FindCare conversation</td><td style="color:#0b7a75;">Roadmap — MVP</td></tr>
         </table>
       </div>
+
+      <h3>Multi-Pass Enrichment Pattern</h3>
+      <p>Pipeline enrichment applies three escalating tiers. Records that cannot be resolved by a cheaper tier advance to the next. Only the minimum necessary tier runs for each record.</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Tier</th><th>Method</th><th>Cost</th></tr>
+          <tr><td><strong>1 — Data</strong></td><td>Bulk resolution from authoritative structured datasets — ZIP crosswalk, Census Geocoder, address fallbacks</td><td>Lowest</td></tr>
+          <tr><td><strong>2 — Web</strong></td><td>Targeted web search by NPI, then by provider name + state</td><td>Medium</td></tr>
+          <tr><td><strong>3 — AI</strong></td><td>Research agent — reasons across multiple sources for records data and web cannot resolve</td><td>Highest</td></tr>
+        </table>
+      </div>
+      <p>County enrichment is the first pipeline to implement this pattern. The same three-tier approach applies to any enrichment concern across the platform.</p>
+
+      <h3>Opportunistic Insurance Enrichment <span style="display:inline-block;background:#f0a500;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">ROADMAP — MVP</span></h3>
+      <p style="font-size:0.85rem;color:#4a5568;margin-bottom:10px;"><em>Not yet implemented. Insurance network data is expensive to fetch live — this pattern fetches once, persists with a TTL, and serves from cache on repeat queries.</em></p>
+      <p style="font-size:0.92rem;line-height:1.7;">Insurance network data is queried during the FindCare conversation flow when the user provides their payer and plan. The response is cached in MongoDB with a TTL. On repeat queries within the TTL window, the cached data is served without a live API call (<em>cache-and-trust</em>). After TTL expiry, the cache is refreshed on next access.</p>
+      <div class="diagram" style="border-color:#0b7a75;">
+        <div class="diagram-inner">
+          <div class="d-center"><div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;"><strong>User provides insurance payer + plan</strong><small>e.g. "I'm on Aetna HMO"</small></div></div>
+          <div class="d-down" style="color:#0b7a75;">↓</div>
+          <div class="d-center"><div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;"><strong>Check InsuranceNetworkCache</strong><small>MongoDB lookup by payer + plan + provider NPI</small></div></div>
+          <div style="display:flex;justify-content:center;margin:4px 0;">
+            <div style="width:2px;background:#0b7a75;height:16px;margin:0 48px;"></div>
+            <div style="width:2px;background:#0b7a75;height:16px;margin:0 48px;"></div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:48px;">
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div class="d-box d-box-narrow" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;"><strong>Fresh (within TTL)</strong></div>
+              <div style="width:2px;background:#0b7a75;height:12px;"></div>
+              <div class="d-box" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;min-width:160px;"><strong>Serve from cache</strong><small>no API call</small></div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div class="d-box d-box-narrow" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;"><strong>Stale or missing</strong></div>
+              <div style="width:2px;background:#0b7a75;height:12px;"></div>
+              <div class="d-box" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;min-width:160px;"><strong>Fetch live from payer API</strong></div>
+              <div style="width:2px;background:#0b7a75;height:12px;"></div>
+              <div class="d-box" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;min-width:160px;"><strong>Persist with TTL (30–90 days)</strong></div>
+            </div>
+          </div>
+          <div style="width:2px;background:#0b7a75;height:16px;margin:0 auto;"></div>
+          <div class="d-center"><div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;"><strong>In-network / out-of-network result</strong><small>returned to FindCare conversation flow</small></div></div>
+        </div>
+      </div>
+      <div class="table-wrap" style="margin-top:12px;">
+        <table>
+          <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+          <tr><td>payer_id</td><td>string</td><td>Payer identifier (e.g. "aetna")</td></tr>
+          <tr><td>plan_id</td><td>string</td><td>Specific plan within payer</td></tr>
+          <tr><td>provider_npi</td><td>string</td><td>Provider NPI — links to PublicHealthData.providers</td></tr>
+          <tr><td>in_network</td><td>boolean</td><td>Whether provider is in-network for this plan</td></tr>
+          <tr><td>fetched_at</td><td>ISO string</td><td>Timestamp of live fetch</td></tr>
+          <tr><td>expires_at</td><td>ISO string</td><td>TTL — MongoDB TTL index expires document</td></tr>
+          <tr><td>source</td><td>string</td><td>API or data source used for fetch</td></tr>
+        </table>
+      </div>
+
+      <h3>ICD-10 → Specialty → Provider Research Agent <span style="display:inline-block;background:#f0a500;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">ROADMAP — MVP</span></h3>
+      <p style="font-size:0.85rem;color:#4a5568;margin-bottom:10px;"><em>Not yet implemented. Pipeline agent that enriches the knowledge base with ICD-10 → specialty → prescribing pattern relationships.</em></p>
+      <p style="font-size:0.92rem;line-height:1.7;">Given a diagnosis code (ICD-10-CM), the research agent identifies relevant medical specialties, surfaces providers who treat that condition, and analyzes prescribing patterns from CMS Part D data. This enriched knowledge layer powers the FindCare symptom → care options path.</p>
+
+      <h3>Pipeline Exception Handling Framework</h3>
+      <p>All pipeline row-processing workers extend <code>PipelineWorkerBase</code>, a Gang of Four
+      Template Method base class. The base class owns the processing loop, all exception catching
+      and logging, and the <code>row_errors</code> accumulator. Worker subclasses implement data
+      processing logic only — they do not catch exceptions or log errors. A <code>fail_on_row_error</code>
+      flag (default <code>False</code>) controls whether a single bad row abends the job or is
+      logged, recorded, and skipped. See the
+      <a href="/provider-data-load.html#exception-handling">Provider Data Load design doc §4b</a>
+      for full detail.</p>
 
       <h3>Two-Cluster Architecture (planned)</h3>
       <p>Pipeline and runtime workloads will be separated into two Atlas clusters to prevent bulk
@@ -524,6 +637,12 @@
             <td style="padding:8px; border:1px solid #ddd;">ChatHealthyDataPipelines</td>
             <td style="padding:8px; border:1px solid #ddd; font-size:0.8rem;">Pipeline operations metadata</td>
           </tr>
+          <tr style="background:#fafafa;">
+            <td style="padding:8px; border:1px solid #ddd; color:#0b7a75;"><code>PublicHealthData</code></td>
+            <td style="padding:8px; border:1px solid #ddd; color:#0b7a75;"><code>InsuranceNetworkCache</code></td>
+            <td style="padding:8px; border:1px solid #ddd; color:#0b7a75;">ChatHealthyFrontEnd</td>
+            <td style="padding:8px; border:1px solid #ddd; font-size:0.8rem; color:#0b7a75;"><strong>Roadmap — MVP.</strong> Payer network cache — keyed by payer + plan + provider NPI. TTL index expires stale entries (30–90 days). Written by App 2 on demand; read by FindCare conversation flow.</td>
+          </tr>
         </tbody>
       </table>
 
@@ -590,7 +709,6 @@
         <li><strong>CopyToRuntime + Blue-Green Collection Swap</strong> — fan-out copy of <code>providers_staging</code> → <code>providers_new</code> on ChatHealthyFrontEnd cluster, then atomic rename swap. Until implemented, runtime reads are served from the DataPipelines cluster.</li>
         <li><strong>Cluster manager agent</strong> — dedicated agent/service to start/stop the DataPipelines cluster on a schedule, fully decoupled from the pipeline itself. Current approach: manual.</li>
         <li><strong>Idle monitor re-enable</strong> — auto-pause the DataPipelines cluster when idle. Disabled because it fired mid-pipeline run. Requires a pipeline lock mechanism before re-enabling.</li>
-        <li><strong>ICD-10 → specialty → provider research agent</strong> — given a diagnosis code, identify relevant specialties and surface providers + prescribing patterns (see RESEARCH-002).</li>
         <li><strong>Multi-location provider aggregation</strong> — NPPES has one practice address per individual NPI. Supplementing with payer directory data would reveal all locations where a provider bills (see RESEARCH-001).</li>
         <li>FHIR / EMR integration — Layer 2, future phase</li>
         <li>User authentication and cross-session persistence</li>

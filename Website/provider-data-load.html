@@ -1,4 +1,11 @@
 <!DOCTYPE html>
+<!--
+  Copyright © 2026 Skip Snow. All rights reserved.
+  Licensed under the FindCare Evaluation License (FEL-1.0).
+
+  Coded by Claude Sonnet 4.6 (Anthropic).
+  Developed in collaboration with ChatGPT (OpenAI).
+-->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -109,7 +116,7 @@
   <div class="page-header">
     <p class="eyebrow">Design Document</p>
     <h1>Provider Data Load &amp; County Enrichment — Design</h1>
-    <p class="effective">March 2026 &nbsp;·&nbsp; Rev 6</p>
+    <p class="effective">March 2026</p>
   </div>
 
   <div class="arch-body">
@@ -272,10 +279,10 @@
           <div class="d-fan-box"><strong>Batch 3</strong><small>…</small></div>
           <div class="d-fan-box"><strong>Batch M</strong><small>remainder</small></div>
         </div>
-        <div class="d-label">Each worker: for each provider → submit address to Census Geocoder API → extract county FIPS → updateOne on providers_staging</div>
+        <div class="d-label">Each worker: practice address → Census Geocoder; if blank, mailing address fallback (Pass 2b) → Census Geocoder; tag provenance → updateOne on providers_staging</div>
 
-        <div class="d-down">↓ Step 6 — fan-in · Pass 2 complete</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>Reconciliation</strong><small>total enriched (Pass 1 + Pass 2) vs total provider records · report any still-unenriched</small></div></div>
+        <div class="d-down">↓ Step 6 — fan-in · Pass 2 + 2b complete</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Reconciliation</strong><small>total enriched (Pass 1 + Pass 2 practice + Pass 2b mailing) vs total provider records · report still-unenriched</small></div></div>
 
         <div class="d-down">↓ Step 7</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>Enrichment Report</strong><small>write enrichment report to admin.PipelineDiscrepancyReport · SparkPost email notification</small></div></div>
@@ -290,11 +297,33 @@
       <code>PublicHealthData.ZipCountyCrosswalk</code> as a prerequisite before enrichment runs.
     </div>
     <div class="note">
-      <strong>Pass 2 data source:</strong> US Census Geocoder API (free, US-only — ideal for NPI
-      provider addresses). For providers in split ZIPs (<code>res_ratio &lt; 0.98</code>), the
-      provider's actual address is submitted to the Census Geocoder which returns the FIPS county
-      code directly. Pass 2 is record-by-record — <code>updateOne</code> per provider.
+      <strong>Pass 2 / 2b data source:</strong> US Census Geocoder API (free, US-only). For providers
+      in split ZIPs (<code>res_ratio &lt; 0.98</code>), the practice address is submitted first
+      (Pass 2). If the practice address is blank, the mailing address is tried instead (Pass 2b).
+      Pass 2 is record-by-record — <code>updateOne</code> per provider.
     </div>
+
+    <!-- 3c. Multi-Pass Enrichment Strategy -->
+    <h2>3c. Multi-Pass Enrichment Strategy</h2>
+    <p>County enrichment follows three escalating tiers — data first, web second, AI last.
+    Each pass runs only against records the previous passes could not resolve. Every record
+    is tagged with its provenance source so the pipeline never re-attempts a record that has
+    already been given a definitive result (success or permanent failure).</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Pass</th><th>Tier</th><th>Method</th><th>Source</th><th>Provenance Tag</th><th>Status</th></tr>
+        <tr><td>1</td><td>Data</td><td>ZIP → county crosswalk · <code>updateMany</code> per ZIP</td><td>HUD USPS crosswalk</td><td><code>crosswalk_pass1</code></td><td>Live</td></tr>
+        <tr><td>2</td><td>Data</td><td>Practice address → Census Geocoder · <code>updateOne</code></td><td>US Census Geocoder API</td><td><code>geocoder_pass2</code></td><td>Live</td></tr>
+        <tr><td>2b</td><td>Data</td><td>Mailing address fallback (when practice address is blank) → Census Geocoder</td><td>US Census Geocoder API</td><td><code>geocoder_pass2_billing</code></td><td>Live</td></tr>
+        <tr><td>3</td><td>Web</td><td>Web search by NPI</td><td>Public web</td><td><code>geocoder_web_npi</code></td><td>Planned</td></tr>
+        <tr><td>4</td><td>Web</td><td>Web search by provider name + state</td><td>Public web</td><td><code>geocoder_web_name</code></td><td>Planned</td></tr>
+        <tr><td>5</td><td>AI</td><td>AI research agent — reasons across sources to infer county</td><td>LLM + web</td><td><code>geocoder_ai_research</code></td><td>Planned</td></tr>
+      </table>
+    </div>
+    <p>Records with <code>county.source = geocoder_no_address</code> (both practice and mailing
+    addresses blank after Pass 2b) will proceed directly to the AI pass — web search cannot help
+    without any address signal. Records successfully enriched in any pass are not re-attempted.
+    AI passes are controlled by the <code>do_ai_passes</code> payload flag (default <code>true</code>).</p>
 
     <!-- 4. Class Responsibilities -->
     <h2>4. Classes</h2>
@@ -329,14 +358,110 @@
     and <code>county_name</code> to all matching provider records. Returns count of documents
     modified.</p>
 
-    <h3>AddressEnrichmentWorker (Pass 2)</h3>
+    <h3>AddressEnrichmentWorker (Pass 2 + 2b)</h3>
     <p>Accepts a batch of provider records whose <code>county_fips</code> is still null after
-    Pass 1 (i.e. their ZIP spans multiple counties). For each provider: submits the provider
-    address to the US Census Geocoder API and extracts the returned FIPS county code. Issues one
-    <code>updateOne</code> per provider. Returns counts of enriched, failed, and API errors.</p>
+    Pass 1 (i.e. their ZIP spans multiple counties). For each provider: submits the practice
+    address to the US Census Geocoder API (Pass 2). If the practice address is blank, falls back
+    to the mailing address (Pass 2b). Tags each record with its provenance source:
+    <code>geocoder_pass2</code>, <code>geocoder_pass2_billing</code>, <code>geocoder_failed</code>
+    (geocoder returned no match), or <code>geocoder_no_address</code> (both addresses blank).
+    Issues one <code>updateOne</code> per provider. Returns counts for each outcome.</p>
 
     <h3>DiscrepancyReporter</h3>
     <p>Writes the complete run data (all worker results + reconciliation + summary) as a document to <code>admin.PipelineDiscrepancyReport</code> in MongoDB. Sends a SparkPost email notification with key stats and the <code>load_id</code> for lookup. No blob storage or file generation.</p>
+
+    <!-- 4b. Exception Handling Framework -->
+    <h2>4b. Pipeline Exception Handling Framework</h2>
+    <p>
+      <strong>Pattern: Gang of Four — Template Method.</strong>
+      <code>PipelineWorkerBase</code> (<code>pipeline_worker_base.py</code>) is an abstract base
+      class that all pipeline row-processing workers extend. It centralises exception handling,
+      error accumulation, and lifecycle control so that worker classes focus purely on data
+      processing logic.
+    </p>
+
+    <h3>Ownership</h3>
+    <p>The base class owns:</p>
+    <ul>
+      <li>The processing loop — <code>pipeline_execute()</code></li>
+      <li>All exception catching and logging — <code>_pipeline_step()</code> (private template method)</li>
+      <li>The <code>row_errors</code> accumulator — list of <code>{row_key, reason}</code> objects written to the discrepancy report</li>
+    </ul>
+
+    <h3>Control Flow</h3>
+    <div class="diagram">
+      <div class="diagram-inner">
+        <div class="d-center"><div class="d-box d-box-wide"><strong>pipeline_execute()</strong><small>public · called by orchestration · base class</small></div></div>
+        <div class="d-down">↓</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>_pipeline_open()</strong><small>optional hook · subclass sets up resources</small></div></div>
+        <div class="d-down">↓ while _pipeline_has_next()</div>
+        <div class="d-center"><div class="d-box d-box-teal d-box-wide"><strong>_pipeline_step()</strong><small>private template method · base class</small></div></div>
+        <div class="d-down">↓ calls</div>
+        <div class="d-row">
+          <div class="d-col">
+            <div class="d-box"><strong>_pipeline_process()</strong><small>abstract · subclass</small></div>
+            <div class="d-label">success → continue</div>
+          </div>
+          <div class="d-col">
+            <div class="d-box d-box-warn"><strong>exception raised</strong><small>base class catches</small></div>
+            <div class="d-label">log · append row_errors</div>
+            <div class="d-box d-box-warn"><strong>fail_on_row_error?</strong><small>True → abend · False → _pipeline_resume()</small></div>
+          </div>
+        </div>
+        <div class="d-down">↓ after loop</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>_pipeline_close()</strong><small>always called · success and failure · subclass flushes resources</small></div></div>
+        <div class="d-down">↓ success only</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>_pipeline_build_result()</strong><small>abstract · subclass returns result dict to orchestrator</small></div></div>
+      </div>
+    </div>
+
+    <h3>Abstract Methods — Subclasses Must Implement</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Method</th><th>Contract</th></tr>
+        <tr><td><code>_pipeline_has_next()</code></td><td>Advance the internal cursor. Return <code>True</code> if a row is ready to process.</td></tr>
+        <tr><td><code>_pipeline_process()</code></td><td>Process the current row. Raise on error. Must not catch exceptions or log errors — the base class owns the row lifecycle.</td></tr>
+        <tr><td><code>_pipeline_row_key()</code></td><td>Return the business key of the current row (e.g. NPI number). Called by the base class immediately after an exception is raised.</td></tr>
+        <tr><td><code>_pipeline_resume()</code></td><td>Advance past the failed row and reset any partial state. Must not raise.</td></tr>
+        <tr><td><code>_pipeline_build_result()</code></td><td>Build and return the result dict for the orchestrator. Called only on success, after <code>_pipeline_close()</code>.</td></tr>
+      </table>
+    </div>
+
+    <h3>Optional Hooks</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Method</th><th>Default</th><th>Override for</th></tr>
+        <tr><td><code>_pipeline_open()</code></td><td>no-op</td><td>Resource setup — blob streams, DB connections, cursors</td></tr>
+        <tr><td><code>_pipeline_close()</code></td><td>no-op</td><td>Flush remaining batch, release connections. Always called — on success and failure. Must be safe to call even if <code>_pipeline_open()</code> did not complete.</td></tr>
+        <tr><td><code>_pipeline_on_job_failure(exc)</code></td><td>no-op</td><td>Fatal error cleanup — e.g. write status code 11 to metadata. Do not re-raise.</td></tr>
+      </table>
+    </div>
+
+    <h3>Error Policy — fail_on_row_error</h3>
+    <p>Set via <code>fail_on_row_error</code> (bool) in the worker config dict. Default: <code>False</code>.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Value</th><th>Behaviour</th></tr>
+        <tr><td><code>False</code></td><td>Row error is logged, appended to <code>row_errors</code>, <code>_pipeline_resume()</code> is called, loop continues. All errors accumulate in the discrepancy report.</td></tr>
+        <tr><td><code>True</code></td><td>First row error abends the job — re-raises the exception after logging. Use when every row must succeed (e.g. reference data loads where partial results are unsafe).</td></tr>
+      </table>
+    </div>
+
+    <h3>Workers Using This Framework</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Worker</th><th>Row concept</th><th>Row key</th><th>fail_on_row_error default</th></tr>
+        <tr><td><code>ProviderWorker</code></td><td>One NPI CSV row</td><td>NPI number</td><td><code>False</code> — bad rows are skipped and reported</td></tr>
+        <tr><td><code>EmbeddingWorker</code></td><td>One OpenAI embedding batch (500 documents)</td><td><code>worker_N_batch_M</code></td><td><code>False</code> — failed batches are skipped and reported</td></tr>
+      </table>
+    </div>
+
+    <div class="note">
+      <strong>None of the <code>pipeline_</code> method names are mandated by Azure or any external
+      framework.</strong> The prefix exists solely to distinguish this class hierarchy's methods
+      from any framework-required methods and to signal that they are internal to the pipeline
+      architecture.
+    </div>
 
     <!-- 5. API Payload -->
     <h2>5. FullProviderPipeline — API Payload Fields</h2>
@@ -410,7 +535,7 @@
 
     <!-- 9. Design Review Notes -->
     <h2>9. Design Review Notes</h2>
-    <p>The following issues were identified in an external design review and resolved in Rev 2.</p>
+    <p>The following issues were identified in an external design review and resolved before alpha.</p>
     <div class="table-wrap">
       <table>
         <tr><th>#</th><th>Issue</th><th>Resolution</th></tr>
@@ -423,7 +548,7 @@
         <tr><td>7</td><td>No observability metrics from workers — no way to diagnose throughput or partial failures post-run.</td><td><code>ProviderWorker.run()</code> now returns <code>rows_processed</code>, <code>rows_failed</code>, <code>duration_seconds</code>, <code>rows_per_second</code>.</td></tr>
         <tr><td>8</td><td><code>MAX_ROWS_PER_WORKER</code> implicit — magic number inline in worker code.</td><td>Extracted to named constant <code>MAX_ROWS_PER_WORKER = 1_000_000</code> at module level. Max record_id = 200 workers × 1,000,000 = 200,000,000 — fits in a 32-bit signed int.</td></tr>
         <tr><td>9</td><td>Excel report added unnecessary complexity — blob storage, SAS URLs, openpyxl dependency, and a 10K-row cap workaround.</td><td>Replaced with a MongoDB document written to <code>admin.PipelineDiscrepancyReport</code>. Full run data stored directly; no file generation or blob storage needed for reporting.</td></tr>
-        <tr><td>10</td><td><code>download_zip_fn</code> returned <code>str</code> in original design — auto-discovered <code>version</code> was lost.</td><td>Returns <code>dict {"zip_path", "version"}</code>. Orchestrator propagates <code>version</code> into config for all downstream activities. <em>(Fixed in Rev 1.)</em></td></tr>
+        <tr><td>10</td><td><code>download_zip_fn</code> returned <code>str</code> in original design — auto-discovered <code>version</code> was lost.</td><td>Returns <code>dict {"zip_path", "version"}</code>. Orchestrator propagates <code>version</code> into config for all downstream activities. <em>(Fixed.)</em></td></tr>
         <tr><td>11</td><td><code>max_records</code> was approximate — required sampling rows to estimate a byte offset, adding complexity and a ±5% error margin.</td><td>Replaced with <code>max_bytes</code>: a direct byte limit applied to the data region after the header. No sampling needed. Used for dev limiting only; production runs omit the parameter.</td></tr>
         <tr><td>12</td><td>Partial failure strategy unspecified — if 1 of 5 workers fails, what happens?</td><td>All pairs run to completion (no short-circuit). If any worker fails, the orchestrator returns <code>status: "failed"</code>. Successful inserts are NOT rolled back — <code>load_id</code> isolates this run. A re-run is safe due to upsert idempotency.</td></tr>
         <tr><td>13</td><td>Staging retained stale records across load runs — old provider data visible alongside new load until collection swap.</td><td>Added <code>drain_staging_activity</code> (Step 4) to delete all existing documents before workers start. Drain runs only after download + extract + partition succeed, ensuring the file is viable before the old data is removed. Each run's documents are still isolated by <code>load_id</code> for dedup safety.</td></tr>
