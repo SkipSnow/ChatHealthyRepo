@@ -105,10 +105,14 @@ def _parse_icd10_zip(zip_bytes: bytes) -> list[dict]:
       - icd10cm_tabular_YYYY.xml — XML tabular (we use the flat order file)
 
     Fixed-width format (icd10cm_order_*.txt):
-      Col 1-5   : code (left-justified, no dots)
-      Col 6     : valid_for_coding (1=billable, 0=header)
-      Col 7-60  : short description
-      Col 61+   : long description
+      Col 1-5   : order number (sequence, not the code)
+      Col 6     : space
+      Col 7-13  : ICD-10-CM code (left-justified, space-padded, no dots)
+      Col 14    : space
+      Col 15    : valid_for_coding (1=billable, 0=header)
+      Col 16    : space
+      Col 17-76 : short description
+      Col 77+   : long description
     """
     codes = []
     now = datetime.now(timezone.utc).isoformat()
@@ -127,10 +131,10 @@ def _parse_icd10_zip(zip_bytes: bytes) -> list[dict]:
         with zf.open(order_file) as f:
             for line in f:
                 line = line.decode("utf-8", errors="replace").rstrip("\n")
-                if len(line) < 7:
+                if len(line) < 16:
                     continue
 
-                raw_code = line[0:5].strip()
+                raw_code = line[6:13].strip()
                 if not raw_code:
                     continue
 
@@ -140,9 +144,9 @@ def _parse_icd10_zip(zip_bytes: bytes) -> list[dict]:
                 else:
                     code = raw_code
 
-                is_billable = line[5:6].strip() == "1"
-                short_desc = line[6:60].strip() if len(line) > 60 else line[6:].strip()
-                long_desc = line[60:].strip() if len(line) > 60 else ""
+                is_billable = line[14:15].strip() == "1"
+                short_desc = line[16:76].strip() if len(line) > 76 else line[16:].strip()
+                long_desc = line[76:].strip() if len(line) > 76 else ""
 
                 codes.append({
                     "code": code,
