@@ -48,6 +48,7 @@ from county_enrichment_job import (
     mark_out_of_scope_fn,
     reset_geocoder_failed_fn,
 )
+from instance_warmer import cool_instances_fn, warm_instances_fn
 from provider_load_manager import (
     create_vector_index_fn,
     download_zip_fn,
@@ -228,6 +229,16 @@ def ensure_postload_indexes_activity(config: dict) -> None:
 @app.activity_trigger(input_name="config")
 def write_metadata_activity(config: dict) -> list:
     return write_metadata_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def warm_instances_activity(config: dict) -> dict:
+    return warm_instances_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def cool_instances_activity(config: dict) -> dict:
+    return cool_instances_fn(config)
 
 
 @app.activity_trigger(input_name="config")
