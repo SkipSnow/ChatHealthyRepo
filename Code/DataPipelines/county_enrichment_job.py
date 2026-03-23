@@ -175,7 +175,7 @@ def county_enrichment_pass1_orchestrator_fn(context):
         context.call_activity("enrich_by_zip_batch_activity", {**config, "zip_batch": batch})
         for batch in zip_batches
     ]
-    pass1_results = yield context.task_all(pass1_tasks)
+    pass1_results = (yield context.task_all(pass1_tasks)) if pass1_tasks else []
     pass1_modified = sum(r.get("modified", 0) for r in pass1_results)
 
     addressable = total_providers - out_of_scope_count
