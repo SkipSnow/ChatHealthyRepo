@@ -4,7 +4,7 @@
 # Coded by Claude Sonnet 4.6 (Anthropic).
 # Developed in collaboration with ChatGPT (OpenAI).
 
-"""DiscrepancyReporter — writes pipeline run results to admin.PipelineDiscrepancyReport
+"""DiscrepancyReporter — writes pipeline run results to admin.PipelineDiscrepancyReports
 and sends an email notification via SparkPost on completion.
 """
 
@@ -25,7 +25,7 @@ def _get_mongo_client() -> MongoClient:
     return _mongo
 
 
-REPORT_COLLECTION = "admin.PipelineDiscrepancyReport"
+REPORT_COLLECTION = "admin.PipelineDiscrepancyReports"
 
 
 class DiscrepancyReporter:
@@ -52,8 +52,12 @@ class DiscrepancyReporter:
         ]
         total_failed_rows = sum(r.get("rows_failed", 0) for r in worker_results)
 
+        job_status = "succeed" if reconcile_match and not failed_workers else "fail"
+
         # ── Write report to MongoDB ───────────────────────────────────────────
         report = {
+            "job_name": "Provider Load",
+            "job_status": job_status,
             "load_id": load_id,
             "version": version,
             "datetime": datetime.now(timezone.utc).isoformat(),
@@ -67,6 +71,16 @@ class DiscrepancyReporter:
             "failed_rows": all_failed_rows,  # up to 20 per worker; overflow in Azure logs
             "worker_results": worker_results,
         }
+        if job_status == "fail":
+            reasons = []
+            if not reconcile_match:
+                reasons.append(
+                    f"Reconciliation mismatch: expected={expected_records} "
+                    f"inserted={inserted_records} failed={failed_records}"
+                )
+            if failed_workers:
+                reasons.append(f"{len(failed_workers)} worker(s) failed")
+            report["fail_reason"] = "; ".join(reasons)
 
         db_name, coll_name = REPORT_COLLECTION.split(".", 1)
         _get_mongo_client()[db_name][coll_name].insert_one(report)

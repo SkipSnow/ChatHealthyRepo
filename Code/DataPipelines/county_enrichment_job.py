@@ -783,7 +783,7 @@ def enrich_by_billing_batch_fn(config: dict) -> dict:
 
 
 def enrichment_report_fn(config: dict) -> dict:
-    """Write enrichment run report to admin.PipelineDiscrepancyReport.
+    """Write enrichment run report to admin.PipelineDiscrepancyReports.
 
     Queries providers_staging by county.source to build a live summary with
     two percentages per bucket:
@@ -792,7 +792,7 @@ def enrichment_report_fn(config: dict) -> dict:
     """
     reconcile = config["reconcile"]
     load_id = config.get("load_id", "unknown")
-    report_collection = config.get("report_collection", "admin.PipelineDiscrepancyReport")
+    report_collection = config.get("report_collection", "admin.PipelineDiscrepancyReports")
     staging_collection = config.get("staging_collection", PROVIDERS_COLLECTION)
     db_name_r, coll_name_r = report_collection.split(".", 1)
     db_name_s, coll_name_s = staging_collection.split(".", 1)
@@ -867,13 +867,23 @@ def enrichment_report_fn(config: dict) -> dict:
         "addressable": addressable,
     }
 
+    enrichment_sla = 98.0
+    pct_enriched = summary["total_enriched"]["pct_of_addressable"] or 0.0
+    job_status = "succeed" if pct_enriched >= enrichment_sla else "fail"
+
     report = {
-        "job": "CountyEnrichment",
+        "job_name": "County Enrichment",
+        "job_status": job_status,
         "load_id": load_id,
         "datetime": datetime.now(timezone.utc).isoformat(),
         "reconciliation": reconcile,
         "summary": summary,
     }
+    if job_status == "fail":
+        report["fail_reason"] = (
+            f"Enrichment SLA not met: {pct_enriched:.1f}% enriched "
+            f"(required {enrichment_sla:.0f}% of addressable providers)"
+        )
 
     client[db_name_r][coll_name_r].insert_one(report)
     report.pop("_id", None)
