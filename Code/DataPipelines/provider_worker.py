@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 
 from blob_client import get_blob_service
 from bson import ObjectId
+from pipeline_worker_base import PipelineWorkerBase
 from pymongo import MongoClient, UpdateOne
 
 _mongo: MongoClient | None = None
@@ -57,7 +58,6 @@ def status_fields(code: int) -> dict:
 
 # ── Field normalization constants ─────────────────────────────────────────────
 
-# Numbered field groups → collapsed into arrays
 BOUNDARY_EXTRA = 8192  # extra bytes read past end_byte to complete the last row
 
 TAX_CODE_PREFIX = "Healthcare Provider Taxonomy Code_"
@@ -74,7 +74,6 @@ ARRAY_FIELD_GROUPS = [
     ("Other Provider Identifier Issuer_", "other_identifier_issuers"),
 ]
 
-# Address fields → collapsed into sub-documents
 PRACTICE_ADDRESS_FIELDS = {
     "Provider First Line Business Practice Location Address": "line1",
     "Provider Second Line Business Practice Location Address": "line2",
@@ -216,9 +215,10 @@ def _iter_lines(stream, stop_after: int | None = None):
         yield buffer.decode("utf-8", errors="replace")
 
 
-class ProviderWorker:
+class ProviderWorker(PipelineWorkerBase):
 
     def __init__(self, config: dict):
+        super().__init__(config)
         self.worker_id = config["worker_id"]
         self.start_byte = config["start_byte"]
         self.end_byte = config["end_byte"]
@@ -233,126 +233,134 @@ class ProviderWorker:
         self.metadata_collection = config.get("metadata_collection", "admin.DataLoadMetadata")
         self.blob_container = config.get("blob_container", "provider-data")
 
-    def run(self) -> dict:
-        self._update_status(10, None)
-        started_at = datetime.now(timezone.utc).isoformat()
-        start_time = time.monotonic()
-        try:
-            rows_processed, num_records, rows_failed, failed_rows = self._load()
-            duration = time.monotonic() - start_time
-            finished_at = datetime.now(timezone.utc).isoformat()
-            rows_per_second = round(rows_processed / duration, 1) if duration > 0 else 0
-            self._update_status(12, None, num_records=num_records)
-            logging.info(
-                "Worker %d: processed=%d inserted=%d failed=%d %.1fs (%.1f rows/s)",
-                self.worker_id, rows_processed, num_records, rows_failed,
-                duration, rows_per_second,
-            )
-            return {
-                "worker_id": self.worker_id,
-                "started_at": started_at,
-                "finished_at": finished_at,
-                "rows_processed": rows_processed,
-                "num_records": num_records,
-                "rows_failed": rows_failed,
-                "failed_rows": failed_rows,
-                "duration_seconds": round(duration, 2),
-                "rows_per_second": rows_per_second,
-                "success": True,
-            }
-        except Exception as exc:
-            logging.exception("Worker %d failed", self.worker_id)
-            self._update_status(11, str(exc))
-            return {
-                "worker_id": self.worker_id,
-                "started_at": started_at,
-                "finished_at": datetime.now(timezone.utc).isoformat(),
-                "num_records": 0,
-                "rows_failed": 0,
-                "success": False,
-                "error": str(exc),
-            }
+        # State initialised in _pipeline_open(); set to safe defaults so
+        # _pipeline_close() is always safe to call even if _pipeline_open()
+        # did not complete.
+        self._reader = None
+        self._collection = None
+        self._current_row: list | None = None
+        self._npi_idx: int | None = None
+        self._is_first_row: bool = True
+        self._batch: list = []
+        self._local_index: int = 0
+        self._num_records: int = 0
+        self._started_at: str = ""
+        self._start_time: float = 0.0
 
-    def _load(self) -> tuple[int, int, int, list]:
-        # Read byte range from blob
+    # ── PipelineWorkerBase overrides ──────────────────────────────────────────
+
+    def _pipeline_open(self) -> None:
+        self._started_at = datetime.now(timezone.utc).isoformat()
+        self._start_time = time.monotonic()
+        self._update_status(10, None)
+
         service = get_blob_service()
         blob_client = (
             service.get_container_client(self.blob_container)
             .get_blob_client(self.csv_path)
         )
-        logical_end = self.end_byte
-        actual_end = self.end_byte + BOUNDARY_EXTRA
-        length = actual_end - self.start_byte
-        stop_after = logical_end - self.start_byte
+        stop_after = self.end_byte - self.start_byte
+        length = stop_after + BOUNDARY_EXTRA
         stream = blob_client.download_blob(offset=self.start_byte, length=length)
+        self._reader = csv.reader(_iter_lines(stream, stop_after=stop_after))
 
         db_name, coll_name = self.staging_collection.split(".", 1)
-        collection = _get_mongo_client()[db_name][coll_name]
+        self._collection = _get_mongo_client()[db_name][coll_name]
 
-        batch = []
-        local_index = 0
-        num_records = 0
-        rows_failed = 0
-        failed_rows = []          # captured samples (max 20)
-        is_first_row = True
+        self._npi_idx = self.header.index("NPI") if "NPI" in self.header else None
 
-        reader = csv.reader(_iter_lines(stream, stop_after=stop_after))
-        for row in reader:
-            if not any(f.strip() for f in row):   # skip blank/whitespace-only lines
-                continue
-
-            # Workers 2-N: partition boundaries are newline-aligned, so the
-            # first row is normally complete. If the alignment fallback fired
-            # (no \n found in scan window), the first bytes may be mid-row.
-            # Discard that partial leading row silently — not counted as rows_failed.
-            if is_first_row:
-                is_first_row = False
+    def _pipeline_has_next(self) -> bool:
+        # Advance the iterator, silently skipping blank lines and the partial
+        # leading row that can appear on non-first workers due to byte-range
+        # boundary alignment.
+        for row in self._reader:
+            if not any(f.strip() for f in row):
+                continue  # blank / whitespace-only line
+            if self._is_first_row:
+                self._is_first_row = False
                 if self.worker_id > 1 and len(row) != len(self.header):
-                    continue  # partial leading row — discard
+                    continue  # partial leading row — boundary alignment artifact
+            self._current_row = row
+            return True
+        return False
 
-            if len(row) != len(self.header):       # malformed non-first row
-                rows_failed += 1
-                entry = {
-                    "row_number": local_index,
-                    "field_count": len(row),
-                    "expected": len(self.header),
-                    "raw": ",".join(row[:20]),  # first 20 fields for identification
-                }
-                if len(failed_rows) < 20:
-                    failed_rows.append(entry)
-                else:
-                    logging.error(
-                        "Worker %d failed row overflow (row %d): fields=%d expected=%d raw=%.120s",
-                        self.worker_id, local_index, len(row), len(self.header), entry["raw"],
-                    )
-                continue
+    def _pipeline_process(self) -> None:
+        row = self._current_row
+        if len(row) != len(self.header):
+            sample = ",".join(row[:10])
+            raise ValueError(
+                f"Malformed row: {len(row)} fields, expected {len(self.header)}, "
+                f"sample={sample}"
+            )
 
-            doc = _normalize_row(self.header, row)
-            record_id = self.worker_id * MAX_ROWS_PER_WORKER + local_index
-            doc["load_id"] = self.load_id
-            doc["record_id"] = record_id
-            doc["worker_id"] = self.worker_id
-            doc["county"] = {"fips": None}  # stub — enriched by county_enrichment_job
+        doc = _normalize_row(self.header, row)
+        record_id = self.worker_id * MAX_ROWS_PER_WORKER + self._local_index
+        doc["load_id"] = self.load_id
+        doc["record_id"] = record_id
+        doc["worker_id"] = self.worker_id
+        doc["county"] = {"fips": None}  # stub — enriched by county_enrichment_job
 
-            # Upsert on (load_id, record_id) — safe to retry; duplicate
-            # inserts are ignored by the unique index created before workers start.
-            batch.append(UpdateOne(
-                {"load_id": self.load_id, "record_id": record_id},
-                {"$setOnInsert": doc},
-                upsert=True,
-            ))
-            local_index += 1
-            num_records += 1
+        self._batch.append(UpdateOne(
+            {"load_id": self.load_id, "record_id": record_id},
+            {"$setOnInsert": doc},
+            upsert=True,
+        ))
+        self._local_index += 1
+        self._num_records += 1
 
-            if len(batch) >= self.batch_size:
-                collection.bulk_write(batch, ordered=False)
-                batch = []
+        if len(self._batch) >= self.batch_size:
+            self._collection.bulk_write(self._batch, ordered=False)
+            self._batch = []
 
-        if batch:
-            collection.bulk_write(batch, ordered=False)
+    def _pipeline_row_key(self) -> str:
+        if self._current_row is not None and self._npi_idx is not None:
+            try:
+                return self._current_row[self._npi_idx]
+            except IndexError:
+                pass
+        return f"worker_{self.worker_id}_idx_{self._local_index}"
 
-        rows_processed = num_records + rows_failed
-        return rows_processed, num_records, rows_failed, failed_rows
+    def _pipeline_resume(self) -> None:
+        # _pipeline_has_next() already advanced the iterator to the next row.
+        # The base class accumulates the error in row_errors.
+        # No local state to reset — the batch only grows on successful
+        # _pipeline_process() calls.
+        pass
+
+    def _pipeline_close(self) -> None:
+        if self._batch and self._collection is not None:
+            self._collection.bulk_write(self._batch, ordered=False)
+            self._batch = []
+
+    def _pipeline_on_job_failure(self, exc: Exception) -> None:
+        self._update_status(11, str(exc))
+
+    def _pipeline_build_result(self) -> dict:
+        duration = time.monotonic() - self._start_time
+        finished_at = datetime.now(timezone.utc).isoformat()
+        rows_per_second = round(self._num_records / duration, 1) if duration > 0 else 0
+        rows_processed = self._num_records + len(self.row_errors)
+
+        self._update_status(12, None, num_records=self._num_records)
+        logging.info(
+            "Worker %d: processed=%d inserted=%d failed=%d %.1fs (%.1f rows/s)",
+            self.worker_id, rows_processed, self._num_records, len(self.row_errors),
+            duration, rows_per_second,
+        )
+        return {
+            "worker_id": self.worker_id,
+            "started_at": self._started_at,
+            "finished_at": finished_at,
+            "rows_processed": rows_processed,
+            "num_records": self._num_records,
+            "rows_failed": len(self.row_errors),
+            "failed_rows": self.row_errors,
+            "duration_seconds": round(duration, 2),
+            "rows_per_second": rows_per_second,
+            "success": True,
+        }
+
+    # ── Private ───────────────────────────────────────────────────────────────
 
     def _update_status(
         self, status: int, error: str | None, num_records: int = 0
