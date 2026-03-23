@@ -157,6 +157,7 @@
     }
     .gm-m001 { background: var(--accent); border-color: #8a5c00; }
     .gm-m002 { background: var(--teal); border-color: #065955; width: 14px; height: 14px; border-width: 3px; }
+    .gm-m003 { background: #7c3aed; border-color: #5b21b6; width: 14px; height: 14px; border-width: 3px; }
 
     .gantt-planned-hdr { width: 58px; flex-shrink: 0; text-align: center; font-size: 0.68rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-soft); padding-bottom: 2px; }
     .gantt-planned { width: 58px; flex-shrink: 0; text-align: center; font-size: 0.76rem; font-weight: 500; }
@@ -365,6 +366,31 @@
           </div>
         </div>
 
+        <!-- INFRA-008: Pipeline management agent  Jun  (30% → 40%) -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">INFRA-008</span>
+            <span class="gantt-row-name">Pipeline mgmt agent</span>
+          </div>
+          <div class="gantt-planned yes">Yes</div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-infra" style="left:30%;width:10%"></div>
+          </div>
+        </div>
+
+        <!-- M-003: Beta Launch  Jul 31  (40% → 50%) -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">M-003</span>
+            <span class="gantt-row-name">Beta launch</span>
+          </div>
+          <div class="gantt-planned yes">Yes</div>
+          <div class="gantt-track">
+            <div class="gantt-bar gb-future" style="left:40%;width:10%"></div>
+            <div class="gantt-milestone gm-m003" style="left:50%"></div>
+          </div>
+        </div>
+
         <!-- FUTURE-001: Auth — no committed date -->
         <div class="gantt-row">
           <div class="gantt-row-label">
@@ -475,6 +501,25 @@
         <li>ICD-10 → specialty → provider linking agent (RESEARCH-002)</li>
         <li>Provider cards, maps, and inline components in the chat UI</li>
         <li>Session transcript export</li>
+      </ul>
+    </div>
+
+    <div class="item" style="border-color:#7c3aed; border-width:2px; background:#f5f3ff;">
+      <div class="item-header">
+        <span class="item-id">M-003</span>
+        <span class="item-title" style="font-size:1.1rem;">Beta Launch</span>
+        <span class="badge" style="background:#7c3aed; color:#fff; border-color:#7c3aed;">Major Milestone</span>
+        <span class="badge" style="background:#f0ebff; color:#5b21b6; border: 1px solid #c4b5fd;">July 2026</span>
+      </div>
+      <p>A hardened, monitored ChatHealthy.ai ready for enterprise evaluation: autonomous pipeline
+      management, observability, and security controls in place.</p>
+      <ul>
+        <li>Agent-based operating model — pipeline management agent handles failure detection, ghost cleanup, and recovery (INFRA-008)</li>
+        <li>Pipeline failure gates — all mandatory steps gated; silent green on failure eliminated</li>
+        <li>Enterprise security hardening (INFRA-004) — Key Vault, OIDC federation, signed commits</li>
+        <li>VNet integration — storage and Function App on subnet</li>
+        <li>Production MongoDB cluster (INFRA-005)</li>
+        <li>CopyToRuntime blue-green swap (INFRA-001)</li>
       </ul>
     </div>
 
@@ -632,6 +677,28 @@
       confirmed March 22, 2026. A deploy guard is now in place but does not cover all edge cases.
       Full solution: side-by-side orchestrator versioning so in-flight runs complete against
       the version they started with while new deploys route to the updated version.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">INFRA-008</span>
+        <span class="item-title">Pipeline management agent</span>
+        <span class="badge" style="background:#f0ebff; color:#5b21b6; border: 1px solid #c4b5fd;">Beta — June 2026</span>
+      </div>
+      <div class="item-meta"><span><strong>Status:</strong> Open</span></div>
+      <p>A dedicated agent — separate from the pipeline orchestrator — that monitors all running
+      pipeline instances, detects failures and ghost orchestrations, and takes corrective action
+      autonomously. The orchestrator raises on failure and stops; recovery is this agent's job.</p>
+      <ul>
+        <li>Monitors Durable Functions instance status via management REST API (sole owner of that API)</li>
+        <li>Detects stuck Running instances — OOM-killed workers, replay failures</li>
+        <li>Terminates and purges ghost sub-orchestrators automatically</li>
+        <li>Restarts failed pipelines from the correct <code>start_step</code></li>
+        <li>Reports failures and recovery actions to <code>admin.PipelineOpsLog</code> + alerting</li>
+      </ul>
+      <p><strong>Boundary:</strong> This is a system management concern, not a pipeline concern.
+      No cleanup logic lives in the orchestrator. The agent observes external state and acts;
+      the orchestrator executes data work only.</p>
     </div>
 
     <!-- Future -->
