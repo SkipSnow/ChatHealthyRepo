@@ -325,8 +325,211 @@
     without any address signal. Records successfully enriched in any pass are not re-attempted.
     AI passes are controlled by the <code>do_ai_passes</code> payload flag (default <code>true</code>).</p>
 
+    <!-- 3d. Out-of-Scope Providers -->
+    <h2 id="out-of-scope">3d. Out-of-Scope Providers</h2>
+    <p>Not all records in the NPPES file are active US providers. Records that cannot receive
+    a county assignment are tagged <code>county.source = "out_of_scope"</code> and excluded
+    from the enrichment ratio calculation. The 98% enrichment SLA applies only to
+    <em>in-scope</em> providers — those where county assignment is meaningful.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Category</th><th>Criteria</th><th>Notes</th></tr>
+        <tr><td>Deactivated NPI</td><td>NPI deactivation date is set</td><td>Provider has voluntarily surrendered or been deactivated by CMS</td></tr>
+        <tr><td>Foreign address</td><td>Practice state not in US state list (50 states + DC + PR + VI)</td><td>International providers licensed in the US but practicing abroad</td></tr>
+        <tr><td>No practice state</td><td>practice_address.state is blank</td><td>Organizational records or edge cases with no address on file</td></tr>
+      </table>
+    </div>
+    <p>These records are present in the NPPES export and loaded into
+    <code>providers_staging</code> — they are not dropped. The <code>out_of_scope</code> tag
+    ensures they appear in provider lookups as "inactive" where relevant, and are not
+    counted as enrichment failures.</p>
+
     <!-- 4. Class Responsibilities -->
     <h2>4. Classes</h2>
+
+    <p style="font-size:0.85rem;color:#4a5568;margin:0 0 4px;"><em>italic</em> = abstract method &nbsp;·&nbsp; &#9651; = extends (arrow points toward superclass)</p>
+
+    <!-- Fetcher Hierarchy -->
+    <p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:#0b7a75;margin:18px 0 6px;">Fetcher Hierarchy</p>
+    <div style="overflow-x:auto;margin-bottom:24px;border:1px solid #d8e2e1;padding:12px;border-radius:4px;background:#fff;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="760" height="398" font-family="'Courier New',monospace" font-size="10" fill="#0d1117">
+      <!-- DataFetcherBase -->
+      <rect x="260" y="10" width="240" height="204" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="260" y="10" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="260" y1="40" x2="500" y2="40" stroke="#0d1117" stroke-width="1"/>
+      <line x1="260" y1="112" x2="500" y2="112" stroke="#0d1117" stroke-width="1"/>
+      <text x="380" y="30" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">DataFetcherBase</text>
+      <text x="268" y="56">+ source_name: str</text>
+      <text x="268" y="71">+ source_url: str</text>
+      <text x="268" y="86"># config: dict</text>
+      <text x="268" y="101"># container: str</text>
+      <text x="268" y="128">+ fetch() &#8594; dict</text>
+      <text x="268" y="143">+ blob_name() &#8594; str</text>
+      <text x="268" y="158"># _remote_signature()</text>
+      <text x="268" y="173"># _download_to_blob()</text>
+      <text x="268" y="188"># _load_registry()</text>
+      <text x="268" y="203"># _update_registry()</text>
+      <!-- Connector: parent bottom → triangle → junction → children -->
+      <polygon points="370,234 390,234 380,214" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="380" y1="234" x2="380" y2="254" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="120" y1="254" x2="640" y2="254" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="120" y1="254" x2="120" y2="264" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="380" y1="254" x2="380" y2="264" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="640" y1="254" x2="640" y2="264" stroke="#0d1117" stroke-width="1.5"/>
+      <!-- NppesFetcher x=0, w=240, h=114 -->
+      <rect x="0" y="264" width="240" height="114" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="0" y="264" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="0" y1="294" x2="240" y2="294" stroke="#0d1117" stroke-width="1"/>
+      <line x1="0" y1="336" x2="240" y2="336" stroke="#0d1117" stroke-width="1"/>
+      <text x="120" y="284" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">NppesFetcher</text>
+      <text x="8" y="310">+ source_name = "nppes_npi"</text>
+      <text x="8" y="325">- _version: str</text>
+      <text x="8" y="352">+ blob_name() &#8594; str</text>
+      <text x="8" y="367">+ version: str  [property]</text>
+      <!-- Icd10Fetcher x=260, w=240, h=99 -->
+      <rect x="260" y="264" width="240" height="99" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="260" y="264" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="260" y1="294" x2="500" y2="294" stroke="#0d1117" stroke-width="1"/>
+      <line x1="260" y1="321" x2="500" y2="321" stroke="#0d1117" stroke-width="1"/>
+      <text x="380" y="284" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">Icd10Fetcher</text>
+      <text x="268" y="310">+ source_name = "icd10_cm"</text>
+      <text x="268" y="337">+ blob_name() &#8594; str</text>
+      <text x="268" y="352">+ poll_frequency: str  [prop]</text>
+      <!-- CrosswalkFetcher x=520, w=240, h=99 -->
+      <rect x="520" y="264" width="240" height="99" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="520" y="264" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="520" y1="294" x2="760" y2="294" stroke="#0d1117" stroke-width="1"/>
+      <line x1="520" y1="336" x2="760" y2="336" stroke="#0d1117" stroke-width="1"/>
+      <text x="640" y="284" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">CrosswalkFetcher</text>
+      <text x="528" y="310">+ source_name = "census_zcta..."</text>
+      <text x="528" y="325">+ source_url: str</text>
+      <text x="528" y="352">+ blob_name() &#8594; str</text>
+    </svg>
+    </div>
+
+    <!-- Worker Hierarchy -->
+    <p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:#0b7a75;margin:0 0 6px;">Worker Hierarchy</p>
+    <div style="overflow-x:auto;margin-bottom:24px;border:1px solid #d8e2e1;padding:12px;border-radius:4px;background:#fff;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="760" height="593" font-family="'Courier New',monospace" font-size="10" fill="#0d1117">
+      <!-- PipelineWorkerBase(ABC) x=260, y=10, w=240, h=279 -->
+      <rect x="260" y="10" width="240" height="279" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="260" y="10" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="260" y1="40" x2="500" y2="40" stroke="#0d1117" stroke-width="1"/>
+      <line x1="260" y1="127" x2="500" y2="127" stroke="#0d1117" stroke-width="1"/>
+      <text x="380" y="30" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">PipelineWorkerBase (ABC)</text>
+      <text x="268" y="56">+ fail_on_row_error: bool</text>
+      <text x="268" y="71">+ row_errors: list[dict]</text>
+      <text x="268" y="86">- _job_failed: bool</text>
+      <text x="268" y="101">- _load_id: str</text>
+      <text x="268" y="116">- _worker_id: str</text>
+      <text x="268" y="143">+ pipeline_execute() &#8594; dict</text>
+      <text x="268" y="158"># _pipeline_open()</text>
+      <text x="268" y="173"># _pipeline_close()</text>
+      <text x="268" y="188"># _pipeline_on_job_failure(exc)</text>
+      <text x="268" y="203"># _pipeline_step()</text>
+      <text x="268" y="218" font-style="italic"># _pipeline_process()</text>
+      <text x="268" y="233" font-style="italic"># _pipeline_has_next() &#8594; bool</text>
+      <text x="268" y="248" font-style="italic"># _pipeline_row_key() &#8594; str</text>
+      <text x="268" y="263" font-style="italic"># _pipeline_resume()</text>
+      <text x="268" y="278" font-style="italic"># _pipeline_build_result() &#8594; dict</text>
+      <!-- Connector -->
+      <polygon points="370,309 390,309 380,289" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="380" y1="309" x2="380" y2="329" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="120" y1="329" x2="640" y2="329" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="120" y1="329" x2="120" y2="339" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="380" y1="329" x2="380" y2="339" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="640" y1="329" x2="640" y2="339" stroke="#0d1117" stroke-width="1.5"/>
+      <!-- ProviderWorker x=0, y=339, w=240, h=234 -->
+      <rect x="0" y="339" width="240" height="234" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="0" y="339" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="0" y1="369" x2="240" y2="369" stroke="#0d1117" stroke-width="1"/>
+      <line x1="0" y1="471" x2="240" y2="471" stroke="#0d1117" stroke-width="1"/>
+      <text x="120" y="359" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">ProviderWorker</text>
+      <text x="8" y="385">+ worker_id: int</text>
+      <text x="8" y="400">+ start_byte: int</text>
+      <text x="8" y="415">+ end_byte: int</text>
+      <text x="8" y="430">+ load_id: str</text>
+      <text x="8" y="445">+ batch_size: int</text>
+      <text x="8" y="460">- _num_records: int</text>
+      <text x="8" y="487"># _pipeline_process()</text>
+      <text x="8" y="502"># _pipeline_has_next() &#8594; bool</text>
+      <text x="8" y="517"># _pipeline_row_key() &#8594; str</text>
+      <text x="8" y="532"># _pipeline_resume()</text>
+      <text x="8" y="547"># _pipeline_build_result() &#8594; dict</text>
+      <text x="8" y="562">- _update_status(status, error)</text>
+      <!-- EmbeddingWorker x=260, y=339, w=240, h=189 -->
+      <rect x="260" y="339" width="240" height="189" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="260" y="339" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="260" y1="369" x2="500" y2="369" stroke="#0d1117" stroke-width="1"/>
+      <line x1="260" y1="441" x2="500" y2="441" stroke="#0d1117" stroke-width="1"/>
+      <text x="380" y="359" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">EmbeddingWorker</text>
+      <text x="268" y="385">+ worker_id: int</text>
+      <text x="268" y="400">+ staging_collection: str</text>
+      <text x="268" y="415">- _docs: list</text>
+      <text x="268" y="430">- _embedded: int</text>
+      <text x="268" y="457"># _pipeline_process()</text>
+      <text x="268" y="472"># _pipeline_has_next() &#8594; bool</text>
+      <text x="268" y="487"># _pipeline_row_key() &#8594; str</text>
+      <text x="268" y="502"># _pipeline_resume()</text>
+      <text x="268" y="517"># _pipeline_build_result() &#8594; dict</text>
+      <!-- ZipEnrichmentWorker x=520, y=339, w=240, h=189 -->
+      <rect x="520" y="339" width="240" height="189" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="520" y="339" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="520" y1="369" x2="760" y2="369" stroke="#0d1117" stroke-width="1"/>
+      <line x1="520" y1="441" x2="760" y2="441" stroke="#0d1117" stroke-width="1"/>
+      <text x="640" y="359" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">ZipEnrichmentWorker</text>
+      <text x="528" y="385">+ zip_batch: list</text>
+      <text x="528" y="400">+ staging_collection: str</text>
+      <text x="528" y="415">- _idx: int</text>
+      <text x="528" y="430">- _total_modified: int</text>
+      <text x="528" y="457"># _pipeline_process()</text>
+      <text x="528" y="472"># _pipeline_has_next() &#8594; bool</text>
+      <text x="528" y="487"># _pipeline_row_key() &#8594; str</text>
+      <text x="528" y="502"># _pipeline_resume()</text>
+      <text x="528" y="517"># _pipeline_build_result() &#8594; dict</text>
+    </svg>
+    </div>
+
+    <!-- Standalone Classes -->
+    <p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:#0b7a75;margin:0 0 6px;">Standalone Classes</p>
+    <div style="overflow-x:auto;margin-bottom:28px;border:1px solid #d8e2e1;padding:12px;border-radius:4px;background:#fff;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="760" height="204" font-family="'Courier New',monospace" font-size="10" fill="#0d1117">
+      <!-- DiscrepancyReporter x=0, w=240, h=84 -->
+      <rect x="0" y="10" width="240" height="84" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="0" y="10" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="0" y1="40" x2="240" y2="40" stroke="#0d1117" stroke-width="1"/>
+      <line x1="0" y1="67" x2="240" y2="67" stroke="#0d1117" stroke-width="1"/>
+      <text x="120" y="30" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">DiscrepancyReporter</text>
+      <text x="8" y="56" font-style="italic" fill="#4a5568">— no instance attributes —</text>
+      <text x="8" y="83">+ send(config: dict) &#8594; dict</text>
+      <!-- ChatHealthyMongoUtilities x=260, w=240, h=144 -->
+      <rect x="260" y="10" width="240" height="144" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="260" y="10" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="260" y1="40" x2="500" y2="40" stroke="#0d1117" stroke-width="1"/>
+      <line x1="260" y1="82" x2="500" y2="82" stroke="#0d1117" stroke-width="1"/>
+      <text x="380" y="30" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="bold">ChatHealthyMongoUtilities</text>
+      <text x="268" y="56">- _connection_string: str</text>
+      <text x="268" y="71">- _client: MongoClient | None</text>
+      <text x="268" y="98">+ getConnection() &#8594; MongoClient</text>
+      <text x="268" y="113">+ close()</text>
+      <text x="268" y="128">+ __enter__()</text>
+      <text x="268" y="143">+ __exit__()</text>
+      <!-- ChatHealthyLoadSpecialtyData x=520, w=240, h=174 -->
+      <rect x="520" y="10" width="240" height="174" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="520" y="10" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="520" y1="40" x2="760" y2="40" stroke="#0d1117" stroke-width="1"/>
+      <line x1="520" y1="97" x2="760" y2="97" stroke="#0d1117" stroke-width="1"/>
+      <text x="640" y="30" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold">ChatHealthyLoadSpecialtyData</text>
+      <text x="528" y="56">+ db_name: str</text>
+      <text x="528" y="71">+ collection_name: str</text>
+      <text x="528" y="86">- _csv_content: str | None</text>
+      <text x="528" y="113">+ fetch_csv()</text>
+      <text x="528" y="128">+ store_to_blob() &#8594; str</text>
+      <text x="528" y="143">+ load_to_mongo() &#8594; int</text>
+      <text x="528" y="158">- _scrape_csv_url()</text>
+      <text x="528" y="173">- _agent_find_csv_url()</text>
+    </svg>
+    </div>
 
     <h3>ProviderLoadManager</h3>
     <p>Durable orchestrator. 9 steps: download ZIP, extract CSV, partition file, drain staging, ensure indexes, write metadata, fan-out up to 200 load workers, reconcile record counts, write report. No timeout. County enrichment is a separate orchestrator triggered by FullProviderPipeline after this orchestrator completes.</p>
@@ -373,7 +576,7 @@
     <!-- 4b. Exception Handling Framework -->
     <h2>4b. Pipeline Exception Handling Framework</h2>
     <p>
-      <strong>Pattern: Gang of Four — Template Method.</strong>
+      <strong>Pattern: Gang of Four — Template Method.<sup><a id="ref-1-src" href="#ref-1" style="color:var(--teal);text-decoration:none;">[1]</a></sup></strong>
       <code>PipelineWorkerBase</code> (<code>pipeline_worker_base.py</code>) is an abstract base
       class that all pipeline row-processing workers extend. It centralises exception handling,
       error accumulation, and lifecycle control so that worker classes focus purely on data
@@ -583,7 +786,7 @@
       <table>
         <tr><th>Check</th><th>Threshold</th><th>Action if failed</th></tr>
         <tr><td>Total record count</td><td>8.5M – 10.5M; warn if &gt;5% from last known good (8.9M)</td><td>Investigate load — possible source file change or partial load</td></tr>
-        <tr><td>Enrichment ratio</td><td>≥ 95% of addressable providers have <code>county.fips</code></td><td>Do not promote — re-run enrichment or investigate failures</td></tr>
+        <tr><td>Enrichment ratio</td><td>≥ 98% of <em>in-scope</em> providers have <code>county.fips</code> &nbsp;<small style="color:var(--ink-soft);">(out-of-scope = inactive or foreign NPI; see <a href="#out-of-scope">§ Out of Scope</a>)</small></td><td>Do not promote — re-run enrichment or investigate failures</td></tr>
         <tr><td>Any state coverage</td><td>≥ 85% enrichment per state</td><td>Investigate that state — bad ZIP data, geocoder outage</td></tr>
         <tr><td>Missing NPI</td><td>= 0</td><td>Hard stop — data integrity failure</td></tr>
         <tr><td>Spot check error rate</td><td>0 errors across 64 random samples (2 per NPI partition)</td><td>Investigate flagged NPIs before promoting</td></tr>
@@ -641,6 +844,13 @@
 <footer>
   <div class="footer-inner">
     <p class="footer-copy">© 2026 Skip Snow &nbsp;·&nbsp; ChatHealthy.ai &nbsp;·&nbsp; Design Document</p>
+    <p id="ref-1" class="footer-copy" style="margin-top:6px;">
+      [1] Gamma, E., Helm, R., Johnson, R., &amp; Vlissides, J. (1994).
+      <em>Design Patterns: Elements of Reusable Object-Oriented Software.</em>
+      Addison-Wesley. Template Method pattern, pp. 325–330. &nbsp;·&nbsp;
+      <a href="https://en.wikipedia.org/wiki/Template_method_pattern" target="_blank" rel="noopener">Wikipedia: Template Method</a>
+      &nbsp;·&nbsp; <a href="#ref-1-src">↑ back</a>
+    </p>
   </div>
 </footer>
 

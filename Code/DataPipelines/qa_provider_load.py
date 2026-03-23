@@ -39,7 +39,7 @@ DEFAULT_COLLECTION     = "PublicHealthData.providers_staging"
 EXPECTED_MIN           = 8_500_000   # hard lower bound — fail if below this
 EXPECTED_MAX           = 10_500_000  # hard upper bound — fail if above this
 EXPECTED_NOMINAL       = 8_900_000   # last known good; warn if >5% deviation
-ENRICHMENT_THRESHOLD   = 0.95        # 95% of addressable must have county.fips
+ENRICHMENT_THRESHOLD   = 0.98        # 98% of in-scope providers must have county.fips
 NUM_PARTITIONS         = 32          # mirrors num_workers used in the load job
 SAMPLES_PER_PARTITION  = 2           # 2–3 per partition; 2 is the default
 
