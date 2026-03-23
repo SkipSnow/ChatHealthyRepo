@@ -15,6 +15,7 @@ import logging
 import os
 
 import openai
+from pipeline_worker_base import PipelineWorkerBase
 from pymongo import MongoClient, UpdateOne
 
 _mongo: MongoClient | None = None
@@ -69,23 +70,36 @@ def _build_embed_text(doc: dict) -> str:
     return " ".join(parts)
 
 
-class EmbeddingWorker:
+class EmbeddingWorker(PipelineWorkerBase):
 
     def __init__(self, config: dict):
+        super().__init__(config)
         self.worker_id = config["worker_id"]
         self.staging_collection = config.get(
             "staging_collection", "PublicHealthData.providers_staging"
         )
 
-    def run(self) -> dict:
-        db_name, coll_name = self.staging_collection.split(".", 1)
-        collection = _get_mongo()[db_name][coll_name]
-        oai = _get_openai()
+        # State initialised in _pipeline_open(); set to safe defaults so
+        # _pipeline_close() is always safe to call even if _pipeline_open()
+        # did not complete.
+        self._docs: list = []
+        self._total: int = 0
+        self._batch_idx: int = 0
+        self._embedded: int = 0
+        self._collection = None
+        self._oai_client = None
 
-        # Only process documents not yet embedded — idempotent on retry.
+    # ── PipelineWorkerBase overrides ──────────────────────────────────────────
+
+    def _pipeline_open(self) -> None:
+        db_name, coll_name = self.staging_collection.split(".", 1)
+        self._collection = _get_mongo()[db_name][coll_name]
+        self._oai_client = _get_openai()
+
+        # Load all unembedded documents for this worker upfront.
         # Embed if: never deactivated, OR deactivated and later reactivated (currently active).
         # Purely deactivated records (no reactivation date) are retained but not embedded.
-        docs = list(collection.find({
+        self._docs = list(self._collection.find({
             "worker_id": self.worker_id,
             "embedding": {"$exists": False},
             "$or": [
@@ -93,24 +107,43 @@ class EmbeddingWorker:
                 {"npi_reactivation_date": {"$exists": True}},
             ],
         }))
-        total = len(docs)
-        embedded = 0
+        self._total = len(self._docs)
 
-        for i in range(0, total, EMBED_BATCH_SIZE):
-            batch = docs[i:i + EMBED_BATCH_SIZE]
-            texts = [_build_embed_text(doc) for doc in batch]
-            response = oai.embeddings.create(model=EMBED_MODEL, input=texts)
-            ops = [
-                UpdateOne(
-                    {"_id": doc["_id"]},
-                    {"$set": {"embedding": data.embedding}},
-                )
-                for doc, data in zip(batch, response.data)
-            ]
-            collection.bulk_write(ops, ordered=False)
-            embedded += len(batch)
+    def _pipeline_has_next(self) -> bool:
+        return self._batch_idx < self._total
 
+    def _pipeline_process(self) -> None:
+        end = min(self._batch_idx + EMBED_BATCH_SIZE, self._total)
+        batch = self._docs[self._batch_idx:end]
+        texts = [_build_embed_text(doc) for doc in batch]
+        response = self._oai_client.embeddings.create(model=EMBED_MODEL, input=texts)
+        ops = [
+            UpdateOne(
+                {"_id": doc["_id"]},
+                {"$set": {"embedding": data.embedding}},
+            )
+            for doc, data in zip(batch, response.data)
+        ]
+        self._collection.bulk_write(ops, ordered=False)
+        self._embedded += len(batch)
+        self._batch_idx = end
+
+    def _pipeline_row_key(self) -> str:
+        batch_num = self._batch_idx // EMBED_BATCH_SIZE
+        return f"worker_{self.worker_id}_batch_{batch_num}"
+
+    def _pipeline_resume(self) -> None:
+        # Skip the failed batch — advance the cursor to the next batch.
+        self._batch_idx = min(self._batch_idx + EMBED_BATCH_SIZE, self._total)
+
+    def _pipeline_build_result(self) -> dict:
         logging.info(
-            "EmbeddingWorker %d: embedded %d active documents", self.worker_id, embedded
+            "EmbeddingWorker %d: embedded %d documents, %d batches failed",
+            self.worker_id, self._embedded, len(self.row_errors),
         )
-        return {"worker_id": self.worker_id, "embedded": embedded}
+        return {
+            "worker_id": self.worker_id,
+            "embedded": self._embedded,
+            "failed_batches": len(self.row_errors),
+            "batch_errors": self.row_errors,
+        }
