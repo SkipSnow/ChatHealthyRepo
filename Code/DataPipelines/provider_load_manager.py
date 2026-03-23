@@ -514,7 +514,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     enrich_config = {
         "load_id": load_id,
         "num_workers": config.get("enrich_workers", 200),
-        "addr_batch_size": config.get("addr_batch_size", 50),
+        "addr_batch_size": config.get("addr_batch_size", 5_000),
     }
 
     # Step 1: MongoDB health check

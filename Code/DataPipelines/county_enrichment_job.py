@@ -12,12 +12,15 @@ Two-pass enrichment strategy:
           per ZIP sets county_fips + county_name on all matching providers.
           ~220x fewer operations than per-record enrichment.
 
-  Pass 2: Address-based enrichment for providers whose ZIP is split
+  Pass 2: Census Geocoder batch API for providers whose ZIP is split
           (res_ratio < 0.98) or not found in the crosswalk.
-          Submits each provider's practice address to the US Census
-          Geocoder API and issues one updateOne per provider.
+          Sends up to 5,000 addresses per batch POST — ~100 activities total
+          instead of ~10K individual calls. On error, providers are left
+          unenriched and retried on the next run.
 """
 
+import csv
+import io
 import logging
 import os
 import time
@@ -31,7 +34,6 @@ except ImportError:
 
 import requests
 from bson import ObjectId
-from pipeline_worker_base import PipelineWorkerBase
 from pymongo import MongoClient, UpdateOne
 
 _mongo: MongoClient | None = None
@@ -66,7 +68,7 @@ def _get_crosswalk() -> dict:
 
 
 SPLIT_THRESHOLD = 0.98
-CENSUS_GEOCODER_URL = "https://geocoding.geo.census.gov/geocoder/geographies/address"
+CENSUS_BATCH_URL = "https://geocoding.geo.census.gov/geocoder/geographies/addressbatch"
 CROSSWALK_COLLECTION = "PublicHealthData.ZipCountyCrosswalk"
 PROVIDERS_COLLECTION = "PublicHealthData.providers_staging"
 
@@ -179,7 +181,7 @@ def county_enrichment_pass2_orchestrator_fn(context):
     unenriched_ids = unenriched["provider_ids"]
 
     # Step 2: Fan-out — one Census Geocoder call per provider
-    addr_batch_size = config.get("addr_batch_size", 50)
+    addr_batch_size = config.get("addr_batch_size", 5_000)
     addr_batches = [
         unenriched_ids[i:i + addr_batch_size]
         for i in range(0, len(unenriched_ids), addr_batch_size)
@@ -375,160 +377,143 @@ def get_unenriched_fn(config: dict) -> dict:
     return {"count": len(ids), "provider_ids": ids, "total_providers": total_providers}
 
 
-def _geocode_address(street: str, city: str, state: str, zip_code: str) -> dict | None:
-    """Call Census Geocoder. Returns {county_fips, county_name} or None."""
-    try:
-        params = {
-            "street": street,
-            "city": city,
-            "state": state,
-            "zip": zip_code[:5] if zip_code else "",
-            "benchmark": "Public_AR_Current",
-            "vintage": "Current_Current",
-            "layers": "Counties",
-            "format": "json",
-        }
-        resp = requests.get(CENSUS_GEOCODER_URL, params=params, timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
-        matches = data.get("result", {}).get("addressMatches", [])
-        if not matches:
-            return None
-        geographies = matches[0].get("geographies", {})
-        counties = geographies.get("Counties", [])
-        if not counties:
-            return None
-        county = counties[0]
-        state_fips = county.get("STATE", "")
-        county_fips_suffix = county.get("COUNTY", "")
-        return {
-            "fips": state_fips + county_fips_suffix,
-            "name": county.get("NAME", ""),
-        }
-    except Exception as exc:
-        logging.warning("Census Geocoder failed for %s %s: %s", street, zip_code, exc)
-        return None
+def _geocode_batch(providers: list[dict]) -> dict:
+    """Batch geocode providers via Census Geocoder batch API.
 
+    Sends one CSV POST (up to 5K rows). Returns {str(_id): {"fips", "source"}}
+    for matched providers only. Raises on HTTP/network errors so the caller
+    can leave providers unenriched and retry on the next run.
 
-class AddressEnrichmentWorker(PipelineWorkerBase):
-    """Pass 2: Census Geocoder enrichment per provider.
-
-    Pass 2b: when practice_address is blank, falls back to mailing_address.
-    Source provenance:
-      geocoder_pass2         — practice address geocoded successfully
-      geocoder_pass2_billing — mailing address geocoded successfully (Pass 2b fallback)
-      geocoder_failed        — geocoder returned no match on best available address
-      geocoder_no_address    — both practice and mailing addresses are blank
+    Response CSV columns (0-indexed):
+      0  Unique ID   2  Match   8  State FIPS   9  County FIPS
     """
+    buf = io.StringIO()
+    writer = csv.writer(buf, quoting=csv.QUOTE_ALL)
+    id_to_billing: dict[str, bool] = {}
 
-    def __init__(self, config: dict):
-        super().__init__(config)
-        self.id_batch = config["id_batch"]
-        self.staging_collection = config.get("staging_collection", PROVIDERS_COLLECTION)
-        self._providers: list = []
-        self._idx: int = -1
-        self._collection = None
-        self._ops: list = []
-        self._modified: int = 0
-        self._billing_modified: int = 0
-        self._geocoder_failed: int = 0
-        self._no_address: int = 0
-        self._started_at: str = ""
-        self._start_time: float = 0.0
-
-    def _pipeline_open(self) -> None:
-        self._started_at = datetime.now(timezone.utc).isoformat()
-        self._start_time = time.monotonic()
-        db_name, coll_name = self.staging_collection.split(".", 1)
-        self._collection = _get_mongo_client()[db_name][coll_name]
-        object_ids = [ObjectId(i) for i in self.id_batch]
-        self._providers = list(self._collection.find(
-            {"_id": {"$in": object_ids}},
-            {"_id": 1, "practice_address": 1, "mailing_address": 1}
-        ))
-
-    def _pipeline_has_next(self) -> bool:
-        self._idx += 1
-        return self._idx < len(self._providers)
-
-    def _pipeline_process(self) -> None:
-        provider = self._providers[self._idx]
-
-        # ── Resolve best available address ────────────────────────────────────
-        practice = provider.get("practice_address") or {}
+    for p in providers:
+        practice = p.get("practice_address") or {}
         street   = practice.get("line1", "").strip()
         city     = practice.get("city",  "").strip()
         state    = practice.get("state", "").strip()
-        zip_code = practice.get("zip",  "").strip()
+        zip_code = practice.get("zip",   "").strip()
         using_billing = False
 
         if not street and not city:
-            # Pass 2b: fall back to mailing address
-            mailing  = provider.get("mailing_address") or {}
+            mailing  = p.get("mailing_address") or {}
             street   = mailing.get("line1", "").strip()
             city     = mailing.get("city",  "").strip()
             state    = mailing.get("state", "").strip()
             zip_code = mailing.get("zip",   "").strip()
             using_billing = True
 
-        # ── No usable address at all ──────────────────────────────────────────
-        if not street and not city:
-            self._ops.append(UpdateOne(
-                {"_id": provider["_id"]},
-                {"$set": {"county": {"fips": None, "source": "geocoder_no_address"}}}
-            ))
-            self._no_address += 1
-            return
+        pid = str(p["_id"])
+        id_to_billing[pid] = using_billing
+        writer.writerow([pid, street, city, state, zip_code[:5] if zip_code else ""])
 
-        # ── Geocoder call ─────────────────────────────────────────────────────
-        result = _geocode_address(street=street, city=city, state=state, zip_code=zip_code)
-        time.sleep(0.05)  # 20 req/sec — Census Geocoder rate limit
-        if result:
-            source = "geocoder_pass2_billing" if using_billing else "geocoder_pass2"
-            self._ops.append(UpdateOne(
-                {"_id": provider["_id"]},
-                {"$set": {"county": {"fips": result["fips"], "name": result["name"], "source": source}}}
-            ))
-            if using_billing:
-                self._billing_modified += 1
-            else:
-                self._modified += 1
-        else:
-            # Geocoder returned no match — mark so Pass 2 never re-attempts this record
-            self._ops.append(UpdateOne(
-                {"_id": provider["_id"]},
-                {"$set": {"county": {"fips": None, "source": "geocoder_failed"}}}
-            ))
-            self._geocoder_failed += 1
+    resp = requests.post(
+        CENSUS_BATCH_URL,
+        files={"addressFile": ("addresses.csv", buf.getvalue().encode("utf-8"), "text/csv")},
+        data={"benchmark": "Public_AR_Current", "vintage": "Current_Current"},
+        timeout=300,
+    )
+    resp.raise_for_status()
 
-    def _pipeline_row_key(self) -> str:
-        if 0 <= self._idx < len(self._providers):
-            return str(self._providers[self._idx]["_id"])
-        return f"provider_idx_{self._idx}"
+    results: dict[str, dict] = {}
+    for row in csv.reader(io.StringIO(resp.text)):
+        if len(row) < 10:
+            continue
+        pid, match, state_fp, county_fp = row[0].strip(), row[2].strip(), row[8].strip(), row[9].strip()
+        if match not in ("Match", "Tie") or not state_fp or not county_fp:
+            continue
+        if pid in results:
+            continue  # keep first match on Tie
+        source = "geocoder_pass2_batch_billing" if id_to_billing.get(pid) else "geocoder_pass2_batch"
+        results[pid] = {"fips": state_fp + county_fp, "source": source}
 
-    def _pipeline_resume(self) -> None:
-        pass  # _pipeline_has_next() advances the cursor; no local state to reset
-
-    def _pipeline_close(self) -> None:
-        if self._ops and self._collection is not None:
-            self._collection.bulk_write(self._ops, ordered=False)
-            self._ops = []
-
-    def _pipeline_build_result(self) -> dict:
-        return {
-            "modified": self._modified,
-            "billing_modified": self._billing_modified,
-            "geocoder_failed": self._geocoder_failed,
-            "no_address": self._no_address,
-            "started_at": self._started_at,
-            "finished_at": datetime.now(timezone.utc).isoformat(),
-            "duration_seconds": round(time.monotonic() - self._start_time, 2),
-        }
+    logging.info("Census batch geocoder: %d/%d matched", len(results), len(providers))
+    return results
 
 
 def enrich_by_address_batch_fn(config: dict) -> dict:
-    """Pass 2: Census Geocoder per provider. One updateOne per provider."""
-    return AddressEnrichmentWorker(config).pipeline_execute()
+    """Pass 2: Census Geocoder batch API — up to 5K providers per activity."""
+    started_at = datetime.now(timezone.utc).isoformat()
+    start_time = time.monotonic()
+    id_batch   = config["id_batch"]
+    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    db_name, coll_name = collection.split(".", 1)
+    coll = _get_mongo_client()[db_name][coll_name]
+
+    object_ids = [ObjectId(i) for i in id_batch]
+    providers  = list(coll.find(
+        {"_id": {"$in": object_ids}},
+        {"_id": 1, "practice_address": 1, "mailing_address": 1},
+    ))
+
+    # Pre-screen: flag providers with no usable address
+    geocodable: list[dict] = []
+    ops: list = []
+    no_address = 0
+    for p in providers:
+        practice = p.get("practice_address") or {}
+        mailing  = p.get("mailing_address")  or {}
+        if (practice.get("line1") or practice.get("city") or
+                mailing.get("line1") or mailing.get("city")):
+            geocodable.append(p)
+        else:
+            ops.append(UpdateOne(
+                {"_id": p["_id"]},
+                {"$set": {"county": {"fips": None, "source": "geocoder_no_address"}}},
+            ))
+            no_address += 1
+
+    # Batch geocode — on error, leave providers unenriched for retry
+    modified = billing_modified = geocoder_failed = 0
+    if geocodable:
+        batch_ok = False
+        matched: dict = {}
+        try:
+            matched  = _geocode_batch(geocodable)
+            batch_ok = True
+        except Exception as exc:
+            logging.error(
+                "Census batch geocoder failed (%d providers left for retry): %s",
+                len(geocodable), exc,
+            )
+
+        if batch_ok:
+            for p in geocodable:
+                pid = str(p["_id"])
+                if pid in matched:
+                    r = matched[pid]
+                    ops.append(UpdateOne(
+                        {"_id": p["_id"]},
+                        {"$set": {"county": {"fips": r["fips"], "source": r["source"]}}},
+                    ))
+                    if "billing" in r["source"]:
+                        billing_modified += 1
+                    else:
+                        modified += 1
+                else:
+                    # Batch succeeded but address had no match — permanent failure
+                    ops.append(UpdateOne(
+                        {"_id": p["_id"]},
+                        {"$set": {"county": {"fips": None, "source": "geocoder_failed"}}},
+                    ))
+                    geocoder_failed += 1
+
+    if ops:
+        coll.bulk_write(ops, ordered=False)
+
+    return {
+        "modified":         modified,
+        "billing_modified": billing_modified,
+        "geocoder_failed":  geocoder_failed,
+        "no_address":       no_address,
+        "started_at":       started_at,
+        "finished_at":      datetime.now(timezone.utc).isoformat(),
+        "duration_seconds": round(time.monotonic() - start_time, 2),
+    }
 
 
 def enrichment_report_fn(config: dict) -> dict:
