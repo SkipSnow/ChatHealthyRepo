@@ -60,19 +60,9 @@ jobs:
             exit 1
           }
 
-          RUNNING=$(echo "$RUNNING_RESP" | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-if not isinstance(d, list): print('PARSE_ERROR', file=sys.stderr); sys.exit(1)
-print(len(d))
-") || { echo "DEPLOY BLOCKED: Unexpected Running response: $RUNNING_RESP"; exit 1; }
+          RUNNING=$(echo "$RUNNING_RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(1) if not isinstance(d,list) else print(len(d))") || { echo "DEPLOY BLOCKED: Unexpected Running response: $RUNNING_RESP"; exit 1; }
 
-          PENDING=$(echo "$PENDING_RESP" | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-if not isinstance(d, list): print('PARSE_ERROR', file=sys.stderr); sys.exit(1)
-print(len(d))
-") || { echo "DEPLOY BLOCKED: Unexpected Pending response: $PENDING_RESP"; exit 1; }
+          PENDING=$(echo "$PENDING_RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(1) if not isinstance(d,list) else print(len(d))") || { echo "DEPLOY BLOCKED: Unexpected Pending response: $PENDING_RESP"; exit 1; }
 
           echo "Guard check — Running: ${RUNNING}  Pending: ${PENDING}"
 
