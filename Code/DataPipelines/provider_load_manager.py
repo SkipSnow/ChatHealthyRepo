@@ -543,6 +543,8 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         "num_workers": config.get("enrich_workers", 200),
         "addr_batch_size": config.get("addr_batch_size", 5_000),
         "reset_failed": config.get("reset_failed", False),
+        "nppes_batch_size": config.get("nppes_batch_size", 5_000),
+        "states": config.get("states"),  # optional state filter for NPPES pass
     }
 
     # Step 1: MongoDB health check
@@ -589,29 +591,40 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     # google_maps_enabled must be explicitly True — Maps API is paid beyond the free tier.
     pass4_result = None
     if start_step <= 6 and config.get("google_maps_enabled", False):
-        context.set_custom_status("Step 6/7: County enrichment — Pass 4: Google Maps, final fallback")
+        context.set_custom_status("Step 6/8: County enrichment — Pass 4: Google Maps, final fallback")
         pass4_result = yield context.call_sub_orchestrator(
             "county_enrichment_pass4_orchestrator", enrich_config
         )
 
+    # Step 7: County enrichment — Pass 6: NPPES public registry lookup
+    # Free API, no key required. ~5 req/s rate limit per IP.
+    # Use states_filter in payload to limit scope (e.g. for test runs).
+    pass6_result = None
+    if start_step <= 7:
+        context.set_custom_status("Step 7/8: County enrichment — Pass 6: NPPES registry lookup")
+        pass6_result = yield context.call_sub_orchestrator(
+            "county_enrichment_pass6_nppes_orchestrator", enrich_config
+        )
+
     # Enrichment reconcile report — runs after all passes
     reconcile = None
-    if pass1_result is not None or pass2_result is not None or pass3_result is not None:
+    if pass1_result is not None or pass2_result is not None or pass3_result is not None or pass6_result is not None:
         reconcile = _build_enrichment_reconcile(
-            pass1_result or {}, pass2_result or {}, pass3_result or {}, pass4_result or {}
+            pass1_result or {}, pass2_result or {}, pass3_result or {},
+            pass4_result or {}, pass6_result or {},
         )
         yield context.call_activity(
             "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
         )
 
-    # Step 7: Generate embeddings + create Atlas Vector Search index
+    # Step 8: Generate embeddings + create Atlas Vector Search index
     # embedding_enabled must be explicitly True — default is False (embeddings are expensive
     # and require OpenAI; skip unless intentionally requested).
     embed_results = []
-    if start_step <= 7 and config.get("embedding_enabled", False):
+    if start_step <= 8 and config.get("embedding_enabled", False):
         num_workers = config.get("num_workers", 32)
         staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
-        context.set_custom_status(f"Step 7/7: Generating embeddings ({num_workers} workers)")
+        context.set_custom_status(f"Step 8/8: Generating embeddings ({num_workers} workers)")
         embed_tasks = [
             context.call_activity(
                 "embed_worker_activity",
@@ -621,7 +634,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         ]
         embed_results = yield context.task_all(embed_tasks)
 
-        context.set_custom_status("Step 7/7: Creating vector search index")
+        context.set_custom_status("Step 8/8: Creating vector search index")
         yield context.call_activity(
             "create_vector_index_activity", {"staging_collection": staging_collection}
         )
