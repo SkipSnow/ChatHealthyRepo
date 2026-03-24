@@ -105,6 +105,7 @@ class EmbeddingWorker(PipelineWorkerBase):
         self._model = model
         self._model_dimensions = SUPPORTED_EMBED_MODELS[model]
 
+
         # State initialised in _pipeline_open(); set to safe defaults so
         # _pipeline_close() is always safe to call even if _pipeline_open()
         # did not complete.
