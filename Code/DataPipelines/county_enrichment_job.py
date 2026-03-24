@@ -1439,9 +1439,9 @@ def enrichment_report_fn(config: dict) -> dict:
         ])
     }
 
-    # Out-of-scope breakdown by reason
+    # Out-of-scope breakdown by reason (None key → "legacy" for records without reason field)
     out_of_scope_by_reason: dict = {
-        doc["_id"]: doc["count"]
+        (doc["_id"] or "legacy"): doc["count"]
         for doc in staging_coll.aggregate([
             {"$match": {"county.source": "out_of_scope"}},
             {"$group": {"_id": "$county.reason", "count": {"$sum": 1}}},
