@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$id": "https://chathealthy.ai/schemas/provider.json",
+  "$id": "https://chathealthy.ai/schemas/ChatHealthy.Providers.json",
   "title": "Provider",
   "description": "A healthcare provider record in providers_staging / providers_enriched. Source: NPPES NPI Registry (CMS). Enriched by the FindCare DataPipelines county enrichment job. Draft 07 — the most contemporary JSON Schema version supported by MongoDB $jsonSchema validators. To use as a MongoDB collection validator, replace 'type' with 'bsonType' throughout (e.g. 'type: string' → 'bsonType: string', 'type: integer' → 'bsonType: int' or 'bsonType: long').",
   "type": "object",
