@@ -52,10 +52,27 @@ class DiscrepancyReporter:
         ]
         total_failed_rows = sum(r.get("rows_failed", 0) for r in worker_results)
 
-        # ── Out-of-scope counts by reason ─────────────────────────────────────
+        # ── Enrichment stats from staging collection ──────────────────────────
         staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
         db_name, coll_name = staging_collection.split(".", 1)
         staging_coll = _get_mongo_client()[db_name][coll_name]
+
+        source_counts: dict = {
+            (doc["_id"] or "unenriched"): doc["count"]
+            for doc in staging_coll.aggregate([
+                {"$match": {"county": {"$exists": True}}},
+                {"$group": {"_id": "$county.source", "count": {"$sum": 1}}},
+            ])
+        }
+        total_providers = sum(source_counts.values())
+        out_of_scope_total = source_counts.get("out_of_scope", 0)
+        geocoder_failed = source_counts.get("geocoder_failed", 0)
+        unenriched = source_counts.get("unenriched", 0)
+        addressable = total_providers - out_of_scope_total
+        enriched = addressable - geocoder_failed - unenriched
+        pct_enriched = round(100 * enriched / addressable, 1) if addressable else 0.0
+        unresolved_in_scope = geocoder_failed + unenriched
+
         out_of_scope_by_reason: dict = {
             (doc["_id"] or "legacy"): doc["count"]
             for doc in staging_coll.aggregate([
@@ -63,7 +80,6 @@ class DiscrepancyReporter:
                 {"$group": {"_id": "$county.reason", "count": {"$sum": 1}}},
             ])
         }
-        out_of_scope_total = sum(out_of_scope_by_reason.values())
 
         succeeded = reconcile_match and not failed_workers
         job_status: dict = {"status": "succeed" if succeeded else "fail"}
@@ -88,6 +104,13 @@ class DiscrepancyReporter:
                 "failed_workers": len(failed_workers),
                 "total_loaded": total_loaded,
                 "total_failed_rows": total_failed_rows,
+                "total_providers": total_providers,
+                "addressable": addressable,
+                "enriched": enriched,
+                "pct_enriched": pct_enriched,
+                "unresolved_in_scope": unresolved_in_scope,
+                "geocoder_failed": geocoder_failed,
+                "unenriched": unenriched,
                 "out_of_scope_total": out_of_scope_total,
                 "out_of_scope_by_reason": out_of_scope_by_reason,
             },
@@ -116,6 +139,12 @@ class DiscrepancyReporter:
             f"Reconciliation: {status_line}\n"
             f"Failed workers: {len(failed_workers)}\n"
             f"Load ID: {load_id}\n"
+            f"\n"
+            f"Enrichment summary:\n"
+            f"  Total providers:     {total_providers:,}\n"
+            f"  Addressable:         {addressable:,}\n"
+            f"  Enriched:            {enriched:,} ({pct_enriched}%)\n"
+            f"  Unresolved in-scope: {unresolved_in_scope:,} (geocoder_failed: {geocoder_failed:,}, unenriched: {unenriched:,})\n"
             f"\n"
             f"Out-of-scope: {out_of_scope_total:,} total\n"
             f"{reason_lines}"
