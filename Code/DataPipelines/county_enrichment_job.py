@@ -6,17 +6,31 @@
 
 """County Enrichment Job — orchestrator and activity implementations.
 
-Two-pass enrichment strategy:
+Enrichment strategy (six passes):
   Pass 1: ZIP-based bulk update using ZipCountyCrosswalk.
           For ZIPs where res_ratio >= SPLIT_THRESHOLD (0.98), one updateMany
           per ZIP sets county_fips + county_name on all matching providers.
           ~220x fewer operations than per-record enrichment.
 
-  Pass 2: Census Geocoder batch API for providers whose ZIP is split
-          (res_ratio < 0.98) or not found in the crosswalk.
-          Sends up to 5,000 addresses per batch POST — ~100 activities total
-          instead of ~10K individual calls. On error, providers are left
-          unenriched and retried on the next run.
+  Pass 2: Census Geocoder batch API (practice address) for providers whose
+          ZIP is split (res_ratio < 0.98) or not found in the crosswalk.
+          Sends up to 500 addresses per batch POST. On error, providers are
+          marked geocoder_failed for retry in later passes.
+
+  Pass 3: Census Geocoder batch API (billing/mailing address) for providers
+          marked geocoder_failed after Pass 2. Uses mailing_address instead
+          of practice_address.
+
+  Pass 4: Google Maps Geocoding API (practice address) for providers still
+          geocoder_failed after Pass 3. Paid API — requires google_maps_enabled=True.
+
+  Pass 5: Google Maps Geocoding API (billing address) for providers still
+          geocoder_failed after Pass 4. Paid API — requires google_maps_enabled=True.
+
+  Pass 6: NPPES public registry lookup by NPI for providers still geocoder_failed
+          after Pass 5. Free, no API key required. ~5 req/s rate limit per IP.
+          Fetches canonical practice address from CMS registry, then tries ZIP
+          crosswalk. Optional states_filter limits scope for test runs.
 """
 
 import csv
@@ -153,8 +167,9 @@ def _build_enrichment_reconcile(
     pass2_result: dict,
     pass3_result: dict | None = None,
     pass4_result: dict | None = None,
+    pass6_result: dict | None = None,
 ) -> dict:
-    """Build combined reconcile dict from Pass 1–4 results.
+    """Build combined reconcile dict from Pass 1–6 results.
 
     pass1_result may be empty ({}) when start_step > 3 skips Pass 1.
     still_unenriched and match are computed against addressable providers
@@ -163,6 +178,7 @@ def _build_enrichment_reconcile(
     """
     pass3_result = pass3_result or {}
     pass4_result = pass4_result or {}
+    pass6_result = pass6_result or {}
     total_providers = (
         pass1_result.get("total_providers")
         or pass2_result.get("total_providers", 0)
@@ -177,7 +193,8 @@ def _build_enrichment_reconcile(
     pass2_failed           = pass2_geocoder_failed + pass2_no_address
     pass3_modified         = pass3_result.get("pass3_modified", 0)
     pass4_modified         = pass4_result.get("pass4_modified", 0)
-    total_enriched         = pass1_modified + pass2_modified + pass2_billing_modified + pass3_modified + pass4_modified
+    pass6_modified         = pass6_result.get("pass6_modified", 0)
+    total_enriched         = pass1_modified + pass2_modified + pass2_billing_modified + pass3_modified + pass4_modified + pass6_modified
     # still_unenriched = addressable providers not yet enriched and not permanently failed
     still_unenriched       = addressable - total_enriched - pass2_failed
     return {
@@ -197,6 +214,8 @@ def _build_enrichment_reconcile(
         "pass3_batch_results":            pass3_result.get("pass3_batch_results", []),
         "pass4_maps_enrichments":         pass4_modified,
         "pass4_batch_results":            pass4_result.get("pass4_batch_results", []),
+        "pass6_nppes_enrichments":        pass6_modified,
+        "pass6_batch_results":            pass6_result.get("pass6_batch_results", []),
         "total_enriched":                 total_enriched,
         "still_unenriched":               still_unenriched,
         "match":                          still_unenriched == 0,
@@ -216,29 +235,37 @@ def county_enrichment_pass1_orchestrator_fn(context):
 
     # Step 1: Ensure county.fips index. Idempotent — no-op if already exists.
     # Required when Pass 1 is run outside FullProviderPipeline.
-    context.set_custom_status("Step 1/5: Ensuring county.fips index")
+    context.set_custom_status("Step 1/6: Ensuring county.fips index")
     yield context.call_activity("ensure_postload_indexes_activity", config)
 
-    # Step 2: Mark inactive and foreign providers as out_of_scope before any enrichment.
-    # Pass 1's updateMany excludes out_of_scope so these are never enriched.
-    context.set_custom_status("Step 2/5: Marking inactive and foreign providers as out_of_scope")
+    # Step 2: Mark inactive, foreign, and deactivated providers as out_of_scope.
+    # Each condition gets its own reason sub-field for reporting and runtime resolution.
+    context.set_custom_status("Step 2/6: Marking inactive/foreign/deactivated providers as out_of_scope")
     out_of_scope_result = yield context.call_activity("mark_out_of_scope_activity", config)
-    out_of_scope_count = out_of_scope_result.get("marked_out_of_scope", 0)
 
-    # Step 3: Get distinct ZIPs
-    context.set_custom_status("Step 3/5: Getting distinct ZIPs from staging")
+    # Step 3: Mark ZIP/state mismatches as out_of_scope (bad source data from NPPES).
+    context.set_custom_status("Step 3/6: Marking ZIP/state mismatch providers as out_of_scope")
+    zip_mismatch_result = yield context.call_activity("mark_zip_state_mismatch_activity", config)
+
+    out_of_scope_count = (
+        out_of_scope_result.get("marked_out_of_scope", 0)
+        + zip_mismatch_result.get("marked_zip_state_mismatch", 0)
+    )
+
+    # Step 4: Get distinct ZIPs
+    context.set_custom_status("Step 4/6: Getting distinct ZIPs from staging")
     zip_data = yield context.call_activity("get_distinct_zips_activity", config)
     total_providers = zip_data["total_providers"]
     distinct_zips = zip_data["distinct_zips"]
 
-    # Step 4: Lookup crosswalk — split into confident vs ambiguous
-    context.set_custom_status(f"Step 4/5: Looking up {len(distinct_zips):,} ZIPs in crosswalk")
+    # Step 5: Lookup crosswalk — split into confident vs ambiguous
+    context.set_custom_status(f"Step 5/6: Looking up {len(distinct_zips):,} ZIPs in crosswalk")
     crosswalk_result = yield context.call_activity(
         "lookup_crosswalk_activity", {**config, "zips": distinct_zips}
     )
     confident_zips = crosswalk_result["confident"]
 
-    # Step 5: Fan-out — one updateMany per ZIP (excludes out_of_scope providers)
+    # Step 6: Fan-out — one updateMany per ZIP (excludes out_of_scope providers)
     num_workers = config.get("num_workers", 200)
     batch_size = max(1, len(confident_zips) // num_workers)
     zip_batches = [
@@ -246,7 +273,7 @@ def county_enrichment_pass1_orchestrator_fn(context):
         for i in range(0, len(confident_zips), batch_size)
     ]
     context.set_custom_status(
-        f"Step 5/5: {len(confident_zips):,} confident ZIPs across {len(zip_batches)} workers"
+        f"Step 6/6: {len(confident_zips):,} confident ZIPs across {len(zip_batches)} workers"
     )
     pass1_tasks = [
         context.call_activity("enrich_by_zip_batch_activity", {**config, "zip_batch": batch})
@@ -596,44 +623,127 @@ def enrich_by_zip_batch_fn(config: dict) -> dict:
 def mark_out_of_scope_fn(config: dict) -> dict:
     """Mark providers the Census geocoder cannot resolve as out_of_scope.
 
-    Three conditions:
-    - No address: both practice_address and mailing_address are absent —
-      no location to geocode.
-    - Foreign: practice_address.country is set and is not "US" (NPPES sets
-      "US" for all domestic providers; non-US values indicate foreign providers).
-    - Deactivated: npi_deactivation_date set without a later reactivation date.
+    Three conditions, each marked with a specific reason:
+    - no_address:       both practice_address and mailing_address are absent.
+    - foreign_provider: practice_address.country is set and is not "US".
+    - deactivated:      npi_deactivation_date set without a later reactivation.
 
-    Sets county = {fips: null, source: "out_of_scope"} so they are excluded
-    from all subsequent geocoder passes and clearly visible in reporting.
+    Sets county = {fips: null, source: "out_of_scope", reason: "<reason>"} so
+    they are excluded from all subsequent geocoder passes and the reason is
+    preserved for reporting and runtime resolution.
     """
     collection = config.get("staging_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
-    result = coll.update_many(
-        {
-            "county.fips": None,
-            "county.source": {"$nin": ["geocoder_failed", "geocoder_no_address", "out_of_scope"]},
-            "$or": [
-                # No address in either container — Census geocoder has nothing to work with
-                {
-                    "practice_address": {"$exists": False},
-                    "mailing_address": {"$exists": False},
-                },
-                # Foreign provider (NPPES sets "US" for domestic; flag only non-US)
-                {"practice_address.country": {"$exists": True, "$ne": "US"}},
-                # Deactivated with no reactivation
-                {
-                    "npi_deactivation_date": {"$exists": True},
-                    "npi_reactivation_date": {"$exists": False},
-                },
-            ],
-        },
-        {"$set": {"county": {"fips": None, "source": "out_of_scope"}}},
+
+    _base = {
+        "county.fips": None,
+        "county.source": {"$nin": ["geocoder_failed", "geocoder_no_address", "out_of_scope"]},
+    }
+
+    r_no_address = coll.update_many(
+        {**_base,
+         "practice_address": {"$exists": False},
+         "mailing_address":  {"$exists": False}},
+        {"$set": {"county": {"fips": None, "source": "out_of_scope", "reason": "no_address"}}},
     )
+    r_foreign = coll.update_many(
+        {**_base, "practice_address.country": {"$exists": True, "$ne": "US"}},
+        {"$set": {"county": {"fips": None, "source": "out_of_scope", "reason": "foreign_provider"}}},
+    )
+    r_deactivated = coll.update_many(
+        {**_base,
+         "npi_deactivation_date":  {"$exists": True},
+         "npi_reactivation_date":  {"$exists": False}},
+        {"$set": {"county": {"fips": None, "source": "out_of_scope", "reason": "deactivated"}}},
+    )
+
+    total = r_no_address.modified_count + r_foreign.modified_count + r_deactivated.modified_count
     logging.info(
-        "Marked %d providers as out_of_scope (no address, foreign, or deactivated)", result.modified_count
+        "Marked %d providers as out_of_scope — no_address: %d, foreign: %d, deactivated: %d",
+        total, r_no_address.modified_count, r_foreign.modified_count, r_deactivated.modified_count,
     )
-    return {"marked_out_of_scope": result.modified_count}
+    return {
+        "marked_out_of_scope": total,
+        "by_reason": {
+            "no_address":       r_no_address.modified_count,
+            "foreign_provider": r_foreign.modified_count,
+            "deactivated":      r_deactivated.modified_count,
+        },
+    }
+
+
+def mark_zip_state_mismatch_fn(config: dict) -> dict:
+    """Mark providers whose ZIP belongs to a different state than their filed state.
+
+    Loads ZipCountyCrosswalk to build a ZIP → expected_state mapping.
+    Providers where practice_address.zip maps to a state that does not match
+    practice_address.state have bad source data (the mismatch originates in NPPES
+    itself) and will never geocode correctly. ~0.03% of providers.
+
+    Sets county = {fips: null, source: "out_of_scope", reason: "zip_state_mismatch"}.
+    Called after mark_out_of_scope_fn so already-excluded providers are skipped.
+    """
+    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    db_name, coll_name = collection.split(".", 1)
+    coll = _get_mongo_client()[db_name][coll_name]
+
+    # Build ZIP → state abbreviation from crosswalk + inverse of _STATE_ABBR_TO_FIPS
+    crosswalk = _get_crosswalk()
+    fips_to_abbrev = {v: k for k, v in _STATE_ABBR_TO_FIPS.items()}
+    zip_to_state: dict[str, str] = {}
+    for zip_code, data in crosswalk.items():
+        fips = data.get("fips", "")
+        if fips and len(fips) == 5:
+            abbrev = fips_to_abbrev.get(fips[:2])
+            if abbrev:
+                zip_to_state[zip_code] = abbrev
+
+    # Aggregate distinct (zip, state) pairs from unenriched, non-out_of_scope providers
+    pipeline = [
+        {"$match": {
+            "county.fips": None,
+            "county.source": {"$ne": "out_of_scope"},
+            "practice_address.zip":   {"$exists": True},
+            "practice_address.state": {"$exists": True},
+        }},
+        {"$group": {"_id": {
+            "zip":   "$practice_address.zip",
+            "state": "$practice_address.state",
+        }}},
+    ]
+
+    # Build state → [mismatched ZIPs] index
+    from collections import defaultdict
+    mismatch_by_state: dict[str, list[str]] = defaultdict(list)
+    for doc in coll.aggregate(pipeline, allowDiskUse=True):
+        raw_zip = str(doc["_id"].get("zip") or "").strip()
+        state   = str(doc["_id"].get("state") or "").strip().upper()
+        zip5    = raw_zip[:5]
+        if not zip5 or not state:
+            continue
+        expected = zip_to_state.get(zip5)
+        if expected and expected != state:
+            mismatch_by_state[state].append(zip5)
+
+    total_modified = 0
+    for state, zip_list in mismatch_by_state.items():
+        r = coll.update_many(
+            {
+                "county.fips": None,
+                "county.source": {"$ne": "out_of_scope"},
+                "practice_address.state": state,
+                "practice_address.zip":   {"$in": zip_list},
+            },
+            {"$set": {"county": {"fips": None, "source": "out_of_scope", "reason": "zip_state_mismatch"}}},
+        )
+        total_modified += r.modified_count
+
+    logging.info(
+        "Marked %d providers as out_of_scope (zip_state_mismatch) across %d states",
+        total_modified, len(mismatch_by_state),
+    )
+    return {"marked_zip_state_mismatch": total_modified}
 
 
 _UNENRICHED_FILTER = {
@@ -1050,6 +1160,258 @@ def enrich_by_maps_batch_fn(config: dict) -> dict:
     }
 
 
+def _build_states_query(config: dict) -> dict:
+    """Build a MongoDB state filter clause from the states config parameter.
+
+    config["states"] shape:
+      {"mode": "include", "list": ["RI", "HI", "ME"]}  — only these states
+      {"mode": "exclude", "list": ["CA", "TX"]}         — all states except these
+      omitted / None                                     — no filter (all states)
+
+    Returns a dict to merge into a MongoDB query, or {} if no filter applies.
+    """
+    states = config.get("states")
+    if not states or not states.get("list"):
+        return {}
+    mode       = states.get("mode", "include").lower()
+    state_list = states["list"]
+    if mode == "include":
+        return {"practice_address.state": {"$in": state_list}}
+    if mode == "exclude":
+        return {"practice_address.state": {"$nin": state_list}}
+    logging.warning("Unknown states.mode '%s' — ignoring state filter", mode)
+    return {}
+
+
+def get_nppes_retryable_fn(config: dict) -> dict:
+    """Return _id + npi list of providers eligible for NPPES lookup.
+
+    Targets providers where county.fips is still None (includes geocoder_failed
+    and providers never processed by any geocoder pass).
+
+    Optional states filter via config["states"]:
+      {"mode": "include", "list": ["RI", "HI", "ME"]}  — only these states
+      {"mode": "exclude", "list": ["CA", "TX"]}         — skip these states
+      omitted                                            — all states
+    """
+    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    db_name, coll_name = collection.split(".", 1)
+    coll = _get_mongo_client()[db_name][coll_name]
+
+    query: dict = {
+        "county.fips": None,
+        "county.source": {"$ne": "out_of_scope"},
+        "npi": {"$nin": [None, ""]},
+        **_build_states_query(config),
+    }
+
+    providers = [
+        {"id": str(doc["_id"]), "npi": doc["npi"]}
+        for doc in coll.find(query, {"_id": 1, "npi": 1})
+    ]
+    logging.info("Pass 6 NPPES-retryable providers: %d", len(providers))
+    return {"count": len(providers), "providers": providers}
+
+
+def enrich_by_nppes_batch_fn(config: dict) -> dict:
+    """Pass 6: NPPES public registry lookup for providers with no county.fips.
+
+    Calls the free NPPES API (no key required) to fetch the canonical practice
+    address registered with CMS for each NPI. On a new address, tries the ZIP
+    crosswalk. Skips providers where NPPES returns the same address we already
+    have (already failed geocoding, won't help to retry).
+
+    Rate-limited by nppes_call_delay_seconds (default 0.2 s = 5 calls/s).
+    Keep nppes_batch_size large (default 5000) so few activities fan out —
+    all workers share the same outbound IP and hit the same rate limit.
+
+    county.source values written:
+      geocoder_pass6_nppes  — resolved via NPPES canonical address + crosswalk
+    """
+    NPPES_API = "https://npiregistry.cms.hhs.gov/api/"
+
+    started_at = datetime.now(timezone.utc).isoformat()
+    start_time = time.monotonic()
+    provider_batch = config["provider_batch"]   # list of {id, npi}
+    collection     = config.get("staging_collection", PROVIDERS_COLLECTION)
+    delay          = config.get("nppes_call_delay_seconds", 0.2)
+
+    db_name, coll_name = collection.split(".", 1)
+    coll = _get_mongo_client()[db_name][coll_name]
+    crosswalk = _get_crosswalk()
+
+    object_ids = [ObjectId(p["id"]) for p in provider_batch]
+    stored = {
+        str(doc["_id"]): doc
+        for doc in coll.find(
+            {"_id": {"$in": object_ids}},
+            {"_id": 1, "npi": 1, "practice_address": 1},
+        )
+    }
+
+    ops: list = []
+    modified = nppes_failed = nppes_not_found = nppes_same_address = 0
+
+    for p in provider_batch:
+        pid, npi = p["id"], p["npi"]
+        doc = stored.get(pid)
+        if not doc:
+            nppes_failed += 1
+            continue
+
+        try:
+            resp = requests.get(
+                NPPES_API,
+                params={"number": npi, "version": "2.1"},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            results = data.get("results", [])
+        except Exception as exc:
+            logging.warning("NPPES API error for NPI=%s: %s", npi, exc)
+            nppes_failed += 1
+            if delay:
+                time.sleep(delay)
+            continue
+
+        if not results:
+            nppes_not_found += 1
+            if delay:
+                time.sleep(delay)
+            continue
+
+        addrs = results[0].get("addresses", [])
+        nppes_addr = next(
+            (a for a in addrs if a.get("address_purpose") == "LOCATION"),
+            addrs[0] if addrs else None,
+        )
+
+        if not nppes_addr:
+            nppes_failed += 1
+            if delay:
+                time.sleep(delay)
+            continue
+
+        nppes_zip   = (nppes_addr.get("postal_code") or "")[:5].strip()
+        nppes_state = (nppes_addr.get("state") or "").upper().strip()
+
+        # If NPPES ZIP matches what we already have, geocoding it again won't help
+        our_addr    = doc.get("practice_address") or {}
+        our_zip     = (our_addr.get("zip") or "")[:5].strip()
+        if nppes_zip and nppes_zip == our_zip:
+            nppes_same_address += 1
+            if delay:
+                time.sleep(delay)
+            continue
+
+        # Try ZIP crosswalk on NPPES canonical ZIP
+        fips = None
+        cw = crosswalk.get(nppes_zip)
+        if cw and not cw.get("is_split"):
+            state_fips = _STATE_ABBR_TO_FIPS.get(nppes_state)
+            if state_fips and cw["fips"][:2] == state_fips:
+                fips = cw["fips"]
+
+        if fips:
+            ops.append(UpdateOne(
+                {"_id": ObjectId(pid)},
+                {"$set": {"county": {"fips": fips, "source": "geocoder_pass6_nppes"}}},
+            ))
+            modified += 1
+        else:
+            nppes_failed += 1
+
+        if delay:
+            time.sleep(delay)
+
+    if ops:
+        coll.bulk_write(ops, ordered=False)
+
+    logging.info(
+        "Pass 6 NPPES batch: %d matched, %d same address skipped, "
+        "%d not in NPPES, %d failed",
+        modified, nppes_same_address, nppes_not_found, nppes_failed,
+    )
+    return {
+        "assigned":          len(provider_batch),
+        "succeeded":         modified,
+        "modified":          modified,
+        "nppes_same_address": nppes_same_address,
+        "nppes_not_found":   nppes_not_found,
+        "nppes_failed":      nppes_failed,
+        "started_at":        started_at,
+        "finished_at":       datetime.now(timezone.utc).isoformat(),
+        "duration_seconds":  round(time.monotonic() - start_time, 2),
+    }
+
+
+def county_enrichment_pass6_nppes_orchestrator_fn(context):
+    """Pass 6: NPPES public registry lookup for remaining unenriched providers.
+
+    Free API, no key required. Rate-limited to ~5 req/s per calling IP.
+    Use states_filter to limit scope for test runs (e.g. ["RI", "HI", "ME"]).
+    Use nppes_batch_size (default 5000) to control fan-out; keep it large to
+    limit parallel workers sharing the same outbound IP.
+    """
+    config = context.get_input() or {}
+    load_id = config.get("load_id", context.instance_id)
+    config  = {**config, "load_id": load_id}
+
+    states        = config.get("states")
+    if states and states.get("list"):
+        mode         = states.get("mode", "include")
+        states_label = f" ({mode}: {', '.join(states['list'])})"
+    else:
+        states_label = ""
+
+    context.set_custom_status(f"Step 1/2: Finding NPPES-retryable providers{states_label}")
+    retryable       = yield context.call_activity("get_nppes_retryable_activity", config)
+    retryable_count = retryable["count"]
+    providers       = retryable["providers"]
+
+    if not providers:
+        context.set_custom_status(f"Done — no NPPES-retryable providers{states_label}")
+        return {
+            "pass6_retryable": 0, "pass6_modified": 0,
+            "pass6_failed": 0, "pass6_batch_results": [],
+        }
+
+    nppes_batch_size = config.get("nppes_batch_size", 5000)
+    batches = [
+        providers[i:i + nppes_batch_size]
+        for i in range(0, len(providers), nppes_batch_size)
+    ]
+    context.set_custom_status(
+        f"Step 2/2: {retryable_count:,} providers via NPPES{states_label} "
+        f"across {len(batches)} workers"
+    )
+    pass6_tasks = [
+        context.call_activity("enrich_by_nppes_batch_activity", {**config, "provider_batch": batch})
+        for batch in batches
+    ]
+    pass6_results    = (yield context.task_all(pass6_tasks)) if pass6_tasks else []
+    pass6_modified   = sum(r.get("modified",          0) for r in pass6_results)
+    pass6_failed     = sum(r.get("nppes_failed",       0) for r in pass6_results)
+    pass6_not_found  = sum(r.get("nppes_not_found",    0) for r in pass6_results)
+    pass6_same_addr  = sum(r.get("nppes_same_address", 0) for r in pass6_results)
+
+    context.set_custom_status(
+        f"Done — {pass6_modified:,} enriched via NPPES; "
+        f"{pass6_same_addr:,} same address skipped; "
+        f"{pass6_not_found:,} not in NPPES; "
+        f"{pass6_failed:,} failed{states_label}"
+    )
+    return {
+        "pass6_retryable":     retryable_count,
+        "pass6_modified":      pass6_modified,
+        "pass6_failed":        pass6_failed,
+        "pass6_not_found":     pass6_not_found,
+        "pass6_same_address":  pass6_same_addr,
+        "pass6_batch_results": pass6_results,
+    }
+
+
 def enrichment_report_fn(config: dict) -> dict:
     """Write enrichment run report to admin.PipelineDiscrepancyReports.
 
@@ -1067,11 +1429,22 @@ def enrichment_report_fn(config: dict) -> dict:
 
     client = _get_mongo_client()
 
+    staging_coll = client[db_name_s][coll_name_s]
+
     # Live count by county.source (null source = never touched)
     source_counts: dict = {
         doc["_id"]: doc["count"]
-        for doc in client[db_name_s][coll_name_s].aggregate([
+        for doc in staging_coll.aggregate([
             {"$group": {"_id": "$county.source", "count": {"$sum": 1}}}
+        ])
+    }
+
+    # Out-of-scope breakdown by reason
+    out_of_scope_by_reason: dict = {
+        doc["_id"]: doc["count"]
+        for doc in staging_coll.aggregate([
+            {"$match": {"county.source": "out_of_scope"}},
+            {"$group": {"_id": "$county.reason", "count": {"$sum": 1}}},
         ])
     }
 
@@ -1096,6 +1469,7 @@ def enrichment_report_fn(config: dict) -> dict:
         "geocoder_pass2_batch", "geocoder_pass2_batch_billing",
         "geocoder_pass3_billing",
         "geocoder_pass4_maps",
+        "geocoder_pass6_nppes",
     ]
     _enriched_total = sum(source_counts.get(s, 0) for s in _enriched_sources)
 
@@ -1105,12 +1479,14 @@ def enrichment_report_fn(config: dict) -> dict:
         "pass2_batch":      bucket(["geocoder_pass2_batch", "geocoder_pass2_batch_billing"]),
         "pass3_billing":    bucket(["geocoder_pass3_billing"]),
         "pass4_maps":       bucket(["geocoder_pass4_maps"]),
+        "pass6_nppes":      bucket(["geocoder_pass6_nppes"]),
         "geocoder_failed":  bucket(["geocoder_failed"]),
         "no_address":       bucket(["geocoder_no_address"]),
         "out_of_scope":     {   # pct_of_addressable is N/A — these ARE the excluded set
             "count":              out_of_scope,
             "pct_of_total":       pct(out_of_scope, total),
             "pct_of_addressable": None,
+            "by_reason":          out_of_scope_by_reason,
         },
         "unenriched":       bucket([None]),
         "total_enriched": {
