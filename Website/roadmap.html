@@ -432,6 +432,16 @@
           <div class="gantt-track"></div>
         </div>
 
+        <!-- INFRA-009: API protection — no committed date -->
+        <div class="gantt-row">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">INFRA-009</span>
+            <span class="gantt-row-name">API protection &amp; abuse prevention</span>
+          </div>
+          <div class="gantt-planned no">No</div>
+          <div class="gantt-track"></div>
+        </div>
+
       </div><!-- /gantt-grid -->
 
       <div class="gantt-legend">
@@ -756,6 +766,43 @@
       <p>FHIR API integration with Epic and other EMR systems to pull patient context directly
       into the session (conditions, medications, care team). Plugs into Layer 2 (DataPipelines).
       Deferred until core provider search is live and validated.</p>
+    </div>
+
+    <!-- Backlog -->
+    <h2>Backlog</h2>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">INFRA-009</span>
+        <span class="item-title">API protection and abuse prevention</span>
+        <span class="badge badge-postmvp">Post-Alpha</span>
+        <span class="badge" style="background:#fff0f0; color:#c0392b; border: 1px solid #f0a0a0;">High priority when live</span>
+      </div>
+      <div class="item-meta">
+        <span><strong>Status:</strong> Deferred — activates when any compute-backed endpoint is exposed</span>
+      </div>
+      <p>The public site is static and protected at the Cloudflare edge with basic traffic filtering.
+      That is sufficient for Alpha. This item becomes active only when ChatHealthy exposes chatbot,
+      API, Azure Function, or other compute-backed endpoints.</p>
+      <p><strong>Objective:</strong> Add minimal server-side protections to prevent unauthorized access,
+      abusive traffic, and uncontrolled compute cost once dynamic endpoints are live.</p>
+      <p><strong>Scope:</strong></p>
+      <ul>
+        <li><code>/api/*</code>, <code>/chat</code>, <code>/search</code></li>
+        <li>Azure Function endpoints</li>
+        <li>Any future model, embedding, or workflow endpoints</li>
+      </ul>
+      <p><strong>Requirements:</strong></p>
+      <ul>
+        <li>Require API key on all protected endpoints via <code>x-api-key</code> header; reject missing or invalid keys with 401/403</li>
+        <li>Server-side rate limiting per IP or API key; return 429 when limits are exceeded</li>
+        <li>Public static content remains open — only dynamic endpoints are gated</li>
+        <li>Log rejected requests, auth failures, and rate-limit events</li>
+        <li>Default to deny on validation failure</li>
+      </ul>
+      <p><strong>Non-goals for first implementation:</strong> No OAuth, no user account system, no RBAC, no enterprise IAM integration.</p>
+      <p><strong>Success criteria:</strong> No protected endpoint callable anonymously; excessive usage rate-limited; compute-backed endpoints cannot be abused without authorization; implementation compatible with solo-developer velocity.</p>
+      <p><strong>Note:</strong> This is a cost-control and abuse-prevention measure, not a full enterprise security program. Implement immediately after Alpha once dynamic endpoints are exposed.</p>
     </div>
 
     <!-- Bugs -->
