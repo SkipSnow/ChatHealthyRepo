@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<!--
+  Copyright © 2026 Skip Snow. All rights reserved.
+  Licensed under the FindCare Evaluation License (FEL-1.0).
+
+  Coded by Claude Sonnet 4.6 (Anthropic).
+  Developed in collaboration with ChatGPT (OpenAI).
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Embedding Design — ChatHealthy.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink:        #0d1117;
+      --ink-soft:   #4a5568;
+      --surface:    #ffffff;
+      --teal:       #0b7a75;
+      --teal-light: #e6f4f3;
+      --teal-mid:   #d0eeec;
+      --accent:     #f0a500;
+      --warn:       #c0392b;
+      --border:     #d8e2e1;
+      --radius:     6px;
+      --max-w:      1160px;
+      --content-w:  900px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    header { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: 0 1px 6px rgba(11,122,117,0.06); }
+    .header-inner { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark { width: 32px; height: 32px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; }
+    .logo-mark svg { width: 18px; height: 18px; fill: white; }
+    .logo-text { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--teal); }
+    .logo-text span { color: var(--accent); }
+
+    main { flex: 1; max-width: var(--max-w); width: 100%; margin: 0 auto; padding: clamp(20px,4vw,48px) clamp(16px,4vw,24px); }
+
+    .page-header { border-bottom: 2px solid var(--teal-mid); padding-bottom: 20px; margin-bottom: 36px; }
+    .page-header .eyebrow { font-size: 0.72rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 6px; }
+    .page-header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(1.5rem,4vw,2.1rem); color: var(--ink); line-height: 1.15; margin-bottom: 8px; }
+    .page-header .effective { font-size: 0.82rem; color: var(--ink-soft); }
+
+    .arch-body { max-width: var(--content-w); }
+    .arch-body h2 { font-family: 'DM Serif Display', serif; font-size: 1.15rem; color: var(--teal); margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--teal-mid); }
+    .arch-body h2:first-child { margin-top: 0; }
+    .arch-body h3 { font-size: 0.88rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); margin: 24px 0 8px; }
+    .arch-body p { font-size: 0.92rem; line-height: 1.7; color: var(--ink); margin-bottom: 10px; }
+    .arch-body ul { margin: 6px 0 10px 20px; font-size: 0.92rem; line-height: 1.7; }
+    .arch-body ul li { margin-bottom: 4px; }
+
+    .note { background: var(--teal-light); border-left: 3px solid var(--teal); padding: 10px 14px; border-radius: 0 var(--radius) var(--radius) 0; margin: 12px 0; font-size: 0.88rem; line-height: 1.6; }
+    .warn { background: #fdf3f2; border-left: 3px solid var(--warn); padding: 10px 14px; border-radius: 0 var(--radius) var(--radius) 0; margin: 12px 0; font-size: 0.88rem; line-height: 1.6; }
+    .warn strong { color: var(--warn); }
+
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 12px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 480px; }
+    th { background: var(--ink); color: #fff; padding: 8px 12px; text-align: left; font-weight: 500; font-size: 0.82rem; letter-spacing: 0.03em; }
+    td { border: 1px solid var(--border); padding: 8px 12px; vertical-align: top; line-height: 1.5; }
+    tr:nth-child(even) td { background: var(--teal-light); }
+    code { font-family: monospace; font-size: 0.85em; background: #f4f4f4; padding: 1px 5px; border-radius: 3px; }
+
+    .code-block { background: #f4f4f4; border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; font-family: monospace; font-size: 0.82rem; line-height: 1.6; overflow-x: auto; white-space: pre; margin: 12px 0; }
+
+    .diagram { border: 1px solid var(--border); border-radius: var(--radius); background: #fff; padding: 24px; margin: 16px 0; font-size: 0.85rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .diagram-inner { min-width: 560px; }
+    .d-center { display: flex; justify-content: center; }
+    .d-down { text-align: center; font-size: 1.1rem; line-height: 1; margin: 4px 0; color: var(--ink-soft); }
+    .d-box { border: 2px solid var(--ink); padding: 8px 16px; background: #fff; text-align: center; min-width: 140px; line-height: 1.4; border-radius: 2px; }
+    .d-box strong { display: block; font-size: 0.88rem; }
+    .d-box small { display: block; font-size: 0.78rem; color: var(--ink-soft); margin-top: 2px; }
+    .d-box-wide { min-width: 280px; }
+    .d-box-teal { border-color: var(--teal); background: var(--teal-light); }
+    .d-box-warn { border-color: var(--warn); background: #fdf3f2; }
+    .d-vline { width: 2px; background: var(--ink); margin: 0 auto; height: 16px; }
+    .d-row { display: flex; justify-content: center; gap: 24px; }
+    .d-col { display: flex; flex-direction: column; align-items: center; }
+    .d-label { font-size: 0.75rem; color: var(--ink-soft); margin: 2px 0; text-align: center; }
+    .d-fan { display: flex; justify-content: center; gap: 12px; margin: 4px 0; }
+    .d-fan-box { border: 2px solid var(--ink); padding: 6px 10px; background: #fff; text-align: center; min-width: 80px; border-radius: 2px; font-size: 0.78rem; }
+    .d-fan-box strong { display: block; font-size: 0.78rem; }
+    .d-fan-box small { display: block; font-size: 0.7rem; color: var(--ink-soft); }
+
+    footer { border-top: 1px solid var(--border); background: var(--surface); }
+    .footer-inner { max-width: var(--max-w); margin: 0 auto; padding: 14px clamp(16px,4vw,24px); }
+    .footer-copy { font-size: 0.78rem; color: var(--ink-soft); font-style: italic; }
+
+    @media print { header, footer { display: none !important; } body { font-size: 11pt; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="/" target="_top" title="Back to ChatHealthy.ai">
+      <div class="logo-mark">
+        <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="2" width="4" height="16" rx="1"/>
+          <rect x="2" y="8" width="16" height="4" rx="1"/>
+        </svg>
+      </div>
+      <span class="logo-text">Chat<span>Healthy</span>.ai</span>
+    </a>
+  </div>
+</header>
+
+<main>
+  <div class="page-header">
+    <p class="eyebrow">Design Document</p>
+    <h1>Provider Embedding Design</h1>
+    <p class="effective">March 2026 &mdash; see also <a href="provider-data-load.html" style="color:var(--teal);">Provider Data Load &amp; County Enrichment</a></p>
+  </div>
+
+  <div class="arch-body">
+
+    <!-- 1. Context -->
+    <h2>1. Context</h2>
+    <p>
+      ChatHealthy FindCare — healthcare provider search index. ~8.4M provider records from the
+      NPPES NPI Registry (CMS), enriched with county FIPS codes by the FindCare DataPipelines
+      county enrichment job. Embeddings are stored in MongoDB Atlas Vector Search and power
+      semantic provider search queries.
+    </p>
+    <p>Primary users: network managers and healthcare administrators.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Component</th><th>File</th></tr>
+        <tr><td>Filter + projection + rendering</td><td><code>Code/DataPipelines/provider_embedding.py</code></td></tr>
+        <tr><td>Worker — retry, backoff, version stamping</td><td><code>Code/DataPipelines/embedding_worker.py</code></td></tr>
+        <tr><td>Unit tests (41, all passing)</td><td><code>Code/DataPipelines/tests/test_provider_embedding.py</code></td></tr>
+        <tr><td>Provider record schema</td><td><code>Code/Schemas/ChatHealthy.Providers.json</code></td></tr>
+      </table>
+    </div>
+
+    <!-- 2. Pipeline Position -->
+    <h2>2. Pipeline Position</h2>
+    <p>Embedding is Step 8 of <code>FullProviderPipeline</code>. It runs after all county enrichment passes complete.</p>
+    <div class="diagram">
+      <div class="diagram-inner">
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>FullProviderPipeline</strong><small>Steps 1–8 in sequence &mdash; resumable via start_step</small></div></div>
+        <div class="d-down">↓ Steps 1–7</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Health check, load, county enrichment, NPPES</strong><small>providers_staging populated and fully enriched</small></div></div>
+        <div class="d-down">↓ Step 8</div>
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Embedding fan-out</strong><small>num_workers workers in parallel &mdash; each handles its own worker_id partition</small></div></div>
+        <div class="d-down">↓</div>
+        <div class="d-fan">
+          <div class="d-fan-box"><strong>Worker 1</strong><small>worker_id=1</small></div>
+          <div class="d-fan-box"><strong>Worker 2</strong><small>worker_id=2</small></div>
+          <div class="d-fan-box"><strong>…</strong></div>
+          <div class="d-fan-box"><strong>Worker N</strong><small>worker_id=N</small></div>
+        </div>
+        <div class="d-down">↓ bulk_write</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>providers_staging</strong><small>embedding + embedding_version + embedding_model stamped on each doc</small></div></div>
+      </div>
+    </div>
+
+    <!-- 3. Record Filter -->
+    <h2>3. Record Filter — What to Embed</h2>
+    <p>Embed all records <strong>except</strong>:</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Exclusion criterion</th><th>Field</th><th>Reason</th></tr>
+        <tr><td>No address at all</td><td><code>county.reason = 'no_address'</code></td><td>Nothing to anchor a location query</td></tr>
+        <tr><td>Inconsistent address</td><td><code>county.reason = 'zip_state_mismatch'</code></td><td>ZIP and state disagree — address is untrustworthy</td></tr>
+      </table>
+    </div>
+    <p>All other records embed regardless of county enrichment status. County is one attribute among many — not a gate for inclusion.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>county.source / reason</th><th>Notes</th></tr>
+        <tr><td><code>crosswalk_pass1</code></td><td>Full geo, highest confidence</td></tr>
+        <tr><td><code>geocoder_pass2_batch</code></td><td>Full geo, Census Geocoder</td></tr>
+        <tr><td><code>geocoder_pass3_billing</code></td><td>Full geo, billing address fallback</td></tr>
+        <tr><td><code>geocoder_pass4_maps</code></td><td>Full geo, Google Maps</td></tr>
+        <tr><td><code>geocoder_pass5_maps_billing</code></td><td>Full geo, Google Maps billing fallback</td></tr>
+        <tr><td><code>geocoder_failed</code></td><td>Valid US address — county just couldn't be resolved</td></tr>
+        <tr><td><code>out_of_scope / deactivated</code></td><td>Valid address — NPI is inactive but record is searchable</td></tr>
+        <tr><td><code>out_of_scope / foreign_provider</code></td><td>Valid address — non-US provider</td></tr>
+        <tr><td><code>out_of_scope / legacy</code></td><td>Valid address — reason predates reason field</td></tr>
+      </table>
+    </div>
+
+    <!-- 4. Field Projection -->
+    <h2>4. Field Projection</h2>
+    <p>Embed <strong>all content fields</strong> except four system/pipeline internals:</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Excluded field</th><th>Reason</th></tr>
+        <tr><td><code>_id</code></td><td>MongoDB ObjectId — system</td></tr>
+        <tr><td><code>load_id</code></td><td>Pipeline run identifier — system</td></tr>
+        <tr><td><code>record_id</code></td><td>Worker sequence number — system</td></tr>
+        <tr><td><code>worker_id</code></td><td>Worker index — system</td></tr>
+      </table>
+    </div>
+
+    <!-- 5. Derived Fields -->
+    <h2>5. Derived Fields</h2>
+    <p>Computed by <code>project()</code> before rendering. Not stored in the provider record.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Field</th><th>Values</th><th>Description</th></tr>
+        <tr><td><code>display_name</code></td><td>string</td><td>Individual: <code>[prefix] first [middle] last [suffix], credential</code>. Org: legal business name.</td></tr>
+        <tr><td><code>entity_type_label</code></td><td><code>individual</code> / <code>organization</code></td><td>Human label for <code>entity_type_code</code>.</td></tr>
+        <tr><td><code>primary_taxonomy_code</code></td><td>string</td><td>Taxonomy code where <code>primary: true</code>.</td></tr>
+        <tr><td><code>all_taxonomy_codes</code></td><td>space-joined string</td><td>All taxonomy codes on the record.</td></tr>
+        <tr><td><code>location_display</code> (practice)</td><td>string</td><td><code>line1[, line2], city, state zip</code></td></tr>
+        <tr><td><code>mailing_location_display</code></td><td>string / omitted</td><td>Same format. Omitted if identical to practice address.</td></tr>
+        <tr><td><code>county_resolution_status</code></td><td><code>resolved</code> / <code>unresolved</code> / <code>excluded</code></td><td>Whether <code>county.fips</code> was set.</td></tr>
+        <tr><td><code>county_trust_tier</code></td><td><code>high</code> / <code>medium</code> / <code>low</code> / <code>excluded</code></td><td>crosswalk = high; geocoder/maps = medium; geocoder_failed = low; out_of_scope = excluded.</td></tr>
+        <tr><td><code>county_source_summary</code></td><td>string</td><td>Human-readable enrichment method.</td></tr>
+        <tr><td><code>npi_status</code></td><td><code>active</code> / <code>inactive</code></td><td>Inactive when <code>npi_deactivation_date</code> set and <code>npi_reactivation_date</code> absent.</td></tr>
+        <tr><td><code>foreign_provider_flag</code></td><td><code>yes</code> / <code>no</code></td><td><code>yes</code> when <code>practice_address.country</code> is not <code>US</code>.</td></tr>
+        <tr><td><code>sole_proprietor_flag</code></td><td><code>yes</code> / <code>no</code></td><td>Mapped from <code>is_sole_proprietor</code> Y/N.</td></tr>
+        <tr><td><code>organization_subpart_flag</code></td><td><code>yes</code> / <code>no</code></td><td>Mapped from <code>is_organization_subpart</code> Y/N.</td></tr>
+        <tr><td><code>authorized_official</code></td><td>string</td><td>Assembled: <code>first [middle] last[, credential] [— title]</code>.</td></tr>
+        <tr><td><code>licenses</code></td><td>string</td><td>Comma-joined: <code>GA #G12345, FL #F67890</code>.</td></tr>
+        <tr><td><code>other_identifiers</code></td><td>string</td><td>Semicolon-joined with type/state/issuer context.</td></tr>
+      </table>
+    </div>
+
+    <!-- 6. Embedding Text Templates -->
+    <h2>6. Embedding Text Templates</h2>
+    <p>Stable field order. Absent fields omitted entirely. No blank lines. No raw JSON. Placeholder values (<code>&lt;UNAVAIL&gt;</code>) stripped before rendering.</p>
+
+    <h3>Individual (entity_type_code = '1')</h3>
+    <div class="code-block">record_type: provider
+entity_type: individual
+display_name: Dr. Jane A. Smith, M.D.
+npi: 1144247073
+npi_status: active
+credential: M.D.
+sex: F
+sole_proprietor: no
+primary_taxonomy_code: 207R00000X
+all_taxonomy_codes: 207R00000X 207RC0000X
+practice_address: 123 Peachtree St, Suite 400, Atlanta, GA 30301
+mailing_address: PO Box 999, Atlanta, GA 30302
+county_name: Fulton County
+county_fips: 13121
+county_resolution_status: resolved
+county_trust_tier: high
+county_source: ZIP crosswalk (res_ratio: 0.99)
+foreign_provider: no
+licenses: GA #G12345, FL #F67890
+other_identifiers: G123 (04, GA); M456 (05, GA)
+enumeration_date: 07/16/2006
+last_update_date: 01/15/2024
+certification_date: 01/15/2024</div>
+
+    <h3>Organization (entity_type_code = '2')</h3>
+    <div class="code-block">record_type: provider
+entity_type: organization
+display_name: MAYO CLINIC
+organization_name: MAYO CLINIC
+other_organization_name: Mayo Foundation
+other_organization_name_type: 5
+npi: 1215954557
+npi_status: active
+ein: 41-6011702
+is_organization_subpart: yes
+parent_organization_name: Mayo Foundation for Medical Education and Research
+parent_organization_tin: 41-6011702
+authorized_official: Robert T. Johnson, M.D. — CEO
+primary_taxonomy_code: 282N00000X
+all_taxonomy_codes: 282N00000X
+practice_address: 200 First St SW, Rochester, MN 55905
+county_name: Olmsted County
+county_fips: 27109
+county_resolution_status: resolved
+county_trust_tier: medium
+county_source: Census geocoder — practice address
+foreign_provider: no
+licenses: MN #MN001
+enumeration_date: 04/01/2005
+last_update_date: 03/01/2024</div>
+
+    <h3>Unresolved county (geocoder_failed)</h3>
+    <div class="code-block">record_type: provider
+entity_type: individual
+display_name: Carlos Rivera, D.O.
+npi: 1234567890
+npi_status: active
+credential: D.O.
+primary_taxonomy_code: 207P00000X
+all_taxonomy_codes: 207P00000X
+practice_address: 456 Rural Rd, Smalltown, TX 79901
+county_resolution_status: unresolved
+county_trust_tier: low
+county_source: unresolved — all passes exhausted
+foreign_provider: no</div>
+
+    <h3>Foreign provider (out_of_scope / foreign_provider — still embeds)</h3>
+    <div class="code-block">record_type: provider
+entity_type: individual
+display_name: Pierre Dubois
+npi: 1987654321
+npi_status: active
+primary_taxonomy_code: 207R00000X
+all_taxonomy_codes: 207R00000X
+practice_address: 12 Rue de Paris, Paris, FR 75001
+county_resolution_status: excluded
+county_trust_tier: excluded
+county_source: excluded (foreign_provider)
+county_reason: foreign_provider
+foreign_provider: yes</div>
+
+    <!-- 7. Versioning -->
+    <h2>7. Versioning</h2>
+    <p>Each embedded document is stamped with:</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Field</th><th>Example</th><th>Description</th></tr>
+        <tr><td><code>embedding_version</code></td><td><code>"0.1"</code></td><td>Projection + model version. Bump when either changes.</td></tr>
+        <tr><td><code>embedding_model</code></td><td><code>"text-embedding-3-large"</code></td><td>Exact model used to generate the embedding.</td></tr>
+      </table>
+    </div>
+    <p><strong>Idempotency rule:</strong> a document is skipped if <code>embedding</code> already exists. Re-embedding requires clearing the field or bumping the version.</p>
+    <p><strong>Backfill:</strong> the <code>StampEmbeddingVersion</code> Router task backfills <code>embedding_version</code> and <code>embedding_model</code> onto records embedded before version stamping was introduced. Idempotent — skips already-stamped records.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Version</th><th>Model</th><th>Date</th><th>Notes</th></tr>
+        <tr><td><code>0.1</code></td><td><code>text-embedding-3-large</code></td><td>2026-03-24</td><td>Initial alpha — DE+MS test run</td></tr>
+      </table>
+    </div>
+
+    <!-- 8. Concurrency and Rate Limiting -->
+    <h2>8. Concurrency and Rate Limiting</h2>
+
+    <h3>First run post-mortem (2026-03-24)</h3>
+    <p>The first embedding run (DE+MS, instance <code>ebc366fa</code>) stalled at ~32% due to OpenAI TPM exhaustion.</p>
+    <div class="warn">
+      <strong>Root cause:</strong> 32 workers fanned out simultaneously, each sending 500-doc batches (~60–80K tokens each). This exhausted the 1M TPM allowance almost instantly. Workers that fired first embedded ~1,500 records each; workers that fired last embedded near zero.<br><br>
+      <strong>Aggravating factor:</strong> <code>_pipeline_resume()</code> was called on any batch exception including 429, silently skipping rate-limited batches instead of retrying them.
+    </div>
+
+    <h3>Fixes implemented</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Fix</th><th>Implementation</th></tr>
+        <tr><td>Retry on 429</td><td><code>_pipeline_process</code> catches <code>openai.RateLimitError</code>, retries up to 5&times; with exponential backoff. Honors <code>Retry-After</code> header when present.</td></tr>
+        <tr><td>Cursor never advances on 429</td><td>Retry loop wraps only the API call. <code>_pipeline_resume()</code> (skip) is only reached after retry exhaustion.</td></tr>
+        <tr><td>Single <code>num_workers</code> parameter</td><td>Load fan-out and embedding fan-out both use <code>num_workers</code>. Rate control is via batch size and startup jitter — not worker count.</td></tr>
+        <tr><td>Smaller batch size</td><td><code>embed_batch_size</code> default reduced from 500 &rarr; 100 docs/batch.</td></tr>
+        <tr><td>Startup jitter</td><td>Each worker sleeps a random <code>[0, embed_initial_jitter]</code> seconds before first API call (default 5s). Prevents synchronized burst at t=0.</td></tr>
+      </table>
+    </div>
+
+    <h3>API parameters (embedding step)</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Parameter</th><th>Default</th><th>Description</th></tr>
+        <tr><td><code>num_workers</code></td><td><code>32</code></td><td>Number of concurrent workers (shared with load step)</td></tr>
+        <tr><td><code>embed_batch_size</code></td><td><code>100</code></td><td>Documents per OpenAI batch</td></tr>
+        <tr><td><code>embed_model</code></td><td><code>"text-embedding-3-large"</code></td><td>Must be in <code>SUPPORTED_EMBED_MODELS</code> — abends on unsupported value</td></tr>
+        <tr><td><code>embed_initial_jitter</code></td><td><code>5.0</code></td><td>Max startup delay in seconds per worker</td></tr>
+      </table>
+    </div>
+
+    <h3>Model validation</h3>
+    <p><code>SUPPORTED_EMBED_MODELS</code> in <code>embedding_worker.py</code> maps model name &rarr; vector dimensions.
+    Passing an unsupported model raises <code>ValueError</code> immediately in <code>__init__</code> — the activity fails
+    before touching OpenAI or MongoDB. New models must be added to the whitelist explicitly after end-to-end validation.</p>
+
+    <h3>Token usage tracking</h3>
+    <p>Each worker accumulates <code>response.usage.total_tokens</code> per batch and returns <code>total_tokens</code>
+    in its result. The orchestrator aggregates across all workers and includes <code>total_tokens</code> in the pipeline
+    result. Useful for cost tracking and model comparison.</p>
+
+    <!-- 9. Embedding Model Decision -->
+    <h2>9. Embedding Model Decision</h2>
+
+    <h3>GPT's proposal</h3>
+    <p><code>text-embedding-3-large</code> (OpenAI) — 3072 dimensions, $0.13/1M tokens, ~$130–200 one-time for 8.4M records.
+    Reasoning: well-documented, predictable under load, known OpenAI + Atlas path.</p>
+
+    <h3>Claude's counter-proposal</h3>
+    <p><code>voyage-3-large</code> (Voyage AI) — 1024 dimensions, $0.06/1M tokens, ~$55–85 one-time.
+    Reasoning: purpose-built for retrieval, Anthropic uses Voyage internally, 3&times; smaller Atlas index,
+    benchmarks above OpenAI on BEIR retrieval tasks, 54% cheaper.</p>
+
+    <h3>Decision: text-embedding-3-large — locked for alpha</h3>
+    <p>Skip reviewed both proposals and chose GPT's recommendation. Rationale:</p>
+    <ul>
+      <li><strong>Shipping is the primary risk, not optimization.</strong> Marginal benchmark gains are not the priority at this stage.</li>
+      <li><strong>Voyage introduces a new vendor.</strong> New API surface, new authentication, new rate limiting, new retry/error handling paths — every new dependency multiplies debugging complexity in alpha.</li>
+      <li><strong>OpenAI + Atlas is a known, documented path.</strong> Widely used, predictable under load.</li>
+      <li><strong>BEIR benchmarks do not reflect our workload.</strong> Our queries are mixed: NPI lookup, name lookup, taxonomy, geo + specialty, structured entity retrieval. General retrieval benchmark rankings don't directly translate.</li>
+      <li><strong>Voyage is a valid v2 conversation.</strong> The projection and pipeline are model-agnostic — swapping the model later is a one-line change plus a re-embed run.</li>
+    </ul>
+
+    <!-- 10. Non-Goals -->
+    <h2>10. Non-Goals (Alpha/MVP)</h2>
+    <ul>
+      <li>No multiple embeddings (one projection, all users)</li>
+      <li>No consumer vs. enterprise split</li>
+      <li>No raw JSON embedding</li>
+      <li><code>authorized_official_telephone_number</code> excluded — contact info, not a search signal</li>
+      <li>No TPM-aware governor (future: estimate tokens/batch, throttle dynamically)</li>
+    </ul>
+
+  </div>
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <p class="footer-copy">Copyright &copy; 2026 Skip Snow. All rights reserved. Licensed under the FindCare Evaluation License (FEL-1.0).</p>
+  </div>
+</footer>
+
+</body>
+</html>
