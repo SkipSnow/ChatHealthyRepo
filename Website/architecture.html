@@ -316,6 +316,7 @@
           <tr><td>Backend</td><td>FastAPI (Python)</td><td>API routes, tool definitions, session management</td></tr>
           <tr><td>AI</td><td>LLM APIs (Anthropic, OpenAI, Groq)</td><td>Intent routing, tool calling, response generation</td></tr>
           <tr><td>Hosting</td><td>HuggingFace Docker Space</td><td>GPU-enabled, free tier available</td></tr>
+          <tr style="color:#0b7a75;"><td>Maps</td><td>Google Maps</td><td><strong>Roadmap.</strong> Provider location display — interactive map rendered inline in the chat response showing provider pins, distances, and directions</td></tr>
         </table>
       </div>
 
@@ -482,6 +483,8 @@
           <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment — Pass 2</strong><small>Census Geocoder batch for split ZIPs · practice address, with mailing address fallback · fan-out 5K-address batches</small></div></div>
           <div class="d-down">↓ Step 5</div>
           <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment — Pass 3</strong><small>Billing address retry for all geocoder_failed providers · Census Geocoder batch · active US providers only</small></div></div>
+          <div class="d-down" style="color:#0b7a75;">↓ Step 5.5 — Roadmap</div>
+          <div class="d-center"><div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;"><strong>County Enrichment — Pass 4</strong><small>Google Maps Geocoding API · records unresolved by Census Geocoder · targets 98% county coverage</small></div></div>
           <div class="d-down">↓ Step 6</div>
           <div class="d-center"><div class="d-box d-box-wide"><strong>Generate Embeddings + Create Atlas Vector Search Index</strong><small>OpenAI text-embedding-3-small · 1536 dims · all meaningful fields · idempotent · provider_vector_index</small></div></div>
         </div>
