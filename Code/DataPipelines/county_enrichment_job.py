@@ -307,20 +307,32 @@ def county_enrichment_pass2_orchestrator_fn(context):
         context.set_custom_status("Step 0/2: Resetting geocoder_failed records for retry")
         yield context.call_activity("reset_geocoder_failed_activity", config)
 
-    # Step 1: Count unenriched providers (count only — no ID list to avoid size limits)
+    # Step 1: Count unenriched providers and get _id range for partitioning
     context.set_custom_status("Step 1/2: Counting unenriched providers")
     unenriched = yield context.call_activity("get_unenriched_activity", config)
     unenriched_count = unenriched["count"]
+    min_id = unenriched.get("min_id")
+    max_id = unenriched.get("max_id")
 
-    # Step 2: Fan-out — each activity fetches its own slice via skip/limit
+    # Step 2: Fan-out — partition by _id range, each activity queries its own slice.
+    # _id range avoids skip() scans: each activity uses {_id: {$gte: start, $lt: end}}
+    # directly on the _id index. Works at any scale without connection pressure.
     addr_batch_size = config.get("addr_batch_size", 5_000)
     num_batches = math.ceil(unenriched_count / addr_batch_size) if unenriched_count else 0
     context.set_custom_status(
         f"Step 2/2: {unenriched_count:,} providers via Census Geocoder "
         f"across {num_batches} workers"
     )
+    # Compute evenly-spaced _id boundaries by interpolating the hex ObjectId space
+    min_int = int(min_id, 16) if min_id else 0
+    max_int = int(max_id, 16) if max_id else 0
+    id_step = (max_int - min_int + 1) // num_batches if num_batches else 0
     pass2_tasks = [
-        context.call_activity("enrich_by_address_batch_activity", {**config, "batch_index": i, "addr_batch_size": addr_batch_size})
+        context.call_activity("enrich_by_address_batch_activity", {
+            **config,
+            "start_id": hex(min_int + id_step * i)[2:].zfill(24),
+            "end_id":   hex(min_int + id_step * (i + 1))[2:].zfill(24) if i < num_batches - 1 else None,
+        })
         for i in range(num_batches)
     ]
     pass2_results = (yield context.task_all(pass2_tasks)) if pass2_tasks else []
@@ -629,10 +641,11 @@ _UNENRICHED_FILTER = {
 
 
 def get_unenriched_fn(config: dict) -> dict:
-    """Return count of providers without county.fips, plus total provider count.
+    """Return count + _id range of unenriched providers, plus total provider count.
 
-    Returns count only — no ID list — so the result stays small regardless of scale.
-    Pass 2 fan-out uses skip/limit to let each activity fetch its own slice directly.
+    Returns count and hex min/max _id so the orchestrator can partition the
+    collection into _id ranges without loading or passing any ID lists.
+    Each Pass 2 activity then queries its own range directly using the _id index.
 
     Excludes records already resolved or classified by a prior pass:
     geocoder_failed, geocoder_no_address, out_of_scope.
@@ -643,8 +656,12 @@ def get_unenriched_fn(config: dict) -> dict:
     coll = _get_mongo_client()[db_name][coll_name]
     total_providers = coll.count_documents({})
     unenriched = coll.count_documents(_UNENRICHED_FILTER)
+    first = coll.find_one(_UNENRICHED_FILTER, {"_id": 1}, sort=[("_id", 1)])
+    last  = coll.find_one(_UNENRICHED_FILTER, {"_id": 1}, sort=[("_id", -1)])
+    min_id = str(first["_id"]) if first else None
+    max_id = str(last["_id"])  if last  else None
     logging.info("Unenriched providers for Pass 2: %d / %d total", unenriched, total_providers)
-    return {"count": unenriched, "total_providers": total_providers}
+    return {"count": unenriched, "total_providers": total_providers, "min_id": min_id, "max_id": max_id}
 
 
 def _geocode_batch(providers: list[dict]) -> dict:
@@ -714,18 +731,20 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
     """
     started_at = datetime.now(timezone.utc).isoformat()
     start_time = time.monotonic()
-    batch_index      = config["batch_index"]
-    addr_batch_size  = config.get("addr_batch_size", 5_000)
-    skip             = batch_index * addr_batch_size
-    collection       = config.get("staging_collection", PROVIDERS_COLLECTION)
+    start_id_hex = config["start_id"]
+    end_id_hex   = config.get("end_id")       # None for the last batch (open upper bound)
+    collection   = config.get("staging_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
 
+    id_filter: dict = {"_id": {"$gte": ObjectId(start_id_hex)}}
+    if end_id_hex:
+        id_filter["_id"]["$lt"] = ObjectId(end_id_hex)
+
     providers = list(coll.find(
-        _UNENRICHED_FILTER,
+        {**_UNENRICHED_FILTER, **id_filter},
         {"_id": 1, "practice_address": 1, "mailing_address": 1},
-        sort=[("_id", 1)],
-    ).skip(skip).limit(addr_batch_size))
+    ))
 
     # Pre-screen: flag providers with no usable address
     geocodable: list[dict] = []
