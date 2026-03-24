@@ -950,7 +950,10 @@ def get_billing_retryable_fn(config: dict) -> dict:
                         {"npi_reactivation_date": {"$exists": True}},
                     ]},
                 ],
-                "mailing_address.country": {"$exists": False},
+                "$or": [
+                    {"mailing_address.country": {"$exists": False}},
+                    {"mailing_address.country": {"$in": [None, "", "US"]}},
+                ],
             },
             {"_id": 1},
         )
