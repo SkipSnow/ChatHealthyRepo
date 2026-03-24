@@ -12,7 +12,7 @@ import json
 import os
 import requests
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pypdf import PdfReader
 import gradio as gr
 from ChatHealthyMongoUtilities import ChatHealthyMongoUtilities
@@ -58,27 +58,102 @@ _ADMIN_UNLOCK_KEY = os.getenv("ADMIN_UNLOCK_KEY", "")
 
 
 def _is_ip_locked(ip: str) -> bool:
+    """Fast in-memory check. Used as cache; DB is the source of truth."""
     expiry = _ip_emergency_locks.get(ip)
     if expiry is None:
         return False
     if time.time() < expiry:
         return True
-    del _ip_emergency_locks[ip]  # expired — clean up
+    del _ip_emergency_locks[ip]
     return False
 
 
 def _lock_ip(ip: str) -> None:
+    """Set in-memory lock (cache)."""
     _ip_emergency_locks[ip] = time.time() + _EMERGENCY_LOCK_SECONDS
-    print(f"SAFETY IP locked: {ip} for {_EMERGENCY_LOCK_SECONDS}s", flush=True)
+
+
+def _safety_collection():
+    """Returns Safety.emergency_incidents collection or None."""
+    db = _get_db()
+    if db is None:
+        return None
+    try:
+        return db["Safety"]["emergency_incidents"]
+    except Exception:
+        return None
+
+
+def _lock_ip_db(ip: str, trigger_message: str = "", history: list = None) -> None:
+    """Insert a new emergency incident and reset the 1-hour clock.
+
+    Every attempt by a locked IP creates a new incident record and extends
+    the expiry. Stores de-identified chat history (role/content only, truncated).
+    """
+    _lock_ip(ip)
+    col = _safety_collection()
+    if col is None:
+        print("SAFETY DB unavailable — lock stored in memory only.", flush=True)
+        return
+    now = datetime.now(timezone.utc)
+    expires = now + timedelta(seconds=_EMERGENCY_LOCK_SECONDS)
+    safe_history = []
+    for m in (history or []):
+        if m.get("role") in ("user", "assistant"):
+            safe_history.append({
+                "role": m["role"],
+                "content": str(m.get("content", ""))[:300],
+            })
+    try:
+        col.insert_one({
+            "ip": ip,
+            "locked_at": now.isoformat(),
+            "expires_at": expires.isoformat(),
+            "trigger_message": trigger_message[:500],
+            "chat_history_deidentified": safe_history,
+        })
+        print(f"SAFETY incident created: {ip} locked until {expires.isoformat()}", flush=True)
+    except Exception as e:
+        print(f"SAFETY DB write failed: {e}", flush=True)
+
+
+def _check_ip_lock_db(ip: str) -> bool:
+    """Check MongoDB for any active emergency incident for this IP.
+
+    Uses in-memory cache as fast path; falls back to DB for cross-worker
+    and post-restart cases. Returns True if any non-expired incident exists.
+    """
+    if _is_ip_locked(ip):
+        return True
+    col = _safety_collection()
+    if col is None:
+        return False
+    try:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        record = col.find_one({"ip": ip, "expires_at": {"$gt": now_iso}})
+        if record:
+            _lock_ip(ip)  # restore cache
+            return True
+        return False
+    except Exception as e:
+        print(f"SAFETY DB check failed: {e} — treating as unlocked", flush=True)
+        return False
 
 
 def _admin_unlock(message: str, ip: str) -> bool:
-    """Returns True if message is a valid admin unlock command and clears the lock."""
+    """Returns True if message is a valid admin unlock command and clears all locks."""
     if not _ADMIN_UNLOCK_KEY:
         return False
     if message.strip().upper() == f"UNLOCK:{_ADMIN_UNLOCK_KEY.upper()}":
         was_locked = ip in _ip_emergency_locks
         _ip_emergency_locks.pop(ip, None)
+        col = _safety_collection()
+        if col is not None:
+            try:
+                result = col.delete_many({"ip": ip})
+                print(f"SAFETY admin unlock: {ip} — deleted {result.deleted_count} incident(s)", flush=True)
+            except Exception:
+                pass
         print(f"SAFETY admin unlock: {ip} (was_locked={was_locked})", flush=True)
         return True
     return False
@@ -871,10 +946,12 @@ class Me:
             return "Session unlocked."
 
         # SAFETY GATE — Rule 4: hard stop, runs first, no exceptions.
-        # Dual lock: IP-based (cross-session, 1hr) + session-history (within session).
-        # Session lock is the fallback for multi-worker / container-restart scenarios.
-        if _is_ip_locked(ip) or _session_is_locked(history) or _safety_check(message):
-            _lock_ip(ip)
+        # Same-session: history already contains emergency response — just repeat, no new incident.
+        if _session_is_locked(history):
+            return EMERGENCY_RESPONSE
+        # Cross-session lock (DB hit) or new trigger: create new incident, extend 1-hour clock.
+        if _check_ip_lock_db(ip) or _safety_check(message):
+            _lock_ip_db(ip, trigger_message=message, history=history)
             return EMERGENCY_RESPONSE
 
         messages = [{"role": "system", "content": self.system_prompt()}] + history
