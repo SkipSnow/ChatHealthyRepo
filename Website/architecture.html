@@ -259,7 +259,35 @@
             <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>LLM APIs</strong><small>Anthropic · OpenAI · Groq</small></div></div>
             <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>Azure Functions</strong><small>CrewAI · Layer 2</small></div></div>
             <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>MongoDB Atlas</strong><small>ChatHealthyDB_dev</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>Google Maps</strong><small>Maps JavaScript API · provider map</small></div></div>
           </div>
+        </div>
+      </div>
+
+      <h3>Google Maps — Provider Map</h3>
+      <p>The chat layer renders an interactive provider map using the Google Maps JavaScript API
+      with a dark base theme. County polygons are filled by enrichment status using the
+      <code style="color:#1a7a3c;font-weight:600;">county_fips</code> field written by the
+      county enrichment pipeline. Marker clusters show individual provider locations using
+      <code style="color:#1a7a3c;font-weight:600;">practice_address.lat</code> and
+      <code style="color:#1a7a3c;font-weight:600;">practice_address.lng</code>.</p>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;align-items:flex-start;">
+        <div style="background:#0d1117;border:1px solid #2d3748;border-radius:6px;padding:16px 20px;min-width:200px;">
+          <div style="font-size:0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#718096;margin-bottom:10px;">Map Key</div>
+          <div style="display:flex;flex-direction:column;gap:7px;font-size:0.82rem;">
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:2px;background:#0b7a75;flex-shrink:0;"></span><span style="color:#e2e8f0;">ZIP crosswalk matched</span></div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:2px;background:#d0eeec;flex-shrink:0;"></span><span style="color:#e2e8f0;">Census geocoder matched</span></div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:2px;background:#e6f4f3;flex-shrink:0;"></span><span style="color:#e2e8f0;">Billing address matched</span></div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:2px;background:#c0392b;flex-shrink:0;"></span><span style="color:#e2e8f0;">Geocoder failed</span></div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:2px;background:#4a5568;flex-shrink:0;"></span><span style="color:#e2e8f0;">Out of scope</span></div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:2px;background:#2d3748;border:1px solid #4a5568;flex-shrink:0;"></span><span style="color:#e2e8f0;">Unenriched</span></div>
+          </div>
+        </div>
+        <div style="font-size:0.85rem;line-height:1.7;color:var(--ink-soft);max-width:480px;padding-top:4px;">
+          The dark base map keeps provider data visually dominant. County fill opacity is
+          set to 0.6 so roads and labels remain legible. Clicking a county opens a
+          summary panel showing provider count and enrichment coverage.
+          The map is rendered client-side — no server round-trip after initial data load.
         </div>
       </div>
 
