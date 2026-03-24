@@ -29,8 +29,8 @@ SUPPORTED_STATES = {"DE", "MS"}
 
 # Rule 5: Fixed response — no variation allowed
 EMERGENCY_RESPONSE = (
-    "**Call 911 or go to the nearest emergency room immediately. Do not wait.**\n\n"
-    "**This chat has been suspended.**"
+    "<b>Call 911 or go to the nearest emergency room immediately. Do not wait.</b>\n\n"
+    "<b>This chat has been suspended.</b>"
 )
 
 # Rule 3: Rule-based signal list
@@ -210,10 +210,14 @@ def _safety_check(message: str) -> bool:
                 raw = raw[4:]
             raw = raw.strip()
         result = json.loads(raw)
-        ai_hit = bool(result.get("emergency", False))
+        confidence = float(result.get("confidence", 0))
+        # Require high confidence (>=0.80) for AI escalation — prevents vague pain
+        # statements ("I'm in a lot of pain") from triggering the hard stop.
+        # Approved reduction for ambiguous cases by Skip the Boss 2026-03-24.
+        ai_hit = bool(result.get("emergency", False)) and confidence >= 0.80
         print(
             f"SAFETY keyword={keyword_hit} ai={ai_hit} "
-            f"confidence={result.get('confidence', 0):.2f} "
+            f"confidence={confidence:.2f} "
             f"triggered={keyword_hit or ai_hit}",
             flush=True,
         )
@@ -985,7 +989,7 @@ if __name__ == "__main__":
     welcome = (
         "**Welcome to ChatHealthy FindCare**\n\n"
         "Here's what I can help you with:\n\n"
-        "- **Find a doctor** — search for providers in **Delaware** or **Mississippi** by specialty or condition\n"
+        "- **Find a doctor** — search for providers in <span style=\"font-size:1.15em;font-weight:bold;\">Delaware</span> or <span style=\"font-size:1.15em;font-weight:bold;\">Mississippi</span> by specialty or condition\n"
         "- **Identify the right specialty** — not sure what kind of doctor you need? Describe your situation\n"
         "- **Clinical trials** — find recruiting research studies for any condition\n"
         "- **About ChatHealthy** — our mission, team, and platform\n\n"
