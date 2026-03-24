@@ -801,7 +801,10 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
     if ops:
         coll.bulk_write(ops, ordered=False)
 
+    succeeded = modified + billing_modified
     return {
+        "assigned":         len(providers),
+        "succeeded":        succeeded,
         "modified":         modified,
         "billing_modified": billing_modified,
         "geocoder_failed":  geocoder_failed,
@@ -926,6 +929,8 @@ def enrich_by_billing_batch_fn(config: dict) -> dict:
 
     logging.info("Pass 3 billing batch: %d matched, %d still failed", modified, geocoder_failed)
     return {
+        "assigned":         len(providers),
+        "succeeded":        modified,
         "modified":         modified,
         "geocoder_failed":  geocoder_failed,
         "started_at":       started_at,
@@ -1033,6 +1038,8 @@ def enrich_by_maps_batch_fn(config: dict) -> dict:
 
     logging.info("Pass 4 Maps batch: %d matched, %d still failed", modified, maps_failed)
     return {
+        "assigned":         len(providers),
+        "succeeded":        modified,
         "modified":         modified,
         "maps_failed":      maps_failed,
         "started_at":       started_at,
