@@ -53,7 +53,7 @@ jobs:
           DEFAULT_HOST=$(az functionapp show \
             --resource-group FindCareDataPipelines-Dev \
             --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \
-            --query "defaultHostName" -o tsv 2>/dev/null) || DEFAULT_HOST=""
+            --query "properties.defaultHostName" -o tsv 2>/dev/null) || DEFAULT_HOST=""
 
           if [ -z "$DEFAULT_HOST" ]; then
             echo "DEPLOY BLOCKED: Cannot retrieve app hostname — cannot verify no pipeline is running."
