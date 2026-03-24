@@ -317,7 +317,9 @@ def county_enrichment_pass2_orchestrator_fn(context):
     # Step 2: Fan-out — partition by _id range, each activity queries its own slice.
     # _id range avoids skip() scans: each activity uses {_id: {$gte: start, $lt: end}}
     # directly on the _id index. Works at any scale without connection pressure.
-    addr_batch_size = config.get("addr_batch_size", 5_000)
+    # 500 addresses per Census batch: responds in seconds, not minutes.
+    # 5,000-row CSVs consistently timed out (300s limit) on the free Census API.
+    addr_batch_size = config.get("addr_batch_size", 500)
     num_batches = math.ceil(unenriched_count / addr_batch_size) if unenriched_count else 0
     context.set_custom_status(
         f"Step 2/2: {unenriched_count:,} providers via Census Geocoder "
