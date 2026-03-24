@@ -19,9 +19,6 @@
     "durableTask": {
       "maxConcurrentActivityFunctions": 4,
       "maxConcurrentOrchestratorFunctions": 4
-      // Capped at 4 concurrent activities per instance. Without this cap,
-      // Flex Consumption packs all workers onto one instance when pre-warm
-      // is unavailable (e.g. first cold start), causing OOM (exit 137).
     }
   },
   "extensionBundle": {
@@ -29,4 +26,3 @@
     "version": "[4.*, 5.0.0)"
   }
 }
-
