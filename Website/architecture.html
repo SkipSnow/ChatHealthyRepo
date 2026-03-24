@@ -24,6 +24,7 @@
       --teal-light: #e6f4f3;
       --teal-mid:   #d0eeec;
       --accent:     #f0a500;
+      --warn:       #c0392b;
       --border:     #d8e2e1;
       --radius:     6px;
       --max-w:      1160px;
@@ -132,6 +133,9 @@
     .d-box small  { display: block; font-size: 0.78rem; color: var(--ink-soft); margin-top: 2px; }
     .d-box-wide   { min-width: 220px; }
     .d-box-narrow { min-width: 110px; }
+    .d-box-deprecated { background: #fdf3f2; border-color: var(--warn); }
+    .d-box-deprecated strong { color: var(--warn); }
+    .d-box-deprecated small  { color: #a94436; }
 
     .d-vline { width: 2px; background: var(--ink); margin: 0 auto; height: 16px; }
     .d-hbar  { height: 2px; background: var(--ink); margin: 0 auto; }
@@ -254,7 +258,7 @@
           <div class="d-down">↓</div>
           <div class="d-center"><div class="d-box d-box-wide"><strong>Cloudflare</strong><small>Static pages · DNS · iframe embed</small></div></div>
           <div class="d-down">↓</div>
-          <div class="d-center"><div class="d-box d-box-wide" id="diag-hf"><strong>HuggingFace Space</strong><small>React + FastAPI · Layer 1</small></div></div>
+          <div class="d-center"><div class="d-box d-box-wide d-box-deprecated" id="diag-hf"><strong>HuggingFace Space</strong><small>React + FastAPI · Layer 1 · deprecated</small></div></div>
           <div class="d-vline"></div>
           <div class="d-hbar" style="width:58%"></div>
           <div class="d-row" style="margin-top:0;">
@@ -282,6 +286,11 @@
           </div>
 
         </div>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin:8px 0 16px;font-size:0.82rem;">
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--ink);background:#fff;border-radius:2px;flex-shrink:0;"></span>Active component</div>
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--warn);background:#fdf3f2;border-radius:2px;flex-shrink:0;"></span>Deprecated</div>
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid #0d1117;background:#0d1117;border-radius:2px;flex-shrink:0;"></span>Third-party (external)</div>
       </div>
 
       <h3>Google Maps — Two Use Cases</h3>
