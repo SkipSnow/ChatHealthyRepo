@@ -223,7 +223,7 @@ The first embedding run (DE+MS, instance `ebc366fa`) stalled at ~32% due to Open
 |---|---|
 | Retry on 429 | `_pipeline_process` catches `openai.RateLimitError`, retries up to 5× with exponential backoff. Honors `Retry-After` header when present. |
 | Cursor never advances on 429 | Retry loop wraps only the API call. `_pipeline_resume()` (skip) is only reached after retry exhaustion. |
-| `embed_workers` separated from `num_workers` | Embedding fan-out uses `embed_workers` (default 8). Load workers use `num_workers` (default 32). These are independent concerns. |
+| Single `num_workers` parameter | Load fan-out and embedding fan-out both use `num_workers`. Rate control is via batch size and startup jitter — not worker count. |
 | Smaller batch size | `embed_batch_size` default reduced from 500 → 100 docs/batch. |
 | Startup jitter | Each worker sleeps a random `[0, embed_initial_jitter]` seconds before first API call (default 5s). Prevents synchronized burst at t=0. |
 
@@ -231,7 +231,7 @@ The first embedding run (DE+MS, instance `ebc366fa`) stalled at ~32% due to Open
 
 | Parameter | Default | Description |
 |---|---|---|
-| `embed_workers` | `8` | Number of concurrent embedding workers |
+| `num_workers` | `32` | Number of concurrent workers (shared with load step) |
 | `embed_batch_size` | `100` | Documents per OpenAI batch |
 | `embed_model` | `"text-embedding-3-large"` | Must be in `SUPPORTED_EMBED_MODELS` — abends on unsupported value |
 | `embed_initial_jitter` | `5.0` | Max startup delay in seconds per worker |
