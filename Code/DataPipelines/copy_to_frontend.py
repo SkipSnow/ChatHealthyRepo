@@ -21,30 +21,31 @@ from pymongo import MongoClient
 
 BATCH_SIZE = 10_000
 
-# (src_db, src_coll, dst_db, dst_coll)
-COLLECTIONS = [
+# Always-copied collections: (src_db, src_coll, dst_db, dst_coll)
+_STATIC_COLLECTIONS = [
     ("PublicHealthData", "SpecialtyMetaData", "PublicHealthData", "SpecialtyMetaData"),
 ]
 
 
-def _copy_collection(src_db, dst_db, src_coll: str, dst_coll: str) -> dict:
+def _copy_collection(src_db, dst_db, src_coll: str, dst_coll: str, query: dict = None) -> dict:
     src = src_db[src_coll]
     dst = dst_db[dst_coll]
     label = src_coll if src_coll == dst_coll else f"{src_coll}→{dst_coll}"
+    q = query or {}
 
-    total = src.count_documents({})
+    total = src.count_documents(q)
     existing = dst.count_documents({})
 
-    if existing >= total and total > 0:
+    if existing >= total and total > 0 and not q:
         logging.info("%s: already has %s docs — skipping", label, f"{existing:,}")
         return {"collection": label, "copied": 0, "skipped": True}
 
     if existing > 0:
-        logging.info("%s: dropping partial destination (%s docs) before restart", label, f"{existing:,}")
+        logging.info("%s: dropping destination (%s docs) before copy", label, f"{existing:,}")
         dst.drop()
 
-    logging.info("%s: copying %s docs", label, f"{total:,}")
-    cursor = src.find({}, batch_size=BATCH_SIZE, no_cursor_timeout=True)
+    logging.info("%s: copying %s docs (filter: %s)", label, f"{total:,}", q or "none")
+    cursor = src.find(q, batch_size=BATCH_SIZE, no_cursor_timeout=True)
     batch = []
     copied = 0
     start = time.time()
@@ -107,15 +108,45 @@ def run_copy_to_frontend(config: dict) -> dict:
     if not frontend_conn:
         raise ValueError("MONGO_FRONTEND_connectionString not set")
 
+    # Build provider filter from states config.
+    # states may be a list ["DE", "MS"] or a dict {"mode": "include", "list": [...]}
+    states = config.get("states")
+    if isinstance(states, dict):
+        state_list = states.get("list", [])
+        mode = states.get("mode", "include")
+    elif isinstance(states, list):
+        state_list = states
+        mode = "include"
+    else:
+        state_list = []
+        mode = "include"
+
+    if state_list and mode == "include":
+        provider_query = {"practice_address.state": {"$in": state_list}}
+    elif state_list and mode == "exclude":
+        provider_query = {"practice_address.state": {"$nin": state_list}}
+    else:
+        provider_query = None  # no providers copied unless states specified
+
     pipeline_client = MongoClient(pipeline_conn,  serverSelectionTimeoutMS=30_000)
     frontend_client = MongoClient(frontend_conn,  serverSelectionTimeoutMS=30_000)
 
     results = []
     try:
-        for src_db, src_coll, dst_db, dst_coll in COLLECTIONS:
+        for src_db, src_coll, dst_db, dst_coll in _STATIC_COLLECTIONS:
             logging.info("=== %s.%s → frontend:%s.%s ===", src_db, src_coll, dst_db, dst_coll)
             results.append(_copy_collection(
                 pipeline_client[src_db], frontend_client[dst_db], src_coll, dst_coll
+            ))
+
+        if provider_query is not None:
+            logging.info("=== providers_staging → frontend:PublicHealthData.providers_staging (states: %s) ===", state_list)
+            results.append(_copy_collection(
+                pipeline_client["PublicHealthData"],
+                frontend_client["PublicHealthData"],
+                "providers_staging",
+                "providers_staging",
+                query=provider_query,
             ))
     finally:
         pipeline_client.close()

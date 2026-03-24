@@ -13,6 +13,7 @@ Primary users: network managers and healthcare administrators.
 ## Implementation
 
 - `Code/DataPipelines/provider_embedding.py` — `should_embed()`, `project()`, `render()`
+- `Code/DataPipelines/embedding_worker.py` — `EmbeddingWorker`, retry/backoff, version stamping
 - `Code/DataPipelines/tests/test_provider_embedding.py` — 41 unit tests, all passing
 - `Code/Schemas/ChatHealthy.Providers.json` — source of truth for the provider record schema
 
@@ -185,13 +186,73 @@ foreign_provider: yes
 
 ---
 
+## Versioning
+
+Each embedded document is stamped with:
+
+| Field | Example | Description |
+|---|---|---|
+| `embedding_version` | `"0.1"` | Projection + model version. Bump when either changes. |
+| `embedding_model` | `"text-embedding-3-large"` | Exact model used to generate the embedding. |
+
+**Idempotency rule:** a document is skipped if `embedding_version` already matches the requested version. Re-embedding requires either a version bump or an explicit version override in the API payload.
+
+**Backfill:** the `StampEmbeddingVersion` Router task backfills `embedding_version` and `embedding_model` onto records embedded before version stamping was introduced. Idempotent — skips already-stamped records.
+
+**Version history:**
+
+| Version | Model | Date | Notes |
+|---|---|---|---|
+| `0.1` | `text-embedding-3-large` | 2026-03-24 | Initial alpha — DE+MS test run |
+
+---
+
+## Concurrency and Rate Limiting
+
+### First run post-mortem (2026-03-24)
+
+The first embedding run (DE+MS, instance `ebc366fa`) stalled at ~32% due to OpenAI TPM exhaustion.
+
+**Root cause:** 32 workers fanned out simultaneously, each sending 500-doc batches (~60–80K tokens each). This exhausted the 1M TPM allowance almost instantly. Workers that fired first embedded ~1,500 records each; workers that fired last embedded near zero.
+
+**Aggravating factor:** `_pipeline_resume()` was called on any batch exception including 429, silently skipping rate-limited batches instead of retrying them.
+
+### Fixes implemented
+
+| Fix | Implementation |
+|---|---|
+| Retry on 429 | `_pipeline_process` catches `openai.RateLimitError`, retries up to 5× with exponential backoff. Honors `Retry-After` header when present. |
+| Cursor never advances on 429 | Retry loop wraps only the API call. `_pipeline_resume()` (skip) is only reached after retry exhaustion. |
+| `embed_workers` separated from `num_workers` | Embedding fan-out uses `embed_workers` (default 8). Load workers use `num_workers` (default 32). These are independent concerns. |
+| Smaller batch size | `embed_batch_size` default reduced from 500 → 100 docs/batch. |
+| Startup jitter | Each worker sleeps a random `[0, embed_initial_jitter]` seconds before first API call (default 5s). Prevents synchronized burst at t=0. |
+
+### API parameters (embedding step)
+
+| Parameter | Default | Description |
+|---|---|---|
+| `embed_workers` | `8` | Number of concurrent embedding workers |
+| `embed_batch_size` | `100` | Documents per OpenAI batch |
+| `embed_model` | `"text-embedding-3-large"` | Must be in `SUPPORTED_EMBED_MODELS` — abends on unsupported value |
+| `embed_initial_jitter` | `5.0` | Max startup delay in seconds per worker |
+
+### Model validation
+
+`SUPPORTED_EMBED_MODELS` in `embedding_worker.py` maps model name → vector dimensions. Passing an unsupported model raises `ValueError` immediately in `__init__` — the activity fails before touching OpenAI or MongoDB. New models must be added to the whitelist explicitly after end-to-end validation.
+
+### Token usage tracking
+
+Each worker accumulates `response.usage.total_tokens` per batch and returns `total_tokens` in its result. The orchestrator aggregates across all workers and includes `total_tokens` in the pipeline result. Useful for cost tracking and model comparison.
+
+---
+
 ## Non-Goals (Alpha/MVP)
 
 - No multiple embeddings (one projection, all users)
 - No consumer vs. enterprise split
-- No schema changes to the provider record
 - No raw JSON embedding
 - `authorized_official_telephone_number` excluded — contact info, not a search signal
+- No TPM-aware governor (future: estimate tokens/batch, throttle dynamically)
 
 ---
 
@@ -254,6 +315,7 @@ Rationale:
 
 ### Implementation
 
-- `EMBED_MODEL = "text-embedding-3-large"` in `embedding_worker.py`
+- `EMBED_MODEL = "text-embedding-3-large"`, `EMBED_VERSION = "0.1"` in `embedding_worker.py`
+- `SUPPORTED_EMBED_MODELS = {"text-embedding-3-large": 3072}` — whitelist, abend on unsupported
 - `numDimensions = 3072` in `provider_load_manager.py`
-- Not yet deployed or run.
+- First run: DE+MS test, instance `ebc366fa`, 2026-03-24. Partial (~32%) due to TPM exhaustion — see post-mortem above.

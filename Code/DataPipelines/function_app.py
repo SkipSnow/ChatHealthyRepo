@@ -70,6 +70,7 @@ from provider_load_manager import (
     provider_worker_fn,
     reconcile_fn,
     report_fn,
+    stamp_embedding_version_fn,
     write_metadata_fn,
 )
 
@@ -83,6 +84,7 @@ SYNC_TASK_HANDLERS = {
     "LoadICD10": load_icd10,
     "CopyToFrontEnd": run_copy_to_frontend,
     "CheckMongoHealth": check_mongo_health,
+    "StampEmbeddingVersion": stamp_embedding_version_fn,
 }
 
 # Asynchronous tasks — start a Durable orchestrator, return 202 + status URL

@@ -485,6 +485,30 @@ def embed_worker_fn(config: dict) -> dict:
     return EmbeddingWorker(config).pipeline_execute()
 
 
+def stamp_embedding_version_fn(config: dict) -> dict:
+    """Backfill embedding_version and embedding_model onto already-embedded records
+    that predate version stamping. Idempotent — skips records already stamped.
+    """
+    from embedding_worker import EMBED_VERSION, EMBED_MODEL
+    staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
+    db_name, coll_name = staging_collection.split(".", 1)
+    collection = _get_mongo_client()[db_name][coll_name]
+
+    result = collection.update_many(
+        {"embedding": {"$exists": True}, "embedding_version": {"$exists": False}},
+        {"$set": {"embedding_version": EMBED_VERSION, "embedding_model": EMBED_MODEL}},
+    )
+    logging.info(
+        "StampEmbeddingVersion: %d records stamped with version=%s model=%s",
+        result.modified_count, EMBED_VERSION, EMBED_MODEL,
+    )
+    return {
+        "stamped": result.modified_count,
+        "embedding_version": EMBED_VERSION,
+        "embedding_model": EMBED_MODEL,
+    }
+
+
 def create_vector_index_fn(config: dict) -> dict:
     """Create Atlas Vector Search index on providers_staging. Idempotent."""
     staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
@@ -622,9 +646,12 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     # and require OpenAI; skip unless intentionally requested).
     embed_results = []
     if start_step <= 8 and config.get("embedding_enabled", False):
-        num_workers = config.get("num_workers", 32)
+        # embed_workers is independent of num_workers (load workers).
+        # Embedding is governed by OpenAI TPM budget, not internal compute.
+        # Default 8 — conservative enough to avoid 429 storms at 100 docs/batch.
+        embed_workers = config.get("embed_workers", 8)
         staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
-        context.set_custom_status(f"Step 8/8: Generating embeddings ({num_workers} workers)")
+        context.set_custom_status(f"Step 8/8: Generating embeddings ({embed_workers} workers)")
         embed_tasks = [
             context.call_activity(
                 "embed_worker_activity",
@@ -632,18 +659,22 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
                     "worker_id": i + 1,
                     "staging_collection": staging_collection,
                     "states": config.get("states"),
+                    "embed_model": config.get("embed_model", "text-embedding-3-large"),
+                    "embed_batch_size": config.get("embed_batch_size", 100),
+                    "embed_initial_jitter": config.get("embed_initial_jitter", 5.0),
                 },
             )
-            for i in range(num_workers)
+            for i in range(embed_workers)
         ]
         embed_results = yield context.task_all(embed_tasks)
 
-        context.set_custom_status("Step 8/8: Creating vector search index")
+        context.set_custom_status(f"Step 8/8: Creating vector search index")
         yield context.call_activity(
             "create_vector_index_activity", {"staging_collection": staging_collection}
         )
 
     total_embedded = sum(r.get("embedded", 0) for r in embed_results)
+    total_tokens = sum(r.get("total_tokens", 0) for r in embed_results)
     pass3_enriched = pass3_result.get("pass3_modified", 0) if pass3_result else 0
     enrich_status = (
         "complete" if reconcile and reconcile["match"]
@@ -660,7 +691,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         "load": load_result,
         "enrichment": reconcile,
         "pass3": pass3_result,
-        "embeddings": {"total_embedded": total_embedded},
+        "embeddings": {"total_embedded": total_embedded, "total_tokens": total_tokens},
     }
 
 
