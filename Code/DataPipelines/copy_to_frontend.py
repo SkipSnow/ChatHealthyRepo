@@ -70,6 +70,34 @@ def _copy_collection(src_db, dst_db, src_coll: str, dst_coll: str) -> dict:
     return {"collection": label, "copied": copied}
 
 
+def snapshot_collection_fn(config: dict) -> dict:
+    """Server-side copy of a PublicHealthData collection using aggregate $out.
+
+    No data moves over the wire — MongoDB copies internally.
+    Replaces destination if it already exists.
+    """
+    source = config.get("source", "providers_staging")
+    destination = config.get("destination")
+    if not destination:
+        raise ValueError("snapshot: 'destination' collection name is required in payload")
+
+    conn = os.environ.get("MONGO_connectionString")
+    if not conn:
+        raise ValueError("MONGO_connectionString not set")
+
+    client = MongoClient(conn, serverSelectionTimeoutMS=30_000)
+    try:
+        db = client["PublicHealthData"]
+        count_before = db[source].count_documents({})
+        logging.info("Snapshot: %s (%s docs) → %s", source, f"{count_before:,}", destination)
+        list(db[source].aggregate([{"$out": destination}], allowDiskUse=True))
+        count_after = db[destination].count_documents({})
+        logging.info("Snapshot complete: %s → %s (%s docs)", source, destination, f"{count_after:,}")
+        return {"source": source, "destination": destination, "source_count": count_before, "copied": count_after}
+    finally:
+        client.close()
+
+
 def run_copy_to_frontend(config: dict) -> dict:
     pipeline_conn  = os.environ.get("MONGO_connectionString")
     frontend_conn  = os.environ.get("MONGO_FRONTEND_connectionString")
