@@ -51,17 +51,28 @@ jobs:
           APP_URL="https://${{ secrets.AZURE_FUNCTION_APP_NAME }}.azurewebsites.net"
           BASE="${APP_URL}/runtime/webhooks/durabletask/instances?taskHub=DevPipelineManagmentService&code=${MASTER_KEY}"
 
-          # Allow up to 90s for Flex Consumption cold start before first query.
-          # --max-time applies to the entire operation including retries, so it must
-          # exceed (retry-delay × retries) + per-attempt response time.
-          # 120s = 4 retries × 10s delay + 80s for actual responses.
-          sleep 90
+          # Poll until the app responds or 3 minutes elapse (Flex Consumption cold start).
+          # Each attempt: 20s timeout. Retry every 20s. Up to 9 attempts = 180s max.
+          query_instances() {
+            local status=$1
+            local deadline=$((SECONDS + 180))
+            while [ $SECONDS -lt $deadline ]; do
+              resp=$(curl -s --max-time 20 "${BASE}&runtimeStatus=${status}" 2>/dev/null)
+              if echo "$resp" | python3 -c "import sys,json; d=json.load(sys.stdin); isinstance(d,list) or sys.exit(1)" 2>/dev/null; then
+                echo "$resp"
+                return 0
+              fi
+              echo "Waiting for app warm-up (${status})..."
+              sleep 20
+            done
+            return 1
+          }
 
-          RUNNING_RESP=$(curl -s --max-time 120 --fail --retry 4 --retry-delay 10 --retry-all-errors "${BASE}&runtimeStatus=Running") || {
+          RUNNING_RESP=$(query_instances "Running") || {
             echo "DEPLOY BLOCKED: Could not query running instances — cannot verify safety."
             exit 1
           }
-          PENDING_RESP=$(curl -s --max-time 120 --fail --retry 4 --retry-delay 10 --retry-all-errors "${BASE}&runtimeStatus=Pending") || {
+          PENDING_RESP=$(query_instances "Pending") || {
             echo "DEPLOY BLOCKED: Could not query pending instances — cannot verify safety."
             exit 1
           }
