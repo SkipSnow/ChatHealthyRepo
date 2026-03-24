@@ -64,11 +64,20 @@ On safety trigger:
 - Session is permanently locked: every subsequent message in the session
   also returns the emergency response, regardless of content
 
+**Dual lock implementation** (belt-and-suspenders):
+- IP-based lock: module-level dict, 1-hour expiry, survives Gradio session restarts
+- Session-history lock: checks conversation history for the emergency response string;
+  survives container restarts and multi-worker environments where the IP dict may be lost
+
 ### 5. Fixed Response
 
 Emergency response is hardcoded — no variation allowed:
 
-> "This may be a medical emergency. Call 911 or go to the nearest emergency room immediately. Do not wait."
+> **Call 911 or go to the nearest emergency room immediately. Do not wait.**
+>
+> **This chat has been suspended.**
+
+The response is bold and definitive. "May be" language is removed — the message makes no hedges.
 
 ### 6. Failure Default
 

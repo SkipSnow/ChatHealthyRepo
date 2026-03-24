@@ -29,8 +29,8 @@ SUPPORTED_STATES = {"DE", "MS"}
 
 # Rule 5: Fixed response — no variation allowed
 EMERGENCY_RESPONSE = (
-    "This may be a medical emergency. Call 911 or go to the nearest "
-    "emergency room immediately. Do not wait."
+    "**Call 911 or go to the nearest emergency room immediately. Do not wait.**\n\n"
+    "**This chat has been suspended.**"
 )
 
 # Rule 3: Rule-based signal list
@@ -82,6 +82,19 @@ def _admin_unlock(message: str, ip: str) -> bool:
         print(f"SAFETY admin unlock: {ip} (was_locked={was_locked})", flush=True)
         return True
     return False
+
+
+def _session_is_locked(history: list) -> bool:
+    """Returns True if this session already contains the emergency response.
+
+    Fallback lock that works even if the IP dict is lost (container restart,
+    multi-worker environment). If the emergency response is in the history,
+    the session is permanently locked regardless of IP state.
+    """
+    return any(
+        m.get("role") == "assistant" and EMERGENCY_RESPONSE in str(m.get("content", ""))
+        for m in history
+    )
 
 
 def _safety_check(message: str) -> bool:
@@ -858,8 +871,9 @@ class Me:
             return "Session unlocked."
 
         # SAFETY GATE — Rule 4: hard stop, runs first, no exceptions.
-        # IP lock persists for 1 hour across sessions. No going back.
-        if _is_ip_locked(ip) or _safety_check(message):
+        # Dual lock: IP-based (cross-session, 1hr) + session-history (within session).
+        # Session lock is the fallback for multi-worker / container-restart scenarios.
+        if _is_ip_locked(ip) or _session_is_locked(history) or _safety_check(message):
             _lock_ip(ip)
             return EMERGENCY_RESPONSE
 
@@ -894,7 +908,7 @@ if __name__ == "__main__":
     welcome = (
         "**Welcome to ChatHealthy FindCare**\n\n"
         "Here's what I can help you with:\n\n"
-        "- **Find a doctor** — search for providers in Delaware or Mississippi by specialty or condition\n"
+        "- **Find a doctor** — search for providers in **Delaware** or **Mississippi** by specialty or condition\n"
         "- **Identify the right specialty** — not sure what kind of doctor you need? Describe your situation\n"
         "- **Clinical trials** — find recruiting research studies for any condition\n"
         "- **About ChatHealthy** — our mission, team, and platform\n\n"
