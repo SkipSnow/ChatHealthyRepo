@@ -2,10 +2,12 @@
   "$schema": "https://json-schema.org/draft-07/schema#",
   "$id": "https://chathealthy.ai/schemas/ChatHealthy.Providers.json",
   "title": "Provider",
-  "description": "A healthcare provider record in providers_staging / providers_enriched. Source: NPPES NPI Registry (CMS). Enriched by the FindCare DataPipelines county enrichment job. Draft 07 — the most contemporary JSON Schema version supported by MongoDB $jsonSchema validators. To use as a MongoDB collection validator, replace 'type' with 'bsonType' throughout (e.g. 'type: string' → 'bsonType: string', 'type: integer' → 'bsonType: int' or 'bsonType: long').",
+  "description": "A healthcare provider record in providers_staging / providers_enriched. Source: NPPES NPI Registry (CMS). Enriched by the FindCare DataPipelines county enrichment job. Draft 07 — the most contemporary JSON Schema version supported by MongoDB $jsonSchema validators. To use as a MongoDB collection validator, replace 'type' with 'bsonType' throughout (e.g. 'type: string' → 'bsonType: string', 'type: integer' → 'bsonType: int' or 'bsonType: long'). NOTE: All entity-type-specific fields (individual vs. organization) are declared in top-level 'properties' so that additionalProperties: false can evaluate them. The if/then/else block enforces which fields are *required* per entity type — it does not restrict which fields are *allowed*.",
   "type": "object",
 
   "required": ["npi", "entity_type_code", "county", "load_id", "record_id"],
+
+  "additionalProperties": false,
 
   "properties": {
 
@@ -158,6 +160,119 @@
       "description": "Index of the pipeline worker that loaded this record (0-based). Used for debugging load distribution.",
       "type": "integer",
       "minimum": 0
+    },
+
+    "provider_last_name_legal_name": {
+      "description": "Provider's legal last name as registered with CMS. Required when entity_type_code = '1' (individual).",
+      "type": "string"
+    },
+
+    "provider_first_name": {
+      "description": "Provider's first name. Required when entity_type_code = '1' (individual).",
+      "type": "string"
+    },
+
+    "provider_middle_name": {
+      "description": "Provider's middle name or initial. Optional. Only present on individual records (entity_type_code = '1').",
+      "type": "string"
+    },
+
+    "provider_name_prefix_text": {
+      "description": "Name prefix (e.g. 'Dr.', 'Mr.'). Optional. Only present on individual records.",
+      "type": "string"
+    },
+
+    "provider_name_suffix_text": {
+      "description": "Name suffix (e.g. 'Jr.', 'III'). Optional. Only present on individual records.",
+      "type": "string"
+    },
+
+    "provider_credential_text": {
+      "description": "Professional credential suffix (e.g. 'M.D.', 'D.O.', 'R.N.'). Optional. Only present on individual records.",
+      "type": "string",
+      "examples": ["M.D.", "D.O.", "R.N.", "Ph.D."]
+    },
+
+    "provider_sex_code": {
+      "description": "Provider sex as reported to CMS. Optional — not required by NPPES. Only present on individual records.",
+      "type": "string",
+      "enum": ["M", "F"]
+    },
+
+    "is_sole_proprietor": {
+      "description": "Whether the individual provider operates as a sole proprietor ('Y'/'N'). Only present on individual records (entity_type_code = '1').",
+      "type": "string",
+      "enum": ["Y", "N"]
+    },
+
+    "provider_organization_name_legal_business_name": {
+      "description": "Legal business name of the organization. Required when entity_type_code = '2' (organization).",
+      "type": "string",
+      "examples": ["WALMART INC.", "MAYO CLINIC"]
+    },
+
+    "provider_other_organization_name": {
+      "description": "Alternate or DBA name for the organization. May be '<UNAVAIL>' if not provided. Only present on organization records.",
+      "type": "string"
+    },
+
+    "provider_other_organization_name_type_code": {
+      "description": "Type code for provider_other_organization_name. '3' = Former name, '4' = Professional name, '5' = Doing Business As, '6' = Former legal business name. Only present on organization records.",
+      "type": "string",
+      "enum": ["3", "4", "5", "6"]
+    },
+
+    "employer_identification_number_ein": {
+      "description": "Federal EIN for the organization. May be '<UNAVAIL>' if CMS was unable to obtain it. Only present on organization records.",
+      "type": "string"
+    },
+
+    "is_organization_subpart": {
+      "description": "Whether this organization is a subpart of a larger organization ('Y'/'N'). Only present on organization records.",
+      "type": "string",
+      "enum": ["Y", "N"]
+    },
+
+    "parent_organization_lbn": {
+      "description": "Legal business name of the parent organization. Present only if is_organization_subpart = 'Y'.",
+      "type": "string"
+    },
+
+    "parent_organization_tin": {
+      "description": "Tax Identification Number of the parent organization. Present only if is_organization_subpart = 'Y'.",
+      "type": "string"
+    },
+
+    "authorized_official_last_name": {
+      "description": "Last name of the authorized official responsible for the NPI record. Only present on organization records.",
+      "type": "string"
+    },
+
+    "authorized_official_first_name": {
+      "description": "First name of the authorized official. Only present on organization records.",
+      "type": "string"
+    },
+
+    "authorized_official_middle_name": {
+      "description": "Middle name of the authorized official. Optional. Only present on organization records.",
+      "type": "string"
+    },
+
+    "authorized_official_title_or_position": {
+      "description": "Job title or position of the authorized official. Only present on organization records.",
+      "type": "string",
+      "examples": ["DIRECTOR OF HEALTHCARE CONTRACTING", "CEO", "CHIEF MEDICAL OFFICER"]
+    },
+
+    "authorized_official_telephone_number": {
+      "description": "Phone number of the authorized official. Digits only, no formatting. Only present on organization records.",
+      "type": "string",
+      "pattern": "^[0-9]+$"
+    },
+
+    "authorized_official_credential_text": {
+      "description": "Professional credential of the authorized official. Optional. Only present on organization records.",
+      "type": "string"
     }
   },
 
@@ -165,110 +280,12 @@
     "properties": { "entity_type_code": { "const": "1" } }
   },
   "then": {
-    "description": "Fields present on individual provider records (entity_type_code = '1').",
-    "required": ["provider_last_name_legal_name", "provider_first_name"],
-    "properties": {
-
-      "provider_last_name_legal_name": {
-        "description": "Provider's legal last name as registered with CMS.",
-        "type": "string"
-      },
-      "provider_first_name": {
-        "description": "Provider's first name.",
-        "type": "string"
-      },
-      "provider_middle_name": {
-        "description": "Provider's middle name or initial. Optional.",
-        "type": "string"
-      },
-      "provider_name_prefix_text": {
-        "description": "Name prefix (e.g. 'Dr.', 'Mr.'). Optional.",
-        "type": "string"
-      },
-      "provider_name_suffix_text": {
-        "description": "Name suffix (e.g. 'Jr.', 'III'). Optional.",
-        "type": "string"
-      },
-      "provider_credential_text": {
-        "description": "Professional credential suffix (e.g. 'M.D.', 'D.O.', 'R.N.'). Optional.",
-        "type": "string",
-        "examples": ["M.D.", "D.O.", "R.N.", "Ph.D."]
-      },
-      "provider_sex_code": {
-        "description": "Provider sex as reported to CMS. Optional — not required by NPPES.",
-        "type": "string",
-        "enum": ["M", "F"]
-      },
-      "is_sole_proprietor": {
-        "description": "Whether the individual provider operates as a sole proprietor ('Y'/'N').",
-        "type": "string",
-        "enum": ["Y", "N"]
-      }
-    }
+    "description": "Individual provider (entity_type_code = '1'): last name and first name are required.",
+    "required": ["provider_last_name_legal_name", "provider_first_name"]
   },
   "else": {
-    "description": "Fields present on organization records (entity_type_code = '2').",
-    "required": ["provider_organization_name_legal_business_name"],
-    "properties": {
-
-      "provider_organization_name_legal_business_name": {
-        "description": "Legal business name of the organization.",
-        "type": "string",
-        "examples": ["WALMART INC.", "MAYO CLINIC"]
-      },
-      "provider_other_organization_name": {
-        "description": "Alternate or DBA name for the organization. May be '<UNAVAIL>' if not provided.",
-        "type": "string"
-      },
-      "provider_other_organization_name_type_code": {
-        "description": "Type code for provider_other_organization_name. '3' = Former name, '4' = Professional name, '5' = Doing Business As, '6' = Former legal business name.",
-        "type": "string",
-        "enum": ["3", "4", "5", "6"]
-      },
-      "employer_identification_number_ein": {
-        "description": "Federal EIN for the organization. May be '<UNAVAIL>' if CMS was unable to obtain it.",
-        "type": "string"
-      },
-      "is_organization_subpart": {
-        "description": "Whether this organization is a subpart of a larger organization ('Y'/'N').",
-        "type": "string",
-        "enum": ["Y", "N"]
-      },
-      "parent_organization_lbn": {
-        "description": "Legal business name of the parent organization. Present only if is_organization_subpart = 'Y'.",
-        "type": "string"
-      },
-      "parent_organization_tin": {
-        "description": "Tax Identification Number of the parent organization. Present only if is_organization_subpart = 'Y'.",
-        "type": "string"
-      },
-      "authorized_official_last_name": {
-        "description": "Last name of the authorized official responsible for the NPI record.",
-        "type": "string"
-      },
-      "authorized_official_first_name": {
-        "description": "First name of the authorized official.",
-        "type": "string"
-      },
-      "authorized_official_middle_name": {
-        "description": "Middle name of the authorized official. Optional.",
-        "type": "string"
-      },
-      "authorized_official_title_or_position": {
-        "description": "Job title or position of the authorized official.",
-        "type": "string",
-        "examples": ["DIRECTOR OF HEALTHCARE CONTRACTING", "CEO", "CHIEF MEDICAL OFFICER"]
-      },
-      "authorized_official_telephone_number": {
-        "description": "Phone number of the authorized official. Digits only, no formatting.",
-        "type": "string",
-        "pattern": "^[0-9]+$"
-      },
-      "authorized_official_credential_text": {
-        "description": "Professional credential of the authorized official. Optional.",
-        "type": "string"
-      }
-    }
+    "description": "Organization (entity_type_code = '2'): legal business name is required.",
+    "required": ["provider_organization_name_legal_business_name"]
   },
 
   "definitions": {
@@ -398,7 +415,5 @@
       "then": { "required": ["reason"] },
       "else": { "required": ["fips"] }
     }
-  },
-
-  "additionalProperties": true
+  }
 }
