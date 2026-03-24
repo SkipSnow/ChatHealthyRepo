@@ -21,6 +21,80 @@ load_dotenv(override=True)
 
 SUPPORTED_STATES = {"DE", "MS"}
 
+# ──────────────────────────────────────────────────────────────────────────────
+# SAFETY DIRECTIVE — Authority: Skip the Boss — 2026-03-24
+# Hard system invariant. Do not modify without explicit approval.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Rule 5: Fixed response — no variation allowed
+EMERGENCY_RESPONSE = (
+    "This may be a medical emergency. Call 911 or go to the nearest "
+    "emergency room immediately. Do not wait."
+)
+
+# Rule 3: Rule-based signal list
+EMERGENCY_KEYWORDS = [
+    "chest pain", "chest tightness", "heart attack",
+    "can't breathe", "cannot breathe", "difficulty breathing", "trouble breathing",
+    "not breathing", "stopped breathing",
+    "stroke", "face drooping", "arm weakness", "sudden numbness",
+    "severe bleeding", "bleeding out", "won't stop bleeding",
+    "unconscious", "passed out", "unresponsive",
+    "overdose", "took too many", "took too much",
+    "suicide", "suicidal", "kill myself", "end my life",
+    "seizure", "convulsing",
+    "severe allergic reaction", "anaphylaxis", "throat closing",
+    "choking",
+]
+
+
+def _safety_check(message: str) -> bool:
+    """Dual detection: keyword rules + Haiku semantic check.
+
+    Returns True if emergency escalation is required.
+    If EITHER detector triggers → True.
+    If any failure → True (Rule 6: failure default is escalation).
+    """
+    msg_lower = message.lower()
+
+    # Rule 3a: keyword detection
+    keyword_hit = any(kw in msg_lower for kw in EMERGENCY_KEYWORDS)
+
+    # Rule 3b: AI semantic detection (Haiku)
+    ai_hit = False
+    try:
+        client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=64,
+            messages=[{"role": "user", "content": (
+                "Is this message potentially a medical emergency requiring immediate action "
+                "(call 911 or go to ER)?\n"
+                "Return ONLY valid JSON: {\"emergency\": true|false, \"confidence\": 0.0-1.0}\n\n"
+                f"Message: {message}"
+            )}],
+        )
+        raw = resp.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
+        result = json.loads(raw)
+        ai_hit = bool(result.get("emergency", False))
+        print(
+            f"SAFETY keyword={keyword_hit} ai={ai_hit} "
+            f"confidence={result.get('confidence', 0):.2f} "
+            f"triggered={keyword_hit or ai_hit}",
+            flush=True,
+        )
+    except Exception as exc:
+        # Rule 6: failure default -> escalate
+        print(f"SAFETY check failed ({exc}) -> defaulting to escalation", flush=True)
+        return True
+
+    return keyword_hit or ai_hit
+
 # MongoDB - lazy connection (connects on first use; app starts even if Mongo is unreachable)
 _mongo_conn_str = os.getenv("MONGO_connectionString") or ""
 DBManager = ChatHealthyMongoUtilities(
@@ -640,6 +714,7 @@ class Me:
     def __init__(self):
         self.openai = OpenAI()
         self.name = "Skip Snow"
+        self._emergency_triggered = False  # once True, stays True for session
         self.website = "ChatHealthy.AI"
         reader = PdfReader(os.path.join(_ME_DIR, "SkipSnowLinkedInProfile.pdf"))
         self.linkedin = ""
@@ -679,11 +754,10 @@ class Me:
             f"Be professional and engaging, as if talking to a potential client or future employer who came across the website. "
             f"\n\n## STRICT ANSWER RULES — NO EXCEPTIONS\n"
             f"RULE 0 — EMERGENCY: If the user describes ANY symptom or situation that could be a medical emergency "
-            f"(chest pain, difficulty breathing, stroke symptoms such as face drooping or sudden numbness, "
-            f"severe bleeding, loss of consciousness, seizure, severe allergic reaction, thoughts of self-harm, "
-            f"or any situation where life may be at risk), STOP immediately. "
-            f"Do not use any tool. Respond ONLY with: "
-            f"'This sounds like a medical emergency. Please call 911 immediately or go to your nearest Emergency Room. Do not wait.' "
+            f"(chest pain, difficulty breathing, stroke symptoms, severe bleeding, loss of consciousness, "
+            f"seizure, severe allergic reaction, overdose, suicidal thoughts, or any life-threatening situation), "
+            f"STOP immediately. Do not use any tool. Respond ONLY with the exact text: "
+            f"'{EMERGENCY_RESPONSE}' "
             f"Do not continue the conversation until the user confirms they are safe.\n"
             f"RULE 1 — SOURCE RESTRICTION: You may ONLY answer from facts explicitly stated in the Summary, LinkedIn, and Anthropic documents provided below. "
             f"You must NEVER use your general training knowledge to answer. If it is not in the documents, you do not know it.\n"
@@ -737,6 +811,13 @@ class Me:
         )
 
     def chat(self, message, history):
+        # SAFETY GATE — Rule 4: hard stop, runs first, no exceptions.
+        # Once triggered, every subsequent response in this session is the
+        # emergency response — no going back.
+        if self._emergency_triggered or _safety_check(message):
+            self._emergency_triggered = True
+            return EMERGENCY_RESPONSE
+
         messages = [{"role": "system", "content": self.system_prompt()}] + history
         user_msg_count = sum(1 for m in history if m.get("role") == "user")
         if user_msg_count > 0 and user_msg_count % 5 == 0:
