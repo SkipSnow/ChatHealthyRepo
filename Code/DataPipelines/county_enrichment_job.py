@@ -459,12 +459,14 @@ def enrich_by_zip_batch_fn(config: dict) -> dict:
 
 
 def mark_out_of_scope_fn(config: dict) -> dict:
-    """Mark deactivated and foreign providers as out_of_scope before geocoding.
+    """Mark providers the Census geocoder cannot resolve as out_of_scope.
 
-    These providers have county.fips = null but the Census geocoder cannot
-    resolve them:
-    - Deactivated: npi_deactivation_date set without a later reactivation date
-    - Foreign: practice_address.country set (Census geocoder is US-only)
+    Three conditions:
+    - No address: both practice_address and mailing_address are absent —
+      no location to geocode.
+    - Foreign: practice_address.country is set and is not "US" (NPPES sets
+      "US" for all domestic providers; non-US values indicate foreign providers).
+    - Deactivated: npi_deactivation_date set without a later reactivation date.
 
     Sets county = {fips: null, source: "out_of_scope"} so they are excluded
     from all subsequent geocoder passes and clearly visible in reporting.
@@ -477,19 +479,24 @@ def mark_out_of_scope_fn(config: dict) -> dict:
             "county.fips": None,
             "county.source": {"$nin": ["geocoder_failed", "geocoder_no_address", "out_of_scope"]},
             "$or": [
+                # No address in either container — Census geocoder has nothing to work with
+                {
+                    "practice_address": {"$exists": False},
+                    "mailing_address": {"$exists": False},
+                },
+                # Foreign provider (NPPES sets "US" for domestic; flag only non-US)
+                {"practice_address.country": {"$exists": True, "$ne": "US"}},
                 # Deactivated with no reactivation
                 {
                     "npi_deactivation_date": {"$exists": True},
                     "npi_reactivation_date": {"$exists": False},
                 },
-                # Foreign provider (NPPES sets "US" for domestic; flag only non-US)
-                {"practice_address.country": {"$exists": True, "$ne": "US"}},
             ],
         },
         {"$set": {"county": {"fips": None, "source": "out_of_scope"}}},
     )
     logging.info(
-        "Marked %d providers as out_of_scope (inactive or foreign)", result.modified_count
+        "Marked %d providers as out_of_scope (no address, foreign, or deactivated)", result.modified_count
     )
     return {"marked_out_of_scope": result.modified_count}
 
