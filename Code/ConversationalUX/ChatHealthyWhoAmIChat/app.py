@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import requests
+import time
 from datetime import datetime
 from pypdf import PdfReader
 import gradio as gr
@@ -46,6 +47,41 @@ EMERGENCY_KEYWORDS = [
     "severe allergic reaction", "anaphylaxis", "throat closing",
     "choking",
 ]
+
+
+# IP-based emergency lock — persists across Gradio sessions for 1 hour
+_ip_emergency_locks: dict[str, float] = {}  # ip -> expiry (time.time() + 3600)
+_EMERGENCY_LOCK_SECONDS = 3600
+
+# Backdoor: set ADMIN_UNLOCK_KEY env var; send exactly "UNLOCK:<key>" to release an IP
+_ADMIN_UNLOCK_KEY = os.getenv("ADMIN_UNLOCK_KEY", "")
+
+
+def _is_ip_locked(ip: str) -> bool:
+    expiry = _ip_emergency_locks.get(ip)
+    if expiry is None:
+        return False
+    if time.time() < expiry:
+        return True
+    del _ip_emergency_locks[ip]  # expired — clean up
+    return False
+
+
+def _lock_ip(ip: str) -> None:
+    _ip_emergency_locks[ip] = time.time() + _EMERGENCY_LOCK_SECONDS
+    print(f"SAFETY IP locked: {ip} for {_EMERGENCY_LOCK_SECONDS}s", flush=True)
+
+
+def _admin_unlock(message: str, ip: str) -> bool:
+    """Returns True if message is a valid admin unlock command and clears the lock."""
+    if not _ADMIN_UNLOCK_KEY:
+        return False
+    if message.strip() == f"UNLOCK:{_ADMIN_UNLOCK_KEY}":
+        was_locked = ip in _ip_emergency_locks
+        _ip_emergency_locks.pop(ip, None)
+        print(f"SAFETY admin unlock: {ip} (was_locked={was_locked})", flush=True)
+        return True
+    return False
 
 
 def _safety_check(message: str) -> bool:
@@ -714,7 +750,6 @@ class Me:
     def __init__(self):
         self.openai = OpenAI()
         self.name = "Skip Snow"
-        self._emergency_triggered = False  # once True, stays True for session
         self.website = "ChatHealthy.AI"
         reader = PdfReader(os.path.join(_ME_DIR, "SkipSnowLinkedInProfile.pdf"))
         self.linkedin = ""
@@ -810,12 +845,17 @@ class Me:
             f"With this context, please chat with the user, always staying in character as {self.name}."
         )
 
-    def chat(self, message, history):
+    def chat(self, message, history, request: gr.Request = None):
+        ip = (request.client.host if request and request.client else "unknown")
+
+        # Backdoor — must check before the lock gate
+        if _admin_unlock(message, ip):
+            return "Session unlocked."
+
         # SAFETY GATE — Rule 4: hard stop, runs first, no exceptions.
-        # Once triggered, every subsequent response in this session is the
-        # emergency response — no going back.
-        if self._emergency_triggered or _safety_check(message):
-            self._emergency_triggered = True
+        # IP lock persists for 1 hour across sessions. No going back.
+        if _is_ip_locked(ip) or _safety_check(message):
+            _lock_ip(ip)
             return EMERGENCY_RESPONSE
 
         messages = [{"role": "system", "content": self.system_prompt()}] + history
