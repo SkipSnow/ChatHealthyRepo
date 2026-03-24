@@ -205,6 +205,7 @@
           <li><a href="#website">Website — Static Layer (Cloudflare)</a></li>
           <li><a href="#three-app">Three-Application Architecture</a></li>
           <li><a href="#session-routing">Session and Routing Model</a></li>
+          <li><a href="#chat-component">Chat Component Design</a></li>
           <li><a href="#workflow">Example Workflows</a></li>
           <li><a href="#data-privacy">Data and Privacy</a></li>
           <li><a href="#devops">DevOps</a></li>
@@ -537,7 +538,114 @@
       </p>
 
       <!-- 6 -->
-      <h2 id="workflow">6. Example Workflows</h2>
+      <h2 id="chat-component">6. Chat Component Design</h2>
+      <p>
+        App 2 is currently a Gradio prototype hosted on HuggingFace. The target architecture is
+        React + FastAPI. The AI logic described here is implementation-independent and applies to both.
+      </p>
+
+      <h3>Tool-Calling Agent</h3>
+      <p>The chat backend runs an OpenAI <code>gpt-4o-mini</code> function-calling agent. Claude Haiku is used only for safety classification (see below). Tools are registered in the backend and invoked by the model during conversation.</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Tool</th><th>Purpose</th><th>Status</th></tr>
+          <tr><td><code>find_providers</code></td><td>Query providers_staging by specialty and state. Supported states: DE, MS.</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>search_clinical_trials</code></td><td>Query ClinicalTrials.gov API for recruiting trials</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>record_user_details</code></td><td>Save contact details and HIPAA-consent transcript to MongoDB</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>record_unknown_question</code></td><td>Log unhandled questions for review</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+        </table>
+      </div>
+
+      <h3>FindCare — Provider Search <span style="display:inline-block;background:#0b7a75;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">LIVE — DE, MS</span></h3>
+      <p>The LLM calls <code>find_providers</code> when the user asks to find a doctor or specialist. The tool performs a two-step MongoDB lookup: specialty name to NUCC taxonomy codes (SpecialtyMetaData collection), then taxonomy codes plus state to provider records (providers_staging).</p>
+      <div class="diagram">
+        <div class="diagram-inner">
+          <div class="d-center"><div class="d-box d-box-wide"><strong>User</strong><small>"Find a cardiologist in Delaware"</small></div></div>
+          <div class="d-down">↓</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>LLM extracts intent</strong><small>specialty="cardiologist" · state="DE"</small></div></div>
+          <div class="d-down">↓ calls find_providers()</div>
+          <div style="display:flex;justify-content:center;gap:80px;margin:4px 0;">
+            <div style="width:2px;background:var(--ink);height:16px;"></div>
+            <div style="width:2px;background:var(--ink);height:16px;"></div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:32px;margin:0 0 4px;">
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div class="d-box d-box-narrow"><strong>State: DE or MS</strong></div>
+              <div style="width:2px;background:var(--ink);height:12px;"></div>
+              <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:200px;"><strong>Specialty lookup</strong><small>SpecialtyMetaData → taxonomy codes</small></div>
+              <div style="width:2px;background:var(--ink);height:12px;"></div>
+              <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:200px;"><strong>Provider query</strong><small>providers_staging · state + taxonomy codes</small></div>
+              <div style="width:2px;background:var(--ink);height:12px;"></div>
+              <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:200px;"><strong>Provider list returned</strong><small>name · address · NPI</small></div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div class="d-box d-box-narrow"><strong>Other state</strong></div>
+              <div style="width:2px;background:var(--ink);height:12px;"></div>
+              <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:200px;"><strong>Structured decline</strong><small>Acknowledges request · explains DE/MS scope · not an error</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3>Safety System <span style="display:inline-block;background:#c0392b;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">LIVE — MANDATED</span></h3>
+      <p>Safety detection is a hard system invariant. It executes before every message — before any model call, before any tool. False positives are acceptable; false negatives are not. Policy authority: Skip Snow.</p>
+      <div class="diagram" style="border-color:var(--warn);">
+        <div class="diagram-inner">
+          <div class="d-center"><div class="d-box d-box-wide" style="border-color:var(--warn);"><strong>User Message</strong></div></div>
+          <div class="d-down" style="color:var(--warn);">↓ first — before everything</div>
+          <div class="d-center"><div class="d-box d-box-wide" style="border-color:var(--warn);color:var(--warn);"><strong>Dual Safety Detection</strong><small>Keyword match (rule-based) + Haiku semantic check — EITHER signal triggers escalation</small></div></div>
+          <div style="display:flex;justify-content:center;gap:80px;margin:4px 0;">
+            <div style="width:2px;background:var(--warn);height:16px;"></div>
+            <div style="width:2px;background:var(--ink);height:16px;"></div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:32px;margin:0 0 4px;">
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div class="d-box d-box-narrow" style="border-color:var(--warn);color:var(--warn);"><strong>Emergency signal</strong></div>
+              <div style="width:2px;background:var(--warn);height:12px;"></div>
+              <div class="d-box d-box-wide" style="border-color:var(--warn);color:var(--warn);font-size:0.82rem;min-width:220px;"><strong>Hard Stop — IP locked 1 hour</strong><small>Fixed response only · no model call · no tools · all subsequent messages locked</small></div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div class="d-box d-box-narrow"><strong>Safe</strong></div>
+              <div style="width:2px;background:var(--ink);height:12px;"></div>
+              <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:220px;"><strong>Normal flow</strong><small>Intent routing → tool calls → response</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p>
+        <strong>Fixed response</strong> (hardcoded — no variation allowed):
+        <em>"This may be a medical emergency. Call 911 or go to the nearest emergency room immediately. Do not wait."</em>
+      </p>
+      <p>
+        <strong>Failure default:</strong> if safety detection errors or times out, the system escalates — it does not continue.
+      </p>
+
+      <h3>IP Emergency Lock</h3>
+      <p>
+        When a safety trigger fires, the source IP is locked for one hour. Every subsequent message
+        from that IP returns the fixed emergency response regardless of content. The lock is held
+        in process memory and does not survive a container restart; DB persistence is planned.
+      </p>
+      <p>
+        An admin backdoor clears the lock. The backdoor key is stored in the
+        <code>ADMIN_UNLOCK_KEY</code> environment variable. The unlock command is the exact string
+        <code>UNLOCK:&lt;key&gt;</code> (case-insensitive, must be the entire message).
+        The key value is not documented here; it is set in deployment environment secrets.
+      </p>
+
+      <h3>Environment Variables — App 2</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Variable</th><th>Purpose</th><th>Notes</th></tr>
+          <tr><td><code>OPENAI_API_KEY</code></td><td>Chat agent (gpt-4o-mini)</td><td>Required</td></tr>
+          <tr><td><code>Anthropic_API_KEY</code></td><td>Safety classifier (Haiku) + summarizer</td><td>Required</td></tr>
+          <tr><td><code>MONGO_connectionString</code></td><td>MongoDB Atlas connection</td><td>Required</td></tr>
+          <tr><td><code>ADMIN_UNLOCK_KEY</code></td><td>Emergency lock backdoor — clears a locked IP</td><td>Value not documented. Set in deployment secrets.</td></tr>
+        </table>
+      </div>
+
+      <!-- 7 -->
+      <h2 id="workflow">7. Example Workflows</h2>
 
       <h3>Clinical Trial Research <span style="display:inline-block;background:#0b7a75;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">LIVE</span></h3>
       <div class="diagram">
@@ -553,7 +661,7 @@
       </div>
 
       <h3>FindCare — Symptom to Provider <span style="display:inline-block;background:#f0a500;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">ROADMAP</span></h3>
-      <p style="font-size:0.85rem;color:#4a5568;margin-bottom:12px;"><em>Not yet implemented. Planned MVP flow — symptom intake through in-network provider list.</em></p>
+      <p style="font-size:0.85rem;color:#4a5568;margin-bottom:12px;"><em>Provider search (find_providers) is live for Delaware and Mississippi — see Chat Component Design. Full triage flow — symptom intake through in-network provider list — is roadmap.</em></p>
       <div style="display:flex;gap:20px;flex-wrap:wrap;margin:0 0 8px;font-size:0.82rem;">
         <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--teal);background:#fff;border-radius:2px;flex-shrink:0;"></span>Planned</div>
       </div>
@@ -587,8 +695,8 @@
         </div>
       </div>
 
-      <!-- 7 -->
-      <h2 id="data-privacy">7. Data and Privacy</h2>
+      <!-- 8 -->
+      <h2 id="data-privacy">8. Data and Privacy</h2>
 
       <h3>HIPAA Consent Flow</h3>
       <div class="diagram">
@@ -618,8 +726,8 @@
         </table>
       </div>
 
-      <!-- 8 -->
-      <h2 id="devops">8. DevOps</h2>
+      <!-- 9 -->
+      <h2 id="devops">9. DevOps</h2>
       <div class="table-wrap">
         <table>
           <tr><th>Concern</th><th>Tool</th><th>Detail</th></tr>
@@ -635,8 +743,8 @@
         </table>
       </div>
 
-      <!-- 9 -->
-      <h2 id="pipeline-architecture">9. Data Pipeline Architecture</h2>
+      <!-- 10 -->
+      <h2 id="pipeline-architecture">10. Data Pipeline Architecture</h2>
 
       <p>Public health data (providers, specialties, ICD-10, procedures, prescriptions) is loaded
       and enriched by App 3 on a monthly cadence. The pipeline is triggered manually via POST to
@@ -770,8 +878,8 @@
         </table>
       </div>
 
-      <!-- 10 -->
-      <h2 id="environment">10. Environment &amp; Data Model</h2>
+      <!-- 11 -->
+      <h2 id="environment">11. Environment &amp; Data Model</h2>
 
       <h3>MongoDB Atlas — ChatHealthyDev Project</h3>
       <p>Two dedicated clusters, each with a distinct role. Security and access are enforced at the cluster level.</p>
@@ -843,8 +951,8 @@
         <li><strong>FrontEndUser</strong> — read-only on ChatHealthyFrontEnd; used by the chat app</li>
       </ul>
 
-      <!-- 11 -->
-      <h2 id="networking">11. Networking</h2>
+      <!-- 12 -->
+      <h2 id="networking">12. Networking</h2>
       <p>
         The DataPipelines Function App runs inside a dedicated Azure Virtual Network.
         Outbound connections to MongoDB Atlas route through the VNet via peering — traffic
@@ -894,8 +1002,8 @@
         </table>
       </div>
 
-      <!-- 12 -->
-      <h2 id="deferred">12. Deferred</h2>
+      <!-- 13 -->
+      <h2 id="deferred">13. Deferred</h2>
       <ul>
         <li><strong>CopyToRuntime + Blue-Green Collection Swap</strong> — fan-out copy of <code>providers_staging</code> → <code>providers_new</code> on ChatHealthyFrontEnd cluster, then atomic rename swap. Until implemented, runtime reads are served from the DataPipelines cluster.</li>
         <li><strong>Cluster manager agent</strong> — dedicated agent/service to start/stop the DataPipelines cluster on a schedule, fully decoupled from the pipeline itself. Current approach: manual.</li>
