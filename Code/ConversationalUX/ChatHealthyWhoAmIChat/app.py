@@ -76,7 +76,7 @@ def _admin_unlock(message: str, ip: str) -> bool:
     """Returns True if message is a valid admin unlock command and clears the lock."""
     if not _ADMIN_UNLOCK_KEY:
         return False
-    if message.strip().upper() == f"UNLOCK:{_ADMIN_UNLOCK_KEY}":
+    if message.strip().upper() == f"UNLOCK:{_ADMIN_UNLOCK_KEY.upper()}":
         was_locked = ip in _ip_emergency_locks
         _ip_emergency_locks.pop(ip, None)
         print(f"SAFETY admin unlock: {ip} (was_locked={was_locked})", flush=True)
