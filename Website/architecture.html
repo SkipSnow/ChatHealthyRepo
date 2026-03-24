@@ -411,15 +411,19 @@
           <div class="d-vline"></div>
           <div class="d-hbar" style="width:65%"></div>
           <div class="d-row" style="margin-top:0;">
-            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Find Care</strong><small>providers, cost</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow" style="border-color:var(--teal);color:var(--teal);"><strong>Find Care</strong><small>providers, cost</small></div></div>
             <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Research</strong><small>trials, symptoms</small></div></div>
             <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>About App</strong><small>transparency</small></div></div>
-            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Transcript</strong><small>export for doc</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow" style="border-color:var(--teal);color:var(--teal);"><strong>Transcript</strong><small>export for doc</small></div></div>
           </div>
           <div class="d-hbar" style="width:65%"></div>
           <div class="d-vline"></div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>Response + Inline Components</strong><small>Text · Map · Chart · Cards · Download button</small></div></div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Response + Inline Components</strong><small>Text · Google Maps · Chart · Cards · Download button</small></div></div>
         </div>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin:8px 0 16px;font-size:0.82rem;">
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--ink);background:#fff;border-radius:2px;flex-shrink:0;"></span>Active</div>
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--teal);background:#fff;border-radius:2px;flex-shrink:0;"></span>Planned</div>
       </div>
       <p>
         The user never sees the routing. Every intent path stays within the same conversation thread.
@@ -444,6 +448,9 @@
 
       <h3>FindCare — Symptom to Provider <span style="display:inline-block;background:#f0a500;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">ROADMAP</span></h3>
       <p style="font-size:0.85rem;color:#4a5568;margin-bottom:12px;"><em>Not yet implemented. Planned MVP flow — symptom intake through in-network provider list.</em></p>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin:0 0 8px;font-size:0.82rem;">
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--teal);background:#fff;border-radius:2px;flex-shrink:0;"></span>Planned</div>
+      </div>
       <div class="diagram" style="border-color:#0b7a75;">
         <div class="diagram-inner">
           <div class="d-center"><div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;"><strong>User describes symptom</strong><small>"My left abdomen has sharp pain that gets worse when I jump"</small></div></div>
@@ -554,6 +561,10 @@
           <div class="d-center"><div class="d-box d-box-wide"><strong>Generate Embeddings + Create Atlas Vector Search Index</strong><small>OpenAI text-embedding-3-small · 1536 dims · all meaningful fields · idempotent · provider_vector_index</small></div></div>
         </div>
       </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin:8px 0 16px;font-size:0.82rem;">
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--ink);background:#fff;border-radius:2px;flex-shrink:0;"></span>Active</div>
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--teal);background:#fff;border-radius:2px;flex-shrink:0;"></span>Planned</div>
+      </div>
 
       <h3>Data Sources (current and planned)</h3>
       <div class="table-wrap">
@@ -610,6 +621,9 @@
           <div style="width:2px;background:#0b7a75;height:16px;margin:0 auto;"></div>
           <div class="d-center"><div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;"><strong>In-network / out-of-network result</strong><small>returned to FindCare conversation flow</small></div></div>
         </div>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin:8px 0 12px;font-size:0.82rem;">
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--teal);background:#fff;border-radius:2px;flex-shrink:0;"></span>Planned</div>
       </div>
       <div class="table-wrap" style="margin-top:12px;">
         <table>
