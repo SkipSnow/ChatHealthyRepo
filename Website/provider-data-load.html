@@ -334,15 +334,14 @@
     <div class="table-wrap">
       <table>
         <tr><th>Category</th><th>Criteria</th><th>Notes</th></tr>
-        <tr><td>Deactivated NPI</td><td>NPI deactivation date is set</td><td>Provider has voluntarily surrendered or been deactivated by CMS</td></tr>
-        <tr><td>Foreign address</td><td>Practice state not in US state list (50 states + DC + PR + VI)</td><td>International providers licensed in the US but practicing abroad</td></tr>
-        <tr><td>No practice state</td><td>practice_address.state is blank</td><td>Organizational records or edge cases with no address on file</td></tr>
+        <tr><td>Deactivated NPI</td><td><code>npi_deactivation_date</code> set and <code>npi_reactivation_date</code> absent</td><td>Provider has voluntarily surrendered or been deactivated by CMS</td></tr>
+        <tr><td>Foreign provider</td><td><code>practice_address.country</code> is set and is not "US"</td><td>NPPES sets "US" for all domestic providers; a non-US value indicates an international provider the Census geocoder cannot resolve</td></tr>
+        <tr><td>No address</td><td>Both <code>practice_address</code> and <code>mailing_address</code> are absent</td><td>No location data in either container — Census geocoder has nothing to work with</td></tr>
       </table>
     </div>
     <p>These records are present in the NPPES export and loaded into
     <code>providers_staging</code> — they are not dropped. The <code>out_of_scope</code> tag
-    ensures they appear in provider lookups as "inactive" where relevant, and are not
-    counted as enrichment failures.</p>
+    ensures they are not counted as enrichment failures.</p>
 
     <!-- 4. Class Responsibilities -->
     <h2>4. Classes</h2>
