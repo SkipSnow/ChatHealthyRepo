@@ -646,12 +646,9 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     # and require OpenAI; skip unless intentionally requested).
     embed_results = []
     if start_step <= 8 and config.get("embedding_enabled", False):
-        # embed_workers is independent of num_workers (load workers).
-        # Embedding is governed by OpenAI TPM budget, not internal compute.
-        # Default 8 — conservative enough to avoid 429 storms at 100 docs/batch.
-        embed_workers = config.get("embed_workers", 8)
+        num_workers = config.get("num_workers", 32)
         staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
-        context.set_custom_status(f"Step 8/8: Generating embeddings ({embed_workers} workers)")
+        context.set_custom_status(f"Step 8/8: Generating embeddings ({num_workers} workers)")
         embed_tasks = [
             context.call_activity(
                 "embed_worker_activity",
@@ -664,7 +661,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
                     "embed_initial_jitter": config.get("embed_initial_jitter", 5.0),
                 },
             )
-            for i in range(embed_workers)
+            for i in range(num_workers)
         ]
         embed_results = yield context.task_all(embed_tasks)
 
