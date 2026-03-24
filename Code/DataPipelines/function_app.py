@@ -29,7 +29,7 @@ import azure.functions as func
 from auth import require_auth
 from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
-from copy_to_frontend import run_copy_to_frontend
+from copy_to_frontend import run_copy_to_frontend, snapshot_collection_fn
 from pipeline_health import check_mongo_health
 # from idle_monitor import check_and_pause  # disabled — see idle_monitor_timer below
 from county_enrichment_job import (
@@ -86,6 +86,7 @@ ASYNC_TASK_ORCHESTRATORS = {
     "LoadProviderData": "provider_load_orchestrator",
     "CountyEnrichment": "county_enrichment_orchestrator",
     "FullProviderPipeline": "full_provider_pipeline_orchestrator",
+    "SnapshotCollection": "snapshot_collection_orchestrator",
 }
 
 
@@ -191,11 +192,27 @@ def provider_load_orchestrator(context: df.DurableOrchestrationContext):
     return provider_load_orchestrator_fn(context)
 
 
+@app.orchestration_trigger(context_name="context")
+def snapshot_collection_orchestrator(context: df.DurableOrchestrationContext):
+    config = context.get_input() or {}
+    src = config.get("source", "providers_staging")
+    dst = config.get("destination", "?")
+    context.set_custom_status(f"Copying {src} → {dst}")
+    result = yield context.call_activity("snapshot_collection_activity", config)
+    context.set_custom_status(f"Done — {result.get('copied', 0):,} docs in {dst}")
+    return result
+
+
 # ── Durable Activities ────────────────────────────────────────────────────────
 
 @app.activity_trigger(input_name="config")
 def check_mongo_health_activity(config: dict) -> dict:
     return check_mongo_health(config)
+
+
+@app.activity_trigger(input_name="config")
+def snapshot_collection_activity(config: dict) -> dict:
+    return snapshot_collection_fn(config)
 
 
 @app.activity_trigger(input_name="config")
