@@ -31,6 +31,7 @@ import azure.durable_functions as df
 import requests
 from blob_client import get_blob_service
 from bs4 import BeautifulSoup
+from data_fetcher_base import DataFetcherBase
 from pymongo import MongoClient
 
 
@@ -42,7 +43,6 @@ def _get_mongo_client() -> MongoClient:
     if _mongo is None:
         _mongo = MongoClient(os.environ["MONGO_connectionString"])
     return _mongo
-from data_fetcher_base import DataFetcherBase
 
 NPPES_INDEX_URL = "https://download.cms.gov/nppes/NPI_Files.html"
 
