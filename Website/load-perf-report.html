@@ -140,6 +140,7 @@
           <li><a href="#implementation">Implementation — Optimizations Applied</a></li>
           <li><a href="#sla">SLA Context</a></li>
           <li><a href="#results">Results</a></li>
+          <li><a href="#appendix">Appendix — Worker Wave Data</a></li>
         </ol>
       </nav>
 
@@ -166,64 +167,6 @@
         <tr><td>MongoDB</td><td>Atlas M30 (8 GB RAM, ~4 GB WiredTiger cache), autoscale to M200</td></tr>
         <tr><td>Collection</td><td><code>providers_staging</code> (drained before load)</td></tr>
       </table>
-
-      <h2 id="worker-data">Worker Wave Data</h2>
-      <div class="table-wrap">
-        <table class="data">
-          <thead>
-            <tr><th>Wave</th><th>Workers</th><th>t_start</th><th>Avg rows/s</th><th>Avg duration</th><th>Concurrent peers</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>1</td><td>8</td><td>0s</td><td>167.9</td><td>27m 39s</td><td>8</td></tr>
-            <tr><td>2</td><td>12</td><td>27m 15s</td><td>310.3</td><td>16m 33s</td><td>12</td></tr>
-            <tr><td>3</td><td>8</td><td>52m 18s</td><td>171.4</td><td>26m 57s</td><td>8</td></tr>
-            <tr><td>4</td><td>1</td><td>1h 17m 7s</td><td>403.9</td><td>11m 22s</td><td>8</td></tr>
-            <tr><td>5</td><td>3</td><td>1h 18m 43s</td><td>475.2</td><td>9m 40s</td><td>7</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="table-wrap">
-        <table class="data">
-          <thead>
-            <tr><th>Worker</th><th>t_start</th><th>Duration</th><th>Records</th><th>rows/s</th><th>Peers</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>21</td><td>0s</td><td>27m 48s</td><td>279,034</td><td>167.3</td><td>8</td></tr>
-            <tr><td>19</td><td>0s</td><td>27m 41s</td><td>277,612</td><td>167.1</td><td>8</td></tr>
-            <tr><td>30</td><td>0s</td><td>27m 47s</td><td>278,962</td><td>167.4</td><td>8</td></tr>
-            <tr><td>31</td><td>0s</td><td>27m 51s</td><td>279,365</td><td>167.2</td><td>8</td></tr>
-            <tr><td>27</td><td>0s</td><td>27m 47s</td><td>278,722</td><td>167.2</td><td>8</td></tr>
-            <tr><td>25</td><td>0s</td><td>27m 25s</td><td>278,249</td><td>169.2</td><td>8</td></tr>
-            <tr><td>26</td><td>0s</td><td>27m 15s</td><td>277,847</td><td>169.9</td><td>8</td></tr>
-            <tr><td>23</td><td>0s</td><td>27m 40s</td><td>278,628</td><td>167.8</td><td>8</td></tr>
-            <tr><td>22</td><td>27m 15s</td><td>10m 8s</td><td>279,024</td><td>459.0</td><td>16</td></tr>
-            <tr><td>28</td><td>27m 25s</td><td>9m 58s</td><td>278,610</td><td>465.6</td><td>12</td></tr>
-            <tr><td>4</td><td>27m 31s</td><td>19m 51s</td><td>273,944</td><td>230.1</td><td>12</td></tr>
-            <tr><td>13</td><td>27m 31s</td><td>19m 52s</td><td>276,571</td><td>231.9</td><td>12</td></tr>
-            <tr><td>11</td><td>27m 31s</td><td>19m 58s</td><td>275,572</td><td>230.0</td><td>12</td></tr>
-            <tr><td>3</td><td>27m 31s</td><td>19m 38s</td><td>272,164</td><td>231.0</td><td>12</td></tr>
-            <tr><td>2</td><td>27m 31s</td><td>19m 41s</td><td>273,347</td><td>231.4</td><td>12</td></tr>
-            <tr><td>12</td><td>27m 31s</td><td>19m 56s</td><td>276,088</td><td>230.8</td><td>12</td></tr>
-            <tr><td>9</td><td>27m 31s</td><td>19m 55s</td><td>274,519</td><td>229.7</td><td>12</td></tr>
-            <tr><td>15</td><td>27m 31s</td><td>20m 1s</td><td>276,790</td><td>230.4</td><td>12</td></tr>
-            <tr><td>32</td><td>27m 41s</td><td>9m 46s</td><td>279,748</td><td>477.1</td><td>12</td></tr>
-            <tr><td>29</td><td>27m 41s</td><td>9m 46s</td><td>279,353</td><td>476.7</td><td>12</td></tr>
-            <tr><td>18</td><td>52m 18s</td><td>24m 49s</td><td>277,408</td><td>186.3</td><td>8</td></tr>
-            <tr><td>5</td><td>52m 27s</td><td>26m 15s</td><td>274,684</td><td>174.4</td><td>8</td></tr>
-            <tr><td>8</td><td>52m 32s</td><td>26m 23s</td><td>276,347</td><td>174.6</td><td>8</td></tr>
-            <tr><td>14</td><td>52m 32s</td><td>27m 29s</td><td>276,921</td><td>167.9</td><td>8</td></tr>
-            <tr><td>16</td><td>52m 32s</td><td>28m 1s</td><td>277,202</td><td>164.9</td><td>8</td></tr>
-            <tr><td>17</td><td>52m 37s</td><td>27m 7s</td><td>276,998</td><td>170.2</td><td>8</td></tr>
-            <tr><td>7</td><td>52m 42s</td><td>27m 59s</td><td>275,753</td><td>164.3</td><td>8</td></tr>
-            <tr><td>24</td><td>52m 42s</td><td>27m 31s</td><td>277,751</td><td>168.3</td><td>8</td></tr>
-            <tr><td>6</td><td>1h 17m 7s</td><td>11m 22s</td><td>275,397</td><td>403.9</td><td>8</td></tr>
-            <tr><td>20</td><td>1h 18m 43s</td><td>10m 4s</td><td>278,278</td><td>460.6</td><td>8</td></tr>
-            <tr><td>1</td><td>1h 18m 55s</td><td>9m 49s</td><td>272,645</td><td>462.7</td><td>8</td></tr>
-            <tr><td>10</td><td>1h 19m 45s</td><td>9m 8s</td><td>274,992</td><td>502.3</td><td>6</td></tr>
-          </tbody>
-        </table>
-      </div>
 
       <!-- 3. Analysis -->
       <h2 id="analysis">3. Analysis</h2>
@@ -307,6 +250,51 @@
       <!-- 6. Results -->
       <h2 id="results">6. Results</h2>
 
+      <h3>Run Comparison</h3>
+      <figure style="margin:1.5rem 0;">
+        <svg viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:480px;display:block;font-family:'DM Sans',sans-serif;border:1px solid #d8e2e1;border-radius:6px;">
+          <!-- Background -->
+          <rect width="480" height="300" fill="white"/>
+          <!-- Title -->
+          <text x="240" y="22" text-anchor="middle" font-size="12.5" font-weight="600" fill="#0d1117">Load Duration by Run</text>
+          <text x="240" y="37" text-anchor="middle" font-size="10.5" fill="#4a5568">8,858,520 records — Azure East US 2 + Atlas M30</text>
+
+          <!-- Plot: left=60 right=450 top=50 bottom=240 — height=190px, Y=0–95min, scale=190/95=2px/min -->
+          <!-- Grid lines -->
+          <line x1="60" y1="50"  x2="450" y2="50"  stroke="#e8ecf0" stroke-width="1"/><!-- 95 -->
+          <line x1="60" y1="90"  x2="450" y2="90"  stroke="#e8ecf0" stroke-width="1"/><!-- 75 -->
+          <line x1="60" y1="130" x2="450" y2="130" stroke="#e8ecf0" stroke-width="1"/><!-- 55 -->
+          <line x1="60" y1="170" x2="450" y2="170" stroke="#e8ecf0" stroke-width="1"/><!-- 35 -->
+          <line x1="60" y1="210" x2="450" y2="210" stroke="#e8ecf0" stroke-width="1"/><!-- 15 -->
+          <line x1="60" y1="240" x2="450" y2="240" stroke="#718096" stroke-width="1.5"/><!-- 0 -->
+          <line x1="60" y1="50"  x2="60"  y2="240" stroke="#718096" stroke-width="1.5"/>
+
+          <!-- Y labels: y_px = 240 - val*2 -->
+          <text x="54" y="244" text-anchor="end" font-size="10" fill="#4a5568">0</text>
+          <text x="54" y="214" text-anchor="end" font-size="10" fill="#4a5568">15</text>
+          <text x="54" y="174" text-anchor="end" font-size="10" fill="#4a5568">35</text>
+          <text x="54" y="134" text-anchor="end" font-size="10" fill="#4a5568">55</text>
+          <text x="54" y="94"  text-anchor="end" font-size="10" fill="#4a5568">75</text>
+          <text x="54" y="54"  text-anchor="end" font-size="10" fill="#4a5568">95</text>
+          <text x="10" y="150" text-anchor="middle" font-size="10" fill="#4a5568" transform="rotate(-90,10,150)">minutes</text>
+
+          <!-- Reference bar: 88.9 min → height=177.8, y=240-177.8=62.2≈62 — x center=155, width=90 -->
+          <rect x="110" y="62" width="90" height="178" fill="#e07b39" opacity="0.85" rx="2"/>
+          <text x="155" y="57" text-anchor="middle" font-size="12" font-weight="700" fill="#e07b39">88.9 min</text>
+          <text x="155" y="256" text-anchor="middle" font-size="10.5" font-weight="500" fill="#0d1117">Reference</text>
+          <text x="155" y="269" text-anchor="middle" font-size="9.5" fill="#4a5568">upsert · 8 workers · live index</text>
+
+          <!-- Opt 1 bar: 35 min → height=70, y=240-70=170 — x center=325, width=90 -->
+          <rect x="280" y="170" width="90" height="70" fill="#0b7a75" rx="2"/>
+          <text x="325" y="164" text-anchor="middle" font-size="12" font-weight="700" fill="#0b7a75">35 min</text>
+          <text x="325" y="256" text-anchor="middle" font-size="10.5" font-weight="500" fill="#0d1117">Optimization 1</text>
+          <text x="325" y="269" text-anchor="middle" font-size="9.5" fill="#4a5568">InsertOne · 32 workers · deferred index</text>
+
+          <!-- Speedup callout -->
+          <text x="240" y="290" text-anchor="middle" font-size="11" font-weight="600" fill="#0d1117">2.5× faster  ·  SLA achieved</text>
+        </svg>
+      </figure>
+
       <h3>Timeline</h3>
       <table class="kv-table">
         <tr><td>Performance problem raised</td><td>10:10 AM PST, 2026-03-23</td></tr>
@@ -315,17 +303,111 @@
         <tr><td>Optimized run completed</td><td>~1:19 PM PST, 2026-03-23 — <strong>35 minutes</strong> (8,858,520 records, 0 failures)</td></tr>
       </table>
 
-      <h3>Reference vs. Optimized — Load Curve</h3>
-      <p>The reference run loaded records in four contention-degraded waves.
-         The optimized run is linear — 32 workers writing at a steady rate with zero queue depth throughout.</p>
-      <figure style="margin:1.5rem 0; text-align:center;">
-        <img src="load_comparison.png" alt="Reference vs. Optimized load curve" style="max-width:100%; border-radius:var(--radius); border:1px solid var(--border);" />
-      </figure>
+      <h3>Reference vs. Optimization 1 — Load Curve (Actual)</h3>
+      <p>The reference run loaded records in four contention-degraded waves due to write contention under 8-way concurrency.
+         Optimization 1 is linear — 32 workers writing at a steady rate with zero queue depth. Original mid-run projection was ~62 min; actual completion was <strong>35 min</strong>.</p>
+      <figure style="margin:1.5rem 0;">
+        <svg viewBox="0 0 700 430" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;display:block;margin:0 auto;font-family:'DM Sans',sans-serif;border:1px solid #d8e2e1;border-radius:6px;">
+          <defs>
+            <marker id="arrowR" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto"><path d="M0,1 L6,3.5 L0,6 Z" fill="#718096"/></marker>
+            <marker id="arrowL" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto-start-reverse"><path d="M0,1 L6,3.5 L0,6 Z" fill="#718096"/></marker>
+          </defs>
 
-      <h3>Optimized Run — Live Progress</h3>
-      <figure style="margin:1.5rem 0; text-align:center;">
-        <img src="load_progress.png" alt="Optimized run progress" style="max-width:100%; border-radius:var(--radius); border:1px solid var(--border);" />
-        <figcaption style="font-size:0.85rem; color:var(--ink-soft); margin-top:0.5rem;">Sampled at 5-minute intervals. R² = 0.9985 — throughput is linear with no contention degradation.</figcaption>
+          <!-- Background -->
+          <rect width="700" height="430" fill="white"/>
+
+          <!-- Titles -->
+          <text x="380" y="22" text-anchor="middle" font-size="13.5" font-weight="600" fill="#0d1117">Provider Load Performance: Reference vs Optimization 1</text>
+          <text x="380" y="40" text-anchor="middle" font-size="11.5" fill="#4a5568">ChatHealthy FindCare — 2026-03-23</text>
+
+          <!-- Legend -->
+          <line x1="80" y1="60" x2="116" y2="60" stroke="#e07b39" stroke-width="2.5" stroke-dasharray="7,4"/>
+          <text x="122" y="64" font-size="11" fill="#0d1117">Reference  —  upsert + live index, ~8 workers at a time  (88.9 min)</text>
+          <line x1="80" y1="77" x2="116" y2="77" stroke="#0b7a75" stroke-width="2.5"/>
+          <text x="122" y="81" font-size="11" fill="#0d1117">Optimization 1  —  InsertOne, deferred index, 32 workers, batch 10,000  (35 min actual)</text>
+          <line x1="80" y1="92" x2="116" y2="92" stroke="#0b7a75" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.5"/>
+          <text x="122" y="96" font-size="11" fill="#4a5568">Optimization 1  —  mid-run projection at T+30 min  (~62 min estimated)</text>
+
+          <!-- Plot area: x_left=70 x_right=680 y_top=108 y_bottom=368 -->
+          <!-- X: 0–92 min → 610px, scale=6.63px/min -->
+          <!-- Y: 0–10M → 260px, scale=26px/M (inverted) -->
+
+          <!-- Horizontal grid lines -->
+          <line x1="70" y1="108" x2="680" y2="108" stroke="#e8ecf0" stroke-width="1"/><!-- 10M -->
+          <line x1="70" y1="160" x2="680" y2="160" stroke="#e8ecf0" stroke-width="1"/><!-- 8M -->
+          <line x1="70" y1="212" x2="680" y2="212" stroke="#e8ecf0" stroke-width="1"/><!-- 6M -->
+          <line x1="70" y1="264" x2="680" y2="264" stroke="#e8ecf0" stroke-width="1"/><!-- 4M -->
+          <line x1="70" y1="316" x2="680" y2="316" stroke="#e8ecf0" stroke-width="1"/><!-- 2M -->
+          <line x1="70" y1="368" x2="680" y2="368" stroke="#cbd5e0" stroke-width="1"/><!-- 0M -->
+
+          <!-- Vertical grid lines (every 10 min) -->
+          <!-- x = 70 + n*6.63*10 = 70 + n*66.3 -->
+          <line x1="136" y1="108" x2="136" y2="368" stroke="#e8ecf0" stroke-width="1"/><!-- 10 -->
+          <line x1="203" y1="108" x2="203" y2="368" stroke="#e8ecf0" stroke-width="1"/><!-- 20 -->
+          <line x1="269" y1="108" x2="269" y2="368" stroke="#e8ecf0" stroke-width="1"/><!-- 30 -->
+          <line x1="335" y1="108" x2="335" y2="368" stroke="#e8ecf0" stroke-width="1"/><!-- 40 -->
+          <line x1="402" y1="108" x2="402" y2="368" stroke="#e8ecf0" stroke-width="1"/><!-- 50 -->
+          <line x1="468" y1="108" x2="468" y2="368" stroke="#e8ecf0" stroke-width="1"/><!-- 60 -->
+          <line x1="534" y1="108" x2="534" y2="368" stroke="#e8ecf0" stroke-width="1"/><!-- 70 -->
+          <line x1="600" y1="108" x2="600" y2="368" stroke="#e8ecf0" stroke-width="1"/><!-- 80 -->
+          <line x1="667" y1="108" x2="667" y2="368" stroke="#e8ecf0" stroke-width="1"/><!-- 90 -->
+
+          <!-- Axes -->
+          <line x1="70" y1="108" x2="70" y2="368" stroke="#718096" stroke-width="1.5"/>
+          <line x1="70" y1="368" x2="685" y2="368" stroke="#718096" stroke-width="1.5"/>
+
+          <!-- Y axis labels -->
+          <text x="63" y="372" text-anchor="end" font-size="11" fill="#4a5568">0</text>
+          <text x="63" y="320" text-anchor="end" font-size="11" fill="#4a5568">2M</text>
+          <text x="63" y="268" text-anchor="end" font-size="11" fill="#4a5568">4M</text>
+          <text x="63" y="216" text-anchor="end" font-size="11" fill="#4a5568">6M</text>
+          <text x="63" y="164" text-anchor="end" font-size="11" fill="#4a5568">8M</text>
+          <text x="63" y="112" text-anchor="end" font-size="11" fill="#4a5568">10M</text>
+
+          <!-- X axis labels -->
+          <text x="70"  y="384" text-anchor="middle" font-size="11" fill="#4a5568">0</text>
+          <text x="136" y="384" text-anchor="middle" font-size="11" fill="#4a5568">10</text>
+          <text x="203" y="384" text-anchor="middle" font-size="11" fill="#4a5568">20</text>
+          <text x="269" y="384" text-anchor="middle" font-size="11" fill="#4a5568">30</text>
+          <text x="335" y="384" text-anchor="middle" font-size="11" fill="#4a5568">40</text>
+          <text x="402" y="384" text-anchor="middle" font-size="11" fill="#4a5568">50</text>
+          <text x="468" y="384" text-anchor="middle" font-size="11" fill="#4a5568">60</text>
+          <text x="534" y="384" text-anchor="middle" font-size="11" fill="#4a5568">70</text>
+          <text x="600" y="384" text-anchor="middle" font-size="11" fill="#4a5568">80</text>
+          <text x="667" y="384" text-anchor="middle" font-size="11" fill="#4a5568">90</text>
+
+          <!-- Axis titles -->
+          <text x="377" y="406" text-anchor="middle" font-size="12" fill="#4a5568">Elapsed time (minutes)</text>
+          <text x="13" y="238" text-anchor="middle" font-size="12" fill="#4a5568" transform="rotate(-90,13,238)">Records loaded (millions)</text>
+
+          <!-- 8.858M finish line: y = 368 - 8.858*26 = 368 - 230.3 = 137.7 ≈ 138 -->
+          <!-- Reference line: (70,368) → (659, 138)  [88.9 min x = 70+88.9*6.63 = 70+589.4 = 659] -->
+          <line x1="70" y1="368" x2="659" y2="138" stroke="#e07b39" stroke-width="2.5" stroke-dasharray="7,4"/>
+          <circle cx="659" cy="138" r="4.5" fill="#e07b39"/>
+          <text x="664" y="134" font-size="10.5" fill="#e07b39" font-weight="500">88.9 min</text>
+
+          <!-- Opt 1 projected line (dashed teal, faint): (70,368) → (481, 138)  [62 min x=70+62*6.63=70+411=481] -->
+          <line x1="70" y1="368" x2="481" y2="138" stroke="#0b7a75" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.4"/>
+          <circle cx="481" cy="138" r="3.5" fill="#0b7a75" opacity="0.4"/>
+          <text x="486" y="135" font-size="10" fill="#0b7a75" opacity="0.6">~62 min (projected)</text>
+
+          <!-- Opt 1 ACTUAL line: (70,368) → (302, 138)  [35 min x=70+35*6.63=70+232.1=302] -->
+          <line x1="70" y1="368" x2="302" y2="138" stroke="#0b7a75" stroke-width="3"/>
+          <circle cx="302" cy="138" r="5.5" fill="#0b7a75" stroke="white" stroke-width="2"/>
+          <text x="308" y="130" font-size="11" fill="#0b7a75" font-weight="600">35 min — done</text>
+          <text x="308" y="143" font-size="10" fill="#4a5568">8,858,520 records · 0 failures</text>
+
+          <!-- Vertical dotted line at T+35 showing reference position -->
+          <line x1="302" y1="138" x2="302" y2="368" stroke="#718096" stroke-width="1" stroke-dasharray="3,3" opacity="0.4"/>
+          <!-- Reference at T+35: y = 368 - (8.858*35/88.9)*26 = 368 - 3.486*26 = 368 - 90.6 = 277.4 ≈ 277 -->
+          <circle cx="302" cy="277" r="3.5" fill="#e07b39" opacity="0.7"/>
+          <text x="307" y="274" font-size="10" fill="#e07b39" opacity="0.8">~3.5M at T+35</text>
+          <text x="307" y="285" font-size="10" fill="#e07b39" opacity="0.8">(reference still loading)</text>
+
+          <!-- Speedup annotation: double arrow between x=302 and x=659 at y=420 -->
+          <line x1="308" y1="420" x2="653" y2="420" stroke="#718096" stroke-width="1.5" marker-start="url(#arrowL)" marker-end="url(#arrowR)"/>
+          <text x="480" y="417" text-anchor="middle" font-size="11" fill="#0d1117" font-weight="500">88.9 min → 35 min  (2.5× faster)</text>
+        </svg>
       </figure>
 
       <h3>MongoDB Metrics — Optimized Run</h3>
@@ -335,6 +417,67 @@
         <tr><td>Page faults</td><td>Zero — WiredTiger cache absorbing all activity</td></tr>
         <tr><td>Throughput</td><td>~173K records/min, steady-state, linear</td></tr>
       </table>
+
+      <!-- Appendix -->
+      <h2 id="appendix">Appendix — Reference Run Worker Wave Data</h2>
+      <p style="font-size:0.88rem;color:var(--ink-soft);margin-bottom:16px;">Per-wave and per-worker timing from the reference run (2026-03-19). Captured to diagnose the contention pattern — not relevant to the optimized run.</p>
+
+      <div class="table-wrap">
+        <table class="data">
+          <thead>
+            <tr><th>Wave</th><th>Workers</th><th>t_start</th><th>Avg rows/s</th><th>Avg duration</th><th>Concurrent peers</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>8</td><td>0s</td><td>167.9</td><td>27m 39s</td><td>8</td></tr>
+            <tr><td>2</td><td>12</td><td>27m 15s</td><td>310.3</td><td>16m 33s</td><td>12</td></tr>
+            <tr><td>3</td><td>8</td><td>52m 18s</td><td>171.4</td><td>26m 57s</td><td>8</td></tr>
+            <tr><td>4</td><td>1</td><td>1h 17m 7s</td><td>403.9</td><td>11m 22s</td><td>8</td></tr>
+            <tr><td>5</td><td>3</td><td>1h 18m 43s</td><td>475.2</td><td>9m 40s</td><td>7</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data">
+          <thead>
+            <tr><th>Worker</th><th>t_start</th><th>Duration</th><th>Records</th><th>rows/s</th><th>Peers</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>21</td><td>0s</td><td>27m 48s</td><td>279,034</td><td>167.3</td><td>8</td></tr>
+            <tr><td>19</td><td>0s</td><td>27m 41s</td><td>277,612</td><td>167.1</td><td>8</td></tr>
+            <tr><td>30</td><td>0s</td><td>27m 47s</td><td>278,962</td><td>167.4</td><td>8</td></tr>
+            <tr><td>31</td><td>0s</td><td>27m 51s</td><td>279,365</td><td>167.2</td><td>8</td></tr>
+            <tr><td>27</td><td>0s</td><td>27m 47s</td><td>278,722</td><td>167.2</td><td>8</td></tr>
+            <tr><td>25</td><td>0s</td><td>27m 25s</td><td>278,249</td><td>169.2</td><td>8</td></tr>
+            <tr><td>26</td><td>0s</td><td>27m 15s</td><td>277,847</td><td>169.9</td><td>8</td></tr>
+            <tr><td>23</td><td>0s</td><td>27m 40s</td><td>278,628</td><td>167.8</td><td>8</td></tr>
+            <tr><td>22</td><td>27m 15s</td><td>10m 8s</td><td>279,024</td><td>459.0</td><td>16</td></tr>
+            <tr><td>28</td><td>27m 25s</td><td>9m 58s</td><td>278,610</td><td>465.6</td><td>12</td></tr>
+            <tr><td>4</td><td>27m 31s</td><td>19m 51s</td><td>273,944</td><td>230.1</td><td>12</td></tr>
+            <tr><td>13</td><td>27m 31s</td><td>19m 52s</td><td>276,571</td><td>231.9</td><td>12</td></tr>
+            <tr><td>11</td><td>27m 31s</td><td>19m 58s</td><td>275,572</td><td>230.0</td><td>12</td></tr>
+            <tr><td>3</td><td>27m 31s</td><td>19m 38s</td><td>272,164</td><td>231.0</td><td>12</td></tr>
+            <tr><td>2</td><td>27m 31s</td><td>19m 41s</td><td>273,347</td><td>231.4</td><td>12</td></tr>
+            <tr><td>12</td><td>27m 31s</td><td>19m 56s</td><td>276,088</td><td>230.8</td><td>12</td></tr>
+            <tr><td>9</td><td>27m 31s</td><td>19m 55s</td><td>274,519</td><td>229.7</td><td>12</td></tr>
+            <tr><td>15</td><td>27m 31s</td><td>20m 1s</td><td>276,790</td><td>230.4</td><td>12</td></tr>
+            <tr><td>32</td><td>27m 41s</td><td>9m 46s</td><td>279,748</td><td>477.1</td><td>12</td></tr>
+            <tr><td>29</td><td>27m 41s</td><td>9m 46s</td><td>279,353</td><td>476.7</td><td>12</td></tr>
+            <tr><td>18</td><td>52m 18s</td><td>24m 49s</td><td>277,408</td><td>186.3</td><td>8</td></tr>
+            <tr><td>5</td><td>52m 27s</td><td>26m 15s</td><td>274,684</td><td>174.4</td><td>8</td></tr>
+            <tr><td>8</td><td>52m 32s</td><td>26m 23s</td><td>276,347</td><td>174.6</td><td>8</td></tr>
+            <tr><td>14</td><td>52m 32s</td><td>27m 29s</td><td>276,921</td><td>167.9</td><td>8</td></tr>
+            <tr><td>16</td><td>52m 32s</td><td>28m 1s</td><td>277,202</td><td>164.9</td><td>8</td></tr>
+            <tr><td>17</td><td>52m 37s</td><td>27m 7s</td><td>276,998</td><td>170.2</td><td>8</td></tr>
+            <tr><td>7</td><td>52m 42s</td><td>27m 59s</td><td>275,753</td><td>164.3</td><td>8</td></tr>
+            <tr><td>24</td><td>52m 42s</td><td>27m 31s</td><td>277,751</td><td>168.3</td><td>8</td></tr>
+            <tr><td>6</td><td>1h 17m 7s</td><td>11m 22s</td><td>275,397</td><td>403.9</td><td>8</td></tr>
+            <tr><td>20</td><td>1h 18m 43s</td><td>10m 4s</td><td>278,278</td><td>460.6</td><td>8</td></tr>
+            <tr><td>1</td><td>1h 18m 55s</td><td>9m 49s</td><td>272,645</td><td>462.7</td><td>8</td></tr>
+            <tr><td>10</td><td>1h 19m 45s</td><td>9m 8s</td><td>274,992</td><td>502.3</td><td>6</td></tr>
+          </tbody>
+        </table>
+      </div>
 
     </div><!-- /.doc-body -->
   </main>
