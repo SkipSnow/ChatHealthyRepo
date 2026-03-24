@@ -13,6 +13,7 @@ import os
 import requests
 import time
 from datetime import datetime, timedelta, timezone
+import traceback
 from pypdf import PdfReader
 import gradio as gr
 from ChatHealthyMongoUtilities import ChatHealthyMongoUtilities
@@ -962,6 +963,14 @@ class Me:
         )
 
     def chat(self, message, history, request: gr.Request = None):
+        try:
+            return self._chat(message, history, request)
+        except Exception:
+            if _DEBUG:
+                return f"**DEBUG ERROR:**\n```\n{traceback.format_exc()}\n```"
+            raise
+
+    def _chat(self, message, history, request: gr.Request = None):
         ip = (request.client.host if request and request.client else "unknown")
 
         # Backdoor — must check before the lock gate
