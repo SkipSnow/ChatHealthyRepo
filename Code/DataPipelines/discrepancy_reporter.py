@@ -52,6 +52,19 @@ class DiscrepancyReporter:
         ]
         total_failed_rows = sum(r.get("rows_failed", 0) for r in worker_results)
 
+        # ── Out-of-scope counts by reason ─────────────────────────────────────
+        staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
+        db_name, coll_name = staging_collection.split(".", 1)
+        staging_coll = _get_mongo_client()[db_name][coll_name]
+        out_of_scope_by_reason: dict = {
+            (doc["_id"] or "legacy"): doc["count"]
+            for doc in staging_coll.aggregate([
+                {"$match": {"county.source": "out_of_scope"}},
+                {"$group": {"_id": "$county.reason", "count": {"$sum": 1}}},
+            ])
+        }
+        out_of_scope_total = sum(out_of_scope_by_reason.values())
+
         succeeded = reconcile_match and not failed_workers
         job_status: dict = {"status": "succeed" if succeeded else "fail"}
         if not succeeded:
@@ -75,6 +88,8 @@ class DiscrepancyReporter:
                 "failed_workers": len(failed_workers),
                 "total_loaded": total_loaded,
                 "total_failed_rows": total_failed_rows,
+                "out_of_scope_total": out_of_scope_total,
+                "out_of_scope_by_reason": out_of_scope_by_reason,
             },
             "failed_rows": all_failed_rows,  # up to 20 per worker; overflow in Azure logs
             "worker_results": worker_results,
@@ -91,12 +106,19 @@ class DiscrepancyReporter:
         # ── SparkPost email notification ──────────────────────────────────────
         status_line = "Reconciled OK" if reconcile_match else "MISMATCH — INVESTIGATE"
         subject = f"NPI Load {'OK' if reconcile_match else 'MISMATCH'} — v{version}"
+        reason_lines = "\n".join(
+            f"  {reason}: {count:,}"
+            for reason, count in sorted(out_of_scope_by_reason.items(), key=lambda x: -x[1])
+        ) or "  (none)"
         body = (
             f"NPI Load complete — v{version}\n"
             f"Expected: {expected_records}  Inserted: {inserted_records}  Failed: {failed_records}\n"
             f"Reconciliation: {status_line}\n"
             f"Failed workers: {len(failed_workers)}\n"
-            f"Load ID: {load_id}"
+            f"Load ID: {load_id}\n"
+            f"\n"
+            f"Out-of-scope: {out_of_scope_total:,} total\n"
+            f"{reason_lines}"
         )
 
         api_key    = os.environ.get("SPARKMAIL_API_KEY")
