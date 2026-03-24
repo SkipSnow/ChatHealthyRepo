@@ -390,7 +390,7 @@
         </div>
 
         <!-- ── Future ─────────────────────────────────────────────────── -->
-        <!-- RESEARCH-001: Multi-location  Jul–Oct  (40% → 70%) -->
+        <!-- RESEARCH-001: Multi-location payer data  Apr 7–Jun 2  (12% → 31%) -->
         <div class="gantt-row">
           <div class="gantt-row-label">
             <span class="gantt-row-id">RESEARCH-001</span>
@@ -398,7 +398,7 @@
           </div>
           <div class="gantt-planned yes">Yes</div>
           <div class="gantt-track">
-            <div class="gantt-bar gb-research" style="left:40%;width:30%"></div>
+            <div class="gantt-bar gb-infra" style="left:12%;width:19%"></div>
           </div>
         </div>
 
@@ -534,26 +534,26 @@
       </ul>
     </div>
 
-    <!-- Research Agents -->
-    <h2>Research Agents</h2>
+    <!-- Pipeline Deliverables -->
+    <h2>Pipeline Deliverables</h2>
 
     <div class="item">
       <div class="item-header">
         <span class="item-id">RESEARCH-001</span>
         <span class="item-title">Multi-location provider data — payer directory agent</span>
-        <span class="badge badge-postmvp">Post-Alpha</span>
+        <span class="badge badge-open" style="background:#e8f4e8; color:#1a6b1a; border-color:#90c890;">April 2026</span>
       </div>
       <div class="item-meta">
-        <span><strong>Status:</strong> Open</span>
+        <span><strong>Status:</strong> Scheduled — starts April 7, 2026</span>
       </div>
       <p>NPPES NPI data captures only one practice address per individual provider (Type 1 NPI).
       If a provider practices at multiple locations, only their primary address appears in FindCare.</p>
       <p><strong>The gap:</strong> Users searching by location may miss providers who practice nearby
       but list a different primary address in NPPES.</p>
-      <p><strong>Proposed solution:</strong> A research agent that supplements NPPES with payer network
+      <p><strong>Solution:</strong> An agent that supplements NPPES with payer network
       directory data. Payer directories are location-level (providers must register each billing
       location to get paid) and kept more current than NPI.</p>
-      <p><strong>Data sources to investigate:</strong></p>
+      <p><strong>Data sources:</strong></p>
       <ul>
         <li>Payer network directories — per-payer, not a single public feed (BCBS, Aetna, UHC, Cigna)</li>
         <li>CMS Medicare Provider Enrollment data — facilities where a provider has billed Medicare</li>
@@ -563,6 +563,9 @@
       <p><strong>Why an agent:</strong> Each payer directory has a different API/format; an agent
       handles per-payer variation, retry logic, and reconciliation across sources.</p>
     </div>
+
+    <!-- Research Agents -->
+    <h2>Research Agents</h2>
 
     <div class="item">
       <div class="item-header">
