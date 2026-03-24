@@ -259,18 +259,26 @@
             <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>LLM APIs</strong><small>Anthropic · OpenAI · Groq</small></div></div>
             <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>Azure Functions</strong><small>CrewAI · Layer 2</small></div></div>
             <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>MongoDB Atlas</strong><small>ChatHealthyDB_dev</small></div></div>
-            <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>Google Maps</strong><small>Maps JavaScript API · provider map</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box" style="background:#0d1117;border-color:#0d1117;color:#fff;"><strong style="color:#fff;">Google Maps</strong><small style="color:#a0aec0;">Maps JavaScript API · provider map</small></div></div>
           </div>
         </div>
       </div>
 
-      <h3>Google Maps — Provider Map</h3>
-      <p>The chat layer renders an interactive provider map using the Google Maps JavaScript API
-      with a dark base theme. County polygons are filled by enrichment status using the
+      <h3>Google Maps — Two Use Cases</h3>
+      <p><strong>Use case 1 — Provider finder (realized):</strong> The chat layer renders an
+      interactive provider map using the Google Maps JavaScript API with a dark base theme.
+      County polygons are filled by enrichment status using the
       <code style="color:#1a7a3c;font-weight:600;">county_fips</code> field written by the
-      county enrichment pipeline. Marker clusters show individual provider locations using
+      county enrichment pipeline. Marker clusters show individual provider locations driven by
       <code style="color:#1a7a3c;font-weight:600;">practice_address.lat</code> and
-      <code style="color:#1a7a3c;font-weight:600;">practice_address.lng</code>.</p>
+      <code style="color:#1a7a3c;font-weight:600;">practice_address.lng</code>.
+      Clicking a marker opens a provider card inline in the chat session.</p>
+      <p><strong>Use case 2 — Pipeline coverage map (not yet realized):</strong> An admin view
+      showing county-level enrichment quality across the US. County polygons are shaded by
+      <code style="color:#1a7a3c;font-weight:600;">county.source</code> bucket — same
+      <code style="color:#1a7a3c;font-weight:600;">county_fips</code> join — to surface geocoder
+      failures and out-of-scope concentrations at a glance. Planned for the monitoring
+      hardening phase.</p>
       <div style="display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;align-items:flex-start;">
         <div style="background:#0d1117;border:1px solid #2d3748;border-radius:6px;padding:16px 20px;min-width:200px;">
           <div style="font-size:0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#718096;margin-bottom:10px;">Map Key</div>
