@@ -56,6 +56,9 @@ _EMERGENCY_LOCK_SECONDS = 3600
 # Backdoor: set ADMIN_UNLOCK_KEY env var; send exactly "UNLOCK:<key>" to release an IP
 _ADMIN_UNLOCK_KEY = os.getenv("ADMIN_UNLOCK_KEY", "")
 
+# Debug mode — verifies DB writes and shows user-visible warning if they fail
+_DEBUG = True
+
 
 def _is_ip_locked(ip: str) -> bool:
     """Fast in-memory check. Used as cache; DB is the source of truth."""
@@ -93,8 +96,8 @@ def _lock_ip_db(ip: str, trigger_message: str = "", history: list = None) -> Non
     _lock_ip(ip)
     col = _safety_collection()
     if col is None:
-        print("SAFETY DB unavailable — lock stored in memory only.", flush=True)
-        return
+        print(f"SAFETY ALERT: DB unavailable — incident for {ip} NOT persisted. Memory-only.", flush=True)
+        return False
     now = datetime.now(timezone.utc)
     expires = now + timedelta(seconds=_EMERGENCY_LOCK_SECONDS)
     safe_history = []
@@ -113,8 +116,15 @@ def _lock_ip_db(ip: str, trigger_message: str = "", history: list = None) -> Non
             "chat_history_deidentified": safe_history,
         })
         print(f"SAFETY incident created: {ip} locked until {expires.isoformat()}", flush=True)
+        if _DEBUG:
+            found = col.find_one({"ip": ip, "expires_at": {"$gt": now.isoformat()}})
+            if not found:
+                print("SAFETY DEBUG: insert succeeded but verification query returned nothing.", flush=True)
+                return False
+        return True
     except Exception as e:
-        print(f"SAFETY DB write failed: {e}", flush=True)
+        print(f"SAFETY ALERT: DB write failed for {ip}: {e}", flush=True)
+        return False
 
 
 def _check_ip_lock_db(ip: str) -> bool:
@@ -964,7 +974,9 @@ class Me:
             return EMERGENCY_RESPONSE
         # Cross-session lock (DB hit) or new trigger: create new incident, extend 1-hour clock.
         if _check_ip_lock_db(ip) or _safety_check(message):
-            _lock_ip_db(ip, trigger_message=message, history=history)
+            db_ok = _lock_ip_db(ip, trigger_message=message, history=history)
+            if _DEBUG and not db_ok:
+                return EMERGENCY_RESPONSE + "\n\n**System warning:** this incident could not be recorded. Please contact support."
             return EMERGENCY_RESPONSE
 
         messages = [{"role": "system", "content": self.system_prompt()}] + history
