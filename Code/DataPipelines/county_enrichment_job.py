@@ -39,6 +39,7 @@ from pymongo import MongoClient, UpdateOne
 
 _mongo: MongoClient | None = None
 _crosswalk: dict | None = None  # zip → {fips, name, ratio, is_split}
+_maps_county_lookup: dict | None = None  # (state_fips_2d, county_name_lower) → 5-digit fips
 
 
 def _get_mongo_client() -> MongoClient:
@@ -68,10 +69,80 @@ def _get_crosswalk() -> dict:
     return _crosswalk
 
 
+def _get_maps_county_lookup() -> dict:
+    """Build (state_fips_2d, county_name_lower) → 5-digit county_fips from the crosswalk.
+
+    Used by Pass 4 to resolve county names returned by Google Maps into FIPS codes.
+    Built lazily and cached per process lifetime.
+    """
+    global _maps_county_lookup
+    if _maps_county_lookup is None:
+        coll = _get_mongo_client()["PublicHealthData"]["ZipCountyCrosswalk"]
+        lookup: dict = {}
+        for d in coll.find({}, {"county_fips": 1, "county_name": 1}):
+            fips = d.get("county_fips", "")
+            name = d.get("county_name", "")
+            if fips and name and len(fips) == 5:
+                key = (fips[:2], name.lower().strip())
+                lookup.setdefault(key, fips)  # keep first on collision
+        _maps_county_lookup = lookup
+        logging.info("Maps county lookup built: %d entries", len(lookup))
+    return _maps_county_lookup
+
+
+def _geocode_single_maps(address: str, api_key: str) -> tuple[str | None, str | None]:
+    """Call Google Maps Geocoding API for a single address.
+
+    Returns (county_name, state_abbr) if resolved, (None, None) otherwise.
+    Caller is responsible for rate limiting between calls.
+    """
+    try:
+        resp = requests.get(
+            GOOGLE_MAPS_GEOCODING_URL,
+            params={"address": address, "key": api_key},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        status = data.get("status")
+        if status == "ZERO_RESULTS":
+            return None, None
+        if status != "OK":
+            logging.warning("Maps geocoder status '%s' for: %s", status, address)
+            return None, None
+        county = state = None
+        for c in data["results"][0].get("address_components", []):
+            types = c.get("types", [])
+            if "administrative_area_level_2" in types:
+                county = c["long_name"]
+            elif "administrative_area_level_1" in types:
+                state = c["short_name"]  # e.g. "CA"
+        return county, state
+    except Exception as exc:
+        logging.warning("Maps geocoder error for '%s': %s", address, exc)
+        return None, None
+
+
 SPLIT_THRESHOLD = 0.98
 CENSUS_BATCH_URL = "https://geocoding.geo.census.gov/geocoder/geographies/addressbatch"
+GOOGLE_MAPS_GEOCODING_URL = "https://maps.googleapis.com/maps/api/geocode/json"
 CROSSWALK_COLLECTION = "PublicHealthData.ZipCountyCrosswalk"
 PROVIDERS_COLLECTION = "PublicHealthData.providers_staging"
+
+# US state/territory abbreviation → 2-digit FIPS (used by Pass 4 to resolve Maps results)
+_STATE_ABBR_TO_FIPS: dict[str, str] = {
+    "AL": "01", "AK": "02", "AZ": "04", "AR": "05", "CA": "06",
+    "CO": "08", "CT": "09", "DE": "10", "FL": "12", "GA": "13",
+    "HI": "15", "ID": "16", "IL": "17", "IN": "18", "IA": "19",
+    "KS": "20", "KY": "21", "LA": "22", "ME": "23", "MD": "24",
+    "MA": "25", "MI": "26", "MN": "27", "MS": "28", "MO": "29",
+    "MT": "30", "NE": "31", "NV": "32", "NH": "33", "NJ": "34",
+    "NM": "35", "NY": "36", "NC": "37", "ND": "38", "OH": "39",
+    "OK": "40", "OR": "41", "PA": "42", "RI": "44", "SC": "45",
+    "SD": "46", "TN": "47", "TX": "48", "UT": "49", "VT": "50",
+    "VA": "51", "WA": "53", "WV": "54", "WI": "55", "WY": "56",
+    "DC": "11", "PR": "72", "VI": "78", "GU": "66", "AS": "60", "MP": "69",
+}
 
 
 # ── Orchestrators ─────────────────────────────────────────────────────────────
@@ -80,8 +151,9 @@ def _build_enrichment_reconcile(
     pass1_result: dict,
     pass2_result: dict,
     pass3_result: dict | None = None,
+    pass4_result: dict | None = None,
 ) -> dict:
-    """Build combined reconcile dict from Pass 1, Pass 2, and Pass 3 results.
+    """Build combined reconcile dict from Pass 1–4 results.
 
     pass1_result may be empty ({}) when start_step > 3 skips Pass 1.
     still_unenriched and match are computed against addressable providers
@@ -89,6 +161,7 @@ def _build_enrichment_reconcile(
     a complete match.
     """
     pass3_result = pass3_result or {}
+    pass4_result = pass4_result or {}
     total_providers = (
         pass1_result.get("total_providers")
         or pass2_result.get("total_providers", 0)
@@ -102,7 +175,8 @@ def _build_enrichment_reconcile(
     pass2_no_address       = pass2_result.get("pass2_no_address", 0)
     pass2_failed           = pass2_geocoder_failed + pass2_no_address
     pass3_modified         = pass3_result.get("pass3_modified", 0)
-    total_enriched         = pass1_modified + pass2_modified + pass2_billing_modified + pass3_modified
+    pass4_modified         = pass4_result.get("pass4_modified", 0)
+    total_enriched         = pass1_modified + pass2_modified + pass2_billing_modified + pass3_modified + pass4_modified
     # still_unenriched = addressable providers not yet enriched and not permanently failed
     still_unenriched       = addressable - total_enriched - pass2_failed
     return {
@@ -120,6 +194,8 @@ def _build_enrichment_reconcile(
         "pass2_batch_results":            pass2_result.get("pass2_batch_results", []),
         "pass3_billing_enrichments":      pass3_modified,
         "pass3_batch_results":            pass3_result.get("pass3_batch_results", []),
+        "pass4_maps_enrichments":         pass4_modified,
+        "pass4_batch_results":            pass4_result.get("pass4_batch_results", []),
         "total_enriched":                 total_enriched,
         "still_unenriched":               still_unenriched,
         "match":                          still_unenriched == 0,
@@ -318,6 +394,54 @@ def county_enrichment_pass3_orchestrator_fn(context):
         "pass3_modified":      pass3_modified,
         "pass3_failed":        pass3_failed,
         "pass3_batch_results": pass3_results,
+    }
+
+
+def county_enrichment_pass4_orchestrator_fn(context):
+    """Pass 4: Google Maps Geocoding API as final fallback for geocoder_failed providers.
+
+    Queries providers still geocoder_failed after Pass 3 and fans out Google Maps
+    API calls to resolve county by address. Requires GOOGLE_MAPS_API_KEY in environment.
+    Only runs when google_maps_enabled=True is passed in the pipeline config.
+    """
+    config = context.get_input() or {}
+    load_id = config.get("load_id", context.instance_id)
+    config = {**config, "load_id": load_id}
+
+    context.set_custom_status("Step 1/2: Finding geocoder_failed providers for Maps retry")
+    retryable = yield context.call_activity("get_maps_retryable_activity", config)
+    retryable_count = retryable["count"]
+    retryable_ids   = retryable["provider_ids"]
+
+    if not retryable_ids:
+        context.set_custom_status("Done — no geocoder_failed providers for Maps retry")
+        return {"pass4_retryable": 0, "pass4_modified": 0, "pass4_failed": 0, "pass4_batch_results": []}
+
+    maps_batch_size = config.get("maps_batch_size", 200)
+    maps_batches = [
+        retryable_ids[i:i + maps_batch_size]
+        for i in range(0, len(retryable_ids), maps_batch_size)
+    ]
+    context.set_custom_status(
+        f"Step 2/2: {retryable_count:,} providers via Google Maps "
+        f"across {len(maps_batches)} workers"
+    )
+    pass4_tasks = [
+        context.call_activity("enrich_by_maps_batch_activity", {**config, "id_batch": batch})
+        for batch in maps_batches
+    ]
+    pass4_results = (yield context.task_all(pass4_tasks)) if pass4_tasks else []
+    pass4_modified = sum(r.get("modified",    0) for r in pass4_results)
+    pass4_failed   = sum(r.get("maps_failed", 0) for r in pass4_results)
+
+    context.set_custom_status(
+        f"Done — {pass4_modified:,} matched via Maps; {pass4_failed:,} still failed"
+    )
+    return {
+        "pass4_retryable":     retryable_count,
+        "pass4_modified":      pass4_modified,
+        "pass4_failed":        pass4_failed,
+        "pass4_batch_results": pass4_results,
     }
 
 
@@ -789,6 +913,113 @@ def enrich_by_billing_batch_fn(config: dict) -> dict:
     }
 
 
+def get_maps_retryable_fn(config: dict) -> dict:
+    """Return _id list of geocoder_failed providers eligible for Google Maps retry.
+
+    Any provider with a usable address string (practice or mailing) is eligible.
+    """
+    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    db_name, coll_name = collection.split(".", 1)
+    coll = _get_mongo_client()[db_name][coll_name]
+    ids = [
+        str(doc["_id"])
+        for doc in coll.find(
+            {
+                "county.source": "geocoder_failed",
+                "$or": [
+                    {"practice_address.line1": {"$nin": [None, ""]}},
+                    {"practice_address.city":  {"$nin": [None, ""]}},
+                    {"mailing_address.line1":  {"$nin": [None, ""]}},
+                    {"mailing_address.city":   {"$nin": [None, ""]}},
+                ],
+            },
+            {"_id": 1},
+        )
+    ]
+    logging.info("Pass 4 Maps-retryable providers: %d", len(ids))
+    return {"count": len(ids), "provider_ids": ids}
+
+
+def enrich_by_maps_batch_fn(config: dict) -> dict:
+    """Pass 4: Google Maps Geocoding API for providers still geocoder_failed after Pass 3.
+
+    Calls Maps API individually (no batch endpoint). Rate-limited by
+    maps_call_delay_seconds (default 0.1s → ~10 calls/s per worker).
+    With default 5 workers the pipeline runs at ~50 calls/s, at the Maps QPS limit.
+
+    Resolves Maps (county_name, state_abbr) → FIPS via the ZipCountyCrosswalk lookup.
+    On success: county.source = "geocoder_pass4_maps", county.fips set.
+    On failure: county.source = "geocoder_failed" unchanged (no write).
+    """
+    started_at = datetime.now(timezone.utc).isoformat()
+    start_time = time.monotonic()
+    id_batch   = config["id_batch"]
+    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    delay      = config.get("maps_call_delay_seconds", 0.1)
+    api_key    = os.environ["GOOGLE_MAPS_API_KEY"]
+
+    db_name, coll_name = collection.split(".", 1)
+    coll = _get_mongo_client()[db_name][coll_name]
+
+    object_ids = [ObjectId(i) for i in id_batch]
+    providers  = list(coll.find(
+        {"_id": {"$in": object_ids}},
+        {"_id": 1, "practice_address": 1, "mailing_address": 1},
+    ))
+
+    lookup = _get_maps_county_lookup()
+    ops: list = []
+    modified = maps_failed = 0
+
+    for p in providers:
+        practice = p.get("practice_address") or {}
+        mailing  = p.get("mailing_address")  or {}
+
+        addr_parts = [
+            practice.get("line1") or mailing.get("line1", ""),
+            practice.get("city")  or mailing.get("city",  ""),
+            practice.get("state") or mailing.get("state", ""),
+            (practice.get("zip")  or mailing.get("zip",   ""))[:5],
+        ]
+        address = ", ".join(part for part in addr_parts if part)
+
+        if not address.strip():
+            maps_failed += 1
+            continue
+
+        county_name, state_abbr = _geocode_single_maps(address, api_key)
+
+        fips = None
+        if county_name and state_abbr:
+            state_fips = _STATE_ABBR_TO_FIPS.get(state_abbr.upper())
+            if state_fips:
+                fips = lookup.get((state_fips, county_name.lower().strip()))
+
+        if fips:
+            ops.append(UpdateOne(
+                {"_id": p["_id"]},
+                {"$set": {"county": {"fips": fips, "source": "geocoder_pass4_maps"}}},
+            ))
+            modified += 1
+        else:
+            maps_failed += 1
+
+        if delay:
+            time.sleep(delay)
+
+    if ops:
+        coll.bulk_write(ops, ordered=False)
+
+    logging.info("Pass 4 Maps batch: %d matched, %d still failed", modified, maps_failed)
+    return {
+        "modified":         modified,
+        "maps_failed":      maps_failed,
+        "started_at":       started_at,
+        "finished_at":      datetime.now(timezone.utc).isoformat(),
+        "duration_seconds": round(time.monotonic() - start_time, 2),
+    }
+
+
 def enrichment_report_fn(config: dict) -> dict:
     """Write enrichment run report to admin.PipelineDiscrepancyReports.
 
@@ -829,11 +1060,21 @@ def enrichment_report_fn(config: dict) -> dict:
             "pct_of_addressable": pct(count, addressable),
         }
 
+    _enriched_sources = [
+        "crosswalk_pass1",
+        "geocoder_pass2", "geocoder_pass2_billing",
+        "geocoder_pass2_batch", "geocoder_pass2_batch_billing",
+        "geocoder_pass3_billing",
+        "geocoder_pass4_maps",
+    ]
+    _enriched_total = sum(source_counts.get(s, 0) for s in _enriched_sources)
+
     summary = {
         "pass1_zip":        bucket(["crosswalk_pass1"]),
         "pass2_individual": bucket(["geocoder_pass2", "geocoder_pass2_billing"]),
         "pass2_batch":      bucket(["geocoder_pass2_batch", "geocoder_pass2_batch_billing"]),
         "pass3_billing":    bucket(["geocoder_pass3_billing"]),
+        "pass4_maps":       bucket(["geocoder_pass4_maps"]),
         "geocoder_failed":  bucket(["geocoder_failed"]),
         "no_address":       bucket(["geocoder_no_address"]),
         "out_of_scope":     {   # pct_of_addressable is N/A — these ARE the excluded set
@@ -843,32 +1084,9 @@ def enrichment_report_fn(config: dict) -> dict:
         },
         "unenriched":       bucket([None]),
         "total_enriched": {
-            "count": (
-                source_counts.get("crosswalk_pass1", 0)
-                + source_counts.get("geocoder_pass2", 0)
-                + source_counts.get("geocoder_pass2_billing", 0)
-                + source_counts.get("geocoder_pass2_batch", 0)
-                + source_counts.get("geocoder_pass2_batch_billing", 0)
-                + source_counts.get("geocoder_pass3_billing", 0)
-            ),
-            "pct_of_total":       pct(
-                source_counts.get("crosswalk_pass1", 0)
-                + source_counts.get("geocoder_pass2", 0)
-                + source_counts.get("geocoder_pass2_billing", 0)
-                + source_counts.get("geocoder_pass2_batch", 0)
-                + source_counts.get("geocoder_pass2_batch_billing", 0)
-                + source_counts.get("geocoder_pass3_billing", 0),
-                total,
-            ),
-            "pct_of_addressable": pct(
-                source_counts.get("crosswalk_pass1", 0)
-                + source_counts.get("geocoder_pass2", 0)
-                + source_counts.get("geocoder_pass2_billing", 0)
-                + source_counts.get("geocoder_pass2_batch", 0)
-                + source_counts.get("geocoder_pass2_batch_billing", 0)
-                + source_counts.get("geocoder_pass3_billing", 0),
-                addressable,
-            ),
+            "count":              _enriched_total,
+            "pct_of_total":       pct(_enriched_total, total),
+            "pct_of_addressable": pct(_enriched_total, addressable),
         },
         "total":       total,
         "addressable": addressable,

@@ -520,16 +520,17 @@ def create_vector_index_fn(config: dict) -> dict:
 def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
     """Top-level orchestrator: health check → load → enrichment → embeddings.
 
-    start_step (1–6): skip all steps before this number. Default 1 (full run).
+    start_step (1–7): skip all steps before this number. Default 1 (full run).
     Pass start_step in the payload to resume after a partial failure.
 
     Steps:
       1 — MongoDB health check
       2 — Download + extract + load provider records
-      3 — County enrichment Pass 1 (mark out_of_scope + ZIP bulk)
-      4 — County enrichment Pass 2 (Census Geocoder batch)
-      5 — County enrichment Pass 3 (billing address retry)
-      6 — Generate embeddings + create Atlas Vector Search index
+      3 — County enrichment Pass 1: ZIP crosswalk (bulk updateMany per ZIP)
+      4 — County enrichment Pass 2: Census Geocoder, practice address
+      5 — County enrichment Pass 3: Census Geocoder, billing address
+      6 — County enrichment Pass 4: Google Maps, final fallback (google_maps_enabled=True)
+      7 — Generate embeddings + create Atlas Vector Search index (embedding_enabled=True)
     """
     from county_enrichment_job import _build_enrichment_reconcile
 
@@ -546,13 +547,13 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
 
     # Step 1: MongoDB health check
     if start_step <= 1:
-        context.set_custom_status("Step 1/5: Checking MongoDB health")
+        context.set_custom_status("Step 1/7: Checking MongoDB health")
         yield context.call_activity("check_mongo_health_activity", config)
 
     # Step 2: Load provider data
     load_result = {"status": "skipped"}
     if start_step <= 2:
-        context.set_custom_status("Step 2/5: Loading provider data")
+        context.set_custom_status("Step 2/7: Loading provider data")
         load_config = {
             "num_workers": config.get("num_workers", 32),
             "batch_size": config.get("batch_size", 5000),
@@ -560,48 +561,57 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         }
         load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
 
-    # Step 3: County enrichment — Pass 1 (mark out_of_scope + ZIP bulk)
+    # Step 3: County enrichment — Pass 1: ZIP crosswalk
     pass1_result = None
     if start_step <= 3:
-        context.set_custom_status("Step 3/6: County enrichment — Pass 1 (ZIP bulk)")
+        context.set_custom_status("Step 3/7: County enrichment — Pass 1: ZIP crosswalk")
         pass1_result = yield context.call_sub_orchestrator(
             "county_enrichment_pass1_orchestrator", enrich_config
         )
 
-    # Step 4: County enrichment — Pass 2 (Census Geocoder batch)
+    # Step 4: County enrichment — Pass 2: Census Geocoder, practice address
     pass2_result = None
     if start_step <= 4:
-        context.set_custom_status("Step 4/6: County enrichment — Pass 2 (Census Geocoder)")
+        context.set_custom_status("Step 4/7: County enrichment — Pass 2: Census Geocoder, practice address")
         pass2_result = yield context.call_sub_orchestrator(
             "county_enrichment_pass2_orchestrator", enrich_config
         )
 
-    # Step 5: County enrichment — Pass 3 (billing address retry)
+    # Step 5: County enrichment — Pass 3: Census Geocoder, billing address
     pass3_result = None
     if start_step <= 5:
-        context.set_custom_status("Step 5/6: County enrichment — Pass 3 (billing address retry)")
+        context.set_custom_status("Step 5/7: County enrichment — Pass 3: Census Geocoder, billing address")
         pass3_result = yield context.call_sub_orchestrator(
             "county_enrichment_pass3_orchestrator", enrich_config
         )
 
-    # Enrichment reconcile report — runs after all passes, so pass3 is included
+    # Step 6: County enrichment — Pass 4: Google Maps, final fallback
+    # google_maps_enabled must be explicitly True — Maps API is paid beyond the free tier.
+    pass4_result = None
+    if start_step <= 6 and config.get("google_maps_enabled", False):
+        context.set_custom_status("Step 6/7: County enrichment — Pass 4: Google Maps, final fallback")
+        pass4_result = yield context.call_sub_orchestrator(
+            "county_enrichment_pass4_orchestrator", enrich_config
+        )
+
+    # Enrichment reconcile report — runs after all passes
     reconcile = None
     if pass1_result is not None or pass2_result is not None or pass3_result is not None:
         reconcile = _build_enrichment_reconcile(
-            pass1_result or {}, pass2_result or {}, pass3_result or {}
+            pass1_result or {}, pass2_result or {}, pass3_result or {}, pass4_result or {}
         )
         yield context.call_activity(
             "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
         )
 
-    # Step 6: Generate embeddings + create Atlas Vector Search index
+    # Step 7: Generate embeddings + create Atlas Vector Search index
     # embedding_enabled must be explicitly True — default is False (embeddings are expensive
     # and require OpenAI; skip unless intentionally requested).
     embed_results = []
-    if start_step <= 6 and config.get("embedding_enabled", False):
+    if start_step <= 7 and config.get("embedding_enabled", False):
         num_workers = config.get("num_workers", 32)
         staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
-        context.set_custom_status(f"Step 6/6: Generating embeddings ({num_workers} workers)")
+        context.set_custom_status(f"Step 7/7: Generating embeddings ({num_workers} workers)")
         embed_tasks = [
             context.call_activity(
                 "embed_worker_activity",
@@ -611,7 +621,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         ]
         embed_results = yield context.task_all(embed_tasks)
 
-        context.set_custom_status("Step 6/6: Creating vector search index")
+        context.set_custom_status("Step 7/7: Creating vector search index")
         yield context.call_activity(
             "create_vector_index_activity", {"staging_collection": staging_collection}
         )

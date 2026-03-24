@@ -37,12 +37,15 @@ from county_enrichment_job import (
     county_enrichment_pass1_orchestrator_fn,
     county_enrichment_pass2_orchestrator_fn,
     county_enrichment_pass3_orchestrator_fn,
+    county_enrichment_pass4_orchestrator_fn,
     enrich_by_address_batch_fn,
     enrich_by_billing_batch_fn,
+    enrich_by_maps_batch_fn,
     enrich_by_zip_batch_fn,
     enrichment_report_fn,
     get_billing_retryable_fn,
     get_distinct_zips_fn,
+    get_maps_retryable_fn,
     get_unenriched_fn,
     lookup_crosswalk_fn,
     mark_out_of_scope_fn,
@@ -288,6 +291,11 @@ def county_enrichment_pass3_orchestrator(context: df.DurableOrchestrationContext
     return county_enrichment_pass3_orchestrator_fn(context)
 
 
+@app.orchestration_trigger(context_name="context")
+def county_enrichment_pass4_orchestrator(context: df.DurableOrchestrationContext):
+    return county_enrichment_pass4_orchestrator_fn(context)
+
+
 @app.activity_trigger(input_name="config")
 def get_distinct_zips_activity(config: dict) -> dict:
     return get_distinct_zips_fn(config)
@@ -331,6 +339,16 @@ def get_billing_retryable_activity(config: dict) -> dict:
 @app.activity_trigger(input_name="config")
 def enrich_by_billing_batch_activity(config: dict) -> dict:
     return enrich_by_billing_batch_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def get_maps_retryable_activity(config: dict) -> dict:
+    return get_maps_retryable_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def enrich_by_maps_batch_activity(config: dict) -> dict:
+    return enrich_by_maps_batch_fn(config)
 
 
 @app.activity_trigger(input_name="config")
