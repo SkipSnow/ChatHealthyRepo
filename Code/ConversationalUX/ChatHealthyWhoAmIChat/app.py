@@ -19,6 +19,8 @@ from ChatHealthyMongoUtilities import ChatHealthyMongoUtilities
 
 load_dotenv(override=True)
 
+SUPPORTED_STATES = {"DE", "MS"}
+
 # MongoDB - lazy connection (connects on first use; app starts even if Mongo is unreachable)
 _mongo_conn_str = os.getenv("MONGO_connectionString") or ""
 DBManager = ChatHealthyMongoUtilities(
@@ -302,6 +304,114 @@ def find_specialty_codes(query: str) -> dict:
     return {"specialties": all_codes, "matched_classifications": classifications, "stems": stems}
 
 
+def find_providers(specialty_query: str, state: str, city: str = "", limit: int = 5) -> dict:
+    """Find providers in supported states (DE, MS) by specialty.
+
+    Branch 1 — supported state: queries providers_staging by taxonomy code + state filter.
+    Branch 2 — unsupported state: returns structured not-supported response.
+    """
+    state_upper = state.upper().strip()
+
+    if state_upper not in SUPPORTED_STATES:
+        return {
+            "supported": False,
+            "state": state_upper,
+            "message": (
+                f"FindCare is currently available in Delaware (DE) and Mississippi (MS) only. "
+                f"We've noted interest in {state_upper}."
+            ),
+        }
+
+    db = _get_db()
+    if db is None:
+        return {"error": "Database unavailable"}
+
+    specialty_result = find_specialty_codes(specialty_query)
+    if "error" in specialty_result:
+        return specialty_result
+
+    codes = [s["Code"] for s in specialty_result.get("specialties", [])]
+    if not codes:
+        return {
+            "supported": True,
+            "providers": [],
+            "message": f"No matching specialty found for '{specialty_query}'.",
+        }
+
+    query_filter = {
+        "practice_address.state": state_upper,
+        "taxonomies.code": {"$in": codes},
+    }
+    if city:
+        query_filter["practice_address.city"] = {"$regex": city.strip(), "$options": "i"}
+
+    projection = {
+        "_id": 0,
+        "npi": 1,
+        "entity_type_code": 1,
+        "provider_first_name": 1,
+        "provider_last_name_legal_name": 1,
+        "provider_middle_name": 1,
+        "provider_name_prefix_text": 1,
+        "provider_name_suffix_text": 1,
+        "provider_credential_text": 1,
+        "provider_organization_name_legal_business_name": 1,
+        "practice_address": 1,
+        "taxonomies": 1,
+    }
+
+    raw = list(
+        db["PublicHealthData"]["providers_staging"]
+        .find(query_filter, projection)
+        .limit(min(int(limit), 10))
+    )
+
+    if not raw:
+        return {
+            "supported": True,
+            "providers": [],
+            "message": f"No {specialty_query} providers found in {state_upper}.",
+        }
+
+    providers = []
+    for p in raw:
+        if p.get("entity_type_code") == "1":
+            parts = [
+                p.get("provider_name_prefix_text"),
+                p.get("provider_first_name"),
+                p.get("provider_middle_name"),
+                p.get("provider_last_name_legal_name"),
+                p.get("provider_name_suffix_text"),
+            ]
+            name = " ".join(x for x in parts if x)
+            if p.get("provider_credential_text"):
+                name += f", {p['provider_credential_text']}"
+        else:
+            name = p.get("provider_organization_name_legal_business_name") or "Unknown Organization"
+
+        addr = p.get("practice_address", {})
+        addr_parts = [addr.get("line1"), addr.get("city"), addr.get("state"), addr.get("zip")]
+        address = ", ".join(x for x in addr_parts if x)
+
+        primary = next((t for t in p.get("taxonomies", []) if t.get("primary")), None)
+        taxonomy_code = primary.get("code", "") if primary else ""
+
+        providers.append({
+            "name": name,
+            "npi": p.get("npi", ""),
+            "taxonomy_code": taxonomy_code,
+            "address": address,
+        })
+
+    return {
+        "supported": True,
+        "state": state_upper,
+        "specialty_searched": specialty_query,
+        "count": len(providers),
+        "providers": providers,
+    }
+
+
 def search_clinical_trials(condition: str, location: str = "", max_results: int = 5) -> dict:
     """Search ClinicalTrials.gov directly and return recruiting trial cards."""
     params = {
@@ -393,11 +503,49 @@ record_user_details_json = {
     }
 }
 
+find_providers_json = {
+    "name": "find_providers",
+    "description": (
+        "Search for healthcare providers (doctors, specialists) in a specific US state. "
+        "FindCare currently covers Delaware (DE) and Mississippi (MS). "
+        "Call this when the user asks to find a doctor, specialist, or provider in a location. "
+        "Always confirm the user's state before calling if not provided. "
+        "If result contains supported=false, tell the user we're not in their state yet, "
+        "ask if they'd like to be notified when we expand, then call record_unknown_question "
+        "with their state and query so we can follow up."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "specialty_query": {
+                "type": "string",
+                "description": "The type of doctor or specialty (e.g. 'cardiologist', 'pediatrician', 'dermatologist')"
+            },
+            "state": {
+                "type": "string",
+                "description": "Two-letter US state abbreviation (e.g. 'DE', 'MS', 'TX')"
+            },
+            "city": {
+                "type": "string",
+                "description": "Optional city name to narrow results"
+            },
+            "limit": {
+                "type": "integer",
+                "description": "Maximum number of providers to return (default 5, max 10)"
+            },
+        },
+        "required": ["specialty_query", "state"],
+        "additionalProperties": False,
+    },
+}
+
 record_unknown_question_json = {
     "name": "record_unknown_question",
     "description": (
         "Call this tool BEFORE composing your response whenever ANY of the following is true: "
         "(1) The answer is not explicitly stated in the provided Summary, LinkedIn, or Anthropic documents. "
+        "NOTE: Do NOT call this for FindCare queries (provider searches, specialty lookups, clinical trials, "
+        "or unsupported-state notifications) — those have their own tools. "
         "(2) You would use any hedging word such as 'I think', 'probably', 'might', 'I believe', 'I'm not sure', "
         "'it seems', 'I'd imagine', 'I'd guess', or any similar qualifier. "
         "(3) The question is personal medical advice: diagnosis, treatment recommendations, medication guidance, "
@@ -474,6 +622,7 @@ search_clinical_trials_json = {
 }
 
 tools = [
+    {"type": "function", "function": find_providers_json},
     {"type": "function", "function": record_user_details_json},
     {"type": "function", "function": record_unknown_question_json},
     {"type": "function", "function": commitSignificantActivity_json},
@@ -529,6 +678,13 @@ class Me:
             f"You are given a summary of {self.name}'s background and LinkedIn profile which you can use to answer questions. "
             f"Be professional and engaging, as if talking to a potential client or future employer who came across the website. "
             f"\n\n## STRICT ANSWER RULES — NO EXCEPTIONS\n"
+            f"RULE 0 — EMERGENCY: If the user describes ANY symptom or situation that could be a medical emergency "
+            f"(chest pain, difficulty breathing, stroke symptoms such as face drooping or sudden numbness, "
+            f"severe bleeding, loss of consciousness, seizure, severe allergic reaction, thoughts of self-harm, "
+            f"or any situation where life may be at risk), STOP immediately. "
+            f"Do not use any tool. Respond ONLY with: "
+            f"'This sounds like a medical emergency. Please call 911 immediately or go to your nearest Emergency Room. Do not wait.' "
+            f"Do not continue the conversation until the user confirms they are safe.\n"
             f"RULE 1 — SOURCE RESTRICTION: You may ONLY answer from facts explicitly stated in the Summary, LinkedIn, and Anthropic documents provided below. "
             f"You must NEVER use your general training knowledge to answer. If it is not in the documents, you do not know it.\n"
             f"RULE 2 — NO HEDGING: You are PROHIBITED from using any hedging language: 'I think', 'probably', 'might', "
@@ -539,6 +695,10 @@ class Me:
             f"medication guidance, 'should I take X', 'is my symptom serious', interpreting test results. "
             f"Always refer the user to a qualified healthcare professional.\n"
             f"  ALLOWED — Healthcare navigation: This is the core purpose of ChatHealthy.ai. "
+            f"Use find_providers when the user asks to find a doctor or specialist in a specific location — "
+            f"always ask for their state if not provided. FindCare covers Delaware (DE) and Mississippi (MS). "
+            f"If find_providers returns supported=false, tell the user we're not in their state yet, "
+            f"ask if they'd like to be notified when we expand, then call record_unknown_question with their state and query. "
             f"Use find_specialty_codes when the user asks about types of doctors or specialists. "
             f"Use search_clinical_trials when the user asks to find clinical trials or research studies for a condition — "
             f"this is navigation, not advice. Present the results clearly with trial names, phases, locations, and links.\n"
@@ -606,14 +766,14 @@ class Me:
 if __name__ == "__main__":
     me = Me()
     welcome = (
-        "**Welcome to ChatHealthy.ai**\n\n"
-        "I'm your AI guide to **US healthcare navigation**. Ask me about:\n\n"
-        "- **Medical specialties and provider types**\n"
-        "- **Clinical trials** — find recruiting studies for any condition\n"
-        "- **FindCare** — our AI-powered healthcare navigation platform\n"
-        "- **Healthcare AI Consulting** — strategy, architecture, and deployment\n"
-        "- **The team behind ChatHealthy.ai**\n\n"
-        "**Chat away.**"
+        "**Welcome to ChatHealthy FindCare**\n\n"
+        "Here's what I can help you with:\n\n"
+        "- **Find a doctor** — search for providers in Delaware or Mississippi by specialty or condition\n"
+        "- **Identify the right specialty** — not sure what kind of doctor you need? Describe your situation\n"
+        "- **Clinical trials** — find recruiting research studies for any condition\n"
+        "- **About ChatHealthy** — our mission, team, and platform\n\n"
+        "If you think you may be having a medical emergency, tell me right away.\n\n"
+        "**What can I help you with today?**"
     )
     gr.ChatInterface(
         me.chat,
