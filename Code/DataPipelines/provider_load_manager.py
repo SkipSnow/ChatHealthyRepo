@@ -8,6 +8,14 @@
 
 All I/O lives in activity functions. The orchestrator is deterministic
 and replayable (no direct I/O).
+
+Pipeline steps (referenced by start_step config key):
+  1 — Download, extract, and partition NPPES zip → Blob Storage
+  2 — Load partitions into providers_staging (fan-out across num_workers)
+  3 — County enrichment Pass 1: out-of-scope filter + ZIP-code bulk lookup
+  4 — County enrichment Pass 2: Census Geocoder batch (primary location)
+  5 — County enrichment Pass 3: billing address retry
+  6 — Generate provider embeddings + create Atlas Vector Search index
 """
 
 import csv
@@ -625,5 +633,3 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     }
 
 
-
-# deploy trigger Mon Mar 23 18:35:32 PDT 2026
