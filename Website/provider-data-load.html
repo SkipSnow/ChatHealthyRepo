@@ -129,7 +129,7 @@
       <a href="architecture.html#pipeline-architecture" style="color:var(--teal);">Architecture Overview — Section 9</a>.
     </p>
     <p>
-      The top-level entry point is <code>FullProviderPipeline</code> — a 5-step Durable Functions
+      The top-level entry point is <code>FullProviderPipeline</code> — an 8-step Durable Functions
       orchestrator that runs health check → load → county enrichment → embeddings in sequence.
       All steps are resumable via the <code>start_step</code> payload parameter (default: 1, full run).
     </p>
@@ -143,7 +143,7 @@
     <div class="note">
       <strong>SLA: full 8M-record load completes in under 1 hour.</strong> First production run
       (2026-03-19): 8,858,520 records loaded in ~35 minutes with 32 workers on Azure East US 2
-      + MongoDB Atlas M30. County enrichment and embedding generation run as Steps 3–5 of
+      + MongoDB Atlas M30. County enrichment and embedding generation run as Steps 3–8 of
       FullProviderPipeline after load completes.
     </div>
 
@@ -167,33 +167,27 @@
     </div>
 
     <!-- 2b. FullProviderPipeline -->
-    <h2>2b. FullProviderPipeline — Outer Orchestrator</h2>
+    <h2>2b. FullProviderPipeline &#8212; Outer Orchestrator</h2>
     <p>Triggered via <code>POST /api/Router</code> with <code>ChatHealthyTask: FullProviderPipeline</code>.
-    Runs five steps in sequence. Pass <code>start_step</code> to skip completed steps on resume.</p>
+    Runs eight steps in sequence. Pass <code>start_step</code> (1&#8211;8) to skip completed steps on resume.</p>
     <div class="diagram">
       <div class="diagram-inner">
-        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>FullProviderPipeline</strong><small>outer Durable orchestrator · no timeout · Azure manages state</small></div></div>
-        <div class="d-down">↓ Step 1</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>MongoDB Health Check</strong><small>ping cluster · SparkPost email to admin + RuntimeError if unreachable</small></div></div>
-        <div class="d-down">↓ Step 2</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>LoadProviderData (sub-orchestrator)</strong><small>10-step inner orchestrator — see Section 3</small></div></div>
-        <div class="d-down">↓ Step 3</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment — Pass 1 (sub-orchestrator)</strong><small>ZIP → county via HUD crosswalk · updateMany</small></div></div>
-        <div class="d-down">↓ Step 4</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment — Pass 2 (sub-orchestrator)</strong><small>Census Geocoder for split ZIPs · updateOne per provider</small></div></div>
-        <div class="d-down">↓ Step 5 — fan-out · one activity per load worker</div>
-        <div class="d-fan">
-          <div class="d-fan-box"><strong>Embed 1</strong><small>worker_id=1</small></div>
-          <div class="d-fan-box"><strong>Embed 2</strong><small>worker_id=2</small></div>
-          <div class="d-fan-box"><strong>Embed 3</strong><small>…</small></div>
-          <div class="d-fan-box"><strong>Embed N</strong><small>remainder</small></div>
-        </div>
-        <div class="d-label">Each embedding worker: read docs for worker_id → build embed text (all meaningful fields) → OpenAI text-embedding-3-small batches of 500 → bulk update embedding field</div>
-        <div class="d-down">↓ fan-in · all embedding workers complete</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>Create Atlas Vector Search Index</strong><small>provider_vector_index · cosine · 1536 dims · idempotent</small></div></div>
-      </div>
-    </div>
-    <div class="note">
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>FullProviderPipeline</strong><small>outer Durable orchestrator &#183; no timeout &#183; Azure manages state</small></div></div>
+        <div class="d-down">&#8595; Step 1</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>MongoDB Health Check</strong><small>ping cluster &#183; SparkPost email to admin + RuntimeError if unreachable</small></div></div>
+        <div class="d-down">&#8595; Step 2</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>LoadProviderData sub-orchestrator</strong><small>10-step inner orchestrator &#8212; see Section 3</small></div></div>
+        <div class="d-down">&#8595; Step 3</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 1 (sub-orchestrator)</strong><small>ZIP crosswalk + out_of_scope classification &#183; mark inactive/foreign/deactivated/ZIP-state-mismatch as out_of_scope with reason sub-field &#183; updateMany</small></div></div>
+        <div class="d-down">&#8595; Step 4</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 2 (sub-orchestrator)</strong><small>Census Geocoder, practice address &#183; batch 500 addresses &#183; fan-out workers</small></div></div>
+        <div class="d-down">&#8595; Step 5</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 3 (sub-orchestrator)</strong><small>Census Geocoder, billing address &#183; retry for geocoder_failed &#183; batch 500 addresses</small></div></div>
+        <div class="d-down">&#8595; Step 6</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 4 (sub-orchestrator)</strong><small>Google Maps Geocoding API &#183; requires google_maps_enabled=true &#183; paid API</small></div></div>
+        <div class="d-down">&#8595; Step 7</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 6 (sub-orchestrator)</strong><small>NPPES CMS Registry lookup &#183; free &#183; NPI-based &#183; ~5 req/s &#183; optional states filter</small></div></div>
+        <div class="d-down">&#8595; Step 8 &#8212; fan-out &#183; one activity per load worker</div><div class="note">
       <strong>Idempotent at every step.</strong> Download uses ETag guard (skip if unchanged).
       CSV extraction checks if blob already exists (skip if present). Embedding worker skips
       documents that already have an <code>embedding</code> field. Vector index creation
@@ -245,102 +239,121 @@
 
     <!-- 3b. County Enrichment Flow -->
     <h2>3b. County Enrichment Flow</h2>
-    <p>County enrichment runs as a separate Durable Function after the provider load completes.
-    The key insight: ~8.8M provider records contain ~40K distinct ZIP codes. Rather than enriching
-    each record individually (8.8M operations), we fan out over ZIP codes and issue one
-    <code>updateMany</code> per ZIP — roughly 220× fewer operations.</p>
+    <p>County enrichment runs as a series of Durable sub-orchestrators called sequentially by FullProviderPipeline.
+    Each pass targets only providers not yet enriched by prior passes. The enrichment SLA (98% of in-scope providers)
+    applies only to addressable providers &#8212; those not flagged as out_of_scope.</p>
     <div class="diagram">
       <div class="diagram-inner">
 
-        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>CountyEnrichmentOrchestrator</strong><small>triggered by FullProviderPipeline after ProviderLoadManager completes · separate Durable orchestration instance · prerequisite: ZipCountyCrosswalk must be loaded (separate LoadCrosswalk pipeline)</small></div></div>
-
-        <div class="d-down">↓ Step 1</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>Get Distinct ZIP Codes</strong><small>aggregate on providers_staging.practice_address.zip · ~40K distinct values</small></div></div>
-
-        <div class="d-down">↓ Step 2</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>Lookup ZIPs in Crosswalk</strong><small>find each ZIP in ZipCountyCrosswalk · split into confident (res_ratio ≥ 0.98) vs ambiguous</small></div></div>
-
-        <div class="d-down">↓ Step 3 — Pass 1: fan-out over high-confidence ZIP batches (res_ratio ≥ 0.98)</div>
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Pass 1 sub-orchestrator</strong><small>out_of_scope classification + ZIP crosswalk bulk update</small></div></div>
+        <div class="d-down">&#8595;</div>
         <div class="d-fan">
-          <div class="d-fan-box"><strong>Batch 1</strong><small>ZIP codes 1–N</small></div>
-          <div class="d-fan-box"><strong>Batch 2</strong><small>ZIP codes N+1–2N</small></div>
-          <div class="d-fan-box"><strong>Batch 3</strong><small>…</small></div>
-          <div class="d-fan-box"><strong>Batch M</strong><small>remainder</small></div>
+          <div class="d-fan-box"><strong>mark_out_of_scope</strong><small>inactive/foreign/deactivated</small></div>
+          <div class="d-fan-box"><strong>mark_zip_state_mismatch</strong><small>ZIP belongs to different state</small></div>
+          <div class="d-fan-box"><strong>get_distinct_zips</strong><small>~40K distinct ZIPs</small></div>
+          <div class="d-fan-box"><strong>lookup_crosswalk</strong><small>res_ratio &#8805; 0.98</small></div>
         </div>
-        <div class="d-label">Each worker: for each ZIP → lookup county in crosswalk → updateMany on providers_staging → return modified count</div>
+        <div class="d-label">fan-out &#8594; enrich_by_zip_batch workers &#183; one updateMany per ZIP batch</div>
 
-        <div class="d-down">↓ Step 4 — fan-in · Pass 1 complete · identify unenriched providers</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>Get Unenriched Providers</strong><small>query providers_staging where county_fips is null · these are in split ZIPs (res_ratio &lt; 0.98)</small></div></div>
-
-        <div class="d-down">↓ Step 5 — Pass 2: fan-out over unenriched provider batches</div>
+        <div class="d-down">&#8595;</div>
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Pass 2 sub-orchestrator</strong><small>Census Geocoder, practice address</small></div></div>
+        <div class="d-down">&#8595;</div>
         <div class="d-fan">
-          <div class="d-fan-box"><strong>Batch 1</strong><small>providers 1–N</small></div>
-          <div class="d-fan-box"><strong>Batch 2</strong><small>providers N+1–2N</small></div>
-          <div class="d-fan-box"><strong>Batch 3</strong><small>…</small></div>
-          <div class="d-fan-box"><strong>Batch M</strong><small>remainder</small></div>
+          <div class="d-fan-box"><strong>get_unenriched</strong><small>county_fips still null</small></div>
         </div>
-        <div class="d-label">Each worker: practice address → Census Geocoder; if blank, mailing address fallback (Pass 2b) → Census Geocoder; tag provenance → updateOne on providers_staging</div>
+        <div class="d-label">fan-out &#8594; enrich_by_address_batch workers &#183; 500 addresses per Census Geocoder POST &#183; bulk update matching providers</div>
 
-        <div class="d-down">↓ Step 6 — fan-in · Pass 2 + 2b complete</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>Reconciliation</strong><small>total enriched (Pass 1 + Pass 2 practice + Pass 2b mailing) vs total provider records · report still-unenriched</small></div></div>
+        <div class="d-down">&#8595;</div>
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Pass 3 sub-orchestrator</strong><small>Census Geocoder, billing address retry</small></div></div>
+        <div class="d-down">&#8595;</div>
+        <div class="d-fan">
+          <div class="d-fan-box"><strong>get_billing_retryable</strong><small>geocoder_failed after Pass 2</small></div>
+        </div>
+        <div class="d-label">fan-out &#8594; enrich_by_address_batch workers &#183; mailing/billing address &#183; 500 per batch</div>
 
-        <div class="d-down">↓ Step 7</div>
-        <div class="d-center"><div class="d-box d-box-wide"><strong>Enrichment Report</strong><small>write enrichment report to admin.PipelineDiscrepancyReport · SparkPost email notification</small></div></div>
+        <div class="d-down">&#8595;</div>
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Pass 4 sub-orchestrator</strong><small>Google Maps Geocoding API &#183; requires google_maps_enabled=true</small></div></div>
+        <div class="d-down">&#8595;</div>
+        <div class="d-fan">
+          <div class="d-fan-box"><strong>get_maps_retryable</strong><small>geocoder_failed after Pass 3</small></div>
+        </div>
+        <div class="d-label">fan-out &#8594; enrich_by_maps_batch workers &#183; paid API beyond free tier &#183; opt-in via google_maps_enabled</div>
+
+        <div class="d-down">&#8595;</div>
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Pass 6 sub-orchestrator</strong><small>NPPES CMS Registry lookup by NPI</small></div></div>
+        <div class="d-down">&#8595;</div>
+        <div class="d-fan">
+          <div class="d-fan-box"><strong>get_nppes_retryable</strong><small>geocoder_failed or unenriched after Pass 4</small></div>
+        </div>
+        <div class="d-label">fan-out &#8594; enrich_by_nppes_batch workers &#183; free &#183; ~5 req/s &#183; optional states filter</div>
+
+        <div class="d-down">&#8595;</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Enrichment Report</strong><small>written to admin.PipelineDiscrepancyReports after full run</small></div></div>
 
       </div>
     </div>
     <div class="note">
       <strong>Pass 1 data source:</strong> HUD USPS ZIP-to-county crosswalk
       (<code>huduser.gov/portal/datasets/usps_crosswalk.html</code>), published quarterly.
-      Only ZIP codes with <code>res_ratio ≥ 0.98</code> are resolved in Pass 1 — these are
-      effectively single-county ZIPs. The crosswalk is loaded into
-      <code>PublicHealthData.ZipCountyCrosswalk</code> as a prerequisite before enrichment runs.
+      Only ZIPs with <code>res_ratio &#8805; 0.98</code> are resolved (effectively single-county ZIPs).
+      Prerequisite: ZipCountyCrosswalk loaded first.
     </div>
     <div class="note">
-      <strong>Pass 2 / 2b data source:</strong> US Census Geocoder API (free, US-only). For providers
-      in split ZIPs (<code>res_ratio &lt; 0.98</code>), the practice address is submitted first
-      (Pass 2). If the practice address is blank, the mailing address is tried instead (Pass 2b).
-      Pass 2 is record-by-record — <code>updateOne</code> per provider.
+      <strong>Pass 2/3 data source:</strong> US Census Geocoder API (free, US-only, 500-address batches).
+      Pass 2 uses <code>practice_address</code>; Pass 3 retries <code>geocoder_failed</code> using mailing_address/billing address.
+    </div>
+    <div class="note">
+      <strong>Pass 4 data source:</strong> Google Maps Geocoding API (paid beyond free tier).
+      Requires <code>google_maps_enabled=true</code>. Targets providers still <code>geocoder_failed</code> after Pass 3.
+    </div>
+    <div class="note">
+      <strong>Pass 6 data source:</strong> NPPES CMS Registry (free, no API key). Fetches canonical practice address
+      registered with CMS by NPI. Rate-limited to ~5 req/s per calling IP. Use <code>states</code> parameter to limit
+      scope for test runs. Targets providers still <code>geocoder_failed</code> or unenriched after Pass 4.
     </div>
 
     <!-- 3c. Multi-Pass Enrichment Strategy -->
     <h2>3c. Multi-Pass Enrichment Strategy</h2>
-    <p>County enrichment follows three escalating tiers — data first, web second, AI last.
-    Each pass runs only against records the previous passes could not resolve. Every record
-    is tagged with its provenance source so the pipeline never re-attempts a record that has
-    already been given a definitive result (success or permanent failure).</p>
+    <p>County enrichment follows multiple passes against escalating data sources. Each pass runs only against
+    records the previous passes could not resolve. Every record is tagged with its provenance source so the
+    pipeline never re-attempts a record that has already been given a definitive result (success or permanent failure).</p>
     <div class="table-wrap">
       <table>
-        <tr><th>Pass</th><th>Tier</th><th>Method</th><th>Source</th><th>Provenance Tag</th><th>Status</th></tr>
-        <tr><td>1</td><td>Data</td><td>ZIP → county crosswalk · <code>updateMany</code> per ZIP</td><td>HUD USPS crosswalk</td><td><code>crosswalk_pass1</code></td><td>Live</td></tr>
-        <tr><td>2</td><td>Data</td><td>Practice address → Census Geocoder · <code>updateOne</code></td><td>US Census Geocoder API</td><td><code>geocoder_pass2</code></td><td>Live</td></tr>
-        <tr><td>2b</td><td>Data</td><td>Mailing address fallback (when practice address is blank) → Census Geocoder</td><td>US Census Geocoder API</td><td><code>geocoder_pass2_billing</code></td><td>Live</td></tr>
-        <tr><td>3</td><td>Web</td><td>Web search by NPI</td><td>Public web</td><td><code>geocoder_web_npi</code></td><td>Planned</td></tr>
-        <tr><td>4</td><td>Web</td><td>Web search by provider name + state</td><td>Public web</td><td><code>geocoder_web_name</code></td><td>Planned</td></tr>
-        <tr><td>5</td><td>AI</td><td>AI research agent — reasons across sources to infer county</td><td>LLM + web</td><td><code>geocoder_ai_research</code></td><td>Planned</td></tr>
+        <tr><th>Pass</th><th>Method</th><th>Source</th><th>Provenance Tag</th><th>Status</th></tr>
+        <tr><td>1</td><td>ZIP &#8594; county crosswalk &#183; <code>updateMany</code> per ZIP</td><td>HUD USPS crosswalk</td><td><code>crosswalk_pass1</code></td><td>Live</td></tr>
+        <tr><td>2</td><td>Practice address &#8594; Census Geocoder &#183; batch 500</td><td>US Census Geocoder API</td><td><code>geocoder_pass2_batch</code></td><td>Live</td></tr>
+        <tr><td>3</td><td>Billing address &#8594; Census Geocoder &#183; batch 500 (geocoder_failed retry)</td><td>US Census Geocoder API</td><td><code>geocoder_pass3_billing</code></td><td>Live</td></tr>
+        <tr><td>4</td><td>Practice address &#8594; Google Maps Geocoding API (paid, opt-in)</td><td>Google Maps Platform</td><td><code>geocoder_pass4_maps</code></td><td>Live</td></tr>
+        <tr><td>6</td><td>NPPES registry lookup by NPI (free, ~5 req/s)</td><td>CMS NPPES API</td><td><code>geocoder_pass6_nppes</code></td><td>Live</td></tr>
       </table>
     </div>
-    <p>Records with <code>county.source = geocoder_no_address</code> (both practice and mailing
-    addresses blank after Pass 2b) will proceed directly to the AI pass — web search cannot help
-    without any address signal. Records successfully enriched in any pass are not re-attempted.
-    AI passes are controlled by the <code>do_ai_passes</code> payload flag (default <code>true</code>).</p>
+    <p>Records flagged <code>geocoder_failed</code> after all passes can be resolved at runtime by the AI agent
+    during the FindCare conversation &#8212; no pipeline re-run needed. Records successfully enriched in any pass
+    are not re-attempted. The 98% enrichment SLA requires passes 1&#8211;3 (all free); passes 4 and 6 are
+    improvement passes that push toward 100%.</p>
 
     <!-- 3d. Out-of-Scope Providers -->
     <h2 id="out-of-scope">3d. Out-of-Scope Providers</h2>
     <p>Not all records in the NPPES file are active US providers. Records that cannot receive
     a county assignment are tagged <code>county.source = "out_of_scope"</code> and excluded
     from the enrichment ratio calculation. The 98% enrichment SLA applies only to
-    <em>in-scope</em> providers — those where county assignment is meaningful.</p>
+    <em>in-scope</em> providers &#8212; those where county assignment is meaningful.</p>
     <div class="table-wrap">
       <table>
-        <tr><th>Category</th><th>Criteria</th><th>Notes</th></tr>
-        <tr><td>Deactivated NPI</td><td><code>npi_deactivation_date</code> set and <code>npi_reactivation_date</code> absent</td><td>Provider has voluntarily surrendered or been deactivated by CMS</td></tr>
-        <tr><td>Foreign provider</td><td><code>practice_address.country</code> is set and is not "US"</td><td>NPPES sets "US" for all domestic providers; a non-US value indicates an international provider the Census geocoder cannot resolve</td></tr>
-        <tr><td>No address</td><td>Both <code>practice_address</code> and <code>mailing_address</code> are absent</td><td>No location data in either container — Census geocoder has nothing to work with</td></tr>
+        <tr><th>Category</th><th>Criteria</th><th>county.reason</th><th>Notes</th></tr>
+        <tr><td>No address</td><td>Both <code>practice_address</code> and <code>mailing_address</code> absent</td><td><code>no_address</code></td><td>No location data &#8212; geocoder has nothing to work with</td></tr>
+        <tr><td>Foreign provider</td><td><code>practice_address.country</code> set and &#8800; "US"</td><td><code>foreign_provider</code></td><td>NPPES sets "US" for domestic; non-US = international</td></tr>
+        <tr><td>Deactivated NPI</td><td><code>npi_deactivation_date</code> set and <code>npi_reactivation_date</code> absent</td><td><code>deactivated</code></td><td>Surrendered or deactivated by CMS</td></tr>
+        <tr><td>ZIP/state mismatch</td><td><code>practice_address.zip</code> belongs to a different state than <code>practice_address.state</code> (per crosswalk)</td><td><code>zip_state_mismatch</code></td><td>Bad source data in NPPES itself; ~0.03% of providers</td></tr>
+        <tr><td>Legacy</td><td>Records marked out_of_scope before reason field was added</td><td><code>legacy</code></td><td>Pre-existing records; treated same as out_of_scope</td></tr>
       </table>
     </div>
+    <p><code>county.reason</code> is a sub-field of the county document:
+    <code>county: &#123;fips: null, source: 'out_of_scope', reason: 'zip_state_mismatch'&#125;</code>.
+    The out_of_scope classification and reason are written by Pass 1 before any geocoding begins.
+    The enrichment report includes a by_reason breakdown.</p>
     <p>These records are present in the NPPES export and loaded into
-    <code>providers_staging</code> — they are not dropped. The <code>out_of_scope</code> tag
+    <code>providers_staging</code> &#8212; they are not dropped. The <code>out_of_scope</code> tag
     ensures they are not counted as enrichment failures.</p>
 
     <!-- 4. Class Responsibilities -->
@@ -548,9 +561,14 @@
 
     <h3>CountyEnrichmentOrchestrator</h3>
     <p>Separate Durable Function orchestrator — not part of ProviderLoadManager. Triggered by
-    FullProviderPipeline after ProviderLoadManager completes. 7 steps: get distinct ZIPs,
-    lookup crosswalk, Pass 1 ZIP fan-out, get unenriched providers, Pass 2 address fan-out,
-    reconcile, write report. Prerequisite: <code>PublicHealthData.ZipCountyCrosswalk</code>
+    FullProviderPipeline after ProviderLoadManager completes. Multi-pass enrichment triggered by FullProviderPipeline.
+    Pass 1: mark out_of_scope (with reason), ZIP crosswalk bulk update.
+    Pass 2: Census Geocoder batch (practice address).
+    Pass 3: Census Geocoder batch (billing address retry).
+    Pass 4: Google Maps batch (paid, opt-in).
+    Pass 6: NPPES CMS registry lookup by NPI (free).
+    Enrichment report written to admin.PipelineDiscrepancyReports after each full run.
+    Prerequisite: <code>PublicHealthData.ZipCountyCrosswalk</code>
     must be populated by the LoadCrosswalk pipeline before enrichment runs.</p>
 
     <h3>ZipEnrichmentWorker (Pass 1)</h3>
@@ -560,14 +578,14 @@
     and <code>county_name</code> to all matching provider records. Returns count of documents
     modified.</p>
 
-    <h3>AddressEnrichmentWorker (Pass 2 + 2b)</h3>
-    <p>Accepts a batch of provider records whose <code>county_fips</code> is still null after
-    Pass 1 (i.e. their ZIP spans multiple counties). For each provider: submits the practice
-    address to the US Census Geocoder API (Pass 2). If the practice address is blank, falls back
-    to the mailing address (Pass 2b). Tags each record with its provenance source:
-    <code>geocoder_pass2</code>, <code>geocoder_pass2_billing</code>, <code>geocoder_failed</code>
-    (geocoder returned no match), or <code>geocoder_no_address</code> (both addresses blank).
-    Issues one <code>updateOne</code> per provider. Returns counts for each outcome.</p>
+    <h3>AddressEnrichmentWorker (Pass 2/3)</h3>
+    <p>Accepts a batch of provider records. Submits addresses to the US Census Geocoder API in
+    batches of 500. Pass 2 uses <code>practice_address</code>; Pass 3 uses mailing/billing address
+    for providers still <code>geocoder_failed</code> after Pass 2. Tags each record with its
+    provenance source: <code>geocoder_pass2_batch</code>, <code>geocoder_pass3_billing</code>,
+    <code>geocoder_failed</code> (geocoder returned no match), or <code>geocoder_no_address</code>
+    (both addresses blank). Pass 2/3 uses batch geocoding &#8212; 500 addresses per Census Geocoder POST.
+    Each worker issues one batch request and bulk-updates matching providers. Returns counts for each outcome.</p>
 
     <h3>DiscrepancyReporter</h3>
     <p>Writes the complete run data (all worker results + reconciliation + summary) as a document to <code>admin.PipelineDiscrepancyReport</code> in MongoDB. Sends a SparkPost email notification with key stats and the <code>load_id</code> for lookup. No blob storage or file generation.</p>
@@ -673,12 +691,17 @@
     <div class="table-wrap">
       <table>
         <tr><th>Field</th><th>Type</th><th>Default</th><th>Notes</th></tr>
-        <tr><td><code>start_step</code></td><td>int</td><td>1</td><td>Resume from this step (1–5). Use to skip completed steps after a partial failure. 1=health check, 2=load, 3=enrichment pass 1, 4=enrichment pass 2, 5=embeddings.</td></tr>
-        <tr><td><code>num_workers</code></td><td>int</td><td>32</td><td>Number of parallel load workers (Step 2) and embedding workers (Step 5). Each load worker gets an equal byte slice of the CSV.</td></tr>
+        <tr><td><code>start_step</code></td><td>int</td><td>1</td><td>Resume from this step (1&#8211;8). Use to skip completed steps after a partial failure. 1=health check, 2=load, 3=enrichment pass 1 (ZIP crosswalk + out_of_scope), 4=enrichment pass 2 (Census practice), 5=enrichment pass 3 (Census billing), 6=enrichment pass 4 (Google Maps), 7=enrichment pass 6 (NPPES), 8=embeddings.</td></tr>
+        <tr><td><code>num_workers</code></td><td>int</td><td>32</td><td>Number of parallel load workers (Step 2). Embedding workers (Step 8) use the same value. Each load worker gets an equal byte slice of the CSV.</td></tr>
         <tr><td><code>batch_size</code></td><td>int</td><td>5000</td><td>MongoDB <code>bulk_write</code> batch size per load worker insert cycle.</td></tr>
         <tr><td><code>blob_container</code></td><td>str</td><td><code>provider-data</code></td><td>Azure Blob container for zip and CSV storage.</td></tr>
-        <tr><td><code>enrich_workers</code></td><td>int</td><td>200</td><td>Number of parallel county enrichment workers (Steps 3–4).</td></tr>
-        <tr><td><code>addr_batch_size</code></td><td>int</td><td>50</td><td>Providers per Census Geocoder batch in Pass 2.</td></tr>
+        <tr><td><code>enrich_workers</code></td><td>int</td><td>200</td><td>Number of parallel county enrichment workers (Steps 3&#8211;7).</td></tr>
+        <tr><td><code>addr_batch_size</code></td><td>int</td><td>500</td><td>Providers per Census Geocoder batch in Passes 2 and 3. Max 500 (Census API limit).</td></tr>
+        <tr><td><code>google_maps_enabled</code></td><td>bool</td><td>false</td><td>Enable Pass 4 Google Maps geocoding. Paid API beyond free tier &#8212; must be explicitly true.</td></tr>
+        <tr><td><code>nppes_batch_size</code></td><td>int</td><td>5000</td><td>Providers per NPPES worker batch in Pass 6. Keep large (one worker per batch shares one outbound IP against the ~5 req/s rate limit).</td></tr>
+        <tr><td><code>states</code></td><td>object</td><td>null</td><td>Optional state filter for Pass 6 NPPES. Shape: <code>&#123;"mode": "include"/"exclude", "list": ["RI", "HI", "ME"]&#125;</code>. Omit for all states.</td></tr>
+        <tr><td><code>reset_failed</code></td><td>bool</td><td>false</td><td>Reset geocoder_failed providers to unenriched before Pass 2. Use when retrying after a geocoder strategy change.</td></tr>
+        <tr><td><code>embedding_enabled</code></td><td>bool</td><td>false</td><td>Enable Step 8 embeddings. Omit for pipeline-only runs.</td></tr>
         <tr><td><code>staging_collection</code></td><td>str</td><td><code>PublicHealthData.providers_staging</code></td><td>Target collection for provider records and embeddings.</td></tr>
         <tr><td><code>max_bytes</code></td><td>int / null</td><td><code>None</code></td><td>Hard byte limit on CSV rows read (excludes header). Omit for full production load. Pass <code>50000000</code> (~50 MB, ~42K records) for a dev test run.</td></tr>
         <tr><td><code>debug</code></td><td>bool</td><td>false</td><td>Enables DEBUG-level logging for this request only.</td></tr>
@@ -785,7 +808,7 @@
       <table>
         <tr><th>Check</th><th>Threshold</th><th>Action if failed</th></tr>
         <tr><td>Total record count</td><td>8.5M – 10.5M; warn if &gt;5% from last known good (8.9M)</td><td>Investigate load — possible source file change or partial load</td></tr>
-        <tr><td>Enrichment ratio</td><td>≥ 98% of <em>in-scope</em> providers have <code>county.fips</code> &nbsp;<small style="color:var(--ink-soft);">(out-of-scope = inactive or foreign NPI; see <a href="#out-of-scope">§ Out of Scope</a>)</small></td><td>Do not promote — re-run enrichment or investigate failures</td></tr>
+        <tr><td>Enrichment ratio</td><td>≥ 98% of <em>in-scope</em> providers have <code>county.fips</code> &nbsp;<small style="color:var(--ink-soft);">(out-of-scope = inactive, foreign, deactivated, or ZIP/state mismatch; see <a href="#out-of-scope">§3d</a>)</small></td><td>Do not promote — re-run enrichment or investigate failures</td></tr>
         <tr><td>Any state coverage</td><td>≥ 85% enrichment per state</td><td>Investigate that state — bad ZIP data, geocoder outage</td></tr>
         <tr><td>Missing NPI</td><td>= 0</td><td>Hard stop — data integrity failure</td></tr>
         <tr><td>Spot check error rate</td><td>0 errors across 64 random samples (2 per NPI partition)</td><td>Investigate flagged NPIs before promoting</td></tr>

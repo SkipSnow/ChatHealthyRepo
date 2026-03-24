@@ -255,48 +255,148 @@
 
       <!-- 2 -->
       <h2 id="infrastructure">2. Components</h2>
-      <div class="diagram">
-        <div class="diagram-inner">
+      <div class="diagram" style="overflow-x:auto;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="760" height="455" font-family="'DM Sans',sans-serif" font-size="11" fill="#0d1117">
+          <defs>
+            <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+              <path d="M1,1 L1,6 L7,3 Z" fill="#0d1117"/>
+            </marker>
+          </defs>
 
-          <!-- Top stack -->
-          <div class="d-center"><div class="d-box d-box-wide"><strong>User Browser</strong><small>www.chathealthy.ai</small></div></div>
-          <div class="d-down">↓</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>Cloudflare</strong><small>Static pages · DNS · iframe embed</small></div></div>
-          <div class="d-down">↓</div>
-          <div class="d-center"><div class="d-box d-box-wide d-box-deprecated" id="diag-hf"><strong>HuggingFace Space</strong><small>React + FastAPI · Layer 1 · deprecated</small></div></div>
-          <div class="d-vline"></div>
-          <div class="d-hbar" style="width:58%"></div>
-          <div class="d-row" style="margin-top:0;">
-            <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>LLM APIs</strong><small>Anthropic · OpenAI · Groq</small></div></div>
-            <div class="d-col" id="diag-az"><div class="d-vline"></div><div class="d-box"><strong>Azure Functions</strong><small>CrewAI · Layer 2</small></div></div>
-            <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>MongoDB Atlas</strong><small>ChatHealthyDB_dev</small></div></div>
-          </div>
+          <!-- Package boundary: subsystem ChatHealthy Platform -->
+          <rect x="12" y="80" width="443" height="370" fill="none" stroke="#0d1117" stroke-width="1.5" stroke-dasharray="8,4"/>
+          <text x="20" y="95" font-style="italic" font-size="10" fill="#4a5568">&#171;subsystem&#187;</text>
+          <text x="20" y="108" font-size="11" font-weight="bold" fill="#0d1117">ChatHealthy Platform</text>
 
-          <!-- Connectors down to Google Maps -->
-          <div style="display:flex;justify-content:center;gap:120px;margin-top:12px;">
-            <div style="text-align:center;font-size:0.78rem;color:var(--ink-soft);">chat layer<br>↓</div>
-            <div style="text-align:center;font-size:0.78rem;color:var(--ink-soft);">pipeline layer<br>↓</div>
-          </div>
-          <div style="display:flex;justify-content:center;margin:0 auto;width:58%;">
-            <div style="flex:1;height:2px;background:var(--ink);margin-top:0;"></div>
-          </div>
-          <div class="d-vline"></div>
+          <!-- Row 1: User Browser (x=280, y=10, w=200, h=45) -->
+          <rect x="280" y="10" width="200" height="45" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+          <rect x="461" y="14" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="457" y="17" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="457" y="22" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="350" y="27" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;actor&#187;</text>
+          <text x="350" y="41" text-anchor="middle" font-size="11" font-weight="bold">User Browser</text>
 
-          <!-- Google Maps — bottom layer -->
-          <div class="d-center">
-            <div class="d-box d-box-wide">
-              <strong>Google Maps</strong>
-              <small>Maps JavaScript API · dark theme</small>
-            </div>
-          </div>
+          <!-- Row 2 left: Website (x=22, y=90, w=170, h=55) -->
+          <rect x="22" y="90" width="170" height="55" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+          <rect x="173" y="94" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="169" y="97" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="169" y="102" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="100" y="104" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;component&#187;</text>
+          <text x="100" y="117" text-anchor="middle" font-size="11" font-weight="bold">Website</text>
+          <text x="100" y="130" text-anchor="middle" font-size="9" fill="#4a5568">Cloudflare Pages &#183; static HTML</text>
 
-        </div>
+          <!-- Row 2 middle: Chat App (x=247, y=90, w=182, h=55) -->
+          <rect x="247" y="90" width="182" height="55" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+          <rect x="410" y="94" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="406" y="97" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="406" y="102" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="334" y="104" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;component&#187;</text>
+          <text x="334" y="117" text-anchor="middle" font-size="11" font-weight="bold">Chat App</text>
+          <text x="334" y="130" text-anchor="middle" font-size="9" fill="#4a5568">HuggingFace &#8594; Azure Static Web Apps</text>
+
+          <!-- Row 2 right: LLM APIs (x=483, y=90, w=255, h=55, dashed) -->
+          <rect x="483" y="90" width="255" height="55" fill="white" stroke="#0d1117" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <rect x="719" y="94" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="715" y="97" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="715" y="102" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="604" y="104" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;external component&#187;</text>
+          <text x="604" y="117" text-anchor="middle" font-size="11" font-weight="bold">LLM APIs</text>
+          <text x="604" y="130" text-anchor="middle" font-size="9" fill="#4a5568">Anthropic &#183; OpenAI &#183; Groq</text>
+
+          <!-- Row 3 left: Data Pipeline (x=247, y=205, w=200, h=60) -->
+          <rect x="247" y="205" width="200" height="60" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+          <rect x="428" y="209" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="424" y="212" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="424" y="217" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="340" y="219" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;component&#187;</text>
+          <text x="340" y="232" text-anchor="middle" font-size="11" font-weight="bold">Data Pipeline</text>
+          <text x="340" y="246" text-anchor="middle" font-size="9" fill="#4a5568">Azure Functions</text>
+          <text x="340" y="257" text-anchor="middle" font-size="9" fill="#4a5568">8-step Durable orchestrator</text>
+
+          <!-- Row 3 right: US Census Geocoder (x=512, y=200, w=235, h=40, dashed) -->
+          <rect x="512" y="200" width="235" height="40" fill="white" stroke="#0d1117" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <rect x="728" y="204" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="724" y="207" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="724" y="212" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="622" y="213" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;external component&#187;</text>
+          <text x="622" y="228" text-anchor="middle" font-size="11" font-weight="bold">US Census Geocoder API</text>
+
+          <!-- Row 3 right: Google Maps Geocoding (x=512, y=244, w=235, h=40, dashed) -->
+          <rect x="512" y="244" width="235" height="40" fill="white" stroke="#0d1117" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <rect x="728" y="248" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="724" y="251" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="724" y="256" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="622" y="257" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;external component&#187;</text>
+          <text x="622" y="272" text-anchor="middle" font-size="11" font-weight="bold">Google Maps Geocoding API</text>
+
+          <!-- Row 3 right: NPPES CMS Registry (x=512, y=288, w=235, h=40, dashed) -->
+          <rect x="512" y="288" width="235" height="40" fill="white" stroke="#0d1117" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <rect x="728" y="292" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="724" y="295" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="724" y="300" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="622" y="301" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;external component&#187;</text>
+          <text x="622" y="316" text-anchor="middle" font-size="11" font-weight="bold">NPPES CMS Registry</text>
+
+          <!-- Row 4: MongoDB Atlas DataPipelines (x=247, y=325, w=210, h=52) -->
+          <rect x="247" y="325" width="210" height="52" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+          <rect x="438" y="329" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="434" y="332" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="434" y="337" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="350" y="339" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;datastore&#187;</text>
+          <text x="350" y="352" text-anchor="middle" font-size="11" font-weight="bold">MongoDB Atlas DataPipelines</text>
+          <text x="350" y="365" text-anchor="middle" font-size="9" fill="#4a5568">ChatHealthyDataPipelines &#183; pipeline R/W</text>
+
+          <!-- Row 5: MongoDB Atlas FrontEnd (x=247, y=393, w=210, h=48) -->
+          <rect x="247" y="393" width="210" height="48" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+          <rect x="438" y="397" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="434" y="400" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="434" y="405" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="350" y="407" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;datastore&#187;</text>
+          <text x="350" y="420" text-anchor="middle" font-size="11" font-weight="bold">MongoDB Atlas FrontEnd</text>
+          <text x="350" y="433" text-anchor="middle" font-size="9" fill="#4a5568">ChatHealthyFrontEnd &#183; runtime reads</text>
+
+          <!-- A: User Browser -> Website: HTTP -->
+          <line x1="330" y1="55" x2="117" y2="90" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="200" y="75" text-anchor="middle" font-size="9" fill="#4a5568">HTTP</text>
+
+          <!-- B: Website -> Chat App: iframe embed -->
+          <line x1="192" y1="119" x2="247" y2="119" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="220" y="113" text-anchor="middle" font-size="9" fill="#4a5568">iframe embed</text>
+
+          <!-- C: Chat App -> LLM APIs: HTTPS -->
+          <line x1="429" y1="119" x2="483" y2="119" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="456" y="113" text-anchor="middle" font-size="9" fill="#4a5568">HTTPS</text>
+
+          <!-- D: Chat App -> Data Pipeline: POST /api/Router -->
+          <line x1="338" y1="145" x2="347" y2="205" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="305" y="178" text-anchor="middle" font-size="9" fill="#4a5568">POST /api/Router</text>
+
+          <!-- E: Data Pipeline -> US Census Geocoder: batch geocoding -->
+          <line x1="447" y1="235" x2="512" y2="220" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="492" y="222" text-anchor="middle" font-size="9" fill="#4a5568">batch geocoding</text>
+
+          <!-- F: Data Pipeline -> Google Maps: geocoding -->
+          <line x1="447" y1="235" x2="512" y2="264" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="492" y="256" text-anchor="middle" font-size="9" fill="#4a5568">geocoding</text>
+
+          <!-- G: Data Pipeline -> NPPES CMS Registry: NPI lookup -->
+          <line x1="447" y1="235" x2="512" y2="308" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="472" y="285" text-anchor="middle" font-size="9" fill="#4a5568">NPI lookup</text>
+
+          <!-- H: Data Pipeline -> MongoDB DataPipelines: R/W -->
+          <line x1="347" y1="265" x2="352" y2="325" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="315" y="298" text-anchor="middle" font-size="9" fill="#4a5568">R/W</text>
+
+          <!-- I: MongoDB DataPipelines -> MongoDB FrontEnd: CopyToFrontEnd -->
+          <line x1="352" y1="377" x2="352" y2="393" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="310" y="389" text-anchor="middle" font-size="9" fill="#4a5568">CopyToFrontEnd</text>
+
+        </svg>
       </div>
       <div style="display:flex;gap:20px;flex-wrap:wrap;margin:8px 0 16px;font-size:0.82rem;">
         <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--ink);background:#fff;border-radius:2px;flex-shrink:0;"></span>Active</div>
         <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--warn);background:#fdf3f2;border-radius:2px;flex-shrink:0;"></span>Deprecated</div>
       </div>
-
       <h3>Google Maps — Two Use Cases</h3>
       <p><strong>Use case 1 — Provider finder (realized):</strong> The chat layer renders an
       interactive provider map using the Google Maps JavaScript API with a dark base theme.
@@ -543,33 +643,33 @@
       emails the admin, and fails fast if it is unreachable — no workers are launched against a
       down cluster.</p>
 
-      <h3>FullProviderPipeline — Current Implementation (6 Steps)</h3>
-      <p>All steps run sequentially. Pass <code>start_step</code> (1–6) in the payload to resume
+      <h3>FullProviderPipeline &#8212; Current Implementation (8 Steps)</h3>
+      <p>All steps run sequentially. Pass <code>start_step</code> (1&#8211;8) in the payload to resume
       from any step without re-running prior completed work. Default: full run from Step 1.</p>
       <div class="diagram">
         <div class="diagram-inner">
-          <div class="d-center"><div class="d-box d-box-wide"><strong>FullProviderPipeline Orchestrator</strong><small>POST /api/Router · ChatHealthyTask: FullProviderPipeline</small></div></div>
-          <div class="d-down">↓ Step 1</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>MongoDB Health Check</strong><small>ping cluster · SparkPost email to admin + fail fast if unreachable</small></div></div>
-          <div class="d-down">↓ Step 2</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>LoadProviderData</strong><small>~8.9M NPI records · 32-worker fan-out · ETag skip guard on download · blob skip guard on CSV extraction</small></div></div>
-          <div class="d-down">↓ Step 3</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment — Pass 1</strong><small>Mark inactive/foreign providers out_of_scope · ZIP → county via HUD crosswalk · updateMany · ~40K distinct ZIPs</small></div></div>
-          <div class="d-down">↓ Step 4</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment — Pass 2</strong><small>Census Geocoder batch for split ZIPs · practice address, with mailing address fallback · fan-out 5K-address batches</small></div></div>
-          <div class="d-down">↓ Step 5</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment — Pass 3</strong><small>Billing address retry for all geocoder_failed providers · Census Geocoder batch · active US providers only</small></div></div>
-          <div class="d-down" style="color:#0b7a75;">↓ Step 5.5 — Roadmap</div>
-          <div class="d-center"><div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;"><strong>County Enrichment — Pass 4</strong><small>Google Maps Geocoding API · records unresolved by Census Geocoder · targets 98% county coverage</small></div></div>
-          <div class="d-down">↓ Step 6</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>Generate Embeddings + Create Atlas Vector Search Index</strong><small>OpenAI text-embedding-3-small · 1536 dims · all meaningful fields · idempotent · provider_vector_index</small></div></div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>FullProviderPipeline Orchestrator</strong><small>POST /api/Router &#183; ChatHealthyTask: FullProviderPipeline</small></div></div>
+          <div class="d-down">&#8595; Step 1</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>MongoDB Health Check</strong><small>ping cluster &#183; SparkPost email to admin + fail fast if unreachable</small></div></div>
+          <div class="d-down">&#8595; Step 2</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>LoadProviderData</strong><small>~8.9M NPI records &#183; 32-worker fan-out &#183; ETag skip guard on download &#183; blob skip guard on CSV extraction</small></div></div>
+          <div class="d-down">&#8595; Step 3</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 1</strong><small>ZIP crosswalk + out_of_scope classification &#183; mark inactive/foreign/deactivated/ZIP-state-mismatch as out_of_scope with reason sub-field &#183; updateMany &#183; ~40K distinct ZIPs</small></div></div>
+          <div class="d-down">&#8595; Step 4</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 2</strong><small>Census Geocoder, practice address &#183; batch 500 addresses &#183; fan-out workers</small></div></div>
+          <div class="d-down">&#8595; Step 5</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 3</strong><small>Census Geocoder, billing address &#183; retry for geocoder_failed &#183; batch 500 addresses</small></div></div>
+          <div class="d-down">&#8595; Step 6</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 4</strong><small>Google Maps Geocoding API &#183; requires google_maps_enabled=true &#183; paid API</small></div></div>
+          <div class="d-down">&#8595; Step 7</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 6</strong><small>NPPES CMS Registry lookup &#183; free &#183; NPI-based &#183; ~5 req/s &#183; optional states filter</small></div></div>
+          <div class="d-down">&#8595; Step 8</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Generate Embeddings + Create Atlas Vector Search Index</strong><small>requires embedding_enabled=true &#183; OpenAI text-embedding-3-small &#183; 1536 dims &#183; all meaningful fields &#183; idempotent &#183; provider_vector_index</small></div></div>
         </div>
       </div>
       <div style="display:flex;gap:20px;flex-wrap:wrap;margin:8px 0 16px;font-size:0.82rem;">
         <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--ink);background:#fff;border-radius:2px;flex-shrink:0;"></span>Active</div>
-        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--teal);background:#fff;border-radius:2px;flex-shrink:0;"></span>Planned</div>
       </div>
-
       <h3>Data Sources (current and planned)</h3>
       <div class="table-wrap">
         <table>
