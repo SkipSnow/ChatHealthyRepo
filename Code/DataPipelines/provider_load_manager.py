@@ -443,14 +443,19 @@ def reconcile_fn(config: dict) -> dict:
 
 
 def drain_staging_fn(config: dict) -> dict:
-    """Drop all records from providers_staging before loading new data.
+    """Drop providers_staging before loading new data.
+
+    Uses drop() instead of delete_many() — drop immediately returns disk space
+    to Atlas. delete_many() leaves WiredTiger holding the allocated space as
+    fragmented free pages, which does not reduce billed storage.
+
     Called after download/extract/partition succeed so we know the new data is viable.
     """
     staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
     db_name, coll_name = staging_collection.split(".", 1)
-    result = _get_mongo_client()[db_name][coll_name].delete_many({})
-    logging.info("Drained staging: deleted %d records", result.deleted_count)
-    return {"drained": result.deleted_count}
+    _get_mongo_client()[db_name][coll_name].drop()
+    logging.info("Dropped staging collection %s — disk space returned to Atlas.", staging_collection)
+    return {"drained": True}
 
 
 def report_fn(config: dict) -> dict:
