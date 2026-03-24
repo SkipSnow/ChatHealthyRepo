@@ -482,8 +482,8 @@ def mark_out_of_scope_fn(config: dict) -> dict:
                     "npi_deactivation_date": {"$exists": True},
                     "npi_reactivation_date": {"$exists": False},
                 },
-                # Foreign provider (country field absent = US in NPPES)
-                {"practice_address.country": {"$exists": True}},
+                # Foreign provider (NPPES sets "US" for domestic; flag only non-US)
+                {"practice_address.country": {"$exists": True, "$ne": "US"}},
             ],
         },
         {"$set": {"county": {"fips": None, "source": "out_of_scope"}}},
