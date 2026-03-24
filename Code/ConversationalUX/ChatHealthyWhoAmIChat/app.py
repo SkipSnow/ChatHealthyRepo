@@ -1010,7 +1010,7 @@ if __name__ == "__main__":
     welcome = (
         "**Welcome to ChatHealthy FindCare**\n\n"
         "Here's what I can help you with:\n\n"
-        "- **Find a doctor** — search for providers in <span style=\"font-size:1.15em;font-weight:bold;\">Delaware</span> or <span style=\"font-size:1.15em;font-weight:bold;\">Mississippi</span> by specialty or condition\n"
+        "- **Find a doctor** — search for providers in <span class=\"state-name\">Delaware</span> or <span class=\"state-name\">Mississippi</span> by specialty or condition\n"
         "- **Identify the right specialty** — not sure what kind of doctor you need? Describe your situation\n"
         "- **Clinical trials** — find recruiting research studies for any condition\n"
         "- **About ChatHealthy** — our mission, team, and platform\n\n"
@@ -1021,7 +1021,7 @@ if __name__ == "__main__":
         me.chat,
         type="messages",
         title="",
-        css="footer { display: none !important; }",
+        css="footer { display: none !important; } .state-name { color: #003399; font-size: 1.2em; font-weight: bold; }",
         chatbot=gr.Chatbot(
             value=[{"role": "assistant", "content": welcome}],
             type="messages",
