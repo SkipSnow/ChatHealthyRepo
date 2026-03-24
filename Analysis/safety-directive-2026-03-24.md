@@ -42,6 +42,19 @@ Safety detection MUST use:
 
 If **EITHER** indicates risk → escalate.
 
+#### Haiku classification standard (approved refinement, 2026-03-24)
+
+Haiku MUST classify only **clear, specific** emergency signals — not vague discomfort.
+
+**Escalate:** explicit symptoms (chest pain, difficulty breathing, stroke), stated
+emergencies (heart attack, overdose, suicide/self-harm crisis), severe acute trauma.
+
+**Do NOT escalate:** vague statements like "I'm in pain" or "I don't feel well" —
+those require clarifying questions from the chat agent.
+
+Rationale: "I'm in a lot of pain" without specifics is not an ER signal. Escalating
+it is a false positive that destroys the session unnecessarily. Approved by Skip the Boss.
+
 ### 4. Hard Stop — No Going Back
 
 On safety trigger:

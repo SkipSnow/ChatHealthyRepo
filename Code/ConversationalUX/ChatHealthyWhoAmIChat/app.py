@@ -104,8 +104,13 @@ def _safety_check(message: str) -> bool:
             model="claude-haiku-4-5-20251001",
             max_tokens=64,
             messages=[{"role": "user", "content": (
-                "Is this message potentially a medical emergency requiring immediate action "
-                "(call 911 or go to ER)?\n"
+                "Does this message contain a CLEAR, SPECIFIC signal of a medical emergency "
+                "requiring immediate 911 or ER action?\n"
+                "Clear signals: explicit symptoms (chest pain, difficulty breathing, stroke), "
+                "stated emergencies (heart attack, overdose, suicide/self-harm crisis), "
+                "severe acute trauma.\n"
+                "Vague statements like 'I'm in pain' or 'I don't feel well' do NOT qualify — "
+                "they need clarifying questions, not 911.\n"
                 "Return ONLY valid JSON: {\"emergency\": true|false, \"confidence\": 0.0-1.0}\n\n"
                 f"Message: {message}"
             )}],
