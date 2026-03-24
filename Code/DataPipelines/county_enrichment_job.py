@@ -22,6 +22,7 @@ Two-pass enrichment strategy:
 import csv
 import io
 import logging
+import math
 import os
 import time
 from datetime import datetime, timezone
@@ -306,25 +307,21 @@ def county_enrichment_pass2_orchestrator_fn(context):
         context.set_custom_status("Step 0/2: Resetting geocoder_failed records for retry")
         yield context.call_activity("reset_geocoder_failed_activity", config)
 
-    # Step 1: Get providers not yet enriched by Pass 1
-    context.set_custom_status("Step 1/2: Getting unenriched providers")
+    # Step 1: Count unenriched providers (count only — no ID list to avoid size limits)
+    context.set_custom_status("Step 1/2: Counting unenriched providers")
     unenriched = yield context.call_activity("get_unenriched_activity", config)
     unenriched_count = unenriched["count"]
-    unenriched_ids = unenriched["provider_ids"]
 
-    # Step 2: Fan-out — one Census Geocoder call per provider
+    # Step 2: Fan-out — each activity fetches its own slice via skip/limit
     addr_batch_size = config.get("addr_batch_size", 5_000)
-    addr_batches = [
-        unenriched_ids[i:i + addr_batch_size]
-        for i in range(0, len(unenriched_ids), addr_batch_size)
-    ]
+    num_batches = math.ceil(unenriched_count / addr_batch_size) if unenriched_count else 0
     context.set_custom_status(
         f"Step 2/2: {unenriched_count:,} providers via Census Geocoder "
-        f"across {len(addr_batches)} workers"
+        f"across {num_batches} workers"
     )
     pass2_tasks = [
-        context.call_activity("enrich_by_address_batch_activity", {**config, "id_batch": batch})
-        for batch in addr_batches
+        context.call_activity("enrich_by_address_batch_activity", {**config, "batch_index": i, "addr_batch_size": addr_batch_size})
+        for i in range(num_batches)
     ]
     pass2_results = (yield context.task_all(pass2_tasks)) if pass2_tasks else []
     pass2_modified         = sum(r.get("modified",          0) for r in pass2_results)
@@ -625,31 +622,29 @@ def mark_out_of_scope_fn(config: dict) -> dict:
     return {"marked_out_of_scope": result.modified_count}
 
 
+_UNENRICHED_FILTER = {
+    "county.fips": None,
+    "county.source": {"$nin": ["geocoder_failed", "geocoder_no_address", "out_of_scope"]},
+}
+
+
 def get_unenriched_fn(config: dict) -> dict:
-    """Return _id list of providers without county.fips, plus total provider count.
+    """Return count of providers without county.fips, plus total provider count.
+
+    Returns count only — no ID list — so the result stays small regardless of scale.
+    Pass 2 fan-out uses skip/limit to let each activity fetch its own slice directly.
 
     Excludes records already resolved or classified by a prior pass:
     geocoder_failed, geocoder_no_address, out_of_scope.
-    mark_out_of_scope_fn must run before this to tag inactive and foreign providers.
+    mark_out_of_scope_fn must run before this.
     """
     collection = config.get("staging_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
     total_providers = coll.count_documents({})
-    ids = [
-        str(doc["_id"])
-        for doc in coll.find(
-            {
-                "county.fips": None,
-                "county.source": {"$nin": [
-                    "geocoder_failed", "geocoder_no_address", "out_of_scope"
-                ]},
-            },
-            {"_id": 1}
-        )
-    ]
-    logging.info("Unenriched providers for Pass 2: %d / %d total", len(ids), total_providers)
-    return {"count": len(ids), "provider_ids": ids, "total_providers": total_providers}
+    unenriched = coll.count_documents(_UNENRICHED_FILTER)
+    logging.info("Unenriched providers for Pass 2: %d / %d total", unenriched, total_providers)
+    return {"count": unenriched, "total_providers": total_providers}
 
 
 def _geocode_batch(providers: list[dict]) -> dict:
@@ -711,19 +706,26 @@ def _geocode_batch(providers: list[dict]) -> dict:
 
 
 def enrich_by_address_batch_fn(config: dict) -> dict:
-    """Pass 2: Census Geocoder batch API — up to 5K providers per activity."""
+    """Pass 2: Census Geocoder batch API — up to 5K providers per activity.
+
+    Uses skip/limit with _id sort so no large ID list is passed through
+    Durable Functions activity I/O (which has size limits).
+    Each activity independently queries its own slice of unenriched providers.
+    """
     started_at = datetime.now(timezone.utc).isoformat()
     start_time = time.monotonic()
-    id_batch   = config["id_batch"]
-    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    batch_index      = config["batch_index"]
+    addr_batch_size  = config.get("addr_batch_size", 5_000)
+    skip             = batch_index * addr_batch_size
+    collection       = config.get("staging_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
 
-    object_ids = [ObjectId(i) for i in id_batch]
-    providers  = list(coll.find(
-        {"_id": {"$in": object_ids}},
+    providers = list(coll.find(
+        _UNENRICHED_FILTER,
         {"_id": 1, "practice_address": 1, "mailing_address": 1},
-    ))
+        sort=[("_id", 1)],
+    ).skip(skip).limit(addr_batch_size))
 
     # Pre-screen: flag providers with no usable address
     geocodable: list[dict] = []
