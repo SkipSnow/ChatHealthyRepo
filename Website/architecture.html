@@ -248,19 +248,39 @@
       <h2 id="infrastructure">2. Components</h2>
       <div class="diagram">
         <div class="diagram-inner">
+
+          <!-- Top stack -->
           <div class="d-center"><div class="d-box d-box-wide"><strong>User Browser</strong><small>www.chathealthy.ai</small></div></div>
           <div class="d-down">↓</div>
           <div class="d-center"><div class="d-box d-box-wide"><strong>Cloudflare</strong><small>Static pages · DNS · iframe embed</small></div></div>
           <div class="d-down">↓</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>HuggingFace Space</strong><small>React + FastAPI · Layer 1</small></div></div>
+          <div class="d-center"><div class="d-box d-box-wide" id="diag-hf"><strong>HuggingFace Space</strong><small>React + FastAPI · Layer 1</small></div></div>
           <div class="d-vline"></div>
           <div class="d-hbar" style="width:58%"></div>
           <div class="d-row" style="margin-top:0;">
             <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>LLM APIs</strong><small>Anthropic · OpenAI · Groq</small></div></div>
-            <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>Azure Functions</strong><small>CrewAI · Layer 2</small></div></div>
+            <div class="d-col" id="diag-az"><div class="d-vline"></div><div class="d-box"><strong>Azure Functions</strong><small>CrewAI · Layer 2</small></div></div>
             <div class="d-col"><div class="d-vline"></div><div class="d-box"><strong>MongoDB Atlas</strong><small>ChatHealthyDB_dev</small></div></div>
-            <div class="d-col"><div class="d-vline"></div><div class="d-box" style="background:#0d1117;border-color:#0d1117;color:#fff;"><strong style="color:#fff;">Google Maps</strong><small style="color:#a0aec0;">Maps JavaScript API · provider map</small></div></div>
           </div>
+
+          <!-- Connectors down to Google Maps -->
+          <div style="display:flex;justify-content:center;gap:120px;margin-top:12px;">
+            <div style="text-align:center;font-size:0.78rem;color:var(--ink-soft);">chat layer<br>↓</div>
+            <div style="text-align:center;font-size:0.78rem;color:var(--ink-soft);">pipeline layer<br>↓</div>
+          </div>
+          <div style="display:flex;justify-content:center;margin:0 auto;width:58%;">
+            <div style="flex:1;height:2px;background:var(--ink);margin-top:0;"></div>
+          </div>
+          <div class="d-vline"></div>
+
+          <!-- Google Maps — bottom layer -->
+          <div class="d-center">
+            <div class="d-box d-box-wide" style="background:#0d1117;border-color:#0d1117;">
+              <strong style="color:#fff;">Google Maps</strong>
+              <small style="color:#a0aec0;">Maps JavaScript API · dark theme</small>
+            </div>
+          </div>
+
         </div>
       </div>
 
