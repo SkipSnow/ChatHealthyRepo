@@ -48,7 +48,19 @@ jobs:
             exit 1
           fi
 
-          APP_URL="https://${{ secrets.AZURE_FUNCTION_APP_NAME }}.azurewebsites.net"
+          # Flex Consumption uses a longer hostname; fetch it from Azure rather than
+          # constructing <appname>.azurewebsites.net which does not resolve for FC apps.
+          DEFAULT_HOST=$(az functionapp show \
+            --resource-group FindCareDataPipelines-Dev \
+            --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \
+            --query "defaultHostName" -o tsv 2>/dev/null) || DEFAULT_HOST=""
+
+          if [ -z "$DEFAULT_HOST" ]; then
+            echo "DEPLOY BLOCKED: Cannot retrieve app hostname — cannot verify no pipeline is running."
+            exit 1
+          fi
+
+          APP_URL="https://${DEFAULT_HOST}"
           BASE="${APP_URL}/runtime/webhooks/durabletask/instances?taskHub=DevPipelineManagmentService&code=${MASTER_KEY}"
 
           # Kick the cold start immediately — fire-and-forget, response not checked.
