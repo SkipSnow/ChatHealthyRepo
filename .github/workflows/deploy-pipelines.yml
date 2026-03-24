@@ -51,14 +51,17 @@ jobs:
           APP_URL="https://${{ secrets.AZURE_FUNCTION_APP_NAME }}.azurewebsites.net"
           BASE="${APP_URL}/runtime/webhooks/durabletask/instances?taskHub=DevPipelineManagmentService&code=${MASTER_KEY}"
 
-          # Allow up to 60s for Flex Consumption cold start before first query.
-          sleep 60
+          # Allow up to 90s for Flex Consumption cold start before first query.
+          # --max-time applies to the entire operation including retries, so it must
+          # exceed (retry-delay × retries) + per-attempt response time.
+          # 120s = 4 retries × 10s delay + 80s for actual responses.
+          sleep 90
 
-          RUNNING_RESP=$(curl -s --max-time 15 --fail --retry 4 --retry-delay 10 --retry-all-errors "${BASE}&runtimeStatus=Running") || {
+          RUNNING_RESP=$(curl -s --max-time 120 --fail --retry 4 --retry-delay 10 --retry-all-errors "${BASE}&runtimeStatus=Running") || {
             echo "DEPLOY BLOCKED: Could not query running instances — cannot verify safety."
             exit 1
           }
-          PENDING_RESP=$(curl -s --max-time 15 --fail --retry 4 --retry-delay 10 --retry-all-errors "${BASE}&runtimeStatus=Pending") || {
+          PENDING_RESP=$(curl -s --max-time 120 --fail --retry 4 --retry-delay 10 --retry-all-errors "${BASE}&runtimeStatus=Pending") || {
             echo "DEPLOY BLOCKED: Could not query pending instances — cannot verify safety."
             exit 1
           }
