@@ -500,7 +500,7 @@ def create_vector_index_fn(config: dict) -> dict:
                     {
                         "type": "vector",
                         "path": "embedding",
-                        "numDimensions": 1536,
+                        "numDimensions": 3072,
                         "similarity": "cosine",
                     }
                 ]
@@ -628,7 +628,11 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         embed_tasks = [
             context.call_activity(
                 "embed_worker_activity",
-                {"worker_id": i + 1, "staging_collection": staging_collection},
+                {
+                    "worker_id": i + 1,
+                    "staging_collection": staging_collection,
+                    "states": config.get("states"),
+                },
             )
             for i in range(num_workers)
         ]

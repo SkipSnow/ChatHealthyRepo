@@ -195,9 +195,65 @@ foreign_provider: yes
 
 ---
 
-## Open Questions for GPT
+## Embedding Model Decision — How We Got There
 
-1. What embedding model do you recommend for this use case and scale (~8.4M records)?
-2. Any fields worth repeating for stronger signal (e.g. NPI, taxonomy code)?
-3. Should `npi_status: inactive` and `foreign_provider: yes` records be in a separate
-   Atlas Search index or filtered at query time?
+### GPT's initial proposal
+
+GPT recommended `text-embedding-3-large` (OpenAI).
+
+- 3072 dimensions
+- $0.13/1M tokens
+- Expected cost: ~$130–200 one-time
+- Reasoning: well-documented, predictable under load, known OpenAI + Atlas path,
+  no meaningful performance penalty vs smaller models for this use case.
+- GPT noted that embedding latency is governed by batching and parallelization,
+  not model size — so large vs small is a cost/quality tradeoff, not a speed one.
+
+### Claude's counter-proposal
+
+Claude proposed `voyage-3-large` (Voyage AI) as an alternative.
+
+- 1024 dimensions
+- $0.06/1M tokens
+- Expected cost: ~$55–85 one-time
+- Reasoning:
+  - Purpose-built for retrieval — Voyage was founded specifically for RAG and search.
+  - Anthropic uses Voyage internally for Claude's own RAG infrastructure.
+  - 3× smaller index (~34 GB vs ~103 GB in Atlas Vector Search) — faster queries,
+    lower Atlas tier cost, easier to rebuild on re-embed.
+  - Consistently benchmarks above OpenAI on BEIR retrieval tasks.
+  - 54% cheaper for a model that retrieval benchmarks favor.
+
+### The decision
+
+**`text-embedding-3-large`. Locked for alpha.**
+
+Skip reviewed both proposals and decided in favor of GPT's recommendation.
+Rationale:
+
+1. **Shipping is the primary risk, not optimization.** The goal is a working
+   end-to-end system with stable retrieval. Marginal benchmark gains are not
+   the priority at this stage.
+
+2. **Voyage introduces a new vendor.** New API surface, new authentication,
+   new rate limiting behavior, new retry/error handling paths. Every new
+   dependency multiplies debugging complexity in alpha.
+
+3. **OpenAI + Atlas is a known, documented path.** This combination is widely
+   used and predictable under load. Voyage + Atlas is viable but not the default.
+
+4. **BEIR benchmarks do not reflect our workload.** Our queries are mixed:
+   exact NPI lookup, name lookup, taxonomy lookup, geo + specialty queries,
+   structured entity retrieval. Benchmark rankings on general retrieval corpora
+   don't directly translate.
+
+5. **Voyage is a valid v2 conversation.** Once a working baseline exists,
+   re-embedding with Voyage can be evaluated against real query performance.
+   The projection and pipeline are model-agnostic — swapping the model later
+   is a one-line change plus a re-embed run.
+
+### Implementation
+
+- `EMBED_MODEL = "text-embedding-3-large"` in `embedding_worker.py`
+- `numDimensions = 3072` in `provider_load_manager.py`
+- Not yet deployed or run.

@@ -4,28 +4,38 @@
 # Coded by Claude Sonnet 4.6 (Anthropic).
 # Developed in collaboration with ChatGPT (OpenAI).
 
-"""EmbeddingWorker — generates OpenAI text-embedding-3-small embeddings for all
+"""EmbeddingWorker — generates OpenAI text-embedding-3-large embeddings for all
 provider documents assigned to a given worker_id and stores them back to the
 staging collection.
 
 Idempotent: skips documents that already have an 'embedding' field.
+
+Projection: uses provider_embedding.should_embed / project / render.
+  - Excludes records where county.reason is 'no_address' or 'zip_state_mismatch'.
+  - All other records embed regardless of county enrichment status.
+  - See Analysis/embedding-design-2026-03-24.md for the full design.
 """
 
 import logging
 import os
 
 import openai
+from county_enrichment_job import _build_states_query
 from pipeline_worker_base import PipelineWorkerBase
+from provider_embedding import render, project, should_embed
 from pymongo import MongoClient, UpdateOne
 
 _mongo: MongoClient | None = None
 _oai: openai.OpenAI | None = None
 
-EMBED_MODEL = "text-embedding-3-small"   # 1536 dimensions, $0.02/1M tokens
-EMBED_BATCH_SIZE = 500                   # OpenAI allows up to 2048; 500 is conservative
+EMBED_MODEL      = "text-embedding-3-large"  # 3072 dimensions, $0.13/1M tokens
+EMBED_BATCH_SIZE = 500                        # OpenAI allows up to 2048; 500 is conservative
 
-# Internal fields — no semantic value, excluded from embed text
-EMBED_EXCLUDE = {"_id", "record_id", "load_id", "worker_id", "county", "embedding"}
+# MongoDB-level pre-filter — mirrors should_embed() to avoid loading excluded records.
+# should_embed() is still called per-document as the authoritative gate.
+_EMBED_PREFILTER = {
+    "county.reason": {"$nin": ["no_address", "zip_state_mismatch"]},
+}
 
 
 def _get_mongo() -> MongoClient:
@@ -45,31 +55,6 @@ def _get_openai() -> openai.OpenAI:
     return _oai
 
 
-def _collect_text(value, parts: list) -> None:
-    """Recursively collect all non-empty string values from a document field."""
-    if isinstance(value, str):
-        v = value.strip()
-        if v:
-            parts.append(v)
-    elif isinstance(value, dict):
-        for v in value.values():
-            _collect_text(v, parts)
-    elif isinstance(value, list):
-        for item in value:
-            _collect_text(item, parts)
-    # bool, int, float, None — skip
-
-
-def _build_embed_text(doc: dict) -> str:
-    """Serialize all meaningful document fields into a single text string for embedding."""
-    parts = []
-    for key, value in doc.items():
-        if key in EMBED_EXCLUDE:
-            continue
-        _collect_text(value, parts)
-    return " ".join(parts)
-
-
 class EmbeddingWorker(PipelineWorkerBase):
 
     def __init__(self, config: dict):
@@ -78,6 +63,7 @@ class EmbeddingWorker(PipelineWorkerBase):
         self.staging_collection = config.get(
             "staging_collection", "PublicHealthData.providers_staging"
         )
+        self._states_query = _build_states_query(config)  # {} if no filter
 
         # State initialised in _pipeline_open(); set to safe defaults so
         # _pipeline_close() is always safe to call even if _pipeline_open()
@@ -96,17 +82,14 @@ class EmbeddingWorker(PipelineWorkerBase):
         self._collection = _get_mongo()[db_name][coll_name]
         self._oai_client = _get_openai()
 
-        # Load all unembedded documents for this worker upfront.
-        # Embed if: never deactivated, OR deactivated and later reactivated (currently active).
-        # Purely deactivated records (no reactivation date) are retained but not embedded.
         self._docs = list(self._collection.find({
             "worker_id": self.worker_id,
             "embedding": {"$exists": False},
-            "$or": [
-                {"npi_deactivation_date": {"$exists": False}},
-                {"npi_reactivation_date": {"$exists": True}},
-            ],
+            **_EMBED_PREFILTER,
+            **self._states_query,
         }))
+        # Apply authoritative should_embed() filter after load
+        self._docs = [d for d in self._docs if should_embed(d)]
         self._total = len(self._docs)
 
     def _pipeline_has_next(self) -> bool:
@@ -115,7 +98,7 @@ class EmbeddingWorker(PipelineWorkerBase):
     def _pipeline_process(self) -> None:
         end = min(self._batch_idx + EMBED_BATCH_SIZE, self._total)
         batch = self._docs[self._batch_idx:end]
-        texts = [_build_embed_text(doc) for doc in batch]
+        texts = [render(project(doc)) for doc in batch]
         response = self._oai_client.embeddings.create(model=EMBED_MODEL, input=texts)
         ops = [
             UpdateOne(
