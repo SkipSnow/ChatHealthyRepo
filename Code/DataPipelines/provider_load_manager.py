@@ -39,10 +39,14 @@ _mongo: MongoClient | None = None
 
 
 def _get_mongo_client() -> MongoClient:
+    # Module-level singleton — reused across activity function calls on the same instance.
     global _mongo
     if _mongo is None:
         _mongo = MongoClient(os.environ["MONGO_connectionString"])
     return _mongo
+
+
+# ── NPPES source URL ──────────────────────────────────────────────────────────
 
 NPPES_INDEX_URL = "https://download.cms.gov/nppes/NPI_Files.html"
 
