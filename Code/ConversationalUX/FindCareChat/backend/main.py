@@ -60,18 +60,18 @@ _DEBUG = True
 # ---------------------------------------------------------------------------
 # MongoDB
 # ---------------------------------------------------------------------------
-_mongo_conn_str = os.getenv("MONGO_connectionString") or ""
+_mongo_frontend_str = os.getenv("MONGO_FRONTEND_connectionString") or ""
 _db_manager = None
 _db_unavailable = False  # once failed, stop retrying until restart
 
 
 def _get_db():
     global _db_manager, _db_unavailable
-    if not _mongo_conn_str or _db_unavailable:
+    if not _mongo_frontend_str or _db_unavailable:
         return None
     try:
         if _db_manager is None:
-            _db_manager = ChatHealthyMongoUtilities(_mongo_conn_str)
+            _db_manager = ChatHealthyMongoUtilities(_mongo_frontend_str)
         return _db_manager.getConnection()
     except Exception as e:
         print(f"MongoDB unavailable: {e}", flush=True)
@@ -695,8 +695,13 @@ tools = [
 # Me — loads context documents at startup
 # ---------------------------------------------------------------------------
 _ME_DIR = os.getenv("ME_DIR") or os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "..", "..", "ChatHealthyWhoAmIChat", "me"
+    os.path.dirname(os.path.abspath(__file__)), "me"
 )
+if not os.path.isdir(_ME_DIR):
+    # local dev fallback
+    _ME_DIR = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "..", "ChatHealthyWhoAmIChat", "me"
+    )
 
 def _load_me_context():
     ctx = {}
@@ -876,4 +881,5 @@ async def chat(body: ChatRequest, request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", "7860"))
+    uvicorn.run(app, host="0.0.0.0", port=port)
