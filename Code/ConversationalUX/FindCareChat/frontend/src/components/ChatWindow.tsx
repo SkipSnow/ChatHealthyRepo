@@ -47,7 +47,7 @@ export default function ChatWindow() {
     setIsLoading(true)
 
     try {
-      const res = await fetch(`${API_URL}/api/chat`, {
+      const res = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -58,8 +58,8 @@ export default function ChatWindow() {
         }),
       })
       const data = await res.json()
-      setMessages([...history, { role: 'assistant', content: data.reply }])
-      if (data.locked) setIsLocked(true)
+      setMessages([...history, { role: 'assistant', content: data.response }])
+      if (data.emergency) setIsLocked(true)
     } catch {
       setMessages([...history, { role: 'assistant', content: '**Error:** Could not reach the server. Please try again.' }])
     } finally {
