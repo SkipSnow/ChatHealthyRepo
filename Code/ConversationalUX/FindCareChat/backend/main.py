@@ -62,11 +62,12 @@ _DEBUG = True
 # ---------------------------------------------------------------------------
 _mongo_conn_str = os.getenv("MONGO_connectionString") or ""
 _db_manager = None
+_db_unavailable = False  # once failed, stop retrying until restart
 
 
 def _get_db():
-    global _db_manager
-    if not _mongo_conn_str:
+    global _db_manager, _db_unavailable
+    if not _mongo_conn_str or _db_unavailable:
         return None
     try:
         if _db_manager is None:
@@ -75,6 +76,7 @@ def _get_db():
     except Exception as e:
         print(f"MongoDB unavailable: {e}", flush=True)
         _db_manager = None
+        _db_unavailable = True
         return None
 
 
