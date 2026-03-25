@@ -3,7 +3,7 @@ name: Deploy FindCare Backend to HuggingFace
 on:
   push:
     branches:
-      - main
+      - dev
     paths:
       - 'Code/ConversationalUX/FindCareChat/backend/**'
       - 'Code/ConversationalUX/ChatHealthyWhoAmIChat/me/**'
