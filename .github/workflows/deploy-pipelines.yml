@@ -3,7 +3,7 @@ name: Deploy to Azure Functions
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - 'Code/DataPipelines/**'
 
