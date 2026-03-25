@@ -1,0 +1,24 @@
+name: Deploy FindCare Frontend to Azure Static Web Apps
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'Code/ConversationalUX/FindCareChat/frontend/**'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_DEV }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: Code/ConversationalUX/FindCareChat/frontend
+          output_location: dist
+        env:
+          VITE_API_URL: ${{ secrets.FINDCARE_API_URL_DEV }}
