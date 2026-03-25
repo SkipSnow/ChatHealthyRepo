@@ -1,3 +1,26 @@
 {
-  "assignments": []
+  "assignments": [
+    {
+      "assignment_id": "ASN-5EE93C",
+      "timestamp": "2026-03-25T17:14:36.898479+00:00",
+      "from": "Boss",
+      "assigned_to": "GPT",
+      "title": "Plan Tuesday Release â€” Feature Set, Test Schedule, Acceptance Criteria",
+      "description": "You are the Enterprise Architect for ChatHealthy operating under framework_02.\n\nRead the Brain Loop manual and these repo files before starting:\n  brain/assignment_queue.json\n  brain/budget_config.json\n  Code/Shared/brain_loop.py\n  Code/Shared/brain_auth.py\n  docs/machine-brain-claude-spec.md\n\nYour deliverables:\n1. Feature set â€” what ships Tuesday 2026-03-30, what does not\n2. Test schedule â€” phases and timing relative to release\n3. Acceptance criteria â€” per feature, per risk level\n4. 3 to 5 end-to-end user flows with pass/fail criteria\n5. UAT scenarios — exactly 10 per acceptance criterion, each boolean (true/false pass/fail), independently testable, no ambiguous expected results\n6. Gate recommendation â€” your overall risk assessment for the Tuesday release\n\nKey context:\n- Brain Loop 0.1 is itself a Tuesday deliverable\n- FastAPI backend port from Gradio is the largest open item (not started)\n- ENV_PREFIX migration across DataPipelines and app.py is pending\n- Voyage API key not yet configured (Machine Brain embeddings pending)\n- No Suicidal-risk items ship without Boss in-session sign-off\n\nWrite your output in the Assurance Output schema defined in brain_loop.py.\nInclude your usage block for cost tracking.\nPaste the completed JSON to Boss. He will commit it to brain/assurance_results.json.",
+      "scope": [
+        "brain/",
+        "Code/Shared/",
+        "Code/ConversationalUX/",
+        "Code/DataPipelines/",
+        "docs/"
+      ],
+      "priority": "high",
+      "estimated_risk": "Moderate",
+      "status": "pending",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "uat_requirement": "UAT scenario rules: (1) If scenario exercises LLM behavior: 10 semantically different boolean testable test cases. Semantic difference means different phrasing, intent, edge case, or user type — not paraphrasing. (2) If scenario exercises procedural logic only: sufficient test cases to prove all happy path(s) plus at least 2 exception paths. All test cases are boolean: true = pass, false = fail. No partial results."
+    }
+  ]
 }
