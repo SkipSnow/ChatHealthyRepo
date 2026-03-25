@@ -572,12 +572,12 @@
       </div>
 
       <!--
-        CoreChatUX embedded from HuggingFace Space:
-        SkipSnow/ChatHealthyWhoAmIChat  →  www.hf.chathealthy.ai
+        CoreChatUX iframe URL injected at build time via CHAT_URL env var.
+        Prod: https://hf.chathealthy.ai  Dev: set per environment in Cloudflare Pages
       -->
       <iframe
         id="coreChatFrame"
-        src="https://hf.chathealthy.ai"
+        src="%%CHAT_URL%%"
         title="Find Care — CoreChatUX"
         allow="microphone; clipboard-write"
         loading="lazy"
