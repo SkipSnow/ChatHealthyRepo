@@ -1,6 +1,28 @@
 {
   "assignments": [
     {
+      "assignment_id": "ASN-F3A821",
+      "timestamp": "2026-03-25T22:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "GPT",
+      "title": "Plan Tuesday Release — FindCare Product: Provider Search, Safety Filter, Maps, Angular Port",
+      "description": "You are the Enterprise Architect for ChatHealthy operating under framework_02.\n\nThis assignment corrects ASN-5EE93C. That assignment gave you only Brain infrastructure context. This assignment gives you the full product picture. Plan Tuesday's release against what the Boss actually wants to ship.\n\n---\n\nWHAT CHATHEALTHY IS:\nChatHealthy is a consumer healthcare navigation product. The core product is FindCare — a chat interface that helps consumers find healthcare providers (doctors, specialists, clinics) near them. The user describes what they need in natural language, the system finds matching providers, and shows them on a map.\n\n---\n\nWHAT EXISTS TODAY (live on HuggingFace, Gradio-based, ~1050 lines in app.py):\n\n1. SAFETY FILTER — dual detection: keyword list (chest pain, stroke, etc.) + Haiku semantic check. KNOWN BUG: Haiku was triggering on vague pain statements like 'I'm in pain' and blocking the conversation. This was tightened in a recent commit but needs validation. Safety incidents are logged to MongoDB Safety.emergency_incidents. This feature is critical — it must ship.\n\n2. PROVIDER SEARCH — find_providers(specialty_query, state, city) queries providers_staging collection in MongoDB. find_specialty_codes(query) maps user language to NPI taxonomy codes using vector search + regex fallback. KNOWN BUG: MongoDB connection fails on HuggingFace because MONGO_connectionString is not available as a HuggingFace secret. Provider search silently returns empty. This is the primary blocker.\n\n3. NO GOOGLE MAPS — provider results are returned as text only. No map rendering exists. This is new work.\n\n4. CLINICAL TRIALS SEARCH — search_clinical_trials() calls ClinicalTrials.gov API. Works but is a secondary feature.\n\n5. ABOUT US / CONTACT — records user contact details to MongoDB AboutUs.lead. Works.\n\nSupported states: Delaware (DE) and Mississippi (MS) only.\n\n---\n\nWHAT THE BOSS WANTS FOR TUESDAY MARCH 30:\n\n1. Provider search working end-to-end: user asks for a provider in natural language → system finds matching providers from MongoDB → results shown in chat\n2. Safety filter validated: health questions pass through; only genuine emergencies are escalated\n3. Google Maps: provider results include a map showing provider locations\n4. Angular frontend: port from Gradio to Angular + FastAPI. This replaces the partial React shell that exists at Code/ConversationalUX/FindCareChat/frontend/. The new stack is Angular (frontend) + FastAPI (Python backend). FastAPI replaces Gradio.\n\nBrain Loop 0.1 is operational infrastructure — it is NOT a user-facing Tuesday deliverable. Do not plan Brain Loop as a Tuesday feature.\n\n---\n\nARCHITECTURE CONSTRAINTS (from Machine Brain and framework_02):\n- Three-application rule: Website (Cloudflare, static), Chat (HuggingFace/Azure, Angular+FastAPI), DataPipelines (Azure Functions). These boundaries are hard.\n- App 2 (Chat) reads from MongoDB freely. Never writes to PublicHealthData.\n- App 3 (DataPipelines) owns all PublicHealthData writes.\n- Frontend hosting: Cloudflare Pages (NOT Azure Static Web Apps — CFO directive).\n- FastAPI backend: Azure App Service B1.\n- ENV_PREFIX (dev/qa/prod) controls all database routing — not yet implemented in the Chat app.\n\n---\n\nYOUR DELIVERABLES:\n1. Feature set — what ships Tuesday 2026-03-30, what does not, with specific reasons\n2. Test schedule — phases and timing with dates\n3. Acceptance criteria — minimum 3 per feature, covering distinct behavioral dimensions\n4. End-to-end user flows — minimum 3, covering the full user journey from question to map\n5. UAT scenarios — per acceptance criterion, per UAT rules below\n6. Risk and gate recommendation — your honest assessment\n\nInclude your usage block. Return raw JSON only matching the Assurance Output schema.",
+      "scope": [
+        "Code/ConversationalUX/ChatHealthyWhoAmIChat/app.py",
+        "Code/ConversationalUX/FindCareChat/",
+        "Code/Shared/",
+        "brain/",
+        "docs/"
+      ],
+      "priority": "critical",
+      "estimated_risk": "High",
+      "status": "pending",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "uat_requirement": "UAT scenario rules: (1) If scenario exercises LLM behavior: exactly 10 semantically different boolean testable test cases. Semantic difference means different phrasing, intent, edge case, or user type — not paraphrasing. (2) If scenario exercises procedural logic only: sufficient test cases to prove all happy path(s) plus at least 2 exception paths. All test cases are boolean: true = pass, false = fail. No partial results."
+    },
+    {
       "assignment_id": "ASN-5EE93C",
       "timestamp": "2026-03-25T17:14:36.898479+00:00",
       "from": "Boss",
