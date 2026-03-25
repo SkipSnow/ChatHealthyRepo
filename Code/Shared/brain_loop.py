@@ -397,9 +397,15 @@ def read_assurance_results(review_id: str) -> Optional[dict]:
         uat_scenarios:        list of UAT scenario dicts
         gate_recommendation:  auto | proceed_with_warning | escalate |
                               block_escalate | block_boss_required
+
+    Security: gpt_api_key must NEVER appear in Assurance Output JSON.
+    Keys exist only in the agent runtime — never in files, schemas, or logs.
     """
     data = _read(_ASSURANCE)
     for result in data.get("results", []):
+        # Strip any accidentally-included key fields before processing
+        result.pop("gpt_api_key", None)
+        result.pop("bearer_token", None)
         if result.get("review_id") == review_id:
             risk = result.get("risk", "High")
             gate = result.get("gate_recommendation", GATE_RULES.get(risk, "escalate"))
