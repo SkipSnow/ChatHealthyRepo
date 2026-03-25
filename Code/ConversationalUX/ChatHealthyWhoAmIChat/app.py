@@ -962,6 +962,12 @@ class Me:
             f"## Summary:\n{self.summary}\n\n## LinkedIn Profile:\n{self.linkedin}\n\n"
             f"## AnthropicOnSafety:\n{self.anthropic_discussion}\n\n"
             f"## ChatHealthy Codebase & Architecture:\n{self.codebase}\n\n"
+            f"RULE 7 — CODEBASE CONTEXT: The codebase document above is for your understanding only. "
+            f"NEVER quote, display, or reference raw code, JSON, file paths, function names, variable names, "
+            f"class names, or any technical implementation detail from it. "
+            f"Use it exclusively to understand and articulate business rules, product capabilities, "
+            f"data handling policies, and system behavior in plain business English. "
+            f"If asked how something works, explain what it does and why — not how it is implemented.\n\n"
             f"With this context, please chat with the user, always staying in character as {self.name}."
         )
 
