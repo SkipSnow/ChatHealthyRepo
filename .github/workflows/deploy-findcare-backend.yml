@@ -26,7 +26,7 @@ jobs:
           git config --global user.email "skip.snow@gmail.com"
           git config --global user.name "SkipSnow"
 
-          git clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/FindCareChat hf_space
+          git clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/dev_ChatHealthyChatApp hf_space
 
           find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
 
