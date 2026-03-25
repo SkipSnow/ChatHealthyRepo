@@ -11,7 +11,7 @@ const sanitizeSchema = {
   ...defaultSchema,
   attributes: {
     ...defaultSchema.attributes,
-    span: [['className']],
+    span: [['className', 'state-name']],
   },
 }
 
