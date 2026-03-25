@@ -827,7 +827,7 @@ def welcome():
 @app.get("/health")
 def health():
     db_ok = _get_db() is not None
-    return {"status": "ok", "db": "connected" if db_ok else "unavailable"}
+    return {"status": "ok", "db": "connected" if db_ok else "unavailable", "env": "dev"}
 
 
 @app.post("/chat", response_model=ChatResponse)
