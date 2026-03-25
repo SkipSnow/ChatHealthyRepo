@@ -25,8 +25,13 @@ jobs:
         run: |
           git config --global user.email "skip.snow@gmail.com"
           git config --global user.name "SkipSnow"
+          git lfs install
 
           git clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/dev_ChatHealthyChatApp hf_space
+          cd hf_space
+          git lfs track "*.pdf"
+          git add .gitattributes
+          cd ..
 
           find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
 
