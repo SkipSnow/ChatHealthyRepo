@@ -882,6 +882,8 @@ class Me:
                 self.anthropic_discussion += text
         with open(os.path.join(_ME_DIR, "summary.txt"), "r", encoding="utf-8") as f:
             self.summary = f.read()
+        with open(os.path.join(_ME_DIR, "findcare-code-package.json"), "r", encoding="utf-8") as f:
+            self.codebase = f.read()
 
     def handle_tool_calls(self, tool_calls, messages=None):
         chat_history = _format_chat_history(messages) if messages else []
@@ -959,6 +961,7 @@ class Me:
             f"If the user gives an email and you don't know their name, capture their name too.\n\n"
             f"## Summary:\n{self.summary}\n\n## LinkedIn Profile:\n{self.linkedin}\n\n"
             f"## AnthropicOnSafety:\n{self.anthropic_discussion}\n\n"
+            f"## ChatHealthy Codebase & Architecture:\n{self.codebase}\n\n"
             f"With this context, please chat with the user, always staying in character as {self.name}."
         )
 
