@@ -110,13 +110,19 @@ You are precise, thorough, and never truncate required output."""
 def _build_prompt(assignment: dict, context: str, mb_context: str) -> str:
     aid = assignment['assignment_id']
     uat_rule = assignment.get('uat_requirement', '')
+    feature_context = assignment.get('feature_context', '')
+    feature_block = (
+        f"\nPRODUCT REQUIREMENTS (provided by Boss — use these as the source of truth for planning):\n{feature_context}\n"
+        if feature_context else
+        "\nPRODUCT REQUIREMENTS: None provided. Derive requirements from the repo context files and code.\n"
+    )
     return f"""ASSIGNMENT {aid}
 Title: {assignment['title']}
 Priority: {assignment['priority']} | Estimated risk: {assignment['estimated_risk']}
 
 TASK:
 {assignment['description']}
-
+{feature_block}
 UAT RULES:
 {uat_rule}
 
@@ -139,6 +145,14 @@ JSON SCHEMA — every field marked REQUIRED must be present and non-empty:
   "issues":              REQUIRED array (empty if none),
   "gate_recommendation": REQUIRED one of: auto | proceed_with_warning | escalate | block_escalate | block_boss_required,
   "notes":               REQUIRED string,
+
+  "requirements": REQUIRED array — derive product requirements from the code and context provided. Each requirement is a discrete, testable statement of what the system must do. MINIMUM 5 items. These become the permanent product record in Machine Brain, each {{
+    "req_id":      REQUIRED string e.g. REQ-001,
+    "feature":     REQUIRED string — which feature this belongs to,
+    "requirement": REQUIRED string — specific, testable, written as 'The system must...',
+    "source":      REQUIRED string — where you found this: 'code: <function_name>', 'assignment', or 'architecture constraint',
+    "priority":    REQUIRED string: must-have | should-have | nice-to-have
+  }},
 
   "feature_set": REQUIRED {{
     "ships_tuesday": REQUIRED array, MINIMUM 1 item, each {{
@@ -206,14 +220,15 @@ JSON SCHEMA — every field marked REQUIRED must be present and non-empty:
 
 ABSOLUTE RULES:
 1. Every field marked REQUIRED must be present — no omissions
-2. Every acceptance criterion must have at least one UAT scenario — 3 ACs = minimum 3 scenarios
-3. LLM scenarios must have exactly 10 test_cases — not 9, not 11
-4. Procedural scenarios must have minimum 3 test_cases: all happy paths + minimum 2 exceptions
-5. All test_cases.expected are boolean true or false — no strings, no nulls
-6. Do NOT include gpt_api_key, bearer_token, or any secret field
-7. Return raw JSON only — no markdown, no code fences, no explanation text
-8. machine_brain_context_used must list every MB record from MACHINE BRAIN CONTEXT you considered
-9. Thin outputs are rejected. A complete Assurance Output for a feature-set planning assignment requires minimum 3 acceptance criteria per feature and full UAT coverage. Produce complete professional output.
+2. requirements array must have MINIMUM 5 items — derive from code if not provided
+3. Every acceptance criterion must have at least one UAT scenario — 3 ACs = minimum 3 scenarios
+4. LLM scenarios must have exactly 10 test_cases — not 9, not 11
+5. Procedural scenarios must have minimum 3 test_cases: all happy paths + minimum 2 exceptions
+6. All test_cases.expected are boolean true or false — no strings, no nulls
+7. Do NOT include gpt_api_key, bearer_token, or any secret field
+8. Return raw JSON only — no markdown, no code fences, no explanation text
+9. machine_brain_context_used must list every MB record from MACHINE BRAIN CONTEXT you considered
+10. Thin outputs are rejected. Complete professional output required.
 """
 
 
@@ -333,6 +348,7 @@ def run(assignment_id: str = None) -> dict:
     behav = result.get("behavior_status", "unknown")
     issues = result.get("issues", [])
     scenarios = result.get("uat_scenarios", [])
+    requirements = result.get("requirements", [])
     mb_used = result.get("machine_brain_context_used", [])
     feature_set = result.get("feature_set", {})
     ships = feature_set.get("ships_tuesday", [])
@@ -352,6 +368,7 @@ def run(assignment_id: str = None) -> dict:
     print(f"  Accept. criteria: {len(criteria)}")
     print(f"  E2E flows:        {len(e2e)}")
     print(f"  UAT scenarios:    {len(scenarios)}")
+    print(f"  Requirements:     {len(requirements)}")
     print(f"  MB records used:  {len(mb_used)}")
     print(f"{'='*60}")
 
