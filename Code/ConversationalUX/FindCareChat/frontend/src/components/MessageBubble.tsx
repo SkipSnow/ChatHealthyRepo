@@ -41,9 +41,10 @@ export default function MessageBubble({ message }: { message: Message }) {
             {message.content}
           </ReactMarkdown>
         )}
-        {!isUser && (message.thinkSeconds !== undefined || message.tokensIn !== undefined) && (
+        {!isUser && (message.build || message.thinkSeconds !== undefined || message.tokensIn !== undefined) && (
           <div style={{ marginTop: 6, fontSize: 11, color: '#9ca3af' }}>
             {[
+              message.build ?? null,
               message.thinkSeconds !== undefined ? `${message.thinkSeconds}s` : null,
               message.tokensIn !== undefined ? `${message.tokensIn.toLocaleString()} in` : null,
             ].filter(Boolean).join(' · ')}

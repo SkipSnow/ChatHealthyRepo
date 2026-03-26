@@ -7,6 +7,7 @@ export interface Message {
   isError?: boolean
   thinkSeconds?: number
   tokensIn?: number
+  build?: string
 }
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -35,6 +36,18 @@ export default function ChatWindow() {
   // Ref so async callbacks always see the latest messages for history
   const messagesRef = useRef<Message[]>([WELCOME])
   useEffect(() => { messagesRef.current = messages }, [messages])
+
+  // Fetch build number from /health and stamp it on the welcome message
+  useEffect(() => {
+    fetch(`${API_URL}/health`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.build) {
+          setMessages(prev => [{ ...prev[0], build: `Build ${data.build}` }, ...prev.slice(1)])
+        }
+      })
+      .catch(() => {}) // non-critical
+  }, [])
 
   const bottomRef = useRef<HTMLDivElement>(null)
   useEffect(() => {

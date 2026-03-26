@@ -788,6 +788,10 @@ def _load_me_context():
 
 _ME = _load_me_context()
 
+# Build number — injected by CI into build.txt at deploy time
+_build_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "build.txt")
+_BUILD = open(_build_file).read().strip() if os.path.exists(_build_file) else "dev"
+
 WELCOME_MESSAGE = (
     "**Welcome to ChatHealthy FindCare**\n\n"
     "Here's what I can help you with:\n\n"
@@ -962,7 +966,7 @@ def welcome():
 @app.get("/health")
 def health():
     db_ok = _get_db() is not None
-    return {"status": "ok", "db": "connected" if db_ok else "unavailable", "env": _ENV_PREFIX, "version": "1"}
+    return {"status": "ok", "db": "connected" if db_ok else "unavailable", "env": _ENV_PREFIX, "build": _BUILD}
 
 
 @app.post("/chat", response_model=ChatResponse)
