@@ -11,6 +11,7 @@ export interface Message {
 }
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const RETRY_SECONDS = 10
 
 const WELCOME: Message = {
   role: 'assistant',
@@ -32,95 +33,127 @@ export default function ChatWindow() {
   const [isLocked, setIsLocked] = useState(false)
   const [thinkSeconds, setThinkSeconds] = useState(0)
   const [thinkingDismissed, setThinkingDismissed] = useState(false)
+  const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
 
-  // Ref so async callbacks always see the latest messages for history
+  // Refs — avoid stale closures in async callbacks
   const messagesRef = useRef<Message[]>([WELCOME])
   useEffect(() => { messagesRef.current = messages }, [messages])
+  const backendEnvRef = useRef<string>('prod')
+  const pendingRetryRef = useRef<{ message: string; history: any[]; startTime: number } | null>(null)
 
-  // Fetch build number from /health and stamp it on the welcome message
+  // Fetch build number + env from /health on mount
   useEffect(() => {
     fetch(`${API_URL}/health`)
       .then(r => r.json())
       .then(data => {
+        backendEnvRef.current = data.env || 'prod'
         if (data.build) {
           setMessages(prev => [{ ...prev[0], build: `Build ${data.build}` }, ...prev.slice(1)])
         }
       })
-      .catch(() => {}) // non-critical
+      .catch(() => {})
   }, [])
 
   const bottomRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isLoading])
+  }, [messages, isLoading, retryCountdown])
 
-  // Think timer — counts up while loading and not dismissed
+  // Think timer — counts up while loading, not dismissed, not in retry wait
   useEffect(() => {
-    if (!isLoading || thinkingDismissed) {
+    if (!isLoading || thinkingDismissed || retryCountdown !== null) {
       setThinkSeconds(0)
       return
     }
     const timer = setInterval(() => setThinkSeconds(s => s + 1), 1000)
     return () => clearInterval(timer)
-  }, [isLoading, thinkingDismissed])
+  }, [isLoading, thinkingDismissed, retryCountdown])
 
-  const showThinking = isLoading && !thinkingDismissed
-  // Submit is allowed unless locked, or loading and not yet dismissed
+  // Retry countdown tick
+  useEffect(() => {
+    if (retryCountdown === null || retryCountdown <= 0) return
+    const timer = setTimeout(() => setRetryCountdown(c => (c ?? 1) - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [retryCountdown])
+
+  // Fire retry when countdown reaches 0
+  useEffect(() => {
+    if (retryCountdown !== 0 || !pendingRetryRef.current) return
+    setRetryCountdown(null)
+    const { message, history, startTime } = pendingRetryRef.current
+    pendingRetryRef.current = null
+    doApiCall(message, history, startTime)
+  }, [retryCountdown])
+
+  const showThinking = isLoading && !thinkingDismissed && retryCountdown === null
   const canSubmit = !isLocked && (!isLoading || thinkingDismissed)
 
-  async function handleSend(e?: React.FormEvent) {
-    e?.preventDefault()
-    const text = input.trim()
-    if (!text || !canSubmit) return
-
-    // Capture history at call time from ref — safe even if a prior call is still in flight
-    const historyForBackend = messagesRef.current
-      .filter(m => m.role === 'user' || m.role === 'assistant')
-      .map(m => ({ role: m.role, content: m.content }))
-
-    const userMessage: Message = { role: 'user', content: text }
-    setMessages(prev => [...prev, userMessage])
-    setInput('')
-    setIsLoading(true)
-    setThinkingDismissed(false)
-    const startTime = Date.now()
-
+  async function doApiCall(message: string, history: any[], startTime: number) {
+    let data: any
     try {
       const res = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, history: historyForBackend }),
+        body: JSON.stringify({ message, history }),
       })
-      const data = await res.json()
-      const elapsed = Math.round((Date.now() - startTime) / 1000)
-
-      if (data.error) {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: `**Error:**\n\`\`\`\n${data.error}\n\`\`\``,
-          isError: true,
-          thinkSeconds: elapsed,
-          tokensIn: data.tokens_in ?? undefined,
-        }])
-      } else {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: data.response,
-          thinkSeconds: elapsed,
-          tokensIn: data.tokens_in ?? undefined,
-        }])
-        if (data.emergency) setIsLocked(true)
-      }
+      data = await res.json()
     } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: '**Error:** Could not reach the server. Please try again.',
         isError: true,
       }])
-    } finally {
       setIsLoading(false)
       setThinkingDismissed(false)
+      return
     }
+
+    const elapsed = Math.round((Date.now() - startTime) / 1000)
+
+    if (data.error) {
+      const isRateLimit = data.error.includes('rate_limit') || data.error.includes('429')
+      if (isRateLimit && backendEnvRef.current === 'dev') {
+        // Dev only: show countdown and auto-retry
+        pendingRetryRef.current = { message, history, startTime }
+        setRetryCountdown(RETRY_SECONDS)
+        return // keep isLoading=true — indicator stays visible
+      }
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `**Error:**\n\`\`\`\n${data.error}\n\`\`\``,
+        isError: true,
+        thinkSeconds: elapsed,
+        tokensIn: data.tokens_in ?? undefined,
+      }])
+    } else {
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: data.response,
+        thinkSeconds: elapsed,
+        tokensIn: data.tokens_in ?? undefined,
+      }])
+      if (data.emergency) setIsLocked(true)
+    }
+
+    setIsLoading(false)
+    setThinkingDismissed(false)
+  }
+
+  async function handleSend(e?: React.FormEvent) {
+    e?.preventDefault()
+    const text = input.trim()
+    if (!text || !canSubmit) return
+
+    const historyForBackend = messagesRef.current
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .map(m => ({ role: m.role, content: m.content }))
+
+    setMessages(prev => [...prev, { role: 'user', content: text }])
+    setInput('')
+    setIsLoading(true)
+    setThinkingDismissed(false)
+
+    doApiCall(text, historyForBackend, Date.now())
   }
 
   return (
@@ -159,6 +192,21 @@ export default function ChatWindow() {
               >
                 Stop
               </button>
+            </div>
+          </div>
+        )}
+
+        {retryCountdown !== null && (
+          <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: '18px 18px 18px 4px',
+              background: '#fff7ed',
+              border: '1px solid #fed7aa',
+              fontSize: 14,
+              color: '#c2410c',
+            }}>
+              Rate limit — retrying in {retryCountdown}s
             </div>
           </div>
         )}
