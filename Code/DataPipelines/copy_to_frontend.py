@@ -99,6 +99,62 @@ def snapshot_collection_fn(config: dict) -> dict:
         client.close()
 
 
+def _create_frontend_vector_index(frontend_client: MongoClient, db_name: str, coll_name: str = "providers_staging") -> dict:
+    """Create Atlas Vector Search index on the FrontEnd cluster's providers collection.
+
+    Includes a filter field on practice_address.state so $vectorSearch can pre-filter.
+    Idempotent — silently skips if the index already exists.
+    """
+    collection = frontend_client[db_name][coll_name]
+    index_name = "provider_vector_index"
+    try:
+        collection.create_search_index({
+            "name": index_name,
+            "type": "vectorSearch",
+            "definition": {
+                "fields": [
+                    {
+                        "type": "vector",
+                        "path": "embedding",
+                        "numDimensions": 3072,
+                        "similarity": "cosine",
+                    },
+                    {
+                        "type": "filter",
+                        "path": "practice_address.state",
+                    },
+                ]
+            },
+        })
+        logging.info("Frontend vector index '%s' created on %s.%s", index_name, db_name, coll_name)
+    except Exception as exc:
+        if "already exists" in str(exc).lower() or "duplicate" in str(exc).lower():
+            logging.info("Frontend vector index '%s' already exists — skipping.", index_name)
+        else:
+            raise
+    return {"index": index_name, "db": db_name, "collection": coll_name, "status": "ready"}
+
+
+def create_frontend_vector_index_fn(config: dict) -> dict:
+    """Standalone task: create (or verify) the vector search index on the FrontEnd cluster.
+
+    config:
+      env_prefix   — database prefix, e.g. "dev" → dev_PublicHealthData (default: "dev")
+      collection   — collection name (default: "providers_staging")
+    """
+    frontend_conn = os.environ.get("MONGO_FRONTEND_connectionString")
+    if not frontend_conn:
+        raise ValueError("MONGO_FRONTEND_connectionString not set")
+    env_prefix = config.get("env_prefix", "dev")
+    db_name    = f"{env_prefix}_PublicHealthData" if env_prefix else "PublicHealthData"
+    coll_name  = config.get("collection", "providers_staging")
+    client = MongoClient(frontend_conn, serverSelectionTimeoutMS=30_000)
+    try:
+        return _create_frontend_vector_index(client, db_name, coll_name)
+    finally:
+        client.close()
+
+
 def run_copy_to_frontend(config: dict) -> dict:
     pipeline_conn  = os.environ.get("MONGO_connectionString")
     frontend_conn  = os.environ.get("MONGO_FRONTEND_connectionString")
@@ -107,6 +163,11 @@ def run_copy_to_frontend(config: dict) -> dict:
         raise ValueError("MONGO_connectionString not set")
     if not frontend_conn:
         raise ValueError("MONGO_FRONTEND_connectionString not set")
+
+    # env_prefix scopes the destination DB on the FrontEnd cluster.
+    # "dev" → dev_PublicHealthData; "" or omitted → PublicHealthData (legacy)
+    env_prefix   = config.get("env_prefix", "dev")
+    dst_db_name  = f"{env_prefix}_PublicHealthData" if env_prefix else "PublicHealthData"
 
     # Build provider filter from states config.
     # states may be a list ["DE", "MS"] or a dict {"mode": "include", "list": [...]}
@@ -133,21 +194,30 @@ def run_copy_to_frontend(config: dict) -> dict:
 
     results = []
     try:
-        for src_db, src_coll, dst_db, dst_coll in _STATIC_COLLECTIONS:
-            logging.info("=== %s.%s → frontend:%s.%s ===", src_db, src_coll, dst_db, dst_coll)
+        for src_db, src_coll, _, dst_coll in _STATIC_COLLECTIONS:
+            logging.info("=== %s.%s → frontend:%s.%s ===", src_db, src_coll, dst_db_name, dst_coll)
             results.append(_copy_collection(
-                pipeline_client[src_db], frontend_client[dst_db], src_coll, dst_coll
+                pipeline_client[src_db], frontend_client[dst_db_name], src_coll, dst_coll
             ))
 
         if provider_query is not None:
-            logging.info("=== providers_staging → frontend:PublicHealthData.providers_staging (states: %s) ===", state_list)
+            logging.info(
+                "=== providers_staging → frontend:%s.providers_staging (states: %s) ===",
+                dst_db_name, state_list,
+            )
             results.append(_copy_collection(
                 pipeline_client["PublicHealthData"],
-                frontend_client["PublicHealthData"],
+                frontend_client[dst_db_name],
                 "providers_staging",
                 "providers_staging",
                 query=provider_query,
             ))
+
+            # Create vector search index on FrontEnd after provider copy
+            logging.info("Creating vector search index on frontend:%s.providers_staging", dst_db_name)
+            idx_result = _create_frontend_vector_index(frontend_client, dst_db_name)
+            results.append(idx_result)
+
     finally:
         pipeline_client.close()
         frontend_client.close()

@@ -404,6 +404,86 @@ def find_specialty_codes(query: str) -> dict:
     }
 
 
+_oai_client: Optional[OpenAI] = None
+
+
+def _get_oai_client() -> OpenAI:
+    global _oai_client
+    if _oai_client is None:
+        _oai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    return _oai_client
+
+
+def _get_query_embedding(text: str) -> Optional[list]:
+    try:
+        resp = _get_oai_client().embeddings.create(model="text-embedding-3-large", input=text)
+        return resp.data[0].embedding
+    except Exception as e:
+        _log.warning("Embedding query failed: %s", e)
+        return None
+
+
+def _format_provider(p: dict) -> dict:
+    if p.get("entity_type_code") == "1":
+        parts = [
+            p.get("provider_name_prefix_text"), p.get("provider_first_name"),
+            p.get("provider_middle_name"), p.get("provider_last_name_legal_name"),
+            p.get("provider_name_suffix_text"),
+        ]
+        name = " ".join(x for x in parts if x)
+        if p.get("provider_credential_text"):
+            name += f", {p['provider_credential_text']}"
+    else:
+        name = p.get("provider_organization_name_legal_business_name") or "Unknown Organization"
+    addr = p.get("practice_address", {})
+    address = ", ".join(x for x in [addr.get("line1"), addr.get("city"), addr.get("state"), addr.get("zip")] if x)
+    primary = next((t for t in p.get("taxonomies", []) if t.get("primary")), None)
+    return {
+        "name": name,
+        "npi": p.get("npi", ""),
+        "taxonomy_code": primary.get("code", "") if primary else "",
+        "address": address,
+    }
+
+
+_PROVIDER_PROJECTION = {
+    "_id": 0, "npi": 1, "entity_type_code": 1,
+    "provider_first_name": 1, "provider_last_name_legal_name": 1,
+    "provider_middle_name": 1, "provider_name_prefix_text": 1,
+    "provider_name_suffix_text": 1, "provider_credential_text": 1,
+    "provider_organization_name_legal_business_name": 1,
+    "practice_address": 1, "taxonomies": 1,
+}
+
+
+def _vector_search_providers(embedding: list, state: str, city: str, limit: int) -> list:
+    db = _get_db()
+    if db is None:
+        return []
+    pipeline = [
+        {
+            "$vectorSearch": {
+                "index": "provider_vector_index",
+                "path": "embedding",
+                "queryVector": embedding,
+                "numCandidates": min(limit * 30, 300),
+                "limit": min(limit * 6, 60),
+                "filter": {"practice_address.state": state},
+            }
+        },
+        {"$match": {"practice_address.state": state}},
+    ]
+    if city:
+        pipeline.append({"$match": {"practice_address.city": {"$regex": city.strip(), "$options": "i"}}})
+    pipeline += [{"$limit": limit}, {"$project": _PROVIDER_PROJECTION}]
+    try:
+        raw = list(db[f"{_ENV_PREFIX}_PublicHealthData"]["providers_staging"].aggregate(pipeline))
+        return [_format_provider(p) for p in raw]
+    except Exception as e:
+        _log.warning("Vector search failed: %s", e)
+        return []
+
+
 def find_providers(specialty_query: str, state: str, city: str = "", limit: int = 5) -> dict:
     state_upper = state.upper().strip()
     if state_upper not in SUPPORTED_STATES:
@@ -420,6 +500,18 @@ def find_providers(specialty_query: str, state: str, city: str = "", limit: int 
     if db is None:
         return {"error": "Database unavailable"}
 
+    safe_limit = min(int(limit), 10)
+
+    # --- Vector search path ---
+    embedding = _get_query_embedding(specialty_query)
+    if embedding:
+        providers = _vector_search_providers(embedding, state_upper, city, safe_limit)
+        if providers:
+            _log.info("find_providers: vector search returned %d results for '%s' in %s", len(providers), specialty_query, state_upper)
+            return {"supported": True, "state": state_upper, "specialty_searched": specialty_query, "search_mode": "vector", "count": len(providers), "providers": providers}
+        _log.info("find_providers: vector search returned 0 results, falling back to taxonomy search")
+
+    # --- Taxonomy code fallback ---
     specialty_result = find_specialty_codes(specialty_query)
     if "error" in specialty_result:
         return specialty_result
@@ -428,54 +520,25 @@ def find_providers(specialty_query: str, state: str, city: str = "", limit: int 
     if not codes:
         return {"supported": True, "providers": [], "message": f"No matching specialty found for '{specialty_query}'."}
 
-    query_filter = {
+    query_filter: dict = {
         "practice_address.state": state_upper,
         "taxonomies.code": {"$in": codes},
     }
     if city:
         query_filter["practice_address.city"] = {"$regex": city.strip(), "$options": "i"}
 
-    projection = {
-        "_id": 0, "npi": 1, "entity_type_code": 1,
-        "provider_first_name": 1, "provider_last_name_legal_name": 1,
-        "provider_middle_name": 1, "provider_name_prefix_text": 1,
-        "provider_name_suffix_text": 1, "provider_credential_text": 1,
-        "provider_organization_name_legal_business_name": 1,
-        "practice_address": 1, "taxonomies": 1,
-    }
-
     raw = list(
         db[f"{_ENV_PREFIX}_PublicHealthData"]["providers_staging"]
-        .find(query_filter, projection)
-        .limit(min(int(limit), 10))
+        .find(query_filter, _PROVIDER_PROJECTION)
+        .limit(safe_limit)
     )
 
     if not raw:
         return {"supported": True, "providers": [], "message": f"No {specialty_query} providers found in {state_upper}."}
 
-    providers = []
-    for p in raw:
-        if p.get("entity_type_code") == "1":
-            parts = [
-                p.get("provider_name_prefix_text"), p.get("provider_first_name"),
-                p.get("provider_middle_name"), p.get("provider_last_name_legal_name"),
-                p.get("provider_name_suffix_text"),
-            ]
-            name = " ".join(x for x in parts if x)
-            if p.get("provider_credential_text"):
-                name += f", {p['provider_credential_text']}"
-        else:
-            name = p.get("provider_organization_name_legal_business_name") or "Unknown Organization"
-
-        addr = p.get("practice_address", {})
-        address = ", ".join(x for x in [addr.get("line1"), addr.get("city"), addr.get("state"), addr.get("zip")] if x)
-
-        primary       = next((t for t in p.get("taxonomies", []) if t.get("primary")), None)
-        taxonomy_code = primary.get("code", "") if primary else ""
-
-        providers.append({"name": name, "npi": p.get("npi", ""), "taxonomy_code": taxonomy_code, "address": address})
-
-    return {"supported": True, "state": state_upper, "specialty_searched": specialty_query, "count": len(providers), "providers": providers}
+    providers = [_format_provider(p) for p in raw]
+    _log.info("find_providers: taxonomy search returned %d results for '%s' in %s", len(providers), specialty_query, state_upper)
+    return {"supported": True, "state": state_upper, "specialty_searched": specialty_query, "search_mode": "taxonomy", "count": len(providers), "providers": providers}
 
 
 def search_clinical_trials(condition: str, location: str = "", max_results: int = 5) -> dict:
