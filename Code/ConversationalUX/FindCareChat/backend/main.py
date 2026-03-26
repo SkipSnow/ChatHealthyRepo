@@ -882,7 +882,7 @@ async def chat(body: ChatRequest, request: Request):
         _log.error("CHAT ERROR: %s\n%s", e, tb)
         if _DEBUG:
             return ChatResponse(error=tb)
-        raise
+        return ChatResponse(error=str(e))
 
 
 async def _chat_inner(body: ChatRequest, request: Request):
