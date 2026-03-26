@@ -4,6 +4,7 @@ import MessageBubble from './MessageBubble'
 interface Message {
   role: 'user' | 'assistant'
   content: string
+  isError?: boolean
 }
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -58,8 +59,12 @@ export default function ChatWindow() {
         }),
       })
       const data = await res.json()
-      setMessages([...history, { role: 'assistant', content: data.response }])
-      if (data.emergency) setIsLocked(true)
+      if (data.error) {
+        setMessages([...history, { role: 'assistant', content: `**Debug Error:**\n\`\`\`\n${data.error}\n\`\`\``, isError: true }])
+      } else {
+        setMessages([...history, { role: 'assistant', content: data.response }])
+        if (data.emergency) setIsLocked(true)
+      }
     } catch {
       setMessages([...history, { role: 'assistant', content: '**Error:** Could not reach the server. Please try again.' }])
     } finally {

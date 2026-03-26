@@ -4,34 +4,48 @@
 # Coded by Claude Sonnet 4.6 (Anthropic).
 # Developed in collaboration with ChatGPT (OpenAI).
 
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from dotenv import load_dotenv
-from openai import OpenAI
-from anthropic import Anthropic
-from concurrent.futures import ThreadPoolExecutor
 import json
+import logging
 import os
 import requests
+import sys
 import time
-from datetime import datetime, timedelta, timezone
 import traceback
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+
+from anthropic import Anthropic
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from openai import OpenAI
+from pydantic import BaseModel
 from pypdf import PdfReader
 
 load_dotenv(override=True)
 
 # ---------------------------------------------------------------------------
-# Shared utilities — imported if running alongside the old app, otherwise inline
+# Shared utilities
 # ---------------------------------------------------------------------------
-import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "Shared"))
 from ChatHealthyMongoUtilities import ChatHealthyMongoUtilities
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.DEBUG if os.getenv("DEBUG", "false").lower() == "true" else logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s — %(message)s",
+)
+_log = logging.getLogger("findcare")
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 SUPPORTED_STATES = {"DE", "MS"}
+_ENV_PREFIX       = os.getenv("ENV_PREFIX", "dev")
+_DEBUG            = os.getenv("DEBUG", "false").lower() == "true"
 
 EMERGENCY_RESPONSE = (
     "<b>Call 911 or go to the nearest emergency room immediately. Do not wait.</b>\n\n"
@@ -55,14 +69,13 @@ EMERGENCY_KEYWORDS = [
 _ip_emergency_locks: dict[str, float] = {}
 _EMERGENCY_LOCK_SECONDS = 3600
 _ADMIN_UNLOCK_KEY = os.getenv("ADMIN_UNLOCK_KEY", "")
-_DEBUG = True
 
 # ---------------------------------------------------------------------------
 # MongoDB
 # ---------------------------------------------------------------------------
 _mongo_frontend_str = os.getenv("MONGO_FRONTEND_connectionString") or ""
 _db_manager = None
-_db_unavailable = False  # once failed, stop retrying until restart
+_db_unavailable = False
 
 
 def _get_db():
@@ -74,7 +87,7 @@ def _get_db():
             _db_manager = ChatHealthyMongoUtilities(_mongo_frontend_str)
         return _db_manager.getConnection()
     except Exception as e:
-        print(f"MongoDB unavailable: {e}", flush=True)
+        _log.warning("MongoDB unavailable: %s", e)
         _db_manager = None
         _db_unavailable = True
         return None
@@ -102,7 +115,7 @@ def _safety_collection():
     if db is None:
         return None
     try:
-        return db["Safety"]["emergency_incidents"]
+        return db[f"{_ENV_PREFIX}_Safety"]["emergency_incidents"]
     except Exception:
         return None
 
@@ -111,7 +124,7 @@ def _lock_ip_db(ip: str, trigger_message: str = "", history: list = None) -> boo
     _lock_ip(ip)
     col = _safety_collection()
     if col is None:
-        print(f"SAFETY ALERT: DB unavailable — incident for {ip} NOT persisted.", flush=True)
+        _log.warning("SAFETY ALERT: DB unavailable — incident for %s NOT persisted.", ip)
         return False
     now = datetime.now(timezone.utc)
     expires = now + timedelta(seconds=_EMERGENCY_LOCK_SECONDS)
@@ -130,7 +143,7 @@ def _lock_ip_db(ip: str, trigger_message: str = "", history: list = None) -> boo
         })
         return True
     except Exception as e:
-        print(f"SAFETY ALERT: DB write failed for {ip}: {e}", flush=True)
+        _log.error("SAFETY ALERT: DB write failed for %s: %s", ip, e)
         return False
 
 
@@ -148,7 +161,7 @@ def _check_ip_lock_db(ip: str) -> bool:
             return True
         return False
     except Exception as e:
-        print(f"SAFETY DB check failed: {e} — treating as unlocked", flush=True)
+        _log.warning("SAFETY DB check failed: %s — treating as unlocked", e)
         return False
 
 
@@ -213,7 +226,7 @@ def _safety_check(message: str) -> bool:
         confidence = float(result.get("confidence", 0))
         ai_hit = bool(result.get("emergency", False)) and confidence >= 0.80
     except Exception as exc:
-        print(f"SAFETY check failed ({exc}) -> defaulting to escalation", flush=True)
+        _log.error("Safety check failed (%s) — defaulting to escalation", exc)
         return True
     return keyword_hit or ai_hit
 
@@ -227,7 +240,7 @@ _SPARKMAIL_TO      = os.getenv("NOTIFICATION_TO_EMAIL")
 
 
 def push(message):
-    print(f"Push: {message}")
+    _log.info("Push: %s", message)
     if not (_SPARKMAIL_API_KEY and _SPARKMAIL_FROM and _SPARKMAIL_TO):
         return
     try:
@@ -239,7 +252,7 @@ def push(message):
             text=message,
         )
     except Exception as exc:
-        print(f"SparkPost send failed: {exc}")
+        _log.warning("SparkPost send failed: %s", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -252,7 +265,7 @@ def commitSignificantActivity(payload=None, **kwargs):
     payload = payload or kwargs
     if isinstance(payload, str):
         payload = json.loads(payload)
-    database   = payload["database"]
+    database   = f"{_ENV_PREFIX}_{payload['database']}"
     collection = payload["collection"]
     record     = dict(payload["record"])
     record["record_number"] = db[database][collection].count_documents({}) + 1
@@ -267,7 +280,12 @@ def _format_chat_history(messages):
         if m.get("role") not in ("user", "assistant"):
             continue
         c = m.get("content")
-        out.append({"role": m["role"], "content": str(c)[:500] if c else ""})
+        if isinstance(c, str):
+            out.append({"role": m["role"], "content": c[:500]})
+        elif isinstance(c, list):
+            # Anthropic content blocks — extract text
+            text = " ".join(b.get("text", "") if isinstance(b, dict) else getattr(b, "text", "") for b in c)
+            out.append({"role": m["role"], "content": text[:500]})
     return out
 
 
@@ -320,6 +338,7 @@ def find_specialty_codes(query: str) -> dict:
         "Technologists, Technicians & Other Technical Service Providers",
     ]
     individual_filter = {"Grouping": {"$in": individual_provider_groupings}}
+    specialty_col = db[f"{_ENV_PREFIX}_PublicHealthData"]["SpecialtyMetaData"]
 
     def regex_pipeline():
         stems = _expand_query_terms(query)
@@ -328,7 +347,7 @@ def find_specialty_codes(query: str) -> dict:
             for stem in stems
             for field in ("Specialization", "Display Name")
         ]
-        codes = list(db["PublicHealthData"]["SpecialtyMetaData"].find(
+        codes = list(specialty_col.find(
             {"$and": [{"$or": regex_clauses}, individual_filter]}, projection
         )) if regex_clauses else []
         return codes, stems
@@ -338,7 +357,7 @@ def find_specialty_codes(query: str) -> dict:
         query_vector = client.embeddings.create(
             model="text-embedding-3-small", input=query
         ).data[0].embedding
-        top = list(db["PublicHealthData"]["SpecialtyMetaData"].aggregate([
+        top = list(specialty_col.aggregate([
             {"$vectorSearch": {
                 "index": "specialty_vector_index",
                 "path": "embedding",
@@ -349,7 +368,7 @@ def find_specialty_codes(query: str) -> dict:
             {"$project": {"_id": 0, "Classification": 1, "score": {"$meta": "vectorSearchScore"}}},
         ]))
         classifications = list({m["Classification"] for m in top if m.get("score", 0) > 0.4})
-        codes = list(db["PublicHealthData"]["SpecialtyMetaData"].find(
+        codes = list(specialty_col.find(
             {"$and": [{"Classification": {"$in": classifications}}, individual_filter]}, projection
         )) if classifications else []
         return codes, classifications
@@ -357,7 +376,7 @@ def find_specialty_codes(query: str) -> dict:
     with ThreadPoolExecutor(max_workers=2) as ex:
         rf = ex.submit(regex_pipeline)
         vf = ex.submit(vector_pipeline)
-        regex_codes, stems          = rf.result()
+        regex_codes, stems            = rf.result()
         vector_codes, classifications = vf.result()
 
     seen, all_codes = set(), []
@@ -419,7 +438,7 @@ def find_providers(specialty_query: str, state: str, city: str = "", limit: int 
     }
 
     raw = list(
-        db["PublicHealthData"]["providers_staging"]
+        db[f"{_ENV_PREFIX}_PublicHealthData"]["providers_staging"]
         .find(query_filter, projection)
         .limit(min(int(limit), 10))
     )
@@ -473,15 +492,15 @@ def search_clinical_trials(condition: str, location: str = "", max_results: int 
 
     trials = []
     for study in studies:
-        ps          = study.get("protocolSection", {})
-        id_mod      = ps.get("identificationModule", {})
-        status_mod  = ps.get("statusModule", {})
-        desc_mod    = ps.get("descriptionModule", {})
-        elig_mod    = ps.get("eligibilityModule", {})
+        ps           = study.get("protocolSection", {})
+        id_mod       = ps.get("identificationModule", {})
+        status_mod   = ps.get("statusModule", {})
+        desc_mod     = ps.get("descriptionModule", {})
+        elig_mod     = ps.get("eligibilityModule", {})
         contacts_mod = ps.get("contactsLocationsModule", {})
-        design_mod  = ps.get("designModule", {})
-        nct_id      = id_mod.get("nctId", "")
-        raw_locs    = contacts_mod.get("locations", [])
+        design_mod   = ps.get("designModule", {})
+        nct_id       = id_mod.get("nctId", "")
+        raw_locs     = contacts_mod.get("locations", [])
         location_strs = [
             ", ".join(filter(None, [loc.get("facility"), loc.get("city"), loc.get("state")]))
             for loc in raw_locs[:3]
@@ -508,11 +527,10 @@ def record_user_details(email="", name="Name not provided", notes="not provided"
     if db is None:
         push(f"Recording interest from {name} with email {email} (DB unavailable)")
         return {"recorded": "ok", "note": "MongoDB unavailable"}
-    reason = message or notes
-    lead_coll = db["Users"]["users"]
-    for doc in lead_coll.find():
-        if email in str(doc.get("email", "")):
-            return {"recorded": "ok"}
+    reason    = message or notes
+    lead_coll = db[f"{_ENV_PREFIX}_AboutUs"]["lead"]
+    for doc in lead_coll.find({"email": str(email).strip()}):
+        return {"recorded": "ok"}
     push(f"Recording interest from {name} with email {email}: {reason}")
     record = {
         "email": email, "name": name, "notes": notes,
@@ -527,16 +545,16 @@ def record_user_details(email="", name="Name not provided", notes="not provided"
         summary_msg = [{"role": "user", "content": summary}]
         deIdentify(summary_msg)
         record["notes"] = summary_msg[0]["content"]
-    commitSignificantActivity({"database": "Users", "collection": "users", "record": record})
+    commitSignificantActivity({"database": "AboutUs", "collection": "lead", "record": record})
     return {"recorded": "ok"}
 
 
 def _summarize_conversation(chat_history):
     if not chat_history:
         return ""
-    client   = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
+    client    = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
     chat_json = json.dumps([{"role": m.get("role", ""), "content": m.get("content") or ""} for m in chat_history], indent=2)
-    response = client.messages.create(
+    response  = client.messages.create(
         model="claude-haiku-4-5-20251001", max_tokens=256,
         messages=[{"role": "user", "content": "Summarize this conversation in 2-3 sentences. Focus on what the user wanted and any key information they shared. Be concise.\n\n" + chat_json}],
     )
@@ -577,17 +595,17 @@ def record_unknown_question(question, chat_history=None):
         deIdentify(chat_history)
     push(f"Recording a user question I could not answer: {question}")
     commitSignificantActivity({
-        "database": "DeidentifiedSessions", "collection": "unknown_questions",
+        "database": "AboutUs", "collection": "AboutSkip",
         "record": {"question": question, "chat_history": chat_history or []}
     })
     return {"recorded": "ok"}
 
 
 # ---------------------------------------------------------------------------
-# Tool definitions (unchanged from app.py)
+# Tool definitions — Anthropic format
 # ---------------------------------------------------------------------------
-tools = [
-    {"type": "function", "function": {
+anthropic_tools = [
+    {
         "name": "find_providers",
         "description": (
             "Search for healthcare providers (doctors, specialists) in a specific US state. "
@@ -597,7 +615,7 @@ tools = [
             "If result contains supported=false, tell the user we're not in their state yet, "
             "ask if they'd like to be notified when we expand, then call record_unknown_question."
         ),
-        "parameters": {
+        "input_schema": {
             "type": "object",
             "properties": {
                 "specialty_query": {"type": "string"},
@@ -606,16 +624,15 @@ tools = [
                 "limit": {"type": "integer"},
             },
             "required": ["specialty_query", "state"],
-            "additionalProperties": False,
         },
-    }},
-    {"type": "function", "function": {
+    },
+    {
         "name": "record_user_details",
         "description": (
             "Record a user's contact details after obtaining email. "
             "Before calling this tool you MUST complete the two-tier consent flow."
         ),
-        "parameters": {
+        "input_schema": {
             "type": "object",
             "properties": {
                 "email": {"type": "string"},
@@ -626,10 +643,9 @@ tools = [
                 "consent_summary": {"type": "boolean"},
             },
             "required": ["email", "notes", "consent_verbatim"],
-            "additionalProperties": False,
         },
-    }},
-    {"type": "function", "function": {
+    },
+    {
         "name": "record_unknown_question",
         "description": (
             "Call this tool BEFORE composing your response whenever ANY of the following is true: "
@@ -638,17 +654,16 @@ tools = [
             "(3) The question is personal medical advice. "
             "Do NOT apply to healthcare navigation questions."
         ),
-        "parameters": {
+        "input_schema": {
             "type": "object",
             "properties": {"question": {"type": "string"}},
             "required": ["question"],
-            "additionalProperties": False,
         },
-    }},
-    {"type": "function", "function": {
+    },
+    {
         "name": "commitSignificantActivity",
         "description": "Record any custom activity to the database.",
-        "parameters": {
+        "input_schema": {
             "type": "object",
             "properties": {
                 "database": {"type": "string"},
@@ -657,28 +672,27 @@ tools = [
             },
             "required": ["database", "collection", "record"],
         },
-    }},
-    {"type": "function", "function": {
+    },
+    {
         "name": "find_specialty_codes",
         "description": (
             "Look up NUCC provider taxonomy codes matching a medical specialty or provider type. "
             "Call this when the user asks about a type of doctor, specialist, or medical provider. "
             "If the result contains 'debug': true, display the full JSON result verbatim."
         ),
-        "parameters": {
+        "input_schema": {
             "type": "object",
             "properties": {"query": {"type": "string"}},
             "required": ["query"],
-            "additionalProperties": False,
         },
-    }},
-    {"type": "function", "function": {
+    },
+    {
         "name": "search_clinical_trials",
         "description": (
             "Search for actively recruiting clinical trials on ClinicalTrials.gov. "
             "Call this when the user asks to find trials, studies, or research programs."
         ),
-        "parameters": {
+        "input_schema": {
             "type": "object",
             "properties": {
                 "condition": {"type": "string"},
@@ -686,9 +700,8 @@ tools = [
                 "max_results": {"type": "integer"},
             },
             "required": ["condition"],
-            "additionalProperties": False,
         },
-    }},
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -698,10 +711,10 @@ _ME_DIR = os.getenv("ME_DIR") or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "me"
 )
 if not os.path.isdir(_ME_DIR):
-    # local dev fallback
     _ME_DIR = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "..", "..", "ChatHealthyWhoAmIChat", "me"
     )
+
 
 def _load_me_context():
     ctx = {}
@@ -710,25 +723,25 @@ def _load_me_context():
         ctx["linkedin"] = "".join(p.extract_text() or "" for p in reader.pages)
     except Exception as e:
         ctx["linkedin"] = ""
-        print(f"ME_DIR LinkedIn load failed: {e}")
+        _log.warning("ME_DIR LinkedIn load failed: %s", e)
     try:
         reader = PdfReader(os.path.join(_ME_DIR, "BuildingAnthropicAConversationWithItsCo-foundersYouTube.pdf"))
         ctx["anthropic_discussion"] = "".join(p.extract_text() or "" for p in reader.pages)
     except Exception as e:
         ctx["anthropic_discussion"] = ""
-        print(f"ME_DIR Anthropic PDF load failed: {e}")
+        _log.warning("ME_DIR Anthropic PDF load failed: %s", e)
     try:
         with open(os.path.join(_ME_DIR, "summary.txt"), "r", encoding="utf-8") as f:
             ctx["summary"] = f.read()
     except Exception as e:
         ctx["summary"] = ""
-        print(f"ME_DIR summary load failed: {e}")
+        _log.warning("ME_DIR summary load failed: %s", e)
     try:
         with open(os.path.join(_ME_DIR, "findcare-code-package.json"), "r", encoding="utf-8") as f:
             ctx["codebase"] = f.read()
     except Exception as e:
         ctx["codebase"] = ""
-        print(f"ME_DIR codebase load failed: {e}")
+        _log.warning("ME_DIR codebase load failed: %s", e)
     return ctx
 
 
@@ -748,12 +761,12 @@ WELCOME_MESSAGE = (
 )
 
 
-def _system_prompt() -> str:
+def _system_prompt(follow_up_check: bool = False) -> str:
     name    = "Skip Snow"
     website = "ChatHealthy.AI"
-    return (
+    base = (
         f"You are acting as {name}. You are answering questions on {website}'s website, "
-        f"particularly questions related to {name}'s career, background, skills and experience and plans the future of this web site. "
+        f"particularly questions related to {name}'s career, background, skills and experience and plans for the future of this web site. "
         f"Your responsibility is to represent {name} and {website} for interactions on the website as faithfully as possible. "
         f"You are given a summary of {name}'s background and LinkedIn profile which you can use to answer questions. "
         f"Be professional and engaging, as if talking to a potential client or future employer who came across the website. "
@@ -770,7 +783,8 @@ def _system_prompt() -> str:
         f"RULE 4 — TOOL CALL ORDER: Always call record_unknown_question BEFORE composing your response.\n"
         f"RULE 5 — EACH QUESTION SEPARATELY: Record each unknown question with a separate tool call.\n"
         f"RULE 6 — FOLLOW-UP OFFER: When you receive a FOLLOW-UP CHECK reminder, assess genuine interest "
-        f"and ask: 'Would you like someone from the ChatHealthy.AI team to follow up with you personally?'\n"
+        f"and ask: 'Would you like someone from the ChatHealthy.AI team to follow up with you personally?' "
+        f"Respect refusal signals — do not ask again if the user shows impatience or annoyance.\n"
         f"RULE 7 — CODEBASE CONTEXT: The codebase document is for your understanding only. "
         f"NEVER quote raw code, file paths, function names, or implementation details.\n\n"
         f"## Summary:\n{_ME['summary']}\n\n"
@@ -779,21 +793,35 @@ def _system_prompt() -> str:
         f"## ChatHealthy Codebase & Architecture:\n{_ME['codebase']}\n\n"
         f"With this context, please chat with the user, always staying in character as {name}."
     )
+    if follow_up_check:
+        base += (
+            "\n\nFOLLOW-UP CHECK: Review the conversation. If the user has shown genuine interest "
+            "in a specific topic and you do not yet have their contact details, ask now: "
+            "'Would you like someone from the ChatHealthy.AI team to follow up with you personally?'"
+        )
+    return base
 
 
-def _handle_tool_calls(tool_calls, messages):
+# ---------------------------------------------------------------------------
+# Tool execution — Anthropic tool_use blocks
+# ---------------------------------------------------------------------------
+def _handle_tool_calls(tool_use_blocks, messages):
     chat_history = _format_chat_history(messages)
-    results = []
-    for tc in tool_calls:
-        name      = tc.function.name
-        arguments = json.loads(tc.function.arguments)
+    tool_results = []
+    for block in tool_use_blocks:
+        name      = block.name
+        arguments = dict(block.input)  # already a dict
         if name in ("record_user_details", "record_unknown_question"):
             arguments["chat_history"] = chat_history
-        print(f"Tool called: {name}", flush=True)
+        _log.info("Tool called: %s", name)
         fn     = globals().get(name)
         result = fn(**arguments) if fn else {}
-        results.append({"role": "tool", "content": json.dumps(result), "tool_call_id": tc.id})
-    return results
+        tool_results.append({
+            "type": "tool_result",
+            "tool_use_id": block.id,
+            "content": json.dumps(result),
+        })
+    return tool_results
 
 
 # ---------------------------------------------------------------------------
@@ -803,7 +831,15 @@ app = FastAPI(title="ChatHealthy FindCare API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten in production
+    allow_origins=[
+        "https://chathealthy.ai",
+        "https://www.chathealthy.ai",
+        "https://dev.chathealthy.ai",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8000",
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -815,8 +851,9 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    response: str
+    response: Optional[str] = None
     emergency: bool = False
+    error: Optional[str] = None
 
 
 @app.get("/welcome")
@@ -827,16 +864,18 @@ def welcome():
 @app.get("/health")
 def health():
     db_ok = _get_db() is not None
-    return {"status": "ok", "db": "connected" if db_ok else "unavailable", "env": "dev", "version": "1"}
+    return {"status": "ok", "db": "connected" if db_ok else "unavailable", "env": _ENV_PREFIX, "version": "1"}
 
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, request: Request):
-    import traceback
     try:
         return await _chat_inner(body, request)
     except Exception as e:
-        print(f"CHAT ERROR: {e}\n{traceback.format_exc()}", flush=True)
+        tb = traceback.format_exc()
+        _log.error("CHAT ERROR: %s\n%s", e, tb)
+        if _DEBUG:
+            return ChatResponse(error=tb)
         raise
 
 
@@ -855,37 +894,42 @@ async def _chat_inner(body: ChatRequest, request: Request):
         _lock_ip_db(ip, trigger_message=body.message, history=history)
         return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
 
-    openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    messages      = [{"role": "system", "content": _system_prompt()}] + history
-
     user_msg_count = sum(1 for m in history if m.get("role") == "user")
-    if user_msg_count > 0 and user_msg_count % 5 == 0:
-        messages.append({
-            "role": "system",
-            "content": (
-                "FOLLOW-UP CHECK: Review the conversation. If the user has shown genuine interest "
-                "in a specific topic and you do not yet have their contact details, ask now: "
-                "'Would you like someone from the ChatHealthy.AI team to follow up with you personally?'"
-            )
-        })
+    follow_up      = user_msg_count > 0 and user_msg_count % 5 == 0
+    system         = _system_prompt(follow_up_check=follow_up)
 
-    messages.append({"role": "user", "content": body.message})
+    # Build messages: history + new user message
+    messages = list(history) + [{"role": "user", "content": body.message}]
 
-    done = False
-    while not done:
-        response = openai_client.chat.completions.create(
-            model="gpt-4o-mini", messages=messages, tools=tools
+    anthropic_client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
+
+    response = anthropic_client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=4096,
+        system=system,
+        messages=messages,
+        tools=anthropic_tools,
+    )
+
+    # Tool-use loop
+    while response.stop_reason == "tool_use":
+        tool_uses    = [b for b in response.content if b.type == "tool_use"]
+        tool_results = _handle_tool_calls(tool_uses, messages)
+
+        # Append assistant turn (with tool_use blocks) + tool results as user turn
+        messages.append({"role": "assistant", "content": response.content})
+        messages.append({"role": "user",      "content": tool_results})
+
+        response = anthropic_client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=4096,
+            system=system,
+            messages=messages,
+            tools=anthropic_tools,
         )
-        if response.choices[0].finish_reason == "tool_calls":
-            msg        = response.choices[0].message
-            tool_calls = msg.tool_calls
-            results    = _handle_tool_calls(tool_calls, messages)
-            messages.append(msg)
-            messages.extend(results)
-        else:
-            done = True
 
-    return ChatResponse(response=response.choices[0].message.content)
+    text = next((b.text for b in response.content if b.type == "text"), "")
+    return ChatResponse(response=text)
 
 
 if __name__ == "__main__":
