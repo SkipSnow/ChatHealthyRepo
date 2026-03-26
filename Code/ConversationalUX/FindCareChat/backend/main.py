@@ -832,6 +832,15 @@ def health():
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, request: Request):
+    import traceback
+    try:
+        return await _chat_inner(body, request)
+    except Exception as e:
+        print(f"CHAT ERROR: {e}\n{traceback.format_exc()}", flush=True)
+        raise
+
+
+async def _chat_inner(body: ChatRequest, request: Request):
     ip = request.client.host if request.client else "unknown"
 
     if _admin_unlock(body.message, ip):
