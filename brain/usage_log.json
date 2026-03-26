@@ -69,6 +69,26 @@
       "tokens_out": 1821,
       "cost_usd": 0.053148,
       "assignment_id": "ASN-5EE93C"
+    },
+    {
+      "timestamp": "2026-03-25T18:17:58.819541+00:00",
+      "agent": "GPT",
+      "model": "gpt-4o",
+      "call_type": "review",
+      "tokens_in": 14509,
+      "tokens_out": 2677,
+      "cost_usd": 0.063043,
+      "assignment_id": "ASN-F3A821"
+    },
+    {
+      "timestamp": "2026-03-25T18:26:01.446296+00:00",
+      "agent": "GPT",
+      "model": "gpt-4o",
+      "call_type": "review",
+      "tokens_in": 14479,
+      "tokens_out": 2808,
+      "cost_usd": 0.064278,
+      "assignment_id": "ASN-F3A821"
     }
   ]
 }

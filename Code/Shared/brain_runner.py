@@ -46,11 +46,21 @@ CONTEXT_FILES = [
 ]
 
 
-def _fetch_context() -> str:
-    """Fetch repo context files for GPT's session."""
+def _fetch_context(additional_files: list[str] = None) -> str:
+    """Fetch repo context files for GPT's session.
+
+    additional_files: extra paths (e.g. from assignment scope) to include
+    beyond the base CONTEXT_FILES list. Duplicates are skipped.
+    """
     import urllib.request
+    seen = set(CONTEXT_FILES)
+    files = list(CONTEXT_FILES)
+    for path in (additional_files or []):
+        if path not in seen and path.endswith((".py", ".ts", ".tsx", ".json", ".md")):
+            seen.add(path)
+            files.append(path)
     parts = []
-    for path in CONTEXT_FILES:
+    for path in files:
         url = _BASE_URL + path
         try:
             with urllib.request.urlopen(url, timeout=10) as r:
@@ -111,18 +121,32 @@ def _build_prompt(assignment: dict, context: str, mb_context: str) -> str:
     aid = assignment['assignment_id']
     uat_rule = assignment.get('uat_requirement', '')
     feature_context = assignment.get('feature_context', '')
+    boss_scope = assignment.get('boss_scope', [])
+
     feature_block = (
         f"\nPRODUCT REQUIREMENTS (provided by Boss — use these as the source of truth for planning):\n{feature_context}\n"
         if feature_context else
         "\nPRODUCT REQUIREMENTS: None provided. Derive requirements from the repo context files and code.\n"
     )
+
+    if boss_scope:
+        scope_lines = "\n".join(f"  - {item}" for item in boss_scope)
+        scope_block = (
+            f"\nMANDATORY SCOPE (Boss directive — non-negotiable):\n{scope_lines}\n"
+            f"These items MUST appear in ships_tuesday and scope_assessment. "
+            f"You may assess their risk but you may NOT defer them. "
+            f"If you see tradeoffs, put them in tradeoff_suggestions — clearly labeled, Boss decides.\n"
+        )
+    else:
+        scope_block = ""
+
     return f"""ASSIGNMENT {aid}
 Title: {assignment['title']}
 Priority: {assignment['priority']} | Estimated risk: {assignment['estimated_risk']}
 
 TASK:
 {assignment['description']}
-{feature_block}
+{feature_block}{scope_block}
 UAT RULES:
 {uat_rule}
 
@@ -145,6 +169,21 @@ JSON SCHEMA — every field marked REQUIRED must be present and non-empty:
   "issues":              REQUIRED array (empty if none),
   "gate_recommendation": REQUIRED one of: auto | proceed_with_warning | escalate | block_escalate | block_boss_required,
   "notes":               REQUIRED string,
+
+  "scope_assessment": REQUIRED array — one entry per item in MANDATORY SCOPE (empty array if no boss_scope was provided), each {{
+    "feature":    REQUIRED string — exact name from MANDATORY SCOPE,
+    "risk":       REQUIRED Low|Moderate|High|Critical,
+    "assessment": REQUIRED string — your honest risk assessment of this mandatory item,
+    "conditions": REQUIRED array of strings — what must be true for this to ship safely (empty if Low risk)
+  }},
+
+  "tradeoff_suggestions": REQUIRED array — suggestions only, Boss decides (empty if none), each {{
+    "suggestion_id": REQUIRED string e.g. TS-001,
+    "feature":       REQUIRED string — which mandatory scope item this applies to,
+    "suggestion":    REQUIRED string — the tradeoff you are suggesting,
+    "risk_if_ignored": REQUIRED string — consequence of not taking this suggestion,
+    "risk_if_taken":   REQUIRED string — consequence of accepting this suggestion
+  }},
 
   "requirements": REQUIRED array — derive product requirements from the code and context provided. Each requirement is a discrete, testable statement of what the system must do. MINIMUM 5 items. These become the permanent product record in Machine Brain, each {{
     "req_id":      REQUIRED string e.g. REQ-001,
@@ -220,7 +259,10 @@ JSON SCHEMA — every field marked REQUIRED must be present and non-empty:
 
 ABSOLUTE RULES:
 1. Every field marked REQUIRED must be present — no omissions
-2. requirements array must have MINIMUM 5 items — derive from code if not provided
+2. scope_assessment must have one entry per MANDATORY SCOPE item — you assess risk, Boss controls scope
+3. You may NOT defer a MANDATORY SCOPE item — it must appear in ships_tuesday
+4. Tradeoff suggestions go in tradeoff_suggestions only — never as a reason to defer a mandatory item
+5. requirements array must have MINIMUM 5 items — derive from code if not provided
 3. Every acceptance criterion must have at least one UAT scenario — 3 ACs = minimum 3 scenarios
 4. LLM scenarios must have exactly 10 test_cases — not 9, not 11
 5. Procedural scenarios must have minimum 3 test_cases: all happy paths + minimum 2 exceptions
@@ -307,7 +349,8 @@ def run(assignment_id: str = None) -> dict:
     print(f"[BrainRunner] Machine Brain: {len(mb_records)} records retrieved")
 
     print("[BrainRunner] Fetching repo context...")
-    context = _fetch_context()
+    scope_files = assignment.get("scope", [])
+    context = _fetch_context(additional_files=scope_files)
 
     print("[BrainRunner] Calling GPT-4o...")
     prompt = _build_prompt(assignment, context, mb_context)

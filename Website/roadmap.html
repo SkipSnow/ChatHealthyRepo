@@ -805,6 +805,37 @@
       <p><strong>Note:</strong> This is a cost-control and abuse-prevention measure, not a full enterprise security program. Implement immediately after Alpha once dynamic endpoints are exposed.</p>
     </div>
 
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">INFRA-010</span>
+        <span class="item-title">Migrate brain loop persistence from JSON files to MongoDB</span>
+        <span class="badge badge-postmvp">Post-Alpha</span>
+      </div>
+      <div class="item-meta">
+        <span><strong>Status:</strong> Backlog — brain loop is file-based; migrate before team scales</span>
+        <span><strong>Brain ID:</strong> ASN-6D0265</span>
+      </div>
+      <p>All brain loop data currently persisted to flat JSON files in the <code>brain/</code> directory
+      must be migrated to MongoDB. This enables multi-agent visibility, audit history, and
+      environment-aware routing that JSON files cannot support.</p>
+      <p><strong>Files to migrate:</strong></p>
+      <ul>
+        <li><code>brain/assignment_queue.json</code> → <code>Brain.assignments</code></li>
+        <li><code>brain/assurance_results.json</code> → <code>Brain.assurance_results</code></li>
+        <li><code>brain/usage_log.json</code> → <code>Brain.usage_log</code></li>
+      </ul>
+      <p><strong>Requirements:</strong></p>
+      <ul>
+        <li>All reads/writes in <code>brain_loop.py</code> and <code>brain_runner.py</code> target MongoDB collections</li>
+        <li>ENV_PREFIX applied to all database names (<code>dev_Brain</code>, <code>prod_Brain</code>)</li>
+        <li>Existing assignment field schemas unchanged — no breaking changes to assignment structure</li>
+        <li>JSON files removed once MongoDB persistence is verified — no dual writes</li>
+      </ul>
+      <p><strong>Success criteria:</strong> <code>write_assignment()</code>, <code>pick_up_assignment()</code>,
+      <code>write_review_pack()</code>, <code>run_uat()</code>, and <code>close_review()</code> all read
+      and write exclusively to MongoDB; no <code>brain/*.json</code> files exist in the deployed environment.</p>
+    </div>
+
     <!-- Bugs -->
     <h2>Bugs</h2>
 
