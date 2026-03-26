@@ -737,6 +737,12 @@ def _load_me_context():
         ctx["summary"] = ""
         _log.warning("ME_DIR summary load failed: %s", e)
     try:
+        reader = PdfReader(os.path.join(_ME_DIR, "chatHealthy_ai_business_plan.pdf"))
+        ctx["business_plan"] = "".join(p.extract_text() or "" for p in reader.pages)
+    except Exception as e:
+        ctx["business_plan"] = ""
+        _log.warning("ME_DIR business plan load failed: %s", e)
+    try:
         with open(os.path.join(_ME_DIR, "findcare-code-package.json"), "r", encoding="utf-8") as f:
             ctx["codebase"] = f.read()
     except Exception as e:
