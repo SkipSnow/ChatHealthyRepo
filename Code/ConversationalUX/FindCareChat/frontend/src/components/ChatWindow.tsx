@@ -15,8 +15,6 @@ const WELCOME: Message = {
     '**Welcome to ChatHealthy FindCare**\n\n',
     "Here's what I can help you with:\n\n",
     '- **Find a doctor** — search for providers by specialty or condition\n',
-    '  - <span class="state-name">Delaware</span>\n',
-    '  - <span class="state-name">Mississippi</span>\n',
     '- **Identify the right specialty** — not sure what kind of doctor you need? Describe your situation\n',
     '- **Clinical trials** — find recruiting research studies for any condition\n',
     '- **About ChatHealthy** — our mission, team, and platform\n\n',
