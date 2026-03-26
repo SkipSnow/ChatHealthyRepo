@@ -46,6 +46,8 @@ jobs:
           mkdir -p hf_space/me
           rsync -av Code/ConversationalUX/ChatHealthyWhoAmIChat/me/ hf_space/me/
 
+          echo "${{ github.run_number }}" > hf_space/build.txt
+
           cd hf_space
           git lfs track "*.pdf"
           git add .
