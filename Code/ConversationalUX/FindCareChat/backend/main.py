@@ -385,6 +385,9 @@ def find_specialty_codes(query: str) -> dict:
             seen.add(doc["Code"])
             all_codes.append(doc)
 
+    # Cap results — full NUCC dumps can exceed token budget in the tool loop
+    all_codes = all_codes[:10]
+
     if "debug" in query.lower():
         return {
             "debug": True,
@@ -394,7 +397,11 @@ def find_specialty_codes(query: str) -> dict:
             "total_codes_found": len(all_codes),
         }
 
-    return {"specialties": all_codes, "matched_classifications": classifications, "stems": stems}
+    # Return only Code and Display Name — Classification/Specialization not needed by Claude
+    return {
+        "specialties": [{"Code": c["Code"], "Display Name": c.get("Display Name", "")} for c in all_codes],
+        "matched_classifications": classifications,
+    }
 
 
 def find_providers(specialty_query: str, state: str, city: str = "", limit: int = 5) -> dict:
@@ -702,6 +709,32 @@ anthropic_tools = [
             "required": ["condition"],
         },
     },
+    {
+        "name": "get_skip_snow_context",
+        "description": (
+            "Returns Skip Snow's personal background: career summary and LinkedIn profile. "
+            "Call this when the user asks about Skip Snow specifically — his career, experience, "
+            "background, qualifications, or personal story."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    },
+    {
+        "name": "get_chathealthy_context",
+        "description": (
+            "Returns ChatHealthy.AI company context: business plan and Anthropic operating principles. "
+            "Call this when the user asks about ChatHealthy — the company, the mission, the platform, "
+            "the product, the business model, or the Anthropic partnership."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -724,12 +757,14 @@ def _load_me_context():
     except Exception as e:
         ctx["linkedin"] = ""
         _log.warning("ME_DIR LinkedIn load failed: %s", e)
+    # Anthropic YouTube transcript excluded — 26k tokens, exceeds rate limit
+    # Replaced with compact operating principles (~500 tokens)
     try:
-        reader = PdfReader(os.path.join(_ME_DIR, "BuildingAnthropicAConversationWithItsCo-foundersYouTube.pdf"))
-        ctx["anthropic_discussion"] = "".join(p.extract_text() or "" for p in reader.pages)
+        with open(os.path.join(_ME_DIR, "anthropic_principles.txt"), "r", encoding="utf-8") as f:
+            ctx["anthropic_principles"] = f.read()
     except Exception as e:
-        ctx["anthropic_discussion"] = ""
-        _log.warning("ME_DIR Anthropic PDF load failed: %s", e)
+        ctx["anthropic_principles"] = ""
+        _log.warning("ME_DIR anthropic principles load failed: %s", e)
     try:
         with open(os.path.join(_ME_DIR, "summary.txt"), "r", encoding="utf-8") as f:
             ctx["summary"] = f.read()
@@ -774,30 +809,26 @@ def _system_prompt(follow_up_check: bool = False) -> str:
         f"You are acting as {name}. You are answering questions on {website}'s website, "
         f"particularly questions related to {name}'s career, background, skills and experience and plans for the future of this web site. "
         f"Your responsibility is to represent {name} and {website} for interactions on the website as faithfully as possible. "
-        f"You are given a summary of {name}'s background and LinkedIn profile which you can use to answer questions. "
         f"Be professional and engaging, as if talking to a potential client or future employer who came across the website. "
         f"\n\n## STRICT ANSWER RULES — NO EXCEPTIONS\n"
         f"RULE 0 — EMERGENCY: If the user describes ANY symptom or situation that could be a medical emergency, "
         f"STOP immediately. Do not use any tool. Respond ONLY with the exact text: '{EMERGENCY_RESPONSE}'\n"
-        f"RULE 1 — SOURCE RESTRICTION: You may ONLY answer from facts explicitly stated in the Summary, LinkedIn, and Anthropic documents provided below. "
-        f"You must NEVER use your general training knowledge to answer.\n"
+        f"RULE 1 — CONTEXT TOOLS (only when user asks for information): "
+        f"If the user explicitly asks about {name}'s background, career, or qualifications — call get_skip_snow_context first. "
+        f"If the user explicitly asks about {website}'s mission, business, or platform — call get_chathealthy_context first. "
+        f"Do NOT call these tools for greetings, casual conversation, or messages that do not ask for information. "
+        f"Answer ONLY from what those tools return. Never use general training knowledge to answer.\n"
         f"RULE 2 — NO HEDGING: You are PROHIBITED from using any hedging language. "
         f"If you would reach for hedging words, call record_unknown_question instead.\n"
         f"RULE 3 — MEDICAL ADVICE vs HEALTHCARE NAVIGATION: "
         f"DECLINE personal medical advice (call record_unknown_question first). "
         f"ALLOWED: Healthcare navigation — use find_providers, find_specialty_codes, search_clinical_trials.\n"
-        f"RULE 4 — TOOL CALL ORDER: Always call record_unknown_question BEFORE composing your response.\n"
+        f"RULE 4 — TOOL CALL ORDER: Always call record_unknown_question BEFORE composing your response when the answer is not known.\n"
         f"RULE 5 — EACH QUESTION SEPARATELY: Record each unknown question with a separate tool call.\n"
         f"RULE 6 — FOLLOW-UP OFFER: When you receive a FOLLOW-UP CHECK reminder, assess genuine interest "
         f"and ask: 'Would you like someone from the ChatHealthy.AI team to follow up with you personally?' "
         f"Respect refusal signals — do not ask again if the user shows impatience or annoyance.\n"
-        f"RULE 7 — CODEBASE CONTEXT: The codebase document is for your understanding only. "
-        f"NEVER quote raw code, file paths, function names, or implementation details.\n\n"
-        f"## Summary:\n{_ME['summary']}\n\n"
-        f"## LinkedIn Profile:\n{_ME['linkedin']}\n\n"
-        f"## AnthropicOnSafety:\n{_ME['anthropic_discussion']}\n\n"
-        f"## ChatHealthy Codebase & Architecture:\n{_ME['codebase']}\n\n"
-        f"With this context, please chat with the user, always staying in character as {name}."
+        f"Please chat with the user, always staying in character as {name}."
     )
     if follow_up_check:
         base += (
@@ -811,6 +842,29 @@ def _system_prompt(follow_up_check: bool = False) -> str:
 # ---------------------------------------------------------------------------
 # Tool execution — Anthropic tool_use blocks
 # ---------------------------------------------------------------------------
+def _trim(text: str, max_chars: int) -> str:
+    """Trim text to max_chars, appending a truncation note if cut."""
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars] + f"\n[... truncated at {max_chars} chars for token budget ...]"
+
+
+def get_skip_snow_context():
+    """Return Skip Snow's personal background: career summary and LinkedIn profile."""
+    return {
+        "summary": _ME.get("summary", ""),
+        "linkedin": _trim(_ME.get("linkedin", ""), 3000),
+    }
+
+
+def get_chathealthy_context():
+    """Return ChatHealthy.AI company context: business plan and Anthropic operating principles."""
+    return {
+        "business_plan": _trim(_ME.get("business_plan", ""), 3000),
+        "anthropic_principles": _ME.get("anthropic_principles", ""),
+    }
+
+
 def _handle_tool_calls(tool_use_blocks, messages):
     chat_history = _format_chat_history(messages)
     tool_results = []
@@ -828,6 +882,42 @@ def _handle_tool_calls(tool_use_blocks, messages):
             "content": json.dumps(result),
         })
     return tool_results
+
+
+# ---------------------------------------------------------------------------
+# Debug logging (dev environment only)
+# ---------------------------------------------------------------------------
+def _debug_log_chat(
+    ip: str,
+    message: str,
+    history_len: int,
+    tool_loop_iters: int,
+    tokens_in: Optional[int],
+    tokens_out: Optional[int],
+    response_text: Optional[str],
+    error: Optional[str],
+) -> None:
+    """Persists chat call metadata to dev_Debug.chat_calls when ENV_PREFIX == dev."""
+    if _ENV_PREFIX != "dev":
+        return
+    db = _get_db()
+    if db is None:
+        return
+    try:
+        col = db["dev_Debug"]["chat_calls"]
+        col.insert_one({
+            "datetime":        datetime.now(timezone.utc).isoformat(),
+            "ip":              ip,
+            "message_preview": message[:200],
+            "history_len":     history_len,
+            "tool_loop_iters": tool_loop_iters,
+            "tokens_in":       tokens_in,
+            "tokens_out":      tokens_out,
+            "response_preview": response_text[:200] if response_text else None,
+            "error":           error,
+        })
+    except Exception as exc:
+        _log.warning("debug_log_chat failed: %s", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -860,6 +950,8 @@ class ChatResponse(BaseModel):
     response: Optional[str] = None
     emergency: bool = False
     error: Optional[str] = None
+    tokens_in: Optional[int] = None
+    tokens_out: Optional[int] = None
 
 
 @app.get("/welcome")
@@ -875,14 +967,20 @@ def health():
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, request: Request):
+    ip = request.client.host if request.client else "unknown"
     try:
         return await _chat_inner(body, request)
     except Exception as e:
         tb = traceback.format_exc()
         _log.error("CHAT ERROR: %s\n%s", e, tb)
-        if _DEBUG:
-            return ChatResponse(error=tb)
-        return ChatResponse(error=str(e))
+        err_str = str(e)
+        # Surface rate-limit token info when available
+        if "429" in err_str or "rate_limit" in err_str.lower():
+            err_msg = f"Rate limit hit — {err_str}"
+        else:
+            err_msg = tb if _DEBUG else err_str
+        _debug_log_chat(ip, body.message, len(body.history), 0, None, None, None, err_msg)
+        return ChatResponse(error=err_msg)
 
 
 async def _chat_inner(body: ChatRequest, request: Request):
@@ -909,6 +1007,10 @@ async def _chat_inner(body: ChatRequest, request: Request):
 
     anthropic_client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
 
+    total_tokens_in  = 0
+    total_tokens_out = 0
+
+    _log.info("CHAT call=initial msgs=%d", len(messages))
     response = anthropic_client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=4096,
@@ -916,16 +1018,22 @@ async def _chat_inner(body: ChatRequest, request: Request):
         messages=messages,
         tools=anthropic_tools,
     )
+    total_tokens_in  += getattr(response.usage, "input_tokens",  0)
+    total_tokens_out += getattr(response.usage, "output_tokens", 0)
 
     # Tool-use loop
+    loop_iter = 0
     while response.stop_reason == "tool_use":
         tool_uses    = [b for b in response.content if b.type == "tool_use"]
+        tool_names   = [b.name for b in tool_uses]
         tool_results = _handle_tool_calls(tool_uses, messages)
 
         # Append assistant turn (with tool_use blocks) + tool results as user turn
         messages.append({"role": "assistant", "content": response.content})
         messages.append({"role": "user",      "content": tool_results})
 
+        loop_iter += 1
+        _log.info("CHAT call=tool_loop iter=%d tools=%s msgs=%d tokens_in=%d", loop_iter, tool_names, len(messages), total_tokens_in)
         response = anthropic_client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=4096,
@@ -933,9 +1041,14 @@ async def _chat_inner(body: ChatRequest, request: Request):
             messages=messages,
             tools=anthropic_tools,
         )
+        total_tokens_in  += getattr(response.usage, "input_tokens",  0)
+        total_tokens_out += getattr(response.usage, "output_tokens", 0)
 
     text = next((b.text for b in response.content if b.type == "text"), "")
-    return ChatResponse(response=text)
+
+    _log.info("CHAT complete tokens_in=%d tokens_out=%d", total_tokens_in, total_tokens_out)
+    _debug_log_chat(ip, body.message, len(history), loop_iter, total_tokens_in, total_tokens_out, text, None)
+    return ChatResponse(response=text, tokens_in=total_tokens_in, tokens_out=total_tokens_out)
 
 
 if __name__ == "__main__":

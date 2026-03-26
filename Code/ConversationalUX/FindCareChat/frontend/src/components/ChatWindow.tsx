@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import MessageBubble from './MessageBubble'
 
-interface Message {
+export interface Message {
   role: 'user' | 'assistant'
   content: string
   isError?: boolean
+  thinkSeconds?: number
+  tokensIn?: number
 }
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -27,45 +29,84 @@ export default function ChatWindow() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isLocked, setIsLocked] = useState(false)
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const [thinkSeconds, setThinkSeconds] = useState(0)
+  const [thinkingDismissed, setThinkingDismissed] = useState(false)
 
+  // Ref so async callbacks always see the latest messages for history
+  const messagesRef = useRef<Message[]>([WELCOME])
+  useEffect(() => { messagesRef.current = messages }, [messages])
+
+  const bottomRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
 
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault()
+  // Think timer — counts up while loading and not dismissed
+  useEffect(() => {
+    if (!isLoading || thinkingDismissed) {
+      setThinkSeconds(0)
+      return
+    }
+    const timer = setInterval(() => setThinkSeconds(s => s + 1), 1000)
+    return () => clearInterval(timer)
+  }, [isLoading, thinkingDismissed])
+
+  const showThinking = isLoading && !thinkingDismissed
+  // Submit is allowed unless locked, or loading and not yet dismissed
+  const canSubmit = !isLocked && (!isLoading || thinkingDismissed)
+
+  async function handleSend(e?: React.FormEvent) {
+    e?.preventDefault()
     const text = input.trim()
-    if (!text || isLoading || isLocked) return
+    if (!text || !canSubmit) return
+
+    // Capture history at call time from ref — safe even if a prior call is still in flight
+    const historyForBackend = messagesRef.current
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .map(m => ({ role: m.role, content: m.content }))
 
     const userMessage: Message = { role: 'user', content: text }
-    const history = [...messages, userMessage]
-    setMessages(history)
+    setMessages(prev => [...prev, userMessage])
     setInput('')
     setIsLoading(true)
+    setThinkingDismissed(false)
+    const startTime = Date.now()
 
     try {
       const res = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: text,
-          history: messages
-            .filter(m => m.role === 'user' || m.role === 'assistant')
-            .map(m => ({ role: m.role, content: m.content })),
-        }),
+        body: JSON.stringify({ message: text, history: historyForBackend }),
       })
       const data = await res.json()
+      const elapsed = Math.round((Date.now() - startTime) / 1000)
+
       if (data.error) {
-        setMessages([...history, { role: 'assistant', content: `**Debug Error:**\n\`\`\`\n${data.error}\n\`\`\``, isError: true }])
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `**Error:**\n\`\`\`\n${data.error}\n\`\`\``,
+          isError: true,
+          thinkSeconds: elapsed,
+          tokensIn: data.tokens_in ?? undefined,
+        }])
       } else {
-        setMessages([...history, { role: 'assistant', content: data.response }])
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: data.response,
+          thinkSeconds: elapsed,
+          tokensIn: data.tokens_in ?? undefined,
+        }])
         if (data.emergency) setIsLocked(true)
       }
     } catch {
-      setMessages([...history, { role: 'assistant', content: '**Error:** Could not reach the server. Please try again.' }])
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: '**Error:** Could not reach the server. Please try again.',
+        isError: true,
+      }])
     } finally {
       setIsLoading(false)
+      setThinkingDismissed(false)
     }
   }
 
@@ -75,23 +116,63 @@ export default function ChatWindow() {
         {messages.map((m, i) => (
           <MessageBubble key={i} message={m} />
         ))}
-        {isLoading && (
-          <div style={{ padding: '12px 16px', color: '#6b7280', fontStyle: 'italic' }}>Thinking…</div>
+
+        {showThinking && (
+          <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: '18px 18px 18px 4px',
+              background: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              fontSize: 14,
+              color: '#6b7280',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+            }}>
+              <span>Thinking… {thinkSeconds}s</span>
+              <button
+                onClick={() => setThinkingDismissed(true)}
+                style={{
+                  background: 'none',
+                  border: '1px solid #d1d5db',
+                  borderRadius: 4,
+                  padding: '2px 8px',
+                  fontSize: 12,
+                  color: '#9ca3af',
+                  cursor: 'pointer',
+                  lineHeight: 1.4,
+                }}
+              >
+                Stop
+              </button>
+            </div>
+          </div>
         )}
+
         <div ref={bottomRef} />
       </div>
+
       <form onSubmit={handleSend} style={{ padding: '16px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: 8 }}>
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
-          disabled={isLocked || isLoading}
+          disabled={isLocked}
           placeholder={isLocked ? 'Chat suspended.' : 'Type a message…'}
           style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 15, outline: 'none' }}
         />
         <button
           type="submit"
-          disabled={isLocked || isLoading || !input.trim()}
-          style={{ padding: '10px 20px', borderRadius: 8, background: '#003399', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 15 }}
+          disabled={!canSubmit || !input.trim()}
+          style={{
+            padding: '10px 20px',
+            borderRadius: 8,
+            background: canSubmit && input.trim() ? '#003399' : '#d1d5db',
+            color: '#fff',
+            border: 'none',
+            cursor: canSubmit && input.trim() ? 'pointer' : 'not-allowed',
+            fontSize: 15,
+          }}
         >
           Send
         </button>

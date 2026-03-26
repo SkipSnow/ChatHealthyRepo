@@ -1,12 +1,7 @@
 import ReactMarkdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
-
-interface Message {
-  role: 'user' | 'assistant'
-  content: string
-  isError?: boolean
-}
+import type { Message } from './ChatWindow'
 
 const sanitizeSchema = {
   ...defaultSchema,
@@ -34,6 +29,8 @@ export default function MessageBubble({ message }: { message: Message }) {
         border: isError ? '1px solid #f87171' : isUser ? 'none' : '1px solid #e5e7eb',
         fontSize: 15,
         lineHeight: 1.6,
+        wordBreak: 'break-word',
+        overflowWrap: 'anywhere',
       }}>
         {isUser ? (
           message.content
@@ -43,6 +40,14 @@ export default function MessageBubble({ message }: { message: Message }) {
           >
             {message.content}
           </ReactMarkdown>
+        )}
+        {!isUser && (message.thinkSeconds !== undefined || message.tokensIn !== undefined) && (
+          <div style={{ marginTop: 6, fontSize: 11, color: '#9ca3af' }}>
+            {[
+              message.thinkSeconds !== undefined ? `${message.thinkSeconds}s` : null,
+              message.tokensIn !== undefined ? `${message.tokensIn.toLocaleString()} in` : null,
+            ].filter(Boolean).join(' · ')}
+          </div>
         )}
       </div>
     </div>
