@@ -133,6 +133,25 @@
       "result": null,
       "feedback_needed": false,
       "feedback_question": null
+    },
+    {
+      "assignment_id": "ASN-CB1468",
+      "timestamp": "2026-03-26T20:40:56.848085+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Break fix environment for FindCare dev",
+      "description": "Create a break fix environment to enable rapid debugging without waiting for HuggingFace deploys.\n\nREQUIREMENTS:\n1. Local run capability: developer can start the FastAPI backend locally with a single command using .env credentials\n2. Local frontend: React dev server points at local backend (VITE_API_URL=http://localhost:8000)\n3. Document the local run procedure in a README or CLAUDE.md entry\n4. Consider a second HF Space (e.g. breakfix_ChatHealthyAIChatWindow) with DEBUG=true for cloud-based break fix\n\nDO NOT IMPLEMENT NOW — backlog item.",
+      "scope": [
+        "Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Code/ConversationalUX/FindCareChat/backend/Dockerfile",
+        ".github/workflows/deploy-findcare-backend.yml"
+      ],
+      "priority": "medium",
+      "estimated_risk": "Low",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null
     }
   ]
 }
