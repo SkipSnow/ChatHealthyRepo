@@ -399,7 +399,8 @@ def find_specialty_codes(query: str) -> dict:
             all_codes.append(doc)
 
     # Cap results — full NUCC dumps can exceed token budget in the tool loop
-    all_codes = all_codes[:10]
+    # 70 covers broad specialties like pediatrics (~60 sub-types)
+    all_codes = all_codes[:70]
 
     if "debug" in query.lower():
         return {
@@ -1070,16 +1071,17 @@ def _debug_log_chat(
     tokens_out: Optional[int],
     response_text: Optional[str],
     error: Optional[str],
+    history: Optional[list] = None,
 ) -> None:
-    """Persists chat call metadata to dev_Debug.chat_calls when ENV_PREFIX == dev."""
+    """Persists chat call metadata to dev_Debug.chat_calls when ENV_PREFIX == dev.
+    When an error occurs, the full de-identified chat history is stored alongside the error."""
     if _ENV_PREFIX != "dev":
         return
     db = _get_db()
     if db is None:
         return
     try:
-        col = db["dev_Debug"]["chat_calls"]
-        col.insert_one({
+        record: dict = {
             "datetime":        datetime.now(timezone.utc).isoformat(),
             "ip":              ip,
             "message_preview": message[:200],
@@ -1089,7 +1091,17 @@ def _debug_log_chat(
             "tokens_out":      tokens_out,
             "response_preview": response_text[:200] if response_text else None,
             "error":           error,
-        })
+        }
+        # On error, store the full de-identified chat history for debugging
+        if error and history:
+            safe_history = [
+                {"role": m.get("role", ""), "content": str(m.get("content", ""))[:500]}
+                for m in history if m.get("role") in ("user", "assistant")
+            ]
+            deIdentify(safe_history)
+            record["chat_history_deidentified"] = safe_history
+        col = db["dev_Debug"]["chat_calls"]
+        col.insert_one(record)
     except Exception as exc:
         _log.warning("debug_log_chat failed: %s", exc)
 
@@ -1157,7 +1169,7 @@ async def chat(body: ChatRequest, request: Request):
         else:
             err_type = "internal"
             err_msg = tb if _DEBUG else err_str
-        _debug_log_chat(ip, body.message, len(body.history), 0, None, None, None, err_msg)
+        _debug_log_chat(ip, body.message, len(body.history), 0, None, None, None, err_msg, body.history)
         return ChatResponse(error=err_msg, error_type=err_type)
 
 
