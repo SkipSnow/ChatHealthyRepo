@@ -1,0 +1,24 @@
+name: Deploy FindCare Website (Dev)
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'Website/**'
+      - '.github/workflows/deploy-findcare-website-dev.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inject chat URL
+        run: sed -i 's|%%CHAT_URL%%|https://chathealthy-dev.pages.dev|g' Website/index.html
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy Website --project-name=chathealthy-website-dev
