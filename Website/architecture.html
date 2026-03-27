@@ -217,6 +217,8 @@
         </ol>
         <ul style="margin:8px 0 0 18px; font-size:0.88rem; line-height:1.9; list-style:disc;">
           <li><strong>Designs:</strong>
+            <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('chat-app-design.html'),('Chat App Design'));return false;" style="color:var(--teal); text-decoration:none;">Chat App Design</a>
+            &nbsp;&middot;&nbsp;
             <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('provider-data-load.html'),('Provider Data Load'));return false;" style="color:var(--teal); text-decoration:none;">Provider Data Load &amp; County Enrichment</a>
             &nbsp;&middot;&nbsp;
             <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('embedding-design.html'),('Embedding Design'));return false;" style="color:var(--teal); text-decoration:none;">Embedding Design</a>
@@ -295,7 +297,7 @@
           <rect x="406" y="102" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
           <text x="334" y="104" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;component&#187;</text>
           <text x="334" y="117" text-anchor="middle" font-size="11" font-weight="bold">Chat App</text>
-          <text x="334" y="130" text-anchor="middle" font-size="9" fill="#4a5568">HuggingFace &#8594; Azure Static Web Apps</text>
+          <text x="334" y="130" text-anchor="middle" font-size="9" fill="#4a5568">HuggingFace Docker Space</text>
 
           <!-- Row 2 right: LLM APIs (x=483, y=90, w=255, h=55, dashed) -->
           <rect x="483" y="90" width="255" height="55" fill="white" stroke="#0d1117" stroke-width="1.5" stroke-dasharray="5,3"/>
@@ -451,7 +453,7 @@
           <tr><td>privacy.html</td><td>Privacy Policy. Loads standalone or inside the panel iframe.</td></tr>
           <tr><td>terms.html</td><td>Terms of Use. Same dual-mode design as privacy.html.</td></tr>
           <tr><td>architecture.html</td><td>This document. Technical architecture reference. Same dual-mode design.</td></tr>
-          <tr><td>designs.html</td><td>Design document index. Links to detailed design docs for each pipeline and subsystem.</td></tr>
+          <tr><td>chat-app-design.html</td><td>Chat application design — system prompt, tools, safety, provider search, UI/UX</td></tr>
         </table>
       </div>
 
@@ -541,6 +543,9 @@
 
       <!-- 6 -->
       <h2 id="chat-component">6. Chat Component Design</h2>
+      <p style="background:var(--teal-light);border:1px solid var(--teal-mid);border-radius:var(--radius);padding:10px 16px;margin-bottom:14px;font-size:0.92rem;">
+        <strong>Full specification:</strong> <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('chat-app-design.html'),('Chat App Design'));return false;" style="color:var(--teal);text-decoration:none;font-weight:500;">Chat App Design Document</a>
+      </p>
       <p>
         App 2 is React + FastAPI hosted on a HuggingFace Docker Space. The AI engine is Claude Sonnet 4.6 via the Anthropic SDK.
       </p>
@@ -562,7 +567,7 @@
       </div>
 
       <h3>FindCare — Provider Search <span style="display:inline-block;background:#0b7a75;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">LIVE — DE, MS</span></h3>
-      <p>The LLM calls <code>find_providers</code> when the user asks to find a doctor or specialist. The tool performs a two-step MongoDB lookup: specialty name to NUCC taxonomy codes (SpecialtyMetaData collection), then taxonomy codes plus state to provider records (providers_staging).</p>
+      <p>The LLM calls <code>find_providers</code> when the user asks to find a doctor or specialist. The tool performs a two-step MongoDB lookup: specialty name to NUCC taxonomy codes (SpecialtyMetaData collection), then taxonomy codes plus state to provider records (providers).</p>
       <div class="diagram">
         <div class="diagram-inner">
           <div class="d-center"><div class="d-box d-box-wide"><strong>User</strong><small>"Find a cardiologist in Delaware"</small></div></div>
@@ -579,7 +584,7 @@
               <div style="width:2px;background:var(--ink);height:12px;"></div>
               <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:200px;"><strong>Specialty lookup</strong><small>SpecialtyMetaData → taxonomy codes</small></div>
               <div style="width:2px;background:var(--ink);height:12px;"></div>
-              <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:200px;"><strong>Provider query</strong><small>providers_staging · state + taxonomy codes</small></div>
+              <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:200px;"><strong>Provider query</strong><small>providers · state + taxonomy codes</small></div>
               <div style="width:2px;background:var(--ink);height:12px;"></div>
               <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:200px;"><strong>Provider list returned</strong><small>name · address · NPI</small></div>
             </div>
@@ -737,8 +742,9 @@
         <table>
           <tr><th>Concern</th><th>Tool</th><th>Detail</th></tr>
           <tr><td>Source control</td><td>GitHub</td><td>SkipSnow/findCare · SkipSnow/ChatHealthyDataPipeline</td></tr>
-          <tr><td>App deploy</td><td>GitHub Actions</td><td>Push to master → rsync to HuggingFace Space (path filter: Code/ConversationalUX/**)</td></tr>
-          <tr><td>Pipeline deploy</td><td>GitHub Actions</td><td>Push to master → deploy to Azure Function App (path filter: Code/DataPipelines/**)</td></tr>
+          <tr><td>App deploy (FindCare)</td><td>GitHub Actions</td><td>Push to dev → deploy to HuggingFace Space (path filter: Code/ConversationalUX/**)</td></tr>
+          <tr><td>App deploy (Gradio)</td><td>GitHub Actions</td><td>Push to main → rsync to HuggingFace Space (path filter: Code/ConversationalUX/ChatHealthyWhoAmIChat/**)</td></tr>
+          <tr><td>Pipeline deploy</td><td>GitHub Actions</td><td>Push to main → deploy to Azure Function App (path filter: Code/DataPipelines/**)</td></tr>
           <tr><td>Website deploy</td><td>Cloudflare</td><td>Website/ served as static pages — no build step</td></tr>
           <tr><td>Website tests</td><td>Playwright + pytest</td><td>Website/tests/ — 32 browser-driven tests</td></tr>
           <tr><td>App unit tests</td><td>pytest (mocked)</td><td>Code/ConversationalUX/…/tests/test_record_user_details.py</td></tr>
@@ -931,7 +937,7 @@
           </tr>
           <tr style="background:#fafafa;">
             <td style="padding:8px; border:1px solid #ddd;"><code>PublicHealthData</code></td>
-            <td style="padding:8px; border:1px solid #ddd;"><code>providers_staging</code> (with <code>embedding</code> float[1536] after Step 5), enrichment working data, <code>ICD10Codes</code>, <code>SpecialtyMetaData</code>, <code>ZipCountyCrosswalk</code></td>
+            <td style="padding:8px; border:1px solid #ddd;"><code>providers</code> (with <code>embedding</code> float[1536] after Step 5), enrichment working data, <code>ICD10Codes</code>, <code>SpecialtyMetaData</code>, <code>ZipCountyCrosswalk</code></td>
             <td style="padding:8px; border:1px solid #ddd;">ChatHealthyDataPipelines</td>
             <td style="padding:8px; border:1px solid #ddd; font-size:0.8rem;">100% public data — pipeline working area. Atlas Vector Search index <code>provider_vector_index</code> (cosine, 1536 dims) on <code>embedding</code> field.</td>
           </tr>
@@ -1010,7 +1016,7 @@
       <!-- 13 -->
       <h2 id="deferred">13. Deferred</h2>
       <ul>
-        <li><strong>CopyToRuntime + Blue-Green Collection Swap</strong> — fan-out copy of <code>providers_staging</code> → <code>providers_new</code> on ChatHealthyFrontEnd cluster, then atomic rename swap. Until implemented, runtime reads are served from the DataPipelines cluster.</li>
+        <li><strong>CopyToRuntime + Blue-Green Collection Swap</strong> — fan-out copy of <code>providers</code> → <code>providers_new</code> on ChatHealthyFrontEnd cluster, then atomic rename swap. Until implemented, runtime reads are served from the DataPipelines cluster.</li>
         <li><strong>Cluster manager agent</strong> — dedicated agent/service to start/stop the DataPipelines cluster on a schedule, fully decoupled from the pipeline itself. Current approach: manual.</li>
         <li><strong>Idle monitor re-enable</strong> — auto-pause the DataPipelines cluster when idle. Disabled because it fired mid-pipeline run. Requires a pipeline lock mechanism before re-enabling.</li>
         <li><strong>Multi-location provider aggregation</strong> — NPPES has one practice address per individual NPI. Supplementing with payer directory data would reveal all locations where a provider bills (see RESEARCH-001).</li>

@@ -22,9 +22,11 @@ ChatHealthyRepo/
   Legal/
   .github/
     workflows/
-      deploy-ux.yml           ← ConversationalUX → HuggingFace (on push to master)
-      deploy-pipelines.yml    ← DataPipelines → Azure (on push to master)
-      test.yml                ← Unit tests (on every push)
+      deploy-hf.yml                    ← ChatHealthyWhoAmIChat → HuggingFace (on push to main)
+      deploy-findcare-backend.yml      ← FindCareChat backend+frontend → HuggingFace (on push to dev)
+      deploy-findcare-website-dev.yml  ← Website/ → Cloudflare Pages (on push to dev)
+      deploy-pipelines.yml             ← DataPipelines → Azure (on push to main)
+      test.yml                         ← Unit tests (on push to main / PR)
 ```
 
 ---
@@ -36,8 +38,9 @@ Cloudflare (www.chathealthy.ai)
   → Serves Website/ as static pages
   → DNS, embeds HuggingFace space via iframe
 
-HuggingFace Space (SkipSnow/ChatHealthyWhoAmIChat)
-  → Layer 1: ConversationalUX — React + FastAPI
+HuggingFace Spaces
+  → SkipSnow/ChatHealthyWhoAmIChat — About Us chatbot (Gradio, active until FindCare replaces)
+  → SkipSnow/dev_ChatHealthyAIChatWindow — FindCare dev (Docker: React + FastAPI)
   → Direct Anthropic SDK for chat
   → UX model: ChatGPT / Claude.ai — single session, rich inline components
 
@@ -63,7 +66,7 @@ MongoDB Atlas
 
 - **Repo**: `SkipSnow/ChatHealthyRepo`
 - **Lab/experiments**: `SkipSnow/ChatHealthyLabRepo`
-- CI/CD: push to master → GitHub Actions path-filtered deploy
+- CI/CD: push to dev/main → GitHub Actions path-filtered deploy
 - Secrets: HF_TOKEN, OPENAI_API_KEY, Anthropic_API_KEY, MONGO_connectionString, AZURE_FUNCTION_APP_NAME, AZURE_FUNCTION_PUBLISH_PROFILE
 
 ---
@@ -75,7 +78,7 @@ The system is exactly three applications. Keep them rigorous and separate.
 | # | Application | Host | Code Path |
 |---|---|---|---|
 | 1 | **Static Website** | Cloudflare | `Website/` |
-| 2 | **Chat Window** | HuggingFace → Azure Static Web Apps | `Code/ConversationalUX/` |
+| 2 | **Chat Window** | HuggingFace Docker Space | `Code/ConversationalUX/` |
 | 3 | **Data Management & Pipelines** | Azure Functions | `Code/DataPipelines/` |
 
 ### Boundary rules — enforced without exception

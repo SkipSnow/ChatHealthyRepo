@@ -1,9 +1,0 @@
-{
-  "navigationFallback": {
-    "rewrite": "/index.html",
-    "exclude": ["/assets/*", "/favicon.ico"]
-  },
-  "mimeTypes": {
-    ".json": "text/json"
-  }
-}

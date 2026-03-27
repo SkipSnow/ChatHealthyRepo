@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<!--
+  Copyright © 2026 Skip Snow. All rights reserved.
+  Licensed under the FindCare Evaluation License (FEL-1.0).
+
+  Coded by Claude Opus 4.6 (Anthropic).
+  Developed in collaboration with ChatGPT (OpenAI).
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat Application Design — ChatHealthy.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --ink:        #0d1117;
+      --ink-soft:   #4a5568;
+      --surface:    #ffffff;
+      --teal:       #0b7a75;
+      --teal-light: #e6f4f3;
+      --teal-mid:   #d0eeec;
+      --accent:     #f0a500;
+      --warn:       #c0392b;
+      --border:     #d8e2e1;
+      --radius:     6px;
+      --max-w:      1160px;
+      --content-w:  860px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── Minimal header ─────────────────────────────── */
+    header { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: 0 1px 6px rgba(11,122,117,0.06); }
+    .header-inner { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+    .logo-mark { width: 32px; height: 32px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; }
+    .logo-mark svg { width: 18px; height: 18px; fill: white; }
+    .logo-text { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--teal); letter-spacing: -0.01em; }
+    .logo-text span { color: var(--accent); }
+
+    /* ── Main ───────────────────────────────────────── */
+    main { flex: 1; max-width: var(--max-w); width: 100%; margin: 0 auto; padding: clamp(20px,4vw,48px) clamp(16px,4vw,24px); }
+
+    .page-header { border-bottom: 2px solid var(--teal-mid); padding-bottom: 20px; margin-bottom: 36px; }
+    .page-header .eyebrow { font-size: 0.72rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 6px; }
+    .page-header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(1.5rem,4vw,2.25rem); color: var(--ink); line-height: 1.15; margin-bottom: 8px; }
+    .page-header .effective { font-size: 0.82rem; color: var(--ink-soft); }
+
+    /* ── Action bars ────────────────────────────────── */
+    .action-bar { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+    .action-bar-top { margin-bottom: 20px; }
+    .action-bar-bottom { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border); }
+
+    .action-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: none; border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--ink-soft); font-family: 'DM Sans', sans-serif; font-size: 0.82rem;
+      cursor: pointer; padding: 6px 14px; text-decoration: none;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .action-btn:hover { color: var(--teal); background: var(--teal-light); border-color: var(--teal-mid); }
+
+    .close-btn { display: none; }
+    .in-panel .close-btn { display: inline-flex; }
+
+    /* ── Content ────────────────────────────────────── */
+    .arch-body { max-width: var(--content-w); }
+
+    .arch-body h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.15rem;
+      color: var(--teal);
+      margin: 36px 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--teal-mid);
+    }
+    .arch-body h2:first-child { margin-top: 0; }
+
+    .arch-body h3 {
+      font-size: 0.88rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      margin: 24px 0 8px;
+    }
+
+    .arch-body p { font-size: 0.92rem; line-height: 1.7; color: var(--ink); margin-bottom: 10px; }
+    .arch-body p:last-child { margin-bottom: 0; }
+    .arch-body ul { margin: 6px 0 10px 20px; font-size: 0.92rem; line-height: 1.7; }
+    .arch-body ul li { margin-bottom: 4px; }
+
+    /* ── Tables ─────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 12px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 480px; }
+    th { background: var(--ink); color: #fff; padding: 8px 12px; text-align: left; font-weight: 500; font-size: 0.82rem; letter-spacing: 0.03em; }
+    td { border: 1px solid var(--border); padding: 8px 12px; vertical-align: top; line-height: 1.5; }
+    tr:nth-child(even) td { background: var(--teal-light); }
+
+    /* ── Code blocks ───────────────────────────────── */
+    pre {
+      background: #f6f8fa;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      margin: 10px 0;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.85em;
+      background: #f6f8fa;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    pre code { background: none; padding: 0; }
+
+    /* ── Callout boxes ─────────────────────────────── */
+    .callout {
+      border-left: 4px solid var(--teal);
+      background: var(--teal-light);
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+    .callout-warn {
+      border-left-color: var(--warn);
+      background: #fdf3f2;
+    }
+    .callout-warn strong { color: var(--warn); }
+
+    /* ── Table of Contents ──────────────────────────── */
+    .toc { background: var(--teal-light); border: 1px solid var(--teal-mid); border-radius: var(--radius); padding: 18px 24px; margin-bottom: 36px; max-width: var(--content-w); }
+    .toc h3 { font-size: 0.78rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 10px; }
+    .toc ol { margin: 0 0 0 18px; font-size: 0.88rem; line-height: 1.9; }
+    .toc ol li a { color: var(--teal); text-decoration: none; }
+    .toc ol li a:hover { text-decoration: underline; }
+
+    /* ── Footer ─────────────────────────────────────── */
+    footer { border-top: 1px solid var(--border); background: var(--surface); }
+    .footer-inner { max-width: var(--max-w); margin: 0 auto; padding: 14px clamp(16px,4vw,24px); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .footer-copy { font-size: 0.78rem; color: var(--ink-soft); font-style: italic; }
+    .footer-copy a { color: var(--ink-soft); text-decoration: none; }
+    .footer-copy a:hover { color: var(--teal); }
+
+    @media (max-width: 480px) { .footer-inner { justify-content: center; text-align: center; } }
+
+    /* ── Print ──────────────────────────────────────── */
+    @media print {
+      header, footer, .action-bar { display: none !important; }
+      body { font-size: 11pt; }
+      .arch-body { max-width: 100%; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="header-inner">
+      <a class="logo" href="/" target="_top" title="Back to ChatHealthy.ai">
+        <div class="logo-mark">
+          <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="2" width="4" height="16" rx="1"/>
+            <rect x="2" y="8" width="16" height="4" rx="1"/>
+          </svg>
+        </div>
+        <span class="logo-text">Chat<span>Healthy</span>.ai</span>
+      </a>
+    </div>
+  </header>
+
+  <main>
+
+    <div class="page-header">
+      <p class="eyebrow">Technical Reference</p>
+      <h1>Chat Application Design</h1>
+      <p class="effective">March 2026 &nbsp;&middot;&nbsp; &copy; 2026 Skip Snow &nbsp;&middot;&nbsp; <a href="https://www.chathealthy.ai" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none;">chathealthy.ai</a> &nbsp;&middot;&nbsp; <a href="https://github.com/SkipSnow/ChatHealthyRepo" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none;">GitHub</a></p>
+    </div>
+
+    <div class="action-bar action-bar-top">
+      <button class="action-btn close-btn" onclick="window.parent.closePanel()">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="10" y2="10"/><line x1="10" y1="1" x2="1" y2="10"/></svg>
+        Close
+      </button>
+      <button class="action-btn print-btn" onclick="window.print()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print
+      </button>
+    </div>
+
+    <div class="arch-body">
+
+      <nav class="toc" aria-label="Table of contents">
+        <h3>Contents</h3>
+        <ol>
+          <li><a href="#overview">Overview</a></li>
+          <li><a href="#system-prompt">System Prompt</a></li>
+          <li><a href="#router">Router</a></li>
+          <li><a href="#tool-protocol">Tool Protocol</a></li>
+          <li><a href="#llm-configuration">LLM Configuration</a></li>
+          <li><a href="#safety-system">Safety System</a></li>
+          <li><a href="#provider-search">Provider Search</a></li>
+          <li><a href="#ui-ux">UI/UX Behavior</a></li>
+          <li><a href="#error-handling">Error Handling</a></li>
+          <li><a href="#environment-variables">Environment Variables</a></li>
+          <li><a href="#known-bugs">Known Bugs</a></li>
+        </ol>
+        <ul style="margin:8px 0 0 18px; font-size:0.88rem; line-height:1.9; list-style:disc;">
+          <li><strong>Related Designs:</strong>
+            <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('architecture.html'),('Architecture'));return false;" style="color:var(--teal); text-decoration:none;">Architecture Overview</a>
+            &nbsp;&middot;&nbsp;
+            <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('provider-data-load.html'),('Provider Data Load'));return false;" style="color:var(--teal); text-decoration:none;">Provider Data Load</a>
+            &nbsp;&middot;&nbsp;
+            <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('embedding-design.html'),('Embedding Design'));return false;" style="color:var(--teal); text-decoration:none;">Embedding Design</a>
+          </li>
+        </ul>
+      </nav>
+
+
+      <!-- ================================================================== -->
+      <!-- 1. OVERVIEW                                                        -->
+      <!-- ================================================================== -->
+      <h2 id="overview">1. Overview</h2>
+
+      <p>
+        The FindCare Chat Application is <strong>App 2</strong> in ChatHealthy's
+        three-application architecture. It handles all user interaction and real-time UX:
+        LLM conversation, tool calls, and inline components. It reads from the database
+        freely for fast UX lookups and may write to application collections (e.g.
+        <code>AboutUs</code>). It must never write to <code>PublicHealthData</code>.
+      </p>
+
+      <h3>Stack</h3>
+      <ul>
+        <li><strong>Frontend:</strong> React 18 + TypeScript, built with Vite, served as static files</li>
+        <li><strong>Backend:</strong> Python FastAPI (Uvicorn), direct Anthropic SDK</li>
+        <li><strong>Primary LLM:</strong> Claude Sonnet 4.6 (<code>claude-sonnet-4-6</code>)</li>
+        <li><strong>Safety/Utility LLM:</strong> Claude Haiku 4.5 (<code>claude-haiku-4-5-20251001</code>)</li>
+        <li><strong>Embeddings:</strong> OpenAI <code>text-embedding-3-large</code> (provider search), <code>text-embedding-3-small</code> (specialty search)</li>
+        <li><strong>Database:</strong> MongoDB Atlas (ChatHealthyFrontEnd cluster)</li>
+        <li><strong>Hosting:</strong> HuggingFace Docker Space (React static + FastAPI in single container)</li>
+      </ul>
+
+      <h3>Request Flow</h3>
+      <p>
+        The React frontend sends <code>POST /chat</code> with the user's message and full
+        conversation history. The FastAPI backend runs a safety check, builds the system
+        prompt, and calls Claude Sonnet 4.6 with the tool definitions. Claude selects tools,
+        the backend executes them and returns results. Claude continues in a tool-use loop
+        until it produces a final text response, which is returned to the frontend as a
+        structured <code>ChatResponse</code> JSON object.
+      </p>
+
+      <h3>Supported States</h3>
+      <p>
+        Provider search is currently available in <strong>Delaware (DE)</strong> and
+        <strong>Mississippi (MS)</strong> only. Requests for other states return a
+        <code>supported=false</code> response with a note that interest has been recorded.
+      </p>
+
+
+      <!-- ================================================================== -->
+      <!-- 2. SYSTEM PROMPT                                                   -->
+      <!-- ================================================================== -->
+      <h2 id="system-prompt">2. System Prompt</h2>
+
+      <p>
+        The system prompt is generated dynamically by <code>_system_prompt(follow_up_check)</code>
+        and targets a budget of approximately <strong>700 tokens</strong>. Context is loaded
+        on demand through tool results, not pre-loaded unconditionally. This keeps per-request
+        cost minimal for the majority of messages that do not require context documents.
+      </p>
+
+      <h3>Persona</h3>
+      <p>
+        The assistant is instructed to act as <strong>Skip Snow</strong>, answering questions
+        on the <strong>ChatHealthy.AI</strong> website. It represents Skip Snow and
+        ChatHealthy.AI for interactions as faithfully as possible &mdash; professional and
+        engaging, as if talking to a potential client or future employer.
+      </p>
+
+      <h3>Rule Structure</h3>
+      <p>
+        The system prompt enforces behavior through a numbered RULE structure. Rules are
+        labeled <em>"STRICT ANSWER RULES &mdash; NO EXCEPTIONS"</em> to maximize compliance.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <tr>
+            <th>Rule</th>
+            <th>Name</th>
+            <th>Behavior</th>
+          </tr>
+          <tr>
+            <td>RULE 0</td>
+            <td>EMERGENCY</td>
+            <td>If the user describes ANY symptom or situation that could be a medical emergency, STOP immediately. Do not use any tool. Respond ONLY with the hardcoded emergency response text.</td>
+          </tr>
+          <tr>
+            <td>RULE 1</td>
+            <td>CONTEXT TOOLS</td>
+            <td>Call <code>get_skip_snow_context</code> or <code>get_chathealthy_context</code> only when the user explicitly asks for information about Skip Snow or ChatHealthy. Do NOT call for greetings or casual conversation. Answer ONLY from what those tools return &mdash; never use general training knowledge.</td>
+          </tr>
+          <tr>
+            <td>RULE 2</td>
+            <td>NO HEDGING</td>
+            <td>Prohibited from using any hedging language (I think, probably, might). If hedging words would be needed, call <code>record_unknown_question</code> instead.</td>
+          </tr>
+          <tr>
+            <td>RULE 3</td>
+            <td>MEDICAL ADVICE vs NAVIGATION</td>
+            <td>Decline personal medical advice (call <code>record_unknown_question</code> first). Healthcare navigation is allowed: <code>find_providers</code>, <code>find_specialty_codes</code>, <code>search_clinical_trials</code>.</td>
+          </tr>
+          <tr>
+            <td>RULE 4</td>
+            <td>TOOL CALL ORDER</td>
+            <td>Always call <code>record_unknown_question</code> BEFORE composing the response when the answer is not known.</td>
+          </tr>
+          <tr>
+            <td>RULE 5</td>
+            <td>EACH QUESTION SEPARATELY</td>
+            <td>Record each unknown question with a separate tool call.</td>
+          </tr>
+          <tr>
+            <td>RULE 6</td>
+            <td>FOLLOW-UP OFFER</td>
+            <td>When a FOLLOW-UP CHECK reminder is appended, assess genuine interest and ask if the user would like someone from the team to follow up personally. Respect refusal signals.</td>
+          </tr>
+        </table>
+      </div>
+
+      <h3>Follow-Up Check Mechanism</h3>
+      <p>
+        Every 5th user message (<code>user_msg_count % 5 == 0</code>, starting after the
+        first), the backend appends a <code>FOLLOW-UP CHECK</code> block to the system prompt.
+        This instructs Claude to review the conversation and, if the user has shown genuine
+        interest, offer to connect them with the team. The mechanism is invisible to the
+        user &mdash; it is injected server-side only.
+      </p>
+
+
+      <!-- ================================================================== -->
+      <!-- 3. ROUTER                                                          -->
+      <!-- ================================================================== -->
+      <h2 id="router">3. Router</h2>
+
+      <p>
+        The Router is a first-class architectural component of App 2. Its implementation is
+        Claude's tool selector &mdash; not a separate service, not a workaround. Claude reads
+        the user's message, selects the appropriate tool, and that selection IS the routing
+        decision. No separate classification service or extra API call is required.
+      </p>
+
+      <div class="callout">
+        <strong>Design principle:</strong> The system prompt stays minimal (~700 tokens) for
+        every request. Context loads on demand through tool results, not pre-loaded
+        unconditionally.
+      </div>
+
+      <h3>Intent-to-Tool Mapping</h3>
+      <div class="table-wrap">
+        <table>
+          <tr>
+            <th>Intent</th>
+            <th>Route (tool called)</th>
+            <th>Context Loaded</th>
+          </tr>
+          <tr>
+            <td>Find a provider</td>
+            <td><code>find_providers</code></td>
+            <td>0 extra tokens</td>
+          </tr>
+          <tr>
+            <td>Identify specialty</td>
+            <td><code>find_specialty_codes</code></td>
+            <td>0 extra tokens</td>
+          </tr>
+          <tr>
+            <td>Clinical trials</td>
+            <td><code>search_clinical_trials</code></td>
+            <td>0 extra tokens</td>
+          </tr>
+          <tr>
+            <td>About Skip Snow</td>
+            <td><code>get_skip_snow_context</code></td>
+            <td>~2k tokens (summary + LinkedIn)</td>
+          </tr>
+          <tr>
+            <td>About ChatHealthy</td>
+            <td><code>get_chathealthy_context</code></td>
+            <td>~6k tokens (business plan + principles)</td>
+          </tr>
+          <tr>
+            <td>Lead capture</td>
+            <td><code>record_user_details</code></td>
+            <td>0 extra tokens</td>
+          </tr>
+          <tr>
+            <td>Unknown question</td>
+            <td><code>record_unknown_question</code></td>
+            <td>0 extra tokens</td>
+          </tr>
+        </table>
+      </div>
+
+
+      <!-- ================================================================== -->
+      <!-- 4. TOOL PROTOCOL                                                   -->
+      <!-- ================================================================== -->
+      <h2 id="tool-protocol">4. Tool Protocol</h2>
+
+      <p>
+        Tools are defined in the <code>anthropic_tools</code> list and passed to every
+        Claude API call. The backend executes tool calls via <code>_handle_tool_calls()</code>,
+        which looks up the function by name in <code>globals()</code>, injects
+        <code>chat_history</code> for tools that require it, and returns results as
+        JSON-serialized <code>tool_result</code> blocks. Claude continues in a tool-use loop
+        until <code>stop_reason != "tool_use"</code>.
+      </p>
+
+      <h3>Tool Definitions</h3>
+      <div class="table-wrap">
+        <table>
+          <tr>
+            <th>Tool</th>
+            <th>Description</th>
+            <th>Required Inputs</th>
+            <th>Optional Inputs</th>
+            <th>Return Shape</th>
+          </tr>
+          <tr>
+            <td><code>find_providers</code></td>
+            <td>Search for healthcare providers in a specific US state. Currently covers DE and MS. If result contains <code>supported=false</code>, tell the user and call <code>record_unknown_question</code>.</td>
+            <td><code>specialty_query</code>: string<br><code>state</code>: string</td>
+            <td><code>city</code>: string<br><code>county</code>: string<br><code>limit</code>: integer</td>
+            <td><code>{ supported, state, specialty_searched, search_mode, count, providers: [{ name, npi, taxonomy_code, address, county }] }</code></td>
+          </tr>
+          <tr>
+            <td><code>find_specialty_codes</code></td>
+            <td>Look up NUCC provider taxonomy codes matching a medical specialty or provider type. If result contains <code>debug: true</code>, display the full JSON verbatim.</td>
+            <td><code>query</code>: string</td>
+            <td>&mdash;</td>
+            <td><code>{ specialties: [{ Code, "Display Name" }], matched_classifications }</code></td>
+          </tr>
+          <tr>
+            <td><code>search_clinical_trials</code></td>
+            <td>Search for actively recruiting clinical trials on ClinicalTrials.gov.</td>
+            <td><code>condition</code>: string</td>
+            <td><code>location</code>: string<br><code>max_results</code>: integer</td>
+            <td><code>{ trials: [{ nct_id, title, status, phase, locations, summary, eligibility, url }] }</code></td>
+          </tr>
+          <tr>
+            <td><code>record_user_details</code></td>
+            <td>Record a user's contact details after obtaining email. Must complete the two-tier consent flow before calling.</td>
+            <td><code>email</code>: string<br><code>notes</code>: string<br><code>consent_verbatim</code>: boolean</td>
+            <td><code>name</code>: string<br><code>message</code>: string<br><code>consent_summary</code>: boolean</td>
+            <td><code>{ recorded: "ok" }</code></td>
+          </tr>
+          <tr>
+            <td><code>record_unknown_question</code></td>
+            <td>Call BEFORE composing response when: (1) answer not explicitly in docs, (2) hedging words needed, (3) personal medical advice. Not for healthcare navigation.</td>
+            <td><code>question</code>: string</td>
+            <td>&mdash;</td>
+            <td><code>{ recorded: "ok" }</code></td>
+          </tr>
+          <tr>
+            <td><code>get_skip_snow_context</code></td>
+            <td>Returns Skip Snow's personal background: career summary and LinkedIn profile.</td>
+            <td>&mdash;</td>
+            <td>&mdash;</td>
+            <td><code>{ summary, linkedin }</code> (~2k tokens, linkedin trimmed at 3000 chars)</td>
+          </tr>
+          <tr>
+            <td><code>get_chathealthy_context</code></td>
+            <td>Returns ChatHealthy.AI company context: business plan and Anthropic operating principles.</td>
+            <td>&mdash;</td>
+            <td>&mdash;</td>
+            <td><code>{ business_plan, anthropic_principles }</code> (~6k tokens, business_plan trimmed at 3000 chars)</td>
+          </tr>
+          <tr>
+            <td><code>commitSignificantActivity</code></td>
+            <td>Record any custom activity to the database.</td>
+            <td><code>database</code>: string<br><code>collection</code>: string<br><code>record</code>: object</td>
+            <td>&mdash;</td>
+            <td><code>{ recorded: "ok" }</code></td>
+          </tr>
+        </table>
+      </div>
+
+      <h3>Tool-Use Loop</h3>
+      <p>
+        After each Claude API call, if <code>stop_reason == "tool_use"</code>, the backend:
+      </p>
+      <ul>
+        <li>Extracts all <code>tool_use</code> blocks from <code>response.content</code></li>
+        <li>Executes each tool function, injecting <code>chat_history</code> for <code>record_user_details</code> and <code>record_unknown_question</code></li>
+        <li>Appends the assistant turn (with tool_use blocks) and a user turn (with tool_result blocks) to the message list</li>
+        <li>Calls Claude again with the updated messages</li>
+        <li>Accumulates <code>input_tokens</code> and <code>output_tokens</code> across all iterations</li>
+      </ul>
+      <p>
+        The loop continues until Claude produces a <code>stop_reason</code> other than
+        <code>"tool_use"</code>, at which point the final text block is extracted and returned.
+      </p>
+
+      <h3>Context Document Loading</h3>
+      <p>
+        Context documents are loaded once at startup by <code>_load_me_context()</code> into
+        a module-level <code>_ME</code> dictionary. Source files include:
+      </p>
+      <ul>
+        <li><code>SkipSnowLinkedInProfile.pdf</code> &mdash; parsed via pypdf</li>
+        <li><code>anthropic_principles.txt</code> &mdash; ~500 tokens of operating principles</li>
+        <li><code>summary.txt</code> &mdash; career summary</li>
+        <li><code>chatHealthy_ai_business_plan.pdf</code> &mdash; parsed via pypdf</li>
+        <li><code>findcare-code-package.json</code> &mdash; codebase metadata</li>
+      </ul>
+      <p>
+        Large documents are trimmed at query time by <code>_trim(text, max_chars)</code>,
+        which appends a truncation note when content exceeds the limit (3000 chars for
+        LinkedIn and business plan).
+      </p>
+
+
+      <!-- ================================================================== -->
+      <!-- 5. LLM CONFIGURATION                                              -->
+      <!-- ================================================================== -->
+      <h2 id="llm-configuration">5. LLM Configuration</h2>
+
+      <h3>Primary Model: Claude Sonnet 4.6</h3>
+      <ul>
+        <li><strong>Model ID:</strong> <code>claude-sonnet-4-6</code></li>
+        <li><strong>Max tokens:</strong> 4096</li>
+        <li><strong>Role:</strong> All user-facing conversation, intent routing (tool selection), and response generation</li>
+        <li><strong>Called via:</strong> Anthropic Python SDK (<code>anthropic.Anthropic</code>)</li>
+        <li><strong>Tool-use:</strong> Full tool definitions passed on every call via <code>tools=anthropic_tools</code></li>
+      </ul>
+
+      <h3>Utility Model: Claude Haiku 4.5</h3>
+      <ul>
+        <li><strong>Model ID:</strong> <code>claude-haiku-4-5-20251001</code></li>
+        <li><strong>Used for:</strong></li>
+        <li style="list-style:none;">
+          <ul>
+            <li><strong>Safety classification</strong> &mdash; <code>_safety_check()</code>: determines EMERGENCY vs PROBE with confidence score (max 64 tokens)</li>
+            <li><strong>Query expansion</strong> &mdash; <code>_expand_query_terms()</code>: generates 2-5 keyword stems for taxonomy regex search (max 128 tokens)</li>
+            <li><strong>Conversation summarization</strong> &mdash; <code>_summarize_conversation()</code>: 2-3 sentence summary for de-identified consent tier (max 256 tokens)</li>
+            <li><strong>De-identification</strong> &mdash; <code>deIdentify()</code>: HIPAA Safe Harbor scrubbing of chat history (max 4096 tokens)</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h3>Embedding Models (OpenAI)</h3>
+      <ul>
+        <li><strong><code>text-embedding-3-large</code></strong> &mdash; provider vector search (<code>_get_query_embedding()</code>)</li>
+        <li><strong><code>text-embedding-3-small</code></strong> &mdash; specialty taxonomy vector search (<code>vector_pipeline()</code> within <code>find_specialty_codes</code>)</li>
+      </ul>
+
+
+      <!-- ================================================================== -->
+      <!-- 6. SAFETY SYSTEM                                                   -->
+      <!-- ================================================================== -->
+      <h2 id="safety-system">6. Safety System</h2>
+
+      <p>
+        The safety system uses a <strong>dual-trigger OR logic</strong> design: either a
+        keyword match OR an AI semantic check can independently trigger an emergency lock.
+        This ensures emergencies are never missed even if one detection method fails.
+      </p>
+
+      <h3>Emergency Keyword List</h3>
+      <p>
+        The <code>EMERGENCY_KEYWORDS</code> list contains 26 phrases covering major emergency
+        categories. A case-insensitive substring match against the user's message triggers
+        the keyword path.
+      </p>
+      <pre><code>EMERGENCY_KEYWORDS = [
+    "chest pain", "chest tightness", "heart attack",
+    "can't breathe", "cannot breathe", "difficulty breathing",
+    "trouble breathing", "not breathing", "stopped breathing",
+    "stroke", "face drooping", "arm weakness", "sudden numbness",
+    "severe bleeding", "bleeding out", "won't stop bleeding",
+    "unconscious", "passed out", "unresponsive",
+    "overdose", "took too many", "took too much",
+    "suicide", "suicidal", "kill myself", "end my life",
+    "seizure", "convulsing",
+    "severe allergic reaction", "anaphylaxis", "throat closing",
+    "choking",
+]</code></pre>
+
+      <h3>Haiku Semantic Check</h3>
+      <p>
+        In parallel with keyword matching, the backend calls Claude Haiku 4.5 as a safety
+        classifier. Haiku is given strict criteria:
+      </p>
+      <ul>
+        <li><strong>EMERGENCY</strong> requires ALL of: (1) specific body location or system named, (2) acute onset or severity stated, (3) life-threat implied</li>
+        <li><strong>PROBE</strong> for vague complaints: "I'm in pain" (location unknown), "I don't feel well", "something hurts"</li>
+        <li>Returns JSON: <code>{"emergency": true|false, "confidence": 0.0-1.0}</code></li>
+        <li>AI hit triggers only when <code>emergency == true</code> AND <code>confidence &gt;= 0.80</code></li>
+      </ul>
+
+      <h3>Dual-Trigger OR Logic</h3>
+      <p>
+        The final safety decision in <code>_safety_check()</code> is:
+        <code>return keyword_hit or ai_hit</code>. If either path fires, the emergency
+        protocol activates. If the Haiku call fails for any reason (network, parse error),
+        the system defaults to escalation (<code>return True</code>) &mdash; fail-safe behavior.
+      </p>
+
+      <h3>Emergency Response</h3>
+      <p>When triggered, the backend returns a hardcoded response:</p>
+      <pre><code>&lt;b&gt;Call 911 or go to the nearest emergency room immediately. Do not wait.&lt;/b&gt;
+
+&lt;b&gt;This chat has been suspended.&lt;/b&gt;</code></pre>
+      <p>
+        The response includes <code>emergency: true</code> in the JSON, which causes the
+        frontend to set <code>isLocked = true</code>, disabling the input field.
+      </p>
+
+      <h3>IP Emergency Lock</h3>
+      <ul>
+        <li><strong>In-memory:</strong> <code>_ip_emergency_locks</code> dict maps IP to expiry timestamp</li>
+        <li><strong>Lock duration:</strong> 3600 seconds (1 hour)</li>
+        <li><strong>Check order:</strong> in-memory first, then DB fallback via <code>_check_ip_lock_db()</code></li>
+        <li><strong>Session detection:</strong> <code>_session_is_locked()</code> scans history for the emergency response text</li>
+      </ul>
+
+      <h3>DB Persistence</h3>
+      <p>
+        Emergency incidents are persisted to <code>{env}_Safety.emergency_incidents</code>
+        with the following record structure:
+      </p>
+      <pre><code>{
+    "ip": "...",
+    "locked_at": "ISO 8601",
+    "expires_at": "ISO 8601",
+    "trigger_message": "(first 500 chars)",
+    "chat_history_deidentified": [
+        {"role": "user|assistant", "content": "(first 300 chars)"}
+    ]
+}</code></pre>
+      <p>
+        If MongoDB is unavailable at lock time, the in-memory lock still activates and a
+        warning is logged. The incident is not persisted but the user is still protected.
+      </p>
+
+      <h3>Admin Unlock</h3>
+      <p>
+        An admin can unlock a locked IP by sending the message
+        <code>UNLOCK:{ADMIN_UNLOCK_KEY}</code> (case-insensitive). This clears both the
+        in-memory lock and all DB records for that IP. The unlock key is set via the
+        <code>ADMIN_UNLOCK_KEY</code> environment variable.
+      </p>
+
+
+      <!-- ================================================================== -->
+      <!-- 7. PROVIDER SEARCH                                                 -->
+      <!-- ================================================================== -->
+      <h2 id="provider-search">7. Provider Search</h2>
+
+      <p>
+        Provider search follows a cascading strategy: <strong>vector search primary,
+        taxonomy fallback, county physician fallback</strong>. Each layer is tried in
+        sequence, and the first to return results is used.
+      </p>
+
+      <h3>Search Path</h3>
+      <ol style="margin: 6px 0 10px 20px; font-size: 0.92rem; line-height: 1.7;">
+        <li><strong>Vector search</strong> &mdash; embed the specialty query via OpenAI <code>text-embedding-3-large</code>, run <code>$vectorSearch</code> against <code>provider_vector_index</code> with state pre-filter, then apply city/county post-filters</li>
+        <li><strong>Taxonomy code fallback</strong> &mdash; if vector search returns 0 results or embedding fails, call <code>find_specialty_codes()</code> to resolve NUCC taxonomy codes, then query providers by <code>taxonomies.code</code></li>
+        <li><strong>County physician fallback</strong> &mdash; if taxonomy search also returns 0 results AND a county was specified, broaden to all individual providers (<code>entity_type_code=1</code>) whose primary taxonomy starts with <code>^2</code> (NUCC physician block) in that county</li>
+      </ol>
+
+      <h3>Vector Search Details</h3>
+      <ul>
+        <li><strong>Index:</strong> <code>provider_vector_index</code> on <code>providers</code> collection</li>
+        <li><strong>Path:</strong> <code>embedding</code> field</li>
+        <li><strong>numCandidates:</strong> <code>min(limit * 30, 300)</code></li>
+        <li><strong>limit:</strong> <code>min(limit * 6, 60)</code></li>
+        <li><strong>Pre-filter:</strong> <code>practice_address.state</code> (required, passed in <code>$vectorSearch.filter</code>)</li>
+        <li><strong>Post-filters:</strong> city (regex, case-insensitive), county (via <code>_make_county_filter</code>)</li>
+        <li><strong>Hard limit:</strong> capped at 10 results (<code>safe_limit = min(int(limit), 10)</code>)</li>
+      </ul>
+
+      <h3>Specialty Code Resolution</h3>
+      <p>
+        <code>find_specialty_codes()</code> runs two parallel pipelines using
+        <code>ThreadPoolExecutor(max_workers=2)</code>:
+      </p>
+      <ul>
+        <li><strong>Regex pipeline:</strong> Haiku expands the query into 2-5 keyword stems, then regex-searches <code>Specialization</code> and <code>Display Name</code> fields in <code>SpecialtyMetaData</code></li>
+        <li><strong>Vector pipeline:</strong> Embeds query via <code>text-embedding-3-small</code>, runs <code>$vectorSearch</code> against <code>specialty_vector_index</code>, filters results above score 0.4, and pulls all codes in matching classifications</li>
+      </ul>
+      <p>
+        Results are deduplicated by code, vector results prioritized, capped at 10.
+        Only individual provider groupings are included (16 NUCC groupings covering physicians,
+        nurses, therapists, etc. &mdash; excluding facilities, agencies, and group practices).
+      </p>
+
+      <h3>County Filter: _make_county_filter</h3>
+      <p>
+        The <code>_make_county_filter(county)</code> function builds a MongoDB filter that
+        matches by county name OR by FIPS code. This is necessary because of bug ASN-4AFBDA:
+        2,579 providers have <code>county.fips</code> set but <code>county.name</code> blank.
+      </p>
+      <pre><code>def _make_county_filter(county: str) -> dict:
+    term = county.strip().lower()
+    name_filter = {"county.name": {"$regex": county.strip(), "$options": "i"}}
+    matching_fips = [fips for fips, name in _fips_to_county.items()
+                     if term in name.lower()]
+    if matching_fips:
+        return {"$or": [name_filter, {"county.fips": {"$in": matching_fips}}]}
+    return name_filter</code></pre>
+
+      <h3>FIPS Hack (ASN-4AFBDA)</h3>
+      <p>
+        The <code>_fips_to_county</code> mapping is pre-seeded with a static table of all
+        85 counties in DE (3) and MS (82), then augmented at startup from the providers
+        collection itself via <code>_load_fips_county_map()</code>. DB values override the
+        static seed. This ensures county search works even for the worst case where ALL
+        records in a county lack <code>county.name</code>.
+      </p>
+
+      <h3>Provider Formatting</h3>
+      <p>
+        <code>_format_provider()</code> normalizes provider records for display:
+      </p>
+      <ul>
+        <li><strong>Individual providers</strong> (<code>entity_type_code=1</code>): assembles name from prefix, first, middle, last, suffix, and credential text</li>
+        <li><strong>Organizations</strong>: uses <code>provider_organization_name_legal_business_name</code></li>
+        <li><strong>Address:</strong> joins line1, city, state, zip from <code>practice_address</code></li>
+        <li><strong>County:</strong> uses <code>county.name</code>, falling back to FIPS lookup via <code>_fips_to_county</code></li>
+        <li><strong>Taxonomy code:</strong> the primary taxonomy code from the <code>taxonomies</code> array</li>
+      </ul>
+
+
+      <!-- ================================================================== -->
+      <!-- 8. UI/UX BEHAVIOR                                                  -->
+      <!-- ================================================================== -->
+      <h2 id="ui-ux">8. UI/UX Behavior</h2>
+
+      <h3>ChatWindow State Machine</h3>
+      <p>
+        The <code>ChatWindow</code> component manages six state variables:
+      </p>
+      <div class="table-wrap">
+        <table>
+          <tr>
+            <th>State</th>
+            <th>Type</th>
+            <th>Purpose</th>
+          </tr>
+          <tr>
+            <td><code>messages</code></td>
+            <td><code>Message[]</code></td>
+            <td>Full conversation history (user + assistant messages). Initialized with <code>WELCOME</code>.</td>
+          </tr>
+          <tr>
+            <td><code>input</code></td>
+            <td><code>string</code></td>
+            <td>Current text in the input field.</td>
+          </tr>
+          <tr>
+            <td><code>isLoading</code></td>
+            <td><code>boolean</code></td>
+            <td>True while awaiting a backend response. Controls the thinking indicator and disables send (unless dismissed).</td>
+          </tr>
+          <tr>
+            <td><code>isLocked</code></td>
+            <td><code>boolean</code></td>
+            <td>True after an emergency response. Permanently disables the input field ("Chat suspended.").</td>
+          </tr>
+          <tr>
+            <td><code>thinkSeconds</code></td>
+            <td><code>number</code></td>
+            <td>Counter incremented every second while loading. Reset to 0 when loading ends or thinking is dismissed.</td>
+          </tr>
+          <tr>
+            <td><code>thinkingDismissed</code></td>
+            <td><code>boolean</code></td>
+            <td>True if the user clicked "Stop". Hides thinking indicator, re-enables send, but does not cancel the backend request.</td>
+          </tr>
+          <tr>
+            <td><code>retryCountdown</code></td>
+            <td><code>number | null</code></td>
+            <td>Counts down from 10 seconds during rate limit auto-retry. Null when not in retry state.</td>
+          </tr>
+        </table>
+      </div>
+
+      <h3>Message Interface</h3>
+      <pre><code>interface Message {
+  role: 'user' | 'assistant'
+  content: string
+  isError?: boolean
+  thinkSeconds?: number
+  tokensIn?: number
+  build?: string
+}</code></pre>
+
+      <h3>Submit Logic</h3>
+      <p>
+        <code>canSubmit = !isLocked && (!isLoading || thinkingDismissed)</code>
+      </p>
+      <p>
+        This means: the user can send a new message if the chat is not emergency-locked AND
+        either the backend is idle OR the user has dismissed the thinking indicator (allowing
+        a new message to queue while the previous one is still in flight).
+      </p>
+
+      <h3>Think Timer and Stop Button</h3>
+      <ul>
+        <li>The thinking indicator shows <em>"Thinking... Ns"</em> with a "Stop" button</li>
+        <li>The timer counts up every second while <code>isLoading && !thinkingDismissed && retryCountdown === null</code></li>
+        <li>Clicking "Stop" sets <code>thinkingDismissed = true</code>, which hides the indicator and re-enables the send button</li>
+        <li>"Stop" does NOT cancel the in-flight request &mdash; the response will still arrive and be appended to the conversation</li>
+        <li>Both <code>thinkingDismissed</code> and <code>thinkSeconds</code> reset when the response arrives</li>
+      </ul>
+
+      <h3>Rate Limit Auto-Retry (Dev Only)</h3>
+      <p>
+        When the backend returns <code>error_type: "rate_limit"</code> AND the backend
+        environment is <code>"dev"</code> (determined from <code>/health</code> response):
+      </p>
+      <ul>
+        <li>The pending message and history are saved to <code>pendingRetryRef</code></li>
+        <li>A 10-second countdown is displayed: <em>"Rate limit &mdash; retrying in Ns"</em> (orange styling)</li>
+        <li>When countdown reaches 0, the original request is automatically retried via <code>doApiCall()</code></li>
+        <li><code>isLoading</code> remains true throughout &mdash; the thinking indicator stays visible</li>
+        <li>In production, rate limit errors display as normal error messages with no auto-retry</li>
+      </ul>
+
+      <h3>Welcome Message</h3>
+      <p>
+        The frontend renders a hardcoded welcome message on mount:
+      </p>
+      <pre><code>**Welcome to ChatHealthy FindCare**
+
+Here's what I can help you with:
+
+- **Identify the right specialty** -- describe your situation
+- **Clinical trials** -- find recruiting research studies
+- **About ChatHealthy** -- our mission, team, and platform
+
+If you think you may be having a medical emergency, tell me right away.
+
+**What can I help you with today?**</code></pre>
+
+      <h3>API URL Configuration</h3>
+      <p>
+        <code>const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'</code>
+      </p>
+      <p>
+        Defaults to localhost for development. In production, set via the
+        <code>VITE_API_URL</code> environment variable at build time (or <code>.env.local</code>).
+      </p>
+
+      <h3>Build Number Display</h3>
+      <p>
+        On mount, the frontend fetches <code>/health</code> to retrieve the build number
+        and environment. If a build number is present, it is injected into the welcome
+        message's <code>build</code> field and displayed in the message metadata line.
+      </p>
+
+      <h3>Emergency Lock UI</h3>
+      <p>
+        When <code>data.emergency === true</code> is received from the backend, the
+        frontend sets <code>isLocked = true</code>. This:
+      </p>
+      <ul>
+        <li>Disables the input field</li>
+        <li>Changes the placeholder text to "Chat suspended."</li>
+        <li>The lock persists for the browser session &mdash; refreshing the page clears the frontend lock (but the backend IP lock remains)</li>
+      </ul>
+
+      <h3>Message Rendering (MessageBubble)</h3>
+      <ul>
+        <li><strong>User messages:</strong> right-aligned, gray background (<code>#f3f4f6</code>), rounded corners (top-left, top-right, bottom-left), plain text</li>
+        <li><strong>Assistant messages:</strong> left-aligned, white background, border, rounded corners (top-left, top-right, bottom-right), rendered as Markdown via <code>ReactMarkdown</code> with <code>rehype-raw</code> and <code>rehype-sanitize</code></li>
+        <li><strong>Error messages:</strong> light red background (<code>#fff5f5</code>), red border (<code>#f87171</code>), error content wrapped in a code block</li>
+        <li><strong>Metadata line:</strong> displayed below assistant messages in small gray text (<code>#9ca3af</code>, 11px), showing build number, response time (seconds), and input tokens separated by dots</li>
+        <li><strong>Sanitization:</strong> HTML sanitization allows <code>&lt;span class="state-name"&gt;</code> for custom styling, all other unsafe HTML is stripped</li>
+      </ul>
+
+
+      <!-- ================================================================== -->
+      <!-- 9. ERROR HANDLING                                                  -->
+      <!-- ================================================================== -->
+      <h2 id="error-handling">9. Error Handling</h2>
+
+      <h3>ChatResponse Model</h3>
+      <pre><code>class ChatResponse(BaseModel):
+    response: Optional[str] = None
+    emergency: bool = False
+    error: Optional[str] = None
+    error_type: Optional[str] = None   # rate_limit | db_unavailable | upstream | internal
+    tokens_in: Optional[int] = None
+    tokens_out: Optional[int] = None</code></pre>
+
+      <h3>Error Types</h3>
+      <div class="table-wrap">
+        <table>
+          <tr>
+            <th>error_type</th>
+            <th>Trigger</th>
+            <th>Frontend Behavior</th>
+          </tr>
+          <tr>
+            <td><code>rate_limit</code></td>
+            <td>Exception string contains "429" or "rate_limit"</td>
+            <td>Dev: 10-second countdown + auto-retry. Prod: displayed as error message.</td>
+          </tr>
+          <tr>
+            <td><code>db_unavailable</code></td>
+            <td>Exception string contains "unavailable" or "connection"</td>
+            <td>Displayed as error message with code block.</td>
+          </tr>
+          <tr>
+            <td><code>upstream</code></td>
+            <td>External service failures (ClinicalTrials.gov, embedding API)</td>
+            <td>Error returned inside tool result; Claude explains it to the user.</td>
+          </tr>
+          <tr>
+            <td><code>internal</code></td>
+            <td>All other unhandled exceptions</td>
+            <td>Full traceback shown in dev (<code>DEBUG=true</code>); short error string in prod.</td>
+          </tr>
+        </table>
+      </div>
+
+      <h3>Backend Error Flow</h3>
+      <p>
+        The outer <code>chat()</code> endpoint wraps <code>_chat_inner()</code> in a
+        try/except. Any unhandled exception is caught, classified by error type, logged
+        to <code>dev_Debug.chat_calls</code> (dev only), and returned as a
+        <code>ChatResponse</code> with the <code>error</code> and <code>error_type</code>
+        fields populated.
+      </p>
+
+      <h3>Frontend Error Display</h3>
+      <ul>
+        <li>If <code>data.error</code> is present, the error text is wrapped in a Markdown code block: <code>**Error:**\n```\n{error}\n```</code></li>
+        <li>The message is marked with <code>isError: true</code>, which triggers red styling in <code>MessageBubble</code></li>
+        <li>If the fetch itself fails (network error), a hardcoded error message is shown: "Could not reach the server. Please try again."</li>
+      </ul>
+
+      <h3>Debug Logging</h3>
+      <p>
+        When <code>ENV_PREFIX == "dev"</code>, every chat call is logged to
+        <code>dev_Debug.chat_calls</code> with: datetime, IP, message preview (200 chars),
+        history length, tool loop iterations, token counts, response preview (200 chars),
+        and error text if any.
+      </p>
+
+
+      <!-- ================================================================== -->
+      <!-- 10. ENVIRONMENT VARIABLES                                          -->
+      <!-- ================================================================== -->
+      <h2 id="environment-variables">10. Environment Variables</h2>
+
+      <div class="table-wrap">
+        <table>
+          <tr>
+            <th>Variable</th>
+            <th>Required</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><code>Anthropic_API_KEY</code></td>
+            <td>Yes</td>
+            <td>API key for Claude Sonnet 4.6 (main LLM) and Claude Haiku 4.5 (safety/utility)</td>
+          </tr>
+          <tr>
+            <td><code>OPENAI_API_KEY</code></td>
+            <td>Yes</td>
+            <td>API key for OpenAI embedding models (text-embedding-3-large, text-embedding-3-small)</td>
+          </tr>
+          <tr>
+            <td><code>MONGO_FRONTEND_connectionString</code></td>
+            <td>Yes</td>
+            <td>MongoDB Atlas connection string for the ChatHealthyFrontEnd cluster</td>
+          </tr>
+          <tr>
+            <td><code>ENV_PREFIX</code></td>
+            <td>No</td>
+            <td>Database namespace prefix. Default: <code>"dev"</code>. Used to prefix all collection names (e.g. <code>dev_PublicHealthData</code>).</td>
+          </tr>
+          <tr>
+            <td><code>DEBUG</code></td>
+            <td>No</td>
+            <td>Set to <code>"true"</code> to enable debug logging and full tracebacks in error responses. Default: <code>"false"</code>.</td>
+          </tr>
+          <tr>
+            <td><code>ADMIN_UNLOCK_KEY</code></td>
+            <td>No</td>
+            <td>Secret key for admin emergency unlock command. If empty, unlock is disabled.</td>
+          </tr>
+          <tr>
+            <td><code>ME_DIR</code></td>
+            <td>No</td>
+            <td>Path to the directory containing context documents (LinkedIn PDF, summary, business plan, etc.). Defaults to <code>./me</code> relative to <code>main.py</code>.</td>
+          </tr>
+          <tr>
+            <td><code>PORT</code></td>
+            <td>No</td>
+            <td>HTTP server port. Default: <code>7860</code> (HuggingFace convention).</td>
+          </tr>
+          <tr>
+            <td><code>SPARKMAIL_API_KEY</code></td>
+            <td>No</td>
+            <td>SparkPost API key for email notifications. If not set, push notifications are skipped.</td>
+          </tr>
+          <tr>
+            <td><code>NOTIFICATION_FROM_EMAIL</code></td>
+            <td>No</td>
+            <td>From email address for SparkPost notifications.</td>
+          </tr>
+          <tr>
+            <td><code>NOTIFICATION_TO_EMAIL</code></td>
+            <td>No</td>
+            <td>Recipient email address for SparkPost notifications.</td>
+          </tr>
+          <tr>
+            <td><code>VITE_API_URL</code></td>
+            <td>No</td>
+            <td>Frontend build-time variable. API base URL. Default: <code>http://localhost:8000</code>.</td>
+          </tr>
+        </table>
+      </div>
+
+
+      <!-- ================================================================== -->
+      <!-- 11. KNOWN BUGS                                                     -->
+      <!-- ================================================================== -->
+      <h2 id="known-bugs">11. Known Bugs</h2>
+
+      <div class="table-wrap">
+        <table>
+          <tr>
+            <th>Bug ID</th>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Impact</th>
+            <th>Workaround</th>
+          </tr>
+          <tr>
+            <td><code>ASN-4AFBDA</code></td>
+            <td>Pipeline bug leaves county.name blank</td>
+            <td>Hack active</td>
+            <td>2,579 providers (460 DE, 2,119 MS) have <code>county.fips</code> set but <code>county.name</code> blank due to a pipeline enrichment bug in passes 2-4-6. County search by name would miss these providers.</td>
+            <td>Static FIPS-to-county mapping (85 counties) pre-seeded in backend, augmented from DB at startup. <code>_make_county_filter()</code> matches by name OR FIPS. <code>_format_provider()</code> falls back to FIPS lookup for display. The root cause fix (pipeline writing <code>county.name</code> in enrichment passes) has been committed (3402d40) but not yet re-run on all affected records.</td>
+          </tr>
+          <tr>
+            <td><code>BTC-001</code></td>
+            <td>County physician fallback too broad</td>
+            <td>Known, hack active</td>
+            <td>The county physician fallback (third tier of provider search) uses a NUCC prefix filter of <code>^2</code> to restrict to physicians. This prefix is too broad &mdash; it includes non-physician taxonomy codes in the 2xxxxx range, potentially returning unexpected provider types (e.g. DME suppliers with codes starting with 2).</td>
+            <td>Current behavior: filters to <code>entity_type_code=1</code> (individuals) AND primary taxonomy <code>^2</code>. Planned fix: tighten the regex to physician-specific NUCC code ranges only. Severity is low because the fallback only fires when both vector search and taxonomy search return 0 results, which is uncommon.</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="callout-warn callout">
+        <strong>Note:</strong> Both bugs have active workarounds in production code. Full
+        fixes are tracked as SIT/backlog items, not blockers for the current alpha release.
+      </div>
+
+
+    </div><!-- /.arch-body -->
+
+    <div class="action-bar action-bar-bottom">
+      <button class="action-btn close-btn" onclick="window.parent.closePanel()">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="10" y2="10"/><line x1="10" y1="1" x2="1" y2="10"/></svg>
+        Close
+      </button>
+      <button class="action-btn print-btn" onclick="window.print()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print
+      </button>
+    </div>
+
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <span class="footer-copy"><a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener">&copy; 2026 Skip Snow</a></span>
+      <span class="footer-copy">
+        <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('architecture.html'),('Architecture'));return false;">Architecture</a>
+        &nbsp;&middot;&nbsp;
+        <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('provider-data-load.html'),('Provider Data Load'));return false;">Provider Data Load</a>
+        &nbsp;&middot;&nbsp;
+        <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('embedding-design.html'),('Embedding Design'));return false;">Embedding Design</a>
+        &nbsp;&middot;&nbsp;
+        <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('roadmap.html'),('Roadmap'));return false;">Roadmap</a>
+      </span>
+    </div>
+  </footer>
+
+  <script>
+    if (window !== window.top) {
+      document.querySelector('header').style.display = 'none';
+      document.body.classList.add('in-panel');
+    }
+  </script>
+</body>
+</html>
