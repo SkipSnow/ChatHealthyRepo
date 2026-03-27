@@ -477,7 +477,7 @@ def _vector_search_providers(embedding: list, state: str, city: str, limit: int)
         pipeline.append({"$match": {"practice_address.city": {"$regex": city.strip(), "$options": "i"}}})
     pipeline += [{"$limit": limit}, {"$project": _PROVIDER_PROJECTION}]
     try:
-        raw = list(db[f"{_ENV_PREFIX}_PublicHealthData"]["providers_staging"].aggregate(pipeline))
+        raw = list(db[f"{_ENV_PREFIX}_PublicHealthData"]["providers"].aggregate(pipeline))
         return [_format_provider(p) for p in raw]
     except Exception as e:
         _log.warning("Vector search failed: %s", e)
@@ -528,7 +528,7 @@ def find_providers(specialty_query: str, state: str, city: str = "", limit: int 
         query_filter["practice_address.city"] = {"$regex": city.strip(), "$options": "i"}
 
     raw = list(
-        db[f"{_ENV_PREFIX}_PublicHealthData"]["providers_staging"]
+        db[f"{_ENV_PREFIX}_PublicHealthData"]["providers"]
         .find(query_filter, _PROVIDER_PROJECTION)
         .limit(safe_limit)
     )

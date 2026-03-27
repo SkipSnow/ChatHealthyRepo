@@ -90,7 +90,7 @@ class EmbeddingWorker(PipelineWorkerBase):
         super().__init__(config)
         self.worker_id = config["worker_id"]
         self.staging_collection = config.get(
-            "staging_collection", "PublicHealthData.providers_staging"
+            "staging_collection", "dev_PublicHealthData.providers"
         )
         self._states_query = _build_states_query(config)  # {} if no filter
         self._batch_size = config.get("embed_batch_size", EMBED_BATCH_SIZE)

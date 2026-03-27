@@ -229,7 +229,7 @@ class ProviderWorker(PipelineWorkerBase):
         self.metadata_id = config["metadata_id"]
         self.batch_size = config.get("batch_size", 10_000)
         self.staging_collection = config.get(
-            "staging_collection", "PublicHealthData.providers_staging"
+            "staging_collection", "dev_PublicHealthData.providers"
         )
         self.metadata_collection = config.get("metadata_collection", "admin.DataLoadMetadata")
         self.blob_container = config.get("blob_container", "provider-data")

@@ -67,7 +67,7 @@ def _get_mongo_client() -> MongoClient:
 def _get_crosswalk() -> dict:
     global _crosswalk
     if _crosswalk is None:
-        coll = _get_mongo_client()["PublicHealthData"]["ZipCountyCrosswalk"]
+        coll = _get_mongo_client()["dev_PublicHealthData"]["ZipCountyCrosswalk"]
         _crosswalk = {
             d["zip"]: {
                 "fips": d["county_fips"],
@@ -92,7 +92,7 @@ def _get_maps_county_lookup() -> dict:
     """
     global _maps_county_lookup
     if _maps_county_lookup is None:
-        coll = _get_mongo_client()["PublicHealthData"]["ZipCountyCrosswalk"]
+        coll = _get_mongo_client()["dev_PublicHealthData"]["ZipCountyCrosswalk"]
         lookup: dict = {}
         for d in coll.find({}, {"county_fips": 1, "county_name": 1}):
             fips = d.get("county_fips", "")
@@ -141,8 +141,8 @@ def _geocode_single_maps(address: str, api_key: str) -> tuple[str | None, str | 
 SPLIT_THRESHOLD = 0.98
 CENSUS_BATCH_URL = "https://geocoding.geo.census.gov/geocoder/geographies/addressbatch"
 GOOGLE_MAPS_GEOCODING_URL = "https://maps.googleapis.com/maps/api/geocode/json"
-CROSSWALK_COLLECTION = "PublicHealthData.ZipCountyCrosswalk"
-PROVIDERS_COLLECTION = "PublicHealthData.providers_staging"
+CROSSWALK_COLLECTION = "dev_PublicHealthData.ZipCountyCrosswalk"
+PROVIDERS_COLLECTION = "dev_PublicHealthData.providers"
 
 # US state/territory abbreviation → 2-digit FIPS (used by Pass 4 to resolve Maps results)
 _STATE_ABBR_TO_FIPS: dict[str, str] = {

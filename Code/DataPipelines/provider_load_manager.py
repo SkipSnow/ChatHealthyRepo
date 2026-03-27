@@ -360,7 +360,7 @@ def ensure_postload_indexes_fn(config: dict) -> None:
     exist when CountyEnrichment is run standalone.
     """
     staging_collection = config.get(
-        "staging_collection", "PublicHealthData.providers_staging"
+        "staging_collection", "dev_PublicHealthData.providers"
     )
     db_name, coll_name = staging_collection.split(".", 1)
     collection = _get_mongo_client()[db_name][coll_name]
@@ -463,7 +463,7 @@ def drain_staging_fn(config: dict) -> dict:
 
     Called after download/extract/partition succeed so we know the new data is viable.
     """
-    staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
+    staging_collection = config.get("staging_collection", "dev_PublicHealthData.providers")
     db_name, coll_name = staging_collection.split(".", 1)
     _get_mongo_client()[db_name][coll_name].drop()
     logging.info("Dropped staging collection %s — disk space returned to Atlas.", staging_collection)
@@ -490,7 +490,7 @@ def stamp_embedding_version_fn(config: dict) -> dict:
     that predate version stamping. Idempotent — skips records already stamped.
     """
     from embedding_worker import EMBED_VERSION, EMBED_MODEL
-    staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
+    staging_collection = config.get("staging_collection", "dev_PublicHealthData.providers")
     db_name, coll_name = staging_collection.split(".", 1)
     collection = _get_mongo_client()[db_name][coll_name]
 
@@ -511,7 +511,7 @@ def stamp_embedding_version_fn(config: dict) -> dict:
 
 def create_vector_index_fn(config: dict) -> dict:
     """Create Atlas Vector Search index on providers_staging. Idempotent."""
-    staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
+    staging_collection = config.get("staging_collection", "dev_PublicHealthData.providers")
     db_name, coll_name = staging_collection.split(".", 1)
     collection = _get_mongo_client()[db_name][coll_name]
     index_name = "provider_vector_index"
@@ -647,7 +647,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     embed_results = []
     if start_step <= 8 and config.get("embedding_enabled", False):
         num_workers = config.get("num_workers", 32)
-        staging_collection = config.get("staging_collection", "PublicHealthData.providers_staging")
+        staging_collection = config.get("staging_collection", "dev_PublicHealthData.providers")
         context.set_custom_status(f"Step 8/8: Generating embeddings ({num_workers} workers)")
         embed_tasks = [
             context.call_activity(
