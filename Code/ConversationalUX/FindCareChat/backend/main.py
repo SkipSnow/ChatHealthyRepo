@@ -518,11 +518,14 @@ def _format_provider(p: dict) -> dict:
     primary = next((t for t in p.get("taxonomies", []) if t.get("primary")), None)
     county_obj = p.get("county", {})
     county_name = county_obj.get("name") or _fips_to_county.get(county_obj.get("fips", ""), "")  # HACK ASN-4AFBDA
+    raw_phone = addr.get("phone", "")
+    phone = f"({raw_phone[:3]}) {raw_phone[3:6]}-{raw_phone[6:]}" if len(raw_phone) == 10 else raw_phone
     return {
         "name": name,
         "npi": p.get("npi", ""),
         "taxonomy_code": primary.get("code", "") if primary else "",
         "address": address,
+        "phone": phone,
         "county": county_name,
     }
 
@@ -905,7 +908,45 @@ anthropic_tools = [
             "required": [],
         },
     },
+    {
+        "name": "lookup_provider_external",
+        "description": (
+            "Look up a provider on external sites (Healthgrades, Zocdoc, NPI Registry, state medical board). "
+            "Call this when the user asks for more details about a specific provider, wants reviews, "
+            "insurance info, or wants to verify credentials. Returns search URLs for external profiles."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "provider_name": {"type": "string"},
+                "npi": {"type": "string"},
+                "state": {"type": "string"},
+            },
+            "required": ["provider_name"],
+        },
+    },
 ]
+
+
+def lookup_provider_external(provider_name: str, npi: str = "", state: str = "", **kwargs) -> dict:
+    """Construct search URLs for external provider profiles."""
+    import urllib.parse
+    name_q = urllib.parse.quote_plus(provider_name)
+    links = {
+        "healthgrades": f"https://www.healthgrades.com/search?what={name_q}&where={state}",
+        "zocdoc": f"https://www.zocdoc.com/search?name={name_q}&location={state}",
+        "npi_registry": f"https://npiregistry.cms.hhs.gov/provider-view/{npi}" if npi else f"https://npiregistry.cms.hhs.gov/search?name={name_q}",
+    }
+    # State medical board links for supported states
+    state_boards = {
+        "DE": "https://dpr.delaware.gov/boardsearch/",
+        "MS": "https://www.msbml.ms.gov/verify-a-license",
+        "VA": "https://dhp.virginiainteractive.org/Lookup/Index",
+    }
+    if state.upper() in state_boards:
+        links["state_medical_board"] = state_boards[state.upper()]
+    return {"provider_name": provider_name, "npi": npi, "links": links}
+
 
 # ---------------------------------------------------------------------------
 # Me — loads context documents at startup
@@ -1000,6 +1041,16 @@ def _system_prompt(follow_up_check: bool = False) -> str:
         f"ALLOWED: Healthcare navigation — use find_providers, find_specialty_codes, search_clinical_trials.\n"
         f"RULE 4 — TOOL CALL ORDER: Always call record_unknown_question BEFORE composing your response when the answer is not known.\n"
         f"RULE 5 — EACH QUESTION SEPARATELY: Record each unknown question with a separate tool call.\n"
+        f"RULE 5b — PROVIDER RESULTS FORMAT: When displaying provider search results, "
+        f"always use a bullet list — never a markdown table. Start with a count line: "
+        f"'There are N [specialty] in [location]:' then list each provider with indented details. "
+        f"Format exactly as:\n"
+        f"- **Provider Name**\n"
+        f"  - Address\n"
+        f"  - County\n"
+        f"  - Phone\n"
+        f"  - NPI: number\n"
+        f"When the user asks for more details about a specific provider, call lookup_provider_external to get links to external profiles.\n\n"
         f"RULE 6 — FOLLOW-UP OFFER: When you receive a FOLLOW-UP CHECK reminder, assess genuine interest "
         f"and ask: 'Would you like someone from the ChatHealthy.AI team to follow up with you personally?' "
         f"Respect refusal signals — do not ask again if the user shows impatience or annoyance.\n"
