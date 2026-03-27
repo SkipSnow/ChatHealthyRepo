@@ -109,9 +109,10 @@ class EmbeddingWorker(PipelineWorkerBase):
         # State initialised in _pipeline_open(); set to safe defaults so
         # _pipeline_close() is always safe to call even if _pipeline_open()
         # did not complete.
-        self._docs: list = []
+        self._cursor = None
+        self._buffer: list = []   # current batch fetched from cursor
+        self._batch_num: int = 0
         self._total: int = 0
-        self._batch_idx: int = 0
         self._embedded: int = 0
         self._total_tokens: int = 0
         self._collection = None
@@ -130,22 +131,37 @@ class EmbeddingWorker(PipelineWorkerBase):
             logging.info("EmbeddingWorker %d: startup jitter %.1f s", self.worker_id, jitter)
             time.sleep(jitter)
 
-        self._docs = list(self._collection.find({
+        query = {
             "worker_id": self.worker_id,
             "embedding": {"$exists": False},
             **_EMBED_PREFILTER,
             **self._states_query,
-        }))
-        # Apply authoritative should_embed() filter after load
-        self._docs = [d for d in self._docs if should_embed(d)]
-        self._total = len(self._docs)
+        }
+        self._total = self._collection.count_documents(query)
+        logging.info("EmbeddingWorker %d: %d docs to embed", self.worker_id, self._total)
+
+        # Server-side cursor — only batch_size docs in memory at a time.
+        self._cursor = self._collection.find(
+            query, batch_size=self._batch_size, no_cursor_timeout=True
+        )
+        self._fetch_next_batch()
+
+    def _fetch_next_batch(self) -> None:
+        """Pull up to batch_size docs from the cursor into self._buffer."""
+        self._buffer = []
+        while len(self._buffer) < self._batch_size:
+            try:
+                doc = next(self._cursor)
+            except StopIteration:
+                break
+            if should_embed(doc):
+                self._buffer.append(doc)
 
     def _pipeline_has_next(self) -> bool:
-        return self._batch_idx < self._total
+        return len(self._buffer) > 0
 
     def _pipeline_process(self) -> None:
-        end = min(self._batch_idx + self._batch_size, self._total)
-        batch = self._docs[self._batch_idx:end]
+        batch = self._buffer
         texts = [render(project(doc)) for doc in batch]
 
         # Retry loop — 429 must not advance the cursor.
@@ -187,18 +203,21 @@ class EmbeddingWorker(PipelineWorkerBase):
         ]
         self._collection.bulk_write(ops, ordered=False)
         self._embedded += len(batch)
-        self._batch_idx = end
+        self._batch_num += 1
+        self._fetch_next_batch()
 
     def _pipeline_row_key(self) -> str:
-        batch_num = self._batch_idx // self._batch_size
-        return f"worker_{self.worker_id}_batch_{batch_num}"
+        return f"worker_{self.worker_id}_batch_{self._batch_num}"
 
     def _pipeline_resume(self) -> None:
-        # Skip the failed batch — advance the cursor to the next batch.
+        # Skip the failed batch — fetch the next one.
         # Only reached after retry exhaustion (not on 429 alone).
-        self._batch_idx = min(self._batch_idx + self._batch_size, self._total)
+        self._batch_num += 1
+        self._fetch_next_batch()
 
     def _pipeline_build_result(self) -> dict:
+        if self._cursor is not None:
+            self._cursor.close()
         logging.info(
             "EmbeddingWorker %d: embedded %d documents, %d batches failed, %d tokens used",
             self.worker_id, self._embedded, len(self.row_errors), self._total_tokens,
