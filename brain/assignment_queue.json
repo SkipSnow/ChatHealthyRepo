@@ -365,6 +365,44 @@
       "uat_requirement": null
     }
   ,{
+      "assignment_id": "ASN-GUI01",
+      "timestamp": "2026-03-27T19:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "GUI enhancement: format provider results as bullet list, not markdown table",
+      "description": "Pre-launch fix. Provider search results render as markdown tables in the chat. Tables are hard to read in a chat bubble. Format results as a clean bullet list instead.\n\nCurrent: markdown table (| # | Name | Address | County |)\nTarget: bullet list with bold name, address on second line, county on third line.\n\nExample:\n- **Gastroenterology Associates, PA**\n  774 Christiana Rd, Newark, DE 19713\n  New Castle County\n\nThis is a system prompt change — instruct Claude to format provider results as bullet lists, not tables.",
+      "scope": [
+        "Code/ConversationalUX/FindCareChat/backend/main.py"
+      ],
+      "priority": "high",
+      "estimated_risk": "Low",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "uat_requirement": null
+    }
+  ,{
+      "assignment_id": "ASN-VA001",
+      "timestamp": "2026-03-27T18:30:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Add Virginia (VA) to FindCare — prospective client request",
+      "description": "Prospective client requested Virginia coverage. VA has 71,123 embedded providers on DataPipelines cluster (confirmed 2026-03-27). Embedding is complete.\n\nSteps:\n1. Resume DataPipelines cluster (Boss authorizes)\n2. Run CopyToFrontEnd for VA only: {ChatHealthyTask: CopyToFrontEnd, payload: {env_prefix: dev, states: {mode: include, list: [VA]}}}\n3. Add VA to SUPPORTED_STATES in main.py\n4. Add VA counties to _FIPS_STATIC table in main.py\n5. Deploy to dev, smoke test VA provider search\n6. Deploy to production (requires Boss sign-off per ASN-PROD01)\n\nDataPipelines cluster is currently paused. Must resume before step 2.\n\nPriority: High — client-facing. Target: Tuesday 2026-03-30 if cluster is available.",
+      "scope": [
+        "Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Code/DataPipelines/"
+      ],
+      "priority": "high",
+      "estimated_risk": "Low",
+      "status": "backlog",
+      "due_date": "2026-03-30",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "uat_requirement": null
+    }
+  ,{
       "assignment_id": "ASN-IP001",
       "timestamp": "2026-03-27T15:30:00.000000+00:00",
       "from": "Boss",
