@@ -48,7 +48,13 @@ Azure Function App (FindCare-AI, US East 2)
 
 MongoDB Atlas
   → Account: skip.snow@gmail.com
-  → Dev cluster: ChatHealthyDB_dev
+  → ChatHealthyFrontEnd cluster — always on
+      App reads (providers, specialties), admin data: prod_Brain, prod_Backlog, AboutUs
+      Connection: MONGO_FRONTEND_connectionString
+  → ChatHealthyDataPipelines cluster — started manually for pipeline runs only
+      Batch writes: provider load, enrichment, embeddings
+      Connection: MONGO_connectionString
+      Never holds admin or operational data
 ```
 
 ---
@@ -110,6 +116,21 @@ Before adding any code, ask: which application owns this concern? If it crosses 
 - FastAPI backend
 - Direct Anthropic SDK — Claude handles routing, tool calls, response
 - Tools defined in FastAPI, called by Claude during conversation
+
+### Router
+The Router is a first-class architectural component of App 2. Its implementation is Claude's tool selector — not a separate service, not a workaround. Claude reads the user's message, selects the appropriate tool, and that selection IS the routing decision.
+
+| Intent | Route (tool called) | Context loaded |
+|---|---|---|
+| Find a provider | `find_providers` | 0 extra tokens |
+| Identify specialty | `find_specialty_codes` | 0 extra tokens |
+| Clinical trials | `search_clinical_trials` | 0 extra tokens |
+| About Skip Snow | `get_skip_snow_context` | ~2k tokens (summary + LinkedIn) |
+| About ChatHealthy | `get_chathealthy_context` | ~6k tokens (business plan + principles) |
+| Lead capture | `record_user_details` | 0 extra tokens |
+| Unknown question | `record_unknown_question` | 0 extra tokens |
+
+The system prompt stays minimal (~700 tokens) for every request. Context loads on demand through tool results, not pre-loaded unconditionally. Do not replace the Router with a separate classification service — Claude's tool selection is more context-aware and requires no extra API call.
 
 ### Layer 2 — DataPipelines (Azure Functions)
 - CrewAI multi-agent orchestration

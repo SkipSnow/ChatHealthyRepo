@@ -111,7 +111,7 @@ export default function ChatWindow() {
     const elapsed = Math.round((Date.now() - startTime) / 1000)
 
     if (data.error) {
-      const isRateLimit = data.error.includes('rate_limit') || data.error.includes('429')
+      const isRateLimit = data.error_type === 'rate_limit'
       if (isRateLimit && backendEnvRef.current === 'dev') {
         // Dev only: show countdown and auto-retry
         pendingRetryRef.current = { message, history, startTime }

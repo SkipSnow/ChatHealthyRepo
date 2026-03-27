@@ -20,7 +20,17 @@ import argparse
 import logging
 import os
 import sys
+import winsound
 from pathlib import Path
+
+
+def bell(success: bool = True):
+    """Play a short alert tone. Three beeps = success, one low beep = failure."""
+    if success:
+        for _ in range(3):
+            winsound.Beep(1000, 200)
+    else:
+        winsound.Beep(400, 800)
 
 from dotenv import load_dotenv
 from pymongo import MongoClient
@@ -97,7 +107,12 @@ def main():
 
     client.close()
     log.info("Done. PublicHealthData NOT dropped — drop manually after smoke test.")
+    bell(success=True)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        bell(success=False)
+        raise
