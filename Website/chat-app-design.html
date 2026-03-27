@@ -215,6 +215,7 @@
           <li><a href="#ui-ux">UI/UX Behavior</a></li>
           <li><a href="#error-handling">Error Handling</a></li>
           <li><a href="#environment-variables">Environment Variables</a></li>
+          <li><a href="#dev-features">Development Features</a></li>
           <li><a href="#known-bugs">Known Bugs</a></li>
         </ol>
         <ul style="margin:8px 0 0 18px; font-size:0.88rem; line-height:1.9; list-style:disc;">
@@ -244,11 +245,18 @@
 
       <h3>Stack</h3>
       <ul>
-        <li><strong>Frontend:</strong> React 18 + TypeScript, built with Vite, served as static files</li>
+        <li><strong>Frontend:</strong> React 18 + TypeScript, built with Vite, served as static files
+          <ul style="margin:4px 0 4px 16px; font-size:0.88rem;">
+            <li><a href="#think-timer">Think timer &amp; stop button</a></li>
+            <li><a href="#rate-limit-retry">Rate limit auto-retry (dev only)</a></li>
+            <li><a href="#emergency-lock-ui">Emergency lock UI</a></li>
+            <li><a href="#message-rendering">Message rendering &amp; markdown</a></li>
+          </ul>
+        </li>
         <li><strong>Backend:</strong> Python FastAPI (Uvicorn), direct Anthropic SDK</li>
         <li><strong>Primary LLM:</strong> Claude Sonnet 4.6 (<code>claude-sonnet-4-6</code>)</li>
         <li><strong>Safety/Utility LLM:</strong> Claude Haiku 4.5 (<code>claude-haiku-4-5-20251001</code>)</li>
-        <li><strong>Embeddings:</strong> OpenAI <code>text-embedding-3-large</code> (provider search), <code>text-embedding-3-small</code> (specialty search)</li>
+        <li><strong>Embeddings:</strong> OpenAI — <a href="#embedding-models">see embedding model details</a></li>
         <li><strong>Database:</strong> MongoDB Atlas (ChatHealthyFrontEnd cluster)</li>
         <li><strong>Hosting:</strong> HuggingFace Docker Space (React static + FastAPI in single container)</li>
       </ul>
@@ -443,7 +451,13 @@
           </tr>
           <tr>
             <td><code>find_providers</code></td>
-            <td>Search for healthcare providers in a specific US state. Currently covers DE and MS. If result contains <code>supported=false</code>, tell the user and call <code>record_unknown_question</code>.</td>
+            <td>
+              <ul style="margin:0; padding-left:16px;">
+                <li>Search for healthcare providers by state, city, or county. Currently covers DE and MS. If result contains <code>supported=false</code>, tell the user and call <code>record_unknown_question</code>.</li>
+                <li>Ask about a particular provider by NPI or name (name may need disambiguation). All we can tell the user at this time is the data in the DB.</li>
+                <li>Ask for count of providers with filter by provider type in nation, state, county, or city.</li>
+              </ul>
+            </td>
             <td><code>specialty_query</code>: string<br><code>state</code>: string</td>
             <td><code>city</code>: string<br><code>county</code>: string<br><code>limit</code>: integer</td>
             <td><code>{ supported, state, specialty_searched, search_mode, count, providers: [{ name, npi, taxonomy_code, address, county }] }</code></td>
@@ -471,7 +485,10 @@
           </tr>
           <tr>
             <td><code>record_unknown_question</code></td>
-            <td>Call BEFORE composing response when: (1) answer not explicitly in docs, (2) hedging words needed, (3) personal medical advice. Not for healthcare navigation.</td>
+            <td>
+              Call BEFORE composing response when: (1) answer not explicitly in docs, (2) hedging words needed, (3) personal medical advice. Does not apply to healthcare navigation questions.<br><br>
+              <strong>Data handling:</strong> All question data is de-identified. Both the conversation transcript and the question are stored, along with an AI-generated summary.
+            </td>
             <td><code>question</code>: string</td>
             <td>&mdash;</td>
             <td><code>{ recorded: "ok" }</code></td>
@@ -492,7 +509,7 @@
           </tr>
           <tr>
             <td><code>commitSignificantActivity</code></td>
-            <td>Record any custom activity to the database.</td>
+            <td>General-purpose database write. Claude calls this to persist records (lead captures, activity logs) to any collection. Database name is automatically prefixed with <code>ENV_PREFIX</code>.</td>
             <td><code>database</code>: string<br><code>collection</code>: string<br><code>record</code>: object</td>
             <td>&mdash;</td>
             <td><code>{ recorded: "ok" }</code></td>
@@ -563,11 +580,23 @@
         </li>
       </ul>
 
-      <h3>Embedding Models (OpenAI)</h3>
-      <ul>
-        <li><strong><code>text-embedding-3-large</code></strong> &mdash; provider vector search (<code>_get_query_embedding()</code>)</li>
-        <li><strong><code>text-embedding-3-small</code></strong> &mdash; specialty taxonomy vector search (<code>vector_pipeline()</code> within <code>find_specialty_codes</code>)</li>
-      </ul>
+      <h3 id="embedding-models">Embedding Models (OpenAI)</h3>
+      <p style="font-size:0.85rem; margin-bottom:6px;"><a href="#overview">↑ Back to overview</a></p>
+      <table>
+        <tr><th>Model</th><th>Dimensions</th><th>Used For</th><th>Function</th></tr>
+        <tr>
+          <td><code>text-embedding-3-large</code></td>
+          <td>3,072</td>
+          <td>Provider vector search &mdash; embeds the user's specialty query to find matching providers</td>
+          <td><code>_get_query_embedding()</code></td>
+        </tr>
+        <tr>
+          <td><code>text-embedding-3-small</code></td>
+          <td>1,536</td>
+          <td>Specialty taxonomy search &mdash; embeds the query to find matching NUCC taxonomy codes</td>
+          <td><code>vector_pipeline()</code> in <code>find_specialty_codes</code></td>
+        </tr>
+      </table>
 
 
       <!-- ================================================================== -->
@@ -582,6 +611,15 @@
       </p>
 
       <h3>Emergency Keyword List</h3>
+      <p>
+        Emergency detection uses a <strong>dual-path design</strong>: (1) keyword substring match
+        and (2) Haiku semantic classifier. Either path triggering is sufficient to activate
+        the emergency response (OR logic, fail-safe). This ensures emergencies are caught
+        even if one method misses, while the semantic path adds intelligence beyond rigid keyword matching.
+      </p>
+      <p style="color:#b91c1c; font-weight:500;">
+        The AI prompt for the Haiku semantic classifier needs tuning prior to alpha release.
+      </p>
       <p>
         The <code>EMERGENCY_KEYWORDS</code> list contains 26 phrases covering major emergency
         categories. A case-insensitive substring match against the user's message triggers
@@ -637,6 +675,7 @@
         <li><strong>Lock duration:</strong> 3600 seconds (1 hour)</li>
         <li><strong>Check order:</strong> in-memory first, then DB fallback via <code>_check_ip_lock_db()</code></li>
         <li><strong>Session detection:</strong> <code>_session_is_locked()</code> scans history for the emergency response text</li>
+        <li><strong>Admin unlock:</strong> An administrator can unlock a locked session by sending <code>UNLOCK:&lt;key&gt;</code>. The unlock key is stored in the secrets repository as <code>ADMIN_UNLOCK_KEY</code> and is not exposed to the client.</li>
       </ul>
 
       <h3>DB Persistence</h3>
@@ -706,7 +745,7 @@
         <li><strong>Vector pipeline:</strong> Embeds query via <code>text-embedding-3-small</code>, runs <code>$vectorSearch</code> against <code>specialty_vector_index</code>, filters results above score 0.4, and pulls all codes in matching classifications</li>
       </ul>
       <p>
-        Results are deduplicated by code, vector results prioritized, capped at 10.
+        Results are deduplicated by code, vector results prioritized, capped at 70.
         Only individual provider groupings are included (16 NUCC groupings covering physicians,
         nurses, therapists, etc. &mdash; excluding facilities, agencies, and group practices).
       </p>
@@ -822,7 +861,8 @@
         a new message to queue while the previous one is still in flight).
       </p>
 
-      <h3>Think Timer and Stop Button</h3>
+      <h3 id="think-timer">Think Timer and Stop Button</h3>
+      <p style="font-size:0.85rem; margin-bottom:6px;"><a href="#overview">↑ Back to overview</a></p>
       <ul>
         <li>The thinking indicator shows <em>"Thinking... Ns"</em> with a "Stop" button</li>
         <li>The timer counts up every second while <code>isLoading && !thinkingDismissed && retryCountdown === null</code></li>
@@ -831,7 +871,8 @@
         <li>Both <code>thinkingDismissed</code> and <code>thinkSeconds</code> reset when the response arrives</li>
       </ul>
 
-      <h3>Rate Limit Auto-Retry (Dev Only)</h3>
+      <h3 id="rate-limit-retry">Rate Limit Auto-Retry (Dev Only)</h3>
+      <p style="font-size:0.85rem; margin-bottom:6px;"><a href="#overview">↑ Back to overview</a></p>
       <p>
         When the backend returns <code>error_type: "rate_limit"</code> AND the backend
         environment is <code>"dev"</code> (determined from <code>/health</code> response):
@@ -876,7 +917,8 @@ If you think you may be having a medical emergency, tell me right away.
         message's <code>build</code> field and displayed in the message metadata line.
       </p>
 
-      <h3>Emergency Lock UI</h3>
+      <h3 id="emergency-lock-ui">Emergency Lock UI</h3>
+      <p style="font-size:0.85rem; margin-bottom:6px;"><a href="#overview">↑ Back to overview</a></p>
       <p>
         When <code>data.emergency === true</code> is received from the backend, the
         frontend sets <code>isLocked = true</code>. This:
@@ -887,7 +929,8 @@ If you think you may be having a medical emergency, tell me right away.
         <li>The lock persists for the browser session &mdash; refreshing the page clears the frontend lock (but the backend IP lock remains)</li>
       </ul>
 
-      <h3>Message Rendering (MessageBubble)</h3>
+      <h3 id="message-rendering">Message Rendering (MessageBubble)</h3>
+      <p style="font-size:0.85rem; margin-bottom:6px;"><a href="#overview">↑ Back to overview</a></p>
       <ul>
         <li><strong>User messages:</strong> right-aligned, gray background (<code>#f3f4f6</code>), rounded corners (top-left, top-right, bottom-left), plain text</li>
         <li><strong>Assistant messages:</strong> left-aligned, white background, border, rounded corners (top-left, top-right, bottom-right), rendered as Markdown via <code>ReactMarkdown</code> with <code>rehype-raw</code> and <code>rehype-sanitize</code></li>
@@ -948,7 +991,9 @@ If you think you may be having a medical emergency, tell me right away.
         try/except. Any unhandled exception is caught, classified by error type, logged
         to <code>dev_Debug.chat_calls</code> (dev only), and returned as a
         <code>ChatResponse</code> with the <code>error</code> and <code>error_type</code>
-        fields populated.
+        fields populated. On error, the full de-identified chat history is stored alongside
+        the error record for debugging. History is truncated to 500 chars per message and
+        run through <code>deIdentify()</code> before persistence.
       </p>
 
       <h3>Frontend Error Display</h3>
@@ -1044,9 +1089,41 @@ If you think you may be having a medical emergency, tell me right away.
 
 
       <!-- ================================================================== -->
-      <!-- 11. KNOWN BUGS                                                     -->
+      <!-- 11. DEVELOPMENT FEATURES                                           -->
       <!-- ================================================================== -->
-      <h2 id="known-bugs">11. Known Bugs</h2>
+      <h2 id="dev-features">11. Development Features</h2>
+
+      <h3>Debug Mode (<code>DEBUG=true</code>)</h3>
+      <p>When the <code>DEBUG</code> environment variable is set to <code>true</code>:</p>
+      <ul>
+        <li>All exceptions in <code>/chat</code> return the full traceback in the response body (<code>error</code> field)</li>
+        <li>The frontend renders errors as visible error bubbles in the chat UI (red/pink styling)</li>
+        <li>Logging level is set to <code>DEBUG</code> (vs <code>INFO</code> in production)</li>
+      </ul>
+
+      <h3>Dev Audit Log (<code>dev_Debug.chat_calls</code>)</h3>
+      <p>When <code>ENV_PREFIX == "dev"</code>, every chat request is logged to MongoDB:</p>
+      <table>
+        <tr><th>Field</th><th>Description</th></tr>
+        <tr><td><code>datetime</code></td><td>UTC timestamp</td></tr>
+        <tr><td><code>ip</code></td><td>Client IP address</td></tr>
+        <tr><td><code>message_preview</code></td><td>First 200 chars of user message</td></tr>
+        <tr><td><code>history_len</code></td><td>Number of messages in conversation history</td></tr>
+        <tr><td><code>tool_loop_iters</code></td><td>Number of tool-use loop iterations</td></tr>
+        <tr><td><code>tokens_in</code></td><td>Total input tokens</td></tr>
+        <tr><td><code>tokens_out</code></td><td>Total output tokens</td></tr>
+        <tr><td><code>response_preview</code></td><td>First 200 chars of response</td></tr>
+        <tr><td><code>error</code></td><td>Error message if request failed</td></tr>
+      </table>
+
+      <h3>Rate Limit Auto-Retry (Dev Only)</h3>
+      <p>When a <code>rate_limit</code> error is returned and the environment is <code>dev</code>, the frontend automatically shows a countdown and retries after 10 seconds. This behavior is disabled in production.</p>
+
+
+      <!-- ================================================================== -->
+      <!-- 12. KNOWN BUGS                                                     -->
+      <!-- ================================================================== -->
+      <h2 id="known-bugs">12. Known Bugs</h2>
 
       <div class="table-wrap">
         <table>
