@@ -59,7 +59,7 @@ CENSUS_ZCTA_COUNTY_URL = (
     "zcta520/tab20_zcta520_county20_natl.txt"
 )
 
-CROSSWALK_COLLECTION = "PublicHealthData.ZipCountyCrosswalk"
+CROSSWALK_COLLECTION = "dev_PublicHealthData.ZipCountyCrosswalk"
 SPLIT_THRESHOLD = 0.98
 
 

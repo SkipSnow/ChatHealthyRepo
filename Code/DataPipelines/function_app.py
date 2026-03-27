@@ -235,7 +235,7 @@ def provider_load_orchestrator(context: df.DurableOrchestrationContext):
 @app.orchestration_trigger(context_name="context")
 def snapshot_collection_orchestrator(context: df.DurableOrchestrationContext):
     config = context.get_input() or {}
-    src = config.get("source", "providers_staging")
+    src = config.get("source", "providers")
     dst = config.get("destination", "?")
     context.set_custom_status(f"Copying {src} → {dst}")
     result = yield context.call_activity("snapshot_collection_activity", config)

@@ -32,7 +32,7 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
 NPPES_API_URL = "https://npiregistry.cms.hhs.gov/api/"
-STAGING_COLLECTION = "PublicHealthData.providers_staging"
+STAGING_COLLECTION = "dev_PublicHealthData.providers"
 METADATA_COLLECTION = "admin.DataLoadMetadata"
 REPORT_COLLECTION = "admin.ValidationReport"
 

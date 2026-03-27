@@ -23,7 +23,7 @@ BATCH_SIZE = 10_000
 
 # Always-copied collections: (src_db, src_coll, dst_db, dst_coll)
 _STATIC_COLLECTIONS = [
-    ("PublicHealthData", "SpecialtyMetaData", "PublicHealthData", "SpecialtyMetaData"),
+    ("dev_PublicHealthData", "SpecialtyMetaData", "dev_PublicHealthData", "SpecialtyMetaData"),
 ]
 
 
@@ -77,7 +77,7 @@ def snapshot_collection_fn(config: dict) -> dict:
     No data moves over the wire — MongoDB copies internally.
     Replaces destination if it already exists.
     """
-    source = config.get("source", "providers_staging")
+    source = config.get("source", "providers")
     destination = config.get("destination")
     if not destination:
         raise ValueError("snapshot: 'destination' collection name is required in payload")
@@ -88,7 +88,7 @@ def snapshot_collection_fn(config: dict) -> dict:
 
     client = MongoClient(conn, serverSelectionTimeoutMS=30_000)
     try:
-        db = client["PublicHealthData"]
+        db = client["dev_PublicHealthData"]
         count_before = db[source].count_documents({})
         logging.info("Snapshot: %s (%s docs) → %s", source, f"{count_before:,}", destination)
         list(db[source].aggregate([{"$out": destination}], allowDiskUse=True))
@@ -99,7 +99,7 @@ def snapshot_collection_fn(config: dict) -> dict:
         client.close()
 
 
-def _create_frontend_vector_index(frontend_client: MongoClient, db_name: str, coll_name: str = "providers_staging") -> dict:
+def _create_frontend_vector_index(frontend_client: MongoClient, db_name: str, coll_name: str = "providers") -> dict:
     """Create Atlas Vector Search index on the FrontEnd cluster's providers collection.
 
     Includes a filter field on practice_address.state so $vectorSearch can pre-filter.
@@ -140,14 +140,14 @@ def create_frontend_vector_index_fn(config: dict) -> dict:
 
     config:
       env_prefix   — database prefix, e.g. "dev" → dev_PublicHealthData (default: "dev")
-      collection   — collection name (default: "providers_staging")
+      collection   — collection name (default: "providers")
     """
     frontend_conn = os.environ.get("MONGO_FRONTEND_connectionString")
     if not frontend_conn:
         raise ValueError("MONGO_FRONTEND_connectionString not set")
     env_prefix = config.get("env_prefix", "dev")
     db_name    = f"{env_prefix}_PublicHealthData" if env_prefix else "PublicHealthData"
-    coll_name  = config.get("collection", "providers_staging")
+    coll_name  = config.get("collection", "providers")
     client = MongoClient(frontend_conn, serverSelectionTimeoutMS=30_000)
     try:
         return _create_frontend_vector_index(client, db_name, coll_name)
@@ -202,19 +202,19 @@ def run_copy_to_frontend(config: dict) -> dict:
 
         if provider_query is not None:
             logging.info(
-                "=== providers_staging → frontend:%s.providers_staging (states: %s) ===",
+                "=== providers → frontend:%s.providers (states: %s) ===",
                 dst_db_name, state_list,
             )
             results.append(_copy_collection(
-                pipeline_client["PublicHealthData"],
+                pipeline_client["dev_PublicHealthData"],
                 frontend_client[dst_db_name],
-                "providers_staging",
-                "providers_staging",
+                "providers",
+                "providers",
                 query=provider_query,
             ))
 
             # Create vector search index on FrontEnd after provider copy
-            logging.info("Creating vector search index on frontend:%s.providers_staging", dst_db_name)
+            logging.info("Creating vector search index on frontend:%s.providers", dst_db_name)
             idx_result = _create_frontend_vector_index(frontend_client, dst_db_name)
             results.append(idx_result)
 
