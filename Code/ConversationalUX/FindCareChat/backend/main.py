@@ -1107,7 +1107,7 @@ _CORS_ORIGINS = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_CORS_ORIGINS,
-    allow_origin_regex=r"http://localhost(:\d+)?$|https://[a-zA-Z0-9-]+\.chathealthy\.ai$|https://chathealthy-dev\.pages\.dev$|https://[a-zA-Z0-9]+\.chathealthy-dev\.pages\.dev$",
+    allow_origin_regex=r"http://localhost(:\d+)?$|https://[a-zA-Z0-9-]+\.chathealthy\.ai$",
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1227,6 +1227,15 @@ async def _chat_inner(body: ChatRequest, request: Request):
     _log.info("CHAT complete tokens_in=%d tokens_out=%d", total_tokens_in, total_tokens_out)
     _debug_log_chat(ip, body.message, len(history), loop_iter, total_tokens_in, total_tokens_out, text, None)
     return ChatResponse(response=text, tokens_in=total_tokens_in, tokens_out=total_tokens_out)
+
+
+# ---------------------------------------------------------------------------
+# Serve React frontend (static files built into /app/static by Docker)
+# ---------------------------------------------------------------------------
+_static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.isdir(_static_dir):
+    from starlette.staticfiles import StaticFiles
+    app.mount("/", StaticFiles(directory=_static_dir, html=True), name="static")
 
 
 if __name__ == "__main__":

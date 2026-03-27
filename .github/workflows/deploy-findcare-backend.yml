@@ -6,6 +6,7 @@ on:
       - dev
     paths:
       - 'Code/ConversationalUX/FindCareChat/backend/**'
+      - 'Code/ConversationalUX/FindCareChat/frontend/**'
       - 'Code/ConversationalUX/ChatHealthyWhoAmIChat/me/**'
       - 'Code/Shared/ChatHealthyMongoUtilities.py'
       - '.github/workflows/deploy-findcare-backend.yml'
@@ -38,6 +39,13 @@ jobs:
             --exclude='__pycache__' \
             --exclude='*.pyc' \
             Code/ConversationalUX/FindCareChat/backend/ hf_space/
+
+          # Frontend source (Docker builds it)
+          rsync -av \
+            --exclude='node_modules' \
+            --exclude='dist' \
+            --exclude='.env.local' \
+            Code/ConversationalUX/FindCareChat/frontend/ hf_space/frontend/
 
           # Shared MongoDB utility
           cp Code/Shared/ChatHealthyMongoUtilities.py hf_space/

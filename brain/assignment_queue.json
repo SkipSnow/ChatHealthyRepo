@@ -246,5 +246,45 @@
       "feedback_question": null,
       "uat_requirement": null
     }
+  ,{
+      "assignment_id": "ASN-MAP001",
+      "timestamp": "2026-03-27T04:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Dev",
+      "title": "Google Maps: render provider results on an inline map in the chat",
+      "description": "STRETCH GOAL — only after all Tuesday features signed off.\n\nWhen find_providers returns results, render provider locations on an embedded Google Maps view inline in the chat message stream. Pins should be clickable and show provider name, specialty, and address. Map should be scoped to the search area (state/city/county). Use Google Maps JavaScript API. Coordinate with React frontend component design — map renders as a rich inline component in MessageBubble.\n\nKey decisions to make at implementation time:\n- Static embed vs. interactive JS map\n- Whether to geocode addresses on the fly or use lat/lng from MongoDB (if available)\n- Mobile-friendly sizing within the chat frame",
+      "scope": [
+        "Code/ConversationalUX/FindCareChat/frontend/src/components/",
+        "Code/ConversationalUX/FindCareChat/backend/main.py"
+      ],
+      "priority": "low",
+      "estimated_risk": "Low",
+      "status": "backlog",
+      "stretch_goal": true,
+      "gate": "All Tuesday acceptance criteria signed off before starting",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "uat_requirement": null
+    }
+  ,{
+      "assignment_id": "ASN-DB0MON",
+      "timestamp": "2026-03-27T04:15:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Dev",
+      "title": "MongoDB monitoring agent — alert on disk, autoscale, and cluster health events",
+      "description": "Set up an automated monitoring agent for MongoDB Atlas clusters. Pipeline cluster autoscaled to M50/165GB during a run without alerting the team in a useful way — only Atlas email noise.\n\nREQUIREMENTS (to be defined at implementation time):\n- Monitor ChatHealthyDataPipelines and ChatHealthyFrontEnd clusters\n- Alert on: disk usage threshold (e.g. >70%), autoscale events, cluster state changes (UPDATING, paused, resumed)\n- Deliver alerts via Pushover (already integrated) not just Atlas email\n- Consider: Atlas webhook → Azure Function → Pushover, or a scheduled poller\n- Suppress noise: only alert on actionable events, not routine Atlas notifications\n\nDO NOT IMPLEMENT NOW — backlog item.",
+      "scope": [
+        "Code/DataPipelines/",
+        "Code/Shared/"
+      ],
+      "priority": "medium",
+      "estimated_risk": "Low",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "uat_requirement": null
+    }
   ]
 }

@@ -10,7 +10,7 @@ export interface Message {
   build?: string
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 const RETRY_SECONDS = 10
 
 const WELCOME: Message = {
