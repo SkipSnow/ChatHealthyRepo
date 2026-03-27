@@ -21,7 +21,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages project create chathealthy-website-dev --production-branch main
+          command: pages project create chathealthy-website-dev --production-branch dev
         continue-on-error: true
 
       - name: Deploy to Cloudflare Pages
@@ -29,4 +29,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy Website --project-name=chathealthy-website-dev --branch=main
+          command: pages deploy Website --project-name=chathealthy-website-dev --branch=dev
