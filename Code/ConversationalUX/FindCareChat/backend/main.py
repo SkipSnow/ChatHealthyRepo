@@ -417,6 +417,28 @@ def find_specialty_codes(query: str) -> dict:
     }
 
 
+# HACK ASN-4AFBDA: pipeline bug leaves county.fips set but county.name blank for 2,579
+# providers (460 DE, 2,119 MS). Build FIPS→name from providers that already have both
+# fields and use it to fill gaps at query time. Remove once pipeline fix is deployed.
+# Deliverable: fix before end of next iteration.
+_fips_to_county: dict[str, str] = {}
+
+def _load_fips_county_map() -> None:
+    global _fips_to_county
+    db = _get_db()
+    if db is None:
+        return
+    try:
+        pairs = db[f"{_ENV_PREFIX}_PublicHealthData"]["providers"].aggregate([
+            {"$match": {"county.fips": {"$exists": True}, "county.name": {"$exists": True}}},
+            {"$group": {"_id": "$county.fips", "name": {"$first": "$county.name"}}},
+        ])
+        _fips_to_county = {p["_id"]: p["name"] for p in pairs}
+        _log.info("HACK ASN-4AFBDA: loaded %d FIPS→county mappings", len(_fips_to_county))
+    except Exception as exc:
+        _log.warning("HACK ASN-4AFBDA: failed to load FIPS map: %s", exc)
+
+
 _oai_client: Optional[OpenAI] = None
 
 
@@ -451,11 +473,14 @@ def _format_provider(p: dict) -> dict:
     addr = p.get("practice_address", {})
     address = ", ".join(x for x in [addr.get("line1"), addr.get("city"), addr.get("state"), addr.get("zip")] if x)
     primary = next((t for t in p.get("taxonomies", []) if t.get("primary")), None)
+    county_obj = p.get("county", {})
+    county_name = county_obj.get("name") or _fips_to_county.get(county_obj.get("fips", ""), "")  # HACK ASN-4AFBDA
     return {
         "name": name,
         "npi": p.get("npi", ""),
         "taxonomy_code": primary.get("code", "") if primary else "",
         "address": address,
+        "county": county_name,
     }
 
 
@@ -863,6 +888,7 @@ def _load_me_context():
 
 
 _ME = _load_me_context()
+_load_fips_county_map()  # HACK ASN-4AFBDA
 
 # Build number — injected by CI into build.txt at deploy time
 _build_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "build.txt")

@@ -205,6 +205,46 @@
       "feedback_needed": false,
       "feedback_question": null,
       "uat_requirement": null
+    },
+    {
+      "assignment_id": "ASN-4AFBDA",
+      "timestamp": "2026-03-26T19:45:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Dev",
+      "type": "pipeline_bug",
+      "title": "Backfill county.name from FIPS for providers missing name lookup",
+      "description": "Enrichment pipeline saves county.fips from geocoder but fails to write county.name for some records. Affected: 460 DE providers, 2,119 MS providers — all have FIPS, none have name. Fix: join against ZipCountyCrosswalk on FIPS and backfill county.name in-place. Run as a one-time repair script, then add name-write to enrichment pipeline so it does not recur. HACK IN PLACE: main.py loads FIPS->name map at startup and fills missing county.name at query time. Remove hack when pipeline fix is deployed.",
+      "scope": [
+        "Code/DataPipelines/",
+        "dev_PublicHealthData.providers"
+      ],
+      "priority": "high",
+      "estimated_risk": "Low",
+      "status": "ready_for_sit",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "uat_requirement": null
+    },
+    {
+      "assignment_id": "ASN-B1A002",
+      "timestamp": "2026-03-26T19:45:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Dev",
+      "type": "data_bug",
+      "title": "Phantom Delaware County on DE providers — cross-state FIPS mismatch",
+      "description": "Some providers with practice_address.state=DE have county.name=Delaware County, which does not exist in Delaware. Delaware County is a county in PA, OH, IN, NY, IA, and OK. Root cause: zip-to-FIPS crosswalk lookup matched a zip code to the wrong state FIPS. Fix: identify affected records, validate zip codes against DE zip ranges, correct county assignment or flag as zip_state_mismatch.",
+      "scope": [
+        "Code/DataPipelines/",
+        "dev_PublicHealthData.providers"
+      ],
+      "priority": "medium",
+      "estimated_risk": "Low",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "uat_requirement": null
     }
   ]
 }
