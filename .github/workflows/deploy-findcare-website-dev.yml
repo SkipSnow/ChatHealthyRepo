@@ -1,6 +1,7 @@
 name: Deploy FindCare Website (Dev)
 
 on:
+  workflow_dispatch:
   push:
     branches: [dev]
     paths:
