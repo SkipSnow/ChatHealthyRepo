@@ -16,6 +16,14 @@ jobs:
       - name: Inject chat URL
         run: sed -i 's|%%CHAT_URL%%|https://chathealthy-dev.pages.dev|g' Website/index.html
 
+      - name: Create Pages project (idempotent)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages project create chathealthy-website-dev --production-branch main
+        continue-on-error: true
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
