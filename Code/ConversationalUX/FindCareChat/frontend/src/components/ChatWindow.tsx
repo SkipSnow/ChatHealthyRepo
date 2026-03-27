@@ -86,7 +86,7 @@ export default function ChatWindow() {
   }, [retryCountdown])
 
   const showThinking = isLoading && !thinkingDismissed && retryCountdown === null
-  const canSubmit = !isLocked && (!isLoading || thinkingDismissed)
+  const canSubmit = !isLoading || thinkingDismissed
 
   async function doApiCall(message: string, history: any[], startTime: number) {
     let data: any
@@ -133,6 +133,7 @@ export default function ChatWindow() {
         tokensIn: data.tokens_in ?? undefined,
       }])
       if (data.emergency) setIsLocked(true)
+      if (data.response === 'Session unlocked.') setIsLocked(false)
     }
 
     setIsLoading(false)
@@ -218,8 +219,7 @@ export default function ChatWindow() {
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
-          disabled={isLocked}
-          placeholder={isLocked ? 'Chat suspended.' : 'Type a message…'}
+          placeholder={isLocked ? 'Chat suspended. Type UNLOCK code to resume.' : 'Type a message…'}
           style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 15, outline: 'none' }}
         />
         <button

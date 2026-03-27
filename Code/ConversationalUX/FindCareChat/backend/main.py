@@ -123,6 +123,7 @@ def _safety_collection():
 def _lock_ip_db(ip: str, trigger_message: str = "", history: list = None) -> bool:
     _lock_ip(ip)
     col = _safety_collection()
+    _log.info("SAFETY: _lock_ip_db called for %s, collection=%s", ip, col is not None)
     if col is None:
         _log.warning("SAFETY ALERT: DB unavailable — incident for %s NOT persisted.", ip)
         return False
@@ -134,13 +135,16 @@ def _lock_ip_db(ip: str, trigger_message: str = "", history: list = None) -> boo
         if m.get("role") in ("user", "assistant")
     ]
     try:
-        col.insert_one({
-            "ip": ip,
-            "locked_at": now.isoformat(),
-            "expires_at": expires.isoformat(),
-            "trigger_message": trigger_message[:500],
-            "chat_history_deidentified": safe_history,
-        })
+        col.update_one(
+            {"ip": ip},
+            {"$set": {
+                "locked_at": now.isoformat(),
+                "expires_at": expires.isoformat(),
+                "trigger_message": trigger_message[:500],
+                "chat_history_deidentified": safe_history,
+            }},
+            upsert=True,
+        )
         return True
     except Exception as e:
         _log.error("SAFETY ALERT: DB write failed for %s: %s", ip, e)
@@ -155,7 +159,7 @@ def _check_ip_lock_db(ip: str) -> bool:
         return False
     try:
         now_iso = datetime.now(timezone.utc).isoformat()
-        record = col.find_one({"ip": ip, "expires_at": {"$gt": now_iso}})
+        record = col.find_one({"ip": ip, "expires_at": {"$gt": now_iso}, "unlocked": {"$ne": True}})
         if record:
             _lock_ip(ip)
             return True
@@ -168,12 +172,19 @@ def _check_ip_lock_db(ip: str) -> bool:
 def _admin_unlock(message: str, ip: str) -> bool:
     if not _ADMIN_UNLOCK_KEY:
         return False
-    if message.strip().upper() == f"UNLOCK:{_ADMIN_UNLOCK_KEY.upper()}":
+    if message.strip().upper() == _ADMIN_UNLOCK_KEY.upper() or message.strip().upper() == f"UNLOCK:{_ADMIN_UNLOCK_KEY.upper()}":
         _ip_emergency_locks.pop(ip, None)
         col = _safety_collection()
         if col is not None:
             try:
-                col.delete_many({"ip": ip})
+                col.update_many(
+                    {"ip": ip},
+                    {"$set": {
+                        "unlocked": True,
+                        "unlocked_at": datetime.now(timezone.utc).isoformat(),
+                        "unlocked_by": "admin",
+                    }},
+                )
             except Exception:
                 pass
         return True
@@ -911,9 +922,10 @@ anthropic_tools = [
     {
         "name": "lookup_provider_external",
         "description": (
-            "Look up a provider on external sites (Healthgrades, Zocdoc, NPI Registry, state medical board). "
-            "Call this when the user asks for more details about a specific provider, wants reviews, "
-            "insurance info, or wants to verify credentials. Returns search URLs for external profiles."
+            "ALWAYS call this tool when the user asks about a specific provider by name — "
+            "'tell me about Dr. X', 'what can you tell me about X', 'more info on X', etc. "
+            "Returns links to Healthgrades, Zocdoc, NPI Registry, and state medical board. "
+            "Present these links to the user so they can check reviews, insurance, and credentials."
         ),
         "input_schema": {
             "type": "object",
@@ -940,7 +952,7 @@ def lookup_provider_external(provider_name: str, npi: str = "", state: str = "",
     # State medical board links for supported states
     state_boards = {
         "DE": "https://dpr.delaware.gov/boardsearch/",
-        "MS": "https://www.msbml.ms.gov/verify-a-license",
+        "MS": "https://www.msbml.ms.gov/licensure",
         "VA": "https://dhp.virginiainteractive.org/Lookup/Index",
     }
     if state.upper() in state_boards:
@@ -1050,7 +1062,10 @@ def _system_prompt(follow_up_check: bool = False) -> str:
         f"  - County\n"
         f"  - Phone\n"
         f"  - NPI: number\n"
-        f"When the user asks for more details about a specific provider, call lookup_provider_external to get links to external profiles.\n\n"
+        f"RULE 5c — PROVIDER DETAIL LOOKUP: When the user asks about a specific provider by name "
+        f"('tell me about Dr. X', 'more info on X', 'what else can you tell me about X'), "
+        f"you MUST call lookup_provider_external. Present the returned links to Healthgrades, "
+        f"Zocdoc, NPI Registry, and the state medical board so the user can check reviews and credentials.\n\n"
         f"RULE 6 — FOLLOW-UP OFFER: When you receive a FOLLOW-UP CHECK reminder, assess genuine interest "
         f"and ask: 'Would you like someone from the ChatHealthy.AI team to follow up with you personally?' "
         f"Respect refusal signals — do not ask again if the user shows impatience or annoyance.\n"
@@ -1204,7 +1219,7 @@ def health():
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, request: Request):
-    ip = request.client.host if request.client else "unknown"
+    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "unknown")
     try:
         return await _chat_inner(body, request)
     except Exception as e:
@@ -1225,17 +1240,17 @@ async def chat(body: ChatRequest, request: Request):
 
 
 async def _chat_inner(body: ChatRequest, request: Request):
-    ip = request.client.host if request.client else "unknown"
+    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "unknown")
 
     if _admin_unlock(body.message, ip):
         return ChatResponse(response="Session unlocked.")
 
     history = body.history
 
-    if _session_is_locked(history):
+    if _check_ip_lock_db(ip):
         return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
 
-    if _check_ip_lock_db(ip) or _safety_check(body.message):
+    if _safety_check(body.message):
         _lock_ip_db(ip, trigger_message=body.message, history=history)
         return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
 

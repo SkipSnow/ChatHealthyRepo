@@ -8,8 +8,15 @@ const sanitizeSchema = {
   attributes: {
     ...defaultSchema.attributes,
     span: [['className', 'state-name']],
+    a: [...(defaultSchema.attributes?.a || []), 'target', 'rel'],
   },
 }
+
+// Open all links in new window by default
+const linkTarget = ({ node }: any) => ({
+  target: '_blank',
+  rel: 'noopener noreferrer',
+})
 
 export default function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user'
@@ -37,6 +44,9 @@ export default function MessageBubble({ message }: { message: Message }) {
         ) : (
           <ReactMarkdown
             rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
+            components={{
+              a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+            }}
           >
             {message.content}
           </ReactMarkdown>
