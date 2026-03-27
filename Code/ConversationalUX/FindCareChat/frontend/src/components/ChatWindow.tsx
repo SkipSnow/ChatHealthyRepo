@@ -48,7 +48,7 @@ export default function ChatWindow() {
       .then(data => {
         backendEnvRef.current = data.env || 'prod'
         if (data.build) {
-          setMessages(prev => [{ ...prev[0], build: `Build ${data.build}` }, ...prev.slice(1)])
+          setMessages(prev => [{ ...prev[0], build: data.build }, ...prev.slice(1)])
         }
       })
       .catch(() => {})
