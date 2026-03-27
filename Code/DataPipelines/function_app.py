@@ -27,9 +27,10 @@ import azure.durable_functions as df
 import azure.functions as func
 
 from auth import require_auth
+from otp_manager import exchange_otp
 from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
-from copy_to_frontend import run_copy_to_frontend, snapshot_collection_fn
+from copy_to_frontend import run_copy_to_frontend, snapshot_collection_fn, create_frontend_vector_index_fn
 from pipeline_health import check_mongo_health
 # from idle_monitor import check_and_pause  # disabled — see idle_monitor_timer below
 from county_enrichment_job import (
@@ -83,6 +84,7 @@ SYNC_TASK_HANDLERS = {
     "LoadSpecialtyData": run_load_specialty_data,
     "LoadICD10": load_icd10,
     "CopyToFrontEnd": run_copy_to_frontend,
+    "CreateFrontendVectorIndex": create_frontend_vector_index_fn,
     "CheckMongoHealth": check_mongo_health,
     "StampEmbeddingVersion": stamp_embedding_version_fn,
 }
@@ -177,6 +179,38 @@ async def dev_pipeline_management(
         return func.HttpResponse(body="Internal server error", status_code=500, mimetype="text/plain")
 
 
+# ── OTP Key Exchange ──────────────────────────────────────────────────────────
+
+@app.function_name(name="ExchangeOTP")
+@app.route(route="ExchangeOTP", methods=["GET"])
+def exchange_otp_route(req: func.HttpRequest) -> func.HttpResponse:
+    """
+    Exchange a one-time password for a permanent Brain API Bearer key.
+
+    GET /api/ExchangeOTP?code=XXXX-XXXX
+
+    Returns 200 + {"bearer_token": "...", "agent": "..."} on success.
+    Returns 401 on invalid/expired/used OTP.
+    OTP is consumed on first use. Expires after 30 minutes.
+    """
+    code = req.params.get("code", "").strip().upper()
+    if not code:
+        return json_response({"error": "Missing ?code= parameter"}, 400)
+
+    success, agent, bearer_key = exchange_otp(code)
+
+    if not success:
+        logging.warning(f"[ExchangeOTP] Failed exchange — reason: {agent}")
+        return json_response({"error": agent}, 401)
+
+    logging.info(f"[ExchangeOTP] Key issued to agent: {agent}")
+    return json_response({
+        "bearer_token": bearer_key,
+        "agent": agent,
+        "message": "OTP accepted. Use this bearer_token in all Brain API calls: Authorization: Bearer <token>",
+    }, 200)
+
+
 # ── Idle Monitor (Timer Trigger) ──────────────────────────────────────────────
 
 # Idle monitor disabled — paused cluster mid-run (fix: pipeline lock needed before re-enabling)
@@ -201,7 +235,7 @@ def provider_load_orchestrator(context: df.DurableOrchestrationContext):
 @app.orchestration_trigger(context_name="context")
 def snapshot_collection_orchestrator(context: df.DurableOrchestrationContext):
     config = context.get_input() or {}
-    src = config.get("source", "providers_staging")
+    src = config.get("source", "providers")
     dst = config.get("destination", "?")
     context.set_custom_status(f"Copying {src} → {dst}")
     result = yield context.call_activity("snapshot_collection_activity", config)

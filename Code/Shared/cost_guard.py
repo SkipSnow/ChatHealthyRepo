@@ -1,0 +1,269 @@
+"""
+Cost Guard — Token budget enforcement for the Brain Loop.
+
+Tracks every API call made by Claude and GPT during assignments.
+Enforces per-assignment, daily, and monthly USD limits set in
+brain/budget_config.json.
+
+Agents call log_usage() after every API call.
+brain_loop calls check_budget() before picking up assignments.
+Boss calls get_usage_report() to see spend at any time.
+
+Brain files:
+  brain/usage_log.json    — all API call records
+  brain/budget_config.json — limits and model pricing
+
+ADR: ADR-0007 (framework_02)
+"""
+
+import json
+from datetime import datetime, timezone, date
+from pathlib import Path
+from typing import Optional
+
+_REPO_ROOT  = Path(__file__).parent.parent.parent
+_BRAIN_DIR  = _REPO_ROOT / "brain"
+_USAGE_LOG  = _BRAIN_DIR / "usage_log.json"
+_BUDGET_CFG = _BRAIN_DIR / "budget_config.json"
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _read(path: Path) -> dict:
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _write(path: Path, data: dict) -> None:
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def _cost_usd(model: str, tokens_in: int, tokens_out: int) -> float:
+    cfg = _read(_BUDGET_CFG)
+    pricing = cfg["models"].get(model)
+    if not pricing:
+        return 0.0
+    return (tokens_in / 1_000_000 * pricing["input_per_1m"] +
+            tokens_out / 1_000_000 * pricing["output_per_1m"])
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+def log_usage(
+    agent: str,
+    model: str,
+    tokens_in: int,
+    tokens_out: int,
+    assignment_id: Optional[str] = None,
+    call_type: str = "chat",
+) -> float:
+    """
+    Log an API call. Called by Claude or GPT after every model call.
+
+    Args:
+        agent:         "Claude" | "GPT"
+        model:         Model name — must match a key in budget_config.json models
+        tokens_in:     Input/prompt tokens consumed
+        tokens_out:    Output/completion tokens consumed
+        assignment_id: Assignment this call belongs to (None = unassigned)
+        call_type:     "chat" | "embedding" | "review"
+
+    Returns:
+        Cost in USD for this call.
+
+    Example:
+        # Claude logs a chat call
+        cost = log_usage("Claude", "claude-sonnet-4-6",
+                         tokens_in=1200, tokens_out=400,
+                         assignment_id="ASN-B5EF02", call_type="chat")
+    """
+    cost = _cost_usd(model, tokens_in, tokens_out)
+    entry = {
+        "timestamp":     _now(),
+        "agent":         agent,
+        "model":         model,
+        "call_type":     call_type,
+        "tokens_in":     tokens_in,
+        "tokens_out":    tokens_out,
+        "cost_usd":      round(cost, 6),
+        "assignment_id": assignment_id,
+    }
+    log = _read(_USAGE_LOG)
+    log["entries"].append(entry)
+    _write(_USAGE_LOG, log)
+
+    # Check alert threshold
+    cfg = _read(_BUDGET_CFG)
+    if assignment_id:
+        asn_total = sum(
+            e["cost_usd"] for e in log["entries"]
+            if e.get("assignment_id") == assignment_id
+        )
+        limit = cfg["limits"]["per_assignment_usd"]
+        pct = asn_total / limit * 100 if limit else 0
+        if pct >= cfg["alert_threshold_pct"]:
+            print(f"[CostGuard] ALERT: Assignment {assignment_id} at "
+                  f"${asn_total:.4f} / ${limit:.2f} ({pct:.0f}%)", flush=True)
+        if cfg["hard_stop_on_exceed"] and asn_total > limit:
+            raise RuntimeError(
+                f"[CostGuard] HARD STOP: Assignment {assignment_id} exceeded "
+                f"per-assignment budget ${limit:.2f}. Actual: ${asn_total:.4f}. "
+                f"Boss must raise the limit or close the assignment."
+            )
+
+    return cost
+
+
+def check_budget(assignment_id: Optional[str] = None) -> dict:
+    """
+    Check remaining budget before starting or continuing work.
+
+    Returns a status dict. If 'ok' is False, do not proceed — escalate to Boss.
+
+    Args:
+        assignment_id: Check per-assignment budget (optional)
+
+    Returns:
+        {
+          "ok": bool,
+          "reason": str,
+          "per_assignment": {"spent": float, "limit": float, "remaining": float},
+          "daily":          {"spent": float, "limit": float, "remaining": float},
+          "monthly":        {"spent": float, "limit": float, "remaining": float},
+        }
+    """
+    cfg = _read(_BUDGET_CFG)
+    log = _read(_USAGE_LOG)
+    entries = log["entries"]
+    today = date.today().isoformat()
+    this_month = today[:7]  # "2026-03"
+
+    daily_spent = sum(
+        e["cost_usd"] for e in entries
+        if e["timestamp"][:10] == today
+    )
+    monthly_spent = sum(
+        e["cost_usd"] for e in entries
+        if e["timestamp"][:7] == this_month
+    )
+
+    limits = cfg["limits"]
+    result = {
+        "ok": True,
+        "reason": "within budget",
+        "daily":   {"spent": round(daily_spent, 4),
+                    "limit": limits["daily_usd"],
+                    "remaining": round(limits["daily_usd"] - daily_spent, 4)},
+        "monthly": {"spent": round(monthly_spent, 4),
+                    "limit": limits["monthly_usd"],
+                    "remaining": round(limits["monthly_usd"] - monthly_spent, 4)},
+    }
+
+    if assignment_id:
+        asn_spent = sum(
+            e["cost_usd"] for e in entries
+            if e.get("assignment_id") == assignment_id
+        )
+        result["per_assignment"] = {
+            "spent": round(asn_spent, 4),
+            "limit": limits["per_assignment_usd"],
+            "remaining": round(limits["per_assignment_usd"] - asn_spent, 4),
+        }
+        if asn_spent >= limits["per_assignment_usd"]:
+            result["ok"] = False
+            result["reason"] = (f"Assignment {assignment_id} budget exhausted: "
+                                f"${asn_spent:.4f} of ${limits['per_assignment_usd']:.2f}")
+
+    if daily_spent >= limits["daily_usd"]:
+        result["ok"] = False
+        result["reason"] = f"Daily budget exhausted: ${daily_spent:.4f} of ${limits['daily_usd']:.2f}"
+
+    if monthly_spent >= limits["monthly_usd"]:
+        result["ok"] = False
+        result["reason"] = f"Monthly budget exhausted: ${monthly_spent:.4f} of ${limits['monthly_usd']:.2f}"
+
+    return result
+
+
+def get_usage_report() -> dict:
+    """
+    Boss calls this to see full spend breakdown.
+
+    Returns spend by agent, by model, by assignment, and period totals.
+    """
+    cfg = _read(_BUDGET_CFG)
+    log = _read(_USAGE_LOG)
+    entries = log["entries"]
+    today = date.today().isoformat()
+    this_month = today[:7]
+
+    def _sum(condition) -> float:
+        return round(sum(e["cost_usd"] for e in entries if condition(e)), 4)
+
+    by_agent = {}
+    by_model = {}
+    by_assignment = {}
+
+    for e in entries:
+        agent = e["agent"]
+        model = e["model"]
+        asn   = e.get("assignment_id") or "unassigned"
+
+        by_agent[agent]            = round(by_agent.get(agent, 0) + e["cost_usd"], 6)
+        by_model[model]            = round(by_model.get(model, 0) + e["cost_usd"], 6)
+        by_assignment[asn]         = round(by_assignment.get(asn, 0) + e["cost_usd"], 6)
+
+    limits = cfg["limits"]
+    daily_spent   = _sum(lambda e: e["timestamp"][:10] == today)
+    monthly_spent = _sum(lambda e: e["timestamp"][:7] == this_month)
+    total_spent   = _sum(lambda e: True)
+
+    return {
+        "total_usd":      total_spent,
+        "today_usd":      daily_spent,
+        "this_month_usd": monthly_spent,
+        "limits": {
+            "per_assignment": limits["per_assignment_usd"],
+            "daily":          limits["daily_usd"],
+            "monthly":        limits["monthly_usd"],
+        },
+        "remaining": {
+            "today":     round(limits["daily_usd"] - daily_spent, 4),
+            "this_month": round(limits["monthly_usd"] - monthly_spent, 4),
+        },
+        "by_agent":      by_agent,
+        "by_model":      by_model,
+        "by_assignment": by_assignment,
+        "call_count":    len(entries),
+    }
+
+
+def set_limit(per_assignment_usd: float = None,
+              daily_usd: float = None,
+              monthly_usd: float = None) -> None:
+    """
+    Boss calls this to adjust spending limits at any time.
+
+    Example:
+        set_limit(daily_usd=10.00)          # raise daily limit
+        set_limit(per_assignment_usd=0.25)  # tighten per-assignment
+        set_limit(monthly_usd=100.00)       # raise monthly cap
+    """
+    cfg = _read(_BUDGET_CFG)
+    if per_assignment_usd is not None:
+        cfg["limits"]["per_assignment_usd"] = per_assignment_usd
+    if daily_usd is not None:
+        cfg["limits"]["daily_usd"] = daily_usd
+    if monthly_usd is not None:
+        cfg["limits"]["monthly_usd"] = monthly_usd
+    _write(_BUDGET_CFG, cfg)
+    print(f"[CostGuard] Limits updated: {cfg['limits']}", flush=True)

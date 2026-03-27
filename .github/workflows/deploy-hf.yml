@@ -3,7 +3,7 @@ name: Deploy to HuggingFace Space
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - 'Code/ConversationalUX/ChatHealthyWhoAmIChat/**'
 

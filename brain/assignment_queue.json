@@ -1,0 +1,157 @@
+{
+  "assignments": [
+    {
+      "assignment_id": "ASN-F3A821",
+      "timestamp": "2026-03-25T22:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "GPT",
+      "title": "Plan Tuesday Release — FindCare Product: Provider Search, Safety Filter, Maps, Angular Port",
+      "description": "You are the Enterprise Architect for ChatHealthy operating under framework_02.\n\nThis assignment corrects ASN-5EE93C. That assignment gave you only Brain infrastructure context. This assignment gives you the full product picture. Plan Tuesday's release against what the Boss actually wants to ship.\n\n---\n\nWHAT CHATHEALTHY IS:\nChatHealthy is a consumer healthcare navigation product. The core product is FindCare — a chat interface that helps consumers find healthcare providers (doctors, specialists, clinics) near them. The user describes what they need in natural language, the system finds matching providers, and shows them on a map.\n\n---\n\nWHAT EXISTS TODAY (live on HuggingFace, Gradio-based, ~1050 lines in app.py):\n\n1. SAFETY FILTER — dual detection: keyword list (chest pain, stroke, etc.) + Haiku semantic check. KNOWN BUG: Haiku was triggering on vague pain statements like 'I'm in pain' and blocking the conversation. This was tightened in a recent commit but needs validation. Safety incidents are logged to MongoDB Safety.emergency_incidents. This feature is critical — it must ship.\n\n2. PROVIDER SEARCH — find_providers(specialty_query, state, city) queries providers_staging collection in MongoDB. find_specialty_codes(query) maps user language to NPI taxonomy codes using vector search + regex fallback. KNOWN BUG: MongoDB connection fails on HuggingFace because MONGO_connectionString is not available as a HuggingFace secret. Provider search silently returns empty. This is the primary blocker.\n\n3. NO GOOGLE MAPS — provider results are returned as text only. No map rendering exists. This is new work.\n\n4. CLINICAL TRIALS SEARCH — search_clinical_trials() calls ClinicalTrials.gov API. Works but is a secondary feature.\n\n5. ABOUT US / CONTACT — records user contact details to MongoDB AboutUs.lead. Works.\n\nSupported states: Delaware (DE) and Mississippi (MS) only.\n\n---\n\nWHAT THE BOSS WANTS FOR TUESDAY MARCH 30:\n\n1. Provider search working end-to-end: user asks for a provider in natural language → system finds matching providers from MongoDB → results shown in chat\n2. Safety filter validated: health questions pass through; only genuine emergencies are escalated\n3. Google Maps: provider results include a map showing provider locations\n4. Angular frontend: port from Gradio to Angular + FastAPI. This replaces the partial React shell that exists at Code/ConversationalUX/FindCareChat/frontend/. The new stack is Angular (frontend) + FastAPI (Python backend). FastAPI replaces Gradio.\n\nBrain Loop 0.1 is operational infrastructure — it is NOT a user-facing Tuesday deliverable. Do not plan Brain Loop as a Tuesday feature.\n\n---\n\nARCHITECTURE CONSTRAINTS (from Machine Brain and framework_02):\n- Three-application rule: Website (Cloudflare, static), Chat (HuggingFace/Azure, Angular+FastAPI), DataPipelines (Azure Functions). These boundaries are hard.\n- App 2 (Chat) reads from MongoDB freely. Never writes to PublicHealthData.\n- App 3 (DataPipelines) owns all PublicHealthData writes.\n- Frontend hosting: Cloudflare Pages (NOT Azure Static Web Apps — CFO directive).\n- FastAPI backend: Azure App Service B1.\n- ENV_PREFIX (dev/qa/prod) controls all database routing — not yet implemented in the Chat app.\n\n---\n\nYOUR DELIVERABLES:\n1. Feature set — what ships Tuesday 2026-03-30, what does not, with specific reasons\n2. Test schedule — phases and timing with dates\n3. Acceptance criteria — minimum 3 per feature, covering distinct behavioral dimensions\n4. End-to-end user flows — minimum 3, covering the full user journey from question to map\n5. UAT scenarios — per acceptance criterion, per UAT rules below\n6. Risk and gate recommendation — your honest assessment\n\nInclude your usage block. Return raw JSON only matching the Assurance Output schema.",
+      "scope": [
+        "Code/ConversationalUX/ChatHealthyWhoAmIChat/app.py",
+        "Code/ConversationalUX/FindCareChat/",
+        "Code/Shared/",
+        "brain/",
+        "docs/"
+      ],
+      "priority": "critical",
+      "estimated_risk": "High",
+      "status": "pending",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "uat_requirement": "UAT scenario rules: (1) If scenario exercises LLM behavior: exactly 10 semantically different boolean testable test cases. Semantic difference means different phrasing, intent, edge case, or user type — not paraphrasing. (2) If scenario exercises procedural logic only: sufficient test cases to prove all happy path(s) plus at least 2 exception paths. All test cases are boolean: true = pass, false = fail. No partial results."
+    },
+    {
+      "assignment_id": "ASN-5EE93C",
+      "timestamp": "2026-03-25T17:14:36.898479+00:00",
+      "from": "Boss",
+      "assigned_to": "GPT",
+      "title": "Plan Tuesday Release â€” Feature Set, Test Schedule, Acceptance Criteria",
+      "description": "You are the Enterprise Architect for ChatHealthy operating under framework_02.\n\nRead the Brain Loop manual and these repo files before starting:\n  brain/assignment_queue.json\n  brain/budget_config.json\n  Code/Shared/brain_loop.py\n  Code/Shared/brain_auth.py\n  docs/machine-brain-claude-spec.md\n\nYour deliverables:\n1. Feature set â€” what ships Tuesday 2026-03-30, what does not\n2. Test schedule â€” phases and timing relative to release\n3. Acceptance criteria â€” per feature, per risk level\n4. 3 to 5 end-to-end user flows with pass/fail criteria\n5. UAT scenarios — exactly 10 per acceptance criterion, each boolean (true/false pass/fail), independently testable, no ambiguous expected results\n6. Gate recommendation â€” your overall risk assessment for the Tuesday release\n\nKey context:\n- Brain Loop 0.1 is itself a Tuesday deliverable\n- FastAPI backend port from Gradio is the largest open item (not started)\n- ENV_PREFIX migration across DataPipelines and app.py is pending\n- Voyage API key not yet configured (Machine Brain embeddings pending)\n- No Suicidal-risk items ship without Boss in-session sign-off\n\nWrite your output in the Assurance Output schema defined in brain_loop.py.\nInclude your usage block for cost tracking.\nPaste the completed JSON to Boss. He will commit it to brain/assurance_results.json.",
+      "scope": [
+        "brain/",
+        "Code/Shared/",
+        "Code/ConversationalUX/",
+        "Code/DataPipelines/",
+        "docs/"
+      ],
+      "priority": "high",
+      "estimated_risk": "Moderate",
+      "status": "pending",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "uat_requirement": "UAT scenario rules: (1) If scenario exercises LLM behavior: 10 semantically different boolean testable test cases. Semantic difference means different phrasing, intent, edge case, or user type — not paraphrasing. (2) If scenario exercises procedural logic only: sufficient test cases to prove all happy path(s) plus at least 2 exception paths. All test cases are boolean: true = pass, false = fail. No partial results."
+    },
+    {
+      "assignment_id": "ASN-12058C",
+      "timestamp": "2026-03-26T15:11:09.009734+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Port FindCare to FastAPI + React — complete Gradio feature parity",
+      "description": "Port the production Gradio app at Code/ConversationalUX/ChatHealthyWhoAmIChat/app.py\nto the FastAPI + React stack at Code/ConversationalUX/FindCareChat/.\n\nFIRST: Read app.py in full. List any functionality you find that is NOT covered\nby boss_scope in your review pack tradeoff_suggestions — Boss must decide.\n\nWHAT IS ALREADY BUILT (do NOT rewrite):\n- backend/main.py: safety filter, provider search tools, clinical trials, HIPAA\n  consent flow, de-identification, MongoDB, SparkPost notifications — all ported.\n- frontend/src/: ChatWindow + MessageBubble React shell with emergency lock,\n  markdown rendering, loading state.\n\nWHAT YOU MUST COMPLETE:\n\n1. SWITCH CHAT ENGINE — Replace gpt-4o-mini with Claude claude-sonnet-4-6:\n   - Replace OpenAI client.chat.completions.create() with Anthropic messages.create()\n   - Re-define all 6 tool schemas in Anthropic format (input_schema, not parameters)\n   - Replace OpenAI tool_calls loop with Anthropic tool_use content block loop\n   - Haiku stays for: safety check, query expansion, summarization, de-identification\n\n2. COMPLETE POST /chat ENDPOINT:\n   - Input: {message: str, history: [{role, content}]}\n   - Output: {response: str, emergency: bool}\n   - Read client IP from FastAPI Request object for emergency lock checks\n   - Check IP lock (in-memory + MongoDB) and session lock (scan history) before chat\n   - Admin unlock: detect \"UNLOCK:<ADMIN_UNLOCK_KEY>\" and clear lock\n   - Follow-up check: every 5th user message, insert system message prompting\n     the follow-up offer (same logic as Gradio lines 1002-1010)\n\n3. SYSTEM PROMPT + CONTEXT:\n   - Implement _load_me_context(): load me/summary.txt, me/*.pdf (via pypdf),\n     me/findcare-code-package.json — same as Gradio Me.build_context()\n   - Build system prompt with all 7 rules (EMERGENCY, SOURCE RESTRICTION, NO HEDGING,\n     MEDICAL vs NAVIGATION, TOOL CALL ORDER, MULTIPLE QUESTIONS, CODEBASE CONTEXT)\n   - Skip Snow character, source restriction, ChatHealthy context\n\n4. ENV_PREFIX ROUTING:\n   - Every MongoDB db[\"DatabaseName\"] reference must use ENV_PREFIX:\n     db[f\"{ENV_PREFIX}_DatabaseName\"]\n   - ENV_PREFIX = os.getenv(\"ENV_PREFIX\", \"dev\")\n\n5. COLLECTION NAME FIX:\n   - Gradio writes leads to Users.users — this is wrong per architecture\n   - CLAUDE.md specifies AboutUs.lead — use that\n   - Verify record_unknown_question also writes to correct collection\n\n6. IFRAME COMPATIBILITY:\n   - Add CORSMiddleware allowing: https://chathealthy.ai, https://dev.chathealthy.ai,\n     https://www.chathealthy.ai, http://localhost:* (dev)\n   - Do NOT set X-Frame-Options: DENY — must be embeddable in Cloudflare iframe\n   - No React changes needed (frontend builds static files)\n\n7. PORT AS-IS — DO NOT FIX BUGS:\n   - If a feature is broken in the Gradio app, port it identically broken\n   - Focus is end-to-end plumbing: React -> FastAPI -> Claude -> React\n   - Functional fixes are a separate assignment\n\n8. DEBUG MODE:\n   - If DEBUG env var is True, catch ALL exceptions in /chat and return them\n     in the response: {response: null, emergency: false, error: \"traceback...\"}\n   - React frontend: if response.error is present, render it as a visible\n     error bubble in the chat UI (distinguish visually from normal messages)\n   - All errors must also go through Python logging (not print)\n\n9. REPLACE ALL PRINT() WITH LOGGING:\n   - Scan main.py (and all files you touch) for print() calls\n   - Replace with logging.info(), logging.debug(), logging.warning(), logging.error()\n   - No print() statements in the final committed code\n\nCONTEXT FILES (read for behavior reference):\n  Code/ConversationalUX/ChatHealthyWhoAmIChat/app.py -- source of truth for all behavior\n  Code/Shared/ChatHealthyMongoUtilities.py -- MongoDB connection manager\n\nDO NOT TOUCH:\n  Code/DataPipelines/ -- different app, different deploy\n  brain/ -- not part of this feature\n",
+      "scope": [
+        "Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Code/ConversationalUX/FindCareChat/backend/requirements.txt",
+        "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx",
+        "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx",
+        "Code/ConversationalUX/ChatHealthyWhoAmIChat/app.py"
+      ],
+      "priority": "critical",
+      "estimated_risk": "High",
+      "status": "in_progress",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "uat_requirement": "UAT scenario rules: (1) If scenario exercises LLM behavior: exactly 10 semantically different boolean testable test cases. Semantic difference means different phrasing, intent, edge case, or user type -- not paraphrasing. (2) If scenario exercises procedural logic only: sufficient test cases to prove all happy path(s) plus at least 2 exception paths. All test cases are boolean: true = pass, false = fail. No partial results.",
+      "feature_context": "ChatHealthy is a healthcare navigation chat embedded in chathealthy.ai via iframe. The production Gradio app has two roles: (1) FindCare -- help users find providers in DE/MS, clinical trials, specialty info; (2) About ChatHealthy -- answer questions about the company and collect leads. Both run in one unified session.\n\nThe app must work inside an iframe on chathealthy.ai (Cloudflare Pages). The FastAPI backend runs on HuggingFace Space SkipSnow/dev_ChatHealthyChatApp (docker SDK). The React frontend builds to static files deployed on Cloudflare Pages (chathealthy-dev).\n\nPer CLAUDE.md architecture: App 2 (Chat) uses Direct Anthropic SDK -- Claude handles routing, tool calls, response. App 2 reads from DB freely; never writes to PublicHealthData. HIPAA consent flow and de-identification apply to all user data.",
+      "boss_scope": [
+        "POST /chat endpoint: receives {message, history}, returns {response, emergency}. All tools wired. Emergency lock enforced.",
+        "Claude claude-sonnet-4-6 as main chat engine -- NOT gpt-4o-mini",
+        "All 6 tools re-defined in Anthropic tool_use format and wired: find_providers, find_specialty_codes, search_clinical_trials, record_user_details, record_unknown_question, commitSignificantActivity",
+        "System prompt: all 7 rules, Skip Snow character, context loaded from me/ directory, follow-up check every 5th message",
+        "CORS headers: allow chathealthy.ai, dev.chathealthy.ai, localhost. No X-Frame-Options: DENY.",
+        "ENV_PREFIX on all MongoDB database name references",
+        "Collection fix: leads write to AboutUs.lead (not Users.users)",
+        "Missed requirements: read app.py in full, report anything not in scope in review pack",
+        "Port as-is: do not fix broken features -- focus is end-to-end plumbing (React <-> FastAPI <-> Claude)",
+        "Debug mode: if DEBUG=True, return errors in response body for React to render visibly in chat UI",
+        "Replace ALL print() with logging -- no print() statements in committed code",
+        "commitSignificantActivity: verify it is wired and uses ENV_PREFIX for database routing"
+      ],
+      "picked_up_at": "2026-03-26T15:22:27.500688+00:00"
+    },
+    {
+      "assignment_id": "ASN-1F9268",
+      "timestamp": "2026-03-26T15:21:28.155764+00:00",
+      "from": "Boss",
+      "assigned_to": "GPT",
+      "title": "Generate UAT test cases for all FindCare user features — Excel spreadsheet",
+      "description": "Generate UAT (User Acceptance Test) cases for all user-facing features of the\nChatHealthy FindCare app. This is NOT a code review. Your deliverable is a\ncomprehensive test suite that a human tester executes in a browser.\n\nREAD THESE FILES FIRST (in Repo Context section — they are your source of truth):\n  Code/ConversationalUX/ChatHealthyWhoAmIChat/app.py  -- production Gradio app\n  Code/ConversationalUX/FindCareChat/backend/main.py  -- FastAPI port\n  Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx -- React UI\n\nUSER-FACING FEATURES TO TEST (these are what a human tester sees and interacts with):\n  1. Provider Search -- user types natural language, system finds DE/MS providers,\n     results appear in chat\n  2. Specialty Identification -- user asks \"what kind of doctor for X?\", system\n     explains the specialty and what they treat\n  3. Clinical Trials Search -- user asks about trials for a condition, system\n     returns recruiting trials from ClinicalTrials.gov\n  4. About ChatHealthy / Founder Questions -- user asks about the company or Skip Snow,\n     system answers from provided context (NOT general internet knowledge)\n  5. Safety Filter -- genuine emergencies (chest pain, stroke, overdose, suicidal\n     ideation) trigger the emergency response and lock the chat; vague pain\n     statements do NOT trigger it\n  6. Contact Collection / Lead Capture -- system offers follow-up every 5th message\n     if no contact details yet; user can provide email and name\n  7. HIPAA Consent Flow -- after collecting contact info, system asks verbatim\n     consent (tier 1), then de-identified summary consent (tier 2), then\n     contact-only fallback; each path results in the correct storage\n  8. IFrame Embedding -- app loads and operates correctly when embedded in an\n     iframe on chathealthy.ai; no broken UI, no blocked interactions\n\nTEST CASE RULES (user testing only -- NOT system settings, NOT env vars, NOT infra):\n  - Every test case is an action a human tester performs in the browser\n  - Every acceptance_criterion is a specific, observable, unambiguous pass condition\n  - Every expected_result is boolean: true = this should pass, false = this should fail\n  - Minimum 5 test cases per feature\n  - Include: happy path, edge cases, negative cases\n  - For LLM-behavior features: use semantically different inputs (different phrasing,\n    user types, edge cases) -- not paraphrases\n  - For procedural features: all happy paths + minimum 2 exception paths\n\nREQUIRED OUTPUT -- in addition to standard Assurance Output schema fields:\n\n1. acceptance_criteria: per-feature boolean criteria (use existing schema field)\n   Each entry: { criterion_id, feature, criterion (specific pass condition), risk }\n\n2. uat_scenarios: detailed test cases (use existing schema field)\n   Each entry has test_cases with { case_id, input (what tester does), expected (bool),\n   rationale }\n\n3. Add field \"excel_test_suite\": array, one object per feature:\n   {\n     \"feature\": \"Feature Name\",\n     \"description\": \"2-sentence plain English description of what the user experiences\",\n     \"test_cases\": [\n       {\n         \"test_id\": \"TC-001\",\n         \"scenario\": \"Plain English: what the tester does step by step\",\n         \"acceptance_criterion\": \"Specific, observable pass condition\",\n         \"expected_result\": true\n       }\n     ]\n   }\n\n4. Add field \"excel_generator_script\": a working Python script (string) that:\n   - Reads this JSON file from brain/assurance_results.json\n   - Finds the entry with this assignment_id\n   - Reads excel_test_suite\n   - Uses openpyxl to generate uat_test_cases.xlsx with:\n       * One sheet per feature (or sections within one sheet -- Boss decides)\n       * Feature name as bold section header\n       * Feature description below header\n       * Column headers: Test ID | Scenario | Acceptance Criterion | Expected Result\n       * Expected Result column shows TRUE or FALSE in green/red fill\n       * Rows are alternating white/light-gray for readability\n\nSTANDARD ASSURANCE OUTPUT (fill these minimally -- this is not a code review):\n  architecture_status: \"pass\"\n  behavior_status: \"pass\"\n  risk: \"Low\"\n  gate_recommendation: \"auto\"\n  issues: []\n  notes: \"UAT test case generation assignment -- not a code review\"\n  scope_assessment: []\n  tradeoff_suggestions: []\n  requirements: derive 5+ user-level functional requirements from the 8 features above\n  feature_set.ships_tuesday: list all 8 features above\n  feature_set.deferred: []\n  test_schedule: 3 phases -- preparation, execution, sign-off -- with specific dates\n  machine_brain_context_used: every MB record you read from the MACHINE BRAIN CONTEXT block\n",
+      "scope": [
+        "Code/ConversationalUX/ChatHealthyWhoAmIChat/app.py",
+        "Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx",
+        "brain/assignment_queue.json"
+      ],
+      "priority": "high",
+      "estimated_risk": "Low",
+      "status": "pending",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "uat_requirement": "UAT scenario rules: (1) If scenario exercises LLM behavior: exactly 10 semantically different boolean testable test cases. Semantic difference means different phrasing, intent, edge case, or user type -- not paraphrasing. (2) If scenario exercises procedural logic only: sufficient test cases to prove all happy path(s) plus at least 2 exception paths. All test cases are boolean: true = pass, false = fail. No partial results.",
+      "feature_context": "ChatHealthy FindCare is a healthcare navigation chat embedded in chathealthy.ai via iframe. Users find providers (DE/MS only), search clinical trials, ask about the company, and receive emergency safety guidance. The production app is Gradio-based (app.py). The new stack is FastAPI + React (partially built). Tests cover user experience in the browser -- not code internals. Target testers are non-technical: Skip Snow and invited reviewers.",
+      "boss_scope": [
+        "excel_test_suite field: organized test cases per feature, minimum 5 per feature, covering all 8 user-facing features",
+        "excel_generator_script field: working Python openpyxl script that generates uat_test_cases.xlsx from this JSON",
+        "All test cases are user-level actions in the browser -- no code, no config, no env var tests",
+        "Boolean expected_result on every test case (true = should pass, false = should fail/block)",
+        "Feature description as section header in both the JSON and the Excel output",
+        "acceptance_criteria: minimum 3 per feature, covering distinct behavioral dimensions",
+        "uat_scenarios: minimum 5 test cases per scenario using standard UAT rules"
+      ]
+    },
+    {
+      "assignment_id": "ASN-6D0265",
+      "timestamp": "2026-03-26T15:35:58.862872+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Migrate brain loop persistence from JSON files to MongoDB",
+      "description": "All brain loop data that is currently persisted to JSON files must be persisted to MongoDB instead.\n\nFiles to migrate:\n- brain/assignment_queue.json — assignment records (write_assignment, pick_up_assignment, close_assignment)\n- brain/assurance_results.json — GPT/Claude review output (write_review_pack, run_uat, close_review)\n- brain/usage_log.json — token usage per brain_runner run\n\nREQUIREMENTS:\n1. All reads/writes that currently target these JSON files must target MongoDB collections instead\n2. Use ENV_PREFIX for all database routing (dev/qa/prod)\n3. Define collections under a Brain database: Brain.assignments, Brain.assurance_results, Brain.usage_log\n4. Maintain backward-compatible field schemas — existing assignment fields unchanged\n5. brain_loop.py and brain_runner.py are the primary files to update\n6. Remove JSON file persistence once MongoDB is verified — do not keep dual writes\n\nDO NOT IMPLEMENT NOW — backlog item.",
+      "scope": [
+        "Code/Shared/brain_loop.py",
+        "Code/Shared/brain_runner.py",
+        "brain/assignment_queue.json",
+        "brain/assurance_results.json",
+        "brain/usage_log.json"
+      ],
+      "priority": "low",
+      "estimated_risk": "Medium",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null
+    },
+    {
+      "assignment_id": "ASN-CB1468",
+      "timestamp": "2026-03-26T20:40:56.848085+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Break fix environment for FindCare dev",
+      "description": "Create a break fix environment to enable rapid debugging without waiting for HuggingFace deploys.\n\nREQUIREMENTS:\n1. Local run capability: developer can start the FastAPI backend locally with a single command using .env credentials\n2. Local frontend: React dev server points at local backend (VITE_API_URL=http://localhost:8000)\n3. Document the local run procedure in a README or CLAUDE.md entry\n4. Consider a second HF Space (e.g. breakfix_ChatHealthyAIChatWindow) with DEBUG=true for cloud-based break fix\n\nDO NOT IMPLEMENT NOW — backlog item.",
+      "scope": [
+        "Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Code/ConversationalUX/FindCareChat/backend/Dockerfile",
+        ".github/workflows/deploy-findcare-backend.yml"
+      ],
+      "priority": "medium",
+      "estimated_risk": "Low",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null
+    }
+  ]
+}

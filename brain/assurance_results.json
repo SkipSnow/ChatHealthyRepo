@@ -1,0 +1,564 @@
+{
+  "results": [
+    {
+      "review_id": "ASN-5EE93C",
+      "assignment_id": "ASN-5EE93C",
+      "timestamp": "2026-03-25T12:00:00Z",
+      "architecture_status": "pass",
+      "behavior_status": "pass",
+      "risk": "Moderate",
+      "issues": [],
+      "gate_recommendation": "proceed_with_warning",
+      "notes": "The FastAPI port is a significant change but aligns with architectural goals. The ENV_PREFIX migration and Voyage API key configuration are pending, which could impact functionality if not resolved promptly.",
+      "feature_set": {
+        "ships_tuesday": [
+          {
+            "feature": "Brain Loop 0.1",
+            "description": "Initial release of Brain Loop with core functionality for autonomous review loop.",
+            "risk": "Moderate"
+          }
+        ],
+        "deferred": [
+          {
+            "feature": "FastAPI backend port",
+            "reason": "Not started; critical for production readiness."
+          },
+          {
+            "feature": "ENV_PREFIX migration",
+            "reason": "Pending migration across DataPipelines and app.py."
+          },
+          {
+            "feature": "Voyage API key configuration",
+            "reason": "Machine Brain embeddings pending configuration."
+          }
+        ]
+      },
+      "test_schedule": [
+        {
+          "phase": "Unit Testing",
+          "timing": "2026-03-28T09:00:00Z",
+          "owner": "Claude",
+          "description": "Test individual components of Brain Loop 0.1 for expected behavior."
+        },
+        {
+          "phase": "Integration Testing",
+          "timing": "2026-03-29T09:00:00Z",
+          "owner": "Claude",
+          "description": "Ensure all components of Brain Loop 0.1 work together seamlessly."
+        },
+        {
+          "phase": "User Acceptance Testing",
+          "timing": "2026-03-29T15:00:00Z",
+          "owner": "GPT",
+          "description": "Validate the system against user scenarios and acceptance criteria."
+        }
+      ],
+      "acceptance_criteria": [
+        {
+          "criterion_id": "AC-001",
+          "feature": "Brain Loop 0.1",
+          "criterion": "The system must autonomously handle review loops without manual intervention.",
+          "risk": "Moderate"
+        },
+        {
+          "criterion_id": "AC-002",
+          "feature": "Brain Loop 0.1",
+          "criterion": "The system must log all actions and decisions for auditability.",
+          "risk": "Moderate"
+        },
+        {
+          "criterion_id": "AC-003",
+          "feature": "Brain Loop 0.1",
+          "criterion": "The system must enforce budget constraints as per configuration.",
+          "risk": "Moderate"
+        }
+      ],
+      "e2e_flows": [
+        {
+          "flow_id": "E2E-001",
+          "title": "Autonomous Review Loop Execution",
+          "actor": "Claude",
+          "steps": [
+            "Claude picks up an assignment from the queue.",
+            "Claude completes the implementation work.",
+            "Claude writes a review pack and submits it."
+          ],
+          "pass_condition": "The review pack is processed without errors and logged.",
+          "fail_condition": "The review pack processing fails or logs an error."
+        },
+        {
+          "flow_id": "E2E-002",
+          "title": "Budget Enforcement",
+          "actor": "GPT",
+          "steps": [
+            "GPT checks the budget before starting work.",
+            "GPT logs usage after each API call.",
+            "GPT alerts if budget thresholds are exceeded."
+          ],
+          "pass_condition": "Budget alerts are triggered correctly when thresholds are exceeded.",
+          "fail_condition": "Budget alerts fail to trigger when thresholds are exceeded."
+        },
+        {
+          "flow_id": "E2E-003",
+          "title": "Audit Log Verification",
+          "actor": "Boss",
+          "steps": [
+            "Boss reviews the audit log for a completed assignment.",
+            "Boss verifies all actions and decisions are logged.",
+            "Boss confirms the log matches expected actions."
+          ],
+          "pass_condition": "All actions and decisions are present and correct in the log.",
+          "fail_condition": "Missing or incorrect entries in the audit log."
+        }
+      ],
+      "uat_scenarios": [
+        {
+          "scenario_id": "UAT-001",
+          "description": "Verify autonomous handling of review loops.",
+          "component": "Brain Loop 0.1",
+          "scenario_type": "procedural",
+          "acceptance_criterion": "AC-001",
+          "test_cases": [
+            {
+              "case_id": "UAT-001-TC-01",
+              "input": "Assignment picked up by Claude",
+              "expected": true,
+              "rationale": "Claude should autonomously handle the assignment."
+            },
+            {
+              "case_id": "UAT-001-TC-02",
+              "input": "Review pack submitted by Claude",
+              "expected": true,
+              "rationale": "Review pack submission should be autonomous."
+            },
+            {
+              "case_id": "UAT-001-TC-03",
+              "input": "Manual intervention required",
+              "expected": false,
+              "rationale": "System should not require manual intervention."
+            }
+          ]
+        },
+        {
+          "scenario_id": "UAT-002",
+          "description": "Verify logging of actions and decisions.",
+          "component": "Brain Loop 0.1",
+          "scenario_type": "procedural",
+          "acceptance_criterion": "AC-002",
+          "test_cases": [
+            {
+              "case_id": "UAT-002-TC-01",
+              "input": "Action performed by Claude",
+              "expected": true,
+              "rationale": "All actions should be logged."
+            },
+            {
+              "case_id": "UAT-002-TC-02",
+              "input": "Decision made by GPT",
+              "expected": true,
+              "rationale": "All decisions should be logged."
+            },
+            {
+              "case_id": "UAT-002-TC-03",
+              "input": "Log entry missing",
+              "expected": false,
+              "rationale": "No log entries should be missing."
+            }
+          ]
+        },
+        {
+          "scenario_id": "UAT-003",
+          "description": "Verify budget enforcement.",
+          "component": "Brain Loop 0.1",
+          "scenario_type": "procedural",
+          "acceptance_criterion": "AC-003",
+          "test_cases": [
+            {
+              "case_id": "UAT-003-TC-01",
+              "input": "API call within budget",
+              "expected": true,
+              "rationale": "Calls within budget should proceed."
+            },
+            {
+              "case_id": "UAT-003-TC-02",
+              "input": "API call exceeding budget",
+              "expected": false,
+              "rationale": "Calls exceeding budget should be blocked."
+            },
+            {
+              "case_id": "UAT-003-TC-03",
+              "input": "Budget alert triggered",
+              "expected": true,
+              "rationale": "Alerts should trigger when budget is exceeded."
+            }
+          ]
+        }
+      ],
+      "usage": {
+        "agent": "GPT",
+        "model": "gpt-4o",
+        "tokens_in": 1500,
+        "tokens_out": 600,
+        "assignment_id": "ASN-5EE93C"
+      },
+      "machine_brain_context_used": [
+        {
+          "mb_id": "MB-0099",
+          "topic": "Full Bootstrap Narrative",
+          "applied": "Provided overall context for the architectural decisions and system design."
+        },
+        {
+          "mb_id": "MB-0023",
+          "topic": "Three-Application Topology",
+          "applied": "Ensured the separation of applications is maintained in the feature set."
+        },
+        {
+          "mb_id": "MB-0022",
+          "topic": "FastAPI Productionization Direction",
+          "applied": "Guided the understanding of the FastAPI port's importance and constraints."
+        },
+        {
+          "mb_id": "MB-0019",
+          "topic": "Agentic New-World QA",
+          "applied": "Informed the QA strategy, focusing on AI-specific testing patterns."
+        }
+      ]
+    },
+    {
+      "review_id": "ASN-F3A821",
+      "assignment_id": "ASN-F3A821",
+      "timestamp": "2026-03-28T12:00:00Z",
+      "architecture_status": "pass",
+      "behavior_status": "fail",
+      "risk": "High",
+      "issues": [
+        "Provider search fails due to missing MongoDB connection string on HuggingFace.",
+        "Safety filter requires further validation to ensure it only escalates genuine emergencies."
+      ],
+      "gate_recommendation": "escalate",
+      "notes": "The provider search feature is critical and currently non-functional due to missing environment configuration. Safety filter validation is incomplete, posing a risk to user experience.",
+      "requirements": [
+        {
+          "req_id": "REQ-001",
+          "feature": "Provider Search",
+          "requirement": "The system must connect to MongoDB using a secure connection string stored as an environment variable.",
+          "source": "architecture constraint",
+          "priority": "must-have"
+        },
+        {
+          "req_id": "REQ-002",
+          "feature": "Safety Filter",
+          "requirement": "The system must log all emergency triggers to MongoDB Safety.emergency_incidents.",
+          "source": "architecture constraint",
+          "priority": "must-have"
+        },
+        {
+          "req_id": "REQ-003",
+          "feature": "Google Maps Integration",
+          "requirement": "The system must display provider locations on an embedded Google Map within the chat interface.",
+          "source": "architecture constraint",
+          "priority": "must-have"
+        },
+        {
+          "req_id": "REQ-004",
+          "feature": "Angular Frontend",
+          "requirement": "The system must use Angular for the frontend, hosted on Cloudflare Pages.",
+          "source": "architecture constraint",
+          "priority": "must-have"
+        },
+        {
+          "req_id": "REQ-005",
+          "feature": "Provider Search",
+          "requirement": "The system must return up to 10 providers per query, filtered by state and optionally by city.",
+          "source": "architecture constraint",
+          "priority": "must-have"
+        }
+      ],
+      "feature_set": {
+        "ships_tuesday": [
+          {
+            "feature": "Safety Filter",
+            "description": "Validates health questions and escalates genuine emergencies.",
+            "risk": "Moderate"
+          },
+          {
+            "feature": "Angular Frontend",
+            "description": "Port from Gradio to Angular + FastAPI.",
+            "risk": "High"
+          }
+        ],
+        "deferred": [
+          {
+            "feature": "Provider Search",
+            "reason": "MongoDB connection issue on HuggingFace needs resolution."
+          },
+          {
+            "feature": "Google Maps Integration",
+            "reason": "Requires completion of provider search functionality."
+          }
+        ]
+      },
+      "test_schedule": [
+        {
+          "phase": "Unit Testing",
+          "timing": "2026-03-28T14:00:00Z",
+          "owner": "Claude",
+          "description": "Test individual components for functionality and integration."
+        },
+        {
+          "phase": "Integration Testing",
+          "timing": "2026-03-29T10:00:00Z",
+          "owner": "GPT",
+          "description": "Test the integration of Angular frontend with FastAPI backend."
+        },
+        {
+          "phase": "User Acceptance Testing",
+          "timing": "2026-03-29T16:00:00Z",
+          "owner": "Boss",
+          "description": "Validate end-to-end user flows and acceptance criteria."
+        }
+      ],
+      "acceptance_criteria": [
+        {
+          "criterion_id": "AC-001",
+          "feature": "Safety Filter",
+          "criterion": "The system must allow non-emergency health questions to pass through without escalation.",
+          "risk": "Moderate"
+        },
+        {
+          "criterion_id": "AC-002",
+          "feature": "Safety Filter",
+          "criterion": "The system must log all emergency incidents with de-identified chat history.",
+          "risk": "High"
+        },
+        {
+          "criterion_id": "AC-003",
+          "feature": "Angular Frontend",
+          "criterion": "The Angular frontend must render correctly on Cloudflare Pages.",
+          "risk": "High"
+        }
+      ],
+      "e2e_flows": [
+        {
+          "flow_id": "E2E-001",
+          "title": "User searches for a provider",
+          "actor": "User",
+          "steps": [
+            "User enters a natural language query for a healthcare provider.",
+            "System maps the query to NPI taxonomy codes.",
+            "System returns matching providers in the chat interface."
+          ],
+          "pass_condition": "Providers are displayed in the chat interface.",
+          "fail_condition": "No providers are displayed or an error message is shown."
+        },
+        {
+          "flow_id": "E2E-002",
+          "title": "Safety filter escalation",
+          "actor": "User",
+          "steps": [
+            "User mentions a keyword indicating an emergency.",
+            "System triggers the safety filter.",
+            "System logs the incident and escalates appropriately."
+          ],
+          "pass_condition": "Incident is logged and escalated.",
+          "fail_condition": "Incident is not logged or escalated."
+        },
+        {
+          "flow_id": "E2E-003",
+          "title": "Angular frontend rendering",
+          "actor": "User",
+          "steps": [
+            "User accesses the chat interface.",
+            "Angular frontend loads and displays the chat interface.",
+            "User interacts with the chat interface."
+          ],
+          "pass_condition": "Chat interface loads and functions correctly.",
+          "fail_condition": "Chat interface fails to load or has functional issues."
+        }
+      ],
+      "uat_scenarios": [
+        {
+          "scenario_id": "UAT-001",
+          "description": "Validate non-emergency health questions pass through the safety filter.",
+          "component": "Safety Filter",
+          "scenario_type": "llm",
+          "acceptance_criterion": "AC-001",
+          "test_cases": [
+            {
+              "case_id": "UAT-001-TC-01",
+              "input": "I have a headache.",
+              "expected": true,
+              "rationale": "Headache is not an emergency keyword."
+            },
+            {
+              "case_id": "UAT-001-TC-02",
+              "input": "I need a doctor for my cold.",
+              "expected": true,
+              "rationale": "Cold is not an emergency keyword."
+            },
+            {
+              "case_id": "UAT-001-TC-03",
+              "input": "Can you help with my back pain?",
+              "expected": true,
+              "rationale": "Back pain is not an emergency keyword."
+            },
+            {
+              "case_id": "UAT-001-TC-04",
+              "input": "I feel dizzy sometimes.",
+              "expected": true,
+              "rationale": "Dizziness is not an emergency keyword."
+            },
+            {
+              "case_id": "UAT-001-TC-05",
+              "input": "I have a mild fever.",
+              "expected": true,
+              "rationale": "Mild fever is not an emergency keyword."
+            },
+            {
+              "case_id": "UAT-001-TC-06",
+              "input": "I need advice on my diet.",
+              "expected": true,
+              "rationale": "Diet advice is not an emergency keyword."
+            },
+            {
+              "case_id": "UAT-001-TC-07",
+              "input": "I am feeling anxious.",
+              "expected": true,
+              "rationale": "Anxiety is not an emergency keyword."
+            },
+            {
+              "case_id": "UAT-001-TC-08",
+              "input": "I have a sore throat.",
+              "expected": true,
+              "rationale": "Sore throat is not an emergency keyword."
+            },
+            {
+              "case_id": "UAT-001-TC-09",
+              "input": "I need a prescription refill.",
+              "expected": true,
+              "rationale": "Prescription refill is not an emergency keyword."
+            },
+            {
+              "case_id": "UAT-001-TC-10",
+              "input": "I have a rash on my arm.",
+              "expected": true,
+              "rationale": "Rash is not an emergency keyword."
+            }
+          ]
+        },
+        {
+          "scenario_id": "UAT-002",
+          "description": "Log emergency incidents with de-identified chat history.",
+          "component": "Safety Filter",
+          "scenario_type": "procedural",
+          "acceptance_criterion": "AC-002",
+          "test_cases": [
+            {
+              "case_id": "UAT-002-TC-01",
+              "input": "User mentions 'chest pain'.",
+              "expected": true,
+              "rationale": "Chest pain is an emergency keyword, should be logged."
+            },
+            {
+              "case_id": "UAT-002-TC-02",
+              "input": "User mentions 'heart attack'.",
+              "expected": true,
+              "rationale": "Heart attack is an emergency keyword, should be logged."
+            },
+            {
+              "case_id": "UAT-002-TC-03",
+              "input": "User mentions 'suicidal thoughts'.",
+              "expected": true,
+              "rationale": "Suicidal thoughts are an emergency keyword, should be logged."
+            },
+            {
+              "case_id": "UAT-002-TC-04",
+              "input": "Database connection fails during logging.",
+              "expected": false,
+              "rationale": "Logging should fail gracefully without crashing the system."
+            },
+            {
+              "case_id": "UAT-002-TC-05",
+              "input": "User mentions 'severe bleeding'.",
+              "expected": true,
+              "rationale": "Severe bleeding is an emergency keyword, should be logged."
+            }
+          ]
+        },
+        {
+          "scenario_id": "UAT-003",
+          "description": "Angular frontend renders correctly on Cloudflare Pages.",
+          "component": "Angular Frontend",
+          "scenario_type": "procedural",
+          "acceptance_criterion": "AC-003",
+          "test_cases": [
+            {
+              "case_id": "UAT-003-TC-01",
+              "input": "User accesses the chat interface.",
+              "expected": true,
+              "rationale": "The interface should load without errors."
+            },
+            {
+              "case_id": "UAT-003-TC-02",
+              "input": "User interacts with the chat interface.",
+              "expected": true,
+              "rationale": "The interface should respond to user interactions."
+            },
+            {
+              "case_id": "UAT-003-TC-03",
+              "input": "Network latency is high.",
+              "expected": false,
+              "rationale": "The interface should handle latency gracefully."
+            },
+            {
+              "case_id": "UAT-003-TC-04",
+              "input": "User accesses the interface on a mobile device.",
+              "expected": true,
+              "rationale": "The interface should be responsive on mobile devices."
+            },
+            {
+              "case_id": "UAT-003-TC-05",
+              "input": "User accesses the interface with an outdated browser.",
+              "expected": false,
+              "rationale": "The interface may not support outdated browsers."
+            }
+          ]
+        }
+      ],
+      "usage": {
+        "agent": "GPT",
+        "model": "gpt-4o",
+        "tokens_in": 1500,
+        "tokens_out": 500,
+        "assignment_id": "ASN-F3A821"
+      },
+      "machine_brain_context_used": [
+        {
+          "mb_id": "REQ-STACK-002",
+          "topic": "MongoDB Connection — Environment Secret",
+          "applied": "Ensured MongoDB connection string is set as an environment variable to resolve connection issues."
+        },
+        {
+          "mb_id": "REQ-STACK-001",
+          "topic": "Frontend Stack — Angular + FastAPI",
+          "applied": "Guided the transition from Gradio to Angular and FastAPI for the frontend and backend."
+        },
+        {
+          "mb_id": "REQ-MAPS-001",
+          "topic": "Google Maps — Provider Location Display",
+          "applied": "Outlined the requirement for embedding Google Maps in the chat interface."
+        },
+        {
+          "mb_id": "REQ-PROVIDER-001",
+          "topic": "Provider Search — Core User Story",
+          "applied": "Defined the core functionality of provider search using natural language input."
+        },
+        {
+          "mb_id": "REQ-SAFETY-003",
+          "topic": "Safety Filter — Keyword List",
+          "applied": "Ensured the safety filter uses a hardcoded keyword list for emergency detection."
+        }
+      ]
+    }
+  ]
+}

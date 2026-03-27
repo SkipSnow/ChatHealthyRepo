@@ -1,0 +1,60 @@
+name: Deploy FindCare Backend to HuggingFace
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'Code/ConversationalUX/FindCareChat/backend/**'
+      - 'Code/ConversationalUX/ChatHealthyWhoAmIChat/me/**'
+      - 'Code/Shared/ChatHealthyMongoUtilities.py'
+      - '.github/workflows/deploy-findcare-backend.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Push to HuggingFace Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git config --global user.email "skip.snow@gmail.com"
+          git config --global user.name "SkipSnow"
+          git lfs install
+
+          git clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/dev_ChatHealthyAIChatWindow hf_space
+
+          find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
+
+          # Backend code
+          rsync -av \
+            --exclude='.env' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            Code/ConversationalUX/FindCareChat/backend/ hf_space/
+
+          # Shared MongoDB utility
+          cp Code/Shared/ChatHealthyMongoUtilities.py hf_space/
+
+          # me/ context files (PDFs, summary, codebase)
+          mkdir -p hf_space/me
+          rsync -av Code/ConversationalUX/ChatHealthyWhoAmIChat/me/ hf_space/me/
+
+          echo "${{ github.run_number }}" > hf_space/build.txt
+
+          cd hf_space
+          git lfs track "*.pdf"
+          git add .
+          if git diff --staged --quiet; then
+            echo "No changes to deploy."
+          else
+            git commit -m "Deploy from GitHub commit ${{ github.sha }}"
+            git push
+            echo "Deployed successfully."
+          fi

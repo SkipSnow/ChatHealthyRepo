@@ -210,7 +210,7 @@ class ChatHealthyLoadSpecialtyData:
 # ------------------------------------------------------------------
 
 def run_load_specialty_data(payload: dict = None) -> dict:
-    collection_fqn = os.getenv("SPECIALTY_COLLECTION", "PublicHealthData.SpecialtyMetaData")
+    collection_fqn = os.getenv("SPECIALTY_COLLECTION", "dev_PublicHealthData.SpecialtyMetaData")
     loader = ChatHealthyLoadSpecialtyData(collection_fqn)
     loader.fetch_csv()
     blob_name = loader.store_to_blob()

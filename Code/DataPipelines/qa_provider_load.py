@@ -35,7 +35,7 @@ from pymongo import MongoClient
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 
-DEFAULT_COLLECTION     = "PublicHealthData.providers_staging"
+DEFAULT_COLLECTION     = "dev_PublicHealthData.providers"
 EXPECTED_MIN           = 8_500_000   # hard lower bound — fail if below this
 EXPECTED_MAX           = 10_500_000  # hard upper bound — fail if above this
 EXPECTED_NOMINAL       = 8_900_000   # last known good; warn if >5% deviation

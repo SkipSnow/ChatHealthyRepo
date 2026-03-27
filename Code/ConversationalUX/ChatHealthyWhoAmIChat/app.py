@@ -13,6 +13,7 @@ import os
 import requests
 import time
 from datetime import datetime, timedelta, timezone
+import traceback
 from pypdf import PdfReader
 import gradio as gr
 from ChatHealthyMongoUtilities import ChatHealthyMongoUtilities
@@ -56,6 +57,9 @@ _EMERGENCY_LOCK_SECONDS = 3600
 # Backdoor: set ADMIN_UNLOCK_KEY env var; send exactly "UNLOCK:<key>" to release an IP
 _ADMIN_UNLOCK_KEY = os.getenv("ADMIN_UNLOCK_KEY", "")
 
+# Debug mode — verifies DB writes and shows user-visible warning if they fail
+_DEBUG = True
+
 
 def _is_ip_locked(ip: str) -> bool:
     """Fast in-memory check. Used as cache; DB is the source of truth."""
@@ -93,8 +97,8 @@ def _lock_ip_db(ip: str, trigger_message: str = "", history: list = None) -> Non
     _lock_ip(ip)
     col = _safety_collection()
     if col is None:
-        print("SAFETY DB unavailable — lock stored in memory only.", flush=True)
-        return
+        print(f"SAFETY ALERT: DB unavailable — incident for {ip} NOT persisted. Memory-only.", flush=True)
+        return False
     now = datetime.now(timezone.utc)
     expires = now + timedelta(seconds=_EMERGENCY_LOCK_SECONDS)
     safe_history = []
@@ -113,8 +117,15 @@ def _lock_ip_db(ip: str, trigger_message: str = "", history: list = None) -> Non
             "chat_history_deidentified": safe_history,
         })
         print(f"SAFETY incident created: {ip} locked until {expires.isoformat()}", flush=True)
+        if _DEBUG:
+            found = col.find_one({"ip": ip, "expires_at": {"$gt": now.isoformat()}})
+            if not found:
+                print("SAFETY DEBUG: insert succeeded but verification query returned nothing.", flush=True)
+                return False
+        return True
     except Exception as e:
-        print(f"SAFETY DB write failed: {e}", flush=True)
+        print(f"SAFETY ALERT: DB write failed for {ip}: {e}", flush=True)
+        return False
 
 
 def _check_ip_lock_db(ip: str) -> bool:
@@ -871,6 +882,8 @@ class Me:
                 self.anthropic_discussion += text
         with open(os.path.join(_ME_DIR, "summary.txt"), "r", encoding="utf-8") as f:
             self.summary = f.read()
+        with open(os.path.join(_ME_DIR, "findcare-code-package.json"), "r", encoding="utf-8") as f:
+            self.codebase = f.read()
 
     def handle_tool_calls(self, tool_calls, messages=None):
         chat_history = _format_chat_history(messages) if messages else []
@@ -948,10 +961,25 @@ class Me:
             f"If the user gives an email and you don't know their name, capture their name too.\n\n"
             f"## Summary:\n{self.summary}\n\n## LinkedIn Profile:\n{self.linkedin}\n\n"
             f"## AnthropicOnSafety:\n{self.anthropic_discussion}\n\n"
+            f"## ChatHealthy Codebase & Architecture:\n{self.codebase}\n\n"
+            f"RULE 7 — CODEBASE CONTEXT: The codebase document above is for your understanding only. "
+            f"NEVER quote, display, or reference raw code, JSON, file paths, function names, variable names, "
+            f"class names, or any technical implementation detail from it. "
+            f"Use it exclusively to understand and articulate business rules, product capabilities, "
+            f"data handling policies, and system behavior in plain business English. "
+            f"If asked how something works, explain what it does and why — not how it is implemented.\n\n"
             f"With this context, please chat with the user, always staying in character as {self.name}."
         )
 
     def chat(self, message, history, request: gr.Request = None):
+        try:
+            return self._chat(message, history, request)
+        except Exception:
+            if _DEBUG:
+                return f"**DEBUG ERROR:**\n```\n{traceback.format_exc()}\n```"
+            raise
+
+    def _chat(self, message, history, request: gr.Request = None):
         ip = (request.client.host if request and request.client else "unknown")
 
         # Backdoor — must check before the lock gate
@@ -964,7 +992,9 @@ class Me:
             return EMERGENCY_RESPONSE
         # Cross-session lock (DB hit) or new trigger: create new incident, extend 1-hour clock.
         if _check_ip_lock_db(ip) or _safety_check(message):
-            _lock_ip_db(ip, trigger_message=message, history=history)
+            db_ok = _lock_ip_db(ip, trigger_message=message, history=history)
+            if _DEBUG and not db_ok:
+                return EMERGENCY_RESPONSE + "\n\n**System warning:** this incident could not be recorded. Please contact support."
             return EMERGENCY_RESPONSE
 
         messages = [{"role": "system", "content": self.system_prompt()}] + history
@@ -998,7 +1028,9 @@ if __name__ == "__main__":
     welcome = (
         "**Welcome to ChatHealthy FindCare**\n\n"
         "Here's what I can help you with:\n\n"
-        "- **Find a doctor** — search for providers in <span style=\"font-size:1.15em;font-weight:bold;\">Delaware</span> or <span style=\"font-size:1.15em;font-weight:bold;\">Mississippi</span> by specialty or condition\n"
+        "- **Find a doctor** — search for providers by specialty or condition\n"
+        "  - <span class=\"state-name\">Delaware</span>\n"
+        "  - <span class=\"state-name\">Mississippi</span>\n"
         "- **Identify the right specialty** — not sure what kind of doctor you need? Describe your situation\n"
         "- **Clinical trials** — find recruiting research studies for any condition\n"
         "- **About ChatHealthy** — our mission, team, and platform\n\n"
@@ -1009,7 +1041,7 @@ if __name__ == "__main__":
         me.chat,
         type="messages",
         title="",
-        css="footer { display: none !important; }",
+        css="footer { display: none !important; } .state-name { color: #003399; font-size: 1.2em; font-weight: bold; }",
         chatbot=gr.Chatbot(
             value=[{"role": "assistant", "content": welcome}],
             type="messages",
