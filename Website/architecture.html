@@ -200,6 +200,7 @@
       <nav class="toc" aria-label="Table of contents">
         <h3>Contents</h3>
         <ol>
+          <li><a href="#repositories">Repositories &amp; Source Files</a></li>
           <li><a href="#product-vision">Product Vision</a></li>
           <li><a href="#infrastructure">Components</a></li>
           <li><a href="#website">Website — Static Layer (Cloudflare)</a></li>
@@ -231,6 +232,88 @@
           </li>
         </ul>
       </nav>
+
+      <!-- 0. REPOSITORIES & SOURCE FILES -->
+      <h2 id="repositories">0. Repositories &amp; Source Files</h2>
+
+      <h3>Git Repositories</h3>
+      <table>
+        <tr><th>Repository</th><th>Purpose</th><th>URL</th></tr>
+        <tr><td><strong>ChatHealthyRepo</strong></td><td>Monorepo — all production code, pipelines, website, brain</td><td><a href="https://github.com/SkipSnow/ChatHealthyRepo">github.com/SkipSnow/ChatHealthyRepo</a></td></tr>
+        <tr><td><strong>ChatHealthyWebSite</strong></td><td>Production website deploy target (Cloudflare Pages auto-deploy)</td><td><a href="https://github.com/SkipSnow/ChatHealthyWebSite">github.com/SkipSnow/ChatHealthyWebSite</a></td></tr>
+        <tr><td><strong>ChatHealthyLabRepo</strong></td><td>Lab &amp; experiments (notebooks, prototypes)</td><td><a href="https://github.com/SkipSnow/ChatHealthyLabRepo">github.com/SkipSnow/ChatHealthyLabRepo</a></td></tr>
+      </table>
+
+      <h3>App 2 — Chat Application (FindCareChat)</h3>
+      <table>
+        <tr><th>File</th><th>Description</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/backend/main.py" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/backend/main.py</code></a></td><td>FastAPI backend — all tools, safety system, LLM orchestration, provider search, static file serving</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/backend/Dockerfile" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/backend/Dockerfile</code></a></td><td>Multi-stage Docker build: Node (React) + Python (FastAPI) in one container</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/backend/requirements.txt" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/backend/requirements.txt</code></a></td><td>Python dependencies</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/backend/build.txt" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/backend/build.txt</code></a></td><td>Build number — injected by CI at deploy time</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx</code></a></td><td>React chat UI — state machine, think timer, stop button, rate limit retry</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx</code></a></td><td>Message rendering — user/assistant/error styling, markdown, metadata</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/frontend/src/App.tsx" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/frontend/src/App.tsx</code></a></td><td>React root component</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/frontend/vite.config.ts" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/frontend/vite.config.ts</code></a></td><td>Vite build configuration</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/frontend/public/_redirects" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/frontend/public/_redirects</code></a></td><td>SPA routing fallback for Cloudflare Pages</td></tr>
+      </table>
+
+      <h3>App 2 — Legacy Chatbot (ChatHealthyWhoAmIChat)</h3>
+      <table>
+        <tr><th>File</th><th>Description</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/ChatHealthyWhoAmIChat/app.py" style="color:var(--teal);"><code>Code/ConversationalUX/ChatHealthyWhoAmIChat/app.py</code></a></td><td>Gradio About Us chatbot — production, active until FindCare replaces it</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/ChatHealthyWhoAmIChat/me/" style="color:var(--teal);"><code>Code/ConversationalUX/ChatHealthyWhoAmIChat/me/</code></a></td><td>Context files — summary.txt, PDFs (LinkedIn, business plan), anthropic_principles.txt</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/ChatHealthyWhoAmIChat/tests/" style="color:var(--teal);"><code>Code/ConversationalUX/ChatHealthyWhoAmIChat/tests/</code></a></td><td>Unit tests (mocked) and E2E tests (real systems)</td></tr>
+      </table>
+
+      <h3>App 3 — Data Pipelines</h3>
+      <table>
+        <tr><th>File</th><th>Description</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/function_app.py" style="color:var(--teal);"><code>Code/DataPipelines/function_app.py</code></a></td><td>Azure Function App entry — HTTP router, task dispatch</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/provider_load_manager.py" style="color:var(--teal);"><code>Code/DataPipelines/provider_load_manager.py</code></a></td><td>FullProviderPipeline orchestrator — 8-step durable workflow</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/provider_worker.py" style="color:var(--teal);"><code>Code/DataPipelines/provider_worker.py</code></a></td><td>Fan-out worker — processes provider batches in parallel</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/county_enrichment_job.py" style="color:var(--teal);"><code>Code/DataPipelines/county_enrichment_job.py</code></a></td><td>6-pass county enrichment (ZIP crosswalk, Census geocoder, Google Maps, NPPES)</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/embedding_worker.py" style="color:var(--teal);"><code>Code/DataPipelines/embedding_worker.py</code></a></td><td>Vector embedding pipeline — OpenAI text-embedding-3-small, idempotent</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/copy_to_frontend.py" style="color:var(--teal);"><code>Code/DataPipelines/copy_to_frontend.py</code></a></td><td>CopyToFrontEnd — moves enriched data from DataPipelines to FrontEnd cluster</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/load_specialty_data.py" style="color:var(--teal);"><code>Code/DataPipelines/load_specialty_data.py</code></a></td><td>NUCC taxonomy loader — SpecialtyMetaData collection</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/icd10_loader.py" style="color:var(--teal);"><code>Code/DataPipelines/icd10_loader.py</code></a></td><td>ICD-10 code loader</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/atlas_cluster_manager.py" style="color:var(--teal);"><code>Code/DataPipelines/atlas_cluster_manager.py</code></a></td><td>MongoDB Atlas autoscale — scale clusters before/after heavy jobs</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/zip_county_crosswalk_loader.py" style="color:var(--teal);"><code>Code/DataPipelines/zip_county_crosswalk_loader.py</code></a></td><td>HUD ZIP-to-county crosswalk loader</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/discrepancy_reporter.py" style="color:var(--teal);"><code>Code/DataPipelines/discrepancy_reporter.py</code></a></td><td>Data quality reports — provider load discrepancies</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/auth.py" style="color:var(--teal);"><code>Code/DataPipelines/auth.py</code></a></td><td>API key authentication for pipeline endpoints</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/blob_client.py" style="color:var(--teal);"><code>Code/DataPipelines/blob_client.py</code></a></td><td>Azure Blob Storage client wrapper</td></tr>
+      </table>
+
+      <h3>Shared</h3>
+      <table>
+        <tr><th>File</th><th>Description</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/ChatHealthyMongoUtilities.py" style="color:var(--teal);"><code>Code/Shared/ChatHealthyMongoUtilities.py</code></a></td><td>MongoDB lazy connection manager — used by all apps</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/brain_loop.py" style="color:var(--teal);"><code>Code/Shared/brain_loop.py</code></a></td><td>Brain Loop 0.1 — assignment CRUD, review pack, UAT orchestration</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/brain_runner.py" style="color:var(--teal);"><code>Code/Shared/brain_runner.py</code></a></td><td>Brain runner — executes GPT/Claude assignments via API</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/brain_auth.py" style="color:var(--teal);"><code>Code/Shared/brain_auth.py</code></a></td><td>Brain API key authentication</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/machine_brain.py" style="color:var(--teal);"><code>Code/Shared/machine_brain.py</code></a></td><td>Machine Brain context loader</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/cost_guard.py" style="color:var(--teal);"><code>Code/Shared/cost_guard.py</code></a></td><td>Token usage tracking and budget enforcement</td></tr>
+      </table>
+
+      <h3>CI/CD Workflows</h3>
+      <table>
+        <tr><th>File</th><th>Trigger</th><th>Target</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/.github/workflows/deploy-findcare-backend.yml" style="color:var(--teal);"><code>.github/workflows/deploy-findcare-backend.yml</code></a></td><td>Push to dev (backend/ or frontend/)</td><td>HuggingFace Space: dev_ChatHealthyAIChatWindow</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/.github/workflows/deploy-findcare-website-dev.yml" style="color:var(--teal);"><code>.github/workflows/deploy-findcare-website-dev.yml</code></a></td><td>Push to dev (Website/)</td><td>Cloudflare Pages: chathealthy-website-dev</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/.github/workflows/deploy-hf.yml" style="color:var(--teal);"><code>.github/workflows/deploy-hf.yml</code></a></td><td>Push to main (ChatHealthyWhoAmIChat/)</td><td>HuggingFace Space: ChatHealthyWhoAmIChat</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/.github/workflows/deploy-pipelines.yml" style="color:var(--teal);"><code>.github/workflows/deploy-pipelines.yml</code></a></td><td>Push to main (DataPipelines/)</td><td>Azure Function App: FindCare-AI</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/.github/workflows/test.yml" style="color:var(--teal);"><code>.github/workflows/test.yml</code></a></td><td>Push to main / PR</td><td>Unit tests</td></tr>
+      </table>
+
+      <h3>Brain</h3>
+      <table>
+        <tr><th>File</th><th>Description</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/brain/assignment_queue.json" style="color:var(--teal);"><code>brain/assignment_queue.json</code></a></td><td>Assignment backlog — tasks for GPT, Claude, and Dev</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/brain/assurance_results.json" style="color:var(--teal);"><code>brain/assurance_results.json</code></a></td><td>GPT deliverables — review packs, UAT test suites, legal docs</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/brain/budget_config.json" style="color:var(--teal);"><code>brain/budget_config.json</code></a></td><td>Token budget limits per model</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/brain/execution_state.json" style="color:var(--teal);"><code>brain/execution_state.json</code></a></td><td>Brain runner execution state</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/brain/context/" style="color:var(--teal);"><code>brain/context/</code></a></td><td>Structured context for GPT assignments (legal, etc.)</td></tr>
+      </table>
 
       <!-- 1 -->
       <h2 id="product-vision">1. Product Vision</h2>
