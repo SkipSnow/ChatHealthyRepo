@@ -421,7 +421,38 @@ def find_specialty_codes(query: str) -> dict:
 # providers (460 DE, 2,119 MS). Build FIPS→name from providers that already have both
 # fields and use it to fill gaps at query time. Remove once pipeline fix is deployed.
 # Deliverable: fix before end of next iteration.
-_fips_to_county: dict[str, str] = {}
+
+# Static DE + MS county FIPS table — authoritative seed so queries work even when
+# all records in a county lack county.name (worst case of ASN-4AFBDA).
+_FIPS_STATIC: dict[str, str] = {
+    # Delaware (3 counties)
+    "10001": "Kent", "10003": "New Castle", "10005": "Sussex",
+    # Mississippi (82 counties)
+    "28001": "Adams", "28003": "Alcorn", "28005": "Amite", "28007": "Attala",
+    "28009": "Benton", "28011": "Bolivar", "28013": "Calhoun", "28015": "Carroll",
+    "28017": "Chickasaw", "28019": "Choctaw", "28021": "Claiborne", "28023": "Clarke",
+    "28025": "Clay", "28027": "Coahoma", "28029": "Copiah", "28031": "Covington",
+    "28033": "DeSoto", "28035": "Forrest", "28037": "Franklin", "28039": "George",
+    "28041": "Greene", "28043": "Grenada", "28045": "Hancock", "28047": "Harrison",
+    "28049": "Hinds", "28051": "Holmes", "28053": "Humphreys", "28055": "Issaquena",
+    "28057": "Itawamba", "28059": "Jackson", "28061": "Jasper", "28063": "Jefferson",
+    "28065": "Jefferson Davis", "28067": "Jones", "28069": "Kemper", "28071": "Lafayette",
+    "28073": "Lamar", "28075": "Lauderdale", "28077": "Lawrence", "28079": "Leake",
+    "28081": "Lee", "28083": "Leflore", "28085": "Lincoln", "28087": "Lowndes",
+    "28089": "Madison", "28091": "Marion", "28093": "Marshall", "28095": "Monroe",
+    "28097": "Montgomery", "28099": "Neshoba", "28101": "Newton", "28103": "Noxubee",
+    "28105": "Oktibbeha", "28107": "Panola", "28109": "Pearl River", "28111": "Perry",
+    "28113": "Pike", "28115": "Pontotoc", "28117": "Prentiss", "28119": "Quitman",
+    "28121": "Rankin", "28123": "Scott", "28125": "Sharkey", "28127": "Simpson",
+    "28129": "Smith", "28131": "Stone", "28133": "Sunflower", "28135": "Tallahatchie",
+    "28137": "Tate", "28139": "Tippah", "28141": "Tishomingo", "28143": "Tunica",
+    "28145": "Union", "28147": "Walthall", "28149": "Warren", "28151": "Washington",
+    "28153": "Wayne", "28155": "Webster", "28157": "Wilkinson", "28159": "Winston",
+    "28161": "Yalobusha", "28163": "Yazoo",
+}
+
+_fips_to_county: dict[str, str] = dict(_FIPS_STATIC)  # pre-seeded; DB values override on load
+
 
 def _load_fips_county_map() -> None:
     global _fips_to_county
@@ -433,10 +464,21 @@ def _load_fips_county_map() -> None:
             {"$match": {"county.fips": {"$exists": True}, "county.name": {"$exists": True}}},
             {"$group": {"_id": "$county.fips", "name": {"$first": "$county.name"}}},
         ])
-        _fips_to_county = {p["_id"]: p["name"] for p in pairs}
-        _log.info("HACK ASN-4AFBDA: loaded %d FIPS→county mappings", len(_fips_to_county))
+        db_map = {p["_id"]: p["name"] for p in pairs}
+        _fips_to_county.update(db_map)  # DB values override static seed
+        _log.info("HACK ASN-4AFBDA: loaded %d FIPS→county mappings (%d from DB)", len(_fips_to_county), len(db_map))
     except Exception as exc:
         _log.warning("HACK ASN-4AFBDA: failed to load FIPS map: %s", exc)
+
+
+def _make_county_filter(county: str) -> dict:
+    """Build a DB filter for county matching by name OR fips (handles ASN-4AFBDA records)."""
+    term = county.strip().lower()
+    name_filter: dict = {"county.name": {"$regex": county.strip(), "$options": "i"}}
+    matching_fips = [fips for fips, name in _fips_to_county.items() if term in name.lower()]
+    if matching_fips:
+        return {"$or": [name_filter, {"county.fips": {"$in": matching_fips}}]}
+    return name_filter
 
 
 _oai_client: Optional[OpenAI] = None
@@ -490,11 +532,11 @@ _PROVIDER_PROJECTION = {
     "provider_middle_name": 1, "provider_name_prefix_text": 1,
     "provider_name_suffix_text": 1, "provider_credential_text": 1,
     "provider_organization_name_legal_business_name": 1,
-    "practice_address": 1, "taxonomies": 1,
+    "practice_address": 1, "taxonomies": 1, "county": 1,
 }
 
 
-def _vector_search_providers(embedding: list, state: str, city: str, limit: int) -> list:
+def _vector_search_providers(embedding: list, state: str, city: str, county: str, limit: int) -> list:
     db = _get_db()
     if db is None:
         return []
@@ -513,6 +555,8 @@ def _vector_search_providers(embedding: list, state: str, city: str, limit: int)
     ]
     if city:
         pipeline.append({"$match": {"practice_address.city": {"$regex": city.strip(), "$options": "i"}}})
+    if county:
+        pipeline.append({"$match": _make_county_filter(county)})
     pipeline += [{"$limit": limit}, {"$project": _PROVIDER_PROJECTION}]
     try:
         raw = list(db[f"{_ENV_PREFIX}_PublicHealthData"]["providers"].aggregate(pipeline))
@@ -522,7 +566,7 @@ def _vector_search_providers(embedding: list, state: str, city: str, limit: int)
         return []
 
 
-def find_providers(specialty_query: str, state: str, city: str = "", limit: int = 5) -> dict:
+def find_providers(specialty_query: str, state: str, city: str = "", county: str = "", limit: int = 5) -> dict:
     state_upper = state.upper().strip()
     if state_upper not in SUPPORTED_STATES:
         return {
@@ -543,7 +587,7 @@ def find_providers(specialty_query: str, state: str, city: str = "", limit: int 
     # --- Vector search path ---
     embedding = _get_query_embedding(specialty_query)
     if embedding:
-        providers = _vector_search_providers(embedding, state_upper, city, safe_limit)
+        providers = _vector_search_providers(embedding, state_upper, city, county, safe_limit)
         if providers:
             _log.info("find_providers: vector search returned %d results for '%s' in %s", len(providers), specialty_query, state_upper)
             return {"supported": True, "state": state_upper, "specialty_searched": specialty_query, "search_mode": "vector", "count": len(providers), "providers": providers}
@@ -564,6 +608,8 @@ def find_providers(specialty_query: str, state: str, city: str = "", limit: int 
     }
     if city:
         query_filter["practice_address.city"] = {"$regex": city.strip(), "$options": "i"}
+    if county:
+        query_filter.update(_make_county_filter(county))
 
     raw = list(
         db[f"{_ENV_PREFIX}_PublicHealthData"]["providers"]
@@ -571,12 +617,33 @@ def find_providers(specialty_query: str, state: str, city: str = "", limit: int 
         .limit(safe_limit)
     )
 
-    if not raw:
-        return {"supported": True, "providers": [], "message": f"No {specialty_query} providers found in {state_upper}."}
+    if raw:
+        providers = [_format_provider(p) for p in raw]
+        _log.info("find_providers: taxonomy search returned %d results for '%s' in %s", len(providers), specialty_query, state_upper)
+        return {"supported": True, "state": state_upper, "specialty_searched": specialty_query, "search_mode": "taxonomy", "count": len(providers), "providers": providers}
 
-    providers = [_format_provider(p) for p in raw]
-    _log.info("find_providers: taxonomy search returned %d results for '%s' in %s", len(providers), specialty_query, state_upper)
-    return {"supported": True, "state": state_upper, "specialty_searched": specialty_query, "search_mode": "taxonomy", "count": len(providers), "providers": providers}
+    # --- County fallback: specialty codes didn't match; broaden to all individual providers ---
+    # Handles general queries like "doctors in X county" where taxonomy codes are too specific.
+    # Filters to individual providers (entity_type_code=1) whose primary taxonomy starts with "2"
+    # (NUCC physician block) to avoid returning pharmacies, DME, etc.
+    if county:
+        county_filter: dict = {
+            "practice_address.state": state_upper,
+            "entity_type_code": "1",
+            "taxonomies": {"$elemMatch": {"code": {"$regex": "^2"}, "primary": True}},
+        }
+        county_filter.update(_make_county_filter(county))
+        raw = list(
+            db[f"{_ENV_PREFIX}_PublicHealthData"]["providers"]
+            .find(county_filter, _PROVIDER_PROJECTION)
+            .limit(safe_limit)
+        )
+        if raw:
+            providers = [_format_provider(p) for p in raw]
+            _log.info("find_providers: county physician fallback returned %d for county '%s' in %s", len(providers), county, state_upper)
+            return {"supported": True, "state": state_upper, "county_searched": county, "search_mode": "county_physicians", "count": len(providers), "providers": providers}
+
+    return {"supported": True, "providers": [], "message": f"No {specialty_query} providers found in {state_upper}."}
 
 
 def search_clinical_trials(condition: str, location: str = "", max_results: int = 5) -> dict:
@@ -729,6 +796,7 @@ anthropic_tools = [
                 "specialty_query": {"type": "string"},
                 "state": {"type": "string"},
                 "city": {"type": "string"},
+                "county": {"type": "string"},
                 "limit": {"type": "integer"},
             },
             "required": ["specialty_query", "state"],
