@@ -486,8 +486,10 @@
           <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
           <tr><td>Frontend</td><td>React + shadcn/ui</td><td>Chat interface; inline maps, charts, provider cards</td></tr>
           <tr><td>Backend</td><td>FastAPI (Python)</td><td>API routes, tool definitions, session management</td></tr>
-          <tr><td>AI</td><td>LLM APIs (Anthropic, OpenAI, Groq)</td><td>Intent routing, tool calling, response generation</td></tr>
-          <tr><td>Hosting</td><td>HuggingFace Docker Space</td><td>GPU-enabled, free tier available</td></tr>
+          <tr><td>Router</td><td>Claude tool selector</td><td>Intent routing — Claude's tool selection IS the router; no separate routing service</td></tr>
+          <tr><td>AI — Chat</td><td>Claude Sonnet 4.6 (Anthropic)</td><td>Main conversation, tool calling, response generation</td></tr>
+          <tr><td>AI — Utility</td><td>Claude Haiku 4.5 (Anthropic)</td><td>Safety classification, summarization, de-identification</td></tr>
+          <tr><td>Hosting</td><td>HuggingFace Docker Space</td><td>Container-based, free tier available</td></tr>
           <tr style="color:#0b7a75;"><td>Maps</td><td>Google Maps</td><td><strong>Roadmap.</strong> Provider location display — interactive map rendered inline in the chat response showing provider pins, distances, and directions</td></tr>
         </table>
       </div>
@@ -514,7 +516,7 @@
         <div class="diagram-inner">
           <div class="d-center"><div class="d-box d-box-wide"><strong>User Message</strong><small>"Find me an oncologist near me"</small></div></div>
           <div class="d-down">↓</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>LLM — Intent Router</strong><small>Classifies intent within the same session</small></div></div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Router — Claude Tool Selector</strong><small>Claude selects the appropriate tool — that selection IS the routing decision</small></div></div>
           <div class="d-vline"></div>
           <div class="d-hbar" style="width:65%"></div>
           <div class="d-row" style="margin-top:0;">
@@ -540,19 +542,22 @@
       <!-- 6 -->
       <h2 id="chat-component">6. Chat Component Design</h2>
       <p>
-        App 2 is currently a Gradio prototype hosted on HuggingFace. The target architecture is
-        React + FastAPI. The AI logic described here is implementation-independent and applies to both.
+        App 2 is React + FastAPI hosted on a HuggingFace Docker Space. The AI engine is Claude Sonnet 4.6 via the Anthropic SDK.
       </p>
 
-      <h3>Tool-Calling Agent</h3>
-      <p>The chat backend runs an OpenAI <code>gpt-4o-mini</code> function-calling agent. Claude Haiku is used only for safety classification (see below). Tools are registered in the backend and invoked by the model during conversation.</p>
+      <h3>Router and Tool-Calling Agent</h3>
+      <p>The chat backend runs a <strong>Claude Sonnet 4.6</strong> tool-calling agent. Claude Haiku is used for safety classification, summarization, and de-identification. The Router has no separate service — Claude's tool selection is the routing decision. Tools are registered in the FastAPI backend and invoked by Claude during conversation. The system prompt is minimal (~700 tokens); context loads on demand through tool results only.</p>
       <div class="table-wrap">
         <table>
-          <tr><th>Tool</th><th>Purpose</th><th>Status</th></tr>
-          <tr><td><code>find_providers</code></td><td>Query providers_staging by specialty and state. Supported states: DE, MS.</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
-          <tr><td><code>search_clinical_trials</code></td><td>Query ClinicalTrials.gov API for recruiting trials</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
-          <tr><td><code>record_user_details</code></td><td>Save contact details and HIPAA-consent transcript to MongoDB</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
-          <tr><td><code>record_unknown_question</code></td><td>Log unhandled questions for review</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><th>Tool</th><th>Route (intent)</th><th>Purpose</th><th>Status</th></tr>
+          <tr><td><code>find_providers</code></td><td>FindCare</td><td>Query providers by specialty and state (DE, MS)</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>find_specialty_codes</code></td><td>FindCare</td><td>Look up NUCC taxonomy codes for a specialty or condition</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>search_clinical_trials</code></td><td>FindCare</td><td>Query ClinicalTrials.gov for recruiting trials</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>get_skip_snow_context</code></td><td>About Skip</td><td>Load founder background on demand (summary + LinkedIn, ~2k tokens)</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>get_chathealthy_context</code></td><td>About ChatHealthy</td><td>Load company context on demand (business plan + Anthropic principles, ~6k tokens)</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>record_user_details</code></td><td>Lead capture</td><td>Save contact details and HIPAA-consent transcript to MongoDB</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>record_unknown_question</code></td><td>Unknown</td><td>Log unhandled questions for review</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>commitSignificantActivity</code></td><td>Any</td><td>Record custom activity to MongoDB</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
         </table>
       </div>
 
@@ -873,8 +878,8 @@
       <div class="table-wrap">
         <table>
           <tr><th>Cluster</th><th>Purpose</th></tr>
-          <tr><td><strong>ChatHealthyDataPipelines</strong></td><td>Batch writes — provider load, enrichment, embeddings. Started manually before each monthly run.</td></tr>
-          <tr><td><strong>ChatHealthyFrontEnd</strong></td><td>App reads — provider queries, specialty lookups, chat tool calls. Always on. (Runtime reads currently served from DataPipelines cluster pending CopyToRuntime implementation.)</td></tr>
+          <tr><td><strong>ChatHealthyFrontEnd</strong></td><td>Always on. App reads (providers, specialties, chat tools) + all admin data: prod_Brain (brain loop), prod_Backlog (product backlog), AboutUs (leads, unknown questions).</td></tr>
+          <tr><td><strong>ChatHealthyDataPipelines</strong></td><td>Started manually before each pipeline run, stopped when done. Batch writes only — provider load, enrichment, embeddings. Never holds admin or operational data.</td></tr>
         </table>
       </div>
 

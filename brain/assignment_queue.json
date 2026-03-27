@@ -152,6 +152,59 @@
       "result": null,
       "feedback_needed": false,
       "feedback_question": null
+    },
+    {
+      "assignment_id": "ASN-F5801E",
+      "timestamp": "2026-03-26T21:05:51.075310+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Dynamic context loading — inject me/ documents based on intent/tool",
+      "description": "The system prompt currently loads all me/ documents on every request. This wastes tokens and causes rate limit issues. Load context selectively based on what the user is asking.\n\nAPPROACH:\n- About Us / Skip Snow intent → load summary, linkedin, anthropic_discussion, business_plan\n- Provider search / clinical trials intent → no me/ context needed\n- Contact collection → load summary only\n- Default → load summary only\n\nThis can be implemented as a lightweight intent pre-check or by mapping tool calls to context bundles.\n\nDO NOT IMPLEMENT NOW — backlog item.",
+      "scope": [
+        "Code/ConversationalUX/FindCareChat/backend/main.py"
+      ],
+      "priority": "medium",
+      "estimated_risk": "Low",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null
+    },
+    {
+      "assignment_id": "ASN-883AFF",
+      "timestamp": "2026-03-26T21:35:49.724372+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Chat UX: think timer, stop button, type-while-thinking, response time in history",
+      "description": "Enhance the chat loading UX with four related improvements:\n\n1. ALLOW TYPING WHILE THINKING — remove isLoading from the input disabled condition. User can type a follow-up while waiting. Submit remains blocked until current response arrives or user clicks Stop.\n\n2. THINK TIMER — loading indicator shows elapsed seconds: \"Thinking... 5s\". Timer increments every second. Resets to 0 on each new request.\n\n3. STOP BUTTON — button in the thinking indicator that dismisses the loading state without cancelling the backend call. The API call continues running; when it resolves, the response is still appended to the chat. After Stop, the input and submit become active immediately.\n\n4. RESPONSE TIME IN HISTORY — each assistant response bubble shows the elapsed think time as a small annotation (e.g. \"7s\") so the user can see how long each response took over the course of the conversation.\n\nNOTE: This feature has already been implemented in dev as of 2026-03-26. This backlog entry documents the requirement for QA validation and UAT.",
+      "scope": [
+        "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx",
+        "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+      ],
+      "priority": "medium",
+      "estimated_risk": "Low",
+      "status": "pending",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null
+    },
+    {
+      "assignment_id": "ASN-3C7F91",
+      "timestamp": "2026-03-26T19:31:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Dev",
+      "title": "Provider search: carry state/specialty context across conversational turns",
+      "description": "When a user establishes a state in one turn (e.g. Delaware) and then refines with only a city in a follow-up turn (e.g. what about in Wilmington?), the system must carry the state from prior context — not ask the user to repeat it. Claude tool call must be constructed with state from conversation history. Verified partially working but must be explicit and tested.",
+      "scope": [
+        "Code/ConversationalUX/FindCareChat/backend/main.py"
+      ],
+      "priority": "high",
+      "estimated_risk": "Low",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "uat_requirement": null
     }
   ]
 }

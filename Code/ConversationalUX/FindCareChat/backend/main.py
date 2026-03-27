@@ -293,23 +293,28 @@ def _format_chat_history(messages):
 # Provider tools
 # ---------------------------------------------------------------------------
 def _expand_query_terms(query: str) -> list[str]:
-    client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=128,
-        messages=[{"role": "user", "content": (
-            "You are helping search a medical provider taxonomy database. "
-            "Given the specialty query, return a JSON array of 2-5 lowercase keyword stems "
-            "to search for in Specialization and Display Name fields. "
-            "Return ONLY the JSON array, no other text.\n\n"
-            "Examples:\n"
-            "Query: pediatrician -> [\"pediatric\", \"child\"]\n"
-            "Query: cardiologist -> [\"cardio\", \"cardiac\", \"cardiovascular\"]\n"
-            "Query: OB-GYN -> [\"obstetric\", \"gynecolog\", \"maternal\", \"fetal\"]\n\n"
-            f"Query: {query}"
-        )}],
-    )
-    return json.loads(response.content[0].text.strip())
+    try:
+        client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=128,
+            messages=[{"role": "user", "content": (
+                "You are helping search a medical provider taxonomy database. "
+                "Given the specialty query, return a JSON array of 2-5 lowercase keyword stems "
+                "to search for in Specialization and Display Name fields. "
+                "Return ONLY the JSON array, no other text.\n\n"
+                "Examples:\n"
+                "Query: pediatrician -> [\"pediatric\", \"child\"]\n"
+                "Query: cardiologist -> [\"cardio\", \"cardiac\", \"cardiovascular\"]\n"
+                "Query: OB-GYN -> [\"obstetric\", \"gynecolog\", \"maternal\", \"fetal\"]\n\n"
+                f"Query: {query}"
+            )}],
+        )
+        raw = response.content[0].text.strip() if response.content else ""
+        return json.loads(raw) if raw else []
+    except Exception as exc:
+        _log.warning("_expand_query_terms failed for %r: %s — returning empty list", query, exc)
+        return []
 
 
 def find_specialty_codes(query: str) -> dict:
@@ -376,8 +381,16 @@ def find_specialty_codes(query: str) -> dict:
     with ThreadPoolExecutor(max_workers=2) as ex:
         rf = ex.submit(regex_pipeline)
         vf = ex.submit(vector_pipeline)
-        regex_codes, stems            = rf.result()
-        vector_codes, classifications = vf.result()
+        try:
+            regex_codes, stems = rf.result()
+        except Exception as exc:
+            _log.warning("regex_pipeline failed: %s", exc)
+            regex_codes, stems = [], []
+        try:
+            vector_codes, classifications = vf.result()
+        except Exception as exc:
+            _log.warning("vector_pipeline failed: %s", exc)
+            vector_codes, classifications = [], []
 
     seen, all_codes = set(), []
     for doc in vector_codes + regex_codes:
@@ -992,16 +1005,15 @@ def _debug_log_chat(
 # ---------------------------------------------------------------------------
 app = FastAPI(title="ChatHealthy FindCare API")
 
+_CORS_ORIGINS = [
+    "https://chathealthy.ai",
+    "https://www.chathealthy.ai",
+    "https://dev.chathealthy.ai",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://chathealthy.ai",
-        "https://www.chathealthy.ai",
-        "https://dev.chathealthy.ai",
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:8000",
-    ],
+    allow_origins=_CORS_ORIGINS,
+    allow_origin_regex=r"http://localhost(:\d+)?$",
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1017,6 +1029,7 @@ class ChatResponse(BaseModel):
     response: Optional[str] = None
     emergency: bool = False
     error: Optional[str] = None
+    error_type: Optional[str] = None   # rate_limit | db_unavailable | upstream | internal
     tokens_in: Optional[int] = None
     tokens_out: Optional[int] = None
 
@@ -1041,13 +1054,17 @@ async def chat(body: ChatRequest, request: Request):
         tb = traceback.format_exc()
         _log.error("CHAT ERROR: %s\n%s", e, tb)
         err_str = str(e)
-        # Surface rate-limit token info when available
         if "429" in err_str or "rate_limit" in err_str.lower():
+            err_type = "rate_limit"
             err_msg = f"Rate limit hit — {err_str}"
+        elif "unavailable" in err_str.lower() or "connection" in err_str.lower():
+            err_type = "db_unavailable"
+            err_msg = err_str
         else:
+            err_type = "internal"
             err_msg = tb if _DEBUG else err_str
         _debug_log_chat(ip, body.message, len(body.history), 0, None, None, None, err_msg)
-        return ChatResponse(error=err_msg)
+        return ChatResponse(error=err_msg, error_type=err_type)
 
 
 async def _chat_inner(body: ChatRequest, request: Request):

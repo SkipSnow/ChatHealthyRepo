@@ -849,6 +849,19 @@
       <p>Enable rapid debugging locally without waiting for HuggingFace deploys. Developer runs FastAPI backend locally against <code>.env</code> credentials, React dev server pointed at <code>localhost:8000</code>. Part of SDLC — document local run procedure.</p>
     </div>
 
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">UX-001</span>
+        <span class="item-title">Chat: think timer, stop button, type-while-thinking, response time in history</span>
+        <span class="badge badge-postmvp">Post-Alpha</span>
+      </div>
+      <div class="item-meta">
+        <span><strong>Status:</strong> Implemented in dev — pending QA</span>
+        <span><strong>Brain ID:</strong> ASN-883AFF</span>
+      </div>
+      <p>Four related chat UX enhancements: (1) input stays editable while the system is thinking; (2) loading indicator shows elapsed seconds "Thinking... 5s"; (3) Stop button dismisses the loading state without cancelling the backend call — response still arrives when ready; (4) each assistant response shows how long it took (e.g. "7s") as a small annotation in the message bubble.</p>
+    </div>
+
     <!-- Bugs -->
     <h2>Bugs</h2>
 
