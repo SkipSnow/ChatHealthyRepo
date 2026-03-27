@@ -1,0 +1,48 @@
+{
+  "agreement_name": "ChatHealthy IP License and Future Assignment Agreement",
+  "effective_date": "TBD",
+  "ip_owner": "Skip Snow, individually",
+  "company": "ChatHealthy.ai LLC",
+  "project_name": "ChatHealthy / FindCare",
+  "intent": [
+    "Founder retains ownership of all ChatHealthy-related intellectual property prior to financing.",
+    "Company receives exclusive, commercial, sublicensable rights to operate.",
+    "All future IP related to ChatHealthy is included automatically unless explicitly excluded.",
+    "Upon financing or defined trigger, IP transfers to the company.",
+    "Agreement must be investor-grade and preserve founder optionality."
+  ],
+  "scope_of_ip": [
+    "Source code (frontend, backend, pipelines)",
+    "Prompting and system prompts",
+    "Architecture and design artifacts",
+    "Machine brain / orchestration artifacts",
+    "Databases and data models",
+    "Embeddings and vector structures",
+    "Branding, domains, product assets",
+    "All derivatives and improvements"
+  ],
+  "commercial_requirements": [
+    "Exclusive",
+    "Worldwide",
+    "Commercial",
+    "Sublicensable",
+    "Investor-grade"
+  ],
+  "operating_constraints": [
+    "Single-founder",
+    "Pre-alpha",
+    "No funding yet",
+    "Rapid iteration"
+  ],
+  "review_process": [
+    "GPT drafts",
+    "Boss + GPT align",
+    "Ex-wife redlines",
+    "Boss reviews",
+    "GPT integrates",
+    "Boss approves",
+    "Skip signs (individual)",
+    "Skip signs (company)"
+  ],
+  "target_deadline": "2026-04-15"
+}

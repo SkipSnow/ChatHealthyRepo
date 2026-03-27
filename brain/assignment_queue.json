@@ -286,5 +286,107 @@
       "feedback_question": null,
       "uat_requirement": null
     }
+  ,{
+      "assignment_id": "ASN-TUE027",
+      "timestamp": "2026-03-27T14:30:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Tuesday Delivery Prep — Cleanup, Smoke Test, Docs, Punch List",
+      "description": "Prepare FindCare for Tuesday delivery. Promote DE and MS to UAT by Monday. Stretch goal (Google Maps) deprioritized in favor of project hygiene.\n\nPriority order: 3, 1, 2, 4.\n\nTASK 3 (FIRST): Clean up dead HuggingFace and Cloudflare projects.\n- Boss deletes HF spaces: ChatHealthy-Career-Conversation, dev_ChatHealthyChatApp\n- Boss confirms Cloudflare is clean (chathealthy-dev already deleted)\n- Claude: update CLAUDE.md workflow tree, fix branch names, remove Azure SWA references, delete staticwebapp.config.json, grep for stale references\n\nTASK 1 (SECOND): Smoke test all app capabilities via dev.chathealthy.ai.\n- 15-point test plan covering: health, provider search (DE/MS/unsupported/county), specialty lookup, clinical trials, About Us, lead capture, unknown question, safety system (emergency + unlock), UI features (think timer, stop, markdown)\n- Produce punch list with severity ratings\n- Pre-known: ASN-4AFBDA (hack active), ASN-B1A002 (backlog), BTC-001 (county fallback too broad)\n\nTASK 2 (THIRD): Update architecture and design docs.\n- Create Website/chat-app-design.html (system prompt, tool protocol, LLM routing, safety, provider search, UI/UX, error handling, env vars, known bugs)\n- Add link to chat-app-design.html in footer of all website pages that list design docs\n- Move chat details from architecture.html Section 6 into new doc, link from architecture.html\n- Fix stale references in architecture.html (providers_staging, Azure SWA, branch names, broken designs.html link)\n- Update CLAUDE.md to match actual workflows and branches\n\nTASK 4 (LAST, IF TIME): Debug punch list items from Task 1.\n- BTC-001: tighten NUCC prefix from ^2 to physician codes only\n- Frontend welcome message mismatch\n- Other issues from smoke test",
+      "scope": [
+        "CLAUDE.md",
+        "Website/architecture.html",
+        "Website/chat-app-design.html",
+        "Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx",
+        ".github/workflows/"
+      ],
+      "priority": "critical",
+      "estimated_risk": "Low",
+      "status": "in_progress",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "picked_up_at": "2026-03-27T14:30:00.000000+00:00",
+      "gpt_review": {
+        "reviewed_at": "2026-03-27T14:25:00.000000+00:00",
+        "reviewer": "GPT-4o (Enterprise Architect, framework_02)",
+        "verdict": "approved_with_conditions",
+        "strengths": [
+          "Comprehensive task list covering cleanup through documentation",
+          "Correct prioritization for critical-path focus",
+          "Detailed 15-point smoke test with clear pass criteria",
+          "Architecture and design docs kept in sync with code"
+        ],
+        "risks": [
+          "Boss dependency on Task 3 deletions could bottleneck downstream tasks",
+          "Pre-known issues (ASN-4AFBDA, BTC-001) rely on hacks — could cause instability",
+          "Google Maps stretch goal deferred without future integration plan"
+        ],
+        "recommendations": [
+          "Ensure Boss availability for Task 3 deletions to unblock everything else",
+          "Address known issues rather than relying on hacks for stable release",
+          "Parallelize docs (Task 2) with cleanup (Task 3) while Boss handles HF/Cloudflare",
+          "Develop contingency plan for Google Maps integration",
+          "Verification checklist should cover changes from cleanup and doc updates"
+        ],
+        "boss_acceptance": {
+          "accepted": true,
+          "conditions": [
+            "Parallelization accepted: Claude works on docs while Boss handles HF/Cloudflare deletions",
+            "Docs-before-smoke-test suggestion does not apply — HF Space still building, smoke test blocked regardless",
+            "Known issues (ASN-4AFBDA, BTC-001) remain documented with hacks in place — full fixes are SIT/backlog items, not Tuesday blockers",
+            "Google Maps stretch goal already tracked as ASN-MAP001 with gate requiring all Tuesday ACs signed off first"
+          ]
+        }
+      }
+    }
+  ,{
+      "assignment_id": "ASN-PROD01",
+      "timestamp": "2026-03-27T15:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Production deployment — HuggingFace Space, retire old chatbot",
+      "description": "Due: Tuesday 2026-03-30.\n\nDeploy FindCare to production. Tasks:\n1. Create a new production HuggingFace Space with a proper name (e.g. SkipSnow/ChatHealthyFindCare or similar — Boss approves name)\n2. Configure production deploy workflow (deploy from main branch, Boss authorization required)\n3. Set up production secrets on the new HF Space (Anthropic, OpenAI, MongoDB FrontEnd, SparkPost, etc.)\n4. Update Website/ iframe URL (%%CHAT_URL%%) to point to the new production space\n5. Deploy and smoke test production\n6. Retire SkipSnow/ChatHealthyWhoAmIChat (old Gradio About Us chatbot) — delete after FindCare is confirmed live\n7. Update hf.chathealthy.ai DNS to point to the new space\n8. Get Claude CLI access to administer HuggingFace (API token with space management permissions) so Boss doesn't have to do manual HF dashboard tasks\n\nGate: All UAT acceptance criteria signed off before production deploy.",
+      "scope": [
+        ".github/workflows/",
+        "Website/index.html",
+        "Website/chat-url.txt",
+        "Code/ConversationalUX/FindCareChat/backend/",
+        "CLAUDE.md"
+      ],
+      "priority": "critical",
+      "estimated_risk": "Medium",
+      "status": "backlog",
+      "due_date": "2026-03-30",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "uat_requirement": null
+    }
+  ,{
+      "assignment_id": "ASN-IP001",
+      "timestamp": "2026-03-27T15:30:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "GPT",
+      "title": "Draft ChatHealthy IP License and Future Assignment Agreement",
+      "description": "Draft an investor-grade agreement preserving founder ownership pre-financing while granting exclusive operational rights to the company and defining a clean future assignment trigger.\n\nCONTEXT:\n- Agreement name: ChatHealthy IP License and Future Assignment Agreement\n- IP owner: Skip Snow, individually\n- Company: ChatHealthy.ai LLC\n- Project: ChatHealthy / FindCare\n- Operating constraints: single-founder, pre-alpha, no funding yet, rapid iteration\n- Target deadline: 2026-04-15\n\nINTENT:\n- Founder retains ownership of all ChatHealthy-related IP prior to financing\n- Company receives exclusive, commercial, sublicensable rights to operate\n- All future IP related to ChatHealthy is included automatically unless explicitly excluded\n- Upon financing or defined trigger, IP transfers to the company\n- Agreement must be investor-grade and preserve founder optionality\n\nSCOPE OF IP:\n- Source code (frontend, backend, pipelines)\n- Prompting and system prompts\n- Architecture and design artifacts\n- Machine brain / orchestration artifacts\n- Databases and data models\n- Embeddings and vector structures\n- Branding, domains, product assets\n- All derivatives and improvements\n\nCOMMERCIAL REQUIREMENTS: Exclusive, Worldwide, Commercial, Sublicensable, Investor-grade\n\nREQUIRED SECTIONS:\n1. Title and parties\n2. Recitals\n3. Definitions\n4. Licensed IP\n5. Grant of license\n6. Exclusivity\n7. Permitted use\n8. Sublicensing\n9. Future IP inclusion\n10. Ownership reservation\n11. Assignment trigger\n12. Representations\n13. Confidentiality\n14. Term and termination\n15. Effect of termination\n16. Further assurances\n17. Governing law\n18. Miscellaneous\n19. Signature blocks\n\nCRITICAL REQUIREMENTS:\n- Founder retains ownership until trigger\n- License is exclusive and commercially viable\n- Future IP clearly included\n- Assignment clause is clean and investor-ready\n- No contradictions\n\nDELIVERABLES:\n- Primary output as .docx-ready structured document\n- Must support legal redlining (tracked changes)\n- GPT must be able to read and revise redlined versions\n- Preserve all redlines during revisions\n- Final output supports both clean and redline versions\n\nPROCESS FLOW:\n1. GPT drafts (Word format)\n2. Boss + GPT align\n3. Ex-wife redlines\n4. Boss reviews\n5. GPT integrates with redlines preserved\n6. Boss approves\n7. Skip signs (individual and company)\n\nINSTRUCTIONS:\n- Treat output as legal artifact\n- Do not skip redline cycle\n- Preserve process flow exactly",
+      "scope": [
+        "Legal/"
+      ],
+      "priority": "critical",
+      "estimated_risk": "Low",
+      "status": "queued",
+      "due_date": "2026-04-15",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "context_path": "brain/context/legal/ip_agreement_inputs.json",
+      "result_delivery": {
+        "target": "brain/assurance_results.json",
+        "format": "Assurance Output schema — include document_content field with full agreement text, plus excel_generator_script for .docx generation",
+        "instruction": "GPT must deliver result to brain/assurance_results.json under this assignment_id. Do not deliver via chat. Same pattern as UAT Excel delivery (ASN-1F9268)."
+      }
+    }
   ]
 }
