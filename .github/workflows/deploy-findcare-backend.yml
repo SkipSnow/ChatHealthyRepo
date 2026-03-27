@@ -21,6 +21,17 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Build React frontend
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install and build frontend
+        working-directory: Code/ConversationalUX/FindCareChat/frontend
+        run: |
+          npm ci
+          VITE_API_URL="" npm run build
+
       - name: Push to HuggingFace Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -40,12 +51,8 @@ jobs:
             --exclude='*.pyc' \
             Code/ConversationalUX/FindCareChat/backend/ hf_space/
 
-          # Frontend source (Docker builds it)
-          rsync -av \
-            --exclude='node_modules' \
-            --exclude='dist' \
-            --exclude='.env.local' \
-            Code/ConversationalUX/FindCareChat/frontend/ hf_space/frontend/
+          # Pre-built React frontend → static/
+          cp -r Code/ConversationalUX/FindCareChat/frontend/dist hf_space/static
 
           # Shared MongoDB utility
           cp Code/Shared/ChatHealthyMongoUtilities.py hf_space/
