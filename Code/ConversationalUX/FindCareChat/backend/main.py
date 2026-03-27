@@ -1107,7 +1107,7 @@ _CORS_ORIGINS = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_CORS_ORIGINS,
-    allow_origin_regex=r"http://localhost(:\d+)?$",
+    allow_origin_regex=r"http://localhost(:\d+)?$|https://[a-zA-Z0-9-]+\.chathealthy\.ai$|https://chathealthy-dev\.pages\.dev$|https://[a-zA-Z0-9]+\.chathealthy-dev\.pages\.dev$",
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
