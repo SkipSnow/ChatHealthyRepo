@@ -84,6 +84,16 @@ def _get_crosswalk() -> dict:
     return _crosswalk
 
 
+_fips_to_name: dict[str, str] | None = None
+
+def _get_fips_to_name() -> dict[str, str]:
+    """FIPS→county name reverse index built from the crosswalk cache."""
+    global _fips_to_name
+    if _fips_to_name is None:
+        _fips_to_name = {v["fips"]: v["name"] for v in _get_crosswalk().values() if v.get("fips") and v.get("name")}
+    return _fips_to_name
+
+
 def _get_maps_county_lookup() -> dict:
     """Build (state_fips_2d, county_name_lower) → 5-digit county_fips from the crosswalk.
 
@@ -896,7 +906,11 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
                     r = matched[pid]
                     ops.append(UpdateOne(
                         {"_id": p["_id"]},
-                        {"$set": {"county": {"fips": r["fips"], "source": r["source"]}}},
+                        {"$set": {"county": {
+                            "fips": r["fips"],
+                            "name": _get_fips_to_name().get(r["fips"], ""),
+                            "source": r["source"],
+                        }}},
                     ))
                     if "billing" in r["source"]:
                         billing_modified += 1
@@ -1033,7 +1047,11 @@ def enrich_by_billing_batch_fn(config: dict) -> dict:
                 if pid in matched:
                     ops.append(UpdateOne(
                         {"_id": p["_id"]},
-                        {"$set": {"county": {"fips": matched[pid], "source": "geocoder_pass3_billing"}}},
+                        {"$set": {"county": {
+                            "fips": matched[pid],
+                            "name": _get_fips_to_name().get(matched[pid], ""),
+                            "source": "geocoder_pass3_billing",
+                        }}},
                     ))
                     modified += 1
                 else:
@@ -1139,7 +1157,11 @@ def enrich_by_maps_batch_fn(config: dict) -> dict:
         if fips:
             ops.append(UpdateOne(
                 {"_id": p["_id"]},
-                {"$set": {"county": {"fips": fips, "source": "geocoder_pass4_maps"}}},
+                {"$set": {"county": {
+                    "fips": fips,
+                    "name": county_name or "",
+                    "source": "geocoder_pass4_maps",
+                }}},
             ))
             modified += 1
         else:
@@ -1319,7 +1341,11 @@ def enrich_by_nppes_batch_fn(config: dict) -> dict:
         if fips:
             ops.append(UpdateOne(
                 {"_id": ObjectId(pid)},
-                {"$set": {"county": {"fips": fips, "source": "geocoder_pass6_nppes"}}},
+                {"$set": {"county": {
+                    "fips": fips,
+                    "name": cw.get("name", ""),
+                    "source": "geocoder_pass6_nppes",
+                }}},
             ))
             modified += 1
         else:
