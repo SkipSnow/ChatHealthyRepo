@@ -343,6 +343,16 @@
             <td>Record each unknown question with a separate tool call.</td>
           </tr>
           <tr>
+            <td>RULE 5b</td>
+            <td>PROVIDER DISPLAY FORMAT</td>
+            <td>MUST display provider results as a bullet list, never as a markdown table. Format: bold name, indented sub-bullets for address, county, phone (formatted <code>(nnn) nnn-nnnn</code>), NPI. Include a count line before results: "There are N [specialty] in [location]:"</td>
+          </tr>
+          <tr>
+            <td>RULE 5c</td>
+            <td>EXTERNAL PROVIDER LOOKUP</td>
+            <td>MUST call <code>lookup_provider_external</code> when the user asks about a specific provider by name.</td>
+          </tr>
+          <tr>
             <td>RULE 6</td>
             <td>FOLLOW-UP OFFER</td>
             <td>When a FOLLOW-UP CHECK reminder is appended, assess genuine interest and ask if the user would like someone from the team to follow up personally. Respect refusal signals.</td>
@@ -414,6 +424,11 @@
           <tr>
             <td>Lead capture</td>
             <td><code>record_user_details</code></td>
+            <td>0 extra tokens</td>
+          </tr>
+          <tr>
+            <td>Specific provider by name</td>
+            <td><code>lookup_provider_external</code></td>
             <td>0 extra tokens</td>
           </tr>
           <tr>
@@ -506,6 +521,13 @@
             <td>&mdash;</td>
             <td>&mdash;</td>
             <td><code>{ business_plan, anthropic_principles }</code> (~6k tokens, business_plan trimmed at 3000 chars)</td>
+          </tr>
+          <tr>
+            <td><code>lookup_provider_external</code></td>
+            <td>Returns search URLs for external provider lookup sites: Healthgrades, Zocdoc, NPI Registry, and state medical board. Called when the user asks about a specific provider by name (see <a href="#system-prompt">RULE 5c</a>).</td>
+            <td><code>provider_name</code>: string</td>
+            <td><code>npi</code>: string<br><code>state</code>: string</td>
+            <td><code>{ provider_name, npi, links: { healthgrades, zocdoc, npi_registry, state_medical_board } }</code></td>
           </tr>
           <tr>
             <td><code>commitSignificantActivity</code></td>
@@ -674,14 +696,17 @@
         <li><strong>In-memory:</strong> <code>_ip_emergency_locks</code> dict maps IP to expiry timestamp</li>
         <li><strong>Lock duration:</strong> 3600 seconds (1 hour)</li>
         <li><strong>Check order:</strong> in-memory first, then DB fallback via <code>_check_ip_lock_db()</code></li>
+        <li><strong>Client IP:</strong> Uses <code>X-Forwarded-For</code> header to obtain the real client IP behind proxies; falls back to <code>request.client.host</code> if the header is absent</li>
+        <li><strong>DB upsert:</strong> One record per IP (upsert on <code>ip</code> field), not duplicates. Repeated emergencies from the same IP update the existing record.</li>
         <li><strong>Session detection:</strong> <code>_session_is_locked()</code> scans history for the emergency response text</li>
-        <li><strong>Admin unlock:</strong> An administrator can unlock a locked session by sending <code>UNLOCK:&lt;key&gt;</code>. The unlock key is stored in the secrets repository as <code>ADMIN_UNLOCK_KEY</code> and is not exposed to the client.</li>
+        <li><strong>Admin unlock:</strong> An administrator can unlock a locked session by sending the unlock key directly (no <code>UNLOCK:</code> prefix required). Comparison is case-insensitive. The unlock key is stored in the secrets repository as <code>ADMIN_UNLOCK_KEY</code> and is not exposed to the client.</li>
       </ul>
 
       <h3>DB Persistence</h3>
       <p>
         Emergency incidents are persisted to <code>{env}_Safety.emergency_incidents</code>
-        with the following record structure:
+        via upsert on the <code>ip</code> field. One record per IP; repeated emergencies
+        update the existing record rather than creating duplicates.
       </p>
       <pre><code>{
     "ip": "...",
@@ -699,11 +724,26 @@
 
       <h3>Admin Unlock</h3>
       <p>
-        An admin can unlock a locked IP by sending the message
-        <code>UNLOCK:{ADMIN_UNLOCK_KEY}</code> (case-insensitive). This clears both the
-        in-memory lock and all DB records for that IP. The unlock key is set via the
+        An admin can unlock a locked IP by sending the unlock key directly as the message
+        (no <code>UNLOCK:</code> prefix required). Comparison is case-insensitive. This
+        clears the in-memory lock and marks the DB record as unlocked rather than deleting
+        it, preserving the full audit trail:
+      </p>
+      <pre><code>{
+    "unlocked": true,
+    "unlocked_at": "ISO 8601",
+    "unlocked_by": "admin"
+}</code></pre>
+      <p>
+        The DB check (<code>_check_ip_lock_db()</code>) skips unlocked records by filtering
+        with <code>{"unlocked": {"$ne": true}}</code>. The unlock key is set via the
         <code>ADMIN_UNLOCK_KEY</code> environment variable.
       </p>
+      <div class="callout-warn callout">
+        <strong>BTC-003 &mdash; MUST HAVE:</strong> The safety audit trail is a must-have
+        requirement. Emergency incident records must never be deleted. Unlock marks the
+        record as unlocked but preserves the original lock data for compliance review.
+      </div>
 
 
       <!-- ================================================================== -->
@@ -821,7 +861,7 @@
           <tr>
             <td><code>isLocked</code></td>
             <td><code>boolean</code></td>
-            <td>True after an emergency response. Permanently disables the input field ("Chat suspended.").</td>
+            <td>True after an emergency response. Changes placeholder to "Chat suspended. Type UNLOCK code to resume." Input stays enabled for unlock key entry. Cleared when backend responds with "Session unlocked."</td>
           </tr>
           <tr>
             <td><code>thinkSeconds</code></td>
@@ -853,12 +893,12 @@
 
       <h3>Submit Logic</h3>
       <p>
-        <code>canSubmit = !isLocked && (!isLoading || thinkingDismissed)</code>
+        <code>canSubmit = !isLoading || thinkingDismissed</code>
       </p>
       <p>
-        This means: the user can send a new message if the chat is not emergency-locked AND
-        either the backend is idle OR the user has dismissed the thinking indicator (allowing
-        a new message to queue while the previous one is still in flight).
+        Submit is allowed when the backend is idle OR the user has dismissed the thinking
+        indicator. The <code>isLocked</code> state does <strong>not</strong> block submit &mdash;
+        the user must be able to type and send the unlock key while locked.
       </p>
 
       <h3 id="think-timer">Think Timer and Stop Button</h3>
@@ -924,8 +964,10 @@ If you think you may be having a medical emergency, tell me right away.
         frontend sets <code>isLocked = true</code>. This:
       </p>
       <ul>
-        <li>Disables the input field</li>
-        <li>Changes the placeholder text to "Chat suspended."</li>
+        <li>Input field stays <strong>enabled</strong> (not disabled) so the user can type the unlock key</li>
+        <li>Placeholder changes to: <em>"Chat suspended. Type UNLOCK code to resume."</em></li>
+        <li><code>canSubmit</code> allows submit when locked, so the user can send the unlock key</li>
+        <li>When the backend response contains <em>"Session unlocked."</em>, the frontend clears <code>isLocked</code> state</li>
         <li>The lock persists for the browser session &mdash; refreshing the page clears the frontend lock (but the backend IP lock remains)</li>
       </ul>
 
@@ -938,6 +980,23 @@ If you think you may be having a medical emergency, tell me right away.
         <li><strong>Metadata line:</strong> displayed below assistant messages in small gray text (<code>#9ca3af</code>, 11px), showing build number, response time (seconds), and input tokens separated by dots</li>
         <li><strong>Sanitization:</strong> HTML sanitization allows <code>&lt;span class="state-name"&gt;</code> for custom styling, all other unsafe HTML is stripped</li>
       </ul>
+
+      <h3>Provider Results Display (RULE 5b)</h3>
+      <p>
+        Provider search results are always displayed as a <strong>bullet list</strong>, never as
+        a markdown table. The format is:
+      </p>
+      <ul>
+        <li>Count line before results: <em>"There are N [specialty] in [location]:"</em></li>
+        <li><strong>Bold provider name</strong></li>
+        <li>Indented sub-bullets for: address, county, phone (formatted <code>(nnn) nnn-nnnn</code>), NPI</li>
+      </ul>
+
+      <h3>Link Behavior</h3>
+      <p>
+        All links in assistant messages open in a new window by default using
+        <code>target="_blank"</code> and <code>rel="noopener noreferrer"</code>.
+      </p>
 
 
       <!-- ================================================================== -->
@@ -1148,12 +1207,27 @@ If you think you may be having a medical emergency, tell me right away.
             <td>The county physician fallback (third tier of provider search) uses a NUCC prefix filter of <code>^2</code> to restrict to physicians. This prefix is too broad &mdash; it includes non-physician taxonomy codes in the 2xxxxx range, potentially returning unexpected provider types (e.g. DME suppliers with codes starting with 2).</td>
             <td>Current behavior: filters to <code>entity_type_code=1</code> (individuals) AND primary taxonomy <code>^2</code>. Planned fix: tighten the regex to physician-specific NUCC code ranges only. Severity is low because the fallback only fires when both vector search and taxonomy search return 0 results, which is uncommon.</td>
           </tr>
+          <tr>
+            <td><code>BTC-002</code></td>
+            <td>External links: validate URLs, open in new tab</td>
+            <td>Open</td>
+            <td>Links generated by <code>lookup_provider_external</code> and other tools must be validated before rendering. All external links must open in a new tab (<code>target="_blank"</code>, <code>rel="noopener noreferrer"</code>).</td>
+            <td>None &mdash; requires implementation of URL validation and consistent link target attributes.</td>
+          </tr>
+          <tr>
+            <td><code>BTC-003</code></td>
+            <td>Safety audit trail &mdash; MUST HAVE</td>
+            <td>Open &mdash; MUST HAVE</td>
+            <td>Emergency incident records must never be deleted. Admin unlock must mark the record as <code>unlocked: true</code> with <code>unlocked_at</code> and <code>unlocked_by</code> fields, preserving the full audit trail for compliance review. DB check must skip unlocked records (<code>{"unlocked": {"$ne": true}}</code>).</td>
+            <td>None &mdash; this is a compliance requirement, not a workaround scenario.</td>
+          </tr>
         </table>
       </div>
 
       <div class="callout-warn callout">
-        <strong>Note:</strong> Both bugs have active workarounds in production code. Full
-        fixes are tracked as SIT/backlog items, not blockers for the current alpha release.
+        <strong>Note:</strong> ASN-4AFBDA and BTC-001 have active workarounds in production
+        code. BTC-003 is a <strong>MUST HAVE</strong> safety/compliance requirement. Full
+        fixes are tracked as SIT/backlog items.
       </div>
 
 
