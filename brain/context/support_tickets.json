@@ -1,0 +1,21 @@
+{
+  "description": "Tracking open support tickets and vendor issues across all platforms.",
+  "tickets": [
+    {
+      "id": "SUP-001",
+      "vendor": "HuggingFace",
+      "platform": "Spaces",
+      "severity": "Critical",
+      "status": "open",
+      "date_opened": "2026-03-28",
+      "opened_by": "Skip Snow",
+      "subject": "Docker Space stuck in BUILDING state - stalls 30+ minutes and not resolving",
+      "forum_case_number": "174739",
+      "url": "https://discuss.huggingface.co/t/critical-docker-space-stuck-in-building-state-stalls-minutes-and-not-resolving/174739",
+      "space": "SkipSnow/dev_ChatHealthyAIChatWindow",
+      "impact": "Blocking v0.1.2 release prep. Space unresponsive after factory restart killed old container.",
+      "workaround": "Old container was serving before factory restart. Code is in HF repo but build queue not processing.",
+      "notes": "Recurring problem since Docker SDK conversion. Forum has unanswered posts from August 2025 - response not expected. Reinforces need for Azure portability (ARCH-001)."
+    }
+  ]
+}

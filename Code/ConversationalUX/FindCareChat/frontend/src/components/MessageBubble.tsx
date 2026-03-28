@@ -1,14 +1,21 @@
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import type { Message } from './ChatWindow'
 
 const sanitizeSchema = {
   ...defaultSchema,
+  tagNames: [
+    ...(defaultSchema.tagNames || []),
+    'table', 'thead', 'tbody', 'tr', 'th', 'td',
+  ],
   attributes: {
     ...defaultSchema.attributes,
     span: [['className', 'state-name']],
     a: [...(defaultSchema.attributes?.a || []), 'target', 'rel'],
+    th: ['align'],
+    td: ['align'],
   },
 }
 
@@ -43,9 +50,13 @@ export default function MessageBubble({ message }: { message: Message }) {
           message.content
         ) : (
           <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
             components={{
               a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+              table: ({ node, ...props }) => <table {...props} style={{ borderCollapse: 'collapse', width: '100%', margin: '8px 0', fontSize: 13 }} />,
+              th: ({ node, ...props }) => <th {...props} style={{ border: '1px solid #d1d5db', padding: '6px 10px', background: '#f3f4f6', fontWeight: 600, textAlign: 'left' }} />,
+              td: ({ node, ...props }) => <td {...props} style={{ border: '1px solid #d1d5db', padding: '6px 10px' }} />,
             }}
           >
             {message.content}

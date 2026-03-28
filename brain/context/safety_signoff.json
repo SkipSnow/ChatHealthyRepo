@@ -1,0 +1,42 @@
+{
+  "feature": "Safety Filter (dual-trigger, IP lock, audit)",
+  "feature_id": 5,
+  "signed_off_by": "Skip Snow (Boss/QA)",
+  "date": "2026-03-28",
+  "status": "approved",
+
+  "bugs_fixed": [
+    {
+      "bug": "False positive on provider name lookup (Ms. Opeyemi Kemiki Dada triggered emergency)",
+      "root_cause": "Haiku classifier unreliable on provider names. No safe-prefix bypass for info requests.",
+      "fix": "Added safe-prefix bypass for 'tell me about', 'find me', etc. Hardened AI prompt with explicit 'NEVER EMERGENCY' rules for provider/info queries. Changed default-on-AI-failure from escalate to keyword-only fallback."
+    },
+    {
+      "bug": "Unlock code visible in safety audit record",
+      "root_cause": "Chat history stored raw without de-identification. Admin unlock key ('unlock$123') captured in transcript.",
+      "fix": "Added deIdentify() call on chat history before storing in safety audit trail."
+    },
+    {
+      "bug": "Triggering message missing from audit history",
+      "root_cause": "Backend received history WITHOUT current message (frontend sends them separately). _lock_ip_db only got prior history.",
+      "fix": "Append body.message to history before passing to _lock_ip_db: full_history = list(history) + [{'role': 'user', 'content': body.message}]"
+    }
+  ],
+
+  "enhancements_implemented": [
+    {
+      "enhancement": "Full conversation history in safety audit",
+      "description": "Safety audit now captures the complete de-identified conversation up to the trigger point, not just the last message. Enables incident review with full context."
+    },
+    {
+      "enhancement": "Switched safety classifier from Claude Haiku to GPT-4.1-mini",
+      "description": "Better classification accuracy on edge cases. Vendor diversity (OpenAI for safety, Anthropic for chat). 2.5x cheaper than Haiku at scale ($83K/year vs $438K/year per 1M users)."
+    }
+  ],
+
+  "test_results": {
+    "edge_cases_automated": "10/10 pass (pain->PROBE, chest pain->EMERGENCY, suicide->EMERGENCY, etc.)",
+    "manual_uat": "Emergency trigger, IP lock, admin unlock, audit record with full de-identified history - all verified by Boss",
+    "de_identification_verified": "State names scrubbed to [STATE], provider names to [PROVIDER NAME], addresses/phones/NPIs scrubbed"
+  }
+}

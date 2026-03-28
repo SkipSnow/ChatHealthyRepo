@@ -47,6 +47,10 @@ _log = logging.getLogger("findcare")
 SUPPORTED_STATES = {"DE", "MS"}
 _ENV_PREFIX       = os.getenv("ENV_PREFIX", "dev")
 _DEBUG            = os.getenv("DEBUG", "false").lower() == "true"
+_HUMAN_TESTING    = os.getenv("HUMAN_TESTING", "false").lower() == "true"
+# TODO: when ENV_PREFIX routing is implemented, override test mode in production:
+# if _ENV_PREFIX == "prod":
+#     _HUMAN_TESTING = False
 
 EMERGENCY_RESPONSE = (
     "<b>Call 911 or go to the nearest emergency room immediately. Do not wait.</b>\n\n"
@@ -135,6 +139,7 @@ def _lock_ip_db(ip: str, trigger_message: str = "", history: list = None) -> boo
         for m in (history or [])
         if m.get("role") in ("user", "assistant")
     ]
+    deIdentify(safe_history)
     try:
         col.update_one(
             {"ip": ip},
@@ -201,45 +206,58 @@ def _session_is_locked(history: list) -> bool:
 
 def _safety_check(message: str) -> bool:
     msg_lower = message.lower()
+
+    # Fast path: skip safety check for obvious non-emergency patterns
+    _SAFE_PREFIXES = [
+        "can you tell me more about", "tell me about", "more info on",
+        "what can you tell me about", "who is", "find me", "search for",
+        "look up", "what is", "how do i", "where can i",
+    ]
+    if any(msg_lower.startswith(p) for p in _SAFE_PREFIXES):
+        return False
+
     keyword_hit = any(kw in msg_lower for kw in EMERGENCY_KEYWORDS)
     ai_hit = False
     try:
-        client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
-        resp = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+        oai = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        resp = oai.chat.completions.create(
+            model="gpt-4.1-mini",
             max_tokens=64,
-            messages=[{"role": "user", "content": (
-                "You are a safety classifier. Decide ONLY between two outcomes:\n"
-                "  EMERGENCY — call 911 or go to ER immediately\n"
-                "  PROBE — ask a clarifying question first\n\n"
-                "EMERGENCY requires ALL of: (1) specific body location or system named, "
-                "(2) acute onset or severity stated, (3) life-threat implied.\n"
-                "Examples that ARE emergencies: 'chest pain', 'I can't breathe', "
-                "'I think I'm having a heart attack', 'I took too many pills', "
-                "'I want to kill myself', 'I'm having a seizure'.\n\n"
-                "PROBE — these are NOT emergencies:\n"
-                "  'I'm in pain' — location unknown → PROBE\n"
-                "  'I'm in a lot of pain' — location unknown → PROBE\n"
-                "  'I don't feel well' → PROBE\n"
-                "  'something hurts' → PROBE\n"
-                "  'I feel sick' → PROBE\n"
-                "  ANY pain without specific body location and stated severity → PROBE\n\n"
-                "Return ONLY valid JSON: {\"emergency\": true|false, \"confidence\": 0.0-1.0}\n\n"
-                f"Message: {message}"
-            )}],
+            temperature=0,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": (
+                    "You are a safety classifier. Decide ONLY between two outcomes:\n"
+                    "  EMERGENCY - call 911 or go to ER immediately\n"
+                    "  PROBE - ask a clarifying question first\n\n"
+                    "EMERGENCY requires ALL of: (1) specific body location or system named, "
+                    "(2) acute onset or severity stated, (3) life-threat implied.\n"
+                    "Examples that ARE emergencies: 'chest pain', 'I can't breathe', "
+                    "'I think I'm having a heart attack', 'I took too many pills', "
+                    "'I want to kill myself', 'I'm having a seizure'.\n\n"
+                    "NEVER EMERGENCY - these are ALWAYS PROBE:\n"
+                    "  'I'm in pain' - location unknown -> PROBE\n"
+                    "  'I'm in a lot of pain' - location unknown -> PROBE\n"
+                    "  'I don't feel well' -> PROBE\n"
+                    "  'something hurts' -> PROBE\n"
+                    "  'I feel sick' -> PROBE\n"
+                    "  ANY pain without specific body location and stated severity -> PROBE\n"
+                    "  ANY question about a doctor, provider, or person -> PROBE\n"
+                    "  ANY request for information or search -> PROBE\n"
+                    "  ANY message containing 'tell me about', 'more info', 'find me' -> PROBE\n\n"
+                    "Return ONLY valid JSON: {\"emergency\": true|false, \"confidence\": 0.0-1.0}"
+                )},
+                {"role": "user", "content": message},
+            ],
         )
-        raw = resp.content[0].text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-            raw = raw.strip()
+        raw = resp.choices[0].message.content.strip()
         result = json.loads(raw)
         confidence = float(result.get("confidence", 0))
         ai_hit = bool(result.get("emergency", False)) and confidence >= 0.80
     except Exception as exc:
-        _log.error("Safety check failed (%s) — defaulting to escalation", exc)
-        return True
+        _log.error("Safety check AI failed (%s) — falling back to keyword-only", exc)
+        # Don't escalate on AI failure — use keyword match only
+        return keyword_hit
     return keyword_hit or ai_hit
 
 
@@ -957,13 +975,46 @@ anthropic_tools = [
 
 
 def lookup_provider_external(provider_name: str, npi: str = "", state: str = "", **kwargs) -> dict:
-    """Construct search URLs for external provider profiles."""
+    """Look up provider details from NPI Registry API and construct search URLs."""
     import urllib.parse
     name_q = urllib.parse.quote_plus(provider_name)
+
+    # NPI Registry API lookup — get real provider data
+    npi_data = None
+    if npi:
+        try:
+            npi_resp = requests.get(
+                f"https://npiregistry.cms.hhs.gov/api/?number={npi}&version=2.1",
+                timeout=10,
+            )
+            if npi_resp.status_code == 200:
+                results = npi_resp.json().get("results", [])
+                if results:
+                    r = results[0]
+                    basic = r.get("basic", {})
+                    addrs = [a for a in r.get("addresses", []) if a.get("address_purpose") == "LOCATION"]
+                    addr = addrs[0] if addrs else {}
+                    taxonomies = r.get("taxonomies", [])
+                    primary_tax = next((t for t in taxonomies if t.get("primary")), taxonomies[0] if taxonomies else {})
+                    npi_data = {
+                        "name": " ".join(filter(None, [basic.get("name_prefix", ""), basic.get("first_name", ""), basic.get("middle_name", ""), basic.get("last_name", "")])),
+                        "npi": r.get("number", npi),
+                        "status": basic.get("status", ""),
+                        "credential": basic.get("credential", ""),
+                        "specialty": primary_tax.get("desc", ""),
+                        "license": primary_tax.get("license", ""),
+                        "license_state": primary_tax.get("state", ""),
+                        "address": ", ".join(filter(None, [addr.get("address_1", ""), addr.get("city", ""), addr.get("state", ""), addr.get("postal_code", "")[:5] if addr.get("postal_code") else ""])),
+                        "phone": addr.get("telephone_number", ""),
+                        "enumeration_date": basic.get("enumeration_date", ""),
+                    }
+        except Exception as exc:
+            _log.warning("NPI Registry API lookup failed for %s: %s", npi, exc)
+
     links = {
         "healthgrades": f"https://www.healthgrades.com/search?what={name_q}&where={state}",
         "zocdoc": f"https://www.zocdoc.com/search?name={name_q}&location={state}",
-        "npi_registry": f"https://npiregistry.cms.hhs.gov/provider-view/{npi}" if npi else f"https://npiregistry.cms.hhs.gov/search?name={name_q}",
+        "npi_registry": f"https://npiregistry.cms.hhs.gov/search?number={npi}" if npi else f"https://npiregistry.cms.hhs.gov/search?name_type=ind&first_name={name_q}",
     }
     # State medical board links for supported states
     state_boards = {
@@ -973,7 +1024,10 @@ def lookup_provider_external(provider_name: str, npi: str = "", state: str = "",
     }
     if state.upper() in state_boards:
         links["state_medical_board"] = state_boards[state.upper()]
+
     result = {"provider_name": provider_name, "npi": npi, "links": links}
+    if npi_data:
+        result["npi_details"] = npi_data
     return _url_guardian.guard_tool_result(result)
 
 
@@ -1046,6 +1100,49 @@ WELCOME_MESSAGE = (
     "If you think you may be having a medical emergency, tell me right away.\n\n"
     "**What can I help you with today?**"
 )
+
+_TEST_FEATURES = [
+    {"id": 1,  "feature": "Provider Search (DE + MS, vector + regex)",     "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
+    {"id": 2,  "feature": "Specialty Identification (NUCC + AI expansion)","completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
+    {"id": 3,  "feature": "Clinical Trials Search",                        "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
+    {"id": 4,  "feature": "About ChatHealthy / Skip Snow",                 "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
+    {"id": 5,  "feature": "Safety Filter (dual-trigger, IP lock, audit)",  "completed": True, "bugs_fixed": 3, "bugs_deferred": 0, "features_implemented": 2, "features_deferred": 0},
+    {"id": 6,  "feature": "Lead Capture (follow-up offer)",                "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
+    {"id": 7,  "feature": "HIPAA Consent Flow (two-tier)",                 "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
+    {"id": 8,  "feature": "External Provider Lookup",                      "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
+    {"id": 9,  "feature": "URL Guardian (validate + defang broken links)", "completed": False, "bugs_fixed": 0, "bugs_deferred": 1, "features_implemented": 0, "features_deferred": 0},
+    {"id": 10, "feature": "Chat UX (timer, stop, markdown, emergency)",    "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
+    {"id": 11, "feature": "Blob Storage Infrastructure",                   "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
+    {"id": 12, "feature": "Validated Provider Web Research",               "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
+    {"id": 13, "feature": "Unanswerable Question Handling",                "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
+    {"id": 14, "feature": "Markdown Table Rendering (GFM tables in chat)", "completed": True, "bugs_fixed": 1, "bugs_deferred": 0, "features_implemented": 1, "features_deferred": 0},
+]
+
+
+def _build_test_welcome():
+    """Build the human testing welcome message with feature tracking table."""
+    lines = [
+        "**v0.1.2 HUMAN TESTING MODE**\n",
+        "| # | Feature | Done | Bugs Fixed | Bugs Deferred | Feat Impl | Feat Deferred |",
+        "|---|---------|:----:|:----------:|:-------------:|:---------:|:-------------:|",
+    ]
+    totals = {"completed": 0, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0}
+    for f in _TEST_FEATURES:
+        done = "Y" if f["completed"] else " "
+        lines.append(
+            f"| {f['id']} | {f['feature']} | {done} | {f['bugs_fixed']} | {f['bugs_deferred']} | {f['features_implemented']} | {f['features_deferred']} |"
+        )
+        if f["completed"]:
+            totals["completed"] += 1
+        totals["bugs_fixed"] += f["bugs_fixed"]
+        totals["bugs_deferred"] += f["bugs_deferred"]
+        totals["features_implemented"] += f["features_implemented"]
+        totals["features_deferred"] += f["features_deferred"]
+    lines.append(
+        f"| | **TOTALS** | **{totals['completed']}/{len(_TEST_FEATURES)}** | **{totals['bugs_fixed']}** | **{totals['bugs_deferred']}** | **{totals['features_implemented']}** | **{totals['features_deferred']}** |"
+    )
+    lines.append("\nTest the features above. Type normally to interact with the chatbot.\n")
+    return "\n".join(lines)
 
 
 def _system_prompt(follow_up_check: bool = False) -> str:
@@ -1226,6 +1323,8 @@ class ChatResponse(BaseModel):
 
 @app.get("/welcome")
 def welcome():
+    if _HUMAN_TESTING:
+        return {"message": _build_test_welcome()}
     return {"message": WELCOME_MESSAGE}
 
 
@@ -1269,7 +1368,9 @@ async def _chat_inner(body: ChatRequest, request: Request):
         return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
 
     if _safety_check(body.message):
-        _lock_ip_db(ip, trigger_message=body.message, history=history)
+        # Include the triggering message in the audit history
+        full_history = list(history) + [{"role": "user", "content": body.message}]
+        _lock_ip_db(ip, trigger_message=body.message, history=full_history)
         return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
 
     user_msg_count = sum(1 for m in history if m.get("role") == "user")
