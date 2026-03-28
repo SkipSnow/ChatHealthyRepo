@@ -3,6 +3,9 @@
   "version": "1.0",
   "effective_date": "2026-03-28",
   "approved_by": "Skip Snow (Founder/CEO)",
+
+  "roles": ["Boss (final authority)", "Claude (engineer)", "GPT (architect)"],
+
   "policies": [
     {
       "id": "GOV-001",

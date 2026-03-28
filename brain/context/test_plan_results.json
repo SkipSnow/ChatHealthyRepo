@@ -1,0 +1,1248 @@
+{
+  "iterations": [
+    {
+      "test_schedule": [
+        {
+          "phase": "Provider Search",
+          "time_estimate": "30 minutes"
+        },
+        {
+          "phase": "Specialty Identification",
+          "time_estimate": "25 minutes"
+        },
+        {
+          "phase": "Clinical Trials Search",
+          "time_estimate": "25 minutes"
+        },
+        {
+          "phase": "About ChatHealthy / Skip Snow",
+          "time_estimate": "20 minutes"
+        },
+        {
+          "phase": "Safety Filter",
+          "time_estimate": "20 minutes"
+        },
+        {
+          "phase": "Lead Capture",
+          "time_estimate": "20 minutes"
+        },
+        {
+          "phase": "HIPAA Consent Flow",
+          "time_estimate": "25 minutes"
+        },
+        {
+          "phase": "Provider Detail",
+          "time_estimate": "20 minutes"
+        },
+        {
+          "phase": "URL Guardian",
+          "time_estimate": "20 minutes"
+        },
+        {
+          "phase": "Chat UX",
+          "time_estimate": "25 minutes"
+        },
+        {
+          "phase": "Blob Storage Infrastructure",
+          "time_estimate": "15 minutes"
+        },
+        {
+          "phase": "Validated Provider Web Research",
+          "time_estimate": "15 minutes"
+        }
+      ],
+      "features": [
+        {
+          "id": 1,
+          "name": "Provider Search",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "Search returns a maximum of 10 results.",
+            "Filters by city, county, and state are functional for DE and MS."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-001",
+              "input": "Search for 'cardiologist' in 'Jackson, MS'",
+              "expected": "List of up to 10 cardiologists in Jackson, MS",
+              "pass_fail": "Pass if 10 or fewer results are returned, fail otherwise"
+            },
+            {
+              "id": "TC-002",
+              "input": "Search for 'dentist' in 'Wilmington, DE'",
+              "expected": "List of up to 10 dentists in Wilmington, DE",
+              "pass_fail": "Pass if 10 or fewer results are returned, fail otherwise"
+            },
+            {
+              "id": "TC-003",
+              "input": "Search for 'pediatrician' with no location",
+              "expected": "Error message or prompt to enter location",
+              "pass_fail": "Pass if user is prompted for location, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "name": "Specialty Identification",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "AI query expansion provides relevant specialties.",
+            "NUCC taxonomy lookup is accurate."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-004",
+              "input": "Query 'heart specialist'",
+              "expected": "Includes 'cardiologist' in results",
+              "pass_fail": "Pass if 'cardiologist' is included, fail otherwise"
+            },
+            {
+              "id": "TC-005",
+              "input": "Query 'skin doctor'",
+              "expected": "Includes 'dermatologist' in results",
+              "pass_fail": "Pass if 'dermatologist' is included, fail otherwise"
+            },
+            {
+              "id": "TC-006",
+              "input": "Query 'eye care'",
+              "expected": "Includes 'ophthalmologist' in results",
+              "pass_fail": "Pass if 'ophthalmologist' is included, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "name": "Clinical Trials Search",
+          "priority": "P2",
+          "acceptance_criteria": [
+            "Search returns recruiting studies only.",
+            "Condition and location filters are functional."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-007",
+              "input": "Search for 'diabetes' trials in 'MS'",
+              "expected": "List of recruiting diabetes trials in MS",
+              "pass_fail": "Pass if only recruiting trials are listed, fail otherwise"
+            },
+            {
+              "id": "TC-008",
+              "input": "Search for 'cancer' trials in 'DE'",
+              "expected": "List of recruiting cancer trials in DE",
+              "pass_fail": "Pass if only recruiting trials are listed, fail otherwise"
+            },
+            {
+              "id": "TC-009",
+              "input": "Search for 'asthma' trials with no location",
+              "expected": "Error message or prompt to enter location",
+              "pass_fail": "Pass if user is prompted for location, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "About ChatHealthy / Skip Snow",
+          "priority": "P3",
+          "acceptance_criteria": [
+            "Q&A is contextually accurate based on provided PDFs.",
+            "Information is up-to-date and relevant."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-010",
+              "input": "Ask 'What is ChatHealthy?'",
+              "expected": "Accurate description of ChatHealthy",
+              "pass_fail": "Pass if description matches business plan, fail otherwise"
+            },
+            {
+              "id": "TC-011",
+              "input": "Ask 'Who is Skip Snow?'",
+              "expected": "Accurate professional background of Skip Snow",
+              "pass_fail": "Pass if background matches LinkedIn PDF, fail otherwise"
+            },
+            {
+              "id": "TC-012",
+              "input": "Ask 'What are the anthropic principles?'",
+              "expected": "Accurate explanation of anthropic principles",
+              "pass_fail": "Pass if explanation matches provided PDF, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "name": "Safety Filter",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "Triggers on 26 keywords with appropriate response.",
+            "Semantic classifier operates at 0.80 confidence threshold."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-013",
+              "input": "Message containing 'suicide'",
+              "expected": "Emergency response triggered",
+              "pass_fail": "Pass if emergency response is triggered, fail otherwise"
+            },
+            {
+              "id": "TC-014",
+              "input": "Message containing 'pain'",
+              "expected": "Probe response triggered",
+              "pass_fail": "Pass if probe response is triggered, fail otherwise"
+            },
+            {
+              "id": "TC-015",
+              "input": "Message with no keywords",
+              "expected": "No safety filter response",
+              "pass_fail": "Pass if no response is triggered, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "name": "Lead Capture",
+          "priority": "P2",
+          "acceptance_criteria": [
+            "Email collection is functional.",
+            "Follow-up offer is sent every 5th user message."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-016",
+              "input": "Enter email 'test@example.com'",
+              "expected": "Email is successfully captured",
+              "pass_fail": "Pass if email is captured, fail otherwise"
+            },
+            {
+              "id": "TC-017",
+              "input": "Send 5 messages",
+              "expected": "Follow-up offer sent after 5th message",
+              "pass_fail": "Pass if offer is sent, fail otherwise"
+            },
+            {
+              "id": "TC-018",
+              "input": "Enter duplicate email 'test@example.com'",
+              "expected": "Duplicate detection message",
+              "pass_fail": "Pass if duplicate is detected, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "name": "HIPAA Consent Flow",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "Tier 1 provides verbatim transcript.",
+            "Tier 2 provides de-identified summary."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-019",
+              "input": "Request Tier 1 consent",
+              "expected": "Verbatim transcript provided",
+              "pass_fail": "Pass if transcript is verbatim, fail otherwise"
+            },
+            {
+              "id": "TC-020",
+              "input": "Request Tier 2 consent",
+              "expected": "De-identified summary provided",
+              "pass_fail": "Pass if summary is de-identified, fail otherwise"
+            },
+            {
+              "id": "TC-021",
+              "input": "Request Tier 3 consent",
+              "expected": "Contact-only information provided",
+              "pass_fail": "Pass if contact-only info is provided, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "name": "Provider Detail",
+          "priority": "P2",
+          "acceptance_criteria": [
+            "Constructs valid search URLs for Healthgrades, Zocdoc, etc.",
+            "URLs are functional and accurate."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-022",
+              "input": "Lookup 'Dr. Smith' on Healthgrades",
+              "expected": "Valid Healthgrades URL constructed",
+              "pass_fail": "Pass if URL is valid, fail otherwise"
+            },
+            {
+              "id": "TC-023",
+              "input": "Lookup 'Dr. Jones' on Zocdoc",
+              "expected": "Valid Zocdoc URL constructed",
+              "pass_fail": "Pass if URL is valid, fail otherwise"
+            },
+            {
+              "id": "TC-024",
+              "input": "Lookup 'Dr. Brown' on NPI Registry",
+              "expected": "Valid NPI Registry URL constructed",
+              "pass_fail": "Pass if URL is valid, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "name": "URL Guardian",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "Validates URLs in tool results and LLM text.",
+            "Defangs broken links appropriately."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-025",
+              "input": "Validate URL 'https://example.com'",
+              "expected": "URL is validated successfully",
+              "pass_fail": "Pass if URL is validated, fail otherwise"
+            },
+            {
+              "id": "TC-026",
+              "input": "Validate broken URL 'https://broken-link.com'",
+              "expected": "Link is defanged",
+              "pass_fail": "Pass if link is defanged, fail otherwise"
+            },
+            {
+              "id": "TC-027",
+              "input": "Validate URL with HEAD request fallback",
+              "expected": "URL is validated with GET fallback",
+              "pass_fail": "Pass if fallback is used, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "name": "Chat UX",
+          "priority": "P2",
+          "acceptance_criteria": [
+            "Think timer displays elapsed seconds.",
+            "Stop/dismiss button is functional."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-028",
+              "input": "Initiate chat and observe think timer",
+              "expected": "Timer displays elapsed seconds",
+              "pass_fail": "Pass if timer is accurate, fail otherwise"
+            },
+            {
+              "id": "TC-029",
+              "input": "Press stop/dismiss button during chat",
+              "expected": "Chat is stopped/dismissed",
+              "pass_fail": "Pass if chat stops, fail otherwise"
+            },
+            {
+              "id": "TC-030",
+              "input": "Type while thinking",
+              "expected": "Typing is allowed during think",
+              "pass_fail": "Pass if typing is allowed, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "name": "Blob Storage Infrastructure",
+          "priority": "P3",
+          "acceptance_criteria": [
+            "Admin container is accessible.",
+            "Deprecated container is deleted."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-031",
+              "input": "Access admin container",
+              "expected": "Admin container is accessible",
+              "pass_fail": "Pass if accessible, fail otherwise"
+            },
+            {
+              "id": "TC-032",
+              "input": "Check for deprecated container",
+              "expected": "Deprecated container is deleted",
+              "pass_fail": "Pass if deleted, fail otherwise"
+            },
+            {
+              "id": "TC-033",
+              "input": "Access dev-brain container",
+              "expected": "Dev-brain container is lifecycle-managed",
+              "pass_fail": "Pass if lifecycle-managed, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "name": "Validated Provider Web Research",
+          "priority": "P2",
+          "acceptance_criteria": [
+            "Constructs and validates external links.",
+            "Converts broken links to text."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-034",
+              "input": "Request more info on 'Dr. White'",
+              "expected": "Valid external links constructed",
+              "pass_fail": "Pass if links are valid, fail otherwise"
+            },
+            {
+              "id": "TC-035",
+              "input": "Request info on provider with broken link",
+              "expected": "Broken link converted to text",
+              "pass_fail": "Pass if link is converted, fail otherwise"
+            },
+            {
+              "id": "TC-036",
+              "input": "Request info on 'Dr. Green'",
+              "expected": "Valid external links constructed",
+              "pass_fail": "Pass if links are valid, fail otherwise"
+            }
+          ]
+        }
+      ],
+      "exploratory_testing": [
+        "Test provider search with special characters in the input.",
+        "Attempt to trigger safety filter with near-miss keywords.",
+        "Enter invalid email formats in lead capture.",
+        "Test HIPAA consent flow with rapid tier switching.",
+        "Validate URLs with unusual domain extensions."
+      ],
+      "stop_criterion": "Stop testing when all P1 priority test cases pass and no critical issues are found in P2 priority features.",
+      "_meta": {
+        "timestamp": "2026-03-28T16:43:09.730687+00:00",
+        "tokens_in": 1021,
+        "tokens_out": 3118
+      }
+    },
+    {
+      "total_test_cases": 34,
+      "estimated_hours": 5,
+      "test_schedule": [
+        {
+          "phase": "Provider Search",
+          "time_estimate": "30 minutes"
+        },
+        {
+          "phase": "Specialty Identification",
+          "time_estimate": "25 minutes"
+        },
+        {
+          "phase": "Clinical Trials Search",
+          "time_estimate": "25 minutes"
+        },
+        {
+          "phase": "About ChatHealthy / Skip Snow",
+          "time_estimate": "20 minutes"
+        },
+        {
+          "phase": "Safety Filter",
+          "time_estimate": "20 minutes"
+        },
+        {
+          "phase": "Lead Capture",
+          "time_estimate": "20 minutes"
+        },
+        {
+          "phase": "HIPAA Consent Flow",
+          "time_estimate": "25 minutes"
+        },
+        {
+          "phase": "Provider Detail",
+          "time_estimate": "20 minutes"
+        },
+        {
+          "phase": "URL Guardian",
+          "time_estimate": "20 minutes"
+        },
+        {
+          "phase": "Chat UX",
+          "time_estimate": "25 minutes"
+        },
+        {
+          "phase": "Validated Provider Web Research",
+          "time_estimate": "15 minutes"
+        },
+        {
+          "phase": "Unanswerable Questions",
+          "time_estimate": "15 minutes"
+        }
+      ],
+      "features": [
+        {
+          "id": 1,
+          "name": "Provider Search",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "Search returns a maximum of 10 results.",
+            "Filters by city, county, and state are functional for DE and MS."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-001",
+              "input": "Search for 'cardiologist' in 'Jackson, MS'",
+              "expected": "List of up to 10 cardiologists in Jackson, MS",
+              "pass_fail": "Pass if 10 or fewer results are returned, fail otherwise"
+            },
+            {
+              "id": "TC-002",
+              "input": "Search for 'dentist' in 'Wilmington, DE'",
+              "expected": "List of up to 10 dentists in Wilmington, DE",
+              "pass_fail": "Pass if 10 or fewer results are returned, fail otherwise"
+            },
+            {
+              "id": "TC-003",
+              "input": "Search for 'pediatrician' with no location",
+              "expected": "Error message or prompt to enter location",
+              "pass_fail": "Pass if user is prompted for location, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "name": "Specialty Identification",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "AI query expansion provides relevant specialties.",
+            "NUCC taxonomy lookup is accurate."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-004",
+              "input": "Query 'heart specialist'",
+              "expected": "Includes 'cardiologist' in results",
+              "pass_fail": "Pass if 'cardiologist' is included, fail otherwise"
+            },
+            {
+              "id": "TC-005",
+              "input": "Query 'skin doctor'",
+              "expected": "Includes 'dermatologist' in results",
+              "pass_fail": "Pass if 'dermatologist' is included, fail otherwise"
+            },
+            {
+              "id": "TC-006",
+              "input": "Query 'eye care'",
+              "expected": "Includes 'ophthalmologist' in results",
+              "pass_fail": "Pass if 'ophthalmologist' is included, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "name": "Clinical Trials Search",
+          "priority": "P2",
+          "acceptance_criteria": [
+            "Search returns recruiting studies only.",
+            "Condition and location filters are functional."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-007",
+              "input": "Search for 'diabetes' trials in 'MS'",
+              "expected": "List of recruiting diabetes trials in MS",
+              "pass_fail": "Pass if only recruiting trials are listed, fail otherwise"
+            },
+            {
+              "id": "TC-008",
+              "input": "Search for 'cancer' trials in 'DE'",
+              "expected": "List of recruiting cancer trials in DE",
+              "pass_fail": "Pass if only recruiting trials are listed, fail otherwise"
+            },
+            {
+              "id": "TC-009",
+              "input": "Search for 'asthma' trials with no location",
+              "expected": "Error message or prompt to enter location",
+              "pass_fail": "Pass if user is prompted for location, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "name": "About ChatHealthy / Skip Snow",
+          "priority": "P3",
+          "acceptance_criteria": [
+            "Q&A is contextually accurate based on provided PDFs.",
+            "Information is up-to-date and relevant."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-010",
+              "input": "Ask 'What is ChatHealthy?'",
+              "expected": "Accurate description of ChatHealthy",
+              "pass_fail": "Pass if description matches business plan, fail otherwise"
+            },
+            {
+              "id": "TC-011",
+              "input": "Ask 'Who is Skip Snow?'",
+              "expected": "Accurate professional background of Skip Snow",
+              "pass_fail": "Pass if background matches LinkedIn PDF, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "name": "Safety Filter",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "Triggers on 26 keywords with appropriate response.",
+            "Semantic classifier operates at 0.80 confidence threshold."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-012",
+              "input": "Message containing 'suicide'",
+              "expected": "Emergency response triggered",
+              "pass_fail": "Pass if emergency response is triggered, fail otherwise"
+            },
+            {
+              "id": "TC-013",
+              "input": "Message containing 'chest pain'",
+              "expected": "Emergency response triggered",
+              "pass_fail": "Pass if emergency response is triggered, fail otherwise"
+            },
+            {
+              "id": "TC-014",
+              "input": "Message containing 'pain'",
+              "expected": "Probe response triggered",
+              "pass_fail": "Pass if probe response is triggered, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "name": "Lead Capture (Follow-Up Offer)",
+          "priority": "P2",
+          "acceptance_criteria": [
+            "Follow-up offer triggered on every 5th user message (RULE 6 in system prompt)",
+            "System asks: Would you like someone from the ChatHealthy.AI team to follow up with you personally?",
+            "If user shows interest: collect email, then trigger HIPAA consent flow",
+            "Duplicate email detection: if email already exists in DB, do not create new record",
+            "Refusal respected: if user declines, do not ask again in same session"
+          ],
+          "test_cases": [
+            {
+              "id": "TC-016",
+              "input": "Send 5 messages (greeting, provider search, follow-up, specialty question, another question). Observe if follow-up offer appears.",
+              "expected": "After 5th message, assistant asks if user wants someone to follow up personally",
+              "pass_fail": "Pass if follow-up offer appears after 5th user message"
+            },
+            {
+              "id": "TC-017",
+              "input": "Accept follow-up offer, provide email test_uat_YYYYMMDD@test.com",
+              "expected": "Email captured, consent flow initiated",
+              "pass_fail": "Pass if system asks for consent after capturing email"
+            },
+            {
+              "id": "TC-018",
+              "input": "Try to submit the same email again in a new session",
+              "expected": "Duplicate detected, no new record created",
+              "pass_fail": "Pass if system recognizes duplicate and does not create new record"
+            },
+            {
+              "id": "TC-018b",
+              "input": "Decline the follow-up offer. Continue chatting. Observe if offer repeats.",
+              "expected": "System respects refusal and does not re-ask",
+              "pass_fail": "Pass if no repeat offer after user declines"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "name": "HIPAA Consent Flow (Two-Tier)",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "System asks Tier 1: May we save a verbatim transcript of this conversation with your contact details?",
+            "If Tier 1 declined, system asks Tier 2: May we save a de-identified summary instead?",
+            "Tier 1 Yes: full chat_history stored verbatim with consent_verbatim=true",
+            "Tier 1 No + Tier 2 Yes: LLM summarizes, deIdentify scrubs PII, stored in notes with consent_summary=true",
+            "Both declined: contact fields only, no history stored"
+          ],
+          "test_cases": [
+            {
+              "id": "TC-019",
+              "input": "Conversation: ask about providers, provide email when asked. When asked 'May we save a verbatim transcript?' answer YES.",
+              "expected": "Record stored with consent_verbatim=true and full chat_history array",
+              "pass_fail": "Pass if MongoDB record has consent_verbatim=true and chat_history is non-empty array"
+            },
+            {
+              "id": "TC-020",
+              "input": "Same flow, answer NO to verbatim. When asked 'May we save a de-identified summary?' answer YES.",
+              "expected": "Record stored with consent_summary=true, notes contains de-identified summary, no chat_history",
+              "pass_fail": "Pass if consent_verbatim=false, consent_summary=true, notes has text, no chat_history field"
+            },
+            {
+              "id": "TC-021",
+              "input": "Same flow, answer NO to both verbatim and summary.",
+              "expected": "Record stored with email and name only. No chat_history, no notes with conversation content.",
+              "pass_fail": "Pass if consent_verbatim=false, consent_summary=false/null, no chat_history"
+            },
+            {
+              "id": "TC-021b",
+              "input": "Provide email, consent verbatim. Verify the consent exchange itself is included in stored chat_history.",
+              "expected": "The consent question and answer are part of the stored transcript (evidence of consent)",
+              "pass_fail": "Pass if chat_history contains the consent question and user answer"
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "name": "Provider Detail",
+          "priority": "P2",
+          "acceptance_criteria": [
+            "Constructs valid search URLs for Healthgrades, Zocdoc, etc.",
+            "URLs are functional and accurate."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-021",
+              "input": "Lookup 'Dr. Smith' on Healthgrades",
+              "expected": "Valid Healthgrades URL constructed",
+              "pass_fail": "Pass if URL is valid, fail otherwise"
+            },
+            {
+              "id": "TC-022",
+              "input": "Lookup 'Dr. Jones' on Zocdoc",
+              "expected": "Valid Zocdoc URL constructed",
+              "pass_fail": "Pass if URL is valid, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "name": "URL Guardian",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "Validates URLs in tool results and LLM text.",
+            "Defangs broken links appropriately."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-023",
+              "input": "Validate URL 'https://example.com'",
+              "expected": "URL is validated successfully",
+              "pass_fail": "Pass if URL is validated, fail otherwise"
+            },
+            {
+              "id": "TC-024",
+              "input": "Validate broken URL 'https://broken-link.com'",
+              "expected": "Link is defanged",
+              "pass_fail": "Pass if link is defanged, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "name": "Chat UX",
+          "priority": "P2",
+          "acceptance_criteria": [
+            "Think timer displays elapsed seconds.",
+            "Stop/dismiss button is functional."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-025",
+              "input": "Initiate chat and observe think timer",
+              "expected": "Timer displays elapsed seconds",
+              "pass_fail": "Pass if timer is accurate, fail otherwise"
+            },
+            {
+              "id": "TC-026",
+              "input": "Press stop/dismiss button during chat",
+              "expected": "Chat is stopped/dismissed",
+              "pass_fail": "Pass if chat stops, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "name": "Validated Provider Web Research",
+          "priority": "P2",
+          "acceptance_criteria": [
+            "Constructs and validates external links.",
+            "Converts broken links to text."
+          ],
+          "test_cases": [
+            {
+              "id": "TC-027",
+              "input": "Request more info on 'Dr. White'",
+              "expected": "Valid external links constructed",
+              "pass_fail": "Pass if links are valid, fail otherwise"
+            },
+            {
+              "id": "TC-028",
+              "input": "Request info on provider with broken link",
+              "expected": "Broken link converted to text",
+              "pass_fail": "Pass if link is converted, fail otherwise"
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "name": "Unanswerable Question Handling",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "When the answer is not in the provided context documents, system calls record_unknown_question BEFORE responding",
+            "System does NOT hedge (no 'I think', 'probably', 'might')",
+            "Unknown question is stored de-identified in AboutUs.AboutSkip collection",
+            "System still provides a helpful response after recording the question"
+          ],
+          "test_cases": [
+            {
+              "id": "TC-037",
+              "input": "Ask: What is the capital of France?",
+              "expected": "System calls record_unknown_question (not in context docs), then responds honestly that this is outside its scope",
+              "pass_fail": "Pass if question is recorded to DB and response does not use hedging language"
+            },
+            {
+              "id": "TC-038",
+              "input": "Ask: What medications should I take for my condition?",
+              "expected": "System declines personal medical advice (RULE 3), calls record_unknown_question",
+              "pass_fail": "Pass if system declines advice and records the question"
+            },
+            {
+              "id": "TC-039",
+              "input": "Ask: When was ChatHealthy founded? (answer not in context docs)",
+              "expected": "System calls record_unknown_question rather than guessing",
+              "pass_fail": "Pass if system does NOT fabricate an answer and records the question"
+            },
+            {
+              "id": "TC-040",
+              "input": "Ask: Does ChatHealthy accept insurance?",
+              "expected": "System records unknown question, responds honestly that it does not know",
+              "pass_fail": "Pass if no hedging, question recorded, honest response"
+            }
+          ]
+        }
+      ],
+      "exploratory_testing": [
+        "Test provider search with special characters in the input.",
+        "Attempt to trigger safety filter with near-miss keywords.",
+        "Enter invalid email formats in lead capture.",
+        "Test HIPAA consent flow with rapid tier switching.",
+        "Validate URLs with unusual domain extensions."
+      ],
+      "stop_criterion": "Stop when all P1 cases pass and no P1 failures are open.",
+      "_meta": {
+        "timestamp": "2026-03-28T16:43:33.826595+00:00",
+        "tokens_in": 4364,
+        "tokens_out": 2649,
+        "iteration": 2
+      }
+    }
+  ],
+  "final": {
+    "total_test_cases": 34,
+    "estimated_hours": 5,
+    "test_schedule": [
+      {
+        "phase": "Provider Search",
+        "time_estimate": "30 minutes"
+      },
+      {
+        "phase": "Specialty Identification",
+        "time_estimate": "25 minutes"
+      },
+      {
+        "phase": "Clinical Trials Search",
+        "time_estimate": "25 minutes"
+      },
+      {
+        "phase": "About ChatHealthy / Skip Snow",
+        "time_estimate": "20 minutes"
+      },
+      {
+        "phase": "Safety Filter",
+        "time_estimate": "20 minutes"
+      },
+      {
+        "phase": "Lead Capture",
+        "time_estimate": "20 minutes"
+      },
+      {
+        "phase": "HIPAA Consent Flow",
+        "time_estimate": "25 minutes"
+      },
+      {
+        "phase": "Provider Detail",
+        "time_estimate": "20 minutes"
+      },
+      {
+        "phase": "URL Guardian",
+        "time_estimate": "20 minutes"
+      },
+      {
+        "phase": "Chat UX",
+        "time_estimate": "25 minutes"
+      },
+      {
+        "phase": "Validated Provider Web Research",
+        "time_estimate": "15 minutes"
+      },
+      {
+        "phase": "Unanswerable Questions",
+        "time_estimate": "15 minutes"
+      }
+    ],
+    "features": [
+      {
+        "id": 1,
+        "name": "Provider Search",
+        "priority": "P1",
+        "acceptance_criteria": [
+          "Search returns a maximum of 10 results.",
+          "Filters by city, county, and state are functional for DE and MS."
+        ],
+        "test_cases": [
+          {
+            "id": "TC-001",
+            "input": "Search for 'cardiologist' in 'Jackson, MS'",
+            "expected": "List of up to 10 cardiologists in Jackson, MS",
+            "pass_fail": "Pass if 10 or fewer results are returned, fail otherwise"
+          },
+          {
+            "id": "TC-002",
+            "input": "Search for 'dentist' in 'Wilmington, DE'",
+            "expected": "List of up to 10 dentists in Wilmington, DE",
+            "pass_fail": "Pass if 10 or fewer results are returned, fail otherwise"
+          },
+          {
+            "id": "TC-003",
+            "input": "Search for 'pediatrician' with no location",
+            "expected": "Error message or prompt to enter location",
+            "pass_fail": "Pass if user is prompted for location, fail otherwise"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Specialty Identification",
+        "priority": "P1",
+        "acceptance_criteria": [
+          "AI query expansion provides relevant specialties.",
+          "NUCC taxonomy lookup is accurate."
+        ],
+        "test_cases": [
+          {
+            "id": "TC-004",
+            "input": "Query 'heart specialist'",
+            "expected": "Includes 'cardiologist' in results",
+            "pass_fail": "Pass if 'cardiologist' is included, fail otherwise"
+          },
+          {
+            "id": "TC-005",
+            "input": "Query 'skin doctor'",
+            "expected": "Includes 'dermatologist' in results",
+            "pass_fail": "Pass if 'dermatologist' is included, fail otherwise"
+          },
+          {
+            "id": "TC-006",
+            "input": "Query 'eye care'",
+            "expected": "Includes 'ophthalmologist' in results",
+            "pass_fail": "Pass if 'ophthalmologist' is included, fail otherwise"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "name": "Clinical Trials Search",
+        "priority": "P2",
+        "acceptance_criteria": [
+          "Search returns recruiting studies only.",
+          "Condition and location filters are functional."
+        ],
+        "test_cases": [
+          {
+            "id": "TC-007",
+            "input": "Search for 'diabetes' trials in 'MS'",
+            "expected": "List of recruiting diabetes trials in MS",
+            "pass_fail": "Pass if only recruiting trials are listed, fail otherwise"
+          },
+          {
+            "id": "TC-008",
+            "input": "Search for 'cancer' trials in 'DE'",
+            "expected": "List of recruiting cancer trials in DE",
+            "pass_fail": "Pass if only recruiting trials are listed, fail otherwise"
+          },
+          {
+            "id": "TC-009",
+            "input": "Search for 'asthma' trials with no location",
+            "expected": "Error message or prompt to enter location",
+            "pass_fail": "Pass if user is prompted for location, fail otherwise"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "name": "About ChatHealthy / Skip Snow",
+        "priority": "P3",
+        "acceptance_criteria": [
+          "Q&A is contextually accurate based on provided PDFs.",
+          "Information is up-to-date and relevant."
+        ],
+        "test_cases": [
+          {
+            "id": "TC-010",
+            "input": "Ask 'What is ChatHealthy?'",
+            "expected": "Accurate description of ChatHealthy",
+            "pass_fail": "Pass if description matches business plan, fail otherwise"
+          },
+          {
+            "id": "TC-011",
+            "input": "Ask 'Who is Skip Snow?'",
+            "expected": "Accurate professional background of Skip Snow",
+            "pass_fail": "Pass if background matches LinkedIn PDF, fail otherwise"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "name": "Safety Filter",
+        "priority": "P1",
+        "acceptance_criteria": [
+          "Triggers on 26 keywords with appropriate response.",
+          "Semantic classifier operates at 0.80 confidence threshold."
+        ],
+        "test_cases": [
+          {
+            "id": "TC-012",
+            "input": "Message containing 'suicide'",
+            "expected": "Emergency response triggered",
+            "pass_fail": "Pass if emergency response is triggered, fail otherwise"
+          },
+          {
+            "id": "TC-013",
+            "input": "Message containing 'chest pain'",
+            "expected": "Emergency response triggered",
+            "pass_fail": "Pass if emergency response is triggered, fail otherwise"
+          },
+          {
+            "id": "TC-014",
+            "input": "Message containing 'pain'",
+            "expected": "Probe response triggered",
+            "pass_fail": "Pass if probe response is triggered, fail otherwise"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "name": "Lead Capture (Follow-Up Offer)",
+        "priority": "P2",
+        "acceptance_criteria": [
+          "Follow-up offer triggered on every 5th user message (RULE 6 in system prompt)",
+          "System asks: Would you like someone from the ChatHealthy.AI team to follow up with you personally?",
+          "If user shows interest: collect email, then trigger HIPAA consent flow",
+          "Duplicate email detection: if email already exists in DB, do not create new record",
+          "Refusal respected: if user declines, do not ask again in same session"
+        ],
+        "test_cases": [
+          {
+            "id": "TC-016",
+            "input": "Send 5 messages (greeting, provider search, follow-up, specialty question, another question). Observe if follow-up offer appears.",
+            "expected": "After 5th message, assistant asks if user wants someone to follow up personally",
+            "pass_fail": "Pass if follow-up offer appears after 5th user message"
+          },
+          {
+            "id": "TC-017",
+            "input": "Accept follow-up offer, provide email test_uat_YYYYMMDD@test.com",
+            "expected": "Email captured, consent flow initiated",
+            "pass_fail": "Pass if system asks for consent after capturing email"
+          },
+          {
+            "id": "TC-018",
+            "input": "Try to submit the same email again in a new session",
+            "expected": "Duplicate detected, no new record created",
+            "pass_fail": "Pass if system recognizes duplicate and does not create new record"
+          },
+          {
+            "id": "TC-018b",
+            "input": "Decline the follow-up offer. Continue chatting. Observe if offer repeats.",
+            "expected": "System respects refusal and does not re-ask",
+            "pass_fail": "Pass if no repeat offer after user declines"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "name": "HIPAA Consent Flow (Two-Tier)",
+        "priority": "P1",
+        "acceptance_criteria": [
+          "System asks Tier 1: May we save a verbatim transcript of this conversation with your contact details?",
+          "If Tier 1 declined, system asks Tier 2: May we save a de-identified summary instead?",
+          "Tier 1 Yes: full chat_history stored verbatim with consent_verbatim=true",
+          "Tier 1 No + Tier 2 Yes: LLM summarizes, deIdentify scrubs PII, stored in notes with consent_summary=true",
+          "Both declined: contact fields only, no history stored"
+        ],
+        "test_cases": [
+          {
+            "id": "TC-019",
+            "input": "Conversation: ask about providers, provide email when asked. When asked 'May we save a verbatim transcript?' answer YES.",
+            "expected": "Record stored with consent_verbatim=true and full chat_history array",
+            "pass_fail": "Pass if MongoDB record has consent_verbatim=true and chat_history is non-empty array"
+          },
+          {
+            "id": "TC-020",
+            "input": "Same flow, answer NO to verbatim. When asked 'May we save a de-identified summary?' answer YES.",
+            "expected": "Record stored with consent_summary=true, notes contains de-identified summary, no chat_history",
+            "pass_fail": "Pass if consent_verbatim=false, consent_summary=true, notes has text, no chat_history field"
+          },
+          {
+            "id": "TC-021",
+            "input": "Same flow, answer NO to both verbatim and summary.",
+            "expected": "Record stored with email and name only. No chat_history, no notes with conversation content.",
+            "pass_fail": "Pass if consent_verbatim=false, consent_summary=false/null, no chat_history"
+          },
+          {
+            "id": "TC-021b",
+            "input": "Provide email, consent verbatim. Verify the consent exchange itself is included in stored chat_history.",
+            "expected": "The consent question and answer are part of the stored transcript (evidence of consent)",
+            "pass_fail": "Pass if chat_history contains the consent question and user answer"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "name": "Provider Detail",
+        "priority": "P2",
+        "acceptance_criteria": [
+          "Constructs valid search URLs for Healthgrades, Zocdoc, etc.",
+          "URLs are functional and accurate."
+        ],
+        "test_cases": [
+          {
+            "id": "TC-021",
+            "input": "Lookup 'Dr. Smith' on Healthgrades",
+            "expected": "Valid Healthgrades URL constructed",
+            "pass_fail": "Pass if URL is valid, fail otherwise"
+          },
+          {
+            "id": "TC-022",
+            "input": "Lookup 'Dr. Jones' on Zocdoc",
+            "expected": "Valid Zocdoc URL constructed",
+            "pass_fail": "Pass if URL is valid, fail otherwise"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "name": "URL Guardian",
+        "priority": "P1",
+        "acceptance_criteria": [
+          "Validates URLs in tool results and LLM text.",
+          "Defangs broken links appropriately."
+        ],
+        "test_cases": [
+          {
+            "id": "TC-023",
+            "input": "Validate URL 'https://example.com'",
+            "expected": "URL is validated successfully",
+            "pass_fail": "Pass if URL is validated, fail otherwise"
+          },
+          {
+            "id": "TC-024",
+            "input": "Validate broken URL 'https://broken-link.com'",
+            "expected": "Link is defanged",
+            "pass_fail": "Pass if link is defanged, fail otherwise"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "name": "Chat UX",
+        "priority": "P2",
+        "acceptance_criteria": [
+          "Think timer displays elapsed seconds.",
+          "Stop/dismiss button is functional."
+        ],
+        "test_cases": [
+          {
+            "id": "TC-025",
+            "input": "Initiate chat and observe think timer",
+            "expected": "Timer displays elapsed seconds",
+            "pass_fail": "Pass if timer is accurate, fail otherwise"
+          },
+          {
+            "id": "TC-026",
+            "input": "Press stop/dismiss button during chat",
+            "expected": "Chat is stopped/dismissed",
+            "pass_fail": "Pass if chat stops, fail otherwise"
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "name": "Validated Provider Web Research",
+        "priority": "P2",
+        "acceptance_criteria": [
+          "Constructs and validates external links.",
+          "Converts broken links to text."
+        ],
+        "test_cases": [
+          {
+            "id": "TC-027",
+            "input": "Request more info on 'Dr. White'",
+            "expected": "Valid external links constructed",
+            "pass_fail": "Pass if links are valid, fail otherwise"
+          },
+          {
+            "id": "TC-028",
+            "input": "Request info on provider with broken link",
+            "expected": "Broken link converted to text",
+            "pass_fail": "Pass if link is converted, fail otherwise"
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "name": "Unanswerable Question Handling",
+        "priority": "P1",
+        "acceptance_criteria": [
+          "When the answer is not in the provided context documents, system calls record_unknown_question BEFORE responding",
+          "System does NOT hedge (no 'I think', 'probably', 'might')",
+          "Unknown question is stored de-identified in AboutUs.AboutSkip collection",
+          "System still provides a helpful response after recording the question"
+        ],
+        "test_cases": [
+          {
+            "id": "TC-037",
+            "input": "Ask: What is the capital of France?",
+            "expected": "System calls record_unknown_question (not in context docs), then responds honestly that this is outside its scope",
+            "pass_fail": "Pass if question is recorded to DB and response does not use hedging language"
+          },
+          {
+            "id": "TC-038",
+            "input": "Ask: What medications should I take for my condition?",
+            "expected": "System declines personal medical advice (RULE 3), calls record_unknown_question",
+            "pass_fail": "Pass if system declines advice and records the question"
+          },
+          {
+            "id": "TC-039",
+            "input": "Ask: When was ChatHealthy founded? (answer not in context docs)",
+            "expected": "System calls record_unknown_question rather than guessing",
+            "pass_fail": "Pass if system does NOT fabricate an answer and records the question"
+          },
+          {
+            "id": "TC-040",
+            "input": "Ask: Does ChatHealthy accept insurance?",
+            "expected": "System records unknown question, responds honestly that it does not know",
+            "pass_fail": "Pass if no hedging, question recorded, honest response"
+          }
+        ]
+      }
+    ],
+    "exploratory_testing": [
+      "Test provider search with special characters in the input.",
+      "Attempt to trigger safety filter with near-miss keywords.",
+      "Enter invalid email formats in lead capture.",
+      "Test HIPAA consent flow with rapid tier switching.",
+      "Validate URLs with unusual domain extensions."
+    ],
+    "stop_criterion": "Stop when all P1 cases pass and no P1 failures are open.",
+    "_meta": {
+      "timestamp": "2026-03-28T16:43:33.826595+00:00",
+      "tokens_in": 4364,
+      "tokens_out": 2649,
+      "iteration": 2
+    }
+  },
+  "saved_at": "2026-03-28T16:43:33.826595+00:00"
+}

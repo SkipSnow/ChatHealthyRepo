@@ -30,7 +30,7 @@
       "Safety Filter (dual-trigger: keywords + AI classifier)",
       "Lead Capture (follow-up offer, duplicate detection)",
       "HIPAA Consent Flow (two-tier: verbatim/de-identified/contact-only)",
-      "External Provider Lookup (Healthgrades, Zocdoc, NPI Registry)",
+      "Provider Detail (Healthgrades, Zocdoc, NPI Registry)",
       "URL Guardian (validate + defang broken links, AI content verification)",
       "Chat UX (think timer, stop button, markdown, emergency lock)",
       "Blob Storage Infrastructure (admin, lifecycle-managed brain)",
