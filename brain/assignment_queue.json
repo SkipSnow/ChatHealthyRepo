@@ -427,6 +427,23 @@
       }
     },
     {
+      "assignment_id": "ASN-BIZP01",
+      "timestamp": "2026-03-28T19:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Boss",
+      "title": "Update business plan with LLM infrastructure cost analysis at scale",
+      "description": "The current business plan PDF is corrupt and needs to be rebuilt. Update with detailed LLM cost analysis at scale: cost per 1M-10M users, cost per user per month, revenue model for 80% gross margin, optimization opportunities (caching, model routing, prompt compression), YoY cost reduction trends, break-even analysis, and infrastructure costs beyond LLM. GPT cost analysis draft is at brain/context/bizplan_cost_analysis_results.json. Boss must provide the source business plan content first.\n\nDO NOT IMPLEMENT NOW - backlog item.",
+      "scope": [
+        "brain/context/bizplan_cost_analysis_results.json"
+      ],
+      "priority": "medium",
+      "estimated_risk": "Low",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null
+    },
+    {
       "assignment_id": "ASN-BLOB01",
       "timestamp": "2026-03-28T16:30:00.000000+00:00",
       "from": "Boss",

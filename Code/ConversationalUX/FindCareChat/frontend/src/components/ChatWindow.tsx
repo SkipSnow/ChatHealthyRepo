@@ -13,17 +13,19 @@ export interface Message {
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 const RETRY_SECONDS = 10
 
+const DEFAULT_WELCOME = [
+  '**Welcome to ChatHealthy FindCare**\n\n',
+  "Here's what I can help you with:\n\n",
+  '- **Identify the right specialty** — not sure what kind of doctor you need? Describe your situation\n',
+  '- **Clinical trials** — find recruiting research studies for any condition\n',
+  '- **About ChatHealthy** — our mission, team, and platform\n\n',
+  'If you think you may be having a medical emergency, tell me right away.\n\n',
+  '**What can I help you with today?**',
+].join('')
+
 const WELCOME: Message = {
   role: 'assistant',
-  content: [
-    '**Welcome to ChatHealthy FindCare**\n\n',
-    "Here's what I can help you with:\n\n",
-    '- **Identify the right specialty** — not sure what kind of doctor you need? Describe your situation\n',
-    '- **Clinical trials** — find recruiting research studies for any condition\n',
-    '- **About ChatHealthy** — our mission, team, and platform\n\n',
-    'If you think you may be having a medical emergency, tell me right away.\n\n',
-    '**What can I help you with today?**',
-  ].join(''),
+  content: DEFAULT_WELCOME,
 }
 
 export default function ChatWindow() {
@@ -40,6 +42,18 @@ export default function ChatWindow() {
   useEffect(() => { messagesRef.current = messages }, [messages])
   const backendEnvRef = useRef<string>('prod')
   const pendingRetryRef = useRef<{ message: string; history: any[]; startTime: number } | null>(null)
+
+  // Fetch welcome message from API on mount (supports HUMAN_TESTING mode)
+  useEffect(() => {
+    fetch(`${API_URL}/welcome`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.message) {
+          setMessages(prev => [{ ...prev[0], content: data.message }, ...prev.slice(1)])
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   // Fetch build number + env from /health on mount
   useEffect(() => {
@@ -219,7 +233,7 @@ export default function ChatWindow() {
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
-          placeholder={isLocked ? 'Chat suspended. Type UNLOCK code to resume.' : 'Type a message…'}
+          placeholder={isLocked ? 'This chat has been suspended for your safety.' : 'Type a message…'}
           style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 15, outline: 'none' }}
         />
         <button

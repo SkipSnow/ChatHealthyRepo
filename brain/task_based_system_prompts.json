@@ -1,5 +1,6 @@
 {
-  "description": "Reusable system prompts for GPT collaboration tasks. Each prompt is task-specific and includes the Boss's directives for quality and objectivity.",
+  "description": "Reusable system prompts for GPT collaboration tasks. Each prompt is task-specific and includes the Boss's directives for quality and objectivity. ALL prompts must include corporate governance policies from brain/context/corporate_governance.json as context.",
+  "governance_inclusion_rule": "Every GPT prompt MUST load and include brain/context/corporate_governance.json policies. This is immutable. Governance policies constrain all architectural, business, and technical recommendations.",
   "prompts": {
     "plan_review": {
       "task": "Review a day plan or sprint plan for scope, completeness, and risk",
