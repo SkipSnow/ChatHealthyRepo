@@ -308,18 +308,20 @@ def commitSignificantActivity(payload=None, **kwargs):
         return {"recorded": "error", "note": str(exc)}
 
 
-def _format_chat_history(messages):
+def _format_chat_history(messages, truncate: bool = True):
+    """Format chat history. truncate=True for safety/debug (500 chars), False for verbatim consent."""
+    max_len = 500 if truncate else None
     out = []
     for m in messages:
         if m.get("role") not in ("user", "assistant"):
             continue
         c = m.get("content")
         if isinstance(c, str):
-            out.append({"role": m["role"], "content": c[:500]})
+            out.append({"role": m["role"], "content": c[:max_len] if max_len else c})
         elif isinstance(c, list):
             # Anthropic content blocks — extract text
             text = " ".join(b.get("text", "") if isinstance(b, dict) else getattr(b, "text", "") for b in c)
-            out.append({"role": m["role"], "content": text[:500]})
+            out.append({"role": m["role"], "content": text[:max_len] if max_len else text})
     return out
 
 
@@ -684,7 +686,52 @@ def find_providers(specialty_query: str, state: str, city: str = "", county: str
     return {"supported": True, "providers": [], "message": f"No {specialty_query} providers found in {state_upper}."}
 
 
-def search_clinical_trials(condition: str, location: str = "", max_results: int = 5) -> dict:
+def _get_travel_info(origin: str, destinations: list[str]) -> dict[str, dict]:
+    """Call Google Routes API to get drive distance and time for each destination.
+    Returns {destination: {"distance": "X miles", "duration": "Xh Ym"}} or empty on failure."""
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    if not api_key or not destinations:
+        return {}
+    headers = {
+        "X-Goog-Api-Key": api_key,
+        "X-Goog-FieldMask": "routes.distanceMeters,routes.duration",
+        "Content-Type": "application/json",
+    }
+    results = {}
+    for dest in destinations:
+        try:
+            body = {
+                "origin": {"address": origin},
+                "destination": {"address": dest},
+                "travelMode": "DRIVE",
+                "routingPreference": "TRAFFIC_UNAWARE",
+            }
+            resp = requests.post(
+                "https://routes.googleapis.com/directions/v2:computeRoutes",
+                json=body, headers=headers, timeout=10,
+            )
+            if resp.status_code != 200:
+                continue
+            data = resp.json()
+            routes = data.get("routes", [])
+            if not routes:
+                continue
+            r = routes[0]
+            meters = r.get("distanceMeters", 0)
+            miles = meters / 1609.34
+            secs = int(r.get("duration", "0s").replace("s", ""))
+            hrs = secs // 3600
+            mins = (secs % 3600) // 60
+            results[dest] = {
+                "distance": f"{miles:.0f} miles",
+                "duration": f"{hrs}h {mins}m" if hrs else f"{mins}m",
+            }
+        except Exception as exc:
+            _log.debug("Routes API failed for %s: %s", dest, exc)
+    return results
+
+
+def search_clinical_trials(condition: str, location: str = "", user_location: str = "", max_results: int = 5) -> dict:
     params = {
         "query.cond": condition,
         "filter.overallStatus": "RECRUITING",
@@ -704,7 +751,11 @@ def search_clinical_trials(condition: str, location: str = "", max_results: int 
         return {"trials": [], "message": "No recruiting trials found for this condition."}
 
     trials = []
-    for study in studies:
+    # Collect unique location city/states for distance calculation
+    travel_destinations = []
+    trial_location_map = {}  # maps trial index -> list of "city, state" strings
+
+    for idx, study in enumerate(studies):
         ps           = study.get("protocolSection", {})
         id_mod       = ps.get("identificationModule", {})
         status_mod   = ps.get("statusModule", {})
@@ -714,20 +765,50 @@ def search_clinical_trials(condition: str, location: str = "", max_results: int 
         design_mod   = ps.get("designModule", {})
         nct_id       = id_mod.get("nctId", "")
         raw_locs     = contacts_mod.get("locations", [])
-        location_strs = [
-            ", ".join(filter(None, [loc.get("facility"), loc.get("city"), loc.get("state")]))
-            for loc in raw_locs[:3]
-        ]
+
+        # Build location objects with city/state for distance lookup
+        locs = []
+        for loc in raw_locs[:5]:
+            facility = loc.get("facility", "")
+            city = loc.get("city", "")
+            state = loc.get("state", "")
+            loc_str = ", ".join(filter(None, [facility, city, state]))
+            city_state = ", ".join(filter(None, [city, state]))
+            loc_obj = {"display": loc_str, "city_state": city_state}
+            locs.append(loc_obj)
+            if city_state and city_state not in travel_destinations:
+                travel_destinations.append(city_state)
+
+        trial_location_map[idx] = locs
+
         trials.append({
             "nct_id": nct_id,
             "title": id_mod.get("briefTitle", ""),
             "status": status_mod.get("overallStatus", ""),
             "phase": ", ".join(design_mod.get("phases", [])) or "N/A",
-            "locations": location_strs or ["See ClinicalTrials.gov"],
+            "locations": [l["display"] for l in locs] or ["See ClinicalTrials.gov"],
             "summary": (desc_mod.get("briefSummary") or "")[:400],
             "eligibility": (elig_mod.get("eligibilityCriteria") or "")[:600],
             "url": f"https://clinicaltrials.gov/study/{nct_id}",
         })
+
+    # If user provided their location, calculate travel times
+    if user_location and travel_destinations:
+        travel_info = _get_travel_info(user_location, travel_destinations[:25])  # API limit
+        if travel_info:
+            for idx, trial in enumerate(trials):
+                locs = trial_location_map.get(idx, [])
+                travel = []
+                for loc in locs:
+                    cs = loc["city_state"]
+                    if cs in travel_info:
+                        travel.append({
+                            "location": loc["display"],
+                            "distance": travel_info[cs]["distance"],
+                            "travel_time": travel_info[cs]["duration"],
+                        })
+                if travel:
+                    trial["travel_info"] = travel
 
     return {"trials": trials}
 
@@ -915,13 +996,18 @@ anthropic_tools = [
         "name": "search_clinical_trials",
         "description": (
             "Search for actively recruiting clinical trials on ClinicalTrials.gov. "
-            "Call this when the user asks to find trials, studies, or research programs."
+            "Call this when the user asks to find trials, studies, or research programs. "
+            "On the first call, omit user_location to get initial results. "
+            "After showing results, ask the user if they want to know travel distances. "
+            "If yes, call again with the same condition + their city/state in user_location "
+            "to get distance and estimated drive time to each trial site."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "condition": {"type": "string"},
-                "location": {"type": "string"},
+                "location": {"type": "string", "description": "Filter trials by this location"},
+                "user_location": {"type": "string", "description": "User's city and state for travel time calculation (e.g. 'Jackson, MS')"},
                 "max_results": {"type": "integer"},
             },
             "required": ["condition"],
@@ -1085,8 +1171,18 @@ _load_fips_county_map()  # HACK ASN-4AFBDA
 _url_guardian = URLGuardian(cache_ttl=3600, request_timeout=5)
 
 # Build number — injected by CI into build.txt at deploy time
+# Locally: auto-increments on each server start for testing
 _build_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "build.txt")
-_BUILD = open(_build_file).read().strip() if os.path.exists(_build_file) else "dev"
+if os.path.exists(_build_file):
+    _raw = open(_build_file).read().strip()
+    try:
+        _build_num = int(_raw) + 1
+        open(_build_file, "w").write(str(_build_num))
+        _BUILD = str(_build_num)
+    except ValueError:
+        _BUILD = _raw
+else:
+    _BUILD = "dev"
 
 WELCOME_MESSAGE = (
     "**Welcome to ChatHealthy FindCare**\n\n"
@@ -1102,35 +1198,47 @@ WELCOME_MESSAGE = (
 )
 
 _TEST_FEATURES = [
-    {"id": 1,  "feature": "Provider Search (DE + MS, vector + regex)",     "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
-    {"id": 2,  "feature": "Specialty Identification (NUCC + AI expansion)","completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
-    {"id": 3,  "feature": "Clinical Trials Search",                        "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
-    {"id": 4,  "feature": "About ChatHealthy / Skip Snow",                 "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
-    {"id": 5,  "feature": "Safety Filter (dual-trigger, IP lock, audit)",  "completed": True, "bugs_fixed": 3, "bugs_deferred": 0, "features_implemented": 2, "features_deferred": 0},
-    {"id": 6,  "feature": "Lead Capture (follow-up offer)",                "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
-    {"id": 7,  "feature": "HIPAA Consent Flow (two-tier)",                 "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
-    {"id": 8,  "feature": "External Provider Lookup",                      "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
-    {"id": 9,  "feature": "URL Guardian (validate + defang broken links)", "completed": False, "bugs_fixed": 0, "bugs_deferred": 1, "features_implemented": 0, "features_deferred": 0},
-    {"id": 10, "feature": "Chat UX (timer, stop, markdown, emergency)",    "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
-    {"id": 11, "feature": "Blob Storage Infrastructure",                   "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
-    {"id": 12, "feature": "Validated Provider Web Research",               "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
-    {"id": 13, "feature": "Unanswerable Question Handling",                "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0},
-    {"id": 14, "feature": "Markdown Table Rendering (GFM tables in chat)", "completed": True, "bugs_fixed": 1, "bugs_deferred": 0, "features_implemented": 1, "features_deferred": 0},
+    {"id": 1,  "feature": "Provider Search (DE + MS, vector + regex)",     "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0, "notes": ""},
+    {"id": 2,  "feature": "Specialty Identification (NUCC + AI expansion)","completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 1, "notes": "Sufficiently working for release. Deep testing deferred - too complex for alpha."},
+    {"id": 3,  "feature": "Clinical Trials Search",                        "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 2, "features_deferred": 0, "notes": "Exceeds expectations. Travel distance + drive time via Google Routes API. Two-pass UX: results first, travel on request."},
+    {"id": 4,  "feature": "About ChatHealthy / Skip Snow",                 "completed": True, "bugs_fixed": 0, "bugs_deferred": 1, "features_implemented": 0, "features_deferred": 0, "notes": "Bug: Sonnet answers questions outside context instead of saying I don't know. Fix: PreScreen class (Sprint 2) - GPT-4.1-mini pre-check for answerability + safety in one call."},
+    {"id": 5,  "feature": "Safety Filter (dual-trigger, IP lock, audit)",  "completed": True, "bugs_fixed": 3, "bugs_deferred": 0, "features_implemented": 2, "features_deferred": 0, "notes": "GPT-4.1-mini classifier, full audit trail"},
+    {"id": 6,  "feature": "Lead Capture (follow-up offer)",                "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0, "notes": ""},
+    {"id": 7,  "feature": "HIPAA Consent Flow (two-tier)",                 "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 1, "notes": "Exact consent wording needs legal review before beta"},
+    {"id": 8,  "feature": "Provider Detail",                               "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0, "notes": ""},
+    {"id": 9,  "feature": "URL Guardian (validate + defang broken links)", "completed": False, "bugs_fixed": 0, "bugs_deferred": 1, "features_implemented": 0, "features_deferred": 0, "notes": "Link check deferred to next build"},
+    {"id": 10, "feature": "Chat UX (timer, stop, markdown, emergency)",    "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 1, "notes": "Sufficient for v0.1.2. Deep testing deferred."},
+    {"id": 11, "feature": "Blob Storage Infrastructure",                   "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 2, "features_deferred": 0, "notes": "Consolidated to single public data container"},
+    {"id": 12, "feature": "Unanswerable Question Handling",                "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0, "notes": ""},
+    {"id": 13, "feature": "Markdown Table Rendering (GFM tables in chat)", "completed": True, "bugs_fixed": 1, "bugs_deferred": 0, "features_implemented": 10, "features_deferred": 0, "notes": ""},
 ]
 
 
 def _build_test_welcome():
     """Build the human testing welcome message with feature tracking table."""
+    # Pre-calculate counts for header
+    total = len(_TEST_FEATURES)
+    completed = sum(1 for f in _TEST_FEATURES if f["completed"])
+    deferred = sum(1 for f in _TEST_FEATURES if not f["completed"] and (f["features_deferred"] > 0 or f["bugs_deferred"] > 0))
+    to_test = total - completed - deferred
+
     lines = [
-        "**v0.1.2 HUMAN TESTING MODE**\n",
-        "| # | Feature | Done | Bugs Fixed | Bugs Deferred | Feat Impl | Feat Deferred |",
-        "|---|---------|:----:|:----------:|:-------------:|:---------:|:-------------:|",
+        f"**v0.1.2 HUMAN TESTING MODE** (build {_BUILD}) | Total: {total} | To Test: {to_test} | Done: {completed + deferred} (Completed: {completed}, Deferred: {deferred})\n",
+        "| # | Feature | Done | Bugs Fixed | Feat Impl |",
+        "|---|---------|:----:|:----------:|:---------:|",
     ]
+    header_row = "| # | Feature | Done | Bugs Fixed | Feat Impl |"
+    separator  = "|---|---------|:----:|:----------:|:---------:|"
     totals = {"completed": 0, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0}
-    for f in _TEST_FEATURES:
-        done = "Y" if f["completed"] else " "
+    for i, f in enumerate(_TEST_FEATURES):
+        if i > 0 and i % 7 == 0:
+            lines.append("")
+            lines.append(header_row)
+            lines.append(separator)
+        is_deferred = f["features_deferred"] > 0 or f["bugs_deferred"] > 0
+        done = "Y" if f["completed"] else ("DEF" if is_deferred else " ")
         lines.append(
-            f"| {f['id']} | {f['feature']} | {done} | {f['bugs_fixed']} | {f['bugs_deferred']} | {f['features_implemented']} | {f['features_deferred']} |"
+            f"| {f['id']} | {f['feature']} | {done} | {f['bugs_fixed']} | {f['features_implemented']} |"
         )
         if f["completed"]:
             totals["completed"] += 1
@@ -1139,8 +1247,14 @@ def _build_test_welcome():
         totals["features_implemented"] += f["features_implemented"]
         totals["features_deferred"] += f["features_deferred"]
     lines.append(
-        f"| | **TOTALS** | **{totals['completed']}/{len(_TEST_FEATURES)}** | **{totals['bugs_fixed']}** | **{totals['bugs_deferred']}** | **{totals['features_implemented']}** | **{totals['features_deferred']}** |"
+        f"| | **TOTALS** | **{totals['completed']}/{len(_TEST_FEATURES)}** | **{totals['bugs_fixed']}** | **{totals['features_implemented']}** |"
     )
+    # Notes section — only for features explicitly deferred from testing
+    notes = [f for f in _TEST_FEATURES if (f["features_deferred"] > 0 or f["bugs_deferred"] > 0) and f.get("notes")]
+    if notes:
+        lines.append("\n**Notes:**")
+        for f in notes:
+            lines.append(f"- **#{f['id']}** {f['feature']}: {f['notes']}")
     lines.append("\nTest the features above. Type normally to interact with the chatbot.\n")
     return "\n".join(lines)
 
@@ -1180,7 +1294,12 @@ def _system_prompt(follow_up_check: bool = False) -> str:
         f"RULE 5c — PROVIDER DETAIL LOOKUP: When the user asks about a specific provider by name "
         f"('tell me about Dr. X', 'more info on X', 'what else can you tell me about X'), "
         f"you MUST call lookup_provider_external. Present the returned links to Healthgrades, "
-        f"Zocdoc, NPI Registry, and the state medical board so the user can check reviews and credentials.\n\n"
+        f"Zocdoc, NPI Registry, and the state medical board so the user can check reviews and credentials.\n"
+        f"RULE 5d — CLINICAL TRIAL TRAVEL: When showing clinical trial results, after the first pass "
+        f"ask the user: 'Would you like to know the travel distance and estimated drive time to these trial sites?' "
+        f"If yes, call search_clinical_trials again with the same condition and the user's city/state in user_location. "
+        f"Present the travel_info (distance and drive time) for each trial site. "
+        f"Do NOT include travel info on the first call — only when the user requests it.\n\n"
         f"RULE 6 — FOLLOW-UP OFFER: When you receive a FOLLOW-UP CHECK reminder, assess genuine interest "
         f"and ask: 'Would you like someone from the ChatHealthy.AI team to follow up with you personally?' "
         f"Respect refusal signals — do not ask again if the user shows impatience or annoyance.\n"
@@ -1222,13 +1341,12 @@ def get_chathealthy_context():
 
 
 def _handle_tool_calls(tool_use_blocks, messages):
-    chat_history = _format_chat_history(messages)
     tool_results = []
     for block in tool_use_blocks:
         name      = block.name
         arguments = dict(block.input)  # already a dict
         if name in ("record_user_details", "record_unknown_question"):
-            arguments["chat_history"] = chat_history
+            arguments["chat_history"] = _format_chat_history(messages, truncate=False)
         _log.info("Tool called: %s", name)
         fn     = globals().get(name)
         result = fn(**arguments) if fn else {}

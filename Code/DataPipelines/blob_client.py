@@ -24,8 +24,9 @@ _blob_service: BlobServiceClient | None = None
 
 # Container names
 CONTAINER_ADMIN = "admin"
-CONTAINER_PROVIDER_DATA = "provider-data"
 CONTAINER_PUBLIC_DATA = "chathealthy-public-data"
+# Provider data lives under chathealthy-public-data/provider/ (virtual folder)
+# Specialty data lives at chathealthy-public-data/ root
 
 
 def _env_prefix() -> str:
