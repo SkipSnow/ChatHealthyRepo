@@ -94,6 +94,28 @@ def _write(path: Path, data: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Blob storage — write Brain artifacts to Azure Blob Storage (best-effort)
+# ---------------------------------------------------------------------------
+
+def write_brain_artifact(name: str, data: bytes, content_type: str = "application/json") -> bool:
+    """Write an artifact to the Brain blob container ({ENV_PREFIX}-brain).
+
+    Use for reports, generated documents, or any artifact too large for JSON/MongoDB.
+    Best-effort — returns False on failure, never raises.
+    """
+    try:
+        from blob_client import get_blob_service, container_brain
+        container = get_blob_service().get_container_client(container_brain())
+        container.get_blob_client(name).upload_blob(
+            data, overwrite=True, content_settings={"content_type": content_type}
+        )
+        return True
+    except Exception as e:
+        print(f"[BrainLoop] WARNING: blob write failed for {name} — {e}", flush=True)
+        return False
+
+
+# ---------------------------------------------------------------------------
 # MongoDB sync — dual-write after every JSON write (best-effort)
 # ---------------------------------------------------------------------------
 

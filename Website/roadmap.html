@@ -862,6 +862,72 @@
       <p>Four related chat UX enhancements: (1) input stays editable while the system is thinking; (2) loading indicator shows elapsed seconds "Thinking... 5s"; (3) Stop button dismisses the loading state without cancelling the backend call — response still arrives when ready; (4) each assistant response shows how long it took (e.g. "7s") as a small annotation in the message bubble.</p>
     </div>
 
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">INFRA-012</span>
+        <span class="item-title">Blob storage: add admin and brain containers, apply ENV_PREFIX</span>
+        <span class="badge badge-postmvp">Beta</span>
+      </div>
+      <div class="item-meta">
+        <span><strong>Status:</strong> Backlog - beta deliverable (v0.5)</span>
+        <span><strong>Brain ID:</strong> ASN-BLOB01</span>
+      </div>
+      <p>Restructure Azure Blob Storage (<code>findcarestorage</code>). Add <code>admin</code> container (business ops, no lifecycle prefix) and <code>{ENV_PREFIX}-brain</code> container (Brain Loop artifacts, lifecycle-managed). Apply <code>ENV_PREFIX</code> to existing application containers (<code>provider-data</code>, <code>chathealthy-public-data</code>). Fix typo in <code>chathealtyinfrastructureblobcontainer</code> and retire stale data. Update all pipeline code referencing container names.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">SEC-001</span>
+        <span class="item-title">Blob storage: enforce client-side encryption and require_encryption flag</span>
+        <span class="badge badge-postmvp">Beta</span>
+      </div>
+      <div class="item-meta">
+        <span><strong>Status:</strong> Backlog - beta deliverable (v0.5)</span>
+        <span><strong>Brain ID:</strong> ASN-BENC01</span>
+      </div>
+      <p>Azure Blob Storage currently uses server-side encryption (Microsoft-managed keys) and HTTPS in transit. Code does not enforce <code>require_encryption=True</code> or perform client-side encryption. Close the gap: enforce HTTPS fail-safe in <code>blob_client.py</code>, evaluate CMK and client-side encryption for healthcare compliance, document encryption posture in architecture doc.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">UX-002</span>
+        <span class="item-title">React ErrorBoundary — graceful UI crash recovery</span>
+        <span class="badge badge-postmvp">Post-Alpha</span>
+      </div>
+      <div class="item-meta">
+        <span><strong>Status:</strong> Backlog — risk accepted for v0.1.2 alpha (2026-03-28)</span>
+        <span><strong>Brain ID:</strong> ASN-ERRB01</span>
+      </div>
+      <p>Add a global React ErrorBoundary component wrapping <code>&lt;App /&gt;</code>. Currently, an uncaught render error (e.g., unexpected API data) crashes the entire UI to a white screen. ErrorBoundary shows a user-friendly recovery message instead. ~20 lines of code.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">ARCH-001</span>
+        <span class="item-title">Backend portability refactoring — extract main.py into 5 modules</span>
+        <span class="badge badge-postmvp">Post-Alpha</span>
+      </div>
+      <div class="item-meta">
+        <span><strong>Status:</strong> Backlog — design approved, implementation deferred to Sprint 2</span>
+        <span><strong>Brain ID:</strong> ASN-PORT01</span>
+      </div>
+      <p>Refactor the 1,323-line monolithic <code>main.py</code> into 5 modules for portability: thin entry point, <code>FindCareApp</code> (business logic), <code>GUIHelper</code> (FastAPI/endpoints), <code>PromptFactory</code> (prompts/tools), <code>HostConfig</code> (dataclass). <code>URLGuardian</code> already extracted in Sprint 1. Design doc: <code>brain/context/refactor_design_final.json</code>.</p>
+      <p><strong>Goal:</strong> Porting from HuggingFace Docker to Azure App Service requires only changing <code>HostConfig</code> env vars — zero code changes.</p>
+    </div>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">ARCH-002</span>
+        <span class="item-title">Framework feature — tool registry pattern for plugin-style tool dispatch</span>
+        <span class="badge badge-postmvp">Post-Alpha</span>
+      </div>
+      <div class="item-meta">
+        <span><strong>Status:</strong> Backlog — part of ARCH-001 refactoring</span>
+        <span><strong>Brain ID:</strong> ASN-PORT02</span>
+      </div>
+      <p>Replace the current <code>globals().get(name)</code> tool dispatch with a registry pattern in <code>PromptFactory</code>. Tools register as name→callable pairs at init time. Enables clean separation of tool schemas from implementations and future plugin-style tool addition.</p>
+    </div>
+
     <!-- Bugs -->
     <h2>Bugs</h2>
 
