@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
 from pydantic import BaseModel
 from pypdf import PdfReader
+from url_guardian import URLGuardian
 
 load_dotenv(override=True)
 
@@ -957,7 +958,8 @@ def lookup_provider_external(provider_name: str, npi: str = "", state: str = "",
     }
     if state.upper() in state_boards:
         links["state_medical_board"] = state_boards[state.upper()]
-    return {"provider_name": provider_name, "npi": npi, "links": links}
+    result = {"provider_name": provider_name, "npi": npi, "links": links}
+    return _url_guardian.guard_tool_result(result)
 
 
 # ---------------------------------------------------------------------------
@@ -1011,6 +1013,7 @@ def _load_me_context():
 
 _ME = _load_me_context()
 _load_fips_county_map()  # HACK ASN-4AFBDA
+_url_guardian = URLGuardian(cache_ttl=3600, request_timeout=5)
 
 # Build number — injected by CI into build.txt at deploy time
 _build_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "build.txt")
@@ -1301,6 +1304,7 @@ async def _chat_inner(body: ChatRequest, request: Request):
         total_tokens_out += getattr(response.usage, "output_tokens", 0)
 
     text = next((b.text for b in response.content if b.type == "text"), "")
+    text = _url_guardian.guard_text(text)
 
     _log.info("CHAT complete tokens_in=%d tokens_out=%d", total_tokens_in, total_tokens_out)
     _debug_log_chat(ip, body.message, len(history), loop_iter, total_tokens_in, total_tokens_out, text, None)

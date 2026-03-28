@@ -425,6 +425,100 @@
         "format": "Assurance Output schema — include document_content field with full agreement text, plus excel_generator_script for .docx generation",
         "instruction": "GPT must deliver result to brain/assurance_results.json under this assignment_id. Do not deliver via chat. Same pattern as UAT Excel delivery (ASN-1F9268)."
       }
+    },
+    {
+      "assignment_id": "ASN-BLOB01",
+      "timestamp": "2026-03-28T16:30:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Blob storage: add admin and brain containers, apply ENV_PREFIX to application containers",
+      "description": "Add two new containers and apply environment labeling to existing application containers.\n\nNEW CONTAINERS:\n1. admin - business operations storage. No ENV_PREFIX, no lifecycle management. Owned by the business, not IT. For operational artifacts (reports, exports, ad-hoc files).\n2. {ENV_PREFIX}-brain - Brain Loop artifacts (assignment results, assurance output, usage logs). Needs ENV_PREFIX for lifecycle isolation (dev/qa/prod).\n\nEXISTING CONTAINERS - apply ENV_PREFIX:\n- chathealthy-public-data -> {ENV_PREFIX}-chathealthy-public-data\n- chathealtyinfrastructureblobcontainer -> rename to fix typo, then {ENV_PREFIX}-chathealthy-infrastructure (or retire if stale)\n- provider-data -> {ENV_PREFIX}-provider-data\n\nNO CHANGES:\n- azure-webjobs-hosts (Azure system)\n- azure-webjobs-secrets (Azure system)\n\nRESULTING CONTAINER LAYOUT:\n- admin (no prefix, business ops)\n- dev-brain / qa-brain / prod-brain\n- dev-chathealthy-public-data / qa-... / prod-...\n- dev-provider-data / qa-... / prod-...\n- azure-webjobs-hosts (system)\n- azure-webjobs-secrets (system)\n\nREQUIREMENTS:\n1. Create admin and dev-brain containers\n2. Update blob_client.py to prefix container names with ENV_PREFIX where applicable\n3. Update all pipeline code that references container names\n4. Migrate existing blobs or document that dev containers start fresh\n5. Retire chathealtyinfrastructureblobcontainer (stale Feb 2026 NPI zip, 1 GB)\n\nBETA DELIVERABLE - target v0.5.",
+      "scope": [
+        "Code/DataPipelines/blob_client.py",
+        "Code/DataPipelines/provider_load_manager.py",
+        "Code/DataPipelines/data_fetcher_base.py",
+        "Code/DataPipelines/provider_worker.py",
+        "Code/DataPipelines/load_specialty_data.py",
+        "Code/DataPipelines/icd10_loader.py",
+        "Code/DataPipelines/zip_county_crosswalk_loader.py"
+      ],
+      "priority": "medium",
+      "estimated_risk": "Medium",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null
+    },
+    {
+      "assignment_id": "ASN-BENC01",
+      "timestamp": "2026-03-28T16:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Blob storage: enforce client-side encryption and require_encryption flag",
+      "description": "Our Azure Blob Storage (findcarestorage, Standard_LRS, StorageV2) relies on Azure SSE (Microsoft-managed keys) for at-rest encryption and HTTPS for in-transit encryption. The code in blob_client.py does NOT set require_encryption=True and does NOT perform client-side encryption before upload.\n\nREQUIREMENTS:\n1. Add require_encryption=True to BlobServiceClient configuration in blob_client.py to enforce HTTPS (fail-safe if connection string is ever misconfigured)\n2. Evaluate whether customer-managed keys (CMK) are needed for healthcare compliance\n3. Evaluate whether client-side encryption (envelope encryption) is needed for PHI/PII data at rest\n4. Document encryption posture in architecture design doc (Website/architecture.html)\n5. All 5 containers affected: azure-webjobs-hosts, azure-webjobs-secrets, chathealthy-public-data, chathealtyinfrastructureblobcontainer, provider-data\n\nCONTEXT:\n- NPI data is public (CMS NPPES), so provider CSVs are not PHI\n- ICD-10 codes are public reference data\n- Pipeline reports may contain provider counts but no PHI\n- Current state: server_encrypted=True (Azure default AES-256), HTTPS in transit, no client-side encryption\n\nBETA DELIVERABLE - not alpha. Target: v0.5 (beta).",
+      "scope": [
+        "Code/DataPipelines/blob_client.py",
+        "Website/architecture.html"
+      ],
+      "priority": "medium",
+      "estimated_risk": "Low",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null
+    },
+    {
+      "assignment_id": "ASN-ERRB01",
+      "timestamp": "2026-03-28T15:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "React ErrorBoundary — graceful UI crash recovery",
+      "description": "Add a global React ErrorBoundary component wrapping <App />. Currently an uncaught render error crashes the entire UI to a white screen with no recovery. ErrorBoundary catches render errors and shows a user-friendly message.\n\nRisk accepted for v0.1.2 alpha (Boss decision 2026-03-28). GPT flagged as High risk; Boss deferred to Sprint 2.\n\nIMPLEMENTATION:\n1. Create frontend/src/components/ErrorBoundary.tsx (~20 lines)\n2. Wrap <App /> in ErrorBoundary in frontend/src/main.tsx\n3. Test by simulating a render error\n\nDO NOT IMPLEMENT NOW — Sprint 2 backlog item.",
+      "scope": [
+        "Code/ConversationalUX/FindCareChat/frontend/src/components/ErrorBoundary.tsx",
+        "Code/ConversationalUX/FindCareChat/frontend/src/main.tsx"
+      ],
+      "priority": "medium",
+      "estimated_risk": "Low",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null
+    },
+    {
+      "assignment_id": "ASN-PORT01",
+      "timestamp": "2026-03-27T22:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Backend portability refactoring — extract main.py into 5 modules",
+      "description": "Refactor the 1,323-line monolithic main.py into 5 modules for host portability:\n\n- main.py (~30 lines) — thin entry point, wires dependencies, starts server\n- host_config.py — HostConfig dataclass with all host-specific settings\n- findcare_app.py (~800 lines) — FindCareApp class, all business logic\n- gui_helper.py (~150 lines) — GUIHelper class, FastAPI app/endpoints/CORS/static\n- prompt_factory.py (~200 lines) — PromptFactory class, system prompt/tool schemas/tool registry\n- url_guardian.py — ALREADY IMPLEMENTED in Sprint 1\n\nDesign doc: brain/context/refactor_design_final.json\nCollaboration: Claude + GPT, 4 iterations, 2026-03-27\n\nGOAL: Porting from HuggingFace Docker to Azure App Service requires only changing HostConfig env vars — zero code changes.\n\nDO NOT IMPLEMENT NOW — Sprint 2 backlog item.",
+      "scope": [
+        "Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+      ],
+      "priority": "medium",
+      "estimated_risk": "Medium",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null
+    },
+    {
+      "assignment_id": "ASN-PORT02",
+      "timestamp": "2026-03-27T22:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Framework feature — tool registry pattern for plugin-style tool dispatch",
+      "description": "Replace the current globals().get(name) tool dispatch in _handle_tool_calls with a registry pattern in PromptFactory. Tools register as name→callable pairs at init time. Part of ARCH-001 refactoring.\n\nBENEFITS:\n- Clean separation of tool schemas from implementations\n- No more globals() lookup — explicit registration\n- Future plugin-style tool addition without modifying dispatch code\n\nDO NOT IMPLEMENT NOW — Sprint 2 backlog item, part of ASN-PORT01.",
+      "scope": [
+        "Code/ConversationalUX/FindCareChat/backend/main.py"
+      ],
+      "priority": "low",
+      "estimated_risk": "Low",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null
     }
   ]
 }
