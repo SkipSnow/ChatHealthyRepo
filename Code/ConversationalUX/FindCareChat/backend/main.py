@@ -274,16 +274,20 @@ def commitSignificantActivity(payload=None, **kwargs):
     db = _get_db()
     if db is None:
         return {"recorded": "ok", "note": "MongoDB unavailable"}
-    payload = payload or kwargs
-    if isinstance(payload, str):
-        payload = json.loads(payload)
-    database   = f"{_ENV_PREFIX}_{payload['database']}"
-    collection = payload["collection"]
-    record     = dict(payload["record"])
-    record["record_number"] = db[database][collection].count_documents({}) + 1
-    record["datetime"]      = datetime.now().isoformat()
-    db[database][collection].insert_one(record)
-    return {"recorded": "ok"}
+    try:
+        payload = payload or kwargs
+        if isinstance(payload, str):
+            payload = json.loads(payload)
+        database   = f"{_ENV_PREFIX}_{payload['database']}"
+        collection = payload["collection"]
+        record     = dict(payload["record"])
+        record["record_number"] = db[database][collection].count_documents({}) + 1
+        record["datetime"]      = datetime.now().isoformat()
+        db[database][collection].insert_one(record)
+        return {"recorded": "ok"}
+    except Exception as exc:
+        _log.error("commitSignificantActivity failed: %s", exc)
+        return {"recorded": "error", "note": str(exc)}
 
 
 def _format_chat_history(messages):
@@ -720,8 +724,12 @@ def record_user_details(email="", name="Name not provided", notes="not provided"
         return {"recorded": "ok", "note": "MongoDB unavailable"}
     reason    = message or notes
     lead_coll = db[f"{_ENV_PREFIX}_AboutUs"]["lead"]
-    for doc in lead_coll.find({"email": str(email).strip()}):
-        return {"recorded": "ok"}
+    try:
+        for doc in lead_coll.find({"email": str(email).strip()}):
+            return {"recorded": "ok"}
+    except Exception as exc:
+        _log.error("record_user_details DB lookup failed: %s", exc)
+        return {"recorded": "error", "note": "Database error"}
     push(f"Recording interest from {name} with email {email}: {reason}")
     record = {
         "email": email, "name": name, "notes": notes,
@@ -743,42 +751,49 @@ def record_user_details(email="", name="Name not provided", notes="not provided"
 def _summarize_conversation(chat_history):
     if not chat_history:
         return ""
-    client    = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
-    chat_json = json.dumps([{"role": m.get("role", ""), "content": m.get("content") or ""} for m in chat_history], indent=2)
-    response  = client.messages.create(
-        model="claude-haiku-4-5-20251001", max_tokens=256,
-        messages=[{"role": "user", "content": "Summarize this conversation in 2-3 sentences. Focus on what the user wanted and any key information they shared. Be concise.\n\n" + chat_json}],
-    )
-    return response.content[0].text.strip()
+    try:
+        client    = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
+        chat_json = json.dumps([{"role": m.get("role", ""), "content": m.get("content") or ""} for m in chat_history], indent=2)
+        response  = client.messages.create(
+            model="claude-haiku-4-5-20251001", max_tokens=256,
+            messages=[{"role": "user", "content": "Summarize this conversation in 2-3 sentences. Focus on what the user wanted and any key information they shared. Be concise.\n\n" + chat_json}],
+        )
+        return response.content[0].text.strip()
+    except Exception as exc:
+        _log.error("_summarize_conversation failed: %s", exc)
+        return ""
 
 
 def deIdentify(argChat_history):
     if not argChat_history:
         return
-    client    = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
-    chat_json = json.dumps([{"role": m.get("role", ""), "content": m.get("content") or ""} for m in argChat_history], indent=2)
-    response  = client.messages.create(
-        model="claude-haiku-4-5-20251001", max_tokens=4096,
-        messages=[{"role": "user", "content": (
-            "Deidentify the following chat conversation so it meets HIPAA Safe Harbor requirements for research data.\n"
-            "Remove or replace: names, geographic identifiers (except state), dates (except year), phone/fax, email, SSN,\n"
-            "medical record numbers, account numbers, license numbers, vehicle identifiers, device identifiers, URLs, IP addresses,\n"
-            "and any other identifiers that could be used to identify an individual.\n"
-            "Preserve the semantic meaning of each message for research purposes.\n\n"
-            "Return ONLY a valid JSON array of strings, one string per message in the same order.\n\n"
-            f"Chat conversation:\n{chat_json}"
-        )}],
-    )
-    result_text = response.content[0].text.strip()
-    if result_text.startswith("```"):
-        result_text = result_text.split("```")[1]
-        if result_text.startswith("json"):
-            result_text = result_text[4:]
-        result_text = result_text.strip()
-    deidentified_contents = json.loads(result_text)
-    for i, content in enumerate(deidentified_contents):
-        if i < len(argChat_history):
-            argChat_history[i]["content"] = content
+    try:
+        client    = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
+        chat_json = json.dumps([{"role": m.get("role", ""), "content": m.get("content") or ""} for m in argChat_history], indent=2)
+        response  = client.messages.create(
+            model="claude-haiku-4-5-20251001", max_tokens=4096,
+            messages=[{"role": "user", "content": (
+                "Deidentify the following chat conversation so it meets HIPAA Safe Harbor requirements for research data.\n"
+                "Remove or replace: names, geographic identifiers (except state), dates (except year), phone/fax, email, SSN,\n"
+                "medical record numbers, account numbers, license numbers, vehicle identifiers, device identifiers, URLs, IP addresses,\n"
+                "and any other identifiers that could be used to identify an individual.\n"
+                "Preserve the semantic meaning of each message for research purposes.\n\n"
+                "Return ONLY a valid JSON array of strings, one string per message in the same order.\n\n"
+                f"Chat conversation:\n{chat_json}"
+            )}],
+        )
+        result_text = response.content[0].text.strip()
+        if result_text.startswith("```"):
+            result_text = result_text.split("```")[1]
+            if result_text.startswith("json"):
+                result_text = result_text[4:]
+            result_text = result_text.strip()
+        deidentified_contents = json.loads(result_text)
+        for i, content in enumerate(deidentified_contents):
+            if i < len(argChat_history):
+                argChat_history[i]["content"] = content
+    except Exception as exc:
+        _log.warning("deIdentify failed: %s — keeping original content", exc)
 
 
 def record_unknown_question(question, chat_history=None):
