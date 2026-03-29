@@ -41,7 +41,6 @@ _BARE_URL_RE = re.compile(r'(?<!\]\()(?<!")(https?://[^\s\)<>"]+)')
 # These are always treated as valid — they're meant for the user's browser.
 _TRUSTED_SEARCH_DOMAINS = {
     "www.healthgrades.com",
-    "www.zocdoc.com",
 }
 
 # Domains that return SPA shells (no server-rendered content for AI to verify).
