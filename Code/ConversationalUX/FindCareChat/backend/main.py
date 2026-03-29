@@ -44,7 +44,7 @@ _log = logging.getLogger("findcare")
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-SUPPORTED_STATES = {"DE", "MS"}
+SUPPORTED_STATES = {"DE", "MS", "VA"}
 _ENV_PREFIX       = os.getenv("ENV_PREFIX", "dev")
 _DEBUG            = os.getenv("DEBUG", "false").lower() == "true"
 _HUMAN_TESTING    = os.getenv("HUMAN_TESTING", "false").lower() == "true"
@@ -1256,10 +1256,17 @@ WELCOME_MESSAGE = (
     "- **Find a doctor** — search for providers by specialty or condition\n"
     "  - Delaware\n"
     "  - Mississippi\n"
+    "  - Virginia\n"
+    "- **Get provider details** — credentials, license, NPI data, and research links\n"
     "- **Identify the right specialty** — not sure what kind of doctor you need? Describe your situation\n"
     "- **Clinical trials** — find recruiting research studies for any condition\n"
-    "- **About ChatHealthy** — our mission, team, and platform\n\n"
-    "If you think you may be having a medical emergency, tell me right away.\n\n"
+    "  - Find distance and travel time from any location to trial sites\n"
+    "- **About ChatHealthy** — our mission, team, and platform\n"
+    "- **Contact us** — request a follow-up from the ChatHealthy team\n"
+    "- **Ask anything** — if I can't answer, I'll record your question and offer to connect you with someone who can\n"
+    "- **Emergency detection** — if you appear to need emergency care, the chat will lock and direct you to call 911, with a full audit trail\n"
+    "- **HIPAA-like consent** — we seek your consent before storing any identified or de-identified user data\n\n"
+    "If you think you may be having a medical emergency, tell me right away — I'll lock the chat for an hour and insist you seek ER care.\n\n"
     "**What can I help you with today?**"
 )
 
