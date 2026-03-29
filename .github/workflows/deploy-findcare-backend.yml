@@ -40,7 +40,7 @@ jobs:
           git config --global user.name "SkipSnow"
           git lfs install
 
-          git clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/dev_ChatHealthyAIChatWindow hf_space
+          git clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/dev_ChatHealthySpace hf_space
 
           find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
 
