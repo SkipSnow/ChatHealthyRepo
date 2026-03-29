@@ -68,14 +68,52 @@ def delete_space(env: str, confirm_prod: bool = False, dry_run: bool = False):
         sys.exit(1)
 
 
+def delete_space_by_name(name: str, dry_run: bool = False):
+    """Delete a Space by explicit name (for non-standard/legacy spaces)."""
+    token = os.getenv("HF_TOKEN")
+    if not token:
+        log.error("HF_TOKEN not set in .env")
+        sys.exit(1)
+
+    full_name = f"{ORG}/{name}"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+    log.info("Deleting Space: %s", full_name)
+
+    if dry_run:
+        log.info("DRY RUN — no changes made")
+        return
+
+    resp = requests.delete(
+        "https://huggingface.co/api/repos/delete",
+        headers=headers,
+        json={"type": "space", "name": full_name},
+        timeout=15,
+    )
+
+    if resp.status_code == 200:
+        log.info("DELETED: %s", full_name)
+    elif resp.status_code == 404:
+        log.info("Space does not exist: %s", full_name)
+    else:
+        log.error("Failed: %s %s", resp.status_code, resp.text[:200])
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Delete a ChatHealthy HuggingFace Space")
-    parser.add_argument("--env", required=True, choices=["dev", "qa", "prod"],
-                        help="Environment: dev, qa, or prod")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--env", choices=["dev", "qa", "prod"],
+                       help="Environment: dev, qa, or prod (uses naming convention)")
+    group.add_argument("--name",
+                       help="Explicit Space name (for legacy/non-standard spaces)")
     parser.add_argument("--confirm-prod", action="store_true",
                         help="Required to delete prod Space")
     parser.add_argument("--dry-run", action="store_true",
                         help="Print plan without making changes")
     args = parser.parse_args()
 
-    delete_space(args.env, args.confirm_prod, args.dry_run)
+    if args.name:
+        delete_space_by_name(args.name, args.dry_run)
+    else:
+        delete_space(args.env, args.confirm_prod, args.dry_run)

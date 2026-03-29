@@ -36,6 +36,7 @@ export default function ChatWindow() {
   const [thinkSeconds, setThinkSeconds] = useState(0)
   const [thinkingDismissed, setThinkingDismissed] = useState(false)
   const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
+  const [envBanner, setEnvBanner] = useState<{env: string, build: string, version: string} | null>(null)
 
   // Refs — avoid stale closures in async callbacks
   const messagesRef = useRef<Message[]>([WELCOME])
@@ -61,6 +62,9 @@ export default function ChatWindow() {
       .then(r => r.json())
       .then(data => {
         backendEnvRef.current = data.env || 'prod'
+        if (data.env && data.env !== 'prod') {
+          setEnvBanner({env: data.env, build: data.build || '?', version: data.version || '?'})
+        }
         if (data.build) {
           setMessages(prev => [{ ...prev[0], build: data.build }, ...prev.slice(1)])
         }
@@ -173,6 +177,11 @@ export default function ChatWindow() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: 800, margin: '0 auto', width: '100%' }}>
+      {envBanner && (
+        <div style={{ background: '#dc2626', color: '#fff', textAlign: 'center', padding: '4px 8px', fontSize: 13, fontWeight: 600, letterSpacing: '0.03em' }}>
+          {envBanner.env.toUpperCase()} — Build {envBanner.build} — {envBanner.version}
+        </div>
+      )}
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 16px' }}>
         {messages.map((m, i) => (
           <MessageBubble key={i} message={m} />
