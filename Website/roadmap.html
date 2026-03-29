@@ -928,6 +928,20 @@
       <p>Replace the current <code>globals().get(name)</code> tool dispatch with a registry pattern in <code>PromptFactory</code>. Tools register as name→callable pairs at init time. Enables clean separation of tool schemas from implementations and future plugin-style tool addition.</p>
     </div>
 
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">OPS-001</span>
+        <span class="item-title">Data migration framework on promotion</span>
+        <span class="badge badge-postmvp">Sprint 3 — 2026-04-14</span>
+      </div>
+      <div class="item-meta">
+        <span><strong>Status:</strong> Backlog — gap acknowledged, clean-slate promotion accepted for Sprint 1-2</span>
+        <span><strong>Brain ID:</strong> ASN-DMIG01</span>
+      </div>
+      <p><strong>Gap:</strong> Current promotion (dev→qa→prod) drops the target and replaces all data. Any in-flight data in the target environment is lost. No schema versioning, no selective collection sync, no migration scripts.</p>
+      <p><strong>Sprint 3 goal:</strong> Fine-grained data migration on promotion — schema-aware collection sync, migration scripts per release, in-flight data preservation where needed.</p>
+    </div>
+
     <!-- Bugs -->
     <h2>Bugs</h2>
 

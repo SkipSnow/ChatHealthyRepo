@@ -1,0 +1,103 @@
+name: Promote Build Between Environments
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_env:
+        description: 'Source environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+      to_env:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - qa
+          - prod
+      confirm_prod:
+        description: 'Confirm production promotion (GOV-007)'
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Dry run (print plan, no changes)'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  promote-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate promotion path
+        run: |
+          FROM="${{ inputs.from_env }}"
+          TO="${{ inputs.to_env }}"
+          if [ "$FROM" = "dev" ] && [ "$TO" = "qa" ]; then
+            echo "Valid: dev -> qa"
+          elif [ "$FROM" = "qa" ] && [ "$TO" = "prod" ]; then
+            echo "Valid: qa -> prod"
+            if [ "${{ inputs.confirm_prod }}" != "true" ]; then
+              echo "ERROR: Production promotion requires confirm_prod=true (GOV-007)"
+              exit 1
+            fi
+          else
+            echo "ERROR: Invalid promotion path: $FROM -> $TO"
+            echo "Valid paths: dev->qa, qa->prod"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pymongo python-dotenv
+
+      - name: Increment build counter on target
+        if: inputs.dry_run == false
+        env:
+          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
+        run: |
+          python Code/Shared/ops/bump_build.py --env ${{ inputs.to_env }}
+
+      - name: Merge source branch into target branch
+        if: inputs.dry_run == false
+        run: |
+          BRANCH_MAP_dev="dev"
+          BRANCH_MAP_qa="qa"
+          BRANCH_MAP_prod="main"
+
+          FROM_BRANCH="BRANCH_MAP_${{ inputs.from_env }}"
+          TO_BRANCH="BRANCH_MAP_${{ inputs.to_env }}"
+          SRC="${!FROM_BRANCH}"
+          DST="${!TO_BRANCH}"
+
+          git config user.email "skip.snow@gmail.com"
+          git config user.name "SkipSnow"
+
+          echo "Merging $SRC -> $DST"
+          git checkout "$DST"
+          git merge "origin/$SRC" -m "Promote ${{ inputs.from_env }} -> ${{ inputs.to_env }} (build promotion)"
+          git push origin "$DST"
+
+      - name: Dry run summary
+        if: inputs.dry_run == true
+        env:
+          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
+        run: |
+          python Code/Shared/ops/promote_build.py \
+            --from ${{ inputs.from_env }} \
+            --to ${{ inputs.to_env }} \
+            --dry-run
