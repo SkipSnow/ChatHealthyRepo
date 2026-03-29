@@ -1,0 +1,75 @@
+**DRAFT v11**
+
+**REVOCABLE INTELLECTUAL PROPERTY LICENSE AGREEMENT**
+
+This Revocable Intellectual Property License Agreement ("Agreement") is made and entered into as of the Effective Date by and between Harvey (Skip) Snow, an individual ("Licensor"), and ChatHealthy.AI, a Delaware entity ("Licensee").
+
+**1. GRANT OF LICENSE**
+
+1.1 **License Grant**: Licensor grants Licensee a revocable license to use, modify, deploy, and sublicense the intellectual property ("IP") specified herein solely for Licensee's business operations, subject to the terms and conditions of this Agreement. Licensor retains the right to license the same IP to others.
+
+1.2 **Scope of License**: The license includes all existing IP and any future contributions by Licensor related to ChatHealthy.AI, including but not limited to code, architecture, design documents, data, business plans, and other trade secrets.
+
+1.3 **Revocation**: Licensor may revoke this license at any time by providing five (5) days' written notice to Licensee. Upon revocation, Licensee shall immediately cease all use of the IP and return or destroy all copies of the IP in its possession, certifying in writing to Licensor that such actions have been completed.
+
+1.4 **Transferability**: In the event of a sale or transfer of Licensee, the license shall automatically transfer to the acquirer unless Licensor revokes it prior to the sale or transfer.
+
+1.5 **FindCare Evaluation License**: The IP is subject to the FindCare Evaluation License (FEL-1.0), which is a non-standard license captured in the Git repository. It is NOT an open-source license.
+
+**2. OWNERSHIP**
+
+2.1 **Retention of Rights**: Licensor retains all ownership rights to the IP. This Agreement does not transfer any ownership rights to Licensee.
+
+**3. REPRESENTATIONS AND WARRANTIES**
+
+3.1 **Licensor's Representations**: Licensor represents and warrants that:
+   - Licensor is the sole creator and owner of the IP.
+   - The use of AI tools (Claude by Anthropic, ChatGPT by OpenAI) in development assigns output to Licensor per their terms of service.
+   - The IP does not infringe upon any third-party rights.
+
+3.2 **Licensee's Representations**: Licensee represents and warrants that it is duly organized, validly existing, and in good standing under the laws of Delaware.
+
+**4. INDEMNIFICATION**
+
+4.1 **Indemnification by Licensee**: Licensee shall indemnify, defend, and hold harmless Licensor from any claims, damages, liabilities, costs, and expenses, including reasonable attorney's fees, arising from Licensee's use of the IP or any breach of this Agreement.
+
+**5. GOVERNING LAW**
+
+5.1 **Jurisdiction**: This Agreement shall be governed by and construed in accordance with the laws of the State of Delaware, without regard to its conflict of laws principles. Any legal action or proceeding arising under this Agreement shall be brought exclusively in the courts located in Delaware.
+
+**6. TRADE SECRETS**
+
+6.1 **Confidentiality Obligations**: ChatHealthy.AI acknowledges that it holds Licensor's trade secrets and agrees to protect them. Licensee shall not disclose any trade secrets to third parties and shall take reasonable measures to protect the confidentiality of such trade secrets. Upon revocation of the license, Licensee shall return or destroy all materials containing trade secrets and certify in writing to Licensor that such actions have been completed.
+
+**7. SEVERABILITY**
+
+7.1 **Severability**: If any provision of this Agreement is held to be illegal, invalid, or unenforceable, such provision shall be fully severable, and this Agreement shall be construed and enforced as if such illegal, invalid, or unenforceable provision had never comprised a part of this Agreement. The remaining provisions shall remain in full force and effect.
+
+**8. ENTIRE AGREEMENT**
+
+8.1 **Integration**: This Agreement constitutes the entire agreement between the parties regarding the subject matter hereof and supersedes all prior agreements and understandings, whether written or oral.
+
+**9. AMENDMENTS**
+
+9.1 **Modifications**: Any amendment or modification to this Agreement must be in writing and signed by both parties.
+
+**10. SIGNATURES**
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the Effective Date.
+
+**LICENSOR:**
+
+______________________________  
+Skip Snow  
+Date: ________________________
+
+**LICENSEE:**
+
+ChatHealthy.AI
+
+By: __________________________  
+Name: ________________________  
+Title: ________________________  
+Date: ________________________
+
+**Effective Date**: ________________________
