@@ -1,0 +1,73 @@
+{
+  "title": "DevOps Build Numbering and Promotion",
+  "version": "1.0",
+  "date": "2026-03-29",
+
+  "build_number": {
+    "description": "System-wide atomic counter. One number tracks all changes across all components.",
+    "storage": "MongoDB {ENV_PREFIX}_System.build_counter",
+    "increment": "ops/bump_build.py --env {env}",
+    "read": "App reads on startup via _get_build_number()",
+    "rules": [
+      "Every deploy of any component (website, pipeline, chat) increments by 1",
+      "Every environment has its own counter (dev_System, qa_System, prod_System)",
+      "Promotion does NOT increment — the tested build number carries forward",
+      "The number is the audit trail: what was tested is what shipped"
+    ]
+  },
+
+  "promotion_flow": {
+    "dev_to_qa": {
+      "trigger": "Manual — merge dev to qa branch",
+      "build_action": "Set qa_System.build_counter to dev's current number (copy, not increment)",
+      "verification": "QA tests against this build number",
+      "sign_off": "GPT reviews QA report, Boss approves"
+    },
+    "qa_to_prod": {
+      "trigger": "Manual — merge qa to main branch",
+      "build_action": "Set prod_System.build_counter to QA's signed-off number (copy, not increment)",
+      "verification": "Smoke test on prod",
+      "sign_off": "Boss only (GOV-007)"
+    }
+  },
+
+  "version_number": {
+    "description": "Manual semantic version (e.g., v0.1.2). Set in APP_VERSION env var.",
+    "managed_by": "Boss",
+    "storage": ".env file + HF Space secrets",
+    "increment_rule": "Boss decides when to bump version. Build number is automatic."
+  },
+
+  "components": {
+    "website": {
+      "deploy_path": "dev branch → GH Actions → Cloudflare Pages",
+      "build_bump": "bump_build.py --env {branch}",
+      "workflow": "deploy-findcare-website-dev.yml"
+    },
+    "chat_app": {
+      "deploy_path": "dev/qa branch → GH Actions → HuggingFace Space",
+      "build_bump": "bump_build.py --env {branch}",
+      "workflow": "deploy-findcare-backend.yml"
+    },
+    "pipeline": {
+      "deploy_path": "main branch → GH Actions → Azure Functions",
+      "build_bump": "bump_build.py --env prod",
+      "workflow": "deploy-pipelines.yml"
+    }
+  },
+
+  "ops_scripts": {
+    "bump_build.py": "Increment build counter for an environment",
+    "hf_space_create.py": "Create HF Space with secrets",
+    "hf_space_delete.py": "Delete HF Space (prod requires --confirm-prod)",
+    "hf_space_restart.py": "Restart HF Space (normal or factory)",
+    "hf_space_status.py": "Check Space status, health, root",
+    "atlas_cluster_toggle.py": "Pause/resume MongoDB clusters"
+  },
+
+  "promotion_script": {
+    "name": "promote_build.py",
+    "status": "to be created",
+    "behavior": "Copy build number from source env to target env, merge branch, trigger deploy"
+  }
+}
