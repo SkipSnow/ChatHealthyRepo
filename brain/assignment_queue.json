@@ -664,6 +664,35 @@
       "feedback_needed": false,
       "feedback_question": null,
       "deadline": "2026-04-14"
+    },
+    {
+      "assignment_id": "ASN-BVAL01",
+      "timestamp": "2026-03-29T23:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "GPT",
+      "title": "Brain integrity validation — post-restructure audit",
+      "description": "The brain/ directory was restructured on 2026-03-29: all files moved from brain/context/ to brain/ (flattened). GPT must read and validate every brain file to confirm: (1) all cross-references between files resolve correctly, (2) corporate_governance.json policies are intact and internally consistent, (3) assignment_queue.json assignments reference valid scope paths, (4) devops_build_promotion.json database architecture matches what Claude implemented, (5) business_model.json is complete and consistent with corporate_governance.json. Report any broken references, missing files, or policy inconsistencies. This is a read-only audit — do not modify any files.",
+      "scope": [
+        "brain/corporate_governance.json",
+        "brain/devops_build_promotion.json",
+        "brain/business_model.json",
+        "brain/assignment_queue.json",
+        "brain/task_based_system_prompts.json",
+        "brain/release_gate_v012.json",
+        "brain/ip_license_signoff.json",
+        "brain/portability_refactoring_report.json",
+        "brain/consent_framework_feature.json",
+        "brain/qa_report_feature.json",
+        "brain/safety_signoff.json",
+        "brain/budget_config.json"
+      ],
+      "priority": "high",
+      "estimated_risk": "Low",
+      "status": "pending",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "deadline": "2026-03-30"
     }
   ]
 }
