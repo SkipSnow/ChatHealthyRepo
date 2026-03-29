@@ -14,8 +14,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Inject chat URL
-        run: sed -i 's|%%CHAT_URL%%|https://skipsnow-dev-chathealthyaichatwindow.hf.space|g' Website/index.html
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Bump build counter
+        env:
+          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
+        run: |
+          pip install pymongo python-dotenv
+          python Code/Shared/ops/bump_build.py --env dev
 
       - name: Create Pages project (idempotent)
         uses: cloudflare/wrangler-action@v3
