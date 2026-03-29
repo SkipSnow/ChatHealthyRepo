@@ -26,6 +26,13 @@ jobs:
         run: |
           cd Code/DataPipelines
           pip install -r requirements-pipeline.txt
+          pip install pymongo python-dotenv
+
+      - name: Bump build counter
+        env:
+          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
+        run: |
+          python Code/Shared/ops/bump_build.py --env prod
 
       - name: Login to Azure
         uses: azure/login@v2

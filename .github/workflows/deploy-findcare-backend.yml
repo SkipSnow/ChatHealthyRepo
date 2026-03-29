@@ -36,6 +36,18 @@ jobs:
           echo "name=${SPACE}" >> $GITHUB_OUTPUT
           echo "Deploying to: ${ORG}/${SPACE}"
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Bump build counter
+        env:
+          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
+        run: |
+          pip install pymongo python-dotenv
+          python Code/Shared/ops/bump_build.py --env ${{ github.ref_name }}
+
       - name: Build React frontend
         uses: actions/setup-node@v4
         with:
@@ -77,8 +89,6 @@ jobs:
           # me/ context files (PDFs, summary, codebase)
           mkdir -p hf_space/me
           rsync -av Code/ConversationalUX/ChatHealthyWhoAmIChat/me/ hf_space/me/
-
-          echo "${{ github.run_number }}" > hf_space/build.txt
 
           cd hf_space
           git lfs track "*.pdf"
