@@ -1,6 +1,66 @@
 {
   "assignments": [
     {
+      "assignment_id": "SPRINT-012-TECH",
+      "timestamp": "2026-03-28T23:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "TECHNICAL: Maps Integration + Framework 0.2 Refactor + Virginia",
+      "description": "Deliver Google Maps integration AND targeted refactor to Framework 0.2. Maps is presentation only (adapter layer). No Google logic in domain objects. Refactor core objects: ConsentDecision, SafetyAssessment, ResponsePlan, ProviderSearchRequest/Result. Define clean flow: UserIntent -> SafetyAssessment -> ConsentDecision -> ResponsePlan -> ProviderSearchResult -> Maps Adapter + UI. ADDED: Project Virginia provider data to dev frontend cluster. PRIORITY: v0.1.2 must-have. Prospective customer requires VA coverage. Demonstrates ability to deliver new state on demand.",
+      "scope": [
+        "Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Code/ConversationalUX/FindCareChat/frontend/src/",
+        "Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+      ],
+      "priority": "critical",
+      "estimated_risk": "High",
+      "status": "pending",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "deadline": "2026-03-31",
+      "sub_tasks": [
+        {"id": "T1-A", "task": "Maps Adapter (encapsulate Google Maps calls)", "status": "pending"},
+        {"id": "T1-B", "task": "Data contract: ProviderSearchResult -> Map markers", "status": "pending"},
+        {"id": "T1-C", "task": "UI component: map + markers + click -> ProviderDetail", "status": "pending"},
+        {"id": "T1-D", "task": "Refactor ConsentDecision domain object", "status": "pending"},
+        {"id": "T1-E", "task": "Refactor SafetyAssessment domain object", "status": "pending"},
+        {"id": "T1-F", "task": "Refactor ResponsePlan domain object", "status": "pending"},
+        {"id": "T1-G", "task": "Refactor ProviderSearchRequest/Result domain objects", "status": "pending"},
+        {"id": "T1-H", "task": "Integration flow: UserIntent -> SafetyAssessment -> ConsentDecision -> ResponsePlan", "status": "pending"},
+        {"id": "T1-I", "task": "Before/After code structure documentation", "status": "pending"},
+        {"id": "T1-J", "task": "Textual flow diagram", "status": "pending"}
+      ]
+    },
+    {
+      "assignment_id": "SPRINT-012-BIZ",
+      "timestamp": "2026-03-28T23:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "BUSINESS: Viral Readiness + Capital + IP + Announcement",
+      "description": "Ensure ChatHealthy can survive viral adoption, secure fast capital, protect IP, and prepare May 1 announcement. Design UTCF (usage-triggered capital facility), valuation protection, usage gating model, cost control strategy, IP strategy, LinkedIn announcement draft, master agreement outline.",
+      "scope": [
+        "brain/context/business_model.json",
+        "brain/context/corporate_governance.json"
+      ],
+      "priority": "high",
+      "estimated_risk": "Moderate",
+      "status": "pending",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "deadline": "2026-03-31",
+      "sub_tasks": [
+        {"id": "T2-A", "task": "Usage-Triggered Capital Facility (UTCF) design", "status": "pending"},
+        {"id": "T2-B", "task": "Valuation protection structure (SAFE/tranche)", "status": "pending"},
+        {"id": "T2-C", "task": "Usage gating model (normal/high/viral load)", "status": "pending"},
+        {"id": "T2-D", "task": "Cost control strategy (reduce Sonnet dependency, OSS candidates)", "status": "pending"},
+        {"id": "T2-E", "task": "IP strategy (patent vs trade secret, provisional filing)", "status": "pending"},
+        {"id": "T2-F", "task": "May 1 LinkedIn announcement draft", "status": "pending"},
+        {"id": "T2-G", "task": "Master agreement outline (prep for next sprint)", "status": "pending"}
+      ]
+    },
+    {
       "assignment_id": "ASN-F3A821",
       "timestamp": "2026-03-25T22:00:00.000000+00:00",
       "from": "Boss",
