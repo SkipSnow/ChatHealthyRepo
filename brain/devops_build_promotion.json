@@ -46,13 +46,13 @@
   "promotion_flow": {
     "dev_to_qa": {
       "trigger": "Manual — merge dev to qa branch",
-      "build_action": "Set qa_System.build_counter to dev's current number (copy, not increment)",
+      "build_action": "Increment qa_System.build_counter (promotion is a build)",
       "verification": "QA tests against this build number",
       "sign_off": "GPT reviews QA report, Boss approves"
     },
     "qa_to_prod": {
       "trigger": "Manual — merge qa to main branch",
-      "build_action": "Set prod_System.build_counter to QA's signed-off number (copy, not increment)",
+      "build_action": "Increment prod_System.build_counter (promotion is a build)",
       "verification": "Smoke test on prod",
       "sign_off": "Boss only (GOV-007)"
     }
@@ -90,7 +90,7 @@
     "hf_space_restart.py": "Restart HF Space (normal or factory)",
     "hf_space_status.py": "Check Space status, health, root",
     "atlas_cluster_toggle.py": "Pause/resume MongoDB clusters",
-    "promote_build.py": "Copy build number from source env to target env (does NOT increment)",
+    "promote_build.py": "Promote code between environments (increments target build counter, merges branch)",
     "promote_data.py": "Copy provider data (PublicHealthData + SpecialtyMetaData) between environments on frontend cluster"
   },
 
