@@ -1233,22 +1233,16 @@ _ME = _load_me_context()
 _load_fips_county_map()  # HACK ASN-4AFBDA
 _url_guardian = URLGuardian(cache_ttl=3600, request_timeout=5)
 
-# Build number — atomic counter in MongoDB, incremented on every startup.
-# Works everywhere: local, HF, Azure. One source of truth.
+# Build number — read from MongoDB. Incremented by ops/bump_build.py only.
 def _get_build_number() -> str:
     try:
         db = _get_db()
         if db is None:
             return "?"
-        result = db[f"{_ENV_PREFIX}_System"]["build_counter"].find_one_and_update(
-            {"_id": "build"},
-            {"$inc": {"number": 1}},
-            upsert=True,
-            return_document=True,
-        )
-        return str(result["number"])
+        record = db[f"{_ENV_PREFIX}_System"]["build_counter"].find_one({"_id": "build"})
+        return str(record["number"]) if record else "0"
     except Exception as exc:
-        _log.warning("Build counter failed: %s", exc)
+        _log.warning("Build counter read failed: %s", exc)
         return "?"
 
 _BUILD = _get_build_number()
