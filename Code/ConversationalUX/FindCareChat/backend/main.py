@@ -1525,10 +1525,8 @@ def _debug_log_chat(
     error: Optional[str],
     history: Optional[list] = None,
 ) -> None:
-    """Persists chat call metadata to dev_Debug.chat_calls when ENV_PREFIX == dev.
+    """Persists chat call metadata to {ENV_PREFIX}_Debug.chat_calls.
     When an error occurs, the full de-identified chat history is stored alongside the error."""
-    if _ENV_PREFIX != "dev":
-        return
     db = _get_db()
     if db is None:
         return
@@ -1552,7 +1550,7 @@ def _debug_log_chat(
             ]
             deIdentify(safe_history)
             record["chat_history_deidentified"] = safe_history
-        col = db["dev_Debug"]["chat_calls"]
+        col = db[f"{_ENV_PREFIX}_Debug"]["chat_calls"]
         col.insert_one(record)
     except Exception as exc:
         _log.warning("debug_log_chat failed: %s", exc)
