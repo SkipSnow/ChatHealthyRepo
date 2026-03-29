@@ -1233,23 +1233,25 @@ _ME = _load_me_context()
 _load_fips_county_map()  # HACK ASN-4AFBDA
 _url_guardian = URLGuardian(cache_ttl=3600, request_timeout=5)
 
-# Build number — injected by CI into build.txt at deploy time
-# Locally: auto-increments on each server start for testing
-_build_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "build.txt")
-if os.path.exists(_build_file):
-    _raw = open(_build_file).read().strip()
+# Build number — atomic counter in MongoDB, incremented on every startup.
+# Works everywhere: local, HF, Azure. One source of truth.
+def _get_build_number() -> str:
     try:
-        _build_num = int(_raw) + 1
-        # Try to auto-increment (works locally, fails on read-only containers like HF)
-        try:
-            open(_build_file, "w").write(str(_build_num))
-            _BUILD = str(_build_num)
-        except OSError:
-            _BUILD = _raw
-    except ValueError:
-        _BUILD = _raw
-else:
-    _BUILD = "dev"
+        db = _get_db()
+        if db is None:
+            return "?"
+        result = db[f"{_ENV_PREFIX}_System"]["build_counter"].find_one_and_update(
+            {"_id": "build"},
+            {"$inc": {"number": 1}},
+            upsert=True,
+            return_document=True,
+        )
+        return str(result["number"])
+    except Exception as exc:
+        _log.warning("Build counter failed: %s", exc)
+        return "?"
+
+_BUILD = _get_build_number()
 
 WELCOME_MESSAGE = (
     "**Welcome to ChatHealthy FindCare**\n\n"
