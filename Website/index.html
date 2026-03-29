@@ -572,17 +572,29 @@
       </div>
 
       <!--
-        CoreChatUX iframe URL injected at build time via CHAT_URL env var.
-        Prod: https://hf.chathealthy.ai  Dev: set per environment in Cloudflare Pages
+        CoreChatUX iframe URL resolved at runtime from chatConfig.
+        Hostname determines environment: dev/qa/prod.
       -->
       <iframe
         id="coreChatFrame"
-        src="https://skipsnow-dev-chathealthyaichatwindow.hf.space"
+        src=""
         title="Find Care — CoreChatUX"
         allow="microphone; clipboard-write"
         loading="lazy"
         onload="document.getElementById('frameLoading').classList.add('hidden')"
       ></iframe>
+      <script>
+        (function() {
+          var chatUrls = {
+            'dev':  'https://skipsnow-dev-chathealthyaichatwindow.hf.space',
+            'qa':   'https://skipsnow-dev-chathealthyaichatwindow.hf.space',
+            'prod': 'https://skipsnow-chathealthywhoamichat.hf.space'
+          };
+          var host = window.location.hostname;
+          var env = host.indexOf('dev.') === 0 ? 'dev' : host.indexOf('qa.') === 0 ? 'qa' : 'prod';
+          document.getElementById('coreChatFrame').src = chatUrls[env];
+        })();
+      </script>
 
     </div>
   </main>
