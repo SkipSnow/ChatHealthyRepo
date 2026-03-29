@@ -487,6 +487,25 @@
       }
     },
     {
+      "assignment_id": "ASN-JURIS01",
+      "timestamp": "2026-03-29T15:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Add Delaware as state of jurisdiction to website and splash",
+      "description": "Name Delaware as the state of jurisdiction on the website and in the chat splash page. Include a sentence explaining what this means: ChatHealthy.AI is organized under the laws of the State of Delaware. This means Delaware law governs the company's formation, corporate governance, and legal obligations. This is standard for US technology companies due to Delaware's well-established business law framework.",
+      "scope": [
+        "Website/index.html",
+        "Code/ConversationalUX/FindCareChat/backend/main.py"
+      ],
+      "priority": "high",
+      "estimated_risk": "Low",
+      "status": "pending",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "deadline": "2026-04-02"
+    },
+    {
       "assignment_id": "ASN-ROAD01",
       "timestamp": "2026-03-28T22:00:00.000000+00:00",
       "from": "Boss",
