@@ -50,37 +50,35 @@ def promote(from_env: str, to_env: str, confirm_prod: bool = False, dry_run: boo
 
     client = MongoClient(conn, serverSelectionTimeoutMS=10000)
 
-    # Read source build number
+    # Read source build number for logging
     src_db = f"{from_env}_System"
     src_record = client[src_db]["build_counter"].find_one({"_id": "build"})
-    if not src_record:
-        log.error("No build counter found in %s", src_db)
-        sys.exit(1)
-
-    build_number = src_record["number"]
-    log.info("Promoting build %d from %s to %s", build_number, from_env, to_env)
+    src_build = src_record["number"] if src_record else "unknown"
+    log.info("Promoting code from %s (build %s) to %s", from_env, src_build, to_env)
 
     if dry_run:
         log.info("DRY RUN — no changes made")
-        log.info("  Would set %s_System.build_counter to %d", to_env, build_number)
+        log.info("  Would increment %s_System.build_counter", to_env)
         log.info("  Would merge %s -> %s", BRANCH_MAP[from_env], BRANCH_MAP[to_env])
         return
 
-    # Copy build number to target (set, not increment)
+    # Increment target build counter — promotion is a build
     dst_db = f"{to_env}_System"
-    client[dst_db]["build_counter"].update_one(
+    result = client[dst_db]["build_counter"].find_one_and_update(
         {"_id": "build"},
-        {"$set": {"number": build_number}},
+        {"$inc": {"number": 1}},
         upsert=True,
+        return_document=True,
     )
-    log.info("Build counter set: %s_System = %d", to_env, build_number)
+    new_build = result["number"]
+    log.info("Build counter incremented: %s_System = %d", to_env, new_build)
 
     # Branch merge instructions
     src_branch = BRANCH_MAP[from_env]
     dst_branch = BRANCH_MAP[to_env]
     log.info("NEXT STEP: merge %s -> %s", src_branch, dst_branch)
     log.info("  git checkout %s && git merge %s && git push origin %s", dst_branch, src_branch, dst_branch)
-    log.info("Promotion complete. Build %d is now in %s.", build_number, to_env)
+    log.info("Promotion complete. Build %d in %s.", new_build, to_env)
 
 
 if __name__ == "__main__":

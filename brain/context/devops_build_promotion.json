@@ -1,7 +1,33 @@
 {
   "title": "DevOps Build Numbering and Promotion",
-  "version": "1.0",
+  "version": "1.1",
   "date": "2026-03-29",
+
+  "database_architecture": {
+    "description": "Two categories: env-scoped application databases and one global ops database.",
+    "env_scoped": {
+      "pattern": "{env}_DatabaseName",
+      "envs": ["dev", "qa", "prod"],
+      "databases": {
+        "{env}_PublicHealthData": "providers, SpecialtyMetaData",
+        "{env}_System": "build counter",
+        "{env}_Debug": "chat call logs",
+        "{env}_AboutUs": "leads, unknown questions (refactor planned — ASN-UDATA01)"
+      }
+    },
+    "global": {
+      "admin": "Ops control plane — promotion logs, business artifacts, framework version. No env prefix.",
+      "admin_collections": {
+        "framework_version": "Single document {_id: 'framework', version: '1.1', name: '...', changelog: [...]}. Source of truth for architectural maturity level.",
+        "promotion_log": "Audit trail of all environment promotions (who, when, from, to, build number)"
+      }
+    },
+    "rules": [
+      "All application databases use {env}_ prefix — zero hardcoded names",
+      "admin is global, one instance, tracks cross-environment operations",
+      "ENV_PREFIX is set per deployment (dev, qa, prod) and routes all DB access"
+    ]
+  },
 
   "build_number": {
     "description": "System-wide atomic counter. One number tracks all changes across all components.",
@@ -11,8 +37,9 @@
     "rules": [
       "Every deploy of any component (website, pipeline, chat) increments by 1",
       "Every environment has its own counter (dev_System, qa_System, prod_System)",
-      "Promotion does NOT increment — the tested build number carries forward",
-      "The number is the audit trail: what was tested is what shipped"
+      "Promotion DOES increment — every promotion (code or data) bumps the target environment's build counter",
+      "The number is the audit trail: what was tested is what shipped",
+      "A promotion (code or data) is a build — always bumps target environment counter"
     ]
   },
 
@@ -62,13 +89,9 @@
     "hf_space_delete.py": "Delete HF Space (prod requires --confirm-prod)",
     "hf_space_restart.py": "Restart HF Space (normal or factory)",
     "hf_space_status.py": "Check Space status, health, root",
-    "atlas_cluster_toggle.py": "Pause/resume MongoDB clusters"
-  },
-
-  "promotion_script": {
-    "name": "promote_build.py",
-    "status": "implemented",
-    "behavior": "Copy build number from source env to target env, merge branch, trigger deploy"
+    "atlas_cluster_toggle.py": "Pause/resume MongoDB clusters",
+    "promote_build.py": "Copy build number from source env to target env (does NOT increment)",
+    "promote_data.py": "Copy provider data (PublicHealthData + SpecialtyMetaData) between environments on frontend cluster"
   },
 
   "known_bugs": [

@@ -1,0 +1,74 @@
+name: Promote Data Between Environments
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_env:
+        description: 'Source environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+      to_env:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - qa
+          - prod
+      dry_run:
+        description: 'Dry run (print plan, no changes)'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  promote-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate promotion path
+        run: |
+          FROM="${{ inputs.from_env }}"
+          TO="${{ inputs.to_env }}"
+          if [ "$FROM" = "dev" ] && [ "$TO" = "qa" ]; then
+            echo "Valid: dev -> qa"
+          elif [ "$FROM" = "qa" ] && [ "$TO" = "prod" ]; then
+            echo "Valid: qa -> prod"
+          else
+            echo "ERROR: Invalid promotion path: $FROM -> $TO"
+            echo "Valid paths: dev->qa, qa->prod"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pymongo python-dotenv
+
+      - name: Run data promotion
+        env:
+          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
+        run: |
+          DRY_RUN_FLAG=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            DRY_RUN_FLAG="--dry-run"
+          fi
+          python Code/Shared/ops/promote_data.py \
+            --from ${{ inputs.from_env }} \
+            --to ${{ inputs.to_env }} \
+            $DRY_RUN_FLAG
+
+      - name: Bump build counter on target environment
+        if: inputs.dry_run == false
+        env:
+          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
+        run: |
+          python Code/Shared/ops/bump_build.py --env ${{ inputs.to_env }}

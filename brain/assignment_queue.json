@@ -632,6 +632,38 @@
       "result": null,
       "feedback_needed": false,
       "feedback_question": null
+    },
+    {
+      "assignment_id": "ASN-UDATA01",
+      "timestamp": "2026-03-29T00:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Refactor user data (AboutUs)",
+      "description": "Refactor user data architecture. Currently AboutUs (leads, unknown questions) is env-prefixed but needs architectural review for long-term design. No requirements defined yet.",
+      "scope": [],
+      "priority": "medium",
+      "estimated_risk": "TBD",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "deadline": "2026-04-07"
+    },
+    {
+      "assignment_id": "ASN-DMIG01",
+      "timestamp": "2026-03-29T00:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Framework 0.3 — Data migration on promotion",
+      "description": "Build a data migration framework for environment promotion. Handle schema changes, selective collection sync, and in-flight data preservation during dev→qa→prod promotion. Until this exists, promotion is a clean-slate full copy (drop + replace). No requirements defined yet — design during Sprint 3.",
+      "scope": [],
+      "priority": "medium",
+      "estimated_risk": "TBD",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "deadline": "2026-04-14"
     }
   ]
 }
