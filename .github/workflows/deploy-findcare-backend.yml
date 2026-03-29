@@ -1,9 +1,10 @@
-name: Deploy FindCare Backend to HuggingFace
+name: Deploy ChatHealthy Backend to HuggingFace
 
 on:
   push:
     branches:
       - dev
+      - qa
     paths:
       - 'Code/ConversationalUX/FindCareChat/backend/**'
       - 'Code/ConversationalUX/FindCareChat/frontend/**'
@@ -21,6 +22,20 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Derive Space name from branch
+        id: space
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+          ORG="SkipSnow"
+          BASE="ChatHealthySpace"
+          if [ "$BRANCH" = "main" ]; then
+            SPACE="${BASE}"
+          else
+            SPACE="${BRANCH}_${BASE}"
+          fi
+          echo "name=${SPACE}" >> $GITHUB_OUTPUT
+          echo "Deploying to: ${ORG}/${SPACE}"
+
       - name: Build React frontend
         uses: actions/setup-node@v4
         with:
@@ -35,12 +50,14 @@ jobs:
       - name: Push to HuggingFace Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ steps.space.outputs.name }}
         run: |
           git config --global user.email "skip.snow@gmail.com"
           git config --global user.name "SkipSnow"
           git lfs install
 
-          git clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/dev_ChatHealthySpace hf_space
+          echo "Target Space: SkipSnow/${HF_SPACE}"
+          git clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/${HF_SPACE} hf_space
 
           find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
 
