@@ -1233,7 +1233,7 @@ _ME = _load_me_context()
 _load_fips_county_map()  # HACK ASN-4AFBDA
 _url_guardian = URLGuardian(cache_ttl=3600, request_timeout=5)
 
-# Build number — read from MongoDB. Incremented by ops/bump_build.py only.
+# Build number — read from MongoDB on every health check. Incremented by ops/bump_build.py only.
 def _get_build_number() -> str:
     try:
         db = _get_db()
@@ -1244,8 +1244,6 @@ def _get_build_number() -> str:
     except Exception as exc:
         _log.warning("Build counter read failed: %s", exc)
         return "?"
-
-_BUILD = _get_build_number()
 
 WELCOME_MESSAGE = (
     "**Welcome to ChatHealthy FindCare**\n\n"
@@ -1601,7 +1599,7 @@ def welcome():
 @app.get("/health")
 def health():
     db_ok = _get_db() is not None
-    return {"status": "ok", "db": "connected" if db_ok else "unavailable", "env": _ENV_PREFIX, "build": _BUILD, "version": _APP_VERSION}
+    return {"status": "ok", "db": "connected" if db_ok else "unavailable", "env": _ENV_PREFIX, "build": _get_build_number(), "version": _APP_VERSION}
 
 
 @app.post("/chat", response_model=ChatResponse)
