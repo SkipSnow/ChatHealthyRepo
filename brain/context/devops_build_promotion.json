@@ -67,7 +67,18 @@
 
   "promotion_script": {
     "name": "promote_build.py",
-    "status": "to be created",
+    "status": "implemented",
     "behavior": "Copy build number from source env to target env, merge branch, trigger deploy"
-  }
+  },
+
+  "known_bugs": [
+    {
+      "id": "BUG-CLASSIFY-001",
+      "date": "2026-03-29",
+      "description": "Factual health questions misclassified as medical advice. Example: 'What is the most common form of breast cancer?' was declined as medical advice when it should be answered as general health knowledge.",
+      "root_cause": "RULE 2 too aggressive — 'You know NOTHING else' blocks factual health knowledge that aids navigation.",
+      "fix": "Prompt tuning: distinguish factual health questions from personal medical advice.",
+      "status": "open"
+    }
+  ]
 }
