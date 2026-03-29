@@ -56,6 +56,13 @@
       "policy": "Dev branch deploys freely without approval. Production/main branch requires explicit Boss sign-off. No workarounds, no force-push to main. Staging deploy authorized by GPT (Enterprise Architect). QA-to-prod authorized by Boss only.",
       "rationale": "Production is the revenue environment. Every production deploy must be a conscious decision.",
       "status": "permanent"
+    },
+    {
+      "id": "GOV-008",
+      "name": "Business Artifacts Gate",
+      "policy": "No release to production without completed business artifacts. Required artifacts per release: (1) QA Report PDF with GPT release gate approval, (2) IP License Agreement (current, signed), (3) Business Model (current version). These are business documents, not engineering artifacts. Stored in Azure admin container. Boss owns the checklist.",
+      "rationale": "A release is a business event, not just a code event. Business readiness must be demonstrated alongside technical readiness.",
+      "status": "permanent"
     }
   ]
 }
