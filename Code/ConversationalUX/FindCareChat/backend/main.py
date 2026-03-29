@@ -1239,8 +1239,12 @@ if os.path.exists(_build_file):
     _raw = open(_build_file).read().strip()
     try:
         _build_num = int(_raw) + 1
-        open(_build_file, "w").write(str(_build_num))
-        _BUILD = str(_build_num)
+        # Try to auto-increment (works locally, fails on read-only containers like HF)
+        try:
+            open(_build_file, "w").write(str(_build_num))
+            _BUILD = str(_build_num)
+        except OSError:
+            _BUILD = _raw
     except ValueError:
         _BUILD = _raw
 else:
@@ -1316,10 +1320,12 @@ def _build_test_welcome():
         f"**QA Report: v0.1.2**\n\n"
         f"| Start Build | End Build | Builds Tested |\n"
         f"|:-----------:|:---------:|:-------------:|\n"
-        f"| {_TEST_START_BUILD} | {_BUILD} | {int(_BUILD) - _TEST_START_BUILD} |\n\n"
+        f"| {_TEST_START_BUILD} | {_BUILD} | {max(0, int(_BUILD) - _TEST_START_BUILD) if _BUILD.isdigit() else 'N/A'} |\n\n"
         f"| Total Scenarios | Passed | Deferred | Failed | To Test |\n"
         f"|:---------------:|:------:|:--------:|:------:|:-------:|\n"
-        f"| {total} | {completed} | {deferred} | {failed} | {to_test} |\n\n",
+        f"| {total} | {completed} | {deferred} | {failed} | {to_test} |\n\n"
+        f"**Release Gate:** GPT-4o Enterprise Architect: **conditional-go** | Risk: Moderate | "
+        f"Conditions: Consent framework bugs (Sprint 2), Provider Detail link quality (Sprint 2), Automated tests (Sprint 2)\n\n",
         "| &nbsp;#&nbsp; | Feature | &nbsp;Done&nbsp; | Bugs Fixed | Feat Impl |",
         "|:---:|---------|:------:|:----------:|:---------:|",
     ]
