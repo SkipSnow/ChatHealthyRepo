@@ -48,6 +48,7 @@ SUPPORTED_STATES = {"DE", "MS", "VA"}
 _ENV_PREFIX       = os.getenv("ENV_PREFIX", "dev")
 _DEBUG            = os.getenv("DEBUG", "false").lower() == "true"
 _HUMAN_TESTING    = os.getenv("HUMAN_TESTING", "false").lower() == "true"
+_APP_VERSION      = os.getenv("APP_VERSION", "unknown")
 # TODO: when ENV_PREFIX routing is implemented, override test mode in production:
 # if _ENV_PREFIX == "prod":
 #     _HUMAN_TESTING = False
@@ -1604,7 +1605,7 @@ def welcome():
 @app.get("/health")
 def health():
     db_ok = _get_db() is not None
-    return {"status": "ok", "db": "connected" if db_ok else "unavailable", "env": _ENV_PREFIX, "build": _BUILD}
+    return {"status": "ok", "db": "connected" if db_ok else "unavailable", "env": _ENV_PREFIX, "build": _BUILD, "version": _APP_VERSION}
 
 
 @app.post("/chat", response_model=ChatResponse)
