@@ -40,8 +40,8 @@
       "title": "BUSINESS: Viral Readiness + Capital + IP + Announcement",
       "description": "Ensure ChatHealthy can survive viral adoption, secure fast capital, protect IP, and prepare May 1 announcement. Design UTCF (usage-triggered capital facility), valuation protection, usage gating model, cost control strategy, IP strategy, LinkedIn announcement draft, master agreement outline.",
       "scope": [
-        "brain/context/business_model.json",
-        "brain/context/corporate_governance.json"
+        "brain/business_model.json",
+        "brain/corporate_governance.json"
       ],
       "priority": "high",
       "estimated_risk": "Moderate",
@@ -479,7 +479,7 @@
       "result": null,
       "feedback_needed": false,
       "feedback_question": null,
-      "context_path": "brain/context/legal/ip_agreement_inputs.json",
+      "context_path": "brain/legal/ip_agreement_inputs.json",
       "result_delivery": {
         "target": "brain/assurance_results.json",
         "format": "Assurance Output schema — include document_content field with full agreement text, plus excel_generator_script for .docx generation",
@@ -528,9 +528,9 @@
       "from": "Boss",
       "assigned_to": "Boss",
       "title": "Update business plan with LLM infrastructure cost analysis at scale",
-      "description": "The current business plan PDF is corrupt and needs to be rebuilt. Update with detailed LLM cost analysis at scale: cost per 1M-10M users, cost per user per month, revenue model for 80% gross margin, optimization opportunities (caching, model routing, prompt compression), YoY cost reduction trends, break-even analysis, and infrastructure costs beyond LLM. GPT cost analysis draft is at brain/context/bizplan_cost_analysis_results.json. Boss must provide the source business plan content first.\n\nDO NOT IMPLEMENT NOW - backlog item.",
+      "description": "The current business plan PDF is corrupt and needs to be rebuilt. Update with detailed LLM cost analysis at scale: cost per 1M-10M users, cost per user per month, revenue model for 80% gross margin, optimization opportunities (caching, model routing, prompt compression), YoY cost reduction trends, break-even analysis, and infrastructure costs beyond LLM. GPT cost analysis draft is at brain/bizplan_cost_analysis_results.json. Boss must provide the source business plan content first.\n\nDO NOT IMPLEMENT NOW - backlog item.",
       "scope": [
-        "brain/context/bizplan_cost_analysis_results.json"
+        "brain/bizplan_cost_analysis_results.json"
       ],
       "priority": "medium",
       "estimated_risk": "Low",
@@ -604,7 +604,7 @@
       "from": "Boss",
       "assigned_to": "Claude",
       "title": "Backend portability refactoring — extract main.py into 5 modules",
-      "description": "Refactor the 1,323-line monolithic main.py into 5 modules for host portability:\n\n- main.py (~30 lines) — thin entry point, wires dependencies, starts server\n- host_config.py — HostConfig dataclass with all host-specific settings\n- findcare_app.py (~800 lines) — FindCareApp class, all business logic\n- gui_helper.py (~150 lines) — GUIHelper class, FastAPI app/endpoints/CORS/static\n- prompt_factory.py (~200 lines) — PromptFactory class, system prompt/tool schemas/tool registry\n- url_guardian.py — ALREADY IMPLEMENTED in Sprint 1\n\nDesign doc: brain/context/refactor_design_final.json\nCollaboration: Claude + GPT, 4 iterations, 2026-03-27\n\nGOAL: Porting from HuggingFace Docker to Azure App Service requires only changing HostConfig env vars — zero code changes.\n\nDO NOT IMPLEMENT NOW — Sprint 2 backlog item.",
+      "description": "Refactor the 1,323-line monolithic main.py into 5 modules for host portability:\n\n- main.py (~30 lines) — thin entry point, wires dependencies, starts server\n- host_config.py — HostConfig dataclass with all host-specific settings\n- findcare_app.py (~800 lines) — FindCareApp class, all business logic\n- gui_helper.py (~150 lines) — GUIHelper class, FastAPI app/endpoints/CORS/static\n- prompt_factory.py (~200 lines) — PromptFactory class, system prompt/tool schemas/tool registry\n- url_guardian.py — ALREADY IMPLEMENTED in Sprint 1\n\nDesign doc: brain/refactor_design_final.json\nCollaboration: Claude + GPT, 4 iterations, 2026-03-27\n\nGOAL: Porting from HuggingFace Docker to Azure App Service requires only changing HostConfig env vars — zero code changes.\n\nDO NOT IMPLEMENT NOW — Sprint 2 backlog item.",
       "scope": [
         "Code/ConversationalUX/FindCareChat/backend/main.py",
         "Code/ConversationalUX/FindCareChat/backend/url_guardian.py"

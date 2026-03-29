@@ -32,7 +32,7 @@
     {
       "id": "GOV-004",
       "name": "HIPAA Consent Framework",
-      "policy": "User data collection follows a two-tier consent flow: (1) verbatim transcript with explicit consent, (2) de-identified summary with explicit consent, (3) contact-only if both declined. Safety audit trail is stored without consent as an operational record. Pending legal review items tracked in brain/context/pending_legal_questions.json.",
+      "policy": "User data collection follows a two-tier consent flow: (1) verbatim transcript with explicit consent, (2) de-identified summary with explicit consent, (3) contact-only if both declined. Safety audit trail is stored without consent as an operational record. Pending legal review items tracked in brain/pending_legal_questions.json.",
       "rationale": "HIPAA compliance is non-negotiable. The two-tier flow gives users control while enabling business analytics on de-identified data.",
       "status": "permanent"
     },
