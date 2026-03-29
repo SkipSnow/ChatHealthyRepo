@@ -895,15 +895,44 @@ def deIdentify(argChat_history):
         _log.warning("deIdentify failed: %s — keeping original content", exc)
 
 
-def record_unknown_question(question, chat_history=None):
-    if chat_history is not None:
-        deIdentify(chat_history)
-    push(f"Recording a user question I could not answer: {question}")
-    commitSignificantActivity({
-        "database": "AboutUs", "collection": "AboutSkip",
-        "record": {"question": question, "chat_history": chat_history or []}
-    })
-    return {"recorded": "ok"}
+_UNKNOWN_TEMPLATES = {
+    "healthcare_capability": (
+        'I don\'t have that capability yet. '
+        'May I record your question so we can improve? '
+        'We would save a de-identified version of this conversation.'
+    ),
+    "medical_advice": (
+        'I am not able to provide medical advice. Please consult your doctor. '
+        'May I record your question so we can improve? '
+        'We would save a de-identified version of this conversation.'
+    ),
+    "irrelevant": (
+        'That is not something I can help with. '
+        'May I record your question so we can improve? '
+        'We would save a de-identified version of this conversation.'
+    ),
+}
+
+
+def record_unknown_question(question, question_class="irrelevant", consent=False, chat_history=None):
+    """Classify an unanswerable question. Only records to DB if consent=True.
+    question_class: 'healthcare_capability' | 'medical_advice' | 'irrelevant'"""
+    template = _UNKNOWN_TEMPLATES.get(question_class, _UNKNOWN_TEMPLATES["irrelevant"])
+    if consent:
+        if chat_history is not None:
+            deIdentify(chat_history)
+        push(f"Recording a user question I could not answer: {question}")
+        commitSignificantActivity({
+            "database": "AboutUs", "collection": "AboutSkip",
+            "record": {
+                "question": question,
+                "question_class": question_class,
+                "chat_history": chat_history or [],
+            }
+        })
+        return {"recorded": "ok", "response_template": "Thank you, your question has been recorded. Would you like someone from the ChatHealthy team to follow up with you on this?"}
+    return {"recorded": "pending_consent", "response_template": template, "question_class": question_class,
+            "instruction": "Present the template VERBATIM. If user consents to recording, call this tool again with consent=true. If user declines recording, still ask: Would you like someone from ChatHealthy to follow up with you on this?"}
 
 
 # ---------------------------------------------------------------------------
@@ -954,16 +983,26 @@ anthropic_tools = [
     {
         "name": "record_unknown_question",
         "description": (
-            "Call this tool BEFORE composing your response whenever ANY of the following is true: "
-            "(1) The answer is not explicitly stated in the provided documents. "
-            "(2) You would use any hedging word such as 'I think', 'probably', 'might'. "
-            "(3) The question is personal medical advice. "
-            "Do NOT apply to healthcare navigation questions."
+            "Call this tool when the question is not answerable from your sources. "
+            "Classify the question into one of three classes and pass it as question_class. "
+            "The tool returns a response_template — you MUST present this template VERBATIM to the user. "
+            "Do NOT add to it, rephrase it, or elaborate. Present ONLY the template text."
         ),
         "input_schema": {
             "type": "object",
-            "properties": {"question": {"type": "string"}},
-            "required": ["question"],
+            "properties": {
+                "question": {"type": "string", "description": "The user's question"},
+                "question_class": {
+                    "type": "string",
+                    "enum": ["healthcare_capability", "medical_advice", "irrelevant"],
+                    "description": "healthcare_capability: healthcare topic but we lack the feature (insurance, reviews, quality). medical_advice: user seeks personal medical guidance. irrelevant: not related to healthcare or our platform.",
+                },
+                "consent": {
+                    "type": "boolean",
+                    "description": "Set to true ONLY after the user explicitly consents to recording their question. First call: omit or false. Second call after consent: true.",
+                },
+            },
+            "required": ["question", "question_class"],
         },
     },
     {
@@ -1044,8 +1083,10 @@ anthropic_tools = [
         "description": (
             "ALWAYS call this tool when the user asks about a specific provider by name — "
             "'tell me about Dr. X', 'what can you tell me about X', 'more info on X', etc. "
-            "Returns links to Healthgrades, Zocdoc, NPI Registry, and state medical board. "
-            "Present these links to the user so they can check reviews, insurance, and credentials."
+            "Returns NPI Registry data (name, specialty, license, address, phone) and research site links. "
+            "Present the NPI details, then say: 'You can do more research on these sites:' and list the links. "
+            "Ask: 'Would you like guidance on how to use any of these sites?' "
+            "If yes, look up the site guidance from the research_sites field and present it."
         ),
         "input_schema": {
             "type": "object",
@@ -1098,8 +1139,8 @@ def lookup_provider_external(provider_name: str, npi: str = "", state: str = "",
             _log.warning("NPI Registry API lookup failed for %s: %s", npi, exc)
 
     links = {
-        "healthgrades": f"https://www.healthgrades.com/search?what={name_q}&where={state}",
-        "zocdoc": f"https://www.zocdoc.com/search?name={name_q}&location={state}",
+        # Zocdoc removed — blocks all third-party links (403)
+        "healthgrades": f"https://www.healthgrades.com/find-a-doctor?what={name_q}&where={state}",
         "npi_registry": f"https://npiregistry.cms.hhs.gov/search?number={npi}" if npi else f"https://npiregistry.cms.hhs.gov/search?name_type=ind&first_name={name_q}",
     }
     # State medical board links for supported states
@@ -1111,10 +1152,31 @@ def lookup_provider_external(provider_name: str, npi: str = "", state: str = "",
     if state.upper() in state_boards:
         links["state_medical_board"] = state_boards[state.upper()]
 
-    result = {"provider_name": provider_name, "npi": npi, "links": links}
+    research_sites = {
+        "healthgrades": {
+            "url": f"https://www.healthgrades.com/find-a-doctor?what={name_q}&where={state}",
+            "name": "Healthgrades",
+            "guidance": "Search by the provider's full name and state. Note: Healthgrades uses fuzzy matching and may show similar names — verify the provider name and address match before relying on reviews."
+        },
+        "npi_registry": {
+            "url": f"https://npiregistry.cms.hhs.gov/search?number={npi}" if npi else f"https://npiregistry.cms.hhs.gov/search?name_type=ind&first_name={name_q}",
+            "name": "NPI Registry (CMS)",
+            "guidance": "The official federal registry. Search by NPI number for exact match. Shows license state, specialty, and practice address. This is the most reliable source for verifying a provider's credentials."
+        },
+    }
+    if state.upper() in state_boards:
+        board = state_boards[state.upper()]
+        state_name = {"DE": "Delaware", "MS": "Mississippi", "VA": "Virginia"}.get(state.upper(), state)
+        research_sites["state_medical_board"] = {
+            "url": board,
+            "name": f"{state_name} Medical Board",
+            "guidance": f"Search the {state_name} state medical board to verify active licensure, check for disciplinary actions, and confirm board certification."
+        }
+
+    result = {"provider_name": provider_name, "npi": npi, "research_sites": research_sites}
     if npi_data:
         result["npi_details"] = npi_data
-    return _url_guardian.guard_tool_result(result)
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -1197,20 +1259,47 @@ WELCOME_MESSAGE = (
     "**What can I help you with today?**"
 )
 
+_TEST_START_BUILD = 100
 _TEST_FEATURES = [
-    {"id": 1,  "feature": "Provider Search (DE + MS, vector + regex)",     "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0, "notes": ""},
-    {"id": 2,  "feature": "Specialty Identification (NUCC + AI expansion)","completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 1, "notes": "Sufficiently working for release. Deep testing deferred - too complex for alpha."},
-    {"id": 3,  "feature": "Clinical Trials Search",                        "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 2, "features_deferred": 0, "notes": "Exceeds expectations. Travel distance + drive time via Google Routes API. Two-pass UX: results first, travel on request."},
-    {"id": 4,  "feature": "About ChatHealthy / Skip Snow",                 "completed": True, "bugs_fixed": 0, "bugs_deferred": 1, "features_implemented": 0, "features_deferred": 0, "notes": "Bug: Sonnet answers questions outside context instead of saying I don't know. Fix: PreScreen class (Sprint 2) - GPT-4.1-mini pre-check for answerability + safety in one call."},
-    {"id": 5,  "feature": "Safety Filter (dual-trigger, IP lock, audit)",  "completed": True, "bugs_fixed": 3, "bugs_deferred": 0, "features_implemented": 2, "features_deferred": 0, "notes": "GPT-4.1-mini classifier, full audit trail"},
-    {"id": 6,  "feature": "Lead Capture (follow-up offer)",                "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0, "notes": ""},
-    {"id": 7,  "feature": "HIPAA Consent Flow (two-tier)",                 "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 1, "notes": "Exact consent wording needs legal review before beta"},
-    {"id": 8,  "feature": "Provider Detail",                               "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0, "notes": ""},
-    {"id": 9,  "feature": "URL Guardian (validate + defang broken links)", "completed": False, "bugs_fixed": 0, "bugs_deferred": 1, "features_implemented": 0, "features_deferred": 0, "notes": "Link check deferred to next build"},
-    {"id": 10, "feature": "Chat UX (timer, stop, markdown, emergency)",    "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 1, "notes": "Sufficient for v0.1.2. Deep testing deferred."},
-    {"id": 11, "feature": "Blob Storage Infrastructure",                   "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 2, "features_deferred": 0, "notes": "Consolidated to single public data container"},
-    {"id": 12, "feature": "Unanswerable Question Handling",                "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0, "notes": ""},
-    {"id": 13, "feature": "Markdown Table Rendering (GFM tables in chat)", "completed": True, "bugs_fixed": 1, "bugs_deferred": 0, "features_implemented": 10, "features_deferred": 0, "notes": ""},
+    {"id": 1,  "feature": "Provider Search (DE + MS, vector + regex)",     "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0,
+     "bugs": [], "enhancements": []},
+    {"id": 2,  "feature": "Specialty Identification (NUCC + AI expansion)","completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 1,
+     "bugs": [], "enhancements": [],
+     "defer_reason": "Sufficiently working for release. Deep testing deferred - too complex for alpha."},
+    {"id": 3,  "feature": "Clinical Trials Search",                        "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 2, "features_deferred": 0,
+     "bugs": [],
+     "enhancements": ["Travel distance + drive time via Google Routes API", "Two-pass UX: results first, travel on request"]},
+    {"id": 4,  "feature": "About ChatHealthy / Skip Snow",                 "completed": True, "bugs_fixed": 0, "bugs_deferred": 1, "features_implemented": 0, "features_deferred": 0,
+     "bugs": ["Sonnet answers questions outside context instead of saying I don't know. Fix: PreScreen class (Sprint 2)"],
+     "enhancements": []},
+    {"id": 5,  "feature": "Safety Filter (dual-trigger, IP lock, audit)",  "completed": True, "bugs_fixed": 3, "bugs_deferred": 0, "features_implemented": 2, "features_deferred": 0,
+     "bugs": ["False positive on provider name lookup (safe-prefix bypass added)", "Unlock code visible in audit record (deIdentify added)", "Triggering message missing from audit history (append current msg)"],
+     "enhancements": ["Switched classifier to GPT-4.1-mini (vendor diversity, 2.5x cheaper)", "Full de-identified conversation history in safety audit trail"]},
+    {"id": 6,  "feature": "Lead Capture (follow-up offer)",                "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0,
+     "bugs": [], "enhancements": []},
+    {"id": 7,  "feature": "Consent Framework",                             "completed": False, "bugs_fixed": 0, "bugs_deferred": 4, "features_implemented": 0, "features_deferred": 0,
+     "bugs": ["Sonnet set consent_verbatim=true when user asked for de-identification", "PII not scrubbed when de-identify was requested", "Exact consent wording needs legal review before beta", "No separation between question consent and contact-me consent"],
+     "enhancements": [],
+     "fail_reason": "Two consent streams needed: Stream 1 (questions) always de-identify. Stream 2 (contact me) user chooses verbatim or de-identify with PHI warning."},
+    {"id": 8,  "feature": "Provider Detail",                               "completed": False, "bugs_fixed": 1, "bugs_deferred": 1, "features_implemented": 1, "features_deferred": 0,
+     "bugs": ["Healthgrades fuzzy match returns wrong provider", "Zocdoc blocks all third-party links (403)"],
+     "enhancements": ["NPI Registry API lookup for real provider data", "Repositioned links as research sites with user guidance"],
+     "fail_reason": "External link quality unreliable. Full fix deferred."},
+    {"id": 9,  "feature": "URL Guardian (validate + defang broken links)", "completed": False, "bugs_fixed": 0, "bugs_deferred": 1, "features_implemented": 0, "features_deferred": 0,
+     "bugs": [], "enhancements": [],
+     "defer_reason": "Link check deferred to next build. V2 design ready (3-stage: HEAD, AI content verify, Google search correction)."},
+    {"id": 10, "feature": "Chat UX (timer, stop, markdown, emergency)",    "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 1,
+     "bugs": [], "enhancements": [],
+     "defer_reason": "Sufficient for v0.1.2. Deep testing deferred."},
+    {"id": 11, "feature": "Blob Storage Infrastructure",                   "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 2, "features_deferred": 0,
+     "bugs": [],
+     "enhancements": ["Created admin + dev-brain containers", "Consolidated provider-data into chathealthy-public-data"]},
+    {"id": 12, "feature": "Unanswerable Question Handling",                "completed": True, "bugs_fixed": 3, "bugs_deferred": 0, "features_implemented": 4, "features_deferred": 0,
+     "bugs": ["System answered unanswerable questions without recording (fixed: RULE 2 source-bounded knowledge)", "Responses too verbose (fixed: template responses from tool)", "Mid-session context caused rule bypass (fixed: evaluate each message independently)"],
+     "enhancements": ["3-path classification (healthcare capability / medical advice / irrelevant)", "Template responses — verbatim from tool, no Sonnet elaboration", "Consent before recording questions", "Follow-up offer after recording"]},
+    {"id": 13, "feature": "Markdown Table Rendering (GFM tables in chat)", "completed": True, "bugs_fixed": 1, "bugs_deferred": 0, "features_implemented": 11, "features_deferred": 0,
+     "bugs": ["GFM tables not rendering (fixed: remark-gfm + sanitize whitelist)"],
+     "enhancements": ["Bordered table cells", "Repeating header every 7 rows", "Notes section", "DEF/FAIL status in Done column", "Build number auto-increment", "Summary counts in header", "Removed deferred columns", "Frontend fetches /welcome from API", "QA Report header with build range + scenario summary", "Column width fix (nowrap for short columns)", "Structured notes with bugs/enhancements"]},
 ]
 
 
@@ -1219,26 +1308,34 @@ def _build_test_welcome():
     # Pre-calculate counts for header
     total = len(_TEST_FEATURES)
     completed = sum(1 for f in _TEST_FEATURES if f["completed"])
-    deferred = sum(1 for f in _TEST_FEATURES if not f["completed"] and (f["features_deferred"] > 0 or f["bugs_deferred"] > 0))
-    to_test = total - completed - deferred
+    failed = sum(1 for f in _TEST_FEATURES if not f["completed"] and f.get("bugs_deferred", 0) > 0 and "FAIL" in f.get("notes", ""))
+    deferred = sum(1 for f in _TEST_FEATURES if not f["completed"] and (f["features_deferred"] > 0 or f["bugs_deferred"] > 0)) - failed
+    to_test = total - completed - deferred - failed
 
     lines = [
-        f"**v0.1.2 HUMAN TESTING MODE** (build {_BUILD}) | Total: {total} | To Test: {to_test} | Done: {completed + deferred} (Completed: {completed}, Deferred: {deferred})\n",
-        "| # | Feature | Done | Bugs Fixed | Feat Impl |",
-        "|---|---------|:----:|:----------:|:---------:|",
+        f"**QA Report: v0.1.2**\n\n"
+        f"| Start Build | End Build | Builds Tested |\n"
+        f"|:-----------:|:---------:|:-------------:|\n"
+        f"| {_TEST_START_BUILD} | {_BUILD} | {int(_BUILD) - _TEST_START_BUILD} |\n\n"
+        f"| Total Scenarios | Passed | Deferred | Failed | To Test |\n"
+        f"|:---------------:|:------:|:--------:|:------:|:-------:|\n"
+        f"| {total} | {completed} | {deferred} | {failed} | {to_test} |\n\n",
+        "| &nbsp;#&nbsp; | Feature | &nbsp;Done&nbsp; | Bugs Fixed | Feat Impl |",
+        "|:---:|---------|:------:|:----------:|:---------:|",
     ]
-    header_row = "| # | Feature | Done | Bugs Fixed | Feat Impl |"
-    separator  = "|---|---------|:----:|:----------:|:---------:|"
+    header_row = "| &nbsp;#&nbsp; | Feature | &nbsp;Done&nbsp; | Bugs Fixed | Feat Impl |"
+    separator  = "|:---:|---------|:------:|:----------:|:---------:|"
     totals = {"completed": 0, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0}
     for i, f in enumerate(_TEST_FEATURES):
         if i > 0 and i % 7 == 0:
             lines.append("")
             lines.append(header_row)
             lines.append(separator)
-        is_deferred = f["features_deferred"] > 0 or f["bugs_deferred"] > 0
-        done = "Y" if f["completed"] else ("DEF" if is_deferred else " ")
+        is_fail = not f["completed"] and "FAIL" in f.get("notes", "")
+        is_deferred = not f["completed"] and not is_fail and (f["features_deferred"] > 0 or f["bugs_deferred"] > 0)
+        done = "Y" if f["completed"] else ("FAIL" if is_fail else ("DEF" if is_deferred else " "))
         lines.append(
-            f"| {f['id']} | {f['feature']} | {done} | {f['bugs_fixed']} | {f['features_implemented']} |"
+            f"| {f['id']:>3} | {f['feature']} | {done} | {f['bugs_fixed']} | {f['features_implemented']} |"
         )
         if f["completed"]:
             totals["completed"] += 1
@@ -1247,14 +1344,26 @@ def _build_test_welcome():
         totals["features_implemented"] += f["features_implemented"]
         totals["features_deferred"] += f["features_deferred"]
     lines.append(
-        f"| | **TOTALS** | **{totals['completed']}/{len(_TEST_FEATURES)}** | **{totals['bugs_fixed']}** | **{totals['features_implemented']}** |"
+        f"| | **TOTALS** | **{completed + deferred + failed}/{len(_TEST_FEATURES)}** | **{totals['bugs_fixed']}** | **{totals['features_implemented']}** |"
     )
-    # Notes section — only for features explicitly deferred from testing
-    notes = [f for f in _TEST_FEATURES if (f["features_deferred"] > 0 or f["bugs_deferred"] > 0) and f.get("notes")]
-    if notes:
-        lines.append("\n**Notes:**")
-        for f in notes:
-            lines.append(f"- **#{f['id']}** {f['feature']}: {f['notes']}")
+    # Notes section — structured bugs and enhancements per feature
+    has_notes = [f for f in _TEST_FEATURES if f.get("bugs") or f.get("enhancements") or f.get("defer_reason") or f.get("fail_reason")]
+    if has_notes:
+        lines.append("\n**Notes:**\n")
+        for f in has_notes:
+            lines.append(f"- **#{f['id']} {f['feature']}**")
+            if f.get("fail_reason"):
+                lines.append(f"  - FAIL: {f['fail_reason']}")
+            if f.get("defer_reason"):
+                lines.append(f"  - DEFERRED: {f['defer_reason']}")
+            if f.get("bugs"):
+                lines.append(f"  - **Bugs ({len(f['bugs'])}):**")
+                for bug in f["bugs"]:
+                    lines.append(f"    - {bug}")
+            if f.get("enhancements"):
+                lines.append(f"  - **Enhancements ({len(f['enhancements'])}):**")
+                for enh in f["enhancements"]:
+                    lines.append(f"    - {enh}")
     lines.append("\nTest the features above. Type normally to interact with the chatbot.\n")
     return "\n".join(lines)
 
@@ -1275,14 +1384,40 @@ def _system_prompt(follow_up_check: bool = False) -> str:
         f"If the user explicitly asks about {website}'s mission, business, or platform — call get_chathealthy_context first. "
         f"Do NOT call these tools for greetings, casual conversation, or messages that do not ask for information. "
         f"Answer ONLY from what those tools return. Never use general training knowledge to answer.\n"
-        f"RULE 2 — NO HEDGING: You are PROHIBITED from using any hedging language. "
-        f"If you would reach for hedging words, call record_unknown_question instead.\n"
+        f"RULE 2 — UNANSWERABLE QUESTIONS: "
+        f"You know ONLY what is provided to you in this session: "
+        f"{name}'s career and background (from get_skip_snow_context), "
+        f"{website}'s mission and platform (from get_chathealthy_context), "
+        f"healthcare providers in DE and MS (from find_providers), "
+        f"medical specialties (from find_specialty_codes), "
+        f"recruiting clinical trials (from search_clinical_trials). "
+        f"You know NOTHING else. This rule applies to EVERY user message regardless of conversation history or context. "
+        f"Even if previous messages were about healthcare, each new message must be evaluated independently. "
+        f"If a question is not answerable from these sources, "
+        f"it is unanswerable. Call record_unknown_question immediately and respond "
+        f"Call record_unknown_question with the appropriate question_class:\n"
+        f"  healthcare_capability — healthcare topic but we lack the feature (insurance, reviews, quality, maps)\n"
+        f"  medical_advice — user seeks personal medical guidance (medications, treatment, diagnosis)\n"
+        f"  irrelevant — not related to healthcare or our platform (trivia, philosophy, personal)\n"
+        f"The tool returns a response_template. You MUST present this template VERBATIM to the user. "
+        f"Do NOT add to it, rephrase it, elaborate, or explain. Present ONLY the exact template text. "
+        f"If the user consents to recording: save the de-identified question, then ask 'Would you like someone from ChatHealthy to follow up with you on this?' "
+        f"If they also want follow-up: collect contact details and proceed with consent flow. "
+        f"Exceptions — do NOT record these as unknown: "
+        f"greetings, thanks, casual conversation ('hi', 'thank you', 'bye'); "
+        f"clarification requests where you need more details to use a tool you have "
+        f"('find me a doctor' needs state/city — you CAN answer this, you just need more info). "
+        f"Examples of unanswerable — MUST call record_unknown_question: "
+        f"'Is there a god?' — not in your sources; "
+        f"'What is your favorite poem?' — not in your sources; "
+        f"'What medications should I take?' — personal medical advice; "
+        f"'What is the capital of France?' — not in your sources; "
+        f"'What insurance does the doctor accept?' — not in your sources; "
+        f"'Is this a good doctor?' — not in your sources.\n"
         f"RULE 3 — MEDICAL ADVICE vs HEALTHCARE NAVIGATION: "
         f"DECLINE personal medical advice (call record_unknown_question first). "
         f"ALLOWED: Healthcare navigation — use find_providers, find_specialty_codes, search_clinical_trials.\n"
-        f"RULE 4 — TOOL CALL ORDER: Always call record_unknown_question BEFORE composing your response when the answer is not known.\n"
-        f"RULE 5 — EACH QUESTION SEPARATELY: Record each unknown question with a separate tool call.\n"
-        f"RULE 5b — PROVIDER RESULTS FORMAT: When displaying provider search results, "
+        f"RULE 4 — PROVIDER RESULTS FORMAT: When displaying provider search results, "
         f"always use a bullet list — never a markdown table. Start with a count line: "
         f"'There are N [specialty] in [location]:' then list each provider with indented details. "
         f"Format exactly as:\n"
@@ -1291,17 +1426,24 @@ def _system_prompt(follow_up_check: bool = False) -> str:
         f"  - County\n"
         f"  - Phone\n"
         f"  - NPI: number\n"
-        f"RULE 5c — PROVIDER DETAIL LOOKUP: When the user asks about a specific provider by name "
+        f"RULE 5 — PROVIDER DETAIL LOOKUP: When the user asks about a specific provider by name "
         f"('tell me about Dr. X', 'more info on X', 'what else can you tell me about X'), "
-        f"you MUST call lookup_provider_external. Present the returned links to Healthgrades, "
-        f"Zocdoc, NPI Registry, and the state medical board so the user can check reviews and credentials.\n"
-        f"RULE 5d — CLINICAL TRIAL TRAVEL: When showing clinical trial results, after the first pass "
+        f"you MUST call lookup_provider_external. Present the NPI details and research site links "
+        f"so the user can verify credentials.\n"
+        f"RULE 6 — CLINICAL TRIAL TRAVEL: When showing clinical trial results, after the first pass "
         f"ask the user: 'Would you like to know the travel distance and estimated drive time to these trial sites?' "
         f"If yes, call search_clinical_trials again with the same condition and the user's city/state in user_location. "
         f"Present the travel_info (distance and drive time) for each trial site. "
         f"Do NOT include travel info on the first call — only when the user requests it.\n\n"
-        f"RULE 6 — FOLLOW-UP OFFER: When you receive a FOLLOW-UP CHECK reminder, assess genuine interest "
-        f"and ask: 'Would you like someone from the ChatHealthy.AI team to follow up with you personally?' "
+        f"RULE 7 — FOLLOW-UP AND CONSENT: When the user wants follow-up or you receive a FOLLOW-UP CHECK reminder:\n"
+        f"Step 1: Ask: 'Would you like someone from the ChatHealthy.AI team to follow up with you personally?'\n"
+        f"Step 2: If yes, collect their name and email.\n"
+        f"Step 3: After collecting email, say EXACTLY: "
+        f"'This conversation may contain personal health information. ChatHealthy is not a HIPAA covered entity. "
+        f"Would you like us to save the full verbatim transcript with your contact details, "
+        f"or would you prefer we de-identify it first?'\n"
+        f"Step 4: If verbatim — call record_user_details with consent_verbatim=true.\n"
+        f"Step 5: If de-identify — call record_user_details with consent_verbatim=false, consent_summary=true.\n"
         f"Respect refusal signals — do not ask again if the user shows impatience or annoyance.\n"
         f"Please chat with the user, always staying in character as {name}."
     )
