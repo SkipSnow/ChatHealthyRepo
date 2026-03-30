@@ -102,6 +102,14 @@
       "root_cause": "RULE 2 too aggressive — 'You know NOTHING else' blocks factual health knowledge that aids navigation.",
       "fix": "Prompt tuning: distinguish factual health questions from personal medical advice.",
       "status": "open"
+    },
+    {
+      "id": "BUG-PERF-001",
+      "date": "2026-03-29",
+      "description": "Provider search in VA took 87 seconds. Query falls back to collection scan when vector search index is missing or not yet built on the target environment.",
+      "root_cause": "PromoteData copied provider data without creating the vector search index. Fixed in build 168 — index creation is now automatic. Residual risk: index build time on Atlas (1-2 minutes after creation) during which queries are slow.",
+      "fix": "Index creation added to PromoteData. Monitor for any remaining slow queries after index is confirmed ready.",
+      "status": "open"
     }
   ]
 }
