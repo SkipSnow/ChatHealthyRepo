@@ -1,0 +1,122 @@
+{
+  "title": "UAT Feature List — v0.1.3",
+  "status": "DRAFT",
+  "date": "2026-03-30",
+  "base_version": "v0.1.2",
+  "owner": "Boss",
+
+  "features": [
+    {
+      "id": 1,
+      "feature": "Provider Search (DE + MS + VA, vector + regex)",
+      "v012_status": "PASS",
+      "v013_status": "pending",
+      "notes": "VA added in v0.1.2 hotfix. Full three-state coverage."
+    },
+    {
+      "id": 2,
+      "feature": "Specialty Identification (NUCC + AI expansion)",
+      "v012_status": "DEFERRED",
+      "v013_status": "pending",
+      "notes": "Sufficiently working in v0.1.2. Deep testing deferred."
+    },
+    {
+      "id": 3,
+      "feature": "Clinical Trials Search (+ travel time)",
+      "v012_status": "PASS",
+      "v013_status": "pending",
+      "notes": "Travel distance via Google Routes API. Two-pass UX."
+    },
+    {
+      "id": 4,
+      "feature": "About ChatHealthy / Skip Snow",
+      "v012_status": "PASS",
+      "v013_status": "pending",
+      "notes": "Known issue: Sonnet answers outside context. Fix: PreScreen class (Sprint 2)."
+    },
+    {
+      "id": 5,
+      "feature": "Safety Filter (dual-trigger, IP lock, audit)",
+      "v012_status": "PASS",
+      "v013_status": "pending",
+      "notes": "GPT-4.1-mini classifier. 3 bugs fixed in v0.1.2."
+    },
+    {
+      "id": 6,
+      "feature": "Lead Capture (follow-up offer)",
+      "v012_status": "PASS",
+      "v013_status": "pending",
+      "notes": ""
+    },
+    {
+      "id": 7,
+      "feature": "Consent Framework (two-stream)",
+      "v012_status": "DEFERRED",
+      "v013_status": "pending",
+      "notes": "Stream 1: questions (always de-identify). Stream 2: contact-me (user chooses)."
+    },
+    {
+      "id": 8,
+      "feature": "Provider Detail (external links + NPI lookup)",
+      "v012_status": "DEFERRED",
+      "v013_status": "pending",
+      "notes": "NPI Registry API added. Healthgrades/Zocdoc link quality issues."
+    },
+    {
+      "id": 9,
+      "feature": "URL Guardian (validate + defang broken links)",
+      "v012_status": "DEFERRED",
+      "v013_status": "pending",
+      "notes": "V2 design ready: 3-stage HEAD, AI content verify, Google search correction."
+    },
+    {
+      "id": 10,
+      "feature": "Chat UX (timer, stop, markdown, emergency)",
+      "v012_status": "DEFERRED",
+      "v013_status": "pending",
+      "notes": "Sufficient for v0.1.2. Deep testing deferred."
+    },
+    {
+      "id": 11,
+      "feature": "Blob Storage Infrastructure",
+      "v012_status": "PASS",
+      "v013_status": "pending",
+      "notes": "admin + dev-brain containers. Consolidated provider-data."
+    },
+    {
+      "id": 12,
+      "feature": "Unanswerable Question Handling (3-path classification)",
+      "v012_status": "PASS",
+      "v013_status": "pending",
+      "notes": "Template responses. Consent before recording. BUG-CLASSIFY-001 open."
+    },
+    {
+      "id": 13,
+      "feature": "Markdown Table Rendering (GFM)",
+      "v012_status": "PASS",
+      "v013_status": "pending",
+      "notes": "remark-gfm + sanitize whitelist. Bordered cells."
+    },
+    {
+      "id": 14,
+      "feature": "Git Security — private repo + GPT access",
+      "v012_status": "N/A",
+      "v013_status": "pending",
+      "notes": "CRITICAL ALPHA GATE. Make repo private. Fine-grained PAT for GPT. ASN-GITSEC01."
+    },
+    {
+      "id": 15,
+      "feature": "DevOps — dev/qa/prod promotion pipeline",
+      "v012_status": "N/A",
+      "v013_status": "pending",
+      "notes": "Framework 1.1. Three HF Spaces, three Cloudflare websites, PromoteData on Azure."
+    },
+    {
+      "id": 16,
+      "feature": "Performance — provider search response time",
+      "v012_status": "N/A",
+      "v013_status": "pending",
+      "notes": "BUG-PERF-001. VA search 87s without vector index. Index auto-creation added."
+    }
+  ]
+}

@@ -1,0 +1,255 @@
+{
+  "title": "GPT Read-Only Query Service",
+  "version": "6.0",
+  "status": "DESIGN — GPT signed off, ready for Boss sign-off",
+  "date": "2026-03-30",
+  "author": "Claude Opus 4.6 (engineer)",
+  "reviewer": "GPT (Enterprise Architect)",
+  "owner": "Boss (Skip Snow)",
+  "review_history": [
+    {"version": "3.0", "action": "Claude initial design submitted to GPT"},
+    {"version": "4.0", "action": "Claude response to GPT counterproposal — 18 accepted, 4 partial, 5 rejected"},
+    {"version": "4.2", "action": "GPT accepted Claude positions on rejected items, deferred to Framework 1.2"},
+    {"version": "5.0", "action": "Merged design with dispute notes — ready for Boss review"},
+    {"version": "5.2", "action": "Boss resolved R10, R11, R27 disputes. Added R32 brain lock. GPT prevails on R27. Zero open disputes."},
+    {"version": "6.0", "action": "GPT formal sign-off added. Design and requirements unchanged from v5.2."}
+  ],
+  "purpose": "Give GPT governed read access to the ChatHealthy project artifact manifest and approved MongoDB data sources. Read-only, capped, authenticated, audited, and scoped by environment, database, collection, and artifact boundary. Canonical artifact identity is the relative path from project root. Boss remains out of routine Claude-GPT iteration loops but retains approval authority at defined governance gates.",
+  "how_it_works": [
+    "Claude reads runtime configuration from .env needed to invoke the GPTReader service",
+    "Claude pushes project files from local disk to admin.project_files (text as text, binary as base64)",
+    "Claude builds or refreshes a versioned manifest snapshot (with snapshot ID) at session start",
+    "Claude calls GPT via API with structured system prompt (no secrets) and user prompt (assignment)",
+    "GPT reads the manifest snapshot first to discover governed artifacts and approved data sources",
+    "GPT requests reads by telling Claude what to fetch — Claude proxies all GPTReader calls. GPT never holds the Bearer token.",
+    "GPT evaluates artifact discipline, duplicate creation risk, and manifest integrity during each assignment",
+    "GPT and Claude iterate up to the max defined in the assignment",
+    "If unresolved at max iterations or timeout, stop, write report, escalate to Boss",
+    "Brain lock flag must be set during active brain writes — prevents concurrent modification"
+  ],
+  "endpoint": {
+    "host": "Azure Functions (serverless)",
+    "route": "/api/GPTReader",
+    "auth": "Bearer token (unique to GPT service, separate from Router). Claude holds the token and proxies all calls — GPT never sees it.",
+    "protocol": "HTTPS POST, JSON in/out"
+  },
+  "actions": {
+    "ReadArtifact": {
+      "description": "Read any governed project artifact by canonical project_path from the manifest",
+      "request": {
+        "action": "ReadArtifact",
+        "project_path": "brain/BusinessArtifacts/ip_license_agreement_draft_v11.pdf",
+        "manifest_snapshot_id": "snapshot_2026_03_30_001"
+      },
+      "response_text": {
+        "project_path": "brain/machine_artifacts/document_type_json/corporate_governance.json",
+        "mime_type": "application/json",
+        "encoding": "text",
+        "size": 5176,
+        "content": "{ \"title\": \"ChatHealthy Corporate...\""
+      },
+      "response_binary": {
+        "project_path": "brain/BusinessArtifacts/ip_license_agreement_draft_v11.pdf",
+        "mime_type": "application/pdf",
+        "encoding": "base64",
+        "size": 4278,
+        "content": "JVBERi0xLjQK..."
+      }
+    },
+    "Query": {
+      "description": "Read-only query against allowlisted MongoDB databases and collections only",
+      "request": {
+        "action": "Query",
+        "environment": "dev",
+        "database": "dev_PublicHealthData",
+        "collection": "providers",
+        "query": {"practice_address.state": "DE"},
+        "projection": {"npi": 1, "provider_last_name_legal_name": 1},
+        "sort": {"_id": 1},
+        "limit": 50
+      },
+      "response": {
+        "environment": "dev",
+        "database": "dev_PublicHealthData",
+        "collection": "providers",
+        "count": 50,
+        "documents": ["..."],
+        "metrics": {
+          "matched_estimate": 50,
+          "returned_count": 50,
+          "response_bytes": 18243,
+          "elapsed_ms": 132
+        }
+      }
+    }
+  },
+  "error_codes": {
+    "200": "Success",
+    "400": "Missing fields, invalid action, or invalid query shape",
+    "401": "Bad or missing Bearer token",
+    "403": "Requested environment, database, collection, or artifact is not authorized",
+    "404": "Artifact not in manifest or collection not found",
+    "409": "Manifest snapshot mismatch — stale reference",
+    "429": "Rate limit exceeded",
+    "504": "Function timeout — retry with smaller scope",
+    "507": "Response exceeds size cap — narrow query"
+  },
+  "error_507_body": {
+    "error": "response_too_large",
+    "message": "Query would return 143,589 documents. Max is 100.",
+    "max_documents": 100,
+    "estimated_result": 143589,
+    "suggestion": "Add a filter or reduce limit."
+  },
+  "caps": {
+    "readartifact_max_response": "500KB",
+    "query_max_documents": 100,
+    "query_max_response": "500KB",
+    "query_default_limit": 10,
+    "function_timeout_seconds": 30,
+    "max_assignment_iterations": "Defined per assignment",
+    "max_assignment_minutes": "Defined per assignment"
+  },
+  "prompt_separation": {
+    "system_prompt": "Role, rules, endpoint alias, manifest-first rule, anti-sprawl governance duties, max_think_seconds, 507/504/409 handling instructions, read-only constraints. No secret material in prompt text.",
+    "user_prompt": "Assignment ID, title, description, max iterations, timeout_minutes, approved scope."
+  },
+  "system_prompt_structure": {
+    "role": "Enterprise Architect and governance reviewer",
+    "project": "ChatHealthy.ai",
+    "repo": "SkipSnow/ChatHealthyRepo",
+    "branch": "dev",
+    "endpoint_alias": "GPTReader",
+    "max_think_seconds": 120,
+    "rules": [
+      "Read manifest snapshot first every session",
+      "Use project_path relative to project root as canonical artifact identity",
+      "Include manifest_snapshot_id in every ReadArtifact request",
+      "If 507: narrow your query",
+      "If 504: retry with smaller scope",
+      "If 409: request a fresh manifest snapshot from Claude",
+      "Read-only — you cannot modify anything",
+      "Enforce artifact discipline — prefer updating existing canonical artifacts over creating new ones",
+      "Consolidate or retire redundant artifacts when governance rules indicate",
+      "GPT never modifies the system — that is Boss and Claude's job"
+    ]
+  },
+  "user_prompt_structure": {
+    "assignment_id": "ASN-BVAL01",
+    "max_iterations": 3,
+    "timeout_minutes": 10,
+    "title": "Brain integrity validation",
+    "description": "Validate all brain file cross-references after restructure...",
+    "scope": ["brain/manifest/project_manifest.json", "brain/machine_artifacts/..."]
+  },
+  "manifest_entry_structure": {
+    "category": "Business",
+    "artifact_type": "BusinessArtifact",
+    "live_or_archive": "live",
+    "lifecycle_state": "live",
+    "deployment": "Not deployed",
+    "filename": "ip_license_agreement_draft_v11.pdf",
+    "project_path": "brain/BusinessArtifacts/ip_license_agreement_draft_v11.pdf",
+    "local_path": "c:/chatHealthy/findCare/brain/BusinessArtifacts/ip_license_agreement_draft_v11.pdf",
+    "mime_type": "application/pdf",
+    "encoding": "base64",
+    "size": 4278,
+    "content_hash": "{sha256}",
+    "manifest_snapshot_id": "{snapshot_id}",
+    "description": "IP license agreement draft v11 for legal review."
+  },
+  "timeout_behavior": {
+    "on_function_timeout": "Return 504. GPT retries with smaller scope.",
+    "on_assignment_timeout": "Claude terminates session, writes timeout report to assurance_results.json. No automatic retry. Boss reviews.",
+    "on_max_iterations": "Claude terminates session, writes report. No automatic retry. Boss reviews.",
+    "timeout_report": {
+      "assignment_id": "ASN-BVAL01",
+      "status": "timeout",
+      "iterations_completed": 2,
+      "iterations_max": 3,
+      "elapsed_minutes": 10,
+      "last_gpt_response": "...",
+      "reason": "Time budget exceeded. GPT did not complete within 10 minutes.",
+      "recommendation": "Increase budget, reduce scope, or split into smaller assignments."
+    }
+  },
+  "security": [
+    "Read-only — no inserts, updates, or deletes",
+    "Bearer token auth, separate from Router token",
+    "Scoped to allowlisted environments, databases, collections, and artifacts only",
+    "No access to any file outside the ChatHealthy project boundary",
+    "Secrets remain outside GPT prompt text — Claude proxies all authenticated calls",
+    "Artifact access governed by manifest and canonical project_path",
+    "All reads audited with actor, assignment_id, timestamp, target, and response metrics",
+    "Brain lock flag prevents concurrent writes during active brain modification"
+  ],
+  "files_to_create": {
+    "Code/DataPipelines/gpt_reader.py": "Read-only broker service for governed artifact reads and allowlisted query execution. Includes audit logging.",
+    "Code/Shared/ops/sync_to_mongo.py": "Push all project files from local disk to admin.project_files with content hashing and snapshot ID generation"
+  },
+  "deferred_to_framework_1_2": [
+    "Pagination / continuation tokens for large query results",
+    "manifest_policy.py — standalone validation of canonical identity and lifecycle rules",
+    "Multi-storage artifact resolution (R30)",
+    "Snapshot freshness controls and max age policy"
+  ],
+  "requirements": [
+    {"id": "R1", "requirement": "GPT can read any file in the project manifest", "status": "agreed", "dispute_notes": "No dispute."},
+    {"id": "R2", "requirement": "GPT can query only allowlisted collections in allowlisted MongoDB databases and environments", "status": "agreed", "dispute_notes": "Claude proposed any collection any database. GPT scoped to allowlisted. Claude accepted."},
+    {"id": "R3", "requirement": "All access is read-only — no inserts, updates, or deletes", "status": "agreed", "dispute_notes": "No dispute."},
+    {"id": "R4", "requirement": "Bearer token authentication, separate from Router token", "status": "agreed", "dispute_notes": "No dispute."},
+    {"id": "R5", "requirement": "Text files returned as text, binary files returned as base64", "status": "agreed", "dispute_notes": "No dispute."},
+    {"id": "R6", "requirement": "Every manifest entry includes project_path, mime_type, encoding, size, and content_hash", "status": "agreed", "dispute_notes": "GPT added content_hash. Claude accepted."},
+    {"id": "R7", "requirement": "Response cap: 500KB max. Exceeding returns HTTP 507", "status": "agreed", "dispute_notes": "No dispute."},
+    {"id": "R8", "requirement": "Query cap: 100 documents max. Limit defaults to 10 if omitted", "status": "agreed", "dispute_notes": "No dispute."},
+    {"id": "R9", "requirement": "Claude builds a versioned manifest snapshot at session start and refreshes when the artifact set materially changes", "status": "agreed", "dispute_notes": "GPT refined from rebuild every session to versioned snapshot with material change refresh. Claude accepted."},
+    {"id": "R10", "requirement": "GPT reads project files through a governed read service. Implementation v1.1: MongoDB as transport.", "status": "resolved", "dispute_notes": "GPT wanted abstract storage. Claude wanted MongoDB explicit. Resolution: requirement says governed read service, implementation notes say MongoDB v1.1. Both satisfied. Resolved by Claude proposal, accepted by Boss."},
+    {"id": "R11", "requirement": "Local disk is the source of truth. Reason: uncommitted changes during human testing and automated regression testing are authoritative. Git and MongoDB hold copies. Claude is the sync agent.", "status": "resolved", "dispute_notes": "GPT wanted canonical project_path as authority. Claude wanted local disk explicit. Boss ruled: local disk is truth because uncommitted changes during testing must be authoritative."},
+    {"id": "R12", "requirement": "GPT system prompt instructs it to read manifest first every session", "status": "agreed", "dispute_notes": "No dispute."},
+    {"id": "R13", "requirement": "No access to any file outside the ChatHealthy project boundary", "status": "agreed", "dispute_notes": "GPT improved wording from directory to boundary. Claude accepted."},
+    {"id": "R14", "requirement": "507 error body includes estimated result size and suggestion to narrow query", "status": "agreed", "dispute_notes": "No dispute."},
+    {"id": "R15", "requirement": "Bearer token lives in secure runtime configuration and is never included in GPT prompt text or persisted in git", "status": "agreed", "dispute_notes": "GPT proposed removing token from prompt. Claude agreed — Claude proxies all calls, GPT never sees the token."},
+    {"id": "R16", "requirement": "Max iterations per assignment defined in structured input — stop and report to Boss if unresolved", "status": "agreed", "dispute_notes": "No dispute."},
+    {"id": "R17", "requirement": "System prompt contains role, rules, endpoint alias, governance duties, and time limits. User prompt contains assignment only.", "status": "agreed", "dispute_notes": "GPT added governance duties to system prompt scope. Claude accepted."},
+    {"id": "R18", "requirement": "Boss is not in routine Claude-GPT loops but retains approval authority at defined governance gates", "status": "agreed", "dispute_notes": "GPT added governance gate qualifier. Claude accepted. Already existing policy."},
+    {"id": "R19", "requirement": "Azure Function timeout: 30 seconds. Exceeding returns 504. GPT retries with narrower scope.", "status": "agreed", "dispute_notes": "No dispute."},
+    {"id": "R20", "requirement": "Total time budget per assignment (timeout_minutes in structured input). Claude enforces. On timeout: terminate, write report, no automatic retry.", "status": "agreed", "dispute_notes": "No dispute."},
+    {"id": "R21", "requirement": "System prompt is structured JSON — not free text", "status": "agreed", "dispute_notes": "No dispute."},
+    {"id": "R22", "requirement": "System prompt includes max_think_seconds — GPT must respond within this window per iteration", "status": "agreed", "dispute_notes": "No dispute."},
+    {"id": "R23", "requirement": "project_path (relative to project root) is the canonical artifact identifier across all environments", "status": "agreed", "dispute_notes": "New from GPT. Claude accepted."},
+    {"id": "R24", "requirement": "local_path is optional environment-specific metadata, not the canonical identifier", "status": "agreed", "dispute_notes": "New from GPT. Claude accepted."},
+    {"id": "R25", "requirement": "GPT must evaluate artifact creation against discipline rules — prefer updating canonical artifacts over creating new ones", "status": "agreed", "dispute_notes": "New from GPT. Claude accepted."},
+    {"id": "R26", "requirement": "Every read request and response is audited with assignment_id, actor, timestamp, target, and response metrics", "status": "agreed", "dispute_notes": "New from GPT. Claude accepted. Audit logging implemented inside gpt_reader.py, not a separate file."},
+    {"id": "R27", "requirement": "Manifest snapshots include a snapshot ID for session consistency. Stale snapshot returns 409.", "status": "agreed", "dispute_notes": "GPT proposed. Claude initially rejected as over-engineering. Boss ruled: GPT prevails. Moved from deferred to agreed."},
+    {"id": "R28", "requirement": "When an artifact exists at a canonical project_path, update it rather than creating a new artifact unless the assignment explicitly requires distinct creation", "status": "agreed", "dispute_notes": "New from GPT. Claude accepted."},
+    {"id": "R29", "requirement": "Every manifest entry includes artifact_type and lifecycle_state to classify code, business, architecture, machine, and archive material", "status": "agreed", "dispute_notes": "New from GPT. Claude accepted."},
+    {"id": "R30", "requirement": "Multi-storage canonical source resolution", "status": "deferred", "dispute_notes": "GPT proposed. Claude rejected: one storage mechanism exists. Deferred to Framework 1.2."},
+    {"id": "R31", "requirement": "Pagination / continuation tokens for large query results", "status": "deferred", "dispute_notes": "GPT proposed. Claude rejected: 100 docs at 500KB sufficient. Deferred to Framework 1.2."},
+    {"id": "R32", "requirement": "Brain lock flag: during active brain writes, a mutex prevents concurrent modification. Claude cannot modify brain content while the flag is set by another process.", "status": "agreed", "dispute_notes": "New from Boss. Direct directive. No dispute."}
+  ],
+  "design_status": {
+    "total_requirements": 32,
+    "agreed": 28,
+    "resolved_by_boss": 2,
+    "deferred_to_framework_1_2": 2,
+    "open_disputes": 0,
+    "ready_for_implementation": true,
+    "gpt_sign_off": {
+      "signed_by": "GPT",
+      "role": "Enterprise Architect",
+      "date_pt": "2026-03-30",
+      "sign_off_status": "approved",
+      "accountability": "I approve this design as written for implementation. If it fails in architecture, governance, or control discipline within the stated scope, that failure is partly mine.",
+      "sign_off_comments": [
+        "I am signing off on the current design and current requirements as they stand in this artifact. I am not proposing design changes in this sign-off.",
+        "This design is sufficient for v1 because it establishes governed read-only access, explicit scoping, auditability, manifest discipline, and bounded runtime behavior.",
+        "The architectural center of gravity is correct: manifest-first access, canonical project_path identity, capped read/query behavior, and Claude as the authenticated proxy so GPT never holds secrets.",
+        "Boss decisions on R10, R11, and R27 create a coherent operating model. They are now part of the approved design and should not be relitigated during implementation.",
+        "The two deferred items, R30 and R31, are legitimate future enhancements, not defects in this design.",
+        "The main risks are execution risks, not design-shape risks: stale manifest snapshots, weak sync discipline from local disk, sloppy audit implementation, or failure to enforce caps and scope exactly.",
+        "Acceptance should require successful proof of ReadArtifact for text, ReadArtifact for binary, Query within limits, and correct 409, 504, and 507 behavior.",
+        "Brain lock enforcement is mandatory. It is not optional hygiene."
+      ]
+    }
+  }
+}

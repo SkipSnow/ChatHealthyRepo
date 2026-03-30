@@ -709,6 +709,22 @@
       "feedback_needed": false,
       "feedback_question": null,
       "deadline": "2026-04-21"
+    },
+    {
+      "assignment_id": "ASN-GITSEC01",
+      "timestamp": "2026-03-30T07:00:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Git Security — private repo + GPT access token",
+      "description": "CRITICAL ALPHA GATE. Make ChatHealthyRepo private. Create fine-grained GitHub PAT (read-only, scoped to repo) for GPT access. Configure GPT Custom Action or document token handoff procedure. Must be completed before alpha release. GOV-003 transitions from 'public by default' to 'private with controlled access'.",
+      "scope": [],
+      "priority": "critical",
+      "estimated_risk": "Low",
+      "status": "pending",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "deadline": "2026-04-30"
     }
   ]
 }
