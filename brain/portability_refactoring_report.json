@@ -1,0 +1,289 @@
+{
+  "report": "FindCare Backend Portability Refactoring — Design Report",
+  "date": "2026-03-27",
+  "authors": {
+    "architect": "GPT-4o (Enterprise Architect role)",
+    "engineer": "Claude Opus 4.6 (Implementation Engineer)",
+    "sponsor": "Skip Snow (Boss)"
+  },
+  "collaboration": {
+    "method": "Brain Loop — 4 iteration design review",
+    "iterations": 4,
+    "budget": 5,
+    "total_tokens": {
+      "in": 8318,
+      "out": 4310
+    }
+  },
+
+  "problem_statement": {
+    "summary": "The FindCare backend is a 1,323-line monolithic main.py. All business logic, FastAPI setup, prompt construction, tool dispatch, safety checks, provider search, clinical trials, lead capture, notifications, and static file serving live in one file. Porting to a different host (e.g., Azure App Service) requires touching the monolith.",
+    "boss_directive": "Porting to Azure should not be major work. Portability must be a design property, not an afterthought.",
+    "trigger": "Delaware Division of Professional Regulation board search URL (https://dpr.delaware.gov/boardsearch/) returns 404 — exposed the need for URL validation AND highlighted how tightly coupled the app is to its hosting environment."
+  },
+
+  "design": {
+    "principle": "Separate what changes per host from what never changes. All business logic is host-agnostic. Only HostConfig and the entry point know where the app is running.",
+    "modules": [
+      {
+        "file": "main.py",
+        "lines": 30,
+        "class": null,
+        "responsibility": "Thin entry point. Creates HostConfig from environment, wires URLGuardian, PromptFactory, and FindCareApp together, hands them to GUIHelper, starts the server.",
+        "depends_on": ["HostConfig", "URLGuardian", "PromptFactory", "FindCareApp", "GUIHelper"],
+        "host_specific": true
+      },
+      {
+        "file": "host_config.py",
+        "lines": 25,
+        "class": "HostConfig (dataclass)",
+        "responsibility": "All host-specific configuration in one place. Factory method from_env() reads environment variables with sensible defaults.",
+        "fields": {
+          "port": {"type": "int", "hf_default": 7860, "azure_default": 8000},
+          "static_file_path": {"type": "str", "hf_default": "./static", "azure_default": "null (Cloudflare serves frontend)"},
+          "cors_origins": {"type": "list[str]", "hf_default": ["https://chathealthy.ai", "https://dev.chathealthy.ai"]},
+          "cors_origin_regex": {"type": "str", "default": "http://localhost(:\\d+)?$"},
+          "mount_static_files": {"type": "bool", "hf_default": true, "azure_default": false},
+          "asgi_server": {"type": "str", "hf_default": "uvicorn", "azure_default": "gunicorn"},
+          "env_prefix": {"type": "str", "default": "dev", "note": "Controls database routing: dev/qa/prod"},
+          "debug": {"type": "bool", "default": false}
+        },
+        "depends_on": [],
+        "host_specific": true
+      },
+      {
+        "file": "findcare_app.py",
+        "lines": 800,
+        "class": "FindCareApp",
+        "constructor": "FindCareApp(host_config: HostConfig, prompt_factory: PromptFactory, url_guardian: URLGuardian)",
+        "responsibility": "ALL business logic. Safety system, provider search, clinical trials, lead capture, chat conversation loop, tool dispatch, notifications, debug logging. Creates its own MongoDB connection and Anthropic/OpenAI clients internally.",
+        "functions": {
+          "safety": ["_is_ip_locked", "_lock_ip", "_safety_collection", "_lock_ip_db", "_check_ip_lock_db", "_admin_unlock", "_session_is_locked", "_safety_check"],
+          "database": ["_get_db", "commitSignificantActivity", "_format_chat_history"],
+          "providers": ["_expand_query_terms", "find_specialty_codes", "_load_fips_county_map", "_make_county_filter", "_get_oai_client", "_get_query_embedding", "_format_provider", "_vector_search_providers", "find_providers"],
+          "clinical_trials": ["search_clinical_trials"],
+          "lead_capture": ["record_user_details", "_summarize_conversation", "deIdentify", "record_unknown_question"],
+          "external_lookup": ["lookup_provider_external"],
+          "notifications": ["push"],
+          "debug": ["_debug_log_chat"],
+          "chat": ["chat_inner", "_handle_tool_calls"]
+        },
+        "depends_on": ["HostConfig", "PromptFactory", "URLGuardian", "ChatHealthyMongoUtilities"],
+        "host_specific": false
+      },
+      {
+        "file": "gui_helper.py",
+        "lines": 150,
+        "class": "GUIHelper",
+        "constructor": "GUIHelper(findcare_app: FindCareApp, host_config: HostConfig)",
+        "responsibility": "Creates the FastAPI app instance. Configures CORS. Registers endpoints (/health, /welcome, /chat). Mounts static files if host_config.mount_static_files is true. Defines Pydantic request/response models.",
+        "endpoints": ["/health (GET)", "/welcome (GET)", "/chat (POST)"],
+        "models": ["ChatRequest", "ChatResponse"],
+        "depends_on": ["FindCareApp", "HostConfig", "FastAPI"],
+        "host_specific": false
+      },
+      {
+        "file": "prompt_factory.py",
+        "lines": 200,
+        "class": "PromptFactory",
+        "constructor": "PromptFactory(me_dir: str)",
+        "responsibility": "Loads context documents (PDFs, text files) at init. Constructs the system prompt. Holds the Anthropic tool schema list. Maintains a tool registry (name -> callable) for dispatch.",
+        "functions": ["_load_me_context", "system_prompt", "get_skip_snow_context", "get_chathealthy_context", "_trim", "register_tool", "get_tool"],
+        "tool_registry": {
+          "what": "dict[str, Callable] mapping tool names to function references",
+          "how": "FindCareApp calls prompt_factory.register_tool('find_providers', self.find_providers) at init",
+          "why": "Replaces globals().get(name) — explicit registration, no magic lookup",
+          "dispatch": "FindCareApp._handle_tool_calls does: fn = self.prompt_factory.get_tool(name); result = fn(**args)"
+        },
+        "depends_on": [],
+        "host_specific": false
+      },
+      {
+        "file": "url_guardian.py",
+        "lines": 130,
+        "class": "URLGuardian",
+        "constructor": "URLGuardian(cache_ttl=3600, request_timeout=5, max_workers=4)",
+        "responsibility": "Validates URLs in tool results and LLM text responses. Removes broken links, follows redirects, caches results.",
+        "status": "IMPLEMENTED — Sprint 1 (2026-03-27)",
+        "methods": {
+          "check_url(url)": "Returns (is_valid, redirect_url). HEAD request with GET fallback.",
+          "guard_tool_result(result)": "Validates URLs in a tool result dict. Removes broken links from the 'links' key.",
+          "guard_text(text)": "Validates markdown links and bare URLs in text. Defangs broken links (keeps text, removes href)."
+        },
+        "features": [
+          "HEAD request with GET fallback on HTTP 405",
+          "Redirect following — updates URL if server redirects",
+          "Trusted domain whitelist — Healthgrades, Zocdoc skip validation (bot protection blocks server-side requests)",
+          "In-memory TTL cache — avoids repeated HEAD requests within cache window",
+          "Concurrent validation — ThreadPoolExecutor for batch URL checks"
+        ],
+        "depends_on": ["requests"],
+        "host_specific": false
+      }
+    ]
+  },
+
+  "decisions": [
+    {
+      "id": "D-001",
+      "topic": "Module count",
+      "gpt_proposed": "11 modules — separate files for DatabaseHelpers, NotificationService, ProviderTools, ClinicalTrialsSearch, ExternalProviderLookup, ContextLoader, ToolDefinitions, etc.",
+      "claude_decided": "5 modules + HostConfig dataclass. Single-function concerns stay as private methods inside FindCareApp.",
+      "rationale": "Over-fragmentation adds import complexity for no testability gain. ClinicalTrialsSearch is one function. NotificationService is one function. These don't justify their own files.",
+      "risk_of_this_decision": "findcare_app.py is ~800 lines — still large. Acceptable because it's cohesive (all business logic) and can be further split in a future sprint if needed."
+    },
+    {
+      "id": "D-002",
+      "topic": "Dependency injection for MongoDB and notifications",
+      "gpt_proposed": "Inject DatabaseManager and NotificationService into FindCareApp constructor for testability.",
+      "claude_decided": "FindCareApp creates its own MongoDB connection and SparkPost notifier internally. NOT injected.",
+      "rationale": "Boss rule: e2e tests use real systems (MongoDB, Anthropic, SparkPost) — no mocks. DI for testability is pointless when you don't mock. Injecting adds constructor complexity for zero practical benefit.",
+      "risk_of_this_decision": "Harder to unit test FindCareApp in isolation. Mitigated by the fact that this project's testing strategy is e2e with real systems."
+    },
+    {
+      "id": "D-003",
+      "topic": "Tool dispatch location",
+      "gpt_proposed": "_handle_tool_calls lives in PromptFactory alongside tool schemas.",
+      "claude_decided": "Tool dispatch stays in FindCareApp. PromptFactory holds only the registry (name -> callable map) and tool schemas.",
+      "rationale": "Tool functions (find_providers, record_user_details, etc.) live in FindCareApp and need access to FindCareApp state (DB connection, chat history, IP locks). Dispatch must be in the same class. The registry pattern decouples schema definition from implementation.",
+      "risk_of_this_decision": "FindCareApp has a dependency on PromptFactory for the registry. Acceptable — they're always used together."
+    },
+    {
+      "id": "D-004",
+      "topic": "URL validation scope",
+      "gpt_proposed": "Validate URLs in the final LLM text response only.",
+      "claude_decided": "Dual-mode: validate both tool results (guard_tool_result) and LLM text (guard_text).",
+      "rationale": "Tool-constructed URLs are the higher-priority fix — we build them deterministically (e.g., Delaware board search). If we know the URL template is broken, we should catch it before the LLM even sees it. Text validation catches anything the LLM generates or hallucinates.",
+      "risk_of_this_decision": "Two validation points means two places to maintain. Acceptable — both use the same URLGuardian instance and cache."
+    },
+    {
+      "id": "D-005",
+      "topic": "Trusted domain whitelist",
+      "claude_decided": "Healthgrades and Zocdoc are whitelisted — their search URLs skip validation.",
+      "rationale": "Both sites aggressively block server-side requests (bot protection). Our constructed search URLs (e.g., healthgrades.com/search?what=smith) are valid browser URLs but return 403/blocking pages to HEAD/GET from a server. Whitelisting prevents false negatives.",
+      "risk_of_this_decision": "If Healthgrades or Zocdoc change their URL patterns, broken links would not be caught. Mitigated by the fact that we construct these URLs ourselves with known patterns."
+    },
+    {
+      "id": "D-006",
+      "topic": "Anthropic client ownership",
+      "claude_decided": "FindCareApp owns a single Anthropic client instance, created in __init__.",
+      "rationale": "Currently the Anthropic client is created fresh in _chat_inner and _safety_check on every call. A single shared instance avoids repeated initialization and is the standard pattern for API clients.",
+      "risk_of_this_decision": "None — Anthropic SDK client is thread-safe."
+    },
+    {
+      "id": "D-007",
+      "topic": "Sprint timing — defer refactoring to Sprint 2",
+      "boss_decided": "Do not refactor before the Tuesday 2026-03-31 release. Ship URLGuardian now, refactoring in Sprint 2.",
+      "rationale": "App is release-ready. Refactoring 1,323 lines of working code 3 days before deadline is risk with no user-facing payoff. Quality over velocity.",
+      "risk_of_this_decision": "main.py stays monolithic through Sprint 1 release. Acceptable — it works, and URLGuardian is the only new capability needed now."
+    }
+  ],
+
+  "risks": [
+    {
+      "id": "R-001",
+      "risk": "Refactoring may introduce subtle bugs in tool dispatch or chat conversation loop",
+      "likelihood": "Medium",
+      "impact": "High — broken chat is a showstopper",
+      "mitigation": "Each migration step produces a working app. Full e2e test after each step. Stop at any step if tests fail."
+    },
+    {
+      "id": "R-002",
+      "risk": "URL validation adds latency to chat responses",
+      "likelihood": "Low",
+      "impact": "Medium — user waits longer for responses",
+      "mitigation": "Concurrent HEAD requests (ThreadPoolExecutor). TTL cache avoids repeated checks. Trusted domain whitelist skips bot-protected sites. Timeout of 5 seconds per URL."
+    },
+    {
+      "id": "R-003",
+      "risk": "Large PR — 1,300 lines moved across 5 files",
+      "likelihood": "High",
+      "impact": "Medium — hard to review, merge conflicts with any parallel work",
+      "mitigation": "Incremental migration steps. Each step is a separate commit. Can stop after any step with a working app."
+    },
+    {
+      "id": "R-004",
+      "risk": "Trusted domain whitelist becomes stale — Healthgrades/Zocdoc change URL patterns",
+      "likelihood": "Low",
+      "impact": "Low — worst case is a working but outdated search URL",
+      "mitigation": "We construct these URLs ourselves. If patterns change, update the URL construction in lookup_provider_external."
+    },
+    {
+      "id": "R-005",
+      "risk": "findcare_app.py at ~800 lines is still large",
+      "likelihood": "Certain",
+      "impact": "Low — it's cohesive (all business logic), just long",
+      "mitigation": "Can further split in a future sprint if needed. Provider tools and safety system are natural extraction candidates."
+    }
+  ],
+
+  "migration_plan": [
+    {
+      "step": 1,
+      "action": "Create host_config.py with HostConfig dataclass and from_env() factory",
+      "test": "Import in main.py, verify all env vars load correctly",
+      "rollback": "Delete host_config.py, revert main.py import"
+    },
+    {
+      "step": 2,
+      "action": "Extract prompt_factory.py — system prompt, tool schemas, context loading, tool registry",
+      "test": "main.py imports PromptFactory, system prompt output matches current",
+      "rollback": "Delete prompt_factory.py, revert main.py"
+    },
+    {
+      "step": 3,
+      "action": "url_guardian.py already implemented — no action needed",
+      "test": "Already passing smoke tests",
+      "rollback": "N/A"
+    },
+    {
+      "step": 4,
+      "action": "Extract gui_helper.py — FastAPI app creation, CORS, endpoints, static mount",
+      "test": "/health, /welcome, /chat endpoints respond identically to pre-refactoring",
+      "rollback": "Delete gui_helper.py, revert main.py"
+    },
+    {
+      "step": 5,
+      "action": "Extract findcare_app.py — all remaining business logic",
+      "test": "Full e2e: provider search, safety trigger, lead capture, clinical trials, About Us",
+      "rollback": "Delete findcare_app.py, revert main.py"
+    },
+    {
+      "step": 6,
+      "action": "Thin main.py to ~30 lines — entry point only",
+      "test": "Full regression. App behaves identically to pre-refactoring.",
+      "rollback": "Revert main.py from git"
+    }
+  ],
+
+  "portability_matrix": {
+    "huggingface_docker": {
+      "port": 7860,
+      "mount_static_files": true,
+      "asgi_server": "uvicorn",
+      "dockerfile": "Single-stage Python image, COPY all modules",
+      "changes_from_current": "None — this is the current default"
+    },
+    "azure_app_service": {
+      "port": 8000,
+      "mount_static_files": false,
+      "asgi_server": "gunicorn",
+      "dockerfile": "Not needed — Azure deploys from zip",
+      "changes_from_current": "Set 3 env vars: PORT=8000, MOUNT_STATIC=false, ASGI_SERVER=gunicorn. Frontend served by Cloudflare Pages, not the backend."
+    },
+    "bare_metal": {
+      "port": "configurable",
+      "mount_static_files": true,
+      "asgi_server": "uvicorn or gunicorn",
+      "dockerfile": "Optional",
+      "changes_from_current": "Install Python dependencies, set env vars, run main.py"
+    }
+  },
+
+  "backlog_references": {
+    "refactoring": "ASN-PORT01 (ARCH-001 in roadmap.html)",
+    "tool_registry": "ASN-PORT02 (ARCH-002 in roadmap.html)",
+    "design_doc": "brain/refactor_design_final.json",
+    "collaboration_log": "brain/refactor_results.json"
+  }
+}

@@ -1,11 +1,13 @@
-name: Deploy FindCare Backend to HuggingFace
+name: Deploy ChatHealthy Backend to HuggingFace
 
 on:
   push:
     branches:
       - dev
+      - qa
     paths:
       - 'Code/ConversationalUX/FindCareChat/backend/**'
+      - 'Code/ConversationalUX/FindCareChat/frontend/**'
       - 'Code/ConversationalUX/ChatHealthyWhoAmIChat/me/**'
       - 'Code/Shared/ChatHealthyMongoUtilities.py'
       - '.github/workflows/deploy-findcare-backend.yml'
@@ -20,15 +22,54 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Derive Space name from branch
+        id: space
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+          ORG="SkipSnow"
+          BASE="ChatHealthySpace"
+          if [ "$BRANCH" = "main" ]; then
+            SPACE="${BASE}"
+          else
+            SPACE="${BRANCH}_${BASE}"
+          fi
+          echo "name=${SPACE}" >> $GITHUB_OUTPUT
+          echo "Deploying to: ${ORG}/${SPACE}"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Bump build counter
+        env:
+          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
+        run: |
+          pip install pymongo python-dotenv
+          python Code/Shared/ops/bump_build.py --env ${{ github.ref_name }}
+
+      - name: Build React frontend
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install and build frontend
+        working-directory: Code/ConversationalUX/FindCareChat/frontend
+        run: |
+          npm ci
+          VITE_API_URL="" npm run build
+
       - name: Push to HuggingFace Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ steps.space.outputs.name }}
         run: |
           git config --global user.email "skip.snow@gmail.com"
           git config --global user.name "SkipSnow"
           git lfs install
 
-          git clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/dev_ChatHealthyAIChatWindow hf_space
+          echo "Target Space: SkipSnow/${HF_SPACE}"
+          git clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/${HF_SPACE} hf_space
 
           find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
 
@@ -39,14 +80,15 @@ jobs:
             --exclude='*.pyc' \
             Code/ConversationalUX/FindCareChat/backend/ hf_space/
 
+          # Pre-built React frontend → static/
+          cp -r Code/ConversationalUX/FindCareChat/frontend/dist hf_space/static
+
           # Shared MongoDB utility
           cp Code/Shared/ChatHealthyMongoUtilities.py hf_space/
 
           # me/ context files (PDFs, summary, codebase)
           mkdir -p hf_space/me
           rsync -av Code/ConversationalUX/ChatHealthyWhoAmIChat/me/ hf_space/me/
-
-          echo "${{ github.run_number }}" > hf_space/build.txt
 
           cd hf_space
           git lfs track "*.pdf"

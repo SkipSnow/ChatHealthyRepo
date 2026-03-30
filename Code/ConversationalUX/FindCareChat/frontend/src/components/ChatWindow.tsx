@@ -10,20 +10,22 @@ export interface Message {
   build?: string
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 const RETRY_SECONDS = 10
+
+const DEFAULT_WELCOME = [
+  '**Welcome to ChatHealthy FindCare**\n\n',
+  "Here's what I can help you with:\n\n",
+  '- **Identify the right specialty** — not sure what kind of doctor you need? Describe your situation\n',
+  '- **Clinical trials** — find recruiting research studies for any condition\n',
+  '- **About ChatHealthy** — our mission, team, and platform\n\n',
+  'If you think you may be having a medical emergency, tell me right away.\n\n',
+  '**What can I help you with today?**',
+].join('')
 
 const WELCOME: Message = {
   role: 'assistant',
-  content: [
-    '**Welcome to ChatHealthy FindCare**\n\n',
-    "Here's what I can help you with:\n\n",
-    '- **Identify the right specialty** — not sure what kind of doctor you need? Describe your situation\n',
-    '- **Clinical trials** — find recruiting research studies for any condition\n',
-    '- **About ChatHealthy** — our mission, team, and platform\n\n',
-    'If you think you may be having a medical emergency, tell me right away.\n\n',
-    '**What can I help you with today?**',
-  ].join(''),
+  content: DEFAULT_WELCOME,
 }
 
 export default function ChatWindow() {
@@ -34,6 +36,7 @@ export default function ChatWindow() {
   const [thinkSeconds, setThinkSeconds] = useState(0)
   const [thinkingDismissed, setThinkingDismissed] = useState(false)
   const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
+  const [envBanner, setEnvBanner] = useState<{env: string, build: string, version: string} | null>(null)
 
   // Refs — avoid stale closures in async callbacks
   const messagesRef = useRef<Message[]>([WELCOME])
@@ -41,14 +44,29 @@ export default function ChatWindow() {
   const backendEnvRef = useRef<string>('prod')
   const pendingRetryRef = useRef<{ message: string; history: any[]; startTime: number } | null>(null)
 
+  // Fetch welcome message from API on mount (supports HUMAN_TESTING mode)
+  useEffect(() => {
+    fetch(`${API_URL}/welcome`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.message) {
+          setMessages(prev => [{ ...prev[0], content: data.message }, ...prev.slice(1)])
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   // Fetch build number + env from /health on mount
   useEffect(() => {
     fetch(`${API_URL}/health`)
       .then(r => r.json())
       .then(data => {
         backendEnvRef.current = data.env || 'prod'
+        if (data.env && data.env !== 'prod') {
+          setEnvBanner({env: data.env, build: data.build || '?', version: data.version || '?'})
+        }
         if (data.build) {
-          setMessages(prev => [{ ...prev[0], build: `Build ${data.build}` }, ...prev.slice(1)])
+          setMessages(prev => [{ ...prev[0], build: data.build }, ...prev.slice(1)])
         }
       })
       .catch(() => {})
@@ -86,7 +104,7 @@ export default function ChatWindow() {
   }, [retryCountdown])
 
   const showThinking = isLoading && !thinkingDismissed && retryCountdown === null
-  const canSubmit = !isLocked && (!isLoading || thinkingDismissed)
+  const canSubmit = !isLoading || thinkingDismissed
 
   async function doApiCall(message: string, history: any[], startTime: number) {
     let data: any
@@ -111,7 +129,7 @@ export default function ChatWindow() {
     const elapsed = Math.round((Date.now() - startTime) / 1000)
 
     if (data.error) {
-      const isRateLimit = data.error.includes('rate_limit') || data.error.includes('429')
+      const isRateLimit = data.error_type === 'rate_limit'
       if (isRateLimit && backendEnvRef.current === 'dev') {
         // Dev only: show countdown and auto-retry
         pendingRetryRef.current = { message, history, startTime }
@@ -133,6 +151,7 @@ export default function ChatWindow() {
         tokensIn: data.tokens_in ?? undefined,
       }])
       if (data.emergency) setIsLocked(true)
+      if (data.response === 'Session unlocked.') setIsLocked(false)
     }
 
     setIsLoading(false)
@@ -158,6 +177,11 @@ export default function ChatWindow() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: 800, margin: '0 auto', width: '100%' }}>
+      {envBanner && (
+        <div style={{ background: '#dc2626', color: '#fff', textAlign: 'center', padding: '4px 8px', fontSize: 13, fontWeight: 600, letterSpacing: '0.03em' }}>
+          {envBanner.env.toUpperCase()} — Build {envBanner.build} — {envBanner.version}
+        </div>
+      )}
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 16px' }}>
         {messages.map((m, i) => (
           <MessageBubble key={i} message={m} />
@@ -218,8 +242,7 @@ export default function ChatWindow() {
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
-          disabled={isLocked}
-          placeholder={isLocked ? 'Chat suspended.' : 'Type a message…'}
+          placeholder={isLocked ? 'This chat has been suspended for your safety.' : 'Type a message…'}
           style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 15, outline: 'none' }}
         />
         <button

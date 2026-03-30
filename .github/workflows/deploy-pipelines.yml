@@ -3,9 +3,12 @@ name: Deploy to Azure Functions
 on:
   push:
     branches:
+      - dev
+      - qa
       - main
     paths:
       - 'Code/DataPipelines/**'
+      - '.github/workflows/deploy-pipelines.yml'
 
 jobs:
   deploy:
@@ -26,6 +29,24 @@ jobs:
         run: |
           cd Code/DataPipelines
           pip install -r requirements-pipeline.txt
+          pip install pymongo python-dotenv
+
+      - name: Derive environment from branch
+        id: env
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+          if [ "$BRANCH" = "main" ]; then
+            echo "name=prod" >> $GITHUB_OUTPUT
+          else
+            echo "name=$BRANCH" >> $GITHUB_OUTPUT
+          fi
+          echo "Environment: $BRANCH"
+
+      - name: Bump build counter
+        env:
+          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
+        run: |
+          python Code/Shared/ops/bump_build.py --env ${{ steps.env.outputs.name }}
 
       - name: Login to Azure
         uses: azure/login@v2

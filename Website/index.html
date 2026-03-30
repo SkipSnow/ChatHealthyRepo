@@ -572,17 +572,30 @@
       </div>
 
       <!--
-        CoreChatUX iframe URL injected at build time via CHAT_URL env var.
-        Prod: https://hf.chathealthy.ai  Dev: set per environment in Cloudflare Pages
+        CoreChatUX iframe URL resolved at runtime from chatConfig.
+        Hostname determines environment: dev/qa/prod.
       -->
       <iframe
         id="coreChatFrame"
-        src="%%CHAT_URL%%"
+        src=""
         title="Find Care — CoreChatUX"
         allow="microphone; clipboard-write"
         loading="lazy"
         onload="document.getElementById('frameLoading').classList.add('hidden')"
       ></iframe>
+      <script>
+        (function() {
+          var host = window.location.hostname;
+          var env = host.indexOf('dev.') === 0 ? 'dev' : host.indexOf('qa.') === 0 ? 'qa' : 'prod';
+          // Naming convention: {org}-{env_prefix}-{base}.hf.space
+          // Prod uses legacy Gradio space until FindCare is promoted
+          var org = 'skipsnow';
+          var base = 'chathealthyspace';
+          var prodSpace = 'chathealthywhoamichat';  // legacy — replace on prod promotion
+          var spaceName = env === 'prod' ? prodSpace : env + '-' + base;
+          document.getElementById('coreChatFrame').src = 'https://' + org + '-' + spaceName + '.hf.space';
+        })();
+      </script>
 
     </div>
   </main>

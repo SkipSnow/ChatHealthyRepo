@@ -200,6 +200,7 @@
       <nav class="toc" aria-label="Table of contents">
         <h3>Contents</h3>
         <ol>
+          <li><a href="#repositories">Repositories &amp; Source Files</a></li>
           <li><a href="#product-vision">Product Vision</a></li>
           <li><a href="#infrastructure">Components</a></li>
           <li><a href="#website">Website — Static Layer (Cloudflare)</a></li>
@@ -212,14 +213,19 @@
           <li><a href="#pipeline-architecture">Data Pipeline Architecture</a></li>
           <li><a href="#environment">Environment &amp; Data Model</a></li>
           <li><a href="#networking">Networking</a></li>
+          <li><a href="#models">AI Models &amp; Cost at Scale</a></li>
           <li><a href="#deferred">Deferred</a></li>
 
         </ol>
         <ul style="margin:8px 0 0 18px; font-size:0.88rem; line-height:1.9; list-style:disc;">
           <li><strong>Designs:</strong>
+            <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('chat-app-design.html'),('Chat App Design'));return false;" style="color:var(--teal); text-decoration:none;">Chat App Design</a>
+            &nbsp;&middot;&nbsp;
             <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('provider-data-load.html'),('Provider Data Load'));return false;" style="color:var(--teal); text-decoration:none;">Provider Data Load &amp; County Enrichment</a>
             &nbsp;&middot;&nbsp;
             <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('embedding-design.html'),('Embedding Design'));return false;" style="color:var(--teal); text-decoration:none;">Embedding Design</a>
+            &nbsp;&middot;&nbsp;
+            <a href="#devops" style="color:var(--teal); text-decoration:none;">DevOps &amp; Build Promotion</a>
           </li>
           <li><strong>Roadmap:</strong>
             <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('roadmap.html'),('Roadmap'));return false;" style="color:var(--teal); text-decoration:none;">ChatHealthy.ai Product Roadmap</a>
@@ -229,6 +235,88 @@
           </li>
         </ul>
       </nav>
+
+      <!-- 0. REPOSITORIES & SOURCE FILES -->
+      <h2 id="repositories">0. Repositories &amp; Source Files</h2>
+
+      <h3>Git Repositories</h3>
+      <table>
+        <tr><th>Repository</th><th>Purpose</th><th>URL</th></tr>
+        <tr><td><strong>ChatHealthyRepo</strong></td><td>Monorepo — all production code, pipelines, website, brain</td><td><a href="https://github.com/SkipSnow/ChatHealthyRepo">github.com/SkipSnow/ChatHealthyRepo</a></td></tr>
+        <tr><td><strong>ChatHealthyWebSite</strong></td><td>Production website deploy target (Cloudflare Pages auto-deploy)</td><td><a href="https://github.com/SkipSnow/ChatHealthyWebSite">github.com/SkipSnow/ChatHealthyWebSite</a></td></tr>
+        <tr><td><strong>ChatHealthyLabRepo</strong></td><td>Lab &amp; experiments (notebooks, prototypes)</td><td><a href="https://github.com/SkipSnow/ChatHealthyLabRepo">github.com/SkipSnow/ChatHealthyLabRepo</a></td></tr>
+      </table>
+
+      <h3>App 2 — Chat Application (FindCareChat)</h3>
+      <table>
+        <tr><th>File</th><th>Description</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/backend/main.py" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/backend/main.py</code></a></td><td>FastAPI backend — all tools, safety system, LLM orchestration, provider search, static file serving</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/backend/Dockerfile" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/backend/Dockerfile</code></a></td><td>Multi-stage Docker build: Node (React) + Python (FastAPI) in one container</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/backend/requirements.txt" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/backend/requirements.txt</code></a></td><td>Python dependencies</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/backend/build.txt" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/backend/build.txt</code></a></td><td>Build number — injected by CI at deploy time</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx</code></a></td><td>React chat UI — state machine, think timer, stop button, rate limit retry</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx</code></a></td><td>Message rendering — user/assistant/error styling, markdown, metadata</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/frontend/src/App.tsx" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/frontend/src/App.tsx</code></a></td><td>React root component</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/frontend/vite.config.ts" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/frontend/vite.config.ts</code></a></td><td>Vite build configuration</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/frontend/public/_redirects" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/frontend/public/_redirects</code></a></td><td>SPA routing fallback for Cloudflare Pages</td></tr>
+      </table>
+
+      <h3>App 2 — Legacy Chatbot (ChatHealthyWhoAmIChat)</h3>
+      <table>
+        <tr><th>File</th><th>Description</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/ChatHealthyWhoAmIChat/app.py" style="color:var(--teal);"><code>Code/ConversationalUX/ChatHealthyWhoAmIChat/app.py</code></a></td><td>Gradio About Us chatbot — production, active until FindCare replaces it</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/ChatHealthyWhoAmIChat/me/" style="color:var(--teal);"><code>Code/ConversationalUX/ChatHealthyWhoAmIChat/me/</code></a></td><td>Context files — summary.txt, PDFs (LinkedIn, business plan), anthropic_principles.txt</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/ChatHealthyWhoAmIChat/tests/" style="color:var(--teal);"><code>Code/ConversationalUX/ChatHealthyWhoAmIChat/tests/</code></a></td><td>Unit tests (mocked) and E2E tests (real systems)</td></tr>
+      </table>
+
+      <h3>App 3 — Data Pipelines</h3>
+      <table>
+        <tr><th>File</th><th>Description</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/function_app.py" style="color:var(--teal);"><code>Code/DataPipelines/function_app.py</code></a></td><td>Azure Function App entry — HTTP router, task dispatch</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/provider_load_manager.py" style="color:var(--teal);"><code>Code/DataPipelines/provider_load_manager.py</code></a></td><td>FullProviderPipeline orchestrator — 8-step durable workflow</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/provider_worker.py" style="color:var(--teal);"><code>Code/DataPipelines/provider_worker.py</code></a></td><td>Fan-out worker — processes provider batches in parallel</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/county_enrichment_job.py" style="color:var(--teal);"><code>Code/DataPipelines/county_enrichment_job.py</code></a></td><td>6-pass county enrichment (ZIP crosswalk, Census geocoder, Google Maps, NPPES)</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/embedding_worker.py" style="color:var(--teal);"><code>Code/DataPipelines/embedding_worker.py</code></a></td><td>Vector embedding pipeline — OpenAI text-embedding-3-small, idempotent</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/copy_to_frontend.py" style="color:var(--teal);"><code>Code/DataPipelines/copy_to_frontend.py</code></a></td><td>CopyToFrontEnd — moves enriched data from DataPipelines to FrontEnd cluster</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/load_specialty_data.py" style="color:var(--teal);"><code>Code/DataPipelines/load_specialty_data.py</code></a></td><td>NUCC taxonomy loader — SpecialtyMetaData collection</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/icd10_loader.py" style="color:var(--teal);"><code>Code/DataPipelines/icd10_loader.py</code></a></td><td>ICD-10 code loader</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/atlas_cluster_manager.py" style="color:var(--teal);"><code>Code/DataPipelines/atlas_cluster_manager.py</code></a></td><td>MongoDB Atlas autoscale — scale clusters before/after heavy jobs</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/zip_county_crosswalk_loader.py" style="color:var(--teal);"><code>Code/DataPipelines/zip_county_crosswalk_loader.py</code></a></td><td>HUD ZIP-to-county crosswalk loader</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/discrepancy_reporter.py" style="color:var(--teal);"><code>Code/DataPipelines/discrepancy_reporter.py</code></a></td><td>Data quality reports — provider load discrepancies</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/auth.py" style="color:var(--teal);"><code>Code/DataPipelines/auth.py</code></a></td><td>API key authentication for pipeline endpoints</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/blob_client.py" style="color:var(--teal);"><code>Code/DataPipelines/blob_client.py</code></a></td><td>Azure Blob Storage client wrapper</td></tr>
+      </table>
+
+      <h3>Shared</h3>
+      <table>
+        <tr><th>File</th><th>Description</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/ChatHealthyMongoUtilities.py" style="color:var(--teal);"><code>Code/Shared/ChatHealthyMongoUtilities.py</code></a></td><td>MongoDB lazy connection manager — used by all apps</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/brain_loop.py" style="color:var(--teal);"><code>Code/Shared/brain_loop.py</code></a></td><td>Brain Loop 0.1 — assignment CRUD, review pack, UAT orchestration</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/brain_runner.py" style="color:var(--teal);"><code>Code/Shared/brain_runner.py</code></a></td><td>Brain runner — executes GPT/Claude assignments via API</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/brain_auth.py" style="color:var(--teal);"><code>Code/Shared/brain_auth.py</code></a></td><td>Brain API key authentication</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/machine_brain.py" style="color:var(--teal);"><code>Code/Shared/machine_brain.py</code></a></td><td>Machine Brain context loader</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/cost_guard.py" style="color:var(--teal);"><code>Code/Shared/cost_guard.py</code></a></td><td>Token usage tracking and budget enforcement</td></tr>
+      </table>
+
+      <h3>CI/CD Workflows</h3>
+      <table>
+        <tr><th>File</th><th>Trigger</th><th>Target</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/.github/workflows/deploy-findcare-backend.yml" style="color:var(--teal);"><code>.github/workflows/deploy-findcare-backend.yml</code></a></td><td>Push to dev (backend/ or frontend/)</td><td>HuggingFace Space: dev_ChatHealthyAIChatWindow</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/.github/workflows/deploy-findcare-website-dev.yml" style="color:var(--teal);"><code>.github/workflows/deploy-findcare-website-dev.yml</code></a></td><td>Push to dev (Website/)</td><td>Cloudflare Pages: chathealthy-website-dev</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/.github/workflows/deploy-hf.yml" style="color:var(--teal);"><code>.github/workflows/deploy-hf.yml</code></a></td><td>Push to main (ChatHealthyWhoAmIChat/)</td><td>HuggingFace Space: ChatHealthyWhoAmIChat</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/.github/workflows/deploy-pipelines.yml" style="color:var(--teal);"><code>.github/workflows/deploy-pipelines.yml</code></a></td><td>Push to main (DataPipelines/)</td><td>Azure Function App: FindCare-AI</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/.github/workflows/test.yml" style="color:var(--teal);"><code>.github/workflows/test.yml</code></a></td><td>Push to main / PR</td><td>Unit tests</td></tr>
+      </table>
+
+      <h3>Brain</h3>
+      <table>
+        <tr><th>File</th><th>Description</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/brain/assignment_queue.json" style="color:var(--teal);"><code>brain/assignment_queue.json</code></a></td><td>Assignment backlog — tasks for GPT, Claude, and Dev</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/brain/assurance_results.json" style="color:var(--teal);"><code>brain/assurance_results.json</code></a></td><td>GPT deliverables — review packs, UAT test suites, legal docs</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/brain/budget_config.json" style="color:var(--teal);"><code>brain/budget_config.json</code></a></td><td>Token budget limits per model</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/brain/execution_state.json" style="color:var(--teal);"><code>brain/execution_state.json</code></a></td><td>Brain runner execution state</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/brain/" style="color:var(--teal);"><code>brain/</code></a></td><td>Structured context for GPT assignments (legal, etc.)</td></tr>
+      </table>
 
       <!-- 1 -->
       <h2 id="product-vision">1. Product Vision</h2>
@@ -295,7 +383,7 @@
           <rect x="406" y="102" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
           <text x="334" y="104" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;component&#187;</text>
           <text x="334" y="117" text-anchor="middle" font-size="11" font-weight="bold">Chat App</text>
-          <text x="334" y="130" text-anchor="middle" font-size="9" fill="#4a5568">HuggingFace &#8594; Azure Static Web Apps</text>
+          <text x="334" y="130" text-anchor="middle" font-size="9" fill="#4a5568">HuggingFace Docker Space</text>
 
           <!-- Row 2 right: LLM APIs (x=483, y=90, w=255, h=55, dashed) -->
           <rect x="483" y="90" width="255" height="55" fill="white" stroke="#0d1117" stroke-width="1.5" stroke-dasharray="5,3"/>
@@ -451,7 +539,7 @@
           <tr><td>privacy.html</td><td>Privacy Policy. Loads standalone or inside the panel iframe.</td></tr>
           <tr><td>terms.html</td><td>Terms of Use. Same dual-mode design as privacy.html.</td></tr>
           <tr><td>architecture.html</td><td>This document. Technical architecture reference. Same dual-mode design.</td></tr>
-          <tr><td>designs.html</td><td>Design document index. Links to detailed design docs for each pipeline and subsystem.</td></tr>
+          <tr><td>chat-app-design.html</td><td>Chat application design — system prompt, tools, safety, provider search, UI/UX</td></tr>
         </table>
       </div>
 
@@ -486,8 +574,10 @@
           <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
           <tr><td>Frontend</td><td>React + shadcn/ui</td><td>Chat interface; inline maps, charts, provider cards</td></tr>
           <tr><td>Backend</td><td>FastAPI (Python)</td><td>API routes, tool definitions, session management</td></tr>
-          <tr><td>AI</td><td>LLM APIs (Anthropic, OpenAI, Groq)</td><td>Intent routing, tool calling, response generation</td></tr>
-          <tr><td>Hosting</td><td>HuggingFace Docker Space</td><td>GPU-enabled, free tier available</td></tr>
+          <tr><td>Router</td><td>Claude tool selector</td><td>Intent routing — Claude's tool selection IS the router; no separate routing service</td></tr>
+          <tr><td>AI — Chat</td><td>Claude Sonnet 4.6 (Anthropic)</td><td>Main conversation, tool calling, response generation</td></tr>
+          <tr><td>AI — Utility</td><td>Claude Haiku 4.5 (Anthropic)</td><td>Safety classification, summarization, de-identification</td></tr>
+          <tr><td>Hosting</td><td>HuggingFace Docker Space</td><td>Container-based, free tier available</td></tr>
           <tr style="color:#0b7a75;"><td>Maps</td><td>Google Maps</td><td><strong>Roadmap.</strong> Provider location display — interactive map rendered inline in the chat response showing provider pins, distances, and directions</td></tr>
         </table>
       </div>
@@ -514,7 +604,7 @@
         <div class="diagram-inner">
           <div class="d-center"><div class="d-box d-box-wide"><strong>User Message</strong><small>"Find me an oncologist near me"</small></div></div>
           <div class="d-down">↓</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>LLM — Intent Router</strong><small>Classifies intent within the same session</small></div></div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Router — Claude Tool Selector</strong><small>Claude selects the appropriate tool — that selection IS the routing decision</small></div></div>
           <div class="d-vline"></div>
           <div class="d-hbar" style="width:65%"></div>
           <div class="d-row" style="margin-top:0;">
@@ -539,25 +629,31 @@
 
       <!-- 6 -->
       <h2 id="chat-component">6. Chat Component Design</h2>
+      <p style="background:var(--teal-light);border:1px solid var(--teal-mid);border-radius:var(--radius);padding:10px 16px;margin-bottom:14px;font-size:0.92rem;">
+        <strong>Full specification:</strong> <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('chat-app-design.html'),('Chat App Design'));return false;" style="color:var(--teal);text-decoration:none;font-weight:500;">Chat App Design Document</a>
+      </p>
       <p>
-        App 2 is currently a Gradio prototype hosted on HuggingFace. The target architecture is
-        React + FastAPI. The AI logic described here is implementation-independent and applies to both.
+        App 2 is React + FastAPI hosted on a HuggingFace Docker Space. The AI engine is Claude Sonnet 4.6 via the Anthropic SDK.
       </p>
 
-      <h3>Tool-Calling Agent</h3>
-      <p>The chat backend runs an OpenAI <code>gpt-4o-mini</code> function-calling agent. Claude Haiku is used only for safety classification (see below). Tools are registered in the backend and invoked by the model during conversation.</p>
+      <h3>Router and Tool-Calling Agent</h3>
+      <p>The chat backend runs a <strong>Claude Sonnet 4.6</strong> tool-calling agent. Claude Haiku is used for safety classification, summarization, and de-identification. The Router has no separate service — Claude's tool selection is the routing decision. Tools are registered in the FastAPI backend and invoked by Claude during conversation. The system prompt is minimal (~700 tokens); context loads on demand through tool results only.</p>
       <div class="table-wrap">
         <table>
-          <tr><th>Tool</th><th>Purpose</th><th>Status</th></tr>
-          <tr><td><code>find_providers</code></td><td>Query providers_staging by specialty and state. Supported states: DE, MS.</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
-          <tr><td><code>search_clinical_trials</code></td><td>Query ClinicalTrials.gov API for recruiting trials</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
-          <tr><td><code>record_user_details</code></td><td>Save contact details and HIPAA-consent transcript to MongoDB</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
-          <tr><td><code>record_unknown_question</code></td><td>Log unhandled questions for review</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><th>Tool</th><th>Route (intent)</th><th>Purpose</th><th>Status</th></tr>
+          <tr><td><code>find_providers</code></td><td>FindCare</td><td>Query providers by specialty and state (DE, MS)</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>find_specialty_codes</code></td><td>FindCare</td><td>Look up NUCC taxonomy codes for a specialty or condition</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>search_clinical_trials</code></td><td>FindCare</td><td>Query ClinicalTrials.gov for recruiting trials</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>get_skip_snow_context</code></td><td>About Skip</td><td>Load founder background on demand (summary + LinkedIn, ~2k tokens)</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>get_chathealthy_context</code></td><td>About ChatHealthy</td><td>Load company context on demand (business plan + Anthropic principles, ~6k tokens)</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>record_user_details</code></td><td>Lead capture</td><td>Save contact details and HIPAA-consent transcript to MongoDB</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>record_unknown_question</code></td><td>Unknown</td><td>Log unhandled questions for review</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>commitSignificantActivity</code></td><td>Any</td><td>Record custom activity to MongoDB</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
         </table>
       </div>
 
       <h3>FindCare — Provider Search <span style="display:inline-block;background:#0b7a75;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">LIVE — DE, MS</span></h3>
-      <p>The LLM calls <code>find_providers</code> when the user asks to find a doctor or specialist. The tool performs a two-step MongoDB lookup: specialty name to NUCC taxonomy codes (SpecialtyMetaData collection), then taxonomy codes plus state to provider records (providers_staging).</p>
+      <p>The LLM calls <code>find_providers</code> when the user asks to find a doctor or specialist. The tool performs a two-step MongoDB lookup: specialty name to NUCC taxonomy codes (SpecialtyMetaData collection), then taxonomy codes plus state to provider records (providers).</p>
       <div class="diagram">
         <div class="diagram-inner">
           <div class="d-center"><div class="d-box d-box-wide"><strong>User</strong><small>"Find a cardiologist in Delaware"</small></div></div>
@@ -574,7 +670,7 @@
               <div style="width:2px;background:var(--ink);height:12px;"></div>
               <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:200px;"><strong>Specialty lookup</strong><small>SpecialtyMetaData → taxonomy codes</small></div>
               <div style="width:2px;background:var(--ink);height:12px;"></div>
-              <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:200px;"><strong>Provider query</strong><small>providers_staging · state + taxonomy codes</small></div>
+              <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:200px;"><strong>Provider query</strong><small>providers · state + taxonomy codes</small></div>
               <div style="width:2px;background:var(--ink);height:12px;"></div>
               <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:200px;"><strong>Provider list returned</strong><small>name · address · NPI</small></div>
             </div>
@@ -732,8 +828,9 @@
         <table>
           <tr><th>Concern</th><th>Tool</th><th>Detail</th></tr>
           <tr><td>Source control</td><td>GitHub</td><td>SkipSnow/findCare · SkipSnow/ChatHealthyDataPipeline</td></tr>
-          <tr><td>App deploy</td><td>GitHub Actions</td><td>Push to master → rsync to HuggingFace Space (path filter: Code/ConversationalUX/**)</td></tr>
-          <tr><td>Pipeline deploy</td><td>GitHub Actions</td><td>Push to master → deploy to Azure Function App (path filter: Code/DataPipelines/**)</td></tr>
+          <tr><td>App deploy (FindCare)</td><td>GitHub Actions</td><td>Push to dev → deploy to HuggingFace Space (path filter: Code/ConversationalUX/**)</td></tr>
+          <tr><td>App deploy (Gradio)</td><td>GitHub Actions</td><td>Push to main → rsync to HuggingFace Space (path filter: Code/ConversationalUX/ChatHealthyWhoAmIChat/**)</td></tr>
+          <tr><td>Pipeline deploy</td><td>GitHub Actions</td><td>Push to main → deploy to Azure Function App (path filter: Code/DataPipelines/**)</td></tr>
           <tr><td>Website deploy</td><td>Cloudflare</td><td>Website/ served as static pages — no build step</td></tr>
           <tr><td>Website tests</td><td>Playwright + pytest</td><td>Website/tests/ — 32 browser-driven tests</td></tr>
           <tr><td>App unit tests</td><td>pytest (mocked)</td><td>Code/ConversationalUX/…/tests/test_record_user_details.py</td></tr>
@@ -873,8 +970,8 @@
       <div class="table-wrap">
         <table>
           <tr><th>Cluster</th><th>Purpose</th></tr>
-          <tr><td><strong>ChatHealthyDataPipelines</strong></td><td>Batch writes — provider load, enrichment, embeddings. Started manually before each monthly run.</td></tr>
-          <tr><td><strong>ChatHealthyFrontEnd</strong></td><td>App reads — provider queries, specialty lookups, chat tool calls. Always on. (Runtime reads currently served from DataPipelines cluster pending CopyToRuntime implementation.)</td></tr>
+          <tr><td><strong>ChatHealthyFrontEnd</strong></td><td>Always on. App reads (providers, specialties, chat tools) + all admin data: prod_Brain (brain loop), prod_Backlog (product backlog), AboutUs (leads, unknown questions).</td></tr>
+          <tr><td><strong>ChatHealthyDataPipelines</strong></td><td>Started manually before each pipeline run, stopped when done. Batch writes only — provider load, enrichment, embeddings. Never holds admin or operational data.</td></tr>
         </table>
       </div>
 
@@ -926,7 +1023,7 @@
           </tr>
           <tr style="background:#fafafa;">
             <td style="padding:8px; border:1px solid #ddd;"><code>PublicHealthData</code></td>
-            <td style="padding:8px; border:1px solid #ddd;"><code>providers_staging</code> (with <code>embedding</code> float[1536] after Step 5), enrichment working data, <code>ICD10Codes</code>, <code>SpecialtyMetaData</code>, <code>ZipCountyCrosswalk</code></td>
+            <td style="padding:8px; border:1px solid #ddd;"><code>providers</code> (with <code>embedding</code> float[1536] after Step 5), enrichment working data, <code>ICD10Codes</code>, <code>SpecialtyMetaData</code>, <code>ZipCountyCrosswalk</code></td>
             <td style="padding:8px; border:1px solid #ddd;">ChatHealthyDataPipelines</td>
             <td style="padding:8px; border:1px solid #ddd; font-size:0.8rem;">100% public data — pipeline working area. Atlas Vector Search index <code>provider_vector_index</code> (cosine, 1536 dims) on <code>embedding</code> field.</td>
           </tr>
@@ -1003,9 +1100,178 @@
       </div>
 
       <!-- 13 -->
-      <h2 id="deferred">13. Deferred</h2>
+      <h2 id="models">13. AI Models &amp; Cost at Scale</h2>
+
+      <h3>Active Models</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Function</th>
+            <th>Model</th>
+            <th>Vendor</th>
+            <th>Tokens (in/out)</th>
+            <th>Cost/1M users/year</th>
+            <th>% of AI Spend</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Main chat (conversation, tool calls, responses)</td>
+            <td><strong>Claude Sonnet 4.6</strong></td>
+            <td>Anthropic</td>
+            <td>2000 / 500 per query</td>
+            <td>$7,391,250</td>
+            <td>97.3%</td>
+          </tr>
+          <tr>
+            <td>Safety classifier (emergency detection)</td>
+            <td><strong>GPT-4.1-mini</strong></td>
+            <td>OpenAI</td>
+            <td>300 / 20 per query</td>
+            <td>$83,220</td>
+            <td>1.1%</td>
+          </tr>
+          <tr>
+            <td>Query expansion (specialty search)</td>
+            <td>Claude Haiku 4.5</td>
+            <td>Anthropic</td>
+            <td>200 / 50 per search</td>
+            <td>$49,275</td>
+            <td>0.6%</td>
+          </tr>
+          <tr>
+            <td>Summarization (consent tier 2)</td>
+            <td>Claude Haiku 4.5</td>
+            <td>Anthropic</td>
+            <td>500 / 100 per session</td>
+            <td>$10,950</td>
+            <td>0.1%</td>
+          </tr>
+          <tr>
+            <td>De-identification (HIPAA Safe Harbor)</td>
+            <td>Claude Haiku 4.5</td>
+            <td>Anthropic</td>
+            <td>800 / 600 per session</td>
+            <td>$41,610</td>
+            <td>0.5%</td>
+          </tr>
+          <tr>
+            <td>URL content verification</td>
+            <td>Claude Haiku 4.5</td>
+            <td>Anthropic</td>
+            <td>400 / 30 per check</td>
+            <td>$15,056</td>
+            <td>0.2%</td>
+          </tr>
+          <tr>
+            <td>Provider vector search</td>
+            <td>text-embedding-3-large</td>
+            <td>OpenAI</td>
+            <td>200 / 0 per search</td>
+            <td>$2,847</td>
+            <td>0.04%</td>
+          </tr>
+          <tr>
+            <td>Specialty vector search</td>
+            <td>text-embedding-3-small</td>
+            <td>OpenAI</td>
+            <td>100 / 0 per search</td>
+            <td>$219</td>
+            <td>0.003%</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p style="margin-top:12px;"><strong>Total AI cost per 1M users/year:</strong> $7,594,427 &mdash; <strong>$7.59/user/year</strong> ($0.63/user/month)</p>
+      <p><strong>Total operating cost (incl. staff + infra):</strong> $8,987,020 &mdash; <strong>$8.99/user/year</strong> ($0.75/user/month)</p>
+
+      <h3>Vendor Diversity Strategy</h3>
+      <p>Safety-critical functions (emergency detection) run on OpenAI (GPT-4.1-mini). Main conversation runs on Anthropic (Sonnet 4.6). If either vendor experiences an outage, the other function continues independently. This is a deliberate architectural decision &mdash; single-vendor dependency is unacceptable for a healthcare safety system.</p>
+
+      <h3>Rejected Models</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Vendor</th>
+            <th>Evaluated For</th>
+            <th>Outcome</th>
+            <th>Rationale</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Claude Haiku 4.5</td>
+            <td>Anthropic</td>
+            <td>Safety classifier</td>
+            <td style="color:var(--warn);"><strong>REJECTED</strong></td>
+            <td>False positive on provider name lookup (&ldquo;Ms. Opeyemi Kemiki Dada&rdquo; triggered emergency). Unreliable classification on edge cases. Replaced by GPT-4.1-mini which correctly classifies information requests.</td>
+          </tr>
+          <tr>
+            <td>Claude Sonnet 4.6</td>
+            <td>Anthropic</td>
+            <td>Safety classifier</td>
+            <td style="color:var(--warn);"><strong>REJECTED</strong></td>
+            <td>Functional but 3x cost of Haiku ($1.3M/year per 1M users). Same vendor as main chat &mdash; no diversity benefit. GPT-4.1-mini is 2.5x cheaper than Haiku AND provides vendor diversity.</td>
+          </tr>
+          <tr>
+            <td>Claude Opus 4.6</td>
+            <td>Anthropic</td>
+            <td>Safety classifier</td>
+            <td style="color:var(--warn);"><strong>REJECTED</strong></td>
+            <td>Prohibitive cost: $6.6M/year per 1M users for safety alone. No justification for reasoning-class model on a binary classification task.</td>
+          </tr>
+          <tr>
+            <td>GPT-4o</td>
+            <td>OpenAI</td>
+            <td>Safety classifier</td>
+            <td>Considered</td>
+            <td>Functional but $1.04M/year per 1M users. GPT-4.1-mini at $83K provides equivalent classification quality for this task at 12x lower cost.</td>
+          </tr>
+          <tr>
+            <td>GPT-4o-mini</td>
+            <td>OpenAI</td>
+            <td>Safety classifier</td>
+            <td>Considered</td>
+            <td>Cheapest option ($62K/year) but older architecture than GPT-4.1-mini. GPT-4.1-mini chosen for better classification on edge cases at marginal cost increase.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Projected Cost per Million Users</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Users</th>
+            <th>AI Cost/Year</th>
+            <th>Staff</th>
+            <th>Infrastructure</th>
+            <th>Total Operating</th>
+            <th>Per User/Year</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>1M</td><td>$7.6M</td><td>$1.3M</td><td>$56K</td><td>$9.0M</td><td>$8.99</td></tr>
+          <tr><td>2M</td><td>$15.2M</td><td>$1.3M</td><td>$100K</td><td>$16.6M</td><td>$8.31</td></tr>
+          <tr><td>5M</td><td>$38.0M</td><td>$2.0M</td><td>$200K</td><td>$40.2M</td><td>$8.04</td></tr>
+          <tr><td>10M</td><td>$75.9M</td><td>$3.5M</td><td>$400K</td><td>$79.8M</td><td>$7.98</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:8px; font-size:0.88rem; color:var(--ink-soft);">Assumptions: 3 logins/month, 15 queries/session, 20% trigger provider search, 5% trigger URL verify, 2% trigger consent flow. Staff scales from 3 ($350K + benefits each) to ~8 at 10M. LLM costs assumed constant &mdash; historically dropping ~50% year-over-year.</p>
+
+      <h3>Usage Assumptions</h3>
       <ul>
-        <li><strong>CopyToRuntime + Blue-Green Collection Swap</strong> — fan-out copy of <code>providers_staging</code> → <code>providers_new</code> on ChatHealthyFrontEnd cluster, then atomic rename swap. Until implemented, runtime reads are served from the DataPipelines cluster.</li>
+        <li>3 logins per user per month</li>
+        <li>15 queries per session</li>
+        <li>Every query: 1 safety check (GPT-4.1-mini) + 1 main chat (Sonnet 4.6)</li>
+        <li>20% of queries trigger provider search (1 query expansion + 1 embedding)</li>
+        <li>5% of queries trigger URL Guardian AI verification</li>
+        <li>2% of sessions trigger consent flow (1 summarize + 1 de-identify)</li>
+      </ul>
+
+      <h2 id="deferred">14. Deferred</h2>
+      <ul>
+        <li><strong>CopyToRuntime + Blue-Green Collection Swap</strong> — fan-out copy of <code>providers</code> → <code>providers_new</code> on ChatHealthyFrontEnd cluster, then atomic rename swap. Until implemented, runtime reads are served from the DataPipelines cluster.</li>
         <li><strong>Cluster manager agent</strong> — dedicated agent/service to start/stop the DataPipelines cluster on a schedule, fully decoupled from the pipeline itself. Current approach: manual.</li>
         <li><strong>Idle monitor re-enable</strong> — auto-pause the DataPipelines cluster when idle. Disabled because it fired mid-pipeline run. Requires a pipeline lock mechanism before re-enabling.</li>
         <li><strong>Multi-location provider aggregation</strong> — NPPES has one practice address per individual NPI. Supplementing with payer directory data would reveal all locations where a provider bills (see RESEARCH-001).</li>

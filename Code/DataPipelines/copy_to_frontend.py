@@ -21,9 +21,10 @@ from pymongo import MongoClient
 
 BATCH_SIZE = 10_000
 
-# Always-copied collections: (src_db, src_coll, dst_db, dst_coll)
+# Always-copied collections: (src_coll, dst_coll)
+# Source and destination DB names are built from env_prefix at runtime.
 _STATIC_COLLECTIONS = [
-    ("dev_PublicHealthData", "SpecialtyMetaData", "dev_PublicHealthData", "SpecialtyMetaData"),
+    ("SpecialtyMetaData", "SpecialtyMetaData"),
 ]
 
 
@@ -86,9 +87,11 @@ def snapshot_collection_fn(config: dict) -> dict:
     if not conn:
         raise ValueError("MONGO_connectionString not set")
 
+    env_prefix = config.get("env_prefix", "dev")
+    db_name = f"{env_prefix}_PublicHealthData" if env_prefix else "PublicHealthData"
     client = MongoClient(conn, serverSelectionTimeoutMS=30_000)
     try:
-        db = client["dev_PublicHealthData"]
+        db = client[db_name]
         count_before = db[source].count_documents({})
         logging.info("Snapshot: %s (%s docs) → %s", source, f"{count_before:,}", destination)
         list(db[source].aggregate([{"$out": destination}], allowDiskUse=True))
@@ -194,19 +197,21 @@ def run_copy_to_frontend(config: dict) -> dict:
 
     results = []
     try:
-        for src_db, src_coll, _, dst_coll in _STATIC_COLLECTIONS:
-            logging.info("=== %s.%s → frontend:%s.%s ===", src_db, src_coll, dst_db_name, dst_coll)
+        src_db_name = config.get("src_db", "dev_PublicHealthData")
+
+        for src_coll, dst_coll in _STATIC_COLLECTIONS:
+            logging.info("=== %s.%s → frontend:%s.%s ===", src_db_name, src_coll, dst_db_name, dst_coll)
             results.append(_copy_collection(
-                pipeline_client[src_db], frontend_client[dst_db_name], src_coll, dst_coll
+                pipeline_client[src_db_name], frontend_client[dst_db_name], src_coll, dst_coll
             ))
 
         if provider_query is not None:
             logging.info(
-                "=== providers → frontend:%s.providers (states: %s) ===",
-                dst_db_name, state_list,
+                "=== %s.providers → frontend:%s.providers (states: %s) ===",
+                src_db_name, dst_db_name, state_list,
             )
             results.append(_copy_collection(
-                pipeline_client["dev_PublicHealthData"],
+                pipeline_client[src_db_name],
                 frontend_client[dst_db_name],
                 "providers",
                 "providers",

@@ -1,0 +1,206 @@
+{
+  "title": "FindCare Backend Portability Refactoring — Sprint 2 Design",
+  "status": "approved_design_pending_implementation",
+  "collaboration": "Claude (engineer) + GPT (architect), 4 iterations, 2026-03-27",
+  "trigger": "Boss directive: porting to Azure should not be major work. Portability must be a design property.",
+
+  "current_state": {
+    "file": "Code/ConversationalUX/FindCareChat/backend/main.py",
+    "lines": 1323,
+    "problem": "Monolithic — all business logic, FastAPI setup, prompt construction, tool dispatch, safety, providers, clinical trials, lead capture, notifications, and static file serving in a single file.",
+    "sprint_1_mitigation": "URLGuardian class extracted as standalone module (url_guardian.py) — validates URLs in tool results and LLM text responses. Integrated into main.py with 3 lines of code."
+  },
+
+  "target_state": {
+    "modules": {
+      "main.py": {
+        "lines": "~30",
+        "responsibility": "Thin entry point — creates HostConfig, wires dependencies, starts server",
+        "pseudocode": [
+          "from host_config import HostConfig",
+          "from url_guardian import URLGuardian",
+          "from prompt_factory import PromptFactory",
+          "from findcare_app import FindCareApp",
+          "from gui_helper import GUIHelper",
+          "",
+          "config = HostConfig.from_env()",
+          "guardian = URLGuardian()",
+          "prompts = PromptFactory(me_dir=config.me_dir)",
+          "app_logic = FindCareApp(config, prompts, guardian)",
+          "gui = GUIHelper(app_logic, config)",
+          "",
+          "# Register tools from both FindCareApp and PromptFactory",
+          "prompts.register_tool('find_providers', app_logic.find_providers)",
+          "prompts.register_tool('get_skip_snow_context', prompts.get_skip_snow_context)",
+          "# ... etc",
+          "",
+          "if __name__ == '__main__':",
+          "    gui.run()"
+        ]
+      },
+
+      "host_config.py": {
+        "lines": "~25",
+        "responsibility": "Dataclass with all host-specific settings",
+        "fields": {
+          "port": {"type": "int", "default": 7860, "note": "7860 on HuggingFace, 8000 on Azure"},
+          "static_file_path": {"type": "str", "default": "./static", "note": "None on Azure (Cloudflare serves frontend)"},
+          "cors_origins": {"type": "list[str]", "note": "Production domains"},
+          "cors_origin_regex": {"type": "str", "note": "Dynamic CORS matching for dev"},
+          "mount_static_files": {"type": "bool", "default": true, "note": "False on Azure (frontend on Cloudflare)"},
+          "asgi_server": {"type": "str", "default": "uvicorn", "note": "gunicorn on Azure"},
+          "env_prefix": {"type": "str", "default": "dev", "note": "Controls database routing: dev/qa/prod"},
+          "debug": {"type": "bool", "default": false}
+        },
+        "factory": "HostConfig.from_env() reads all values from environment variables with sensible defaults"
+      },
+
+      "findcare_app.py": {
+        "lines": "~800",
+        "responsibility": "ALL business logic — safety, providers, clinical trials, lead capture, chat loop, tool dispatch",
+        "constructor": "FindCareApp(host_config: HostConfig, prompt_factory: PromptFactory, url_guardian: URLGuardian)",
+        "internal_dependencies": "Creates its own MongoDB connection (ChatHealthyMongoUtilities), Anthropic client, OpenAI client, SparkPost notifier. These are NOT injected — they are implementation details.",
+        "functions": {
+          "safety": ["_is_ip_locked", "_lock_ip", "_safety_collection", "_lock_ip_db", "_check_ip_lock_db", "_admin_unlock", "_session_is_locked", "_safety_check"],
+          "database": ["_get_db", "commitSignificantActivity", "_format_chat_history"],
+          "providers": ["_expand_query_terms", "find_specialty_codes", "_load_fips_county_map", "_make_county_filter", "_get_oai_client", "_get_query_embedding", "_format_provider", "_vector_search_providers", "find_providers"],
+          "clinical_trials": ["search_clinical_trials"],
+          "lead_capture": ["record_user_details", "_summarize_conversation", "deIdentify", "record_unknown_question"],
+          "external_lookup": ["lookup_provider_external"],
+          "notifications": ["push"],
+          "debug": ["_debug_log_chat"],
+          "chat": ["chat_inner", "_handle_tool_calls"]
+        }
+      },
+
+      "gui_helper.py": {
+        "lines": "~150",
+        "responsibility": "FastAPI app creation, CORS, endpoints, static file mount",
+        "constructor": "GUIHelper(findcare_app: FindCareApp, host_config: HostConfig)",
+        "creates": "FastAPI app instance",
+        "registers": ["/health", "/welcome", "/chat endpoints"],
+        "delegates": "All business logic calls go to FindCareApp",
+        "models": ["ChatRequest (Pydantic)", "ChatResponse (Pydantic)"]
+      },
+
+      "prompt_factory.py": {
+        "lines": "~200",
+        "responsibility": "System prompt construction, tool schemas, tool registry, context loading",
+        "constructor": "PromptFactory(me_dir: str)",
+        "functions": ["_load_me_context", "system_prompt", "get_skip_snow_context", "get_chathealthy_context", "_trim"],
+        "tool_registry": {
+          "anthropic_tools": "List of Anthropic-format tool schemas",
+          "registry": "dict[str, Callable] — tool name to function reference",
+          "register_tool(name, fn)": "Adds a tool to the registry",
+          "get_tool(name)": "Returns the callable for a tool name",
+          "note": "FindCareApp populates the registry at init time. Replaces globals().get(name) pattern."
+        }
+      },
+
+      "url_guardian.py": {
+        "lines": "~130",
+        "status": "IMPLEMENTED (Sprint 1)",
+        "responsibility": "URL extraction, validation, and correction",
+        "constructor": "URLGuardian(cache_ttl=3600, request_timeout=5, max_workers=4)",
+        "dual_mode": {
+          "guard_tool_result(result)": "Validates URLs in tool result dicts (e.g. lookup_provider_external). Removes broken links.",
+          "guard_text(text)": "Validates URLs in markdown text. Defangs broken links (keeps text, removes href)."
+        },
+        "features": [
+          "HEAD request with GET fallback on 405",
+          "Redirect following — updates URL if redirected",
+          "Trusted domain whitelist (Healthgrades, Zocdoc) — skip validation for bot-protected search sites",
+          "In-memory TTL cache — avoids repeated requests",
+          "Concurrent validation with ThreadPoolExecutor"
+        ]
+      }
+    }
+  },
+
+  "design_decisions": {
+    "claude_overrides": [
+      {
+        "issue": "GPT proposed 11 modules",
+        "resolution": "Consolidated to 5+1 (HostConfig). Small files like NotificationService, ClinicalTrialsSearch, ExternalProviderLookup are private methods inside FindCareApp, not separate modules.",
+        "reason": "Over-fragmentation adds import complexity for no testability gain. These are single-function concerns."
+      },
+      {
+        "issue": "GPT wanted DatabaseManager and NotificationService injected into FindCareApp",
+        "resolution": "FindCareApp creates its own MongoDB and notification internals",
+        "reason": "Boss rule: e2e tests use real systems, no mocks. DI for testability is pointless when you don't mock."
+      },
+      {
+        "issue": "GPT placed _handle_tool_calls in PromptFactory",
+        "resolution": "Tool dispatch stays in FindCareApp. PromptFactory holds the registry (name->callable map).",
+        "reason": "Tool functions live in FindCareApp. Dispatch needs access to FindCareApp state (chat history, DB). Registry pattern decouples schema from implementation."
+      },
+      {
+        "issue": "GPT proposed URL validation on text only",
+        "resolution": "Dual-mode: guard_tool_result (for constructed URLs) + guard_text (for LLM-generated markdown)",
+        "reason": "Tool-constructed URLs (like the broken Delaware board search) are the higher-priority fix. Text validation catches LLM hallucinated URLs."
+      }
+    ]
+  },
+
+  "migration_plan": [
+    {"step": 1, "action": "Create host_config.py with HostConfig dataclass and from_env() factory", "test": "Import in main.py, verify all env vars load correctly"},
+    {"step": 2, "action": "Extract prompt_factory.py — system prompt, tool schemas, context loading, tool registry", "test": "main.py imports PromptFactory, system prompt matches current output"},
+    {"step": 3, "action": "url_guardian.py already exists — no action needed", "test": "Already passing smoke tests"},
+    {"step": 4, "action": "Extract gui_helper.py — FastAPI app, CORS, endpoints, static mount", "test": "/health, /welcome, /chat endpoints respond identically"},
+    {"step": 5, "action": "Extract findcare_app.py — all business logic", "test": "Full e2e test: provider search, safety, lead capture, clinical trials"},
+    {"step": 6, "action": "Thin main.py to ~30 lines", "test": "Full regression — app behaves identically to pre-refactoring"}
+  ],
+
+  "prescreen_design": {
+    "description": "PreScreen class - single GPT-4.1-mini call, two classifications per user message",
+    "pattern": "One prompt, two functions",
+    "call": "GPT-4.1-mini with combined system prompt",
+    "input": "User message + list of answerable topics",
+    "output": {"emergency": "bool", "confidence": "float", "answerable": "bool"},
+    "routing": {
+      "emergency_true": "Lock IP, return 911 response, store audit trail",
+      "answerable_false": "Call record_unknown_question, inject 'say I dont know' into Sonnet system prompt",
+      "answerable_true": "Pass to Sonnet normally"
+    },
+    "class_structure": {
+      "file": "prescreen.py",
+      "class": "PreScreen",
+      "constructor": "PreScreen(openai_key: str, answerable_topics: list[str])",
+      "methods": {
+        "check(message: str)": "Returns PreScreenResult(emergency, confidence, answerable)",
+        "answerable_topics": "List of topics the system can answer: healthcare navigation, provider search, clinical trials, Skip Snow career, ChatHealthy mission, Anthropic principles"
+      }
+    },
+    "cost": "Zero additional API calls - replaces existing safety check, adds answerability to same prompt",
+    "status": "Sprint 2 - part of portability refactoring",
+    "proposed_by": "Claude Opus 4.6",
+    "boss_approval": "Not yet reviewed. Skip has neither agreed nor disagreed with this approach."
+  },
+
+  "portability_matrix": {
+    "huggingface_docker": {
+      "port": 7860,
+      "static_files": true,
+      "asgi": "uvicorn",
+      "changes_needed": "None — current default"
+    },
+    "azure_app_service": {
+      "port": 8000,
+      "static_files": false,
+      "asgi": "gunicorn",
+      "changes_needed": "Set env vars: PORT=8000, MOUNT_STATIC=false, ASGI_SERVER=gunicorn. Frontend on Cloudflare Pages."
+    },
+    "bare_metal": {
+      "port": "any",
+      "static_files": true,
+      "asgi": "uvicorn or gunicorn",
+      "changes_needed": "Install dependencies, set env vars"
+    }
+  },
+
+  "risks": [
+    {"risk": "Refactoring may introduce subtle bugs in tool dispatch or chat loop", "mitigation": "Each migration step produces a working app. Full e2e test after each step."},
+    {"risk": "URL validation adds latency to chat responses", "mitigation": "Concurrent validation + TTL cache. Trusted domain whitelist skips bot-protected sites."},
+    {"risk": "Large PR — 1300 lines moved across 5 files", "mitigation": "Incremental steps. Can stop after any step with a working app."}
+  ]
+}

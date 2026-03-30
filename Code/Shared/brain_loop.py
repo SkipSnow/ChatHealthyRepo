@@ -38,6 +38,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+try:
+    from pymongo import MongoClient
+    _PYMONGO = True
+except ImportError:
+    _PYMONGO = False
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
@@ -84,6 +90,81 @@ def _read(path: Path) -> dict:
 def _write(path: Path, data: dict) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+    _mongo_sync(path, data)
+
+
+# ---------------------------------------------------------------------------
+# Blob storage — write Brain artifacts to Azure Blob Storage (best-effort)
+# ---------------------------------------------------------------------------
+
+def write_brain_artifact(name: str, data: bytes, content_type: str = "application/json") -> bool:
+    """Write an artifact to the Brain blob container ({ENV_PREFIX}-brain).
+
+    Use for reports, generated documents, or any artifact too large for JSON/MongoDB.
+    Best-effort — returns False on failure, never raises.
+    """
+    try:
+        from blob_client import get_blob_service, container_brain
+        container = get_blob_service().get_container_client(container_brain())
+        container.get_blob_client(name).upload_blob(
+            data, overwrite=True, content_settings={"content_type": content_type}
+        )
+        return True
+    except Exception as e:
+        print(f"[BrainLoop] WARNING: blob write failed for {name} — {e}", flush=True)
+        return False
+
+
+# ---------------------------------------------------------------------------
+# MongoDB sync — dual-write after every JSON write (best-effort)
+# ---------------------------------------------------------------------------
+
+_ENV_PREFIX = os.getenv("ENV_PREFIX", "dev")
+_BRAIN_DB   = f"{_ENV_PREFIX}_Brain"
+_mongo_client_cache: dict = {}
+
+
+def _get_mongo_db():
+    if not _PYMONGO:
+        return None
+    # Brain lives on the always-on FrontEnd cluster, not DataPipelines
+    uri = os.getenv("MONGO_FRONTEND_connectionString") or os.getenv("MONGO_connectionString")
+    if not uri:
+        return None
+    try:
+        if "client" not in _mongo_client_cache:
+            _mongo_client_cache["client"] = MongoClient(uri, serverSelectionTimeoutMS=3000)
+        return _mongo_client_cache["client"][_BRAIN_DB]
+    except Exception:
+        return None
+
+
+def _upsert_many(collection, docs: list, id_field: str) -> None:
+    for doc in docs:
+        if id_field in doc:
+            collection.replace_one({id_field: doc[id_field]}, doc, upsert=True)
+
+
+def _mongo_sync(path: Path, data: dict) -> None:
+    """Sync written data to MongoDB. Best-effort — never raises."""
+    db = _get_mongo_db()
+    if db is None:
+        return
+    try:
+        if path == _ASSIGNMENT_QUEUE:
+            _upsert_many(db["assignments"], data.get("assignments", []), "assignment_id")
+        elif path == _REVIEW_QUEUE:
+            _upsert_many(db["reviews"], data.get("reviews", []), "review_id")
+        elif path == _ASSURANCE:
+            _upsert_many(db["assurance_results"], data.get("results", []), "review_id")
+        elif path == _EXEC_STATE:
+            db["execution_state"].replace_one(
+                {"_singleton": True}, {**data, "_singleton": True}, upsert=True
+            )
+        elif path == _UAT_LIBRARY:
+            _upsert_many(db["uat_scenarios"], data.get("scenarios", []), "scenario_id")
+    except Exception as e:
+        print(f"[BrainLoop] WARNING: MongoDB sync failed — {e}", flush=True)
 
 
 def _set_state(review_id: Optional[str], status: str, escalation_reason: Optional[str] = None) -> None:
@@ -600,3 +681,16 @@ def get_pending_reviews() -> list[dict]:
     """Return all reviews with status=pending."""
     queue = _read(_REVIEW_QUEUE)
     return [r for r in queue.get("reviews", []) if r.get("status") == "pending"]
+
+
+def sync_all_to_mongo() -> None:
+    """
+    Bootstrap MongoDB from all existing JSON brain files.
+    Call once to populate the DB from the current JSON state.
+    Safe to re-run — all writes are upserts.
+    """
+    for path in (_ASSIGNMENT_QUEUE, _REVIEW_QUEUE, _ASSURANCE, _EXEC_STATE, _UAT_LIBRARY):
+        if path.exists():
+            _mongo_sync(path, _read(path))
+            print(f"[BrainLoop] Synced {path.name} to MongoDB", flush=True)
+    print(f"[BrainLoop] Bootstrap complete: {_BRAIN_DB}", flush=True)
