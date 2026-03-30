@@ -1,12 +1,12 @@
 {
   "title": "GPT Reader SIT Report",
   "version": "v0.1.3",
-  "date": "2026-03-30T20:31:31.800460+00:00",
+  "date": "2026-03-30T20:56:08.266445+00:00",
   "tester": "Claude (simulating GPT)",
-  "design_version": "6.0",
+  "design_version": "6.1",
   "summary": {
-    "total_tests": 23,
-    "passed": 23,
+    "total_tests": 27,
+    "passed": 27,
     "failed": 0,
     "pass_rate": "100.0%"
   },
@@ -16,8 +16,8 @@
       "title": "Valid token accepted",
       "status": "PASS",
       "details": "Status: 200",
-      "elapsed_ms": 1518,
-      "timestamp": "2026-03-30T20:31:05.963364+00:00"
+      "elapsed_ms": 1789,
+      "timestamp": "2026-03-30T20:55:21.083548+00:00"
     },
     {
       "requirement_id": "R4",
@@ -25,55 +25,55 @@
       "status": "PASS",
       "details": "Status: 401",
       "elapsed_ms": 0,
-      "timestamp": "2026-03-30T20:31:05.963364+00:00"
+      "timestamp": "2026-03-30T20:55:21.083548+00:00"
     },
     {
       "requirement_id": "R1",
       "title": "Read text artifact (JSON)",
       "status": "PASS",
       "details": "Status: 200, encoding: text",
-      "elapsed_ms": 1270,
-      "timestamp": "2026-03-30T20:31:07.233587+00:00"
+      "elapsed_ms": 1316,
+      "timestamp": "2026-03-30T20:55:22.400339+00:00"
     },
     {
       "requirement_id": "R1",
       "title": "Read text artifact (MD)",
       "status": "PASS",
       "details": "Status: 200",
-      "elapsed_ms": 1248,
-      "timestamp": "2026-03-30T20:31:08.481791+00:00"
+      "elapsed_ms": 1350,
+      "timestamp": "2026-03-30T20:55:23.751174+00:00"
     },
     {
       "requirement_id": "R5",
       "title": "Read binary artifact (PDF, base64)",
       "status": "PASS",
       "details": "Status: 200, encoding: base64",
-      "elapsed_ms": 1051,
-      "timestamp": "2026-03-30T20:31:09.533050+00:00"
+      "elapsed_ms": 1291,
+      "timestamp": "2026-03-30T20:55:25.042935+00:00"
     },
     {
       "requirement_id": "R2",
       "title": "Query allowlisted database succeeds",
       "status": "PASS",
       "details": "Status: 200, count: 5",
-      "elapsed_ms": 1716,
-      "timestamp": "2026-03-30T20:31:11.250040+00:00"
+      "elapsed_ms": 2130,
+      "timestamp": "2026-03-30T20:55:27.173168+00:00"
     },
     {
       "requirement_id": "R2",
       "title": "Query admin database succeeds",
       "status": "PASS",
       "details": "Status: 200",
-      "elapsed_ms": 1275,
-      "timestamp": "2026-03-30T20:31:12.525598+00:00"
+      "elapsed_ms": 1355,
+      "timestamp": "2026-03-30T20:55:28.528218+00:00"
     },
     {
       "requirement_id": "R2",
       "title": "Unauthorized database returns 403",
       "status": "PASS",
       "details": "Status: 403",
-      "elapsed_ms": 1053,
-      "timestamp": "2026-03-30T20:31:13.579595+00:00"
+      "elapsed_ms": 973,
+      "timestamp": "2026-03-30T20:55:29.501918+00:00"
     },
     {
       "requirement_id": "R3",
@@ -81,7 +81,7 @@
       "status": "PASS",
       "details": "Status: 400",
       "elapsed_ms": 1136,
-      "timestamp": "2026-03-30T20:31:14.715626+00:00"
+      "timestamp": "2026-03-30T20:55:30.638186+00:00"
     },
     {
       "requirement_id": "R6",
@@ -89,63 +89,63 @@
       "status": "PASS",
       "details": "All fields present",
       "elapsed_ms": 0,
-      "timestamp": "2026-03-30T20:31:16.031255+00:00"
+      "timestamp": "2026-03-30T20:55:31.930420+00:00"
     },
     {
       "requirement_id": "R7",
       "title": "Small query under 500KB cap",
       "status": "PASS",
       "details": "Status: 200",
-      "elapsed_ms": 1450,
-      "timestamp": "2026-03-30T20:31:17.481899+00:00"
+      "elapsed_ms": 1575,
+      "timestamp": "2026-03-30T20:55:33.505615+00:00"
     },
     {
       "requirement_id": "R8",
       "title": "Default limit 10 applied",
       "status": "PASS",
       "details": "Status: 200, count: 10",
-      "elapsed_ms": 1673,
-      "timestamp": "2026-03-30T20:31:19.155094+00:00"
+      "elapsed_ms": 2044,
+      "timestamp": "2026-03-30T20:55:35.550316+00:00"
     },
     {
       "requirement_id": "R13",
       "title": "Path traversal blocked (403)",
       "status": "PASS",
       "details": "Status: 403",
-      "elapsed_ms": 1107,
-      "timestamp": "2026-03-30T20:31:20.262396+00:00"
+      "elapsed_ms": 1150,
+      "timestamp": "2026-03-30T20:55:36.700569+00:00"
     },
     {
       "requirement_id": "R13",
       "title": "Absolute path blocked (403)",
       "status": "PASS",
       "details": "Status: 403",
-      "elapsed_ms": 1138,
-      "timestamp": "2026-03-30T20:31:21.400552+00:00"
+      "elapsed_ms": 958,
+      "timestamp": "2026-03-30T20:55:37.658724+00:00"
     },
     {
       "requirement_id": "R14",
       "title": "507 on large query with suggestion",
       "status": "PASS",
       "details": "Status: 507, keys: ['error', 'message', 'max_documents', 'estimated_result', 'suggestion']",
-      "elapsed_ms": 1149,
-      "timestamp": "2026-03-30T20:31:22.549715+00:00"
+      "elapsed_ms": 1271,
+      "timestamp": "2026-03-30T20:55:38.929780+00:00"
     },
     {
       "requirement_id": "R19",
       "title": "ReadArtifact under 30s timeout",
       "status": "PASS",
-      "details": "Elapsed: 1131ms",
-      "elapsed_ms": 1131,
-      "timestamp": "2026-03-30T20:31:23.681544+00:00"
+      "details": "Elapsed: 1354ms",
+      "elapsed_ms": 1354,
+      "timestamp": "2026-03-30T20:55:40.284238+00:00"
     },
     {
       "requirement_id": "R26",
       "title": "Audit log entry created",
       "status": "PASS",
-      "details": "Before: 136, after: 137",
+      "details": "Before: 156, after: 157",
       "elapsed_ms": 0,
-      "timestamp": "2026-03-30T20:31:25.099934+00:00"
+      "timestamp": "2026-03-30T20:55:41.746773+00:00"
     },
     {
       "requirement_id": "R26",
@@ -153,7 +153,7 @@
       "status": "PASS",
       "details": "All fields present",
       "elapsed_ms": 0,
-      "timestamp": "2026-03-30T20:31:25.184728+00:00"
+      "timestamp": "2026-03-30T20:55:41.915325+00:00"
     },
     {
       "requirement_id": "R27",
@@ -161,15 +161,15 @@
       "status": "PASS",
       "details": "Snapshot: snapshot_20260330_192601_40ecfd06",
       "elapsed_ms": 0,
-      "timestamp": "2026-03-30T20:31:25.184728+00:00"
+      "timestamp": "2026-03-30T20:55:41.915325+00:00"
     },
     {
       "requirement_id": "R27",
       "title": "Stale snapshot returns 409",
       "status": "PASS",
       "details": "Status: 409",
-      "elapsed_ms": 1338,
-      "timestamp": "2026-03-30T20:31:26.523484+00:00"
+      "elapsed_ms": 1520,
+      "timestamp": "2026-03-30T20:55:43.436209+00:00"
     },
     {
       "requirement_id": "R29",
@@ -177,23 +177,55 @@
       "status": "PASS",
       "details": "Checked first 5 entries",
       "elapsed_ms": 0,
-      "timestamp": "2026-03-30T20:31:26.523484+00:00"
+      "timestamp": "2026-03-30T20:55:43.436209+00:00"
     },
     {
       "requirement_id": "R14",
       "title": "Query response includes metrics",
       "status": "PASS",
       "details": "Metrics: ['matched_estimate', 'returned_count', 'response_bytes', 'elapsed_ms']",
-      "elapsed_ms": 1532,
-      "timestamp": "2026-03-30T20:31:28.056410+00:00"
+      "elapsed_ms": 1878,
+      "timestamp": "2026-03-30T20:55:45.314834+00:00"
+    },
+    {
+      "requirement_id": "R33",
+      "title": "FrontEnd cluster responds to query",
+      "status": "PASS",
+      "details": "Status: 200",
+      "elapsed_ms": 1621,
+      "timestamp": "2026-03-30T20:55:46.936463+00:00"
+    },
+    {
+      "requirement_id": "R33",
+      "title": "Read-only user cannot write",
+      "status": "PASS",
+      "details": "Write correctly blocked: OperationFailure",
+      "elapsed_ms": 984,
+      "timestamp": "2026-03-30T20:55:47.921080+00:00"
+    },
+    {
+      "requirement_id": "R34",
+      "title": "Pipeline cluster connection string configured",
+      "status": "PASS",
+      "details": "MONGO_READONLY_PIPELINE present",
+      "elapsed_ms": 0,
+      "timestamp": "2026-03-30T20:55:47.921080+00:00"
+    },
+    {
+      "requirement_id": "R34",
+      "title": "Pipeline cluster accessible or graceful error",
+      "status": "PASS",
+      "details": "Cluster unavailable (expected if paused): ServerSelectionTimeoutError",
+      "elapsed_ms": 15258,
+      "timestamp": "2026-03-30T20:56:03.180029+00:00"
     },
     {
       "requirement_id": "WORKFLOW",
       "title": "Full GPT session: manifest -> governance -> query",
       "status": "PASS",
       "details": "Steps: manifest=200, governance=200, query=200",
-      "elapsed_ms": 3659,
-      "timestamp": "2026-03-30T20:31:31.716161+00:00"
+      "elapsed_ms": 4981,
+      "timestamp": "2026-03-30T20:56:08.161788+00:00"
     }
   ]
 }

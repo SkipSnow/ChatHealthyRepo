@@ -176,6 +176,12 @@ def _query(client: MongoClient, config: dict) -> tuple:
     try:
         total_matching = coll.count_documents(query, limit=MAX_QUERY_DOCUMENTS + 1)
     except Exception as exc:
+        # R33: Cluster unavailable (paused/stopped) surfaces as ServerSelectionTimeoutError
+        exc_name = type(exc).__name__
+        if "ServerSelection" in exc_name or "Timeout" in exc_name:
+            return 503, {"error": "cluster_unavailable",
+                         "message": f"Database cluster is not responding. It may be paused. Boss must authorize starting it.",
+                         "detail": str(exc)}
         return 404, {"error": f"Query error: {exc}"}
 
     # If caller didn't filter and total exceeds cap, warn them
