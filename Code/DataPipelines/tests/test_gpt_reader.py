@@ -252,6 +252,26 @@ class TestQuery(unittest.TestCase):
         status, resp = handle_gpt_reader({"action": "DeleteEverything"}, "valid-token")
         self.assertEqual(status, 400)
 
+    @patch("gpt_reader._authenticate", return_value=True)
+    @patch("gpt_reader.MongoClient")
+    def test_cluster_paused_returns_503(self, mock_mongo_class, mock_auth):
+        """R33: Paused cluster returns 503 with clear message."""
+        from pymongo.errors import ServerSelectionTimeoutError
+        mock_client = MagicMock()
+        mock_mongo_class.return_value = mock_client
+        mock_coll = MagicMock()
+        mock_client.__getitem__ = MagicMock(return_value=MagicMock(__getitem__=MagicMock(return_value=mock_coll)))
+        mock_coll.count_documents.side_effect = ServerSelectionTimeoutError("No replica set members found yet")
+        mock_coll.insert_one = MagicMock()
+
+        status, resp = handle_gpt_reader(
+            {"action": "Query", "database": "dev_PublicHealthData", "collection": "providers",
+             "query": {}, "limit": 5}, "valid-token"
+        )
+        self.assertEqual(status, 503)
+        self.assertEqual(resp["error"], "cluster_unavailable")
+        self.assertIn("Boss", resp["message"])
+
 
 class TestConstants(unittest.TestCase):
     """Verify design constants match requirements."""

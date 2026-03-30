@@ -1,7 +1,7 @@
 {
   "title": "GPT Read-Only Query Service",
-  "version": "6.0",
-  "status": "DESIGN — GPT signed off, ready for Boss sign-off",
+  "version": "6.1",
+  "status": "DESIGN — GPT signed off, Boss adding requirements",
   "date": "2026-03-30",
   "author": "Claude Opus 4.6 (engineer)",
   "reviewer": "GPT (Enterprise Architect)",
@@ -12,7 +12,11 @@
     {"version": "4.2", "action": "GPT accepted Claude positions on rejected items, deferred to Framework 1.2"},
     {"version": "5.0", "action": "Merged design with dispute notes — ready for Boss review"},
     {"version": "5.2", "action": "Boss resolved R10, R11, R27 disputes. Added R32 brain lock. GPT prevails on R27. Zero open disputes."},
-    {"version": "6.0", "action": "GPT formal sign-off added. Design and requirements unchanged from v5.2."}
+    {"version": "6.0", "action": "GPT formal sign-off added. Design and requirements unchanged from v5.2."},
+    {"version": "6.1", "action": "Boss added R33 (multi-cluster read access, Boss authorizes DataPipelines startup) and R34 (full cluster access through Beta 0.2.1)."},
+    {"version": "6.2", "action": "Boss added R35 (live UAT for paused cluster 503). Boss identified GPT passed R33 on code review without live execution — insufficient rigor. R35 deferred due to Atlas 60-min cooldown."},
+    {"version": "6.3", "action": "Boss directed model upgrade: gpt-4o → o3 → gpt-5.3-chat-latest for brain operations. GPT-4o and o3 failed autonomous SIT (see FIND-SIT-001). Perplexity external audit produced 10 backlog items for v0.1.4 (BL-0.1.4-001 through 010)."}
+
   ],
   "purpose": "Give GPT governed read access to the ChatHealthy project artifact manifest and approved MongoDB data sources. Read-only, capped, authenticated, audited, and scoped by environment, database, collection, and artifact boundary. Canonical artifact identity is the relative path from project root. Boss remains out of routine Claude-GPT iteration loops but retains approval authority at defined governance gates.",
   "how_it_works": [
@@ -225,13 +229,16 @@
     {"id": "R29", "requirement": "Every manifest entry includes artifact_type and lifecycle_state to classify code, business, architecture, machine, and archive material", "status": "agreed", "dispute_notes": "New from GPT. Claude accepted."},
     {"id": "R30", "requirement": "Multi-storage canonical source resolution", "status": "deferred", "dispute_notes": "GPT proposed. Claude rejected: one storage mechanism exists. Deferred to Framework 1.2."},
     {"id": "R31", "requirement": "Pagination / continuation tokens for large query results", "status": "deferred", "dispute_notes": "GPT proposed. Claude rejected: 100 docs at 500KB sufficient. Deferred to Framework 1.2."},
-    {"id": "R32", "requirement": "Brain lock flag: during active brain writes, a mutex prevents concurrent modification. Claude cannot modify brain content while the flag is set by another process.", "status": "agreed", "dispute_notes": "New from Boss. Direct directive. No dispute."}
+    {"id": "R32", "requirement": "Brain lock flag: during active brain writes, a mutex prevents concurrent modification. Claude cannot modify brain content while the flag is set by another process.", "status": "agreed", "dispute_notes": "New from Boss. Direct directive. No dispute."},
+    {"id": "R33", "requirement": "GPT must have read access to all database clusters (ChatHealthyFrontEnd and ChatHealthyDataPipelines). Each cluster requires its own read-only connection string. If a cluster is unavailable (e.g. DataPipelines is off), return a clear error to Claude. Boss must authorize turning on the DataPipelines cluster — Claude and GPT cannot start it autonomously.", "status": "agreed", "dispute_notes": "New from Boss. Direct directive. Boss authorized as proxy to GPT. No dispute."},
+    {"id": "R34", "requirement": "GPT requires read access to all database clusters through Beta 0.2.1. Access scope may be narrowed after Beta 0.2.1 based on operational experience.", "status": "agreed", "dispute_notes": "New from Boss. Direct directive. Boss authorized as proxy to GPT. No dispute."},
+    {"id": "R35", "requirement": "Live UAT: GPT must EXECUTE a query against a paused DataPipelines cluster via the GPTReader service and verify the response is HTTP 503 with error='cluster_unavailable' and a message stating Boss must authorize cluster startup. GPT must call the service endpoint, receive the actual HTTP response, and validate the response body. Code review is NOT a test. Looking at source code is NOT a test. GPT must invoke handle_gpt_reader with a database on the Pipeline cluster and confirm the 503 response from a real paused cluster.", "status": "deferred", "dispute_notes": "New from Boss. Deferred: Atlas 60-minute pause cooldown prevented live test on 2026-03-30. Must be executed before production sign-off. Boss identified that GPT passed R33 by reviewing code instead of executing a test — this is a QA discipline failure."}
   ],
   "design_status": {
-    "total_requirements": 32,
-    "agreed": 28,
+    "total_requirements": 35,
+    "agreed": 30,
     "resolved_by_boss": 2,
-    "deferred_to_framework_1_2": 2,
+    "deferred": 3,
     "open_disputes": 0,
     "ready_for_implementation": true,
     "gpt_sign_off": {
