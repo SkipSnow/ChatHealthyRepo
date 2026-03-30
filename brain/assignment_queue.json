@@ -693,6 +693,22 @@
       "feedback_needed": false,
       "feedback_question": null,
       "deadline": "2026-03-30"
+    },
+    {
+      "assignment_id": "ASN-DPROM01",
+      "timestamp": "2026-03-29T23:30:00.000000+00:00",
+      "from": "Boss",
+      "assigned_to": "Claude",
+      "title": "Azure Function for data promotion between environments",
+      "description": "Replace GitHub Actions promote_data.py with an Azure Function that handles large-scale data promotion (millions of records). Needs proper compute, retry logic, progress tracking, and batch management. GitHub Actions runner is a stopgap for thin data only.",
+      "scope": [],
+      "priority": "medium",
+      "estimated_risk": "TBD",
+      "status": "backlog",
+      "result": null,
+      "feedback_needed": false,
+      "feedback_question": null,
+      "deadline": "2026-04-21"
     }
   ]
 }

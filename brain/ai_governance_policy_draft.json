@@ -6,6 +6,8 @@
   "date": "2026-03-29",
   "source": "Boss-authored, GPT-collaborated",
 
+  "policy_core": "The model may suggest. The system must decide.",
+
   "core_principle": "Token prediction ≠ truth. All AI-generated output is probabilistic language, not verified fact. No system behavior may treat model output as authoritative truth.",
 
   "system_roles": {
