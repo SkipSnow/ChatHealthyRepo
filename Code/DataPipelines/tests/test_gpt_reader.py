@@ -229,6 +229,7 @@ class TestQuery(unittest.TestCase):
     @patch("gpt_reader._authenticate", return_value=True)
     @patch("gpt_reader.MongoClient")
     def test_507_on_too_many_documents(self, mock_mongo_class, mock_auth):
+        """R14: 507 when result exceeds cap and limit can't help."""
         mock_client = MagicMock()
         mock_mongo_class.return_value = mock_client
         mock_coll = MagicMock()
@@ -238,7 +239,7 @@ class TestQuery(unittest.TestCase):
 
         status, resp = handle_gpt_reader(
             {"action": "Query", "database": "dev_PublicHealthData", "collection": "providers",
-             "query": {}}, "valid-token"
+             "query": {}, "limit": 100}, "valid-token"
         )
         self.assertEqual(status, 507)
         self.assertEqual(resp["error"], "response_too_large")
