@@ -1,0 +1,42 @@
+name: Deploy FindCare Website (QA)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [qa]
+    paths:
+      - 'Website/**'
+      - '.github/workflows/deploy-findcare-website-qa.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Bump build counter
+        env:
+          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
+        run: |
+          pip install pymongo python-dotenv
+          python Code/Shared/ops/bump_build.py --env qa
+
+      - name: Create Pages project (idempotent)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages project create chathealthy-website-qa --production-branch qa
+        continue-on-error: true
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy Website --project-name=chathealthy-website-qa --branch=qa
