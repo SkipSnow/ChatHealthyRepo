@@ -32,6 +32,7 @@ from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
 from copy_to_frontend import run_copy_to_frontend, snapshot_collection_fn, create_frontend_vector_index_fn
 from promote_data_fn import run_promote_data
+from gpt_reader import handle_gpt_reader
 from pipeline_health import check_mongo_health
 # from idle_monitor import check_and_pause  # disabled — see idle_monitor_timer below
 from county_enrichment_job import (
@@ -178,6 +179,30 @@ async def dev_pipeline_management(
 
     except Exception:
         logging.exception("Unhandled error in DevPipelineManagementService")
+        return func.HttpResponse(body="Internal server error", status_code=500, mimetype="text/plain")
+
+
+# ── GPT Reader — Read-only broker for GPT ────────────────────────────────────
+
+@app.function_name(name="GPTReader")
+@app.route(route="GPTReader", methods=["POST"])
+def gpt_reader_route(req: func.HttpRequest) -> func.HttpResponse:
+    """Read-only query service for GPT. Separate auth from Router (R4)."""
+    try:
+        # Extract Bearer token from Authorization header
+        auth_header = req.headers.get("Authorization", "")
+        token = auth_header.replace("Bearer ", "").strip() if auth_header.startswith("Bearer ") else ""
+
+        try:
+            config = req.get_json()
+        except ValueError:
+            return json_response({"error": "Request body must be valid JSON"}, 400)
+
+        status_code, response = handle_gpt_reader(config, token)
+        return json_response(response, status_code)
+
+    except Exception:
+        logging.exception("Unhandled error in GPTReader")
         return func.HttpResponse(body="Internal server error", status_code=500, mimetype="text/plain")
 
 
