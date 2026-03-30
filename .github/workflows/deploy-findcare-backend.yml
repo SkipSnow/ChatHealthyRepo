@@ -5,6 +5,7 @@ on:
     branches:
       - dev
       - qa
+      - main
     paths:
       - 'Code/ConversationalUX/FindCareChat/backend/**'
       - 'Code/ConversationalUX/FindCareChat/frontend/**'
