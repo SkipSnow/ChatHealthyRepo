@@ -31,6 +31,7 @@ from otp_manager import exchange_otp
 from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
 from copy_to_frontend import run_copy_to_frontend, snapshot_collection_fn, create_frontend_vector_index_fn
+from promote_data_fn import run_promote_data
 from pipeline_health import check_mongo_health
 # from idle_monitor import check_and_pause  # disabled — see idle_monitor_timer below
 from county_enrichment_job import (
@@ -87,6 +88,7 @@ SYNC_TASK_HANDLERS = {
     "CreateFrontendVectorIndex": create_frontend_vector_index_fn,
     "CheckMongoHealth": check_mongo_health,
     "StampEmbeddingVersion": stamp_embedding_version_fn,
+    "PromoteData": run_promote_data,
 }
 
 # Asynchronous tasks — start a Durable orchestrator, return 202 + status URL
