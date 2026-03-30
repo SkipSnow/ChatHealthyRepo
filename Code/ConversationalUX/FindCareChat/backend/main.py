@@ -614,7 +614,7 @@ def find_providers(specialty_query: str, state: str, city: str = "", county: str
             "supported": False,
             "state": state_upper,
             "message": (
-                f"FindCare is currently available in Delaware (DE) and Mississippi (MS) only. "
+                f"FindCare is currently available in Delaware (DE), Mississippi (MS), and Virginia (VA) only. "
                 f"We've noted interest in {state_upper}."
             ),
         }
@@ -944,7 +944,7 @@ anthropic_tools = [
         "name": "find_providers",
         "description": (
             "Search for healthcare providers (doctors, specialists) in a specific US state. "
-            "FindCare currently covers Delaware (DE) and Mississippi (MS). "
+            "FindCare currently covers Delaware (DE), Mississippi (MS), and Virginia (VA). "
             "Call this when the user asks to find a doctor, specialist, or provider in a location. "
             "Always confirm the user's state before calling if not provided. "
             "If result contains supported=false, tell the user we're not in their state yet, "
@@ -1399,7 +1399,7 @@ def _system_prompt(follow_up_check: bool = False) -> str:
         f"You know ONLY what is provided to you in this session: "
         f"{name}'s career and background (from get_skip_snow_context), "
         f"{website}'s mission and platform (from get_chathealthy_context), "
-        f"healthcare providers in DE and MS (from find_providers), "
+        f"healthcare providers in DE, MS, and VA (from find_providers), "
         f"medical specialties (from find_specialty_codes), "
         f"recruiting clinical trials (from search_clinical_trials). "
         f"You know NOTHING else. This rule applies to EVERY user message regardless of conversation history or context. "
