@@ -535,27 +535,27 @@
       "machine_brain_context_used": [
         {
           "mb_id": "REQ-STACK-002",
-          "topic": "MongoDB Connection — Environment Secret",
+          "topic": "MongoDB Connection \u2014 Environment Secret",
           "applied": "Ensured MongoDB connection string is set as an environment variable to resolve connection issues."
         },
         {
           "mb_id": "REQ-STACK-001",
-          "topic": "Frontend Stack — Angular + FastAPI",
+          "topic": "Frontend Stack \u2014 Angular + FastAPI",
           "applied": "Guided the transition from Gradio to Angular and FastAPI for the frontend and backend."
         },
         {
           "mb_id": "REQ-MAPS-001",
-          "topic": "Google Maps — Provider Location Display",
+          "topic": "Google Maps \u2014 Provider Location Display",
           "applied": "Outlined the requirement for embedding Google Maps in the chat interface."
         },
         {
           "mb_id": "REQ-PROVIDER-001",
-          "topic": "Provider Search — Core User Story",
+          "topic": "Provider Search \u2014 Core User Story",
           "applied": "Defined the core functionality of provider search using natural language input."
         },
         {
           "mb_id": "REQ-SAFETY-003",
-          "topic": "Safety Filter — Keyword List",
+          "topic": "Safety Filter \u2014 Keyword List",
           "applied": "Ensured the safety filter uses a hardcoded keyword list for emergency detection."
         }
       ]
