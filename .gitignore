@@ -32,3 +32,12 @@ Code/DataPipelines/pipeline_code_review.json
 !.evv/
 !.evv/**
 
+# Build artifacts
+node_modules/
+dist/
+Code/ConversationalUX/FindCareChat/backend/static/
+.env.local
+
+# Runtime logs
+*.log
+
