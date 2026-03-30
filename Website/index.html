@@ -588,11 +588,9 @@
           var host = window.location.hostname;
           var env = host.indexOf('dev.') === 0 ? 'dev' : host.indexOf('qa.') === 0 ? 'qa' : 'prod';
           // Naming convention: {org}-{env_prefix}-{base}.hf.space
-          // Prod uses legacy Gradio space until FindCare is promoted
           var org = 'skipsnow';
           var base = 'chathealthyspace';
-          var prodSpace = 'chathealthywhoamichat';  // legacy — replace on prod promotion
-          var spaceName = env === 'prod' ? prodSpace : env + '-' + base;
+          var spaceName = env === 'prod' ? base : env + '-' + base;
           document.getElementById('coreChatFrame').src = 'https://' + org + '-' + spaceName + '.hf.space';
         })();
       </script>
