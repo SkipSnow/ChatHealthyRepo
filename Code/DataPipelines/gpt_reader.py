@@ -166,21 +166,28 @@ def _query(client: MongoClient, config: dict) -> tuple:
     if not isinstance(query, dict):
         return 400, {"error": "query must be a JSON object"}
 
-    # R14: Estimate result count before executing
+    # Validate collection exists
     try:
         coll = client[database][collection]
-        estimated = coll.count_documents(query, limit=MAX_QUERY_DOCUMENTS + 1)
     except Exception as exc:
-        return 404, {"error": f"Collection not found or query error: {exc}"}
+        return 404, {"error": f"Collection not found: {exc}"}
 
-    if estimated > MAX_QUERY_DOCUMENTS:
+    # R14: Pre-flight estimate — only block if no limit would help
+    try:
+        total_matching = coll.count_documents(query, limit=MAX_QUERY_DOCUMENTS + 1)
+    except Exception as exc:
+        return 404, {"error": f"Query error: {exc}"}
+
+    # If caller didn't filter and total exceeds cap, warn them
+    if total_matching > MAX_QUERY_DOCUMENTS and limit >= MAX_QUERY_DOCUMENTS:
         return 507, {
             "error": "response_too_large",
-            "message": f"Query would return {estimated:,}+ documents. Max is {MAX_QUERY_DOCUMENTS}.",
+            "message": f"Query matches {total_matching:,}+ documents. Max is {MAX_QUERY_DOCUMENTS}. Your limit ({limit}) doesn't help — add a filter.",
             "max_documents": MAX_QUERY_DOCUMENTS,
-            "estimated_result": estimated,
+            "estimated_result": total_matching,
             "suggestion": "Add a filter or reduce limit.",
         }
+    estimated = min(total_matching, limit)
 
     # Execute query
     start = time.time()

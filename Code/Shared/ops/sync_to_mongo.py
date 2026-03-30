@@ -31,7 +31,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("sync_to_mongo")
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 EXCLUDE_DIRS = {
     ".venv", "node_modules", ".git", "dist", "__pycache__",
@@ -245,14 +245,15 @@ def sync(manifest_only=False):
             coll = db["project_files"]
             coll.drop()
             if entries:
-                # Insert without content for manifest, with content for file store
-                coll.insert_many(entries)
+                # Insert copies so insert_many doesn't mutate originals with _id
+                import copy
+                coll.insert_many([copy.copy(e) for e in entries])
             log.info("Sync complete: %d files pushed", len(entries))
 
-        # Build manifest (without content field)
+        # Build manifest (without content and _id fields)
         manifest_entries = []
         for entry in entries:
-            manifest_entry = {k: v for k, v in entry.items() if k != "content"}
+            manifest_entry = {k: v for k, v in entry.items() if k not in ("content", "_id")}
             manifest_entries.append(manifest_entry)
 
         # Write manifest to admin.manifest
