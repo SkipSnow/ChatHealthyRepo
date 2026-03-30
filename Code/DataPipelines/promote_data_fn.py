@@ -21,6 +21,7 @@ import os
 import time
 
 from pymongo import MongoClient
+from copy_to_frontend import _create_frontend_vector_index
 
 BATCH_SIZE = 5_000
 
@@ -123,6 +124,12 @@ def run_promote_data(config: dict) -> dict:
 
             result = _copy_collection(client, from_db, to_db, coll_name, query)
             results.append(result)
+
+            # Create vector search index after copying providers
+            if coll_name == "providers":
+                log.info("Creating vector search index on %s.providers", to_db)
+                idx_result = _create_frontend_vector_index(client, to_db)
+                results.append(idx_result)
 
     finally:
         client.close()
