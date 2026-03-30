@@ -23,7 +23,7 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Derive Space name from branch
+      - name: Derive Space name and env from branch
         id: space
         run: |
           BRANCH="${GITHUB_REF_NAME}"
@@ -31,11 +31,14 @@ jobs:
           BASE="ChatHealthySpace"
           if [ "$BRANCH" = "main" ]; then
             SPACE="${BASE}"
+            ENV="prod"
           else
             SPACE="${BRANCH}_${BASE}"
+            ENV="${BRANCH}"
           fi
           echo "name=${SPACE}" >> $GITHUB_OUTPUT
-          echo "Deploying to: ${ORG}/${SPACE}"
+          echo "env=${ENV}" >> $GITHUB_OUTPUT
+          echo "Deploying to: ${ORG}/${SPACE} (env=${ENV})"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -47,7 +50,7 @@ jobs:
           MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
         run: |
           pip install pymongo python-dotenv
-          python Code/Shared/ops/bump_build.py --env ${{ github.ref_name }}
+          python Code/Shared/ops/bump_build.py --env ${{ steps.space.outputs.env }}
 
       - name: Build React frontend
         uses: actions/setup-node@v4
