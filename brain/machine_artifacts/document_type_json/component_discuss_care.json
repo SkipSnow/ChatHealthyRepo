@@ -66,6 +66,11 @@
       "id": "DC-14",
       "feature": "Shared Research Bot",
       "description": "Any participant or component can dispatch a research bot to gather information. Shared object across all three components and pipelines. Bot runs autonomously, returns findings to the session. Dispatched by consensus or individual request. All bot work incurs a fee."
+    },
+    {
+      "id": "DC-15",
+      "feature": "Licensed Provider Detection and Compliance Disclosure",
+      "description": "If a participant identifies as or is detected as a licensed healthcare provider, the system triggers automatic compliance disclosure: (1) ChatHealthy is not subject to HIPAA, (2) This session does not create a provider-patient relationship, (3) Security standards disclosed (HITRUST/DOD/SOC2). All participants must acknowledge before session continues. Consent re-confirmed."
     }
   ],
   "architectural_implications": [
