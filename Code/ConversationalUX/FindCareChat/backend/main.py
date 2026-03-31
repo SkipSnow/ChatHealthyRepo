@@ -138,7 +138,10 @@ def _format_chat_history(messages, truncate: bool = True):
 # ---------------------------------------------------------------------------
 # PromptSystemMaker — loads all config from brain artifacts
 # ---------------------------------------------------------------------------
+# Brain dir: try local repo structure first, fall back to HuggingFace flat layout
 _brain_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "brain")
+if not os.path.isdir(_brain_dir):
+    _brain_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brain")
 _prompt_maker = PromptSystemMaker(brain_dir=_brain_dir, env_prefix=_ENV_PREFIX)
 EMERGENCY_KEYWORDS = _prompt_maker.load_emergency_keywords()
 anthropic_tools = _prompt_maker.load_tool_definitions()
@@ -153,7 +156,11 @@ _ME = _prompt_maker.load_me_context(_ME_DIR)
 _url_guardian = URLGuardian(cache_ttl=3600, request_timeout=5)
 
 # UAT report
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "Shared", "ops"))
+# UAT report: local repo path or HF flat layout
+_ops_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "Shared", "ops")
+if not os.path.isdir(_ops_dir):
+    _ops_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ops")
+sys.path.insert(0, _ops_dir)
 from uat_report import build_uat_welcome
 
 def _build_test_welcome():
