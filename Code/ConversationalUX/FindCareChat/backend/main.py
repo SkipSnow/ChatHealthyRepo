@@ -1680,7 +1680,9 @@ def welcome():
 @app.get("/health")
 def health():
     db_ok = _get_db() is not None
-    return {"status": "ok", "db": "connected" if db_ok else "unavailable", "env": _ENV_PREFIX, "build": _BUILD, "version": _APP_VERSION}
+    # Local detection: HuggingFace sets SPACE_ID; if absent, we're running locally
+    env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
+    return {"status": "ok", "db": "connected" if db_ok else "unavailable", "env": env_label, "build": _BUILD, "version": _APP_VERSION}
 
 
 @app.post("/chat", response_model=ChatResponse)
