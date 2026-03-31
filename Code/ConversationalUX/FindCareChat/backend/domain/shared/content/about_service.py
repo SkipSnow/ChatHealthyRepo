@@ -25,6 +25,8 @@ class AboutService:
         return {
             "summary": self._me.get("summary", ""),
             "linkedin": self._trim(self._me.get("linkedin", ""), 3000),
+            "linkedin_url": "https://linkedin.com/in/skipsnow",
+            "instruction": "Always include the LinkedIn URL as a clickable markdown link: [Skip Snow on LinkedIn](https://linkedin.com/in/skipsnow)",
         }
 
     def get_chathealthy_context(self) -> dict:
