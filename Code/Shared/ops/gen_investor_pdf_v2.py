@@ -118,6 +118,9 @@ if comp:
     pdf.set_font("Helvetica", "B", 10)
     pdf.cell(0, 7, safe("Pricing: " + comp.get("pricing", "")), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
+    # Find Care diagram inline
+    pdf.inline_diagram("find_care_diagram.png", "Chaos in, clarity out. The AI engine indexes 8.9M providers and translates natural language into precise matches. Free forever.", width=165)
+
 # ── EVALUATE CARE ──
 comp = data.get("components", {}).get("evaluate_care", {})
 if comp:
@@ -133,6 +136,9 @@ if comp:
     pdf.ln(2)
     pdf.set_font("Helvetica", "B", 10)
     pdf.cell(0, 7, safe("Pricing: " + comp.get("pricing", "")), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+    # Evaluate Care mixing board inline
+    pdf.inline_diagram("evaluate_care_diagram.png", "Public data flows into a mixing board. The consumer tunes the algorithm. The output is a personalized provider ranking. Patent pending.", width=170)
 
 # ── DISCUSS CARE + ROOM DIAGRAM ──
 comp = data.get("components", {}).get("discuss_care", {})
