@@ -1,0 +1,40 @@
+{
+  "title": "Talk About Care — Business Component Definition",
+  "component_name": "Discuss Care",
+  "date": "2026-03-31",
+  "author": "Boss (Skip Snow)",
+  "status": "CONCEPT",
+  "target": "Post-funding (M-004, July 31 2026)",
+
+  "three_component_architecture": {
+    "1": "Find Care — find providers, specialties, navigate the system",
+    "2": "Evaluate Care — clinical trials, provider credentials, quality metrics",
+    "3": "Discuss Care — multi-participant AI-assisted healthcare collaboration"
+  },
+
+  "overview": "Multi-participant healthcare collaboration chat. Consumers invite friends, family, and caregivers into a shared AI-assisted session. All participants have access to all healthcare tools. All conversations constrained to healthcare mission.",
+
+  "features": [
+    {"id": "DC-01", "feature": "Shared Chat Session", "description": "Multiple humans in one conversation with AI assistance"},
+    {"id": "DC-02", "feature": "Invite System", "description": "User sends invite link to friends, family, caregivers. No account required."},
+    {"id": "DC-03", "feature": "Multi-Model AI", "description": "Multiple AI models participate in the same session (Claude, GPT, etc.), each with access to all tools"},
+    {"id": "DC-04", "feature": "Shared Tool Access", "description": "All participants (human and AI) can trigger provider search, clinical trials, specialty identification, provider detail"},
+    {"id": "DC-05", "feature": "Healthcare Guardrails", "description": "Conversations constrained to healthcare navigation. Same safety filter, emergency detection, scope rules."},
+    {"id": "DC-06", "feature": "Session Transcript", "description": "Exportable transcript for sharing with doctors, care teams"},
+    {"id": "DC-07", "feature": "Consent per Participant", "description": "Each participant manages their own consent tier independently"},
+    {"id": "DC-08", "feature": "Participant Roles", "description": "Session creator (host), invited participant (peer). No admin/enterprise roles."},
+    {"id": "DC-09", "feature": "Real-Time Collaboration", "description": "All participants see messages and AI responses live"},
+    {"id": "DC-10", "feature": "Session Persistence", "description": "Sessions survive disconnects, resumable by invite link"}
+  ],
+
+  "architectural_implications": [
+    "Third business component alongside FindCare and EvaluateCareQuality",
+    "WebSocket or SSE for real-time multi-user",
+    "Session state in MongoDB (participants, messages, consent per user)",
+    "Tool access governed by same ToolRouter — no new tools, just shared access",
+    "GOV-001 preserved: consumer-only, no payer revenue",
+    "DiscussCareFacade as the entry point — same pattern as FindCare and EvaluateCare"
+  ],
+
+  "origin": "Boss insight: wanted to invite himself and Perplexity into a conversation. Realized consumers benefit from the same pattern — invite family into a healthcare chat with AI assistance."
+}
