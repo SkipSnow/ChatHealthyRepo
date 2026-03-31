@@ -54,6 +54,7 @@ load_dotenv(override=True)
 # ---------------------------------------------------------------------------
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "Shared"))
 from ChatHealthyMongoUtilities import ChatHealthyMongoUtilities
+from prompt_system_maker import PromptSystemMaker
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -77,19 +78,11 @@ EMERGENCY_RESPONSE = (
     "<b>This chat has been suspended.</b>"
 )
 
-EMERGENCY_KEYWORDS = [
-    "chest pain", "chest tightness", "heart attack",
-    "can't breathe", "cannot breathe", "difficulty breathing", "trouble breathing",
-    "not breathing", "stopped breathing",
-    "stroke", "face drooping", "arm weakness", "sudden numbness",
-    "severe bleeding", "bleeding out", "won't stop bleeding",
-    "unconscious", "passed out", "unresponsive",
-    "overdose", "took too many", "took too much",
-    "suicide", "suicidal", "kill myself", "end my life",
-    "seizure", "convulsing",
-    "severe allergic reaction", "anaphylaxis", "throat closing",
-    "choking",
-]
+# Emergency keywords + tool definitions + system prompt — loaded from brain artifacts
+_brain_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "brain")
+_prompt_maker = PromptSystemMaker(brain_dir=_brain_dir, env_prefix=_ENV_PREFIX)
+EMERGENCY_KEYWORDS = _prompt_maker.load_emergency_keywords()
+anthropic_tools = _prompt_maker.load_tool_definitions()
 
 # ---------------------------------------------------------------------------
 # MongoDB — lazy connection via ChatHealthyMongoUtilities
@@ -336,176 +329,14 @@ def _build_test_welcome():
 
 
 # ---------------------------------------------------------------------------
-# System prompt — rules for Claude Sonnet during conversation
-# Source: built dynamically, references tool names (not class names)
-# Changed: ToolRouter is source of truth for available tools
+# System prompt + tool definitions — loaded from PromptSystemMaker
+# Source: Code/Shared/prompt_system_maker.py (loads from brain artifacts)
+# Changed: no inline config in main.py. PromptSystemMaker owns all prompt content.
 # ---------------------------------------------------------------------------
 def _system_prompt(follow_up_check: bool = False) -> str:
-    name    = "Skip Snow"
-    website = "ChatHealthy.AI"
-    base = (
-        f"You are acting as {name}. You are answering questions on {website}'s website, "
-        f"particularly questions related to {name}'s career, background, skills and experience and plans for the future of this web site. "
-        f"Your responsibility is to represent {name} and {website} for interactions on the website as faithfully as possible. "
-        f"Be professional and engaging, as if talking to a potential client or future employer who came across the website. "
-        f"\n\n## STRICT ANSWER RULES — NO EXCEPTIONS\n"
-        f"RULE 0 — EMERGENCY: If the user describes ANY symptom or situation that could be a medical emergency, "
-        f"STOP immediately. Do not use any tool. Respond ONLY with the exact text: '{EMERGENCY_RESPONSE}'\n"
-        f"RULE 1 — CONTEXT TOOLS (only when user asks for information): "
-        f"If the user explicitly asks about {name}'s background, career, or qualifications — call get_skip_snow_context first. "
-        f"If the user explicitly asks about {website}'s mission, business, or platform — call get_chathealthy_context first. "
-        f"Do NOT call these tools for greetings, casual conversation, or messages that do not ask for information. "
-        f"Answer ONLY from what those tools return. Never use general training knowledge to answer. "
-        f"CRITICAL: When the tool result contains a 'connect' field, output it EXACTLY as-is — it contains pre-formatted markdown links. "
-        f"Do NOT rewrite links as plain text. The connect field is: [Skip Snow on LinkedIn](https://linkedin.com/in/skipsnow) — output this EXACT markdown.\n"
-        f"RULE 2 — UNANSWERABLE QUESTIONS: "
-        f"You know ONLY what is provided to you in this session: "
-        f"{name}'s career and background (from get_skip_snow_context), "
-        f"{website}'s mission and platform (from get_chathealthy_context), "
-        f"healthcare providers in DE, MS, and VA (from find_providers), "
-        f"medical specialties (from find_specialty_codes), "
-        f"recruiting clinical trials (from search_clinical_trials). "
-        f"You know NOTHING else. This rule applies to EVERY user message regardless of conversation history or context. "
-        f"Even if previous messages were about healthcare, each new message must be evaluated independently. "
-        f"For ANY question not answerable from the above sources, call record_unknown_question with the question and classification. "
-        f"Do not attempt to answer from general knowledge. Do not use training data. "
-        f"DO NOT answer the question. Call record_unknown_question and present the template VERBATIM.\n"
-        f"RULE 3 — MEDICAL ADVICE: You MUST decline all personal medical advice requests. "
-        f"You CANNOT prescribe, diagnose, or recommend treatment. You CAN help users navigate: find providers, find specialists, search clinical trials. "
-        f"If a user asks for medical advice, call record_unknown_question with question_class 'medical_advice'.\n"
-        f"RULE 4 — PROVIDER RESULTS: When presenting provider results from find_providers, ALWAYS format as a bullet list. "
-        f"NEVER use a markdown table for provider results. Use this exact format for each provider:\n"
-        f"- **Provider Name**\n  - Address\n  - County\n  - Phone\n  - NPI: number\n"
-        f"RULE 5 — PROVIDER DETAIL: When a user asks about a specific provider (ratings, background, credentials), "
-        f"call lookup_provider_external with the provider's name and NPI.\n"
-        f"RULE 6 — CLINICAL TRIAL TRAVEL: When showing clinical trial results, after the first pass "
-        f"ask the user: 'Would you like to know the travel distance and estimated drive time to these trial sites?' "
-        f"If yes, call search_clinical_trials again with the same condition and the user's location in user_location. "
-        f"The user's location can be ANYWHERE in the world — US or international. Do NOT assume US-only. "
-        f"Pass whatever location the user provides (city, state, country). Google Routes handles international addresses. "
-        f"Present the travel_info (distance and drive time) for each trial site. "
-        f"Do NOT include travel info on the first call — only when the user requests it.\n\n"
+    return _prompt_maker.build_system_prompt(
+        emergency_response=EMERGENCY_RESPONSE, follow_up_check=follow_up_check,
     )
-    if follow_up_check:
-        base += (
-            f"RULE 7 — FOLLOW-UP OFFER: It has been a while since you asked. "
-            f"After answering this question, ask the user: "
-            f"'Would you like someone from {website} to follow up with you personally?' "
-            f"If yes: collect their name and email, then complete the two-tier consent flow before calling record_user_details.\n"
-        )
-    return base
-
-
-# ---------------------------------------------------------------------------
-# Tool definitions — Anthropic format (schema only, dispatch via ToolRouter)
-# Source: defined here, dispatched by ToolRouter to domain services
-# Changed: globals().get() eliminated (F-05). ToolRouter is the authority.
-# ---------------------------------------------------------------------------
-anthropic_tools = [
-    {
-        "name": "find_providers",
-        "description": (
-            "Search for healthcare providers (doctors, specialists) in a specific US state. "
-            "FindCare currently covers Delaware (DE), Mississippi (MS), and Virginia (VA). "
-            "Call this when the user asks to find a doctor, specialist, or provider in a location."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "specialty_query": {"type": "string"},
-                "state": {"type": "string"},
-                "city": {"type": "string"},
-                "county": {"type": "string"},
-                "limit": {"type": "integer"},
-            },
-            "required": ["specialty_query", "state"],
-        },
-    },
-    {
-        "name": "record_user_details",
-        "description": (
-            "Record a user's contact details after obtaining email. "
-            "Before calling this tool you MUST complete the two-tier consent flow."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "email": {"type": "string"},
-                "name": {"type": "string"},
-                "notes": {"type": "string"},
-                "message": {"type": "string"},
-                "consent_verbatim": {"type": "boolean"},
-                "consent_summary": {"type": "boolean"},
-            },
-            "required": ["email", "notes", "consent_verbatim"],
-        },
-    },
-    {
-        "name": "record_unknown_question",
-        "description": (
-            "Call this tool when the question is not answerable from your sources. "
-            "Classify the question and present the response_template VERBATIM."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "question": {"type": "string"},
-                "question_class": {
-                    "type": "string",
-                    "enum": ["healthcare_capability", "medical_advice", "irrelevant"],
-                },
-                "consent": {"type": "boolean"},
-            },
-            "required": ["question", "question_class"],
-        },
-    },
-    {
-        "name": "find_specialty_codes",
-        "description": "Look up medical specialty taxonomy codes (NUCC).",
-        "input_schema": {
-            "type": "object",
-            "properties": {"query": {"type": "string"}},
-            "required": ["query"],
-        },
-    },
-    {
-        "name": "search_clinical_trials",
-        "description": "Search for actively recruiting clinical trials on ClinicalTrials.gov.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "condition": {"type": "string"},
-                "location": {"type": "string"},
-                "user_location": {"type": "string", "description": "User's location for travel time — any location worldwide."},
-                "max_results": {"type": "integer"},
-            },
-            "required": ["condition"],
-        },
-    },
-    {
-        "name": "get_skip_snow_context",
-        "description": "Return Skip Snow's professional background, career summary, and LinkedIn profile.",
-        "input_schema": {"type": "object", "properties": {}},
-    },
-    {
-        "name": "get_chathealthy_context",
-        "description": "Return ChatHealthy.AI company context: business plan and operating principles.",
-        "input_schema": {"type": "object", "properties": {}},
-    },
-    {
-        "name": "lookup_provider_external",
-        "description": "Look up provider details from NPI Registry and research links.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "provider_name": {"type": "string"},
-                "npi": {"type": "string"},
-                "state": {"type": "string"},
-            },
-            "required": ["provider_name"],
-        },
-    },
-]
 
 # ---------------------------------------------------------------------------
 # ARCH-001: Domain service initialization
