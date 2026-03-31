@@ -26,6 +26,7 @@ from url_guardian import URLGuardian
 from application.tool_router import ToolRouter
 from application.facades.find_care_facade import FindCareFacade
 from domain.find_care.provider_search_service import ProviderSearchService
+from domain.find_care.specialty_service import SpecialtyService
 
 load_dotenv(override=True)
 
@@ -1504,9 +1505,25 @@ _provider_search_service = ProviderSearchService(
     env_prefix=_ENV_PREFIX,
     get_embedding_fn=_get_query_embedding,
 )
+
+def _get_specialty_vector(query: str):
+    """Get embedding for specialty search (uses text-embedding-3-small)."""
+    try:
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        return client.embeddings.create(model="text-embedding-3-small", input=query).data[0].embedding
+    except Exception as e:
+        _log.warning("Specialty embedding failed: %s", e)
+        return None
+
+_specialty_service = SpecialtyService(
+    get_db_fn=_get_db,
+    env_prefix=_ENV_PREFIX,
+    expand_query_fn=_expand_query_terms,
+    get_vector_fn=_get_specialty_vector,
+)
 _find_care_facade = FindCareFacade(
     provider_search=_provider_search_service,
-    find_specialty_fn=find_specialty_codes,
+    specialty=_specialty_service,
 )
 
 # ---------------------------------------------------------------------------
@@ -1515,7 +1532,7 @@ _find_care_facade = FindCareFacade(
 _tool_router = ToolRouter()
 _tool_router.register_all({
     "find_providers": _find_care_facade.search_providers,
-    "find_specialty_codes": find_specialty_codes,
+    "find_specialty_codes": _find_care_facade.identify_specialty,
     "search_clinical_trials": search_clinical_trials,
     "lookup_provider_external": lookup_provider_external,
     "record_user_details": record_user_details,
