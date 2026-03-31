@@ -14,23 +14,13 @@ const API_URL = import.meta.env.VITE_API_URL ?? ''
 const RETRY_SECONDS = 10
 const TIMEOUT_THRESHOLD_SECONDS = 30
 
-const DEFAULT_WELCOME = [
-  '**Welcome to ChatHealthy FindCare**\n\n',
-  "Here's what I can help you with:\n\n",
-  '- **Identify the right specialty** — not sure what kind of doctor you need? Describe your situation\n',
-  '- **Clinical trials** — find recruiting research studies for any condition\n',
-  '- **About ChatHealthy** — our mission, team, and platform\n\n',
-  'If you think you may be having a medical emergency, tell me right away.\n\n',
-  '**What can I help you with today?**',
-].join('')
-
-const WELCOME: Message = {
+const LOADING_MESSAGE: Message = {
   role: 'assistant',
-  content: DEFAULT_WELCOME,
+  content: 'Loading...',
 }
 
 export default function ChatWindow() {
-  const [messages, setMessages] = useState<Message[]>([WELCOME])
+  const [messages, setMessages] = useState<Message[]>([LOADING_MESSAGE])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isLocked, setIsLocked] = useState(false)
@@ -44,22 +34,24 @@ export default function ChatWindow() {
   const [continueCount, setContinueCount] = useState(0)
 
   // Refs — avoid stale closures in async callbacks
-  const messagesRef = useRef<Message[]>([WELCOME])
+  const messagesRef = useRef<Message[]>([LOADING_MESSAGE])
   useEffect(() => { messagesRef.current = messages }, [messages])
   const backendEnvRef = useRef<string>('prod')
   const pendingRetryRef = useRef<{ message: string; history: any[]; startTime: number } | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  // Fetch welcome message from API on mount (supports HUMAN_TESTING mode)
+  // Fetch welcome message dynamically from server — no static defaults
   useEffect(() => {
     fetch(`${API_URL}/welcome`)
       .then(r => r.json())
       .then(data => {
         if (data.message) {
-          setMessages(prev => [{ ...prev[0], content: data.message }, ...prev.slice(1)])
+          setMessages([{ role: 'assistant', content: data.message }])
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        setMessages([{ role: 'assistant', content: '**Welcome to ChatHealthy FindCare.** What can I help you with today?' }])
+      })
   }, [])
 
   // Fetch build number + env from /health on mount

@@ -1680,12 +1680,21 @@ async def _chat_inner(body: ChatRequest, request: Request):
 
 
 # ---------------------------------------------------------------------------
-# Serve React frontend (static files built into /app/static by Docker)
+# Serve React frontend — dynamic index.html (no caching), static assets cached
 # ---------------------------------------------------------------------------
 _static_dir = os.path.join(os.path.dirname(__file__), "static")
 if os.path.isdir(_static_dir):
     from starlette.staticfiles import StaticFiles
-    app.mount("/", StaticFiles(directory=_static_dir, html=True), name="static")
+    from starlette.responses import FileResponse
+
+    @app.get("/")
+    async def serve_index():
+        return FileResponse(
+            os.path.join(_static_dir, "index.html"),
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"},
+        )
+
+    app.mount("/assets", StaticFiles(directory=os.path.join(_static_dir, "assets")), name="assets")
 
 
 if __name__ == "__main__":
