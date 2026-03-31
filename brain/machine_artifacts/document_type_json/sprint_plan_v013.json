@@ -168,6 +168,18 @@
         "detail": "Profile and optimize: startup time (FIPS load 2x, ~120s), provider search latency (BUG-PERF-001, 87s VA), embedding call overhead, MongoDB query patterns, cold start reduction.",
         "deadline": "2026-04-08 (Wednesday)",
         "priority": "HIGH"
+      },
+      {
+        "id": "PERF-002",
+        "task": "Compound vector search indexes — city+embedding, county+embedding, state+embedding",
+        "detail": "Create compound indexes on providers collection: {practice_address.city, embedding}, {county.name, embedding}, {practice_address.state, embedding}. These allow MongoDB Atlas vector search to pre-filter by geography before scoring embeddings, eliminating full-collection scans. Directly addresses BUG-PERF-001 (87s VA search).",
+        "deadline": "2026-04-08 (Wednesday)",
+        "priority": "HIGH",
+        "indexes": [
+          {"name": "provider_vector_city_idx", "fields": "practice_address.city + embedding", "purpose": "City-scoped vector search"},
+          {"name": "provider_vector_county_idx", "fields": "county.name + embedding", "purpose": "County-scoped vector search"},
+          {"name": "provider_vector_state_idx", "fields": "practice_address.state + embedding", "purpose": "State-scoped vector search (current index, verify exists)"}
+        ]
       }
     ]
   },
