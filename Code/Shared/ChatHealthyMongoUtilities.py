@@ -96,6 +96,28 @@ class ChatHealthyMongoUtilities:
                 self._client = None
 
     # ------------------------------------------------------------------
+    # Write utility
+    # ------------------------------------------------------------------
+    def commit(self, env_prefix: str, database: str, collection: str, record: dict) -> dict:
+        """
+        Write a record to a collection. Adds record_number and datetime.
+        Returns {"recorded": "ok"} or {"recorded": "error", "note": "..."}.
+        """
+        import json
+        from datetime import datetime
+        try:
+            client = self.getConnection()
+            db_name = f"{env_prefix}_{database}"
+            coll = client[db_name][collection]
+            record = dict(record)
+            record["record_number"] = coll.count_documents({}) + 1
+            record["datetime"] = datetime.now().isoformat()
+            coll.insert_one(record)
+            return {"recorded": "ok"}
+        except Exception as exc:
+            return {"recorded": "error", "note": str(exc)}
+
+    # ------------------------------------------------------------------
     # Context manager support
     # ------------------------------------------------------------------
     def __enter__(self) -> MongoClient:
