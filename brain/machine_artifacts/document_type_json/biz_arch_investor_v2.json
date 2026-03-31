@@ -124,6 +124,12 @@
     "May 2026": "Discuss Care beta launch with core collaboration and AI participation",
     "Summer 2026": "AI vendor partnerships and initial marketplace validation",
     "Late 2026": "Evaluate Care premium features and early monetization expansion",
-    "Series A": "Raised on demonstrated control of healthcare decision sessions and AI marketplace traction"
+    "Series A": "Raised on demonstrated control of healthcare decision sessions and AI marketplace traction",
+    "milestones": [
+      {
+        "date": "2026-09-30",
+        "milestone": "iPhone App Launch"
+      }
+    ]
   }
 }
