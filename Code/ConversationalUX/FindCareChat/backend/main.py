@@ -35,6 +35,9 @@ from domain.shared.consent.consent_service import ConsentService
 from domain.shared.lead_capture.lead_service import LeadService
 from domain.shared.unknowns.unknown_question_service import UnknownQuestionService
 from domain.shared.content.about_service import AboutService
+from application.tool_models.provider_search_models import ProviderSearchInput, SpecialtyInput
+from application.tool_models.clinical_trials_models import ClinicalTrialsInput, ProviderDetailInput
+from application.tool_models.consent_models import LeadInput, UnknownInput
 
 load_dotenv(override=True)
 
@@ -1477,17 +1480,17 @@ _about_service = AboutService(me_context=_ME, trim_fn=_trim)
 # Tool Router — ARCH-001 Phase 1 (F-05 fix: replaces globals().get)
 # ---------------------------------------------------------------------------
 _tool_router = ToolRouter()
-_tool_router.register_all({
-    "find_providers": _find_care_facade.search_providers,
-    "find_specialty_codes": _find_care_facade.identify_specialty,
-    "search_clinical_trials": _evaluate_care_facade.search_clinical_trials,
-    "lookup_provider_external": _evaluate_care_facade.get_provider_details,
-    "record_user_details": _lead_service.record_user_details,
-    "record_unknown_question": _unknown_question_service.record,
-    "get_skip_snow_context": _about_service.get_skip_snow_context,
-    "get_chathealthy_context": _about_service.get_chathealthy_context,
-    "commitSignificantActivity": commitSignificantActivity,
-})
+_tool_router.register_with_models([
+    ("find_providers", _find_care_facade.search_providers, ProviderSearchInput),
+    ("find_specialty_codes", _find_care_facade.identify_specialty, SpecialtyInput),
+    ("search_clinical_trials", _evaluate_care_facade.search_clinical_trials, ClinicalTrialsInput),
+    ("lookup_provider_external", _evaluate_care_facade.get_provider_details, ProviderDetailInput),
+    ("record_user_details", _lead_service.record_user_details, LeadInput),
+    ("record_unknown_question", _unknown_question_service.record, UnknownInput),
+    ("get_skip_snow_context", _about_service.get_skip_snow_context),
+    ("get_chathealthy_context", _about_service.get_chathealthy_context),
+    ("commitSignificantActivity", commitSignificantActivity),
+])
 _log.info("ToolRouter initialized: %s", _tool_router.registered_tools)
 
 

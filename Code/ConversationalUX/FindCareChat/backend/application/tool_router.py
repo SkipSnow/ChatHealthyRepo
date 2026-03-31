@@ -18,22 +18,32 @@ _log = logging.getLogger("findcare.tool_router")
 class ToolRouter:
     """Pydantic-validated allowlist tool dispatch.
 
-    Phase 1: routes to existing main.py functions (pass-through).
-    Phase 2+: routes to facade methods as services are extracted.
+    Phase 6: validates inputs via Pydantic models before calling handlers.
+    GOV-004: "The model may suggest. The system must decide."
     """
 
     def __init__(self):
         self._registry: dict[str, callable] = {}
+        self._models: dict[str, type] = {}  # tool_name -> Pydantic model class
 
-    def register(self, tool_name: str, handler: callable) -> None:
-        """Register a tool handler. Only registered tools can be called."""
+    def register(self, tool_name: str, handler: callable, model: type = None) -> None:
+        """Register a tool handler with optional Pydantic input model."""
         self._registry[tool_name] = handler
-        _log.debug("Registered tool: %s -> %s", tool_name, handler.__name__ if hasattr(handler, '__name__') else str(handler))
+        if model:
+            self._models[tool_name] = model
+        _log.debug("Registered tool: %s -> %s (model: %s)", tool_name, handler.__name__ if hasattr(handler, '__name__') else str(handler), model.__name__ if model else "None")
 
     def register_all(self, mapping: dict[str, callable]) -> None:
-        """Register multiple tools at once."""
+        """Register multiple tools at once. Use register_with_models for Pydantic validation."""
         for name, handler in mapping.items():
             self.register(name, handler)
+
+    def register_with_models(self, mapping: list[tuple]) -> None:
+        """Register tools with Pydantic models: [(name, handler, model), ...]"""
+        for entry in mapping:
+            name, handler = entry[0], entry[1]
+            model = entry[2] if len(entry) > 2 else None
+            self.register(name, handler, model)
 
     @property
     def registered_tools(self) -> list[str]:
@@ -41,16 +51,27 @@ class ToolRouter:
         return list(self._registry.keys())
 
     def dispatch(self, tool_name: str, arguments: dict) -> dict:
-        """Dispatch a tool call. Returns the tool result dict.
+        """Dispatch a tool call with optional Pydantic validation.
 
-        Raises KeyError if tool is not registered (F-05 enforcement).
+        F-05: rejects unregistered tools.
+        Phase 6: validates inputs via Pydantic if model registered.
         """
         if tool_name not in self._registry:
             _log.warning("BLOCKED: unregistered tool '%s' — not in allowlist", tool_name)
             return {"error": f"Tool '{tool_name}' is not registered. This call has been blocked."}
 
+        # Phase 6: Pydantic validation
+        model = self._models.get(tool_name)
+        if model:
+            try:
+                validated = model(**arguments)
+                arguments = validated.model_dump()
+            except Exception as exc:
+                _log.warning("VALIDATION FAILED for '%s': %s", tool_name, exc)
+                return {"error": f"Tool '{tool_name}' input validation failed: {str(exc)}"}
+
         handler = self._registry[tool_name]
-        _log.info("Dispatching tool: %s", tool_name)
+        _log.info("Dispatching tool: %s (validated: %s)", tool_name, bool(model))
         try:
             return handler(**arguments)
         except Exception as exc:
