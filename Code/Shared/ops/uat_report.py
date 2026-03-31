@@ -145,16 +145,31 @@ def seed_uat_status(db, env_prefix: str):
     _log.info("UAT status seeded: %d features", len(updates))
 
 
-def build_uat_welcome(build: str, version: str, env: str, db=None, env_prefix: str = "dev", session_start: str = None) -> str:
-    """Build UAT welcome message. Reads status from MongoDB.
+def build_uat_welcome(get_db_fn=None, **overrides) -> str:
+    """Build UAT welcome message. Reads all config from environment.
 
-    Args:
-        build: current build number
-        version: app version
-        env: environment label
-        db: MongoDB client (optional — blank report if None)
-        env_prefix: environment prefix for DB collection
+    Reads: ENV_PREFIX, APP_VERSION, HUMAN_TESTING, SPACE_ID from os.environ.
+    Reads: build number + UAT status from MongoDB.
+    Overrides: pass any param explicitly to override env detection.
     """
+    import os
+    env_prefix = overrides.get("env_prefix", os.getenv("ENV_PREFIX", "dev"))
+    version = overrides.get("version", os.getenv("APP_VERSION", "unknown"))
+    space_id = os.getenv("SPACE_ID")
+    env = overrides.get("env", env_prefix if space_id else "local")
+    human_testing_raw = overrides.get("session_start", os.getenv("HUMAN_TESTING", ""))
+    session_start = human_testing_raw if len(human_testing_raw) > 5 else None
+
+    # Build number from MongoDB
+    db = get_db_fn() if get_db_fn else None
+    build = "?"
+    if db:
+        try:
+            record = db[f"{env_prefix}_System"]["build_counter"].find_one({"_id": "build"})
+            build = str(record["number"]) if record else "0"
+        except Exception:
+            pass
+
     total = len(UAT_FEATURES)
     status = _get_uat_status(db, env_prefix, session_start=session_start)
 

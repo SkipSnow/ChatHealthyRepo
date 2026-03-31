@@ -165,11 +165,7 @@ sys.path.insert(0, _ops_dir)
 from uat_report import build_uat_welcome
 
 def _build_test_welcome():
-    env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
-    # HUMAN_TESTING can be "true" (legacy) or a date like "2026-03-31" (session start)
-    session_start = _HUMAN_TESTING_RAW if len(_HUMAN_TESTING_RAW) > 5 else None
-    return build_uat_welcome(build=_BUILD, version=_APP_VERSION, env=env_label,
-                             db=_get_db(), env_prefix=_ENV_PREFIX, session_start=session_start)
+    return build_uat_welcome(get_db_fn=_get_db)
 
 def _system_prompt(follow_up_check: bool = False) -> str:
     return _prompt_maker.build_system_prompt(emergency_response=EMERGENCY_RESPONSE, follow_up_check=follow_up_check)
