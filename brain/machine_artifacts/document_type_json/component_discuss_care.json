@@ -51,5 +51,19 @@
     "pitch": "Your model is in the room when a family decides where Mom gets cancer treatment. What's that worth?",
     "user_experience": "User selects which AI models participate in their session. Models compete on helpfulness. User pays nothing.",
     "series_a_story": "We own the healthcare decision room. AI companies pay to be in it."
+  },
+
+  "pricing_model": {
+    "find_care": "FREE — 100% free forever. This is the funnel.",
+    "evaluate_care": "FREE now. Paywall option once trusted brand established. Premium quality metrics, deeper credential analysis, comparative ratings.",
+    "discuss_care": "Premium token markup on AI usage",
+    "principle": "All healthcare navigation is free. Users only pay when they choose premium AI models in Discuss Care sessions. The markup on tokens is the ONLY revenue from users.",
+    "partnership_path": [
+      "Stage 1: Sign up for AI vendor partnership/startup programs. Get free credits.",
+      "Stage 2: Build relationships with partner team humans. Show real healthcare usage.",
+      "Stage 3: Demonstrate value — their model is already in healthcare decision rooms.",
+      "Stage 4: Partners underwrite Series A. They've seen the data."
+    ],
+    "gov_001_note": "Token revenue is from technology consumption, not care-chain entities. GOV-001 preserved."
   }
 }
