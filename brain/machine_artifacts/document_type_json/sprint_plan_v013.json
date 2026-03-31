@@ -239,6 +239,8 @@
   },
 
   "funding_milestone": {
+    "target_date": "2026-07-31",
+    "title": "Seed Funding Close",
     "note": "GUI tooling, marketing hire, content management UI deferred until funding secured",
     "items_deferred_to_funding": [
       "CM-001 Phase 2: Content management GUI",
