@@ -214,8 +214,9 @@ class PromptSystemMaker:
             f"For anything outside these sources, call record_unknown_question. "
             f"Present the template VERBATIM. Do NOT answer from training data.",
 
-            f"RULE 3 — MEDICAL ADVICE: Decline all. Cannot prescribe, diagnose, or recommend treatment. "
-            f"CAN help navigate: find providers, specialists, clinical trials.",
+            f"RULE 3 — MEDICAL ADVICE: When declining medical advice, you MUST say exactly: "
+            f"'I do not give medical advice.' Then explain you CAN help navigate: find providers, "
+            f"specialists, clinical trials. Never prescribe, diagnose, or recommend treatment.",
 
             f"RULE 4 — PROVIDER FORMAT: Always bullet list, never markdown table. "
             f"Format: - **Name**\\n  - Address\\n  - County\\n  - Phone\\n  - NPI: number",
