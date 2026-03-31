@@ -71,8 +71,16 @@ export default function ChatWindow() {
   }, [])
 
   const bottomRef = useRef<HTMLDivElement>(null)
+  const topRef = useRef<HTMLDivElement>(null)
+  const welcomeLoadedRef = useRef(false)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (!welcomeLoadedRef.current) {
+      // After welcome loads, scroll to top
+      topRef.current?.scrollIntoView({ behavior: 'smooth' })
+    } else {
+      // After user messages, scroll to bottom
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [messages, isLoading, retryCountdown])
 
   // Think timer — counts up while loading, not dismissed, not in retry wait
@@ -208,6 +216,7 @@ export default function ChatWindow() {
         && !m.isError)
       .map(m => ({ role: m.role, content: m.content }))
 
+    welcomeLoadedRef.current = true  // first user message — switch to bottom-scroll mode
     setMessages(prev => [...prev, { role: 'user', content: text }])
     setInput('')
     setIsLoading(true)
@@ -228,6 +237,7 @@ export default function ChatWindow() {
         </div>
       )}
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 16px' }}>
+        <div ref={topRef} />
         {messages.map((m, i) => (
           <MessageBubble key={i} message={m} />
         ))}
