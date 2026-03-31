@@ -198,6 +198,27 @@
       "De-identification must be applied BEFORE storage, not after",
       "Emergency records (BTC-003) must NEVER be deleted regardless of consent state",
       "Test data tagged with testdata=true for filtering"
+    ],
+    "growth_trajectory": {
+      "note": "This service will GROW, not diminish. Consent is a first-class, expanding concern.",
+      "planned_additions": [
+        "Granular consent: per-data-type consent (contact info separate from conversation history)",
+        "Consent revocation: user can withdraw consent after the fact — must retroactively de-identify or delete",
+        "Consent audit trail: immutable log of every consent grant, revocation, and data action",
+        "HIPAA minimum necessary: only collect what is needed for the stated purpose",
+        "Consent expiration: time-limited consent with re-confirmation workflow",
+        "Enterprise consent: when healthcare orgs use the platform, their compliance policies override defaults",
+        "Consent portability: export consent records for regulatory audit (state AG, HHS OCR)",
+        "Multi-jurisdiction: state-specific consent rules (e.g., California CCPA, NY SHIELD, HIPAA federal)"
+      ],
+      "architectural_implication": "ConsentService must be its own bounded context with dedicated tools, dedicated pydantic models, dedicated tests, and dedicated audit logging. It is NOT a helper inside LeadService."
+    },
+    "pydantic_models": [
+      "ConsentRequestInput: session_id",
+      "ConsentState: session_id, tier, status (pending/granted/declined), timestamp",
+      "VerbatimConsentInput: session_id, chat_history, contact_info",
+      "SummaryConsentInput: session_id, summary_text, contact_info",
+      "ConsentAuditEntry: session_id, action, tier, timestamp, evidence_hash"
     ]
   },
 
@@ -255,6 +276,9 @@
       "lookup_provider_external": {"model": "ProviderDetailInput", "handler": "EvaluateCareFacade.get_provider_details"},
       "get_skip_snow_context": {"model": "None", "handler": "AboutService.get_skip_snow_context"},
       "get_chathealthy_context": {"model": "None", "handler": "AboutService.get_chathealthy_context"},
+      "request_consent": {"model": "ConsentRequestInput", "handler": "ConsentService.request_consent"},
+      "record_verbatim_consent": {"model": "VerbatimConsentInput", "handler": "ConsentService.record_verbatim_consent"},
+      "record_summary_consent": {"model": "SummaryConsentInput", "handler": "ConsentService.record_summary_consent"},
       "record_user_details": {"model": "LeadInput", "handler": "LeadService.record_user_details"},
       "record_unknown_question": {"model": "UnknownInput", "handler": "UnknownQuestionService.record"},
       "get_provider_location": {"model": "LocationInput", "handler": "FindCareFacade.get_provider_location"}
@@ -503,6 +527,10 @@
       "SpecialtyInput / SpecialtyOutput",
       "ClinicalTrialsInput / ClinicalTrialsOutput",
       "ProviderDetailInput / ProviderDetailOutput",
+      "ConsentRequestInput / ConsentState",
+      "VerbatimConsentInput / VerbatimConsentOutput",
+      "SummaryConsentInput / SummaryConsentOutput",
+      "ConsentAuditEntry",
       "LeadInput / LeadOutput",
       "UnknownInput / UnknownOutput",
       "LocationInput"
