@@ -153,7 +153,38 @@
     {"id": "F-05", "title": "ToolRouter replaces globals() dispatch", "day": "Tuesday (Phase 1)"},
     {"id": "F-09", "title": "Emergency keyword expansion", "day": "Tuesday"},
     {"id": "F-10", "title": "Provider search cap raised to 25", "day": "Wednesday"},
-    {"id": "MAPS", "title": "Interactive map for provider search results", "day": "Tuesday"}
+    {"id": "MAPS", "title": "Interactive map for provider search results", "day": "Tuesday"},
+    {"id": "UX-TIMEOUT", "title": "Long-running request timeout UX with consent-gated performance logging", "day": "This sprint"}
+  ],
+
+  "feature_requests": [
+    {
+      "id": "UX-TIMEOUT",
+      "title": "Long-running request timeout with user consent and performance logging",
+      "priority": "HIGH",
+      "sprint": "v0.1.3 (current)",
+      "description": "When a chat request exceeds a configurable threshold, show a modal asking if the user wants to continue.",
+      "behavior": {
+        "threshold": "Configurable from MongoDB or environment variable (e.g., 30s default)",
+        "first_trigger": "After threshold elapsed: overlay modal 'This is taking a long time. Do you want to continue?'",
+        "options": {
+          "no_abandon": "User clicks No -> request is abandoned, response discarded",
+          "yes_continue": "User clicks Yes -> keep waiting. Ask again at each multiplier of threshold (2x, 3x, etc.)"
+        },
+        "repeat": "Each multiplier of the timeout threshold re-asks the question"
+      },
+      "performance_logging": {
+        "trigger": "After request completes (success, abandon, or error) AND after user completes consent path",
+        "collection": "MongoDB performance record",
+        "fields": ["request_id", "elapsed_ms", "user_action (completed/abandoned)", "abandon_count", "continue_count", "tool_calls", "timestamp"]
+      },
+      "implementation_notes": [
+        "Frontend: modal overlay with Yes/No radio buttons",
+        "Frontend: AbortController to cancel fetch on abandon",
+        "Backend: timeout threshold from env var or admin.config collection",
+        "Backend: performance record written after consent path completes"
+      ]
+    }
   ],
 
   "next_sprint": {
