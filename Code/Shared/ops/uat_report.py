@@ -163,10 +163,10 @@ def build_uat_welcome(build: str, version: str, env: str, db=None, env_prefix: s
     total_features = 0
 
     lines = [
-        f"**UAT Session: {version}**\n\n"
-        f"| Environment | Build | Scenarios |\n"
-        f"|:-----------:|:-----:|:---------:|\n"
-        f"| {env.upper()} | {build} | {total} |\n\n",
+        f"**UAT Session**\n\n"
+        f"| Environment | Release | Build | Scenarios |\n"
+        f"|:-----------:|:-------:|:-----:|:---------:|\n"
+        f"| {env.upper()} | {version} | {build} | {total} |\n\n",
         "| # | Feature | Done | Bugs Fixed | New Features |",
         "|:---:|---------|:----:|:----------:|:------------:|",
     ]
