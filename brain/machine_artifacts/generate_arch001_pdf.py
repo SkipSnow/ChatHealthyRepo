@@ -456,6 +456,40 @@ for agent, info in data["sign_off"].items():
     pdf.body_text(f"Notes: {info['notes']}")
     pdf.ln(3)
 
+# --- APPENDIX A: AI MODEL USAGE ---
+pdf.add_page()
+pdf.section_title("Appendix A: AI Model Usage by Prompt")
+appendix = data["appendix_ai_models"]
+pdf.body_text(appendix["description"])
+pdf.ln(2)
+
+pdf.sub_title("Runtime Prompts (Per User Session)")
+cols = ["Prompt", "Model", "Purpose", "Invocation"]
+widths = [55, 55, 90, 75]
+pdf.table_header(cols, widths)
+for p in appendix["runtime_prompts"]:
+    pdf.table_row([p["prompt"], p["model"], p["purpose"], p["invocation"]], widths)
+
+pdf.ln(4)
+pdf.sub_title("Pipeline Prompts (Batch)")
+pdf.table_header(cols, widths)
+for p in appendix["pipeline_prompts"]:
+    pdf.table_row([p["prompt"], p["model"], p["purpose"], p["invocation"]], widths)
+
+pdf.ln(4)
+pdf.sub_title("Brain Prompts (Claude + GPT Collaboration)")
+pdf.table_header(cols, widths)
+for p in appendix["brain_prompts"]:
+    pdf.table_row([p["prompt"], p["model"], p["purpose"], p["invocation"]], widths)
+
+pdf.ln(4)
+pdf.sub_title("Model Selection Rationale")
+cols2 = ["Model", "Rationale"]
+widths2 = [60, 215]
+pdf.table_header(cols2, widths2)
+for m in appendix["model_selection_rationale"]:
+    pdf.table_row([m["model"], m["why"]], widths2)
+
 pdf.ln(10)
 pdf.set_font("Helvetica", "I", 10)
 pdf.set_text_color(100, 100, 100)
