@@ -33,6 +33,9 @@ UAT_FEATURES = [
     {"id": 11, "feature": "Blob Storage Infrastructure"},
     {"id": 12, "feature": "Unanswerable Question Handling (3-path)"},
     {"id": 13, "feature": "Markdown Table Rendering (GFM tables in chat)"},
+    {"id": 14, "feature": "UAT Report (clean start, build number, environment banner)"},
+    {"id": 15, "feature": "Session history preserved through safety unlock"},
+    {"id": 16, "feature": "Long-running request timeout modal (30s threshold)"},
 ]
 
 
