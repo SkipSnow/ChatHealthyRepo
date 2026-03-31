@@ -1678,6 +1678,14 @@ async def _chat_inner(body: ChatRequest, request: Request):
     text = next((b.text for b in response.content if b.type == "text"), "")
     text = _url_guardian.guard_text(text)
 
+    # HACK: Force LinkedIn URL as clickable link — Sonnet strips markdown links (PE bug, 3 prompt attempts failed)
+    import re
+    text = re.sub(
+        r'(?<!\[)Skip Snow on LinkedIn(?!\])',
+        '[Skip Snow on LinkedIn](https://linkedin.com/in/skipsnow)',
+        text,
+    )
+
     _log.info("CHAT complete tokens_in=%d tokens_out=%d", total_tokens_in, total_tokens_out)
     _debug_log_chat(ip, body.message, len(history), loop_iter, total_tokens_in, total_tokens_out, text, None)
     return ChatResponse(response=text, tokens_in=total_tokens_in, tokens_out=total_tokens_out)
