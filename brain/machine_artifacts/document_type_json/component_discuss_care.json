@@ -181,5 +181,17 @@
       "rationale": "Neutrality requires transparency. We earn trust by choosing to be secure, not by being compelled. This avoids HIPAA regulatory burden while exceeding the security expectations of healthcare buyers.",
       "status": "permanent"
     }
-  ]
+  ],
+  "marketing_positioning": {
+    "headline": "We are not required to protect your data. We choose to. And we do it better than the ones who are required to.",
+    "context": "Healthcare organizations suffer constant data breaches DESPITE being under HIPAA. HIPAA is a compliance checkbox, not a security guarantee. ChatHealthy voluntarily adopts HITRUST/DOD-level security because our business depends on consumer trust, not regulatory compulsion.",
+    "marketing_use": [
+      "Landing page trust badge: \"Voluntarily HITRUST certified \u2014 exceeding HIPAA standards\"",
+      "Investor pitch: security by choice signals product-market fit and consumer-first values",
+      "Enterprise sales: healthcare buyers trust voluntary security over mandatory compliance",
+      "Competitive differentiation: incumbents are breached monthly under HIPAA. We choose higher standards.",
+      "Press/PR: \"The healthcare platform that protects your data better than your hospital does\""
+    ],
+    "why_it_works": "Consumers instinctively trust companies that choose to do the right thing over companies forced to. Voluntary security is a brand asset, not a cost center."
+  }
 }
