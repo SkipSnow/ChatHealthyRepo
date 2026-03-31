@@ -210,7 +210,10 @@ export default function ChatWindow() {
     if (!text || !canSubmit) return
 
     const historyForBackend = messagesRef.current
-      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .filter(m => (m.role === 'user' || m.role === 'assistant')
+        && m.content !== 'Session unlocked.'
+        && !m.content.includes('This chat has been suspended')
+        && !m.isError)
       .map(m => ({ role: m.role, content: m.content }))
 
     setMessages(prev => [...prev, { role: 'user', content: text }])
