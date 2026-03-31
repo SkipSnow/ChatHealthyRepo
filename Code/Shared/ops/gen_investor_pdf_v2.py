@@ -29,7 +29,7 @@ pdf.set_font("Helvetica", "", 11)
 pdf.cell(0, 8, "Business Architecture", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 pdf.ln(15)
 pdf.set_font("Helvetica", "I", 11)
-pdf.multi_cell(0, 6, safe(data.get("vision", "")), align="C")
+pdf.multi_cell(0, 6, safe(data.get("vision", "")), align="J")
 pdf.ln(15)
 pdf.set_font("Helvetica", "", 9)
 pdf.cell(0, 6, "Copyright 2026 Skip Snow. All rights reserved.", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
@@ -43,7 +43,7 @@ pdf.set_font("Helvetica", "", 10)
 es = data.get("executive_summary", "")
 text = "\n\n".join(es) if isinstance(es, list) else str(es)
 for p in text.split("\n\n"):
-    pdf.multi_cell(0, 5, safe(p))
+    pdf.multi_cell(0, 5, safe(p), align="J")
     pdf.ln(3)
 
 # Components
@@ -58,7 +58,7 @@ for key in ["find_care", "evaluate_care", "discuss_care"]:
         pdf.cell(0, 7, safe(comp["tagline"]), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(3)
     pdf.set_font("Helvetica", "", 10)
-    pdf.multi_cell(0, 5, safe(comp.get("description", "")))
+    pdf.multi_cell(0, 5, safe(comp.get("description", "")), align="J")
     pdf.ln(2)
     for section in ["capabilities", "features"]:
         items = comp.get(section, [])
@@ -102,7 +102,7 @@ sec = data.get("security_positioning", {})
 if isinstance(sec, dict):
     if sec.get("headline"):
         pdf.set_font("Helvetica", "B", 12)
-        pdf.multi_cell(0, 6, safe(sec["headline"]))
+        pdf.multi_cell(0, 6, safe(sec["headline"]), align="J")
         pdf.ln(3)
     pdf.set_font("Helvetica", "", 10)
     if sec.get("description"):
