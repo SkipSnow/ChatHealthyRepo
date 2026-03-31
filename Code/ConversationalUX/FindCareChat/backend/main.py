@@ -30,6 +30,11 @@ from domain.find_care.specialty_service import SpecialtyService
 from application.facades.evaluate_care_facade import EvaluateCareFacade
 from domain.evaluate_care_quality.clinical_trials_service import ClinicalTrialsService
 from domain.evaluate_care_quality.provider_detail_service import ProviderDetailService
+from domain.shared.safety.safety_service import SafetyService
+from domain.shared.consent.consent_service import ConsentService
+from domain.shared.lead_capture.lead_service import LeadService
+from domain.shared.unknowns.unknown_question_service import UnknownQuestionService
+from domain.shared.content.about_service import AboutService
 
 load_dotenv(override=True)
 
@@ -1541,6 +1546,29 @@ _evaluate_care_facade = EvaluateCareFacade(
 )
 
 # ---------------------------------------------------------------------------
+# ARCH-001 Phase 5: Shared services
+# ---------------------------------------------------------------------------
+_safety_service = SafetyService(
+    get_db_fn=_get_db,
+    env_prefix=_ENV_PREFIX,
+    emergency_keywords=EMERGENCY_KEYWORDS,
+)
+_consent_service = ConsentService()
+_lead_service = LeadService(
+    get_db_fn=_get_db,
+    env_prefix=_ENV_PREFIX,
+    consent=_consent_service,
+    push_fn=push,
+    commit_fn=commitSignificantActivity,
+)
+_unknown_question_service = UnknownQuestionService(
+    consent=_consent_service,
+    push_fn=push,
+    commit_fn=commitSignificantActivity,
+)
+_about_service = AboutService(me_context=_ME, trim_fn=_trim)
+
+# ---------------------------------------------------------------------------
 # Tool Router — ARCH-001 Phase 1 (F-05 fix: replaces globals().get)
 # ---------------------------------------------------------------------------
 _tool_router = ToolRouter()
@@ -1549,10 +1577,10 @@ _tool_router.register_all({
     "find_specialty_codes": _find_care_facade.identify_specialty,
     "search_clinical_trials": _evaluate_care_facade.search_clinical_trials,
     "lookup_provider_external": _evaluate_care_facade.get_provider_details,
-    "record_user_details": record_user_details,
-    "record_unknown_question": record_unknown_question,
-    "get_skip_snow_context": get_skip_snow_context,
-    "get_chathealthy_context": get_chathealthy_context,
+    "record_user_details": _lead_service.record_user_details,
+    "record_unknown_question": _unknown_question_service.record,
+    "get_skip_snow_context": _about_service.get_skip_snow_context,
+    "get_chathealthy_context": _about_service.get_chathealthy_context,
     "commitSignificantActivity": commitSignificantActivity,
 })
 _log.info("ToolRouter initialized: %s", _tool_router.registered_tools)
