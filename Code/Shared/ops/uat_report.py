@@ -59,15 +59,24 @@ ENHANCEMENT_CLASSIFICATIONS = {
 }
 
 
-def _get_uat_status(db, env_prefix: str) -> dict:
-    """Read UAT status from MongoDB. Returns {feature_id: {done, bugs_fixed, new_features, notes}}."""
+def _get_uat_status(db, env_prefix: str, session_start: str = None) -> dict:
+    """Read UAT status from MongoDB. Returns {feature_id: {done, bugs_fixed, new_features, notes}}.
+
+    If session_start is set and the DB record is older, returns empty (fresh session).
+    """
     if db is None:
         return {}
     try:
         coll = db[f"{env_prefix}_System"]["uat_status"]
         doc = coll.find_one({"_id": "current"})
-        if doc and "features" in doc:
-            return {f["id"]: f for f in doc["features"]}
+        if not doc or "features" not in doc:
+            return {}
+        # If session_start date is newer than the record, reset
+        if session_start and doc.get("updated"):
+            if session_start > doc["updated"]:
+                _log.info("UAT session_start %s > record %s — fresh report", session_start, doc["updated"])
+                return {}
+        return {f["id"]: f for f in doc["features"]}
     except Exception:
         pass
     return {}
@@ -107,7 +116,8 @@ def update_uat_status(db, env_prefix: str, feature_id: int, done: str = None,
             "notes": notes or "",
         })
 
-    coll.update_one({"_id": "current"}, {"$set": {"features": features}})
+    from datetime import datetime, timezone
+    coll.update_one({"_id": "current"}, {"$set": {"features": features, "updated": datetime.now(timezone.utc).isoformat()}})
 
 
 def seed_uat_status(db, env_prefix: str):
@@ -135,7 +145,7 @@ def seed_uat_status(db, env_prefix: str):
     _log.info("UAT status seeded: %d features", len(updates))
 
 
-def build_uat_welcome(build: str, version: str, env: str, db=None, env_prefix: str = "dev") -> str:
+def build_uat_welcome(build: str, version: str, env: str, db=None, env_prefix: str = "dev", session_start: str = None) -> str:
     """Build UAT welcome message. Reads status from MongoDB.
 
     Args:
@@ -146,7 +156,7 @@ def build_uat_welcome(build: str, version: str, env: str, db=None, env_prefix: s
         env_prefix: environment prefix for DB collection
     """
     total = len(UAT_FEATURES)
-    status = _get_uat_status(db, env_prefix)
+    status = _get_uat_status(db, env_prefix, session_start=session_start)
 
     total_done = 0
     total_bugs = 0
