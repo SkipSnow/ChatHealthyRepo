@@ -11,7 +11,7 @@
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 _log = logging.getLogger("findcare.safety")
 
@@ -90,30 +90,41 @@ class SafetyService:
 
         return keyword_hit or ai_hit
 
-    def is_ip_locked(self, ip: str) -> bool:
-        """Check if IP is locked due to prior emergency."""
+    def _safety_collection(self):
+        """Get the safety incidents collection. Uses legacy collection name for compatibility."""
         db = self._get_db()
         if db is None:
+            return None
+        return db[f"{self._env}_Safety"]["emergency_incidents"]
+
+    def is_ip_locked(self, ip: str) -> bool:
+        """Check if IP is locked due to prior emergency."""
+        col = self._safety_collection()
+        if col is None:
             return False
         try:
-            lock = db[f"{self._env}_SafetyFilter"]["ip_locks"].find_one({"ip": ip, "active": True})
-            return lock is not None
+            now_iso = datetime.now(timezone.utc).isoformat()
+            record = col.find_one({"ip": ip, "expires_at": {"$gt": now_iso}, "unlocked": {"$ne": True}})
+            return record is not None
         except Exception:
             return False
 
     def lock_ip(self, ip: str, trigger_message: str = "", history: list = None) -> bool:
         """Lock an IP after emergency detection. Audit trail preserved."""
-        db = self._get_db()
-        if db is None:
+        col = self._safety_collection()
+        if col is None:
+            _log.warning("SAFETY: DB unavailable — incident for %s NOT persisted.", ip)
             return False
         try:
-            db[f"{self._env}_SafetyFilter"]["ip_locks"].update_one(
+            now = datetime.now(timezone.utc)
+            expires = now + timedelta(seconds=3600)
+            col.update_one(
                 {"ip": ip},
                 {"$set": {
                     "ip": ip,
-                    "active": True,
-                    "locked_at": datetime.now(timezone.utc).isoformat(),
-                    "trigger_message": trigger_message,
+                    "locked_at": now.isoformat(),
+                    "expires_at": expires.isoformat(),
+                    "trigger_message": trigger_message[:500],
                     "chat_history": history or [],
                 }},
                 upsert=True,
@@ -128,13 +139,13 @@ class SafetyService:
         """Attempt admin unlock with secret key."""
         if not self._admin_unlock_key or self._admin_unlock_key not in message:
             return False
-        db = self._get_db()
-        if db is None:
+        col = self._safety_collection()
+        if col is None:
             return False
         try:
-            result = db[f"{self._env}_SafetyFilter"]["ip_locks"].update_one(
-                {"ip": ip, "active": True},
-                {"$set": {"active": False, "unlocked_at": datetime.now(timezone.utc).isoformat()}},
+            result = col.update_one(
+                {"ip": ip, "unlocked": {"$ne": True}},
+                {"$set": {"unlocked": True, "unlocked_at": datetime.now(timezone.utc).isoformat(), "unlocked_by": "admin"}},
             )
             if result.modified_count > 0:
                 _log.info("IP UNLOCKED by admin: %s", ip)
