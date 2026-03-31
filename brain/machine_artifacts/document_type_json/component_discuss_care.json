@@ -232,5 +232,17 @@
     ],
     "distinction": "Vendor access fees fund growth (capital). Consumer token markup funds operations (revenue). Do not confuse the two in the pitch.",
     "pitch_framing": "We buy tokens at your rate. We resell at a premium. You fund our growth so your model is in the healthcare decision room. Both sides win."
-  }
+  },
+  "future_revenue_epics": [
+    {
+      "id": "REV-001",
+      "title": "Out-of-Network Claims Filing Service",
+      "description": "File out-of-network insurance claims on behalf of the consumer. The platform already knows the provider, the service, and the payer. Automate the claims submission process as a paid service.",
+      "revenue_model": "Per-claim fee or subscription",
+      "component": "Evaluate Care (extends provider + payer knowledge)",
+      "status": "concept",
+      "target": "post-funding",
+      "gov_001_note": "Revenue from consumer for service rendered. Not from payer or provider. GOV-001 clean."
+    }
+  ]
 }
