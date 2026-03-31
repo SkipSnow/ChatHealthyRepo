@@ -13,22 +13,22 @@ _log = logging.getLogger("findcare.unknowns")
 
 TEMPLATES = {
     "healthcare_capability": (
-        'That\'s a great question, and it\'s something we\'re working on. '
-        'ChatHealthy is focused on helping you find providers, specialties, and clinical trials right now, '
-        'but we\'re expanding. May I record your question so we can prioritize it? '
-        'We would save a de-identified version only.'
+        'I don\'t have that capability yet. '
+        'May I record your question so we can improve? '
+        'We would save a de-identified version of this conversation.'
     ),
     "medical_advice": (
-        'I appreciate you trusting me with that, but I\'m not able to provide medical advice. '
-        'For personalized guidance, please consult your doctor or healthcare provider. '
-        'I can help you find a specialist if you\'d like. '
-        'May I record your question so we can improve? We would save a de-identified version only.'
+        'I am not able to provide medical advice. Please consult your doctor. '
+        'May I record your question so we can improve? '
+        'We would save a de-identified version of this conversation.'
     ),
     "irrelevant": (
-        'That\'s outside what I can help with today. I\'m focused on healthcare navigation \u2014 '
-        'finding providers, specialties, and clinical trials. '
-        'May I record your question so we can learn from it? We would save a de-identified version only.'
+        'That is not something I can help with. '
+        'May I record your question so we can improve? '
+        'We would save a de-identified version of this conversation.'
     ),
+    # TODO: These templates need content management — not engineer decisions.
+    # Backlog: load from brain or MongoDB, reviewed by Boss + GPT.
 }
 
 
