@@ -12,6 +12,7 @@ export interface Message {
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 const RETRY_SECONDS = 10
+const TIMEOUT_THRESHOLD_SECONDS = 30
 
 const DEFAULT_WELCOME = [
   '**Welcome to ChatHealthy FindCare**\n\n',
@@ -37,12 +38,17 @@ export default function ChatWindow() {
   const [thinkingDismissed, setThinkingDismissed] = useState(false)
   const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
   const [envBanner, setEnvBanner] = useState<{env: string, build: string, version: string} | null>(null)
+  const [showTimeoutModal, setShowTimeoutModal] = useState(false)
+  const [timeoutMultiplier, setTimeoutMultiplier] = useState(1)
+  const [abandonCount, setAbandonCount] = useState(0)
+  const [continueCount, setContinueCount] = useState(0)
 
   // Refs — avoid stale closures in async callbacks
   const messagesRef = useRef<Message[]>([WELCOME])
   useEffect(() => { messagesRef.current = messages }, [messages])
   const backendEnvRef = useRef<string>('prod')
   const pendingRetryRef = useRef<{ message: string; history: any[]; startTime: number } | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Fetch welcome message from API on mount (supports HUMAN_TESTING mode)
   useEffect(() => {
@@ -81,11 +87,21 @@ export default function ChatWindow() {
   useEffect(() => {
     if (!isLoading || thinkingDismissed || retryCountdown !== null) {
       setThinkSeconds(0)
+      setShowTimeoutModal(false)
+      setTimeoutMultiplier(1)
       return
     }
     const timer = setInterval(() => setThinkSeconds(s => s + 1), 1000)
     return () => clearInterval(timer)
   }, [isLoading, thinkingDismissed, retryCountdown])
+
+  // Timeout modal trigger — show at each multiplier of threshold
+  useEffect(() => {
+    if (!isLoading || thinkingDismissed || showTimeoutModal) return
+    if (thinkSeconds > 0 && thinkSeconds >= TIMEOUT_THRESHOLD_SECONDS * timeoutMultiplier) {
+      setShowTimeoutModal(true)
+    }
+  }, [thinkSeconds, isLoading, thinkingDismissed, timeoutMultiplier, showTimeoutModal])
 
   // Retry countdown tick
   useEffect(() => {
@@ -106,16 +122,45 @@ export default function ChatWindow() {
   const showThinking = isLoading && !thinkingDismissed && retryCountdown === null
   const canSubmit = !isLoading || thinkingDismissed
 
+  function handleTimeoutContinue() {
+    setContinueCount(c => c + 1)
+    setShowTimeoutModal(false)
+    setTimeoutMultiplier(m => m + 1)
+  }
+
+  function handleTimeoutAbandon() {
+    setAbandonCount(c => c + 1)
+    setShowTimeoutModal(false)
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    setMessages(prev => [...prev, {
+      role: 'assistant',
+      content: '**Request abandoned.** The response was taking too long. Try a more specific query.',
+      isError: true,
+      thinkSeconds: thinkSeconds,
+    }])
+    setIsLoading(false)
+    setThinkingDismissed(false)
+  }
+
   async function doApiCall(message: string, history: any[], startTime: number) {
+    const controller = new AbortController()
+    abortControllerRef.current = controller
     let data: any
     try {
       const res = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message, history }),
+        signal: controller.signal,
       })
       data = await res.json()
-    } catch {
+    } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        return // already handled by handleTimeoutAbandon
+      }
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: '**Error:** Could not reach the server. Please try again.',
@@ -125,6 +170,7 @@ export default function ChatWindow() {
       setThinkingDismissed(false)
       return
     }
+    abortControllerRef.current = null
 
     const elapsed = Math.round((Date.now() - startTime) / 1000)
 
@@ -171,6 +217,10 @@ export default function ChatWindow() {
     setInput('')
     setIsLoading(true)
     setThinkingDismissed(false)
+    setShowTimeoutModal(false)
+    setTimeoutMultiplier(1)
+    setAbandonCount(0)
+    setContinueCount(0)
 
     doApiCall(text, historyForBackend, Date.now())
   }
@@ -237,6 +287,43 @@ export default function ChatWindow() {
 
         <div ref={bottomRef} />
       </div>
+
+      {showTimeoutModal && (
+        <div style={{
+          padding: '16px 20px',
+          borderTop: '1px solid #fbbf24',
+          borderBottom: '1px solid #fbbf24',
+          background: '#fffbeb',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}>
+          <span style={{ fontSize: 14, color: '#92400e', fontWeight: 500 }}>
+            This is taking a long time ({thinkSeconds}s). Do you want to continue?
+          </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={handleTimeoutContinue}
+              style={{
+                padding: '6px 16px', borderRadius: 6, border: '1px solid #059669',
+                background: '#ecfdf5', color: '#059669', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              Yes, keep waiting
+            </button>
+            <button
+              onClick={handleTimeoutAbandon}
+              style={{
+                padding: '6px 16px', borderRadius: 6, border: '1px solid #dc2626',
+                background: '#fef2f2', color: '#dc2626', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              No, abandon
+            </button>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSend} style={{ padding: '16px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: 8 }}>
         <input
