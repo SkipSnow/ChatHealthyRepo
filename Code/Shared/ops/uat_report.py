@@ -39,6 +39,25 @@ UAT_FEATURES = [
 ]
 
 
+BUG_CLASSIFICATIONS = {
+    "PE": "Prompt Engineering",
+    "DB": "Database Fix",
+    "LG": "Logic Fix",
+    "MS": "Model Swap",
+    "UX": "UX / Frontend Fix",
+    "CF": "Configuration Fix",
+    "IF": "Infrastructure Fix",
+}
+
+ENHANCEMENT_CLASSIFICATIONS = {
+    "FT": "New Feature",
+    "RF": "Refactor",
+    "PF": "Performance",
+    "DV": "DevOps",
+    "SC": "Security",
+}
+
+
 def build_uat_welcome(build: str, version: str, env: str) -> str:
     """Build a clean UAT welcome message. All result columns blank.
 
@@ -67,8 +86,10 @@ def build_uat_welcome(build: str, version: str, env: str) -> str:
         f"| | **TOTALS** | **0/{total}** | **0** | **0** |"
     )
 
+    lines.append("\n**Bug Classifications:** " + " | ".join(f"**{k}**: {v}" for k, v in BUG_CLASSIFICATIONS.items()))
+    lines.append("\n**Enhancement Classifications:** " + " | ".join(f"**{k}**: {v}" for k, v in ENHANCEMENT_CLASSIFICATIONS.items()))
     lines.append(
-        "\n*Boss: mark Done (Y/DEF/FAIL), tally bugs and features as you test.*"
+        "\n*Boss: mark Done (Y/DEF/FAIL), tally bugs and features as you test. Note type codes in chat.*"
     )
 
     return "\n".join(lines)
