@@ -93,7 +93,6 @@ _mongo_frontend_str = os.getenv("MONGO_FRONTEND_connectionString") or ""
 _db_manager = None
 _db_unavailable = False
 
-
 def _get_db():
     """Lazy MongoDB connection. Returns MongoClient or None."""
     global _db_manager, _db_unavailable
@@ -109,7 +108,6 @@ def _get_db():
         _db_unavailable = True
         return None
 
-
 # ---------------------------------------------------------------------------
 # Notification utility — sends email via SparkPost
 # Used by: LeadService, UnknownQuestionService
@@ -117,7 +115,6 @@ def _get_db():
 _SPARKMAIL_API_KEY = os.getenv("SPARKMAIL_API_KEY", "")
 _SPARKMAIL_FROM    = os.getenv("NOTIFICATION_FROM_EMAIL", "")
 _SPARKMAIL_TO      = os.getenv("NOTIFICATION_TO_EMAIL", "")
-
 
 def push(message):
     """Send a notification email. Fire-and-forget."""
@@ -133,7 +130,6 @@ def push(message):
         )
     except Exception as exc:
         _log.warning("SparkPost send failed: %s", exc)
-
 
 # ---------------------------------------------------------------------------
 # Database write utility — thin wrapper over ChatHealthyMongoUtilities.commit()
@@ -151,7 +147,6 @@ def commitSignificantActivity(payload=None, **kwargs):
     except Exception as exc:
         _log.error("commitSignificantActivity failed: %s", exc)
         return {"recorded": "error", "note": str(exc)}
-
 
 # ---------------------------------------------------------------------------
 # Chat history formatting — used by ToolRouter for consent tools
@@ -171,20 +166,17 @@ def _format_chat_history(messages, truncate: bool = True):
         formatted.append({"role": m.get("role", ""), "content": content})
     return formatted
 
-
 # ---------------------------------------------------------------------------
 # AI helpers — used during service initialization
 # Source: OpenAI API for embeddings, Anthropic API for query expansion
 # ---------------------------------------------------------------------------
 _oai_client: Optional[OpenAI] = None
 
-
 def _get_oai_client() -> OpenAI:
     global _oai_client
     if _oai_client is None:
         _oai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     return _oai_client
-
 
 def _get_query_embedding(text: str) -> Optional[list]:
     """Embed text via OpenAI text-embedding-3-large. Used by ProviderSearchService."""
@@ -195,7 +187,6 @@ def _get_query_embedding(text: str) -> Optional[list]:
         _log.warning("Embedding query failed: %s", e)
         return None
 
-
 def _get_specialty_vector(query: str) -> Optional[list]:
     """Embed text via OpenAI text-embedding-3-small. Used by SpecialtyService."""
     try:
@@ -204,7 +195,6 @@ def _get_specialty_vector(query: str) -> Optional[list]:
     except Exception as e:
         _log.warning("Specialty embedding failed: %s", e)
         return None
-
 
 def _expand_query_terms(query: str) -> list[str]:
     """AI-powered query expansion for specialty search. Uses Claude Haiku."""
@@ -231,13 +221,11 @@ def _expand_query_terms(query: str) -> list[str]:
         _log.warning("_expand_query_terms failed for %r: %s", query, exc)
         return []
 
-
 def _trim(text: str, max_chars: int) -> str:
     """Trim text to max_chars with truncation note."""
     if len(text) <= max_chars:
         return text
     return text[:max_chars] + f"\n[... truncated at {max_chars} chars ...]"
-
 
 # ---------------------------------------------------------------------------
 # ME context — loads founder/company content at startup
@@ -251,7 +239,6 @@ if not os.path.isdir(_ME_DIR):
     _ME_DIR = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "..", "..", "ChatHealthyWhoAmIChat", "me"
     )
-
 
 def _load_me_context():
     ctx = {}
@@ -278,7 +265,6 @@ def _load_me_context():
         ctx["business_plan"] = ""
     return ctx
 
-
 _ME = _load_me_context()
 _url_guardian = URLGuardian(cache_ttl=3600, request_timeout=5)
 
@@ -297,7 +283,6 @@ def _get_build_number() -> str:
     except Exception as exc:
         _log.warning("Build counter read failed: %s", exc)
         return "?"
-
 
 _BUILD = _get_build_number()
 
@@ -322,11 +307,9 @@ WELCOME_MESSAGE = (
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "Shared", "ops"))
 from uat_report import build_uat_welcome
 
-
 def _build_test_welcome():
     env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
     return build_uat_welcome(build=_BUILD, version=_APP_VERSION, env=env_label, db=_get_db(), env_prefix=_ENV_PREFIX)
-
 
 # ---------------------------------------------------------------------------
 # System prompt + tool definitions — loaded from PromptSystemMaker
@@ -388,11 +371,9 @@ _tool_router.register_with_models([
 ])
 _log.info("ToolRouter initialized: %s", _tool_router.registered_tools)
 
-
 def _handle_tool_calls(tool_use_blocks, messages):
     """Dispatch tool calls via ToolRouter (F-05: no more globals().get)."""
     return _tool_router.handle_tool_calls(tool_use_blocks, messages, _format_chat_history)
-
 
 # ---------------------------------------------------------------------------
 # Debug logging — dev environment only
@@ -427,7 +408,6 @@ def _debug_log_chat(
     except Exception as exc:
         _log.warning("debug_log_chat failed: %s", exc)
 
-
 # ---------------------------------------------------------------------------
 # FastAPI application
 # ---------------------------------------------------------------------------
@@ -442,11 +422,9 @@ app.add_middleware(
     allow_credentials=False, allow_methods=["*"], allow_headers=["*"],
 )
 
-
 class ChatRequest(BaseModel):
     message: str
     history: list[dict] = []
-
 
 class ChatResponse(BaseModel):
     response: Optional[str] = None
@@ -456,13 +434,11 @@ class ChatResponse(BaseModel):
     tokens_in: Optional[int] = None
     tokens_out: Optional[int] = None
 
-
 @app.get("/welcome")
 def welcome():
     if _HUMAN_TESTING:
         return {"message": _build_test_welcome()}
     return {"message": WELCOME_MESSAGE}
-
 
 @app.get("/health")
 def health():
@@ -470,7 +446,6 @@ def health():
     env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
     return {"status": "ok", "db": "connected" if db_ok else "unavailable",
             "env": env_label, "build": _BUILD, "version": _APP_VERSION}
-
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, request: Request):
@@ -490,7 +465,6 @@ async def chat(body: ChatRequest, request: Request):
             err_type, err_msg = "internal", tb if _DEBUG else err_str
         _debug_log_chat(ip, body.message, len(body.history), 0, None, None, None, err_msg, body.history)
         return ChatResponse(error=err_msg, error_type=err_type)
-
 
 # ---------------------------------------------------------------------------
 # Chat loop — the core conversation handler
@@ -562,7 +536,6 @@ async def _chat_inner(body: ChatRequest, request: Request):
     _debug_log_chat(ip, body.message, len(history), loop_iter, total_tokens_in, total_tokens_out, text, None)
     return ChatResponse(response=text, tokens_in=total_tokens_in, tokens_out=total_tokens_out)
 
-
 # ---------------------------------------------------------------------------
 # Serve React frontend — dynamic index.html (no caching), static assets cached
 # ---------------------------------------------------------------------------
@@ -580,8 +553,8 @@ if os.path.isdir(_static_dir):
 
     app.mount("/assets", StaticFiles(directory=os.path.join(_static_dir, "assets")), name="assets")
 
-
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", "7860"))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
