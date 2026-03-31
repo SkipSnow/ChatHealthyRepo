@@ -23,6 +23,7 @@ from openai import OpenAI
 from pydantic import BaseModel
 from pypdf import PdfReader
 from url_guardian import URLGuardian
+from application.tool_router import ToolRouter
 
 load_dotenv(override=True)
 
@@ -1493,22 +1494,27 @@ def get_chathealthy_context():
     }
 
 
+# ---------------------------------------------------------------------------
+# Tool Router — ARCH-001 Phase 1 (F-05 fix: replaces globals().get)
+# ---------------------------------------------------------------------------
+_tool_router = ToolRouter()
+_tool_router.register_all({
+    "find_providers": find_providers,
+    "find_specialty_codes": find_specialty_codes,
+    "search_clinical_trials": search_clinical_trials,
+    "lookup_provider_external": lookup_provider_external,
+    "record_user_details": record_user_details,
+    "record_unknown_question": record_unknown_question,
+    "get_skip_snow_context": get_skip_snow_context,
+    "get_chathealthy_context": get_chathealthy_context,
+    "commitSignificantActivity": commitSignificantActivity,
+})
+_log.info("ToolRouter initialized: %s", _tool_router.registered_tools)
+
+
 def _handle_tool_calls(tool_use_blocks, messages):
-    tool_results = []
-    for block in tool_use_blocks:
-        name      = block.name
-        arguments = dict(block.input)  # already a dict
-        if name in ("record_user_details", "record_unknown_question"):
-            arguments["chat_history"] = _format_chat_history(messages, truncate=False)
-        _log.info("Tool called: %s", name)
-        fn     = globals().get(name)
-        result = fn(**arguments) if fn else {}
-        tool_results.append({
-            "type": "tool_result",
-            "tool_use_id": block.id,
-            "content": json.dumps(result),
-        })
-    return tool_results
+    """Dispatch tool calls via ToolRouter (F-05: no more globals().get)."""
+    return _tool_router.handle_tool_calls(tool_use_blocks, messages, _format_chat_history)
 
 
 # ---------------------------------------------------------------------------
