@@ -201,6 +201,14 @@
         "priority": "HIGH"
       },
       {
+        "id": "DEVOPS-WARMUP",
+        "task": "Post-deploy warmup script",
+        "detail": "After every deploy, run a warmup script that hits /health (waits for 200), then fires a test provider search and specialty query to force FIPS load, MongoDB connection pool init, and OpenAI client init. First real user gets a warm server. Add to all deploy workflows (deploy-findcare-backend.yml, manual deploys).",
+        "deadline": "2026-04-08 (Wednesday)",
+        "priority": "HIGH",
+        "deployment_requirement": true
+      },
+      {
         "id": "PERF-002",
         "task": "Compound vector search indexes — city+embedding, county+embedding, state+embedding",
         "detail": "Create compound indexes on providers collection: {practice_address.city, embedding}, {county.name, embedding}, {practice_address.state, embedding}. These allow MongoDB Atlas vector search to pre-filter by geography before scoring embeddings, eliminating full-collection scans. Directly addresses BUG-PERF-001 (87s VA search).",
