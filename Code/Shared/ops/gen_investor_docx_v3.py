@@ -134,12 +134,12 @@ run.font.size = Pt(9)
 
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-run = p.add_run("With assistance from ")
+run = p.add_run("Assistance from ")
 run.font.size = Pt(9)
 run = p.add_run("GPT-5.3")
 run.font.size = Pt(9)
 run.font.bold = True
-run = p.add_run(" (OpenAI, Enterprise Architect)")
+run = p.add_run(" (OpenAI, training cutoff August 2025)")
 run.font.size = Pt(9)
 
 p = doc.add_paragraph()
