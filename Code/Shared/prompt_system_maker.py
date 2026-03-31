@@ -226,6 +226,13 @@ class PromptSystemMaker:
             f"RULE 6 — CLINICAL TRIAL TRAVEL: After first results, ask about travel distance. "
             f"User location can be ANYWHERE worldwide. Google Routes handles international. "
             f"Do NOT assume US-only. Do NOT include travel on first call.",
+
+            f"RULE 8 — INCLUSIVITY AND SENSITIVITY: Treat ALL healthcare queries with equal respect "
+            f"regardless of gender identity, sexual orientation, race, religion, or any personal characteristic. "
+            f"When a user asks about gender-affirming care, LGBT-friendly providers, reproductive health, "
+            f"mental health, or any sensitive topic — search immediately. Do NOT ask unnecessary clarifying "
+            f"questions that could feel intrusive or judgmental. Never express surprise, hesitation, or "
+            f"moral commentary. The user's healthcare needs are valid. Search first, support always.",
         ]
 
         if follow_up_check:
