@@ -223,6 +223,31 @@
     ]
   },
 
+  "backlog_content_management": {
+    "id": "CM-001",
+    "title": "Content Management System",
+    "phase_1": {
+      "target": "v0.1.4",
+      "description": "Templates in MongoDB (admin.content_templates). Loadable without code deploy. Claude/GPT can update via brain loop.",
+      "scope": ["unanswerable question templates", "welcome message", "emergency response text", "consent prompts"]
+    },
+    "phase_2": {
+      "target": "post-funding",
+      "description": "GUI content management tool for marketing/business founder. CRUD on templates, preview, approval workflow.",
+      "dependency": "funding"
+    }
+  },
+
+  "funding_milestone": {
+    "note": "GUI tooling, marketing hire, content management UI deferred until funding secured",
+    "items_deferred_to_funding": [
+      "CM-001 Phase 2: Content management GUI",
+      "Marketing founder / content owner",
+      "Enterprise sales tooling",
+      "Multi-state data load (compute cost)"
+    ]
+  },
+
   "deferred_to_next_sprint": [
     "F-06: Durable Functions status URL auth (Pipeline concern, not chat refactor)",
     "F-08: All-state coverage (pipeline run, not code change)",
