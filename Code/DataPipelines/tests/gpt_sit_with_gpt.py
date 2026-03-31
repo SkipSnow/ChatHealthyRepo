@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 BRAIN_DIR = PROJECT_ROOT / "brain"
 TOKEN = os.environ.get("GPT_READER_TOKEN", "")
-MAX_ITERATIONS = 50
+MAX_ITERATIONS = 100
 
 
 def gpt_reader_call(config: dict, token: str = None) -> tuple:
