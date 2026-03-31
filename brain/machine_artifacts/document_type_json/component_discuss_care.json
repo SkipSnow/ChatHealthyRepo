@@ -192,6 +192,33 @@
       "Competitive differentiation: incumbents are breached monthly under HIPAA. We choose higher standards.",
       "Press/PR: \"The healthcare platform that protects your data better than your hospital does\""
     ],
-    "why_it_works": "Consumers instinctively trust companies that choose to do the right thing over companies forced to. Voluntary security is a brand asset, not a cost center."
+    "why_it_works": "Consumers instinctively trust companies that choose to do the right thing over companies forced to. Voluntary security is a brand asset, not a cost center.",
+    "security_certifications_path": [
+      {
+        "standard": "HITRUST CSF",
+        "what": "Healthcare-specific security framework. Gold standard for health tech. Maps to HIPAA, NIST, ISO 27001.",
+        "why": "Healthcare buyers require it. Proves we exceed HIPAA without being subject to it."
+      },
+      {
+        "standard": "SOC 2 Type II",
+        "what": "Independent audit of security controls over 6-12 months. Trust Services Criteria.",
+        "why": "Enterprise table stakes. Proves operational security, not just policy."
+      },
+      {
+        "standard": "NIST SP 800-171",
+        "what": "DOD standard for protecting Controlled Unclassified Information. 110 security controls.",
+        "why": "Direct path to FedRAMP. If VA or DOD wants ChatHealthy, we are ready."
+      },
+      {
+        "standard": "FedRAMP (future)",
+        "what": "Federal Risk and Authorization Management Program. Required for federal cloud services.",
+        "why": "NIST 800-171 gets us 80% there. FedRAMP opens VA, DOD, CMS, HHS."
+      },
+      {
+        "standard": "Annual External Penetration Test",
+        "what": "Third-party security audit. Published results.",
+        "why": "Transparency. We publish what hospitals hide."
+      }
+    ]
   }
 }
