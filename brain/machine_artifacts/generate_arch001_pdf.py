@@ -451,8 +451,11 @@ for policy, status in data["governance_alignment"].items():
 pdf.add_page()
 pdf.section_title("16. Sign-Off")
 for agent, info in data["sign_off"].items():
-    pdf.sub_title(f"{info['role']}: {info['model']}")
-    pdf.body_text(f"Status: {info['status']}")
+    title = f"{info['role']}"
+    if "model" in info:
+        title += f": {info['model']}"
+    pdf.sub_title(title)
+    pdf.body_text(f"Status: {info['status']}  |  Date: {info.get('date', '')}")
     pdf.body_text(f"Notes: {info['notes']}")
     pdf.ln(3)
 

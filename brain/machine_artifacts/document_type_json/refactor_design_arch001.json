@@ -687,16 +687,24 @@
   },
 
   "sign_off": {
+    "boss": {
+      "role": "CEO / Final Authority",
+      "status": "APPROVED",
+      "date": "2026-03-30",
+      "notes": "Design and sprint plan approved. Consent elevated to bounded context per Boss directive. Appendix A (AI model usage) approved. Proceed to build."
+    },
     "claude": {
       "role": "Engineer",
       "model": "Claude Opus 4.6",
       "status": "APPROVED",
+      "date": "2026-03-30",
       "notes": "Design is fully executable. 7-phase migration is incremental and safe. All 18 Perplexity findings addressed."
     },
     "gpt": {
       "role": "Architect",
       "model": "GPT-5.3",
       "status": "APPROVED",
+      "date": "2026-03-30",
       "notes": "Architecture is sound. Facade pattern correctly separates domains. Pydantic enforcement at tool boundary is the right pattern."
     }
   },
