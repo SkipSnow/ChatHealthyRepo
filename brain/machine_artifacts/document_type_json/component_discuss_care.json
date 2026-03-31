@@ -162,6 +162,19 @@
       "description": "Doctors, providers, and licensed clinicians are NEVER participants in a Discuss Care session. The session transcript is shared WITH the doctor after. The doctor is never IN the room.",
       "rationale": "Provider presence creates clinical decision support risk (FDA), malpractice exposure, and transforms the platform from consumer navigation to clinical tool. This boundary is permanent.",
       "status": "permanent"
+    },
+    {
+      "id": "DC-GOV-02",
+      "rule": "SECURITY DISCLOSURE AND HIPAA POSITIONING",
+      "description": "ChatHealthy.ai is NOT a HIPAA covered entity and is NOT subject to HIPAA regulations. We are a consumer navigation platform, not a healthcare provider or business associate. However, we voluntarily adopt enterprise-grade security standards to protect user data.",
+      "security_standards": [
+        "HITRUST CSF certification (if eligible)",
+        "DOD-level security audit standard (FedRAMP or equivalent)",
+        "SOC 2 Type II compliance path"
+      ],
+      "disclosure_requirement": "Every session and every document must disclose: (1) We are not subject to HIPAA. (2) We voluntarily maintain audited security at enterprise healthcare standards. (3) Even if a participant happens to be a licensed provider, the platform remains a consumer tool and does not create a provider-patient relationship.",
+      "rationale": "Neutrality requires transparency. We earn trust by choosing to be secure, not by being compelled. This avoids HIPAA regulatory burden while exceeding the security expectations of healthcare buyers.",
+      "status": "permanent"
     }
   ]
 }
