@@ -13,7 +13,14 @@ def safe(s):
         s = s.replace(k, v)
     return s.encode("latin-1", errors="replace").decode("latin-1")
 
-pdf = FPDF(orientation="P", format="letter")
+class InvestorPDF(FPDF):
+    def footer(self):
+        self.set_y(-12)
+        self.set_font("Helvetica", "I", 8)
+        self.set_text_color(150, 150, 150)
+        self.cell(0, 10, f"ChatHealthy.ai Business Architecture  |  2026-03-31  |  Page {self.page_no()}  |  Authored by Claude Code", align="C")
+
+pdf = InvestorPDF(orientation="P", format="letter")
 pdf.set_auto_page_break(auto=True, margin=20)
 
 # Title
