@@ -1284,12 +1284,12 @@ WELCOME_MESSAGE = (
 # UAT Report — DevOps tool (clean start every session)
 # ---------------------------------------------------------------------------
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "Shared", "ops"))
-from uat_report import build_uat_welcome
+from uat_report import build_uat_welcome, seed_uat_status
 
 
 def _build_test_welcome():
     env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
-    return build_uat_welcome(build=_BUILD, version=_APP_VERSION, env=env_label)
+    return build_uat_welcome(build=_BUILD, version=_APP_VERSION, env=env_label, db=_get_db(), env_prefix=_ENV_PREFIX)
 
 
 def _system_prompt(follow_up_check: bool = False) -> str:
