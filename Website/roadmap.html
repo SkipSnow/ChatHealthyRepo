@@ -618,6 +618,30 @@
       <p>Native mobile apps for iOS and Android. Full platform capability in the consumer's pocket.</p>
     </div>
 
+    <!-- Post-Alpha Tasks -->
+    <h2>Post-Alpha Deliverables</h2>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">UX-ABOUT-001</span>
+        <span class="item-title">Unified About Us tool — consolidate about intents</span>
+        <span class="badge badge-open" style="background:#e8f4e8; color:#1a6b1a; border-color:#90c890;">Post-Alpha (1 sprint)</span>
+      </div>
+      <div class="item-meta">
+        <span><strong>Status:</strong> Backlog — scheduled post-Alpha</span>
+      </div>
+      <p>Merge <code>get_skip_snow_context</code> and <code>get_chathealthy_context</code> into a single
+      <strong>About Us</strong> tool backed by extensible content artifacts. Currently two tools sharing
+      one class — should be one tool that routes to any number of about-related content sources
+      (founder, company, team, advisors, investors, press).</p>
+      <ul>
+        <li>Single <code>get_about_context(topic)</code> tool replaces two separate tools</li>
+        <li>Content loaded from brain artifacts or MongoDB (CM-001 path)</li>
+        <li>Extensible: add new topics without new tool registrations</li>
+        <li>One sprint delivery</li>
+      </ul>
+    </div>
+
     <!-- Pipeline Deliverables -->
     <h2>Pipeline Deliverables</h2>
 
