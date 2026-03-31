@@ -24,6 +24,8 @@ from pydantic import BaseModel
 from pypdf import PdfReader
 from url_guardian import URLGuardian
 from application.tool_router import ToolRouter
+from application.facades.find_care_facade import FindCareFacade
+from domain.find_care.provider_search_service import ProviderSearchService
 
 load_dotenv(override=True)
 
@@ -1495,11 +1497,24 @@ def get_chathealthy_context():
 
 
 # ---------------------------------------------------------------------------
+# ARCH-001 Phase 2: FindCare domain services
+# ---------------------------------------------------------------------------
+_provider_search_service = ProviderSearchService(
+    get_db_fn=_get_db,
+    env_prefix=_ENV_PREFIX,
+    get_embedding_fn=_get_query_embedding,
+)
+_find_care_facade = FindCareFacade(
+    provider_search=_provider_search_service,
+    find_specialty_fn=find_specialty_codes,
+)
+
+# ---------------------------------------------------------------------------
 # Tool Router — ARCH-001 Phase 1 (F-05 fix: replaces globals().get)
 # ---------------------------------------------------------------------------
 _tool_router = ToolRouter()
 _tool_router.register_all({
-    "find_providers": find_providers,
+    "find_providers": _find_care_facade.search_providers,
     "find_specialty_codes": find_specialty_codes,
     "search_clinical_trials": search_clinical_trials,
     "lookup_provider_external": lookup_provider_external,
