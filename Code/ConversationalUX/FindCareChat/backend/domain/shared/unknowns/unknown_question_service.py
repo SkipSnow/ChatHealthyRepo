@@ -13,19 +13,21 @@ _log = logging.getLogger("findcare.unknowns")
 
 TEMPLATES = {
     "healthcare_capability": (
-        'I don\'t have that capability yet. '
-        'May I record your question so we can improve? '
-        'We would save a de-identified version of this conversation.'
+        'That\'s a great question, and it\'s something we\'re working on. '
+        'ChatHealthy is focused on helping you find providers, specialties, and clinical trials right now, '
+        'but we\'re expanding. May I record your question so we can prioritize it? '
+        'We would save a de-identified version only.'
     ),
     "medical_advice": (
-        'I am not able to provide medical advice. Please consult your doctor. '
-        'May I record your question so we can improve? '
-        'We would save a de-identified version of this conversation.'
+        'I appreciate you trusting me with that, but I\'m not able to provide medical advice. '
+        'For personalized guidance, please consult your doctor or healthcare provider. '
+        'I can help you find a specialist if you\'d like. '
+        'May I record your question so we can improve? We would save a de-identified version only.'
     ),
     "irrelevant": (
-        'That is not something I can help with. '
-        'May I record your question so we can improve? '
-        'We would save a de-identified version of this conversation.'
+        'That\'s outside what I can help with today. I\'m focused on healthcare navigation \u2014 '
+        'finding providers, specialties, and clinical trials. '
+        'May I record your question so we can learn from it? We would save a de-identified version only.'
     ),
 }
 
