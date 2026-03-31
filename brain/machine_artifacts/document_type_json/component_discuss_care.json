@@ -4,7 +4,7 @@
   "date": "2026-03-31",
   "author": "Boss (Skip Snow)",
   "status": "CONCEPT",
-  "target": "Beta Sprint 1 (May 2026). April is quality month — no new components.",
+  "target": "Beta Sprint 1 (May 2026). April is quality month \u2014 no new components.",
   "three_component_architecture": {
     "1": "Find Care \u2014 find providers, specialties, navigate the system",
     "2": "Evaluate Care \u2014 clinical trials, provider credentials, quality metrics",
@@ -61,6 +61,11 @@
       "id": "DC-10",
       "feature": "Session Persistence",
       "description": "Sessions survive disconnects, resumable by invite link"
+    },
+    {
+      "id": "DC-14",
+      "feature": "Shared Research Bot",
+      "description": "Any participant or component can dispatch a research bot to gather information. Shared object across all three components and pipelines. Bot runs autonomously, returns findings to the session. Dispatched by consensus or individual request. All bot work incurs a fee."
     }
   ],
   "architectural_implications": [
@@ -127,5 +132,27 @@
       "Patent attorney files and negotiates"
     ],
     "first_use_case_for_discuss_care": "Drafting the provisional patent IS the beta test of the product."
+  },
+  "shared_objects": {
+    "research_bot": {
+      "name": "Shared Research Bot",
+      "scope": "Cross-component shared object \u2014 not owned by any single component",
+      "used_by": [
+        "Find Care",
+        "Evaluate Care",
+        "Discuss Care",
+        "DataPipelines"
+      ],
+      "capabilities": [
+        "Autonomous research tasks dispatched from any component",
+        "Provider deep-dive (credentials, history, quality signals)",
+        "Clinical trial matching and eligibility analysis",
+        "Comparative provider analysis across geographies",
+        "Pipeline data enrichment (gap filling, validation)",
+        "Returns structured findings to requesting session or pipeline"
+      ],
+      "billing": "All bot research incurs token fees \u2014 premium revenue stream",
+      "architectural_note": "Shared service, not inside any facade. Accessible via all three facades and pipeline orchestrator."
+    }
   }
 }
