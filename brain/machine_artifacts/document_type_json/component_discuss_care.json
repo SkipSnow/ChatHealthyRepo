@@ -36,5 +36,20 @@
     "DiscussCareFacade as the entry point — same pattern as FindCare and EvaluateCare"
   ],
 
-  "origin": "Boss insight: wanted to invite himself and Perplexity into a conversation. Realized consumers benefit from the same pattern — invite family into a healthcare chat with AI assistance."
+  "origin": "Boss insight: wanted to invite himself and Perplexity into a conversation. Realized consumers benefit from the same pattern — invite family into a healthcare chat with AI assistance.",
+
+  "revenue_model": {
+    "name": "Choose Your AI",
+    "mechanism": "AI model providers pay ChatHealthy for access to user sessions",
+    "why_they_pay": [
+      "User attention in healthcare — highest-value decision context",
+      "Tool usage generates training signal in healthcare domain",
+      "Brand presence at point of care decision",
+      "Distribution channel they cannot build themselves"
+    ],
+    "gov_001_compliance": "AI vendors are TECHNOLOGY partners, not care-chain entities. No payer, no provider, no pharma revenue. GOV-001 preserved.",
+    "pitch": "Your model is in the room when a family decides where Mom gets cancer treatment. What's that worth?",
+    "user_experience": "User selects which AI models participate in their session. Models compete on helpfulness. User pays nothing.",
+    "series_a_story": "We own the healthcare decision room. AI companies pay to be in it."
+  }
 }
