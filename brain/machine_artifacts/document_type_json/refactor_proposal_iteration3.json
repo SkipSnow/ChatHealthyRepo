@@ -1,0 +1,173 @@
+{
+  "iteration": 2,
+  "summary": "Refined modular monolith with explicit facades, corrected domain ownership, full repo coverage, and Pydantic-enforced tool boundaries. Prompt co-location strategy and configurable safety introduced.",
+  "top_level_architecture": {
+    "pattern": "Modular Monolith (Facade-Oriented Domains)",
+    "layers": [
+      "Host Adapter (HuggingFace)",
+      "Application Layer (Orchestration + Facades)",
+      "Domain Layer (Business Services)",
+      "Infrastructure Layer (External + DB + Config)"
+    ],
+    "dependency_direction": "Host -> Application -> Domain -> Infrastructure"
+  },
+  "repo_refactor_scope": {
+    "Code/ConversationalUX/FindCareChat/": {
+      "app.py": "HuggingFace entrypoint only",
+      "adapter/host_chat_adapter.py": "HTTP <-> ChatOrchestrator",
+      "application/": {
+        "chat_orchestrator.py": "LLM loop, system prompt (per Boss decision), safety gating",
+        "tool_router.py": "Pydantic-validated tool dispatch (allowlist enforced)",
+        "session_manager.py": "Chat session + UX state",
+        "facades/": {
+          "find_care_facade.py": "Entry point for all FindCare capabilities",
+          "evaluate_care_facade.py": "Entry point for all EvaluateCareQuality capabilities"
+        },
+        "tool_models/": {
+          "provider_search_models.py": "Pydantic input/output",
+          "clinical_trials_models.py": "Pydantic input/output",
+          "shared_models.py": "Common tool schemas"
+        }
+      },
+      "domain/": {
+        "find_care/": {
+          "provider_search_service.py": "Feature 1",
+          "specialty_service.py": "Feature 2"
+        },
+        "evaluate_care_quality/": {
+          "clinical_trials_service.py": "Feature 3",
+          "provider_detail_service.py": "Feature 8 (MOVED per feedback)"
+        },
+        "shared/": {
+          "safety/": {
+            "safety_service.py": "Feature 5",
+            "emergency_detector.py": "Config-driven (F-09 fix)"
+          },
+          "consent/consent_service.py": "Feature 7",
+          "lead_capture/lead_service.py": "Feature 6",
+          "content/about_service.py": "Feature 4",
+          "unknowns/unknown_question_service.py": "Feature 12",
+          "url/url_guardian.py": "Feature 9"
+        }
+      },
+      "infrastructure/": {
+        "mongo/provider_repository.py": "read-only",
+        "external_apis/": {
+          "npi_client.py": "used by ProviderDetailService",
+          "clinical_trials_client.py": "used by ClinicalTrialsService",
+          "google_routes_client.py": "travel time"
+        },
+        "embeddings/embedding_client.py": "vector search",
+        "config/config_loader.py": "loads brain artifacts + env"
+      }
+    },
+    "Code/DataPipelines/": {
+      "architecture_alignment": "Remains independent (GOV-005)",
+      "changes": [
+        "Add APIKeyMiddleware to status endpoint (F-06)",
+        "Expose blob schema via Shared contracts if needed"
+      ]
+    },
+    "Code/Shared/": {
+      "purpose": "Cross-application infrastructure only (NO business logic)",
+      "modules": {
+        "logging/logger.py": "central structured logging",
+        "config/global_config.py": "shared env loader",
+        "contracts/": "optional shared DTOs (non-domain)"
+      }
+    },
+    "Website/": {
+      "no_change": "Remains Cloudflare static (GOV-005)",
+      "note": "Remove any leaked architecture docs (F-13)"
+    },
+    "brain/": {
+      "machine_artifacts/": {
+        "emergency_keywords.json": "loaded by EmergencyDetector",
+        "tool_registry.json": "optional future sync for prompt/tool alignment"
+      },
+      "governance": [
+        "Add BrainLock TTL design (F-16 acknowledgment)"
+      ]
+    }
+  },
+  "facade_design": {
+    "FindCareFacade": {
+      "methods": [
+        "search_providers(criteria: ProviderSearchInput) -> ProviderSearchOutput",
+        "identify_specialty(input: SpecialtyInput) -> SpecialtyOutput",
+        "get_provider_location(npi: str) -> dict"
+      ]
+    },
+    "EvaluateCareFacade": {
+      "methods": [
+        "search_clinical_trials(input: ClinicalTrialsInput) -> ClinicalTrialsOutput",
+        "get_provider_details(npi: str) -> ProviderDetailOutput"
+      ],
+      "cross_calls": [
+        "calls FindCareFacade.get_provider_location() for travel calculations"
+      ]
+    }
+  },
+  "tooling_and_pydantic": {
+    "tool_router": {
+      "class": "ToolRouter",
+      "dispatch_map": {
+        "provider_search": {
+          "model": "ProviderSearchInput",
+          "handler": "FindCareFacade.search_providers"
+        },
+        "clinical_trials": {
+          "model": "ClinicalTrialsInput",
+          "handler": "EvaluateCareFacade.search_clinical_trials"
+        }
+      },
+      "enforcement": [
+        "Reject unknown tools (F-05 fix)",
+        "Validate all inputs via Pydantic (Boss decision)",
+        "Validate outputs before returning to LLM"
+      ]
+    }
+  },
+  "system_prompt_strategy": {
+    "location": "ChatOrchestrator._build_system_prompt()",
+    "strategy": [
+      "Prompt references TOOL NAMES only (not class names)",
+      "ToolRouter is source of truth for available tools",
+      "Optional: load tool descriptions dynamically from tool_models docstrings",
+      "Future-ready: tool_registry.json in brain for external sync"
+    ],
+    "consistency_rule": "If a tool is not registered in ToolRouter, it cannot appear in prompt"
+  },
+  "uat_feature_mapping": [
+    { "feature": "Provider Search", "class": "ProviderSearchService", "domain": "FindCare" },
+    { "feature": "Specialty Identification", "class": "SpecialtyService", "domain": "FindCare" },
+    { "feature": "Clinical Trials Search", "class": "ClinicalTrialsService", "domain": "EvaluateCareQuality" },
+    { "feature": "About ChatHealthy", "class": "AboutService", "domain": "Shared" },
+    { "feature": "Safety Filter", "class": "SafetyService", "domain": "Shared" },
+    { "feature": "Lead Capture", "class": "LeadService", "domain": "Shared" },
+    { "feature": "Consent Framework", "class": "ConsentService", "domain": "Shared" },
+    { "feature": "Provider Detail", "class": "ProviderDetailService", "domain": "EvaluateCareQuality" },
+    { "feature": "URL Guardian", "class": "URLGuardian", "domain": "Shared" },
+    { "feature": "Chat UX", "class": "SessionManager", "domain": "Application" },
+    { "feature": "Blob Storage Infrastructure", "class": "BlobStorageClient", "domain": "Infrastructure" },
+    { "feature": "Unanswerable Question Handling", "class": "UnknownQuestionService", "domain": "Shared" },
+    { "feature": "Markdown Table Rendering", "class": "FrontendOnly", "domain": "Frontend" }
+  ],
+  "safety_configuration": {
+    "EmergencyDetector": {
+      "config_source": "brain/machine_artifacts/emergency_keywords.json",
+      "reload_strategy": "loaded at startup (no runtime mutation)",
+      "future": "can add embedding similarity expansion"
+    }
+  },
+  "audit_alignment": {
+    "F-05": "Resolved via ToolRouter allowlist",
+    "F-06": "API key protection added to pipelines",
+    "F-07": "main.py eliminated -> modular structure",
+    "F-09": "Config-driven emergency detection",
+    "F-10": "Result limit configurable in ProviderSearchService",
+    "F-13": "Website removes sensitive architecture docs",
+    "F-16": "BrainLock TTL acknowledged in brain design",
+    "F-17": "Server-side enforcement via ToolRouter + Pydantic"
+  }
+}
