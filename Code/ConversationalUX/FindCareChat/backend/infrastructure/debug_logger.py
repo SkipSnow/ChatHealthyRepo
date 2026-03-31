@@ -1,0 +1,47 @@
+# Copyright (c) 2026 Skip Snow. All rights reserved.
+# Licensed under the FindCare Evaluation License (FEL-1.0).
+#
+# DebugLogger — persists chat call metadata to MongoDB for debugging.
+# Source: {ENV_PREFIX}_Debug.chat_calls
+
+import logging
+from datetime import datetime, timezone
+from typing import Optional
+
+_log = logging.getLogger("findcare.debug")
+
+
+class DebugLogger:
+    """Persists chat call metadata to MongoDB. Dev environment debugging."""
+
+    def __init__(self, get_db_fn, env_prefix: str, consent_service=None):
+        self._get_db = get_db_fn
+        self._env = env_prefix
+        self._consent = consent_service
+
+    def log_chat(self, ip: str, message: str, history_len: int, tool_loop_iters: int,
+                 tokens_in: Optional[int], tokens_out: Optional[int],
+                 response_text: Optional[str], error: Optional[str],
+                 history: Optional[list] = None) -> None:
+        db = self._get_db()
+        if db is None:
+            return
+        try:
+            record = {
+                "datetime": datetime.now(timezone.utc).isoformat(),
+                "ip": ip, "message_preview": message[:200],
+                "history_len": history_len, "tool_loop_iters": tool_loop_iters,
+                "tokens_in": tokens_in, "tokens_out": tokens_out,
+                "response_preview": response_text[:200] if response_text else None,
+                "error": error,
+            }
+            if error and history and self._consent:
+                safe_history = [
+                    {"role": m.get("role", ""), "content": str(m.get("content", ""))[:500]}
+                    for m in history if m.get("role") in ("user", "assistant")
+                ]
+                self._consent.de_identify(safe_history)
+                record["chat_history_deidentified"] = safe_history
+            db[f"{self._env}_Debug"]["chat_calls"].insert_one(record)
+        except Exception as exc:
+            _log.warning("debug log failed: %s", exc)
