@@ -158,6 +158,17 @@
     .gm-m001 { background: var(--accent); border-color: #8a5c00; }
     .gm-m002 { background: var(--teal); border-color: #065955; width: 20px; height: 20px; border-width: 3px; }
     .gm-m003 { background: #7c3aed; border-color: #5b21b6; width: 20px; height: 20px; border-width: 3px; }
+    .gm-m004 { background: #d97706; border-color: #92400e; width: 20px; height: 20px; border-width: 3px; }
+    .gm-m005 { background: #059669; border-color: #065f46; width: 20px; height: 20px; border-width: 3px; }
+
+    .gantt-row-biz { background: #1a1a1a; border-bottom: 2px solid #333 !important; min-height: 42px; }
+    .gantt-row-biz .gantt-row-name { font-weight: 700; font-size: 0.9rem; color: #fff; }
+    .gantt-row-biz .gantt-row-id { color: #d97706; font-weight: 700; }
+    .gantt-row-biz .gantt-planned { color: #fff; }
+    .gantt-biz-label {
+      position: absolute; top: -16px; font-size: 9px; font-weight: 600;
+      white-space: nowrap; transform: translateX(-50%); z-index: 4;
+    }
 
     .gantt-row-ms       { background: var(--teal-light); border-bottom: 2px solid var(--teal-mid) !important; min-height: 36px; }
     .gantt-row-ms-beta  { background: #f5f3ff; border-bottom: 2px solid #c4b5fd !important; min-height: 36px; }
@@ -250,6 +261,29 @@
             <div class="gantt-month">Oct</div>
             <div class="gantt-month">Nov</div>
             <div class="gantt-month">Dec</div>
+          </div>
+        </div>
+
+        <!-- ── Business Milestones row ─────────────────────────────────── -->
+        <div class="gantt-row gantt-row-biz">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">BIZ</span>
+            <span class="gantt-row-name">Business Milestones</span>
+          </div>
+          <div class="gantt-planned" style="color:#fff;">—</div>
+          <div class="gantt-track" style="position:relative;">
+            <!-- Alpha Launch: Apr 30 = 20% -->
+            <div class="gantt-milestone gm-m002" style="left:20%"></div>
+            <div class="gantt-biz-label" style="left:20%; color:var(--teal);">Alpha<br>Apr 30</div>
+            <!-- Funding: Jul 31 = 50% -->
+            <div class="gantt-milestone gm-m004" style="left:50%"></div>
+            <div class="gantt-biz-label" style="left:50%; color:#d97706;">Funding<br>Jul 31</div>
+            <!-- Prod Launch: Aug 25 = 58% -->
+            <div class="gantt-milestone gm-m005" style="left:58%"></div>
+            <div class="gantt-biz-label" style="left:58%; color:#059669;">Prod<br>Aug 25</div>
+            <!-- Beta Launch: Sep 20 = 67% -->
+            <div class="gantt-milestone gm-m003" style="left:67%"></div>
+            <div class="gantt-biz-label" style="left:67%; color:#7c3aed;">Beta<br>Sep 20</div>
           </div>
         </div>
 
