@@ -305,20 +305,14 @@ def push(message):
 # Database helpers
 # ---------------------------------------------------------------------------
 def commitSignificantActivity(payload=None, **kwargs):
-    db = _get_db()
-    if db is None:
+    """Write a record to MongoDB via ChatHealthyMongoUtilities.commit()."""
+    if _get_db() is None:
         return {"recorded": "ok", "note": "MongoDB unavailable"}
     try:
         payload = payload or kwargs
         if isinstance(payload, str):
             payload = json.loads(payload)
-        database   = f"{_ENV_PREFIX}_{payload['database']}"
-        collection = payload["collection"]
-        record     = dict(payload["record"])
-        record["record_number"] = db[database][collection].count_documents({}) + 1
-        record["datetime"]      = datetime.now().isoformat()
-        db[database][collection].insert_one(record)
-        return {"recorded": "ok"}
+        return _db_manager.commit(_ENV_PREFIX, payload["database"], payload["collection"], payload["record"])
     except Exception as exc:
         _log.error("commitSignificantActivity failed: %s", exc)
         return {"recorded": "error", "note": str(exc)}
