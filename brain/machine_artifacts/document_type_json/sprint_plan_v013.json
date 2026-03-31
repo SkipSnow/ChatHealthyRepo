@@ -263,6 +263,14 @@
         "deadline": "2026-04-08 (Wednesday)",
         "priority": "MEDIUM",
         "origin": "AI operational error during Cycle 1 \u2014 manual reseed was required because UAT timestamps were out of sync."
+      },
+      {
+        "id": "DEVOPS-UAT-INJECT",
+        "task": "Automate UAT report via HuggingFace Space config injection",
+        "detail": "Investigate: can we parameterize HUMAN_TESTING via HF Space API or redirect? Goal: Claude triggers a fresh UAT session programmatically without Boss manually editing secrets. Options: HF API to update secrets, redirect with query param, or environment variable injection from GitHub Actions deploy workflow.",
+        "deadline": "2026-04-08 (Wednesday)",
+        "priority": "MEDIUM",
+        "origin": "Manual secret editing during Cycle 1 was error-prone. UAT report display should be automated as part of deploy pipeline."
       }
     ]
   },
