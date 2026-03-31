@@ -1,15 +1,10 @@
 # Copyright (c) 2026 Skip Snow. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# main.py — ChatHealthy.ai FindCare backend entry point.
+# main.py — ChatHealthy.ai FindCare backend. Host adapter only.
 #
-# ARCH-001: Modular monolith. All business logic lives in domain/ services.
-# This file is the host adapter: FastAPI setup, service wiring, chat loop.
-# HuggingFace surface: thinnest possible. No business logic here.
-#
-# Authored by Claude Code (Claude Opus 4.6)
-# Architecture by GPT-5.3 (Enterprise Architect)
-# Supervised by Skip Snow, Founder & CEO
+# ARCH-001: All business logic in domain/ services. All config in PromptSystemMaker.
+# This file: FastAPI setup, service wiring, chat loop. Nothing else.
 
 import json
 import logging
@@ -17,19 +12,16 @@ import os
 import re
 import sys
 import traceback
-from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from anthropic import Anthropic
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from openai import OpenAI
 from pydantic import BaseModel
-from pypdf import PdfReader
 from url_guardian import URLGuardian
 
-# ARCH-001 imports — domain services and facades
+# ARCH-001 — domain services
 from application.tool_router import ToolRouter
 from application.facades.find_care_facade import FindCareFacade
 from application.facades.evaluate_care_facade import EvaluateCareFacade
@@ -45,13 +37,12 @@ from domain.shared.content.about_service import AboutService
 from application.tool_models.provider_search_models import ProviderSearchInput, SpecialtyInput
 from application.tool_models.clinical_trials_models import ClinicalTrialsInput, ProviderDetailInput
 from application.tool_models.consent_models import LeadInput, UnknownInput
+from infrastructure.embeddings.embedding_client import EmbeddingClient
+from infrastructure.debug_logger import DebugLogger
 
 load_dotenv(override=True)
 
-# ---------------------------------------------------------------------------
-# Shared utilities — MongoDB connection manager
-# Source: Code/Shared/ChatHealthyMongoUtilities.py
-# ---------------------------------------------------------------------------
+# Shared utilities
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "Shared"))
 from ChatHealthyMongoUtilities import ChatHealthyMongoUtilities
 from prompt_system_maker import PromptSystemMaker
@@ -66,7 +57,7 @@ logging.basicConfig(
 _log = logging.getLogger("findcare")
 
 # ---------------------------------------------------------------------------
-# Configuration — all from environment variables
+# Configuration
 # ---------------------------------------------------------------------------
 _ENV_PREFIX    = os.getenv("ENV_PREFIX", "dev")
 _DEBUG         = os.getenv("DEBUG", "false").lower() == "true"
@@ -78,23 +69,14 @@ EMERGENCY_RESPONSE = (
     "<b>This chat has been suspended.</b>"
 )
 
-# Emergency keywords + tool definitions + system prompt — loaded from brain artifacts
-_brain_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "brain")
-_prompt_maker = PromptSystemMaker(brain_dir=_brain_dir, env_prefix=_ENV_PREFIX)
-EMERGENCY_KEYWORDS = _prompt_maker.load_emergency_keywords()
-anthropic_tools = _prompt_maker.load_tool_definitions()
-
 # ---------------------------------------------------------------------------
-# MongoDB — lazy connection via ChatHealthyMongoUtilities
-# Source: MONGO_FRONTEND_connectionString in .env
-# Reads only — Chat app never writes to PublicHealthData (GOV-005)
+# MongoDB
 # ---------------------------------------------------------------------------
 _mongo_frontend_str = os.getenv("MONGO_FRONTEND_connectionString") or ""
 _db_manager = None
 _db_unavailable = False
 
 def _get_db():
-    """Lazy MongoDB connection. Returns MongoClient or None."""
     global _db_manager, _db_unavailable
     if not _mongo_frontend_str or _db_unavailable:
         return None
@@ -109,34 +91,25 @@ def _get_db():
         return None
 
 # ---------------------------------------------------------------------------
-# Notification utility — sends email via SparkPost
-# Used by: LeadService, UnknownQuestionService
+# Utilities — push notification + DB write
 # ---------------------------------------------------------------------------
 _SPARKMAIL_API_KEY = os.getenv("SPARKMAIL_API_KEY", "")
 _SPARKMAIL_FROM    = os.getenv("NOTIFICATION_FROM_EMAIL", "")
 _SPARKMAIL_TO      = os.getenv("NOTIFICATION_TO_EMAIL", "")
 
 def push(message):
-    """Send a notification email. Fire-and-forget."""
     if not _SPARKMAIL_API_KEY:
         return
     try:
         from sparkpost import SparkPost
         SparkPost(_SPARKMAIL_API_KEY).transmissions.send(
-            recipients=[_SPARKMAIL_TO],
-            from_email=_SPARKMAIL_FROM,
-            subject="ChatHealthy — Activity",
-            text=message,
+            recipients=[_SPARKMAIL_TO], from_email=_SPARKMAIL_FROM,
+            subject="ChatHealthy — Activity", text=message,
         )
     except Exception as exc:
         _log.warning("SparkPost send failed: %s", exc)
 
-# ---------------------------------------------------------------------------
-# Database write utility — thin wrapper over ChatHealthyMongoUtilities.commit()
-# Used by: LeadService, UnknownQuestionService, ToolRouter
-# ---------------------------------------------------------------------------
 def commitSignificantActivity(payload=None, **kwargs):
-    """Write a record to MongoDB via ChatHealthyMongoUtilities.commit()."""
     if _get_db() is None:
         return {"recorded": "ok", "note": "MongoDB unavailable"}
     try:
@@ -148,11 +121,7 @@ def commitSignificantActivity(payload=None, **kwargs):
         _log.error("commitSignificantActivity failed: %s", exc)
         return {"recorded": "error", "note": str(exc)}
 
-# ---------------------------------------------------------------------------
-# Chat history formatting — used by ToolRouter for consent tools
-# ---------------------------------------------------------------------------
 def _format_chat_history(messages, truncate: bool = True):
-    """Format chat history. truncate=True for safety/debug (500 chars), False for verbatim consent."""
     max_len = 500 if truncate else None
     formatted = []
     for m in messages:
@@ -167,143 +136,23 @@ def _format_chat_history(messages, truncate: bool = True):
     return formatted
 
 # ---------------------------------------------------------------------------
-# AI helpers — used during service initialization
-# Source: OpenAI API for embeddings, Anthropic API for query expansion
+# PromptSystemMaker — loads all config from brain artifacts
 # ---------------------------------------------------------------------------
-_oai_client: Optional[OpenAI] = None
+_brain_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "brain")
+_prompt_maker = PromptSystemMaker(brain_dir=_brain_dir, env_prefix=_ENV_PREFIX)
+EMERGENCY_KEYWORDS = _prompt_maker.load_emergency_keywords()
+anthropic_tools = _prompt_maker.load_tool_definitions()
+WELCOME_MESSAGE = PromptSystemMaker.build_welcome_message()
+_BUILD = PromptSystemMaker.get_build_number(_get_db, _ENV_PREFIX)
 
-def _get_oai_client() -> OpenAI:
-    global _oai_client
-    if _oai_client is None:
-        _oai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    return _oai_client
-
-def _get_query_embedding(text: str) -> Optional[list]:
-    """Embed text via OpenAI text-embedding-3-large. Used by ProviderSearchService."""
-    try:
-        resp = _get_oai_client().embeddings.create(model="text-embedding-3-large", input=text)
-        return resp.data[0].embedding
-    except Exception as e:
-        _log.warning("Embedding query failed: %s", e)
-        return None
-
-def _get_specialty_vector(query: str) -> Optional[list]:
-    """Embed text via OpenAI text-embedding-3-small. Used by SpecialtyService."""
-    try:
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        return client.embeddings.create(model="text-embedding-3-small", input=query).data[0].embedding
-    except Exception as e:
-        _log.warning("Specialty embedding failed: %s", e)
-        return None
-
-def _expand_query_terms(query: str) -> list[str]:
-    """AI-powered query expansion for specialty search. Uses Claude Haiku."""
-    try:
-        client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=128,
-            messages=[{"role": "user", "content": (
-                "You are helping search a medical provider taxonomy database. "
-                "Given the specialty query, return a JSON array of 2-5 lowercase keyword stems "
-                "to search for in Specialization and Display Name fields. "
-                "Return ONLY the JSON array, no other text.\n\n"
-                "Examples:\n"
-                "Query: pediatrician -> [\"pediatric\", \"child\"]\n"
-                "Query: cardiologist -> [\"cardio\", \"cardiac\", \"cardiovascular\"]\n"
-                "Query: OB-GYN -> [\"obstetric\", \"gynecolog\", \"maternal\", \"fetal\"]\n\n"
-                f"Query: {query}"
-            )}],
-        )
-        raw = response.content[0].text.strip() if response.content else ""
-        return json.loads(raw) if raw else []
-    except Exception as exc:
-        _log.warning("_expand_query_terms failed for %r: %s", query, exc)
-        return []
-
-def _trim(text: str, max_chars: int) -> str:
-    """Trim text to max_chars with truncation note."""
-    if len(text) <= max_chars:
-        return text
-    return text[:max_chars] + f"\n[... truncated at {max_chars} chars ...]"
-
-# ---------------------------------------------------------------------------
-# ME context — loads founder/company content at startup
-# Source: PDF + text files in me/ directory
-# Changed: loaded once, injected into AboutService
-# ---------------------------------------------------------------------------
-_ME_DIR = os.getenv("ME_DIR") or os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "me"
-)
+_ME_DIR = os.getenv("ME_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "me")
 if not os.path.isdir(_ME_DIR):
-    _ME_DIR = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "..", "..", "ChatHealthyWhoAmIChat", "me"
-    )
+    _ME_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "ChatHealthyWhoAmIChat", "me")
+_ME = _prompt_maker.load_me_context(_ME_DIR)
 
-def _load_me_context():
-    ctx = {}
-    try:
-        reader = PdfReader(os.path.join(_ME_DIR, "SkipSnowLinkedInProfile.pdf"))
-        ctx["linkedin"] = "".join(p.extract_text() or "" for p in reader.pages)
-    except Exception as e:
-        ctx["linkedin"] = ""
-        _log.warning("ME_DIR LinkedIn load failed: %s", e)
-    try:
-        with open(os.path.join(_ME_DIR, "anthropic_principles.txt"), "r", encoding="utf-8") as f:
-            ctx["anthropic_principles"] = f.read()
-    except Exception as e:
-        ctx["anthropic_principles"] = ""
-    try:
-        with open(os.path.join(_ME_DIR, "summary.txt"), "r", encoding="utf-8") as f:
-            ctx["summary"] = f.read()
-    except Exception as e:
-        ctx["summary"] = ""
-    try:
-        reader = PdfReader(os.path.join(_ME_DIR, "chatHealthy_ai_business_plan.pdf"))
-        ctx["business_plan"] = "".join(p.extract_text() or "" for p in reader.pages)
-    except Exception as e:
-        ctx["business_plan"] = ""
-    return ctx
-
-_ME = _load_me_context()
 _url_guardian = URLGuardian(cache_ttl=3600, request_timeout=5)
 
-# ---------------------------------------------------------------------------
-# Build number — read from MongoDB once at startup
-# Source: {ENV_PREFIX}_System.build_counter
-# Changed: incremented by ops/bump_build.py on deploy only
-# ---------------------------------------------------------------------------
-def _get_build_number() -> str:
-    try:
-        db = _get_db()
-        if db is None:
-            return "?"
-        record = db[f"{_ENV_PREFIX}_System"]["build_counter"].find_one({"_id": "build"})
-        return str(record["number"]) if record else "0"
-    except Exception as exc:
-        _log.warning("Build counter read failed: %s", exc)
-        return "?"
-
-_BUILD = _get_build_number()
-
-# ---------------------------------------------------------------------------
-# Welcome message — production vs UAT
-# Source: UAT report from Code/Shared/ops/uat_report.py (reads from MongoDB)
-# ---------------------------------------------------------------------------
-WELCOME_MESSAGE = (
-    "**Welcome to ChatHealthy FindCare**\n\n"
-    "Here's what I can help you with:\n\n"
-    "- **Find a doctor** — search for providers by specialty or condition\n"
-    "  - Delaware, Mississippi, Virginia\n"
-    "- **Get provider details** — credentials, license, NPI data, and research links\n"
-    "- **Identify the right specialty** — describe your situation\n"
-    "- **Clinical trials** — find recruiting research studies for any condition\n"
-    "  - Find distance and travel time from any location to trial sites\n"
-    "- **About ChatHealthy** — our mission, team, and platform\n"
-    "- **Contact us** — request a follow-up from the ChatHealthy team\n\n"
-    "**What can I help you with today?**"
-)
-
+# UAT report
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "Shared", "ops"))
 from uat_report import build_uat_welcome
 
@@ -311,52 +160,35 @@ def _build_test_welcome():
     env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
     return build_uat_welcome(build=_BUILD, version=_APP_VERSION, env=env_label, db=_get_db(), env_prefix=_ENV_PREFIX)
 
-# ---------------------------------------------------------------------------
-# System prompt + tool definitions — loaded from PromptSystemMaker
-# Source: Code/Shared/prompt_system_maker.py (loads from brain artifacts)
-# Changed: no inline config in main.py. PromptSystemMaker owns all prompt content.
-# ---------------------------------------------------------------------------
 def _system_prompt(follow_up_check: bool = False) -> str:
-    return _prompt_maker.build_system_prompt(
-        emergency_response=EMERGENCY_RESPONSE, follow_up_check=follow_up_check,
-    )
+    return _prompt_maker.build_system_prompt(emergency_response=EMERGENCY_RESPONSE, follow_up_check=follow_up_check)
 
 # ---------------------------------------------------------------------------
-# ARCH-001: Domain service initialization
-# Source: domain/ classes, injected with dependencies from this file
-# Changed: all business logic now lives in service classes, not here
+# Service initialization — ARCH-001
 # ---------------------------------------------------------------------------
+_embedding_client = EmbeddingClient()
 
-# FindCare business component
 _provider_search_service = ProviderSearchService(
-    get_db_fn=_get_db, env_prefix=_ENV_PREFIX, get_embedding_fn=_get_query_embedding,
-)
+    get_db_fn=_get_db, env_prefix=_ENV_PREFIX, get_embedding_fn=_embedding_client.get_query_embedding)
 _specialty_service = SpecialtyService(
-    get_db_fn=_get_db, env_prefix=_ENV_PREFIX, expand_query_fn=_expand_query_terms, get_vector_fn=_get_specialty_vector,
-)
+    get_db_fn=_get_db, env_prefix=_ENV_PREFIX,
+    expand_query_fn=_embedding_client.expand_query_terms, get_vector_fn=_embedding_client.get_specialty_vector)
 _find_care_facade = FindCareFacade(provider_search=_provider_search_service, specialty=_specialty_service)
 
-# EvaluateCareQuality business component
 _clinical_trials_service = ClinicalTrialsService()
 _provider_detail_service = ProviderDetailService()
 _evaluate_care_facade = EvaluateCareFacade(
-    clinical_trials=_clinical_trials_service, provider_detail=_provider_detail_service, find_care_facade=_find_care_facade,
-)
+    clinical_trials=_clinical_trials_service, provider_detail=_provider_detail_service, find_care_facade=_find_care_facade)
 
-# Shared services
 _safety_service = SafetyService(get_db_fn=_get_db, env_prefix=_ENV_PREFIX, emergency_keywords=EMERGENCY_KEYWORDS)
 _consent_service = ConsentService()
-_lead_service = LeadService(
-    get_db_fn=_get_db, env_prefix=_ENV_PREFIX, consent=_consent_service, push_fn=push, commit_fn=commitSignificantActivity,
-)
+_lead_service = LeadService(get_db_fn=_get_db, env_prefix=_ENV_PREFIX, consent=_consent_service, push_fn=push, commit_fn=commitSignificantActivity)
 _unknown_question_service = UnknownQuestionService(consent=_consent_service, push_fn=push, commit_fn=commitSignificantActivity)
-_about_service = AboutService(me_context=_ME, trim_fn=_trim)
+_about_service = AboutService(me_context=_ME, trim_fn=PromptSystemMaker.trim)
 
-# ---------------------------------------------------------------------------
-# ToolRouter — F-05 fix: explicit allowlist replaces globals().get()
-# Source: application/tool_router.py
-# Changed: Pydantic validation on all tool inputs (Phase 6)
-# ---------------------------------------------------------------------------
+_debug_logger = DebugLogger(get_db_fn=_get_db, env_prefix=_ENV_PREFIX, consent_service=_consent_service)
+
+# ToolRouter — F-05 fix
 _tool_router = ToolRouter()
 _tool_router.register_with_models([
     ("find_providers",          _find_care_facade.search_providers,            ProviderSearchInput),
@@ -372,52 +204,15 @@ _tool_router.register_with_models([
 _log.info("ToolRouter initialized: %s", _tool_router.registered_tools)
 
 def _handle_tool_calls(tool_use_blocks, messages):
-    """Dispatch tool calls via ToolRouter (F-05: no more globals().get)."""
     return _tool_router.handle_tool_calls(tool_use_blocks, messages, _format_chat_history)
 
 # ---------------------------------------------------------------------------
-# Debug logging — dev environment only
-# Source: writes to {ENV_PREFIX}_Debug.chat_calls in MongoDB
-# Changed: uses ConsentService.de_identify instead of legacy deIdentify()
-# ---------------------------------------------------------------------------
-def _debug_log_chat(
-    ip: str, message: str, history_len: int, tool_loop_iters: int,
-    tokens_in: Optional[int], tokens_out: Optional[int],
-    response_text: Optional[str], error: Optional[str], history: Optional[list] = None,
-) -> None:
-    db = _get_db()
-    if db is None:
-        return
-    try:
-        record = {
-            "datetime": datetime.now(timezone.utc).isoformat(),
-            "ip": ip, "message_preview": message[:200],
-            "history_len": history_len, "tool_loop_iters": tool_loop_iters,
-            "tokens_in": tokens_in, "tokens_out": tokens_out,
-            "response_preview": response_text[:200] if response_text else None,
-            "error": error,
-        }
-        if error and history:
-            safe_history = [
-                {"role": m.get("role", ""), "content": str(m.get("content", ""))[:500]}
-                for m in history if m.get("role") in ("user", "assistant")
-            ]
-            _consent_service.de_identify(safe_history)
-            record["chat_history_deidentified"] = safe_history
-        db[f"{_ENV_PREFIX}_Debug"]["chat_calls"].insert_one(record)
-    except Exception as exc:
-        _log.warning("debug_log_chat failed: %s", exc)
-
-# ---------------------------------------------------------------------------
-# FastAPI application
+# FastAPI
 # ---------------------------------------------------------------------------
 app = FastAPI(title="ChatHealthy FindCare API")
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://chathealthy.ai", "https://www.chathealthy.ai", "https://dev.chathealthy.ai",
-    ],
+    allow_origins=["https://chathealthy.ai", "https://www.chathealthy.ai", "https://dev.chathealthy.ai"],
     allow_origin_regex=r"http://localhost(:\d+)?$|https://[a-zA-Z0-9-]+\.chathealthy\.ai$",
     allow_credentials=False, allow_methods=["*"], allow_headers=["*"],
 )
@@ -436,15 +231,12 @@ class ChatResponse(BaseModel):
 
 @app.get("/welcome")
 def welcome():
-    if _HUMAN_TESTING:
-        return {"message": _build_test_welcome()}
-    return {"message": WELCOME_MESSAGE}
+    return {"message": _build_test_welcome() if _HUMAN_TESTING else WELCOME_MESSAGE}
 
 @app.get("/health")
 def health():
-    db_ok = _get_db() is not None
     env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
-    return {"status": "ok", "db": "connected" if db_ok else "unavailable",
+    return {"status": "ok", "db": "connected" if _get_db() else "unavailable",
             "env": env_label, "build": _BUILD, "version": _APP_VERSION}
 
 @app.post("/chat", response_model=ChatResponse)
@@ -463,81 +255,61 @@ async def chat(body: ChatRequest, request: Request):
             err_type, err_msg = "db_unavailable", err_str
         else:
             err_type, err_msg = "internal", tb if _DEBUG else err_str
-        _debug_log_chat(ip, body.message, len(body.history), 0, None, None, None, err_msg, body.history)
+        _debug_logger.log_chat(ip, body.message, len(body.history), 0, None, None, None, err_msg, body.history)
         return ChatResponse(error=err_msg, error_type=err_type)
 
 # ---------------------------------------------------------------------------
-# Chat loop — the core conversation handler
-# Source: Anthropic Claude Sonnet 4.6 with tool-use
-# Changed: safety via SafetyService, tools via ToolRouter, de-identify via ConsentService
+# Chat loop
 # ---------------------------------------------------------------------------
 async def _chat_inner(body: ChatRequest, request: Request):
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
         request.client.host if request.client else "unknown")
 
-    # Safety: admin unlock, IP lock check, emergency detection (via SafetyService)
     if _safety_service.try_admin_unlock(body.message, ip):
         return ChatResponse(response="Session unlocked.")
-
-    history = body.history
-
     if _safety_service.is_ip_locked(ip):
         return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
-
     if _safety_service.is_emergency(body.message):
-        full_history = list(history) + [{"role": "user", "content": body.message}]
+        full_history = list(body.history) + [{"role": "user", "content": body.message}]
         _safety_service.lock_ip(ip, trigger_message=body.message, history=full_history)
         return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
 
-    user_msg_count = sum(1 for m in history if m.get("role") == "user")
-    follow_up      = user_msg_count > 0 and user_msg_count % 5 == 0
-    system         = _system_prompt(follow_up_check=follow_up)
-
-    messages = list(history) + [{"role": "user", "content": body.message}]
-    anthropic_client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
-
-    total_tokens_in = total_tokens_out = 0
+    user_msg_count = sum(1 for m in body.history if m.get("role") == "user")
+    system = _system_prompt(follow_up_check=user_msg_count > 0 and user_msg_count % 5 == 0)
+    messages = list(body.history) + [{"role": "user", "content": body.message}]
+    client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
+    total_in = total_out = 0
 
     _log.info("CHAT call=initial msgs=%d", len(messages))
-    response = anthropic_client.messages.create(
-        model="claude-sonnet-4-6", max_tokens=4096,
-        system=system, messages=messages, tools=anthropic_tools,
-    )
-    total_tokens_in  += getattr(response.usage, "input_tokens", 0)
-    total_tokens_out += getattr(response.usage, "output_tokens", 0)
+    response = client.messages.create(
+        model="claude-sonnet-4-6", max_tokens=4096, system=system, messages=messages, tools=anthropic_tools)
+    total_in  += getattr(response.usage, "input_tokens", 0)
+    total_out += getattr(response.usage, "output_tokens", 0)
 
-    # Tool-use loop — Claude selects tools, ToolRouter dispatches to services
     loop_iter = 0
     while response.stop_reason == "tool_use":
-        tool_uses    = [b for b in response.content if b.type == "tool_use"]
-        tool_names   = [b.name for b in tool_uses]
+        tool_uses = [b for b in response.content if b.type == "tool_use"]
         tool_results = _handle_tool_calls(tool_uses, messages)
-
         messages.append({"role": "assistant", "content": response.content})
-        messages.append({"role": "user",      "content": tool_results})
-
+        messages.append({"role": "user", "content": tool_results})
         loop_iter += 1
-        _log.info("CHAT call=tool_loop iter=%d tools=%s msgs=%d", loop_iter, tool_names, len(messages))
-        response = anthropic_client.messages.create(
-            model="claude-sonnet-4-6", max_tokens=4096,
-            system=system, messages=messages, tools=anthropic_tools,
-        )
-        total_tokens_in  += getattr(response.usage, "input_tokens", 0)
-        total_tokens_out += getattr(response.usage, "output_tokens", 0)
+        _log.info("CHAT tool_loop iter=%d tools=%s", loop_iter, [b.name for b in tool_uses])
+        response = client.messages.create(
+            model="claude-sonnet-4-6", max_tokens=4096, system=system, messages=messages, tools=anthropic_tools)
+        total_in  += getattr(response.usage, "input_tokens", 0)
+        total_out += getattr(response.usage, "output_tokens", 0)
 
     text = next((b.text for b in response.content if b.type == "text"), "")
     text = _url_guardian.guard_text(text)
-
-    # HACK: Force LinkedIn URL — Sonnet strips markdown links (PE bug, 3 prompt attempts failed)
     text = re.sub(r'(?<!\[)Skip Snow on LinkedIn(?!\])',
                   '[Skip Snow on LinkedIn](https://linkedin.com/in/skipsnow)', text)
 
-    _log.info("CHAT complete tokens_in=%d tokens_out=%d", total_tokens_in, total_tokens_out)
-    _debug_log_chat(ip, body.message, len(history), loop_iter, total_tokens_in, total_tokens_out, text, None)
-    return ChatResponse(response=text, tokens_in=total_tokens_in, tokens_out=total_tokens_out)
+    _log.info("CHAT complete tokens_in=%d tokens_out=%d", total_in, total_out)
+    _debug_logger.log_chat(ip, body.message, len(body.history), loop_iter, total_in, total_out, text, None)
+    return ChatResponse(response=text, tokens_in=total_in, tokens_out=total_out)
 
 # ---------------------------------------------------------------------------
-# Serve React frontend — dynamic index.html (no caching), static assets cached
+# Static files
 # ---------------------------------------------------------------------------
 _static_dir = os.path.join(os.path.dirname(__file__), "static")
 if os.path.isdir(_static_dir):
@@ -548,13 +320,10 @@ if os.path.isdir(_static_dir):
     async def serve_index():
         return FileResponse(
             os.path.join(_static_dir, "index.html"),
-            headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"},
-        )
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
 
     app.mount("/assets", StaticFiles(directory=os.path.join(_static_dir, "assets")), name="assets")
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", "7860"))
-    uvicorn.run(app, host="0.0.0.0", port=port)
-
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "7860")))

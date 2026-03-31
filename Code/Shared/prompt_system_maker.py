@@ -235,3 +235,80 @@ class PromptSystemMaker:
             )
 
         return "\n\n## STRICT ANSWER RULES — NO EXCEPTIONS\n" + "\n".join(rules)
+
+    # ------------------------------------------------------------------
+    # ME context — founder/company content from PDF + text files
+    # Source: me/ directory (PDF, txt files)
+    # ------------------------------------------------------------------
+    def load_me_context(self, me_dir: str) -> dict:
+        """Load founder and company context from files."""
+        import os
+        ctx = {}
+        try:
+            from pypdf import PdfReader
+            reader = PdfReader(os.path.join(me_dir, "SkipSnowLinkedInProfile.pdf"))
+            ctx["linkedin"] = "".join(p.extract_text() or "" for p in reader.pages)
+        except Exception:
+            ctx["linkedin"] = ""
+        try:
+            with open(os.path.join(me_dir, "anthropic_principles.txt"), "r", encoding="utf-8") as f:
+                ctx["anthropic_principles"] = f.read()
+        except Exception:
+            ctx["anthropic_principles"] = ""
+        try:
+            with open(os.path.join(me_dir, "summary.txt"), "r", encoding="utf-8") as f:
+                ctx["summary"] = f.read()
+        except Exception:
+            ctx["summary"] = ""
+        try:
+            from pypdf import PdfReader
+            reader = PdfReader(os.path.join(me_dir, "chatHealthy_ai_business_plan.pdf"))
+            ctx["business_plan"] = "".join(p.extract_text() or "" for p in reader.pages)
+        except Exception:
+            ctx["business_plan"] = ""
+        _log.info("ME context loaded: %d fields", sum(1 for v in ctx.values() if v))
+        return ctx
+
+    # ------------------------------------------------------------------
+    # Build number — from MongoDB
+    # ------------------------------------------------------------------
+    @staticmethod
+    def get_build_number(get_db_fn, env_prefix: str) -> str:
+        """Read build number from MongoDB. Read once at startup."""
+        try:
+            db = get_db_fn()
+            if db is None:
+                return "?"
+            record = db[f"{env_prefix}_System"]["build_counter"].find_one({"_id": "build"})
+            return str(record["number"]) if record else "0"
+        except Exception:
+            return "?"
+
+    # ------------------------------------------------------------------
+    # Welcome message
+    # ------------------------------------------------------------------
+    @staticmethod
+    def build_welcome_message() -> str:
+        return (
+            "**Welcome to ChatHealthy FindCare**\n\n"
+            "Here's what I can help you with:\n\n"
+            "- **Find a doctor** — search for providers by specialty or condition\n"
+            "  - Delaware, Mississippi, Virginia\n"
+            "- **Get provider details** — credentials, license, NPI data, and research links\n"
+            "- **Identify the right specialty** — describe your situation\n"
+            "- **Clinical trials** — find recruiting research studies for any condition\n"
+            "  - Find distance and travel time from any location to trial sites\n"
+            "- **About ChatHealthy** — our mission, team, and platform\n"
+            "- **Contact us** — request a follow-up from the ChatHealthy team\n\n"
+            "**What can I help you with today?**"
+        )
+
+    # ------------------------------------------------------------------
+    # Text utility
+    # ------------------------------------------------------------------
+    @staticmethod
+    def trim(text: str, max_chars: int) -> str:
+        """Trim text with truncation note."""
+        if len(text) <= max_chars:
+            return text
+        return text[:max_chars] + f"\n[... truncated at {max_chars} chars ...]"
