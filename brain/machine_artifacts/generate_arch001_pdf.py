@@ -493,6 +493,32 @@ pdf.table_header(cols2, widths2)
 for m in appendix["model_selection_rationale"]:
     pdf.table_row([m["model"], m["why"]], widths2)
 
+# --- APPENDIX B: TRACEABILITY ---
+pdf.add_page()
+pdf.section_title("Appendix B: PDF-to-JSON Traceability Matrix")
+trace = data["appendix_traceability"]
+pdf.body_text(trace["description"])
+pdf.ln(2)
+
+pdf.sub_title("Section Traceability")
+cols = ["PDF Section", "JSON Key", "Status"]
+widths = [90, 120, 30]
+pdf.table_header(cols, widths)
+for row in trace["matrix"]:
+    pdf.table_row([row["pdf_section"], row["json_key"], row["status"]], widths)
+
+pdf.add_page()
+pdf.sub_title("UAT Feature Traceability")
+cols = ["#", "Feature", "Class", "Tool", "Test"]
+widths = [10, 50, 60, 70, 60]
+pdf.table_header(cols, widths)
+for row in trace["uat_feature_traceability"]:
+    pdf.table_row([str(row["uat_feature"]), row["name"], row["json_class"], row["tool"], row["test"]], widths)
+
+pdf.ln(4)
+pdf.sub_title("Compliance Result")
+pdf.body_text(trace["compliance_result"])
+
 pdf.ln(10)
 pdf.set_font("Helvetica", "I", 10)
 pdf.set_text_color(100, 100, 100)
