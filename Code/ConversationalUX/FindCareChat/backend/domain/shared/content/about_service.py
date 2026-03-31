@@ -23,7 +23,8 @@ class AboutService:
     def get_skip_snow_context(self) -> dict:
         """Return Skip Snow's professional context."""
         return {
-            "linkedin_summary": self._trim(self._me.get("linkedin_summary", ""), 2000),
+            "summary": self._me.get("summary", ""),
+            "linkedin": self._trim(self._me.get("linkedin", ""), 3000),
         }
 
     def get_chathealthy_context(self) -> dict:
