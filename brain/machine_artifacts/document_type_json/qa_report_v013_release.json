@@ -1,0 +1,162 @@
+{
+  "title": "QA Report \u2014 v0.1.3 Sprint 1 (Release)",
+  "date": "2026-03-31",
+  "tester": "Boss (Skip Snow)",
+  "environments_tested": [
+    "dev (Cycle 1 full)",
+    "qa (smoke test)",
+    "prod (deployed)"
+  ],
+  "build_range": "180-294",
+  "total_builds": 114,
+  "version": "v0.1.3",
+  "main_py_reduction": "1,712 -> 329 lines (81%)",
+  "unit_tests": "26/26 pass",
+  "features": [
+    {
+      "id": 1,
+      "done": "Y",
+      "bugs_fixed": 1,
+      "new_features": 0,
+      "notes": "PE: search-first. PERF-002 needed. RULE 8 LGBT."
+    },
+    {
+      "id": 2,
+      "done": "DEF",
+      "bugs_fixed": 0,
+      "new_features": 0,
+      "notes": ""
+    },
+    {
+      "id": 3,
+      "done": "Y",
+      "bugs_fixed": 1,
+      "new_features": 0,
+      "notes": "PE: international travel distance fixed."
+    },
+    {
+      "id": 4,
+      "done": "Y",
+      "bugs_fixed": 2,
+      "new_features": 0,
+      "notes": "LG: field mismatch. PE: LinkedIn URL hack."
+    },
+    {
+      "id": 5,
+      "done": "Y",
+      "bugs_fixed": 1,
+      "new_features": 1,
+      "notes": "LG: unlock wrong collection. FT: emergency keywords."
+    },
+    {
+      "id": 6,
+      "done": "Y",
+      "bugs_fixed": 1,
+      "new_features": 0,
+      "notes": "PE PROD BUG: when user says \"what is my name\" Claude should offer to capture contact info, not just say I dont know. Lead capture opportunity missed."
+    },
+    {
+      "id": 7,
+      "done": "Y",
+      "bugs_fixed": 0,
+      "new_features": 0,
+      "notes": "Conditional \u2014 full both-path regression in UAT."
+    },
+    {
+      "id": 8,
+      "done": "Y",
+      "bugs_fixed": 0,
+      "new_features": 0,
+      "notes": ""
+    },
+    {
+      "id": 9,
+      "done": "DEF",
+      "bugs_fixed": 0,
+      "new_features": 0,
+      "notes": ""
+    },
+    {
+      "id": 10,
+      "done": "Y",
+      "bugs_fixed": 0,
+      "new_features": 0,
+      "notes": "Timeout modal + timer pass."
+    },
+    {
+      "id": 11,
+      "done": "SIT",
+      "bugs_fixed": 0,
+      "new_features": 0,
+      "notes": "No end user test possible."
+    },
+    {
+      "id": 12,
+      "done": "Y",
+      "bugs_fixed": 1,
+      "new_features": 0,
+      "notes": "PE: must say I do not give medical advice."
+    },
+    {
+      "id": 13,
+      "done": "Y",
+      "bugs_fixed": 0,
+      "new_features": 0,
+      "notes": ""
+    },
+    {
+      "id": 14,
+      "done": "Y",
+      "bugs_fixed": 0,
+      "new_features": 0,
+      "notes": "PROD: verify hidden when HUMAN_TESTING not set."
+    },
+    {
+      "id": 15,
+      "done": "DEF",
+      "bugs_fixed": 0,
+      "new_features": 0,
+      "notes": "Test in UAT with full session."
+    },
+    {
+      "id": 16,
+      "done": "Y",
+      "bugs_fixed": 0,
+      "new_features": 1,
+      "notes": "FT: 45s timeout modal."
+    },
+    {
+      "id": 17,
+      "done": "Y",
+      "bugs_fixed": 0,
+      "new_features": 0,
+      "notes": "Verified: roadmap deployed on git push."
+    },
+    {
+      "id": 18,
+      "done": "Y",
+      "bugs_fixed": 0,
+      "new_features": 0,
+      "notes": "Fits in iframe on chathealthy.ai"
+    }
+  ],
+  "summary": {
+    "total": 18,
+    "pass": 14,
+    "deferred": 3,
+    "sit": 1,
+    "fail": 0,
+    "bugs_fixed": 7,
+    "new_features": 2
+  },
+  "approvals": {
+    "boss": "GO",
+    "claude": "GO",
+    "gpt": "GO (CONDITIONAL -> GO in 2 iterations)"
+  },
+  "qa_smoke_test": "QA smoke test only \u2014 provider search verified in iframe at qa.chathealthy.ai",
+  "prod_bugs": [
+    "PE: lead capture opportunity missed when user shares personal info (next sprint)"
+  ],
+  "generated": "2026-03-31T21:39:10.374951+00:00"
+}
