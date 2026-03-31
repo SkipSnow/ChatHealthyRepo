@@ -1,0 +1,107 @@
+{
+  "vision": "We provide the data, tools, and an AI-enlightened space allowing regular people the ability to prevail over a broken healthcare system and get the best possible care, at the best value given their circumstances. By presenting care options, evaluating them, and then allowing the person to bring their friends to the table and different AI models.",
+  "mission": "Help people make better healthcare decisions together.",
+  "executive_summary": "Healthcare is the largest consumer market in the world, yet the individual remains the least empowered participant. Decisions are fragmented across search, opaque quality data, and isolated conversations with no coordination. The result is predictable: overpayment, underperformance, and preventable harm. ChatHealthy exists because this gap is not a feature of the system — it is the system’s failure point.\n\nChatHealthy unifies the healthcare decision process into a single consumer-controlled environment: find care, evaluate it with real quality signals, and decide collaboratively with people and AI. This is not another point solution. It is the decision layer sitting above the entire healthcare system, where choices are actually made. Once this layer exists, control shifts from institutions to individuals.\n\nThe business model follows the control point. We own the decision room. AI companies, not patients, pay to participate in it. As healthcare decisions become AI-assisted and collaborative by default, ChatHealthy becomes the gateway through which those decisions flow. This is not a feature set. It is inevitable infrastructure.",
+  "components": {
+    "find_care": {
+      "description": "The entry point to the healthcare system, redesigned for clarity and control. Users discover providers, specialties, and care pathways without friction or bias.",
+      "capabilities": [
+        "Provider and specialty discovery",
+        "Navigation of care pathways",
+        "Geographic and access-based filtering",
+        "Integrated entry into evaluation and discussion"
+      ],
+      "pricing": "Free forever",
+      "role": "Top-of-funnel acquisition and trust layer. Establishes ChatHealthy as the default starting point for any healthcare decision."
+    },
+    "evaluate_care": {
+      "description": "Transforms fragmented public and clinical data into clear, consumer-comprehensible quality signals using proprietary AI synthesis.",
+      "capabilities": [
+        "Clinical trials discovery and matching",
+        "Provider credential analysis",
+        "Quality signal aggregation and interpretation",
+        "Comparative provider evaluation"
+      ],
+      "pricing": "Free initially, with premium paid tiers for advanced insights and deeper analysis",
+      "role": "Trust engine. Converts raw data into decision-grade intelligence and establishes defensible intellectual property."
+    },
+    "discuss_care": {
+      "description": "A real-time, multi-participant decision environment where individuals bring family, caregivers, and multiple AI models into a single structured conversation.",
+      "capabilities": [
+        "Multi-human, multi-AI shared sessions",
+        "Invite-based collaboration with no account friction",
+        "AI model selection and competition within the same session",
+        "Shared tools across participants (search, evaluation, trials)",
+        "Persistent sessions with exportable transcripts",
+        "Shared research bot for autonomous analysis",
+        "Consent-based participation and governance controls"
+      ],
+      "pricing": "Premium via AI token usage markup; users pay only when they choose advanced AI participation",
+      "role": "The control point of the platform. Where decisions are made, value is captured, and revenue is generated."
+    }
+  },
+  "value_chain": "The consumer orchestrates the entire experience. They move fluidly between finding care, evaluating options, and discussing decisions in a single environment. This is not a linear funnel but a dynamic loop, where discovery, analysis, and collaboration reinforce each other. ChatHealthy does not replace providers — it positions the consumer above them, in control of the decision process.",
+  "revenue_model": {
+    "streams": [
+      "AI token markup on premium model usage within Discuss Care",
+      "AI vendor access fees to participate in decision sessions",
+      "Future premium subscriptions for advanced evaluation insights"
+    ],
+    "ai_reseller_positioning": "ChatHealthy operates as the decision-layer marketplace for AI in healthcare. Users choose which models participate; AI vendors pay for access to those moments. This mirrors the Apple model: control the environment, monetize participation.",
+    "economic_logic": "Healthcare decisions represent the highest-value context for AI deployment. Being present at the moment a family chooses a provider or treatment has measurable economic value. ChatHealthy captures that value by owning the environment where those decisions occur."
+  },
+  "moat": {
+    "regulatory_willingness": "AI vendors avoid direct exposure to healthcare regulation. ChatHealthy absorbs the complexity of operating in this space, making it the only viable distribution channel for AI in real healthcare decisions.",
+    "trust": "Consumers rely on ChatHealthy for consequential decisions. This trust compounds over time and is difficult to replicate once established.",
+    "data": "Aggregated provider, clinical, and quality datasets require years to assemble and continuously refine.",
+    "governance": "Purpose-built multi-AI, multi-human safety and coordination framework designed specifically for healthcare decision-making.",
+    "network_effects": "Each session introduces new participants and interactions, strengthening the platform’s position as the default decision environment.",
+    "intellectual_property": "Proprietary method for synthesizing healthcare quality signals into usable consumer insights.",
+    "marketplace_control": "Owning the decision room creates a structural advantage similar to dominant platform marketplaces."
+  },
+  "security_positioning": {
+    "principle": "ChatHealthy is not required to meet HIPAA standards. It chooses to exceed them.",
+    "approach": "Security is treated as a product feature and trust driver, not a compliance obligation.",
+    "certifications_path": [
+      "HITRUST CSF certification",
+      "SOC 2 Type II compliance",
+      "NIST SP 800-171 alignment",
+      "Annual third-party penetration testing with published results"
+    ],
+    "differentiation": "Healthcare incumbents are frequently breached despite regulatory requirements. ChatHealthy positions voluntary, transparent security as a competitive advantage."
+  },
+  "governance": {
+    "rules": [
+      "No providers in decision sessions; collaboration remains consumer-led",
+      "All sessions explicitly disclose non-HIPAA status and security posture",
+      "No creation of provider-patient relationships within the platform"
+    ],
+    "disclosures": [
+      "ChatHealthy is not a HIPAA-covered entity",
+      "Enterprise-grade security is voluntarily maintained",
+      "Participation does not establish clinical or legal relationships"
+    ]
+  },
+  "marketing_positioning": {
+    "headlines": [
+      "We are not required to protect your data. We choose to.",
+      "The healthcare platform that protects your data better than your hospital does",
+      "Make healthcare decisions like you make every other important decision — together"
+    ],
+    "uses": [
+      "Consumer trust acquisition through transparency",
+      "Investor narrative around voluntary security and control",
+      "Enterprise credibility despite non-HIPAA positioning",
+      "Clear differentiation from legacy healthcare systems"
+    ]
+  },
+  "competitive_landscape": "No existing platform combines provider discovery, quality evaluation, and real-time collaborative decision-making with multiple AI systems. Current solutions are fragmented: search tools, ratings sites, telehealth platforms, and standalone AI products. None own the decision environment. ChatHealthy is not competing within a category — it defines a new one.",
+  "investment_thesis": "ChatHealthy sits at the intersection of two inevitable shifts: consumer control of healthcare decisions and AI participation in those decisions. The company captures value by owning the environment where both converge. Investors are backing a platform that becomes the default interface for navigating a $4 trillion market. Strategic value is immediate for AI companies seeking distribution, and long-term for any entity that benefits from influencing healthcare decisions without regulatory exposure.",
+  "timeline": {
+    "April 2026": "Quality month; architecture refinement and system hardening",
+    "May 2026": "Discuss Care beta launch with core collaboration and AI participation",
+    "Summer 2026": "AI vendor partnerships and initial marketplace validation",
+    "Late 2026": "Evaluate Care premium features and early monetization expansion",
+    "Series A": "Raised on demonstrated control of healthcare decision sessions and AI marketplace traction"
+  }
+}
