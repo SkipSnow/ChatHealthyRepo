@@ -210,11 +210,6 @@
         "why": "Direct path to FedRAMP. If VA or DOD wants ChatHealthy, we are ready."
       },
       {
-        "standard": "FedRAMP (future)",
-        "what": "Federal Risk and Authorization Management Program. Required for federal cloud services.",
-        "why": "NIST 800-171 gets us 80% there. FedRAMP opens VA, DOD, CMS, HHS."
-      },
-      {
         "standard": "Annual External Penetration Test",
         "what": "Third-party security audit. Published results.",
         "why": "Transparency. We publish what hospitals hide."
