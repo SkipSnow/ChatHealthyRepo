@@ -27,6 +27,9 @@ from application.tool_router import ToolRouter
 from application.facades.find_care_facade import FindCareFacade
 from domain.find_care.provider_search_service import ProviderSearchService
 from domain.find_care.specialty_service import SpecialtyService
+from application.facades.evaluate_care_facade import EvaluateCareFacade
+from domain.evaluate_care_quality.clinical_trials_service import ClinicalTrialsService
+from domain.evaluate_care_quality.provider_detail_service import ProviderDetailService
 
 load_dotenv(override=True)
 
@@ -1527,14 +1530,25 @@ _find_care_facade = FindCareFacade(
 )
 
 # ---------------------------------------------------------------------------
+# ARCH-001 Phase 4: EvaluateCareQuality domain services
+# ---------------------------------------------------------------------------
+_clinical_trials_service = ClinicalTrialsService()
+_provider_detail_service = ProviderDetailService()
+_evaluate_care_facade = EvaluateCareFacade(
+    clinical_trials=_clinical_trials_service,
+    provider_detail=_provider_detail_service,
+    find_care_facade=_find_care_facade,
+)
+
+# ---------------------------------------------------------------------------
 # Tool Router — ARCH-001 Phase 1 (F-05 fix: replaces globals().get)
 # ---------------------------------------------------------------------------
 _tool_router = ToolRouter()
 _tool_router.register_all({
     "find_providers": _find_care_facade.search_providers,
     "find_specialty_codes": _find_care_facade.identify_specialty,
-    "search_clinical_trials": search_clinical_trials,
-    "lookup_provider_external": lookup_provider_external,
+    "search_clinical_trials": _evaluate_care_facade.search_clinical_trials,
+    "lookup_provider_external": _evaluate_care_facade.get_provider_details,
     "record_user_details": record_user_details,
     "record_unknown_question": record_unknown_question,
     "get_skip_snow_context": get_skip_snow_context,
