@@ -258,8 +258,9 @@ def generate_moat_diagram(spec):
             ax.text(center[0], center[1] + radius - 0.15, label, ha='center', va='center', fontsize=8, fontweight='bold', color=ec)
 
     # Core
-    ax.add_patch(mpatches.Circle(center, 0.3, facecolor='#1a1a1a', edgecolor='#1a1a1a', linewidth=0))
-    ax.text(center[0], center[1], 'CH', ha='center', va='center', fontsize=10, fontweight='bold', color='white')
+    ax.add_patch(mpatches.Circle(center, 0.45, facecolor='#1a1a1a', edgecolor='#1a1a1a', linewidth=0))
+    ax.text(center[0], center[1] + 0.1, 'Trade Secrets', ha='center', va='center', fontsize=7, fontweight='bold', color='white')
+    ax.text(center[0], center[1] - 0.1, '& IP Protection', ha='center', va='center', fontsize=7, fontweight='bold', color='white')
 
     plt.tight_layout()
     path = str(DIAGRAM_DIR / 'moat_diagram.png')
