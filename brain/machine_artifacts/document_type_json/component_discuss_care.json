@@ -1,48 +1,82 @@
 {
-  "title": "Discuss Care — Business Component Definition",
+  "title": "Discuss Care \u2014 Business Component Definition",
   "component_name": "Discuss Care",
   "date": "2026-03-31",
   "author": "Boss (Skip Snow)",
   "status": "CONCEPT",
   "target": "Post-funding (M-004, July 31 2026)",
-
   "three_component_architecture": {
-    "1": "Find Care — find providers, specialties, navigate the system",
-    "2": "Evaluate Care — clinical trials, provider credentials, quality metrics",
-    "3": "Discuss Care — multi-participant AI-assisted healthcare collaboration"
+    "1": "Find Care \u2014 find providers, specialties, navigate the system",
+    "2": "Evaluate Care \u2014 clinical trials, provider credentials, quality metrics",
+    "3": "Discuss Care \u2014 multi-participant AI-assisted healthcare collaboration"
   },
-
   "overview": "Multi-participant healthcare collaboration chat. Consumers invite friends, family, and caregivers into a shared AI-assisted session. All participants have access to all healthcare tools. All conversations constrained to healthcare mission.",
-
   "features": [
-    {"id": "DC-01", "feature": "Shared Chat Session", "description": "Multiple humans in one conversation with AI assistance"},
-    {"id": "DC-02", "feature": "Invite System", "description": "User sends invite link to friends, family, caregivers. No account required."},
-    {"id": "DC-03", "feature": "Multi-Model AI", "description": "Multiple AI models participate in the same session (Claude, GPT, etc.), each with access to all tools"},
-    {"id": "DC-04", "feature": "Shared Tool Access", "description": "All participants (human and AI) can trigger provider search, clinical trials, specialty identification, provider detail"},
-    {"id": "DC-05", "feature": "Healthcare Guardrails", "description": "Conversations constrained to healthcare navigation. Same safety filter, emergency detection, scope rules."},
-    {"id": "DC-06", "feature": "Session Transcript", "description": "Exportable transcript for sharing with doctors, care teams"},
-    {"id": "DC-07", "feature": "Consent per Participant", "description": "Each participant manages their own consent tier independently"},
-    {"id": "DC-08", "feature": "Participant Roles", "description": "Session creator (host), invited participant (peer). No admin/enterprise roles."},
-    {"id": "DC-09", "feature": "Real-Time Collaboration", "description": "All participants see messages and AI responses live"},
-    {"id": "DC-10", "feature": "Session Persistence", "description": "Sessions survive disconnects, resumable by invite link"}
+    {
+      "id": "DC-01",
+      "feature": "Shared Chat Session",
+      "description": "Multiple humans in one conversation with AI assistance"
+    },
+    {
+      "id": "DC-02",
+      "feature": "Invite System",
+      "description": "User sends invite link to friends, family, caregivers. No account required."
+    },
+    {
+      "id": "DC-03",
+      "feature": "Multi-Model AI",
+      "description": "Multiple AI models participate in the same session (Claude, GPT, etc.), each with access to all tools"
+    },
+    {
+      "id": "DC-04",
+      "feature": "Shared Tool Access",
+      "description": "All participants (human and AI) can trigger provider search, clinical trials, specialty identification, provider detail"
+    },
+    {
+      "id": "DC-05",
+      "feature": "Healthcare Guardrails",
+      "description": "Conversations constrained to healthcare navigation. Same safety filter, emergency detection, scope rules."
+    },
+    {
+      "id": "DC-06",
+      "feature": "Session Transcript",
+      "description": "Exportable transcript for sharing with doctors, care teams"
+    },
+    {
+      "id": "DC-07",
+      "feature": "Consent per Participant",
+      "description": "Each participant manages their own consent tier independently"
+    },
+    {
+      "id": "DC-08",
+      "feature": "Participant Roles",
+      "description": "Session creator (host), invited participant (peer). No admin/enterprise roles."
+    },
+    {
+      "id": "DC-09",
+      "feature": "Real-Time Collaboration",
+      "description": "All participants see messages and AI responses live"
+    },
+    {
+      "id": "DC-10",
+      "feature": "Session Persistence",
+      "description": "Sessions survive disconnects, resumable by invite link"
+    }
   ],
-
   "architectural_implications": [
     "Third business component alongside FindCare and EvaluateCareQuality",
     "WebSocket or SSE for real-time multi-user",
     "Session state in MongoDB (participants, messages, consent per user)",
-    "Tool access governed by same ToolRouter — no new tools, just shared access",
+    "Tool access governed by same ToolRouter \u2014 no new tools, just shared access",
     "GOV-001 preserved: consumer-only, no payer revenue",
-    "DiscussCareFacade as the entry point — same pattern as FindCare and EvaluateCare"
+    "DiscussCareFacade as the entry point \u2014 same pattern as FindCare and EvaluateCare"
   ],
-
-  "origin": "Boss insight: wanted to invite himself and Perplexity into a conversation. Realized consumers benefit from the same pattern — invite family into a healthcare chat with AI assistance.",
-
+  "origin": "Boss insight: wanted to invite himself and Perplexity into a conversation. Realized consumers benefit from the same pattern \u2014 invite family into a healthcare chat with AI assistance.",
   "revenue_model": {
     "name": "Choose Your AI",
     "mechanism": "AI model providers pay ChatHealthy for access to user sessions",
     "why_they_pay": [
-      "User attention in healthcare — highest-value decision context",
+      "User attention in healthcare \u2014 highest-value decision context",
       "Tool usage generates training signal in healthcare domain",
       "Brand presence at point of care decision",
       "Distribution channel they cannot build themselves"
@@ -52,27 +86,46 @@
     "user_experience": "User selects which AI models participate in their session. Models compete on helpfulness. User pays nothing.",
     "series_a_story": "We own the healthcare decision room. AI companies pay to be in it."
   },
-
   "moat": {
     "regulatory_willingness": "AI vendors avoid healthcare regulation like the plague. FDA clinical decision support classification and HIPAA compliance are existential risks for companies valued on growth. They NEED someone else to own the healthcare room.",
     "trust": "Consumers chose ChatHealthy for care decisions. Trust takes years to build, seconds to lose.",
     "data": "Provider + clinical trials + quality data. Takes years to assemble and curate.",
     "governance": "Multi-AI healthcare safety framework. Floor control, consent per participant, emergency detection. Nobody else has this.",
     "network": "Every session adds participants and signal. Compound growth.",
-    "legal_model": "Apple precedent — platform charges both sides. Good lawyers. Not a conflict, a marketplace."
+    "legal_model": "Apple precedent \u2014 platform charges both sides. Good lawyers. Not a conflict, a marketplace."
   },
-
   "pricing_model": {
-    "find_care": "FREE — 100% free forever. This is the funnel.",
+    "find_care": "FREE \u2014 100% free forever. This is the funnel.",
     "evaluate_care": "FREE now. Paywall option once trusted brand established. Premium quality metrics, deeper credential analysis, comparative ratings.",
     "discuss_care": "Premium token markup on AI usage",
     "principle": "All healthcare navigation is free. Users only pay when they choose premium AI models in Discuss Care sessions. The markup on tokens is the ONLY revenue from users.",
     "partnership_path": [
       "Stage 1: Sign up for AI vendor partnership/startup programs. Get free credits.",
       "Stage 2: Build relationships with partner team humans. Show real healthcare usage.",
-      "Stage 3: Demonstrate value — their model is already in healthcare decision rooms.",
+      "Stage 3: Demonstrate value \u2014 their model is already in healthcare decision rooms.",
       "Stage 4: Partners underwrite Series A. They've seen the data."
     ],
     "gov_001_note": "Token revenue is from technology consumption, not care-chain entities. GOV-001 preserved."
+  },
+  "patent_concept": {
+    "claim": "Method for synthesizing healthcare provider quality signals using large language models to produce consumer-comprehensible provider assessments",
+    "signals": [
+      "NPI data",
+      "board certifications",
+      "disciplinary actions",
+      "malpractice history",
+      "patient outcomes",
+      "clinical trial participation",
+      "prescription patterns",
+      "CMS quality scores",
+      "state licensing records"
+    ],
+    "innovation": "All signals are public. LLMs exist. The method of combining them for consumer healthcare navigation is novel.",
+    "next_steps": [
+      "GPT patent search",
+      "Provisional patent draft in Discuss Care beta session (Boss + Claude + GPT + patent lawyer)",
+      "Patent attorney files and negotiates"
+    ],
+    "first_use_case_for_discuss_care": "Drafting the provisional patent IS the beta test of the product."
   }
 }
