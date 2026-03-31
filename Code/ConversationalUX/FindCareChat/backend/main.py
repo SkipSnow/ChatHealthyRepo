@@ -1059,7 +1059,7 @@ anthropic_tools = [
             "properties": {
                 "condition": {"type": "string"},
                 "location": {"type": "string", "description": "Filter trials by this location"},
-                "user_location": {"type": "string", "description": "User's city and state for travel time calculation (e.g. 'Jackson, MS')"},
+                "user_location": {"type": "string", "description": "User's location for travel time calculation. Any location worldwide — city, state, country (e.g. 'Jackson, MS', 'Ensenada, Mexico', 'Toronto, Canada'). Do NOT restrict to US locations."},
                 "max_results": {"type": "integer"},
             },
             "required": ["condition"],
@@ -1356,7 +1356,9 @@ def _system_prompt(follow_up_check: bool = False) -> str:
         f"so the user can verify credentials.\n"
         f"RULE 6 — CLINICAL TRIAL TRAVEL: When showing clinical trial results, after the first pass "
         f"ask the user: 'Would you like to know the travel distance and estimated drive time to these trial sites?' "
-        f"If yes, call search_clinical_trials again with the same condition and the user's city/state in user_location. "
+        f"If yes, call search_clinical_trials again with the same condition and the user's location in user_location. "
+        f"The user's location can be ANYWHERE in the world — US or international. Do NOT assume US-only. "
+        f"Pass whatever location the user provides (city, state, country). Google Routes handles international addresses. "
         f"Present the travel_info (distance and drive time) for each trial site. "
         f"Do NOT include travel info on the first call — only when the user requests it.\n\n"
         f"RULE 7 — FOLLOW-UP AND CONSENT: When the user wants follow-up or you receive a FOLLOW-UP CHECK reminder:\n"
