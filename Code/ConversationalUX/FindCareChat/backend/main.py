@@ -1280,115 +1280,16 @@ WELCOME_MESSAGE = (
     "**What can I help you with today?**"
 )
 
-_TEST_START_BUILD = 100
-_TEST_FEATURES = [
-    {"id": 1,  "feature": "Provider Search (DE + MS, vector + regex)",     "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0,
-     "bugs": [], "enhancements": []},
-    {"id": 2,  "feature": "Specialty Identification (NUCC + AI expansion)","completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 1,
-     "bugs": [], "enhancements": [],
-     "defer_reason": "Sufficiently working for release. Deep testing deferred - too complex for alpha."},
-    {"id": 3,  "feature": "Clinical Trials Search",                        "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 2, "features_deferred": 0,
-     "bugs": [],
-     "enhancements": ["Travel distance + drive time via Google Routes API", "Two-pass UX: results first, travel on request"]},
-    {"id": 4,  "feature": "About ChatHealthy / Skip Snow",                 "completed": True, "bugs_fixed": 0, "bugs_deferred": 1, "features_implemented": 0, "features_deferred": 0,
-     "bugs": ["Sonnet answers questions outside context instead of saying I don't know. Fix: PreScreen class (Sprint 2)"],
-     "enhancements": []},
-    {"id": 5,  "feature": "Safety Filter (dual-trigger, IP lock, audit)",  "completed": True, "bugs_fixed": 3, "bugs_deferred": 0, "features_implemented": 2, "features_deferred": 0,
-     "bugs": ["False positive on provider name lookup (safe-prefix bypass added)", "Unlock code visible in audit record (deIdentify added)", "Triggering message missing from audit history (append current msg)"],
-     "enhancements": ["Switched classifier to GPT-4.1-mini (vendor diversity, 2.5x cheaper)", "Full de-identified conversation history in safety audit trail"]},
-    {"id": 6,  "feature": "Lead Capture (follow-up offer)",                "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0,
-     "bugs": [], "enhancements": []},
-    {"id": 7,  "feature": "Consent Framework",                             "completed": False, "bugs_fixed": 0, "bugs_deferred": 4, "features_implemented": 0, "features_deferred": 0,
-     "bugs": ["Sonnet set consent_verbatim=true when user asked for de-identification", "PII not scrubbed when de-identify was requested", "Exact consent wording needs legal review before beta", "No separation between question consent and contact-me consent"],
-     "enhancements": [],
-     "fail_reason": "Two consent streams needed: Stream 1 (questions) always de-identify. Stream 2 (contact me) user chooses verbatim or de-identify with PHI warning."},
-    {"id": 8,  "feature": "Provider Detail",                               "completed": False, "bugs_fixed": 1, "bugs_deferred": 1, "features_implemented": 1, "features_deferred": 0,
-     "bugs": ["Healthgrades fuzzy match returns wrong provider", "Zocdoc blocks all third-party links (403)"],
-     "enhancements": ["NPI Registry API lookup for real provider data", "Repositioned links as research sites with user guidance"],
-     "fail_reason": "External link quality unreliable. Full fix deferred."},
-    {"id": 9,  "feature": "URL Guardian (validate + defang broken links)", "completed": False, "bugs_fixed": 0, "bugs_deferred": 1, "features_implemented": 0, "features_deferred": 0,
-     "bugs": [], "enhancements": [],
-     "defer_reason": "Link check deferred to next build. V2 design ready (3-stage: HEAD, AI content verify, Google search correction)."},
-    {"id": 10, "feature": "Chat UX (timer, stop, markdown, emergency)",    "completed": False, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 1,
-     "bugs": [], "enhancements": [],
-     "defer_reason": "Sufficient for v0.1.2. Deep testing deferred."},
-    {"id": 11, "feature": "Blob Storage Infrastructure",                   "completed": True, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 2, "features_deferred": 0,
-     "bugs": [],
-     "enhancements": ["Created admin + dev-brain containers", "Consolidated provider-data into chathealthy-public-data"]},
-    {"id": 12, "feature": "Unanswerable Question Handling",                "completed": True, "bugs_fixed": 3, "bugs_deferred": 0, "features_implemented": 4, "features_deferred": 0,
-     "bugs": ["System answered unanswerable questions without recording (fixed: RULE 2 source-bounded knowledge)", "Responses too verbose (fixed: template responses from tool)", "Mid-session context caused rule bypass (fixed: evaluate each message independently)"],
-     "enhancements": ["3-path classification (healthcare capability / medical advice / irrelevant)", "Template responses — verbatim from tool, no Sonnet elaboration", "Consent before recording questions", "Follow-up offer after recording"]},
-    {"id": 13, "feature": "Markdown Table Rendering (GFM tables in chat)", "completed": True, "bugs_fixed": 1, "bugs_deferred": 0, "features_implemented": 11, "features_deferred": 0,
-     "bugs": ["GFM tables not rendering (fixed: remark-gfm + sanitize whitelist)"],
-     "enhancements": ["Bordered table cells", "Repeating header every 7 rows", "Notes section", "DEF/FAIL status in Done column", "Build number auto-increment", "Summary counts in header", "Removed deferred columns", "Frontend fetches /welcome from API", "QA Report header with build range + scenario summary", "Column width fix (nowrap for short columns)", "Structured notes with bugs/enhancements"]},
-]
+# ---------------------------------------------------------------------------
+# UAT Report — DevOps tool (clean start every session)
+# ---------------------------------------------------------------------------
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "Shared", "ops"))
+from uat_report import build_uat_welcome
 
 
 def _build_test_welcome():
-    """Build the human testing welcome message with feature tracking table."""
-    # Pre-calculate counts for header
-    total = len(_TEST_FEATURES)
-    completed = sum(1 for f in _TEST_FEATURES if f["completed"])
-    failed = sum(1 for f in _TEST_FEATURES if not f["completed"] and f.get("bugs_deferred", 0) > 0 and "FAIL" in f.get("notes", ""))
-    deferred = sum(1 for f in _TEST_FEATURES if not f["completed"] and (f["features_deferred"] > 0 or f["bugs_deferred"] > 0)) - failed
-    to_test = total - completed - deferred - failed
-
-    lines = [
-        f"**QA Report: v0.1.2**\n\n"
-        f"| Start Build | End Build | Builds Tested |\n"
-        f"|:-----------:|:---------:|:-------------:|\n"
-        f"| {_TEST_START_BUILD} | {_BUILD} | {max(0, int(_BUILD) - _TEST_START_BUILD) if _BUILD.isdigit() else 'N/A'} |\n\n"
-        f"| Total Scenarios | Passed | Deferred | Failed | To Test |\n"
-        f"|:---------------:|:------:|:--------:|:------:|:-------:|\n"
-        f"| {total} | {completed} | {deferred} | {failed} | {to_test} |\n\n"
-        f"**Release Gate:** GPT-4o Enterprise Architect: **conditional-go** | Risk: Moderate | "
-        f"Conditions: Consent framework bugs (Sprint 2), Provider Detail link quality (Sprint 2), Automated tests (Sprint 2)\n\n",
-        "| &nbsp;#&nbsp; | Feature | &nbsp;Done&nbsp; | Bugs Fixed | Feat Impl |",
-        "|:---:|---------|:------:|:----------:|:---------:|",
-    ]
-    header_row = "| &nbsp;#&nbsp; | Feature | &nbsp;Done&nbsp; | Bugs Fixed | Feat Impl |"
-    separator  = "|:---:|---------|:------:|:----------:|:---------:|"
-    totals = {"completed": 0, "bugs_fixed": 0, "bugs_deferred": 0, "features_implemented": 0, "features_deferred": 0}
-    for i, f in enumerate(_TEST_FEATURES):
-        if i > 0 and i % 7 == 0:
-            lines.append("")
-            lines.append(header_row)
-            lines.append(separator)
-        is_fail = not f["completed"] and "FAIL" in f.get("notes", "")
-        is_deferred = not f["completed"] and not is_fail and (f["features_deferred"] > 0 or f["bugs_deferred"] > 0)
-        done = "Y" if f["completed"] else ("FAIL" if is_fail else ("DEF" if is_deferred else " "))
-        lines.append(
-            f"| {f['id']:>3} | {f['feature']} | {done} | {f['bugs_fixed']} | {f['features_implemented']} |"
-        )
-        if f["completed"]:
-            totals["completed"] += 1
-        totals["bugs_fixed"] += f["bugs_fixed"]
-        totals["bugs_deferred"] += f["bugs_deferred"]
-        totals["features_implemented"] += f["features_implemented"]
-        totals["features_deferred"] += f["features_deferred"]
-    lines.append(
-        f"| | **TOTALS** | **{completed + deferred + failed}/{len(_TEST_FEATURES)}** | **{totals['bugs_fixed']}** | **{totals['features_implemented']}** |"
-    )
-    # Notes section — structured bugs and enhancements per feature
-    has_notes = [f for f in _TEST_FEATURES if f.get("bugs") or f.get("enhancements") or f.get("defer_reason") or f.get("fail_reason")]
-    if has_notes:
-        lines.append("\n**Notes:**\n")
-        for f in has_notes:
-            lines.append(f"- **#{f['id']} {f['feature']}**")
-            if f.get("fail_reason"):
-                lines.append(f"  - FAIL: {f['fail_reason']}")
-            if f.get("defer_reason"):
-                lines.append(f"  - DEFERRED: {f['defer_reason']}")
-            if f.get("bugs"):
-                lines.append(f"  - **Bugs ({len(f['bugs'])}):**")
-                for bug in f["bugs"]:
-                    lines.append(f"    - {bug}")
-            if f.get("enhancements"):
-                lines.append(f"  - **Enhancements ({len(f['enhancements'])}):**")
-                for enh in f["enhancements"]:
-                    lines.append(f"    - {enh}")
-    lines.append("\nTest the features above. Type normally to interact with the chatbot.\n")
-    return "\n".join(lines)
+    env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
+    return build_uat_welcome(build=_BUILD, version=_APP_VERSION, env=env_label)
 
 
 def _system_prompt(follow_up_check: bool = False) -> str:
