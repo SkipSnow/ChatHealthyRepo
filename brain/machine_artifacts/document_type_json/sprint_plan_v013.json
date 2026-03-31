@@ -1,0 +1,175 @@
+{
+  "title": "Sprint Plan — v0.1.3",
+  "status": "PROPOSED",
+  "date": "2026-03-30",
+  "sprint_start": "2026-03-31",
+  "sprint_goal": "Refactor architecture (ARCH-001), maps, current functionality enhancements",
+
+  "schedule": [
+    {
+      "day": "2026-03-31 (Tuesday)",
+      "theme": "Skeleton + Security Fix + Maps",
+      "builds": [
+        {
+          "id": "B-187",
+          "task": "ARCH-001 Phase 1: Skeleton Architecture + ToolRouter",
+          "detail": "Create folder structure, ChatOrchestrator pass-through, ToolRouter with allowlist (kills globals().get — F-05). App runs unchanged.",
+          "risk": "LOW",
+          "deploy": "dev"
+        },
+        {
+          "id": "B-188",
+          "task": "Maps: Provider search results on map",
+          "detail": "Add map component to frontend. Providers already have lat/lng from NPI data. Display results on interactive map alongside bullet list.",
+          "risk": "LOW-MEDIUM",
+          "deploy": "dev"
+        },
+        {
+          "id": "B-189",
+          "task": "F-09: Expand emergency keyword list",
+          "detail": "Add burns, drowning, trauma, diabetic emergency, childbirth keywords. Create brain/machine_artifacts/emergency_keywords.json.",
+          "risk": "LOW",
+          "deploy": "dev"
+        }
+      ]
+    },
+    {
+      "day": "2026-04-01 (Wednesday)",
+      "theme": "Extract FindCare Domain",
+      "builds": [
+        {
+          "id": "B-190",
+          "task": "ARCH-001 Phase 2: Extract ProviderSearchService",
+          "detail": "Move find_providers() to ProviderSearchService. Introduce FindCareFacade. Update ToolRouter. Validate pattern.",
+          "risk": "LOW",
+          "deploy": "dev"
+        },
+        {
+          "id": "B-191",
+          "task": "ARCH-001 Phase 3: Extract SpecialtyService",
+          "detail": "Move find_specialty_codes() to SpecialtyService. Wire through FindCareFacade.",
+          "risk": "LOW-MEDIUM",
+          "deploy": "dev"
+        },
+        {
+          "id": "B-192",
+          "task": "F-10: Raise provider search result cap to 25",
+          "detail": "Configurable limit in ProviderSearchService (new class). Default 25.",
+          "risk": "LOW",
+          "deploy": "dev"
+        }
+      ]
+    },
+    {
+      "day": "2026-04-02 (Thursday)",
+      "theme": "Extract EvaluateCareQuality + Shared",
+      "builds": [
+        {
+          "id": "B-193",
+          "task": "ARCH-001 Phase 4: Extract ClinicalTrialsService + ProviderDetailService",
+          "detail": "Move to EvaluateCareQuality domain. Introduce EvaluateCareFacade. Facade-to-facade for travel calculations.",
+          "risk": "MEDIUM",
+          "deploy": "dev"
+        },
+        {
+          "id": "B-194",
+          "task": "ARCH-001 Phase 5: Extract Shared Services",
+          "detail": "SafetyService, EmergencyDetector, ConsentService, LeadService, UnknownQuestionService, AboutService, URLGuardian relocation.",
+          "risk": "MEDIUM",
+          "deploy": "dev"
+        }
+      ]
+    },
+    {
+      "day": "2026-04-03 (Friday)",
+      "theme": "Pydantic + Cleanup + QA",
+      "builds": [
+        {
+          "id": "B-195",
+          "task": "ARCH-001 Phase 6: Pydantic tool models",
+          "detail": "Define input/output schemas for all 9 tools. Validation layer in ToolRouter.",
+          "risk": "MEDIUM",
+          "deploy": "dev"
+        },
+        {
+          "id": "B-196",
+          "task": "ARCH-001 Phase 7: Delete main.py",
+          "detail": "Remove monolith. app.py + HostChatAdapter is the entry point. Zero business logic in HuggingFace surface.",
+          "risk": "LOW",
+          "deploy": "dev"
+        },
+        {
+          "id": "B-197",
+          "task": "Full regression test + SIT",
+          "detail": "Run all unit tests, integration tests, GPT-5.3 SIT on refactored code. Baseline comparison against pre-refactor outputs.",
+          "risk": "LOW",
+          "deploy": "dev"
+        }
+      ]
+    },
+    {
+      "day": "2026-04-04 (Saturday)",
+      "theme": "QA Promotion + Stabilization",
+      "builds": [
+        {
+          "id": "B-198",
+          "task": "Promote to QA",
+          "detail": "Merge dev to qa. Deploy to qa HF Space + qa Cloudflare. Smoke test.",
+          "risk": "LOW",
+          "deploy": "qa"
+        },
+        {
+          "id": "B-199",
+          "task": "Boss UAT on QA",
+          "detail": "Boss tests maps, provider search, clinical trials, safety, consent on QA environment.",
+          "risk": "N/A — Boss pass/fail",
+          "deploy": "qa"
+        }
+      ]
+    },
+    {
+      "day": "2026-04-05 (Sunday) — if needed",
+      "theme": "Bug fixes + Production",
+      "builds": [
+        {
+          "id": "B-200",
+          "task": "Fix any UAT bugs",
+          "detail": "Address Boss feedback from QA testing.",
+          "risk": "VARIES",
+          "deploy": "qa"
+        },
+        {
+          "id": "B-201",
+          "task": "Promote to Production",
+          "detail": "Merge qa to main. Deploy. Boss sign-off required (GOV-007).",
+          "risk": "LOW (if QA passed)",
+          "deploy": "prod"
+        }
+      ]
+    }
+  ],
+
+  "enhancements_included": [
+    {"id": "F-05", "title": "ToolRouter replaces globals() dispatch", "day": "Tuesday (Phase 1)"},
+    {"id": "F-09", "title": "Emergency keyword expansion", "day": "Tuesday"},
+    {"id": "F-10", "title": "Provider search cap raised to 25", "day": "Wednesday"},
+    {"id": "MAPS", "title": "Interactive map for provider search results", "day": "Tuesday"}
+  ],
+
+  "deferred_to_next_sprint": [
+    "F-06: Durable Functions status URL auth (Pipeline concern, not chat refactor)",
+    "F-08: All-state coverage (pipeline run, not code change)",
+    "F-11: FIPS hack resolution (pipeline re-run)",
+    "F-12: DeepSeek privacy disclosure (legal/copy)",
+    "F-13: Lock architecture docs (Boss decision on access gate)",
+    "R19: Azure Function timeout UAT",
+    "R35: Paused cluster UAT",
+    "BL-001 through BL-010: Perplexity backlog (v0.1.4)"
+  ],
+
+  "risks": [
+    "Phase 4-5 (Thursday) is the highest risk day — extracting two domains + shared services. If behind, push Phase 5 to Friday.",
+    "Maps depends on frontend map library selection (Leaflet vs Google Maps vs Mapbox). Decision needed Tuesday morning.",
+    "Pydantic phase may surface schema mismatches between what Claude sends and what tools expect. Budget extra time."
+  ]
+}
