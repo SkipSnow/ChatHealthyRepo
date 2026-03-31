@@ -43,16 +43,23 @@ class InvestorPDF(FPDF):
         self.set_text_color(0, 0, 0)
         self.cell(0, 5, safe("  - " + text), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
-    def inline_diagram(self, fname, width=170):
+    fig_counter = 0
+
+    def inline_diagram(self, fname, caption="", width=170):
         fpath = os.path.join(DIAGRAM_DIR, fname)
         if os.path.exists(fpath):
-            # Check if enough space, otherwise new page
-            if self.get_y() > 160:
+            if self.get_y() > 150:
                 self.add_page()
             self.ln(3)
-            x = (self.w - width) / 2  # center
+            x = (self.w - width) / 2
             self.image(fpath, x=x, w=width)
-            self.ln(5)
+            InvestorPDF.fig_counter += 1
+            if caption:
+                self.set_font("Helvetica", "I", 8)
+                self.set_text_color(100, 100, 100)
+                self.cell(0, 5, safe(f"Fig. {InvestorPDF.fig_counter}: {caption}"), align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                self.set_text_color(0, 0, 0)
+            self.ln(4)
 
 
 pdf = InvestorPDF(orientation="P", format="letter")
@@ -85,7 +92,7 @@ for p in text.split("\n\n"):
     pdf.body(p)
 
 # Value chain inline
-pdf.inline_diagram("value_chain.png", width=160)
+pdf.inline_diagram("value_chain.png", "The consumer orchestrates the care journey. Three components serve the decision, not a linear pipeline.", width=155)
 
 # ── COMPONENT ARCHITECTURE ──
 pdf.add_page()
@@ -93,7 +100,7 @@ pdf.section_heading("Platform Architecture")
 pdf.body("ChatHealthy.ai is built on three business components. The consumer is at the center, orchestrating the relationship between all three. This is not a sequential journey — it is a decision-making environment.")
 
 # Component diagram inline
-pdf.inline_diagram("component_diagram.png", width=175)
+pdf.inline_diagram("component_diagram.png", "Three components share a governance layer and data infrastructure. Each operates independently but communicates through defined interfaces.", width=175)
 
 # ── FIND CARE ──
 comp = data.get("components", {}).get("find_care", {})
@@ -139,7 +146,7 @@ if comp:
     pdf.body(comp.get("description", ""))
 
     # Room diagram inline
-    pdf.inline_diagram("discuss_care_room.png", width=160)
+    pdf.inline_diagram("discuss_care_room.png", "Inside a Discuss Care session: humans and AI models collaborate with shared tools. A bot moderator manages the floor.", width=155)
 
     # Features
     features = comp.get("features", [])
@@ -170,7 +177,7 @@ for s in rm.get("streams", []):
         pdf.bullet(str(s))
 
 # Revenue diagram inline
-pdf.inline_diagram("revenue_flow.png", width=155)
+pdf.inline_diagram("revenue_flow.png", "Two-sided platform: consumers pay token premiums, AI vendors contribute capital. Core services remain free.", width=150)
 
 if rm.get("gov_001_compliance"):
     pdf.set_font("Helvetica", "I", 9)
@@ -190,7 +197,7 @@ for b in moat.get("barriers", []):
         pdf.body("  - " + str(b))
 
 # Moat diagram inline
-pdf.inline_diagram("moat_diagram.png", width=150)
+pdf.inline_diagram("moat_diagram.png", "Five concentric barriers protect the platform. Trade secrets and IP at the core.", width=145)
 
 # ── SECURITY + COMPLIANCE DIAGRAM ──
 pdf.add_page()
@@ -213,7 +220,7 @@ if isinstance(sec, dict):
             pdf.ln(1)
 
 # Compliance diagram inline
-pdf.inline_diagram("compliance_flow.png", width=165)
+pdf.inline_diagram("compliance_flow.png", "When a licensed provider enters the room, the system pauses for mandatory disclosure. All participants must acknowledge.", width=160)
 
 # ── INVESTMENT THESIS ──
 pdf.add_page()
