@@ -4,7 +4,7 @@
   "date": "2026-03-31",
   "author": "Boss (Skip Snow)",
   "status": "CONCEPT",
-  "target": "Post-funding (M-004, July 31 2026)",
+  "target": "Beta Sprint 1 (May 2026). April is quality month — no new components.",
   "three_component_architecture": {
     "1": "Find Care \u2014 find providers, specialties, navigate the system",
     "2": "Evaluate Care \u2014 clinical trials, provider credentials, quality metrics",
