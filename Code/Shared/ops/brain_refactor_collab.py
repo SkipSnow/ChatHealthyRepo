@@ -319,38 +319,86 @@ def main():
         save_iteration(1, "GPT", gpt_text, transcript, total_in, total_out)
         print(f"GPT iteration 1: {tin:,} in / {tout:,} out")
 
-    # Iteration 2: Claude's response (pre-written with Boss sign-off)
-    print("\nIteration 2/100 -- Claude responding (Boss signed off on 3 questions)...")
-    messages.append({"role": "user", "content": CLAUDE_ITERATION_2})
+    # Load previous iterations from disk
+    iter3_path = BRAIN_DIR / "machine_artifacts" / "document_type_json" / "refactor_proposal_iteration3.json"
+    if iter3_path.exists():
+        # Replay conversation history
+        messages.append({"role": "user", "content": CLAUDE_ITERATION_2})
+        transcript.append({"iteration": 2, "speaker": "Claude", "content": CLAUDE_ITERATION_2, "timestamp": "replayed"})
+
+        iter3_content = iter3_path.read_text(encoding="utf-8")
+        messages.append({"role": "assistant", "content": iter3_content})
+        transcript.append({"iteration": 3, "speaker": "GPT", "content": iter3_content, "timestamp": "replayed"})
+        print("Loaded iterations 2-3 from disk.")
+
+    CLAUDE_ITERATION_4 = """## Claude's Response to Iteration 3
+
+Strong revision. I accept your changes on Provider Detail placement, facade design,
+emergency keyword configuration, and prompt consistency rule. We are converging.
+
+Four gaps remain before I can sign off:
+
+### 1. MIGRATION PLAN (missing)
+You proposed the target state but no phased migration. We cannot refactor 1,712 lines
+in one commit. Propose a phased plan:
+- Which files/classes move first?
+- What is the minimum viable first phase that compiles and runs?
+- How do we avoid a broken intermediate state?
+- How many phases and what is the risk per phase?
+
+### 2. FRONTEND SCOPE (incomplete)
+You said "FrontendOnly" for markdown rendering but the React frontend is in scope.
+The frontend has: API client, chat components, state management, markdown rendering,
+emergency UI. Propose the frontend file structure. Does it mirror the backend domains
+(find_care/, evaluate_care/) or stay flat?
+
+### 3. TESTING STRATEGY (missing)
+Each service class needs tests. Propose:
+- Test file structure (mirrors source?)
+- Which tests are mocked vs integration?
+- Do we keep existing tests or rewrite?
+- How do we ensure no regression during migration?
+
+### 4. MAIN.PY AFTER REFACTOR
+What remains in main.py? Is it eliminated? Renamed? Becomes app.py?
+Be explicit about the final state of the entry point.
+
+Also one correction: your iteration counter says "iteration: 2" but this is iteration 3
+in our sequence. Please fix in your next response.
+
+Please revise with these 4 additions. If you address all 4 satisfactorily,
+I will call for final sign-off. Return JSON."""
+
+    print("\nIteration 4/100 -- Claude feedback (4 remaining gaps)...")
+    messages.append({"role": "user", "content": CLAUDE_ITERATION_4})
     transcript.append({
-        "iteration": 2, "speaker": "Claude",
-        "content": CLAUDE_ITERATION_2,
+        "iteration": 4, "speaker": "Claude",
+        "content": CLAUDE_ITERATION_4,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     })
 
-    # Iteration 3: GPT revises
-    print("Iteration 3/100 -- GPT revising based on feedback...")
+    # Iteration 5: GPT revises
+    print("Iteration 5/100 -- GPT revising (final gaps)...")
     gpt_text, tin, tout = call_gpt(messages)
     total_in += tin
     total_out += tout
     messages.append({"role": "assistant", "content": gpt_text})
     transcript.append({
-        "iteration": 3, "speaker": "GPT",
+        "iteration": 5, "speaker": "GPT",
         "tokens_in": tin, "tokens_out": tout,
         "content": gpt_text,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     })
-    save_iteration(3, "GPT", gpt_text, transcript, total_in, total_out)
-    print(f"GPT iteration 3: {tin:,} in / {tout:,} out")
-    print(f"Preview: {gpt_text[:500]}...")
+    save_iteration(5, "GPT", gpt_text, transcript, total_in, total_out)
+    print(f"GPT iteration 5: {tin:,} in / {tout:,} out")
+    print(f"Preview: {gpt_text[:600]}...")
 
     # Save full transcript
-    save_iteration(3, "transcript", "", transcript, total_in, total_out)
+    save_iteration(5, "transcript", "", transcript, total_in, total_out)
 
     print(f"\n{'='*70}")
-    print(f"Iteration 3 complete. Total tokens: {total_in:,} in / {total_out:,} out")
+    print(f"Iteration 5 complete. Total tokens: {total_in:,} in / {total_out:,} out")
     print(f"{'='*70}")
-    print("\nGPT's revised proposal saved. Review and continue iteration loop.")
 
 
 if __name__ == "__main__":
