@@ -282,17 +282,32 @@
     "the_gap": "Every incumbent earns money from the care chain -- providers, hospitals, or payers. This creates a structural conflict of interest. The consumer cannot trust a platform that is paid by the people it is supposed to evaluate.",
     "our_position": "ChatHealthy.ai will never take money from providers, hospitals, payers, pharmaceutical companies, PBMs, or any entity in the care delivery or payment chain. This is not a guideline. It is governance policy GOV-001, permanent and non-negotiable. Our revenue comes exclusively from consumers (token premiums) and technology partners (AI vendor capital). This is our moat. No incumbent can match it without destroying their business model."
   },
-  "investment_thesis": "ChatHealthy.ai sits at the intersection of two inevitable shifts: consumer control of healthcare decisions and AI participation in those decisions. The company captures value by owning the environment where both converge. Investors are backing a platform that becomes the default interface for navigating a $4 trillion market. Strategic value is immediate for AI companies seeking distribution, and long-term for any entity that benefits from influencing healthcare decisions without regulatory exposure.",
+  "investment_thesis": "ChatHealthy.ai sits at the intersection of two shifts: consumers'  thwarted desire to control healthcare decisions and AI's new capability to participate in those decisions. The company captures value by providing consumers a platform they are willing to pay for. ChatHealthy.ai is already a product, now it must become a brand. Built upon an impartial platform finding objectivity through objectivity because it can see the intricate patterns in the immense amount of data and help the consumer make decisions based on facts. Investors back a platform becoming the default interface to navigate the purposefully opaque American Healthcare system. Monetization comes when the brand can sustain its growth behind a pay gate. ChatHealthy.ai is the place people come to find care, evaluate care, and discuss care with loved ones and AI.",
   "timeline": {
-    "April 2026": "Quality month; architecture refinement and system hardening",
-    "May 2026": "Discuss Care beta launch with core collaboration and AI participation",
-    "Summer 2026": "AI vendor partnerships and initial marketplace validation",
-    "Late 2026": "Evaluate Care premium features and early monetization expansion",
-    "Series A": "Raised on demonstrated control of healthcare decision sessions and AI marketplace traction",
     "milestones": [
       {
-        "date": "2026-09-30",
-        "milestone": "iPhone App Launch"
+        "date": "2026-04-30",
+        "milestone": "Alpha Launch (Find Care + Evaluate Care)"
+      },
+      {
+        "date": "2026-05-31",
+        "milestone": "Discuss Care Beta Sprint 1"
+      },
+      {
+        "date": "2026-07-31",
+        "milestone": "Seed Funding Close"
+      },
+      {
+        "date": "2026-08-25",
+        "milestone": "Beta Launch"
+      },
+      {
+        "date": "2026-11-20",
+        "milestone": "Production Launch"
+      },
+      {
+        "date": "2026-12-15",
+        "milestone": "iPhone & Android App Launch"
       }
     ]
   }
