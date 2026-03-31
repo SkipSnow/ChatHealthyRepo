@@ -70,7 +70,7 @@
     {
       "id": "DC-15",
       "feature": "Licensed Provider Detection and Compliance Disclosure",
-      "description": "If a participant identifies as or is detected as a licensed healthcare provider, the system triggers automatic compliance disclosure: (1) ChatHealthy is not subject to HIPAA, (2) This session does not create a provider-patient relationship, (3) Security standards disclosed (HITRUST/DOD/SOC2). All participants must acknowledge before session continues. Consent re-confirmed."
+      "description": "If a participant identifies as or is detected as a licensed healthcare provider, the system triggers automatic compliance disclosure: (1) ChatHealthy.ai is not subject to HIPAA, (2) This session does not create a provider-patient relationship, (3) Security standards disclosed (HITRUST/DOD/SOC2). All participants must acknowledge before session continues. Consent re-confirmed."
     }
   ],
   "architectural_implications": [
@@ -84,7 +84,7 @@
   "origin": "Boss insight: wanted to invite himself and Perplexity into a conversation. Realized consumers benefit from the same pattern \u2014 invite family into a healthcare chat with AI assistance.",
   "revenue_model": {
     "name": "Choose Your AI",
-    "mechanism": "AI model providers pay ChatHealthy for access to user sessions",
+    "mechanism": "AI model providers pay ChatHealthy.ai for access to user sessions",
     "why_they_pay": [
       "User attention in healthcare \u2014 highest-value decision context",
       "Tool usage generates training signal in healthcare domain",
@@ -98,7 +98,7 @@
   },
   "moat": {
     "regulatory_willingness": "AI vendors avoid healthcare regulation like the plague. FDA clinical decision support classification and HIPAA compliance are existential risks for companies valued on growth. They NEED someone else to own the healthcare room.",
-    "trust": "Consumers chose ChatHealthy for care decisions. Trust takes years to build, seconds to lose.",
+    "trust": "Consumers chose ChatHealthy.ai for care decisions. Trust takes years to build, seconds to lose.",
     "data": "Provider + clinical trials + quality data. Takes years to assemble and curate.",
     "governance": "Multi-AI healthcare safety framework. Floor control, consent per participant, emergency detection. Nobody else has this.",
     "network": "Every session adds participants and signal. Compound growth.",
@@ -184,7 +184,7 @@
   ],
   "marketing_positioning": {
     "headline": "We are not required to protect your data. We choose to. And we do it better than the ones who are required to.",
-    "context": "Healthcare organizations suffer constant data breaches DESPITE being under HIPAA. HIPAA is a compliance checkbox, not a security guarantee. ChatHealthy voluntarily adopts HITRUST/DOD-level security because our business depends on consumer trust, not regulatory compulsion.",
+    "context": "Healthcare organizations suffer constant data breaches DESPITE being under HIPAA. HIPAA is a compliance checkbox, not a security guarantee. ChatHealthy.ai voluntarily adopts HITRUST/DOD-level security because our business depends on consumer trust, not regulatory compulsion.",
     "marketing_use": [
       "Landing page trust badge: \"Voluntarily HITRUST certified \u2014 exceeding HIPAA standards\"",
       "Investor pitch: security by choice signals product-market fit and consumer-first values",
