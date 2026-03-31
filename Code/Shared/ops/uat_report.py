@@ -59,14 +59,10 @@ ENHANCEMENT_CLASSIFICATIONS = {
 }
 
 
-def _get_uat_status(db, env_prefix: str, session_start: str = None) -> dict:
+def _get_uat_status(db, env_prefix: str) -> dict:
     """Read UAT status from MongoDB. Returns {feature_id: {done, bugs_fixed, new_features, notes}}.
 
-    New session logic (session_start > record updated):
-    - Bugs_fixed and new_features: KEPT (accumulate across sessions)
-    - Notes: KEPT (bug history is valuable)
-    - Done status: CLEARED for non-deferred features (re-test needed)
-    - DEF status: KEPT (deferred stays deferred)
+    Simple: reads what's there. Claude updates it on commits. Boss clears it when needed.
     """
     if db is None:
         return {}
@@ -75,14 +71,7 @@ def _get_uat_status(db, env_prefix: str, session_start: str = None) -> dict:
         doc = coll.find_one({"_id": "current"})
         if not doc or "features" not in doc:
             return {}
-        status = {f["id"]: f for f in doc["features"]}
-        # Session reset: only clear if explicitly requested via session_start=RESET
-        if session_start == "RESET":
-            _log.info("UAT RESET requested — clearing non-deferred status")
-            for fid, feat in status.items():
-                if feat.get("done") not in ("DEF", "SIT"):
-                    feat["done"] = ""
-        return status
+        return {f["id"]: f for f in doc["features"]}
     except Exception:
         pass
     return {}
@@ -151,22 +140,16 @@ def seed_uat_status(db, env_prefix: str):
     _log.info("UAT status seeded: %d features", len(updates))
 
 
-def build_uat_welcome(get_db_fn=None, **overrides) -> str:
-    """Build UAT welcome message. Reads all config from environment.
+def build_uat_welcome(get_db_fn=None) -> str:
+    """Build UAT welcome message. Reads all config from environment and MongoDB.
 
-    Reads: ENV_PREFIX, APP_VERSION, HUMAN_TESTING, SPACE_ID from os.environ.
-    Reads: build number + UAT status from MongoDB.
-    Overrides: pass any param explicitly to override env detection.
+    Simple: HUMAN_TESTING=true shows report. Claude maintains the data.
     """
     import os
-    env_prefix = overrides.get("env_prefix", os.getenv("ENV_PREFIX", "dev"))
-    version = overrides.get("version", os.getenv("APP_VERSION", "unknown"))
-    space_id = os.getenv("SPACE_ID")
-    env = overrides.get("env", env_prefix if space_id else "local")
-    human_testing_raw = overrides.get("session_start", os.getenv("HUMAN_TESTING", ""))
-    session_start = human_testing_raw if len(human_testing_raw) > 5 else None
+    env_prefix = os.getenv("ENV_PREFIX", "dev")
+    version = os.getenv("APP_VERSION", "unknown")
+    env = env_prefix if os.getenv("SPACE_ID") else "local"
 
-    # Build number from MongoDB
     db = get_db_fn() if get_db_fn else None
     build = "?"
     if db:
@@ -177,7 +160,7 @@ def build_uat_welcome(get_db_fn=None, **overrides) -> str:
             pass
 
     total = len(UAT_FEATURES)
-    status = _get_uat_status(db, env_prefix, session_start=session_start)
+    status = _get_uat_status(db, env_prefix)
 
     total_done = 0
     total_bugs = 0
