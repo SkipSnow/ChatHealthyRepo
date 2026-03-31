@@ -255,6 +255,14 @@
             "purpose": "State-scoped vector search (current index, verify exists)"
           }
         ]
+      },
+      {
+        "id": "DEVOPS-UAT-AUTO",
+        "task": "Automated UAT status updates on commit",
+        "detail": "When Claude commits a bug fix or feature, automatically update the UAT status in MongoDB. No manual reseeding. The commit message contains the feature ID and classification \u2014 parse it and update the DB as part of the commit workflow.",
+        "deadline": "2026-04-08 (Wednesday)",
+        "priority": "MEDIUM",
+        "origin": "AI operational error during Cycle 1 \u2014 manual reseed was required because UAT timestamps were out of sync."
       }
     ]
   },
