@@ -1,0 +1,675 @@
+{
+  "title": "ChatHealthy.ai — ARCH-001 Refactor Design",
+  "document_id": "ARCH-001",
+  "status": "APPROVED",
+  "date": "2026-03-30",
+  "copyright": "Copyright 2026 Skip Snow. All rights reserved.",
+  "collaboration": "Claude Opus 4.6 (engineer) + GPT-5.3 (architect), 5 iterations, 2026-03-27 through 2026-03-30",
+  "consolidated_from": ["refactor_proposal_iteration1.json", "refactor_proposal_iteration3.json", "refactor_proposal_iteration5.json"],
+
+  "executive_summary": "Modular monolith refactor of FindCare backend from a 1,323-line main.py monolith to a facade-oriented domain architecture. Two business domains (FindCare, EvaluateCareQuality) with explicit service classes per UAT feature. HuggingFace reduced to entrypoint + adapter only. Strangler Fig migration in 7 phases, zero downtime, deployable at every phase. Pydantic-enforced tool boundaries. Full Perplexity audit response covering all 18 findings.",
+
+  "top_level_architecture": {
+    "pattern": "Modular Monolith (Facade-Oriented Domains)",
+    "layers": [
+      "Host Adapter (HuggingFace only — app.py + HostChatAdapter)",
+      "Application Layer (ChatOrchestrator + Facades + ToolRouter)",
+      "Domain Layer (Business Services per UAT feature)",
+      "Infrastructure Layer (MongoDB, External APIs, Embeddings, Config)"
+    ],
+    "dependency_direction": "Host -> Application -> Domain -> Infrastructure (no upward imports)"
+  },
+
+  "business_components": {
+    "find_care": {
+      "facade": "FindCareFacade",
+      "description": "Core provider discovery and specialty identification",
+      "services": [
+        {
+          "class": "ProviderSearchService",
+          "file": "domain/find_care/provider_search_service.py",
+          "feature": "Provider Search (UAT Feature 1)",
+          "responsibility": "Vector search, query expansion, FIPS county mapping, result formatting"
+        },
+        {
+          "class": "SpecialtyService",
+          "file": "domain/find_care/specialty_service.py",
+          "feature": "Specialty Identification (UAT Feature 2)",
+          "responsibility": "NLP taxonomy mapping, specialty code lookup"
+        }
+      ],
+      "facade_methods": [
+        "search_providers(criteria: ProviderSearchInput) -> ProviderSearchOutput",
+        "identify_specialty(input: SpecialtyInput) -> SpecialtyOutput",
+        "get_provider_location(npi: str) -> dict"
+      ]
+    },
+    "evaluate_care_quality": {
+      "facade": "EvaluateCareFacade",
+      "description": "Clinical trials search and provider quality evaluation",
+      "services": [
+        {
+          "class": "ClinicalTrialsService",
+          "file": "domain/evaluate_care_quality/clinical_trials_service.py",
+          "feature": "Clinical Trials Search (UAT Feature 3)",
+          "responsibility": "ClinicalTrials.gov API integration, result filtering"
+        },
+        {
+          "class": "ProviderDetailService",
+          "file": "domain/evaluate_care_quality/provider_detail_service.py",
+          "feature": "Provider Detail (UAT Feature 8)",
+          "responsibility": "NPI lookup, external provider data aggregation"
+        }
+      ],
+      "facade_methods": [
+        "search_clinical_trials(input: ClinicalTrialsInput) -> ClinicalTrialsOutput",
+        "get_provider_details(npi: str) -> ProviderDetailOutput"
+      ],
+      "cross_calls": [
+        "EvaluateCareFacade calls FindCareFacade.get_provider_location() for travel calculations"
+      ]
+    }
+  },
+
+  "shared_infrastructure": {
+    "services": [
+      {
+        "class": "SafetyService",
+        "file": "domain/shared/safety/safety_service.py",
+        "feature": "Safety Filter (UAT Feature 5)",
+        "responsibility": "IP locking, session safety state, pre-tool gating"
+      },
+      {
+        "class": "EmergencyDetector",
+        "file": "domain/shared/safety/emergency_detector.py",
+        "feature": "Emergency Detection (F-09 fix)",
+        "responsibility": "Config-driven keyword + embedding similarity detection",
+        "config_source": "brain/machine_artifacts/emergency_keywords.json"
+      },
+      {
+        "class": "ConsentService",
+        "file": "domain/shared/consent/consent_service.py",
+        "feature": "Consent Framework (UAT Feature 7)",
+        "responsibility": "Full two-tier HIPAA consent workflow — see Section 4.1 Consent Flow Detail"
+      },
+      {
+        "class": "LeadService",
+        "file": "domain/shared/lead_capture/lead_service.py",
+        "feature": "Lead Capture (UAT Feature 6)",
+        "responsibility": "Contact record creation, consent integration"
+      },
+      {
+        "class": "AboutService",
+        "file": "domain/shared/content/about_service.py",
+        "feature": "About ChatHealthy (UAT Feature 4)",
+        "responsibility": "Static content loading for about intents"
+      },
+      {
+        "class": "UnknownQuestionService",
+        "file": "domain/shared/unknowns/unknown_question_service.py",
+        "feature": "Unanswerable Question Handling (UAT Feature 12)",
+        "responsibility": "De-identified logging of unanswerable questions"
+      },
+      {
+        "class": "URLGuardian",
+        "file": "domain/shared/url/url_guardian.py",
+        "feature": "URL Validation (UAT Feature 9)",
+        "responsibility": "Dual-mode URL validation (tool results + LLM text)",
+        "status": "IMPLEMENTED (Sprint 1)"
+      }
+    ]
+  },
+
+  "consent_flow": {
+    "title": "Consent Framework — Full Workflow Design",
+    "class": "ConsentService",
+    "file": "domain/shared/consent/consent_service.py",
+    "description": "HIPAA-aligned two-tier consent framework controlling what user data is stored and how. Consent is a full-time workflow — not a flag. It governs the entire data lifecycle of a user session.",
+    "trigger": "Every 5th user message, system prompt instructs Claude to ask: 'Would you like someone from ChatHealthy.AI to follow up with you personally?'",
+    "tiers": [
+      {
+        "tier": 1,
+        "name": "Verbatim Consent",
+        "prompt": "May we save a verbatim transcript of this conversation with your contact details?",
+        "if_yes": {
+          "consent_verbatim": true,
+          "stored": "Full chat_history (PII intact), email, name, notes, reason_for_contact",
+          "evidence": "Consent exchange itself is included in the stored transcript"
+        },
+        "if_no": "Proceed to Tier 2"
+      },
+      {
+        "tier": 2,
+        "name": "De-Identified Summary Consent",
+        "prompt": "May we save a de-identified summary of this conversation instead?",
+        "if_yes": {
+          "consent_verbatim": false,
+          "consent_summary": true,
+          "stored": "LLM-generated summary passed through deIdentify() — no PII, no chat_history",
+          "process": "Claude summarizes -> deIdentify() scrubs PII -> stored in notes field"
+        },
+        "if_no": {
+          "consent_verbatim": false,
+          "consent_summary": false,
+          "stored": "Contact fields only (email, name). No history, no summary."
+        }
+      }
+    ],
+    "data_streams": [
+      {
+        "stream": "Questions (unanswerable)",
+        "consent_required": false,
+        "treatment": "Always de-identified before storage. No PII. No consent needed.",
+        "collection": "AboutUs.AboutSkip"
+      },
+      {
+        "stream": "Contact / Lead Capture",
+        "consent_required": true,
+        "treatment": "Two-tier consent governs what is stored. User chooses verbatim or summary.",
+        "collection": "AboutUs.lead"
+      }
+    ],
+    "lead_record_schema": {
+      "email": "string",
+      "name": "string",
+      "notes": "string (summary if consent_summary=true, else empty)",
+      "reason_for_contact": "string",
+      "consent_verbatim": "boolean",
+      "consent_summary": "boolean or null",
+      "chat_history": "array (present ONLY if consent_verbatim=true)",
+      "datetime": "ISO string",
+      "testdata": "boolean"
+    },
+    "methods": [
+      "request_consent(session_id) -> ConsentState",
+      "record_verbatim_consent(session_id, chat_history, contact_info) -> LeadRecord",
+      "record_summary_consent(session_id, summary, contact_info) -> LeadRecord",
+      "record_no_consent(session_id, contact_info) -> LeadRecord",
+      "de_identify(text: str) -> str"
+    ],
+    "integration_points": [
+      "ChatOrchestrator: triggers consent prompt every 5th message",
+      "LeadService: delegates to ConsentService for data handling",
+      "System Prompt: RULE 7 defines the consent UX flow",
+      "deIdentify(): shared utility used by ConsentService and UnknownQuestionService"
+    ],
+    "regulatory_notes": [
+      "Consent exchange itself must be preserved as evidence (included in verbatim transcript)",
+      "De-identification must be applied BEFORE storage, not after",
+      "Emergency records (BTC-003) must NEVER be deleted regardless of consent state",
+      "Test data tagged with testdata=true for filtering"
+    ]
+  },
+
+  "huggingface_surface": {
+    "allowed_files": ["app.py", "requirements.txt", "static/"],
+    "responsibilities": [
+      "HTTP routing (FastAPI app creation, CORS, endpoints)",
+      "Request/response translation",
+      "Stream relay",
+      "NO business logic"
+    ],
+    "adapter_class": "HostChatAdapter",
+    "adapter_file": "adapter/host_chat_adapter.py",
+    "entrypoint_final_state": {
+      "main_py": "DELETED",
+      "replacement": "app.py",
+      "location": "Code/ConversationalUX/FindCareChat/app.py",
+      "responsibility": [
+        "FastAPI app initialization",
+        "Route definitions (/chat, /health, /welcome)",
+        "Delegates ALL logic to HostChatAdapter"
+      ]
+    }
+  },
+
+  "facade_design": {
+    "FindCareFacade": {
+      "file": "application/facades/find_care_facade.py",
+      "methods": [
+        "search_providers(criteria: ProviderSearchInput) -> ProviderSearchOutput",
+        "identify_specialty(input: SpecialtyInput) -> SpecialtyOutput",
+        "get_provider_location(npi: str) -> dict"
+      ],
+      "delegates_to": ["ProviderSearchService", "SpecialtyService"]
+    },
+    "EvaluateCareFacade": {
+      "file": "application/facades/evaluate_care_facade.py",
+      "methods": [
+        "search_clinical_trials(input: ClinicalTrialsInput) -> ClinicalTrialsOutput",
+        "get_provider_details(npi: str) -> ProviderDetailOutput"
+      ],
+      "delegates_to": ["ClinicalTrialsService", "ProviderDetailService"],
+      "cross_calls": ["FindCareFacade.get_provider_location()"]
+    }
+  },
+
+  "tool_registry": {
+    "class": "ToolRouter",
+    "file": "application/tool_router.py",
+    "pattern": "Pydantic-validated allowlist dispatch",
+    "dispatch_map": {
+      "find_providers": {"model": "ProviderSearchInput", "handler": "FindCareFacade.search_providers"},
+      "find_specialty_codes": {"model": "SpecialtyInput", "handler": "FindCareFacade.identify_specialty"},
+      "search_clinical_trials": {"model": "ClinicalTrialsInput", "handler": "EvaluateCareFacade.search_clinical_trials"},
+      "lookup_provider_external": {"model": "ProviderDetailInput", "handler": "EvaluateCareFacade.get_provider_details"},
+      "get_skip_snow_context": {"model": "None", "handler": "AboutService.get_skip_snow_context"},
+      "get_chathealthy_context": {"model": "None", "handler": "AboutService.get_chathealthy_context"},
+      "record_user_details": {"model": "LeadInput", "handler": "LeadService.record_user_details"},
+      "record_unknown_question": {"model": "UnknownInput", "handler": "UnknownQuestionService.record"},
+      "get_provider_location": {"model": "LocationInput", "handler": "FindCareFacade.get_provider_location"}
+    },
+    "enforcement": [
+      "Reject unknown tools (F-05 fix — eliminates globals().get)",
+      "Validate all inputs via Pydantic models",
+      "Validate outputs before returning to LLM",
+      "Server-side enforcement (F-17 fix)"
+    ]
+  },
+
+  "repo_structure": {
+    "Code/ConversationalUX/FindCareChat/": {
+      "app.py": "HuggingFace entrypoint only (~30 lines)",
+      "adapter/": {
+        "host_chat_adapter.py": "Translates HTTP <-> ChatOrchestrator"
+      },
+      "application/": {
+        "chat_orchestrator.py": "LLM loop, system prompt, safety gating",
+        "tool_router.py": "Pydantic-validated tool dispatch (allowlist enforced)",
+        "session_manager.py": "Chat session + UX state + timer",
+        "facades/": {
+          "find_care_facade.py": "Entry point for all FindCare capabilities",
+          "evaluate_care_facade.py": "Entry point for all EvaluateCareQuality capabilities"
+        },
+        "tool_models/": {
+          "provider_search_models.py": "Pydantic input/output for provider search",
+          "clinical_trials_models.py": "Pydantic input/output for clinical trials",
+          "shared_models.py": "Common tool schemas (LeadInput, UnknownInput, etc.)"
+        }
+      },
+      "domain/": {
+        "find_care/": {
+          "provider_search_service.py": "Feature 1 — vector search, query expansion, formatting",
+          "specialty_service.py": "Feature 2 — NLP taxonomy mapping"
+        },
+        "evaluate_care_quality/": {
+          "clinical_trials_service.py": "Feature 3 — ClinicalTrials.gov integration",
+          "provider_detail_service.py": "Feature 8 — NPI lookup, external data"
+        },
+        "shared/": {
+          "safety/": {
+            "safety_service.py": "Feature 5 — IP locking, session safety",
+            "emergency_detector.py": "F-09 — config-driven emergency detection"
+          },
+          "consent/": {
+            "consent_service.py": "Feature 7 — two-tier HIPAA consent"
+          },
+          "lead_capture/": {
+            "lead_service.py": "Feature 6 — contact record creation"
+          },
+          "content/": {
+            "about_service.py": "Feature 4 — about intents"
+          },
+          "unknowns/": {
+            "unknown_question_service.py": "Feature 12 — unanswerable question logging"
+          },
+          "url/": {
+            "url_guardian.py": "Feature 9 — dual-mode URL validation (IMPLEMENTED)"
+          }
+        }
+      },
+      "infrastructure/": {
+        "mongo/": {
+          "provider_repository.py": "Read-only provider queries"
+        },
+        "external_apis/": {
+          "npi_client.py": "NPI registry lookups",
+          "clinical_trials_client.py": "ClinicalTrials.gov API",
+          "google_routes_client.py": "Travel time calculations"
+        },
+        "embeddings/": {
+          "embedding_client.py": "Vector search client"
+        },
+        "config/": {
+          "config_loader.py": "Loads brain artifacts + environment variables"
+        }
+      },
+      "frontend/": {
+        "src/": {
+          "components/": ["ChatWindow.tsx", "MessageBubble.tsx", "EmergencyBanner.tsx", "TypingIndicator.tsx"],
+          "api/": ["chat_client.ts"],
+          "state/": ["chat_store.ts"],
+          "rendering/": ["markdown_renderer.tsx"],
+          "styles/": ["chat.css"]
+        }
+      }
+    },
+    "Code/DataPipelines/": {
+      "status": "No structural change (GOV-005 preserved)",
+      "security_patch": "Add APIKeyMiddleware to status endpoint (F-06)"
+    },
+    "Code/Shared/": {
+      "purpose": "Cross-application infrastructure only (NO business logic)",
+      "logging/": "Central structured logging",
+      "config/": "Shared env loader",
+      "contracts/": "Optional shared DTOs (non-domain)"
+    },
+    "Website/": {
+      "status": "No change — remains Cloudflare static (GOV-005)",
+      "note": "Remove any leaked architecture docs (F-13)"
+    }
+  },
+
+  "migration_plan": {
+    "strategy": "Strangler Fig pattern inside same codebase (incremental extraction, zero downtime)",
+    "phases": [
+      {
+        "phase": 1,
+        "name": "Introduce Skeleton Architecture",
+        "changes": [
+          "Create folder structure (application/, domain/, infrastructure/, adapter/)",
+          "Add ChatOrchestrator (empty pass-through)",
+          "Add ToolRouter with static mapping (still calls existing main.py functions)",
+          "Wrap existing functions with adapter methods (no logic moved yet)"
+        ],
+        "result": "App compiles, behavior unchanged, routing no longer uses globals().get",
+        "risk": "LOW",
+        "build": "B-187"
+      },
+      {
+        "phase": 2,
+        "name": "Extract FindCare — Provider Search",
+        "changes": [
+          "Move find_providers() -> ProviderSearchService.search()",
+          "Introduce FindCareFacade.search_providers()",
+          "Update ToolRouter to call facade instead of main.py"
+        ],
+        "result": "One feature fully migrated, validates pattern",
+        "risk": "LOW",
+        "build": "B-190"
+      },
+      {
+        "phase": 3,
+        "name": "Extract FindCare — Specialty Service",
+        "changes": [
+          "Move find_specialty_codes() to SpecialtyService",
+          "Wire through FindCareFacade",
+          "Remove corresponding logic from main.py"
+        ],
+        "risk": "LOW-MEDIUM",
+        "build": "B-191"
+      },
+      {
+        "phase": 4,
+        "name": "Extract EvaluateCareQuality Domain",
+        "changes": [
+          "Move ClinicalTrialsService",
+          "Move ProviderDetailService",
+          "Introduce EvaluateCareFacade",
+          "Wire facade-to-facade for travel calculations"
+        ],
+        "risk": "MEDIUM",
+        "build": "B-193"
+      },
+      {
+        "phase": 5,
+        "name": "Extract Shared Services",
+        "changes": [
+          "SafetyService + EmergencyDetector",
+          "ConsentService",
+          "LeadService",
+          "UnknownQuestionService",
+          "AboutService",
+          "URLGuardian relocation"
+        ],
+        "risk": "MEDIUM",
+        "build": "B-194"
+      },
+      {
+        "phase": 6,
+        "name": "Introduce Pydantic Tool Models",
+        "changes": [
+          "Define all tool input/output schemas",
+          "Wrap ToolRouter validation layer",
+          "Gradually enforce typing per tool"
+        ],
+        "risk": "MEDIUM",
+        "build": "B-195"
+      },
+      {
+        "phase": 7,
+        "name": "Delete main.py Monolith",
+        "changes": [
+          "Remove remaining functions from main.py",
+          "Ensure all calls go through orchestrator + services",
+          "app.py + HostChatAdapter is the sole entry point",
+          "Zero business logic in HuggingFace surface"
+        ],
+        "risk": "LOW (if prior phases complete)",
+        "build": "B-196"
+      }
+    ],
+    "safety_mechanisms": [
+      "Each phase preserves working state",
+      "Feature-by-feature migration (no big bang)",
+      "Fallback: old functions remain callable until replaced",
+      "Full regression test after Phase 7 (B-197)"
+    ]
+  },
+
+  "frontend_architecture": {
+    "location": "Code/ConversationalUX/FindCareChat/frontend/",
+    "pattern": "Feature-light, API-driven (no domain duplication)",
+    "decision": "Do NOT mirror backend domains. Frontend remains thin and presentation-focused. All domain logic stays server-side.",
+    "structure": {
+      "components": ["ChatWindow.tsx", "MessageBubble.tsx", "EmergencyBanner.tsx", "TypingIndicator.tsx"],
+      "api": ["chat_client.ts — calls /chat endpoint"],
+      "state": ["chat_store.ts — session state, timer, stop control"],
+      "rendering": ["markdown_renderer.tsx — remark-gfm"],
+      "styles": ["chat.css"]
+    },
+    "feature_mapping": {
+      "Chat UX": "chat_store.ts + ChatWindow.tsx",
+      "Markdown Rendering": "markdown_renderer.tsx",
+      "Emergency UI": "EmergencyBanner.tsx"
+    }
+  },
+
+  "testing_strategy": {
+    "structure": {
+      "tests/application/": ["test_chat_orchestrator.py"],
+      "tests/domain/find_care/": ["test_provider_search_service.py", "test_specialty_service.py"],
+      "tests/domain/evaluate_care_quality/": ["test_clinical_trials_service.py", "test_provider_detail_service.py"],
+      "tests/domain/shared/": ["test_safety_service.py", "test_emergency_detector.py", "test_consent_service.py", "test_lead_service.py", "test_unknown_question_service.py"],
+      "tests/infrastructure/": ["test_provider_repository.py", "test_external_clients.py"]
+    },
+    "approach": {
+      "unit_tests": "All domain services with mocked dependencies",
+      "integration_tests": ["ToolRouter + Facades", "ChatOrchestrator with fake LLM responses"],
+      "e2e_tests": "Real systems (MongoDB, Anthropic) — no mocks per Boss directive",
+      "regression": [
+        "Capture baseline outputs from main.py before refactor",
+        "Replay test prompts and compare outputs"
+      ],
+      "existing_tests": "Retained initially, then migrated per service"
+    }
+  },
+
+  "pydantic_strategy": {
+    "scope": "All tool inputs and outputs validated via Pydantic models",
+    "location": "application/tool_models/",
+    "models": [
+      "ProviderSearchInput / ProviderSearchOutput",
+      "SpecialtyInput / SpecialtyOutput",
+      "ClinicalTrialsInput / ClinicalTrialsOutput",
+      "ProviderDetailInput / ProviderDetailOutput",
+      "LeadInput / LeadOutput",
+      "UnknownInput / UnknownOutput",
+      "LocationInput"
+    ],
+    "enforcement": [
+      "ToolRouter validates input before calling handler",
+      "ToolRouter validates output before returning to LLM",
+      "Schema mismatches raise ValidationError (not silently ignored)"
+    ]
+  },
+
+  "perplexity_audit_response": {
+    "audit_source": "Perplexity external audit v1 (2026-03-28)",
+    "total_findings": 18,
+    "findings": [
+      {"id": "F-01", "title": "Architecture alignment", "status": "CONFIRMED", "response": "Three-application boundary rules preserved. GOV-005 enforced throughout refactor."},
+      {"id": "F-02", "title": "DataPipelines independence", "status": "STRENGTH", "response": "DataPipelines remains independent. No structural changes. GOV-005 alignment confirmed."},
+      {"id": "F-03", "title": "MongoDB connection pooling", "status": "ACKNOWLEDGED", "response": "Connection pooling design deferred to hardening phase (QA/beta). Not in ARCH-001 scope."},
+      {"id": "F-04", "title": "Embedding model consistency", "status": "ACKNOWLEDGED", "response": "Embedding client centralized in infrastructure layer. Model version pinned in config."},
+      {"id": "F-05", "title": "Tool dispatch via globals().get", "status": "RESOLVED", "response": "ToolRouter allowlist replaces globals() dispatch. Phase 1 (B-187)."},
+      {"id": "F-06", "title": "Pipeline status endpoint unprotected", "status": "DEFERRED", "response": "Add APIKeyMiddleware to DataPipelines status endpoint. Pipeline concern, not chat refactor. Deferred to next sprint."},
+      {"id": "F-07", "title": "Monolithic main.py", "status": "RESOLVED", "response": "main.py eliminated in Phase 7 (B-196). Replaced by modular domain architecture."},
+      {"id": "F-08", "title": "All-state coverage gaps", "status": "DEFERRED", "response": "Pipeline data run, not code change. Deferred to next sprint."},
+      {"id": "F-09", "title": "Emergency keyword list too narrow", "status": "RESOLVED", "response": "EmergencyDetector with config-driven keywords from brain/machine_artifacts/emergency_keywords.json. Phase 5 + B-189."},
+      {"id": "F-10", "title": "Provider search result cap too low", "status": "RESOLVED", "response": "Configurable limit in ProviderSearchService (default 25). B-192."},
+      {"id": "F-11", "title": "FIPS hack resolution", "status": "DEFERRED", "response": "Pipeline re-run required. Deferred to next sprint."},
+      {"id": "F-12", "title": "DeepSeek privacy disclosure", "status": "DEFERRED", "response": "Legal/copy concern. Deferred to next sprint."},
+      {"id": "F-13", "title": "Architecture docs exposure", "status": "DEFERRED", "response": "Boss decision required on access gate. Website removes sensitive docs."},
+      {"id": "F-14", "title": "Session management", "status": "RESOLVED", "response": "SessionManager class in application layer. Chat state + timer centralized."},
+      {"id": "F-15", "title": "Error handling consistency", "status": "RESOLVED", "response": "Domain services return typed results. Infrastructure layer handles retries. Application layer catches and formats errors."},
+      {"id": "F-16", "title": "Brain lock TTL", "status": "ACKNOWLEDGED", "response": "BrainLockManager with TTL design documented. Implementation deferred to hardening phase."},
+      {"id": "F-17", "title": "Server-side tool enforcement", "status": "RESOLVED", "response": "ToolRouter + Pydantic validation enforces server-side. No tool can be called without being in the allowlist."},
+      {"id": "F-18", "title": "Logging and observability", "status": "ACKNOWLEDGED", "response": "Central structured logging in Code/Shared/logging/. Full observability deferred to hardening phase per project_hardening_phase.md."}
+    ],
+    "summary": {
+      "resolved_in_sprint": 8,
+      "deferred_to_next_sprint": 6,
+      "acknowledged_for_hardening": 4,
+      "confirmed_strengths": 1
+    }
+  },
+
+  "sprint_schedule": {
+    "source": "sprint_plan_v013.json",
+    "sprint_start": "2026-03-31",
+    "sprint_goal": "Refactor architecture (ARCH-001), maps, current functionality enhancements",
+    "schedule": [
+      {
+        "day": "2026-03-31 (Tuesday)",
+        "theme": "Skeleton + Security Fix + Maps",
+        "builds": [
+          {"id": "B-187", "task": "ARCH-001 Phase 1: Skeleton Architecture + ToolRouter", "risk": "LOW", "deploy": "dev"},
+          {"id": "B-188", "task": "Maps: Provider search results on map", "risk": "LOW-MEDIUM", "deploy": "dev"},
+          {"id": "B-189", "task": "F-09: Expand emergency keyword list", "risk": "LOW", "deploy": "dev"}
+        ]
+      },
+      {
+        "day": "2026-04-01 (Wednesday)",
+        "theme": "Extract FindCare Domain",
+        "builds": [
+          {"id": "B-190", "task": "ARCH-001 Phase 2: Extract ProviderSearchService", "risk": "LOW", "deploy": "dev"},
+          {"id": "B-191", "task": "ARCH-001 Phase 3: Extract SpecialtyService", "risk": "LOW-MEDIUM", "deploy": "dev"},
+          {"id": "B-192", "task": "F-10: Raise provider search result cap to 25", "risk": "LOW", "deploy": "dev"}
+        ]
+      },
+      {
+        "day": "2026-04-02 (Thursday)",
+        "theme": "Extract EvaluateCareQuality + Shared",
+        "builds": [
+          {"id": "B-193", "task": "ARCH-001 Phase 4: Extract ClinicalTrialsService + ProviderDetailService", "risk": "MEDIUM", "deploy": "dev"},
+          {"id": "B-194", "task": "ARCH-001 Phase 5: Extract Shared Services", "risk": "MEDIUM", "deploy": "dev"}
+        ]
+      },
+      {
+        "day": "2026-04-03 (Friday)",
+        "theme": "Pydantic + Cleanup + QA",
+        "builds": [
+          {"id": "B-195", "task": "ARCH-001 Phase 6: Pydantic tool models", "risk": "MEDIUM", "deploy": "dev"},
+          {"id": "B-196", "task": "ARCH-001 Phase 7: Delete main.py", "risk": "LOW", "deploy": "dev"},
+          {"id": "B-197", "task": "Full regression test + SIT", "risk": "LOW", "deploy": "dev"}
+        ]
+      },
+      {
+        "day": "2026-04-04 (Saturday)",
+        "theme": "QA Promotion + Stabilization",
+        "builds": [
+          {"id": "B-198", "task": "Promote to QA", "risk": "LOW", "deploy": "qa"},
+          {"id": "B-199", "task": "Boss UAT on QA", "risk": "N/A", "deploy": "qa"}
+        ]
+      },
+      {
+        "day": "2026-04-05 (Sunday)",
+        "theme": "Bug fixes + Production (if needed)",
+        "builds": [
+          {"id": "B-200", "task": "Fix any UAT bugs", "risk": "VARIES", "deploy": "qa"},
+          {"id": "B-201", "task": "Promote to Production", "risk": "LOW (if QA passed)", "deploy": "prod"}
+        ]
+      }
+    ],
+    "enhancements_included": [
+      {"id": "F-05", "title": "ToolRouter replaces globals() dispatch", "day": "Tuesday (Phase 1)"},
+      {"id": "F-09", "title": "Emergency keyword expansion", "day": "Tuesday"},
+      {"id": "F-10", "title": "Provider search cap raised to 25", "day": "Wednesday"},
+      {"id": "MAPS", "title": "Interactive map for provider search results", "day": "Tuesday"}
+    ],
+    "deferred_to_next_sprint": [
+      "F-06: Durable Functions status URL auth",
+      "F-08: All-state coverage (pipeline run)",
+      "F-11: FIPS hack resolution (pipeline re-run)",
+      "F-12: DeepSeek privacy disclosure (legal/copy)",
+      "F-13: Lock architecture docs (Boss decision)",
+      "R19: Azure Function timeout UAT",
+      "R35: Paused cluster UAT",
+      "BL-001 through BL-010: Perplexity backlog (v0.1.4)"
+    ]
+  },
+
+  "architectural_decisions": [
+    {
+      "decision": "Facade-oriented domains over flat service layer",
+      "rationale": "Two business domains (FindCare, EvaluateCareQuality) each get a facade. Facades are the ONLY entry point from ToolRouter to domain services. Prevents cross-domain coupling."
+    },
+    {
+      "decision": "Pydantic validation at ToolRouter boundary",
+      "rationale": "Claude sends JSON tool arguments. Pydantic validates at the ToolRouter before reaching domain services. Catches schema mismatches early."
+    },
+    {
+      "decision": "System prompt stays in ChatOrchestrator (not PromptBuilder)",
+      "rationale": "Per Boss decision. Prompt references tool names only (not class names). ToolRouter is source of truth for available tools."
+    },
+    {
+      "decision": "Provider Detail belongs to EvaluateCareQuality (not FindCare)",
+      "rationale": "Provider detail is a quality evaluation concern (NPI lookup, board certifications, ratings). Finding a provider and evaluating their quality are distinct business actions."
+    },
+    {
+      "decision": "Frontend remains thin — no domain duplication",
+      "rationale": "All domain logic stays server-side. Frontend is presentation-only: ChatWindow, MessageBubble, EmergencyBanner. No backend domain structure mirrored."
+    },
+    {
+      "decision": "Strangler Fig migration (not big bang)",
+      "rationale": "7 phases, each deployable. Old functions remain callable until replaced. Zero downtime throughout migration."
+    },
+    {
+      "decision": "No dependency injection for MongoDB/notification clients",
+      "rationale": "Boss rule: e2e tests use real systems, no mocks. DI for testability is unnecessary when you do not mock."
+    }
+  ],
+
+  "governance_alignment": {
+    "GOV-001": "No provider prioritization logic in services",
+    "GOV-002": "Single-tenant config enforced in Config",
+    "GOV-004": "LLM suggests, ToolRouter enforces execution",
+    "GOV-005": "Strict three-application separation preserved"
+  },
+
+  "sign_off": {
+    "claude": {
+      "role": "Engineer",
+      "model": "Claude Opus 4.6",
+      "status": "APPROVED",
+      "notes": "Design is fully executable. 7-phase migration is incremental and safe. All 18 Perplexity findings addressed."
+    },
+    "gpt": {
+      "role": "Architect",
+      "model": "GPT-5.3",
+      "status": "APPROVED",
+      "notes": "Architecture is sound. Facade pattern correctly separates domains. Pydantic enforcement at tool boundary is the right pattern."
+    }
+  }
+}
