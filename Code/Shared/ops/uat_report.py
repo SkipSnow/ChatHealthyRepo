@@ -36,6 +36,7 @@ UAT_FEATURES = [
     {"id": 14, "feature": "UAT Report (clean start, build number, environment banner)"},
     {"id": 15, "feature": "Session history preserved through safety unlock"},
     {"id": 16, "feature": "Long-running request timeout modal (30s threshold)"},
+    {"id": 17, "feature": "CI/CD: Website auto-deploy on git push (roadmap propagation)"},
 ]
 
 
