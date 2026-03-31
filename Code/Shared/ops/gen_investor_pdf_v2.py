@@ -67,8 +67,16 @@ pdf.set_auto_page_break(auto=True, margin=20)
 
 # ── TITLE PAGE ──
 pdf.add_page()
-pdf.ln(30)
+pdf.ln(5)
+# Logo
+logo_path = os.path.join(DIAGRAM_DIR, "..", "..", "BusinessArtifacts", "diagrams", "competitor_logos.png")
+# ChatHealthy.ai text logo at top
+pdf.set_font("Helvetica", "B", 12)
+pdf.set_text_color(13, 148, 136)  # teal
+pdf.cell(0, 8, "+", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+pdf.ln(5)
 pdf.set_font("Helvetica", "B", 32)
+pdf.set_text_color(0, 0, 0)
 pdf.cell(0, 14, "ChatHealthy.ai", align="C", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 pdf.ln(4)
 pdf.set_font("Helvetica", "B", 16)
@@ -250,11 +258,26 @@ for m in data.get("timeline", {}).get("milestones", []):
         pdf.cell(0, 7, safe(m.get("date", "") + "  --  " + m.get("milestone", m.get("event", ""))), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
 # ── COMPETITIVE LANDSCAPE ──
-cl = data.get("competitive_landscape", "")
+cl = data.get("competitive_landscape", {})
 if cl:
     pdf.ln(5)
     pdf.section_heading("Competitive Landscape")
-    pdf.body(str(cl))
+    if isinstance(cl, dict):
+        if cl.get("positioning"):
+            pdf.body(cl["positioning"])
+        if cl.get("the_gap"):
+            pdf.body(cl["the_gap"])
+        if cl.get("incumbents"):
+            for inc in cl["incumbents"]:
+                pdf.set_font("Helvetica", "B", 10)
+                pdf.cell(0, 7, safe(inc.get("name", "")), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_font("Helvetica", "", 9)
+                pdf.body("  " + inc.get("problem", ""))
+        pdf.inline_diagram("competitor_logos.png", "The healthcare navigation market. ChatHealthy.ai is the only platform that takes zero revenue from the care chain.", width=165)
+        if cl.get("our_position"):
+            pdf.body(cl["our_position"])
+    else:
+        pdf.body(str(cl))
 
 pdf.output("brain/BusinessArtifacts/biz_arch_investor_v2.pdf")
 print(f"PDF: {pdf.page_no()} pages")
