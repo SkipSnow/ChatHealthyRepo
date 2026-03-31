@@ -148,10 +148,12 @@ def generate_revenue_flow_diagram(spec):
     ax.text(2.65, 3.4, 'Premium\nTokens', ha='center', va='center', fontsize=8, color='#2563eb')
 
     # AI Vendors (right)
-    ax.add_patch(mpatches.Circle((8.5, 3.0), 0.8, facecolor='#f5f3ff', edgecolor='#7c3aed', linewidth=2))
-    ax.text(8.5, 3.0, 'AI\nVendors', ha='center', va='center', fontsize=10, fontweight='bold', color='#7c3aed')
-    ax.annotate('', xy=(7.0, 3.0), xytext=(7.7, 3.0), arrowprops=dict(arrowstyle='->', color='#7c3aed', lw=2))
-    ax.text(7.35, 3.4, 'Access\nFees', ha='center', va='center', fontsize=8, color='#7c3aed')
+    ax.add_patch(mpatches.Circle((8.5, 3.0), 0.95, facecolor='#f5f3ff', edgecolor='#7c3aed', linewidth=2))
+    ax.text(8.5, 3.2, 'AI Vendors', ha='center', va='center', fontsize=10, fontweight='bold', color='#7c3aed')
+    ax.text(8.5, 2.85, 'We are AI', ha='center', va='center', fontsize=8, color='#5b21b6')
+    ax.text(8.5, 2.6, 'Resellers', ha='center', va='center', fontsize=8, color='#5b21b6')
+    ax.annotate('', xy=(7.0, 3.0), xytext=(7.55, 3.0), arrowprops=dict(arrowstyle='->', color='#7c3aed', lw=2))
+    ax.text(7.25, 3.4, 'Access\nFees', ha='center', va='center', fontsize=8, color='#7c3aed')
 
     # Free services (top)
     ax.add_patch(mpatches.FancyBboxPatch((2.5, 4.5), 5, 0.7, boxstyle="round,pad=0.1", facecolor='#fafafa', edgecolor='#d1d5db', linewidth=1))
