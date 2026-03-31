@@ -53,6 +53,15 @@
     "series_a_story": "We own the healthcare decision room. AI companies pay to be in it."
   },
 
+  "moat": {
+    "regulatory_willingness": "AI vendors avoid healthcare regulation like the plague. FDA clinical decision support classification and HIPAA compliance are existential risks for companies valued on growth. They NEED someone else to own the healthcare room.",
+    "trust": "Consumers chose ChatHealthy for care decisions. Trust takes years to build, seconds to lose.",
+    "data": "Provider + clinical trials + quality data. Takes years to assemble and curate.",
+    "governance": "Multi-AI healthcare safety framework. Floor control, consent per participant, emergency detection. Nobody else has this.",
+    "network": "Every session adds participants and signal. Compound growth.",
+    "legal_model": "Apple precedent — platform charges both sides. Good lawyers. Not a conflict, a marketplace."
+  },
+
   "pricing_model": {
     "find_care": "FREE — 100% free forever. This is the funnel.",
     "evaluate_care": "FREE now. Paywall option once trusted brand established. Premium quality metrics, deeper credential analysis, comparative ratings.",
