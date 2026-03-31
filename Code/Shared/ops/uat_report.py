@@ -76,13 +76,12 @@ def _get_uat_status(db, env_prefix: str, session_start: str = None) -> dict:
         if not doc or "features" not in doc:
             return {}
         status = {f["id"]: f for f in doc["features"]}
-        # If session_start is newer than record, reset Done for non-deferred
-        if session_start and doc.get("updated"):
-            if session_start > doc["updated"]:
-                _log.info("UAT new session %s > record %s — clearing non-deferred status", session_start, doc["updated"])
-                for fid, feat in status.items():
-                    if feat.get("done") not in ("DEF", "SIT"):
-                        feat["done"] = ""
+        # Session reset: only clear if explicitly requested via session_start=RESET
+        if session_start == "RESET":
+            _log.info("UAT RESET requested — clearing non-deferred status")
+            for fid, feat in status.items():
+                if feat.get("done") not in ("DEF", "SIT"):
+                    feat["done"] = ""
         return status
     except Exception:
         pass
