@@ -1,0 +1,58 @@
+{
+  "title": "AI Model Selection Decisions",
+  "version": "1.0",
+  "date": "2026-03-30",
+
+  "active_models": {
+    "claude": {
+      "model": "claude-opus-4-6",
+      "provider": "Anthropic",
+      "role": "Engineer — writes code, executes tests, drives workflows",
+      "context_window": "1M tokens",
+      "strengths": ["Code generation", "Tool use", "Iterative execution", "Self-correction"],
+      "cost_model": "Per-token (input + output)"
+    },
+    "gpt_brain": {
+      "model": "gpt-5.3-chat-latest",
+      "provider": "OpenAI",
+      "role": "Enterprise Architect, QA Tester, Design Reviewer",
+      "strengths": ["Reasoning", "Architecture review", "Requirements evaluation"],
+      "cost_model": "Per-token (input + output)",
+      "selected_date": "2026-03-30",
+      "replaces": "gpt-4o"
+    }
+  },
+
+  "model_evolution": [
+    {
+      "date": "2026-03-30",
+      "change": "GPT brain model upgraded from gpt-4o to o3 to gpt-5.3-chat-latest",
+      "reason": "GPT-4o failed autonomous SIT testing — could not self-correct in iterative tool-use loops (100 identical failing commands across 2 runs). o3 improved (15 iterations, 9 requirements tested) but still tested only 9/35 and consumed 1.6M input tokens. Boss directed switch to GPT-5.3 reasoning model.",
+      "decision_by": "Boss",
+      "evidence": "brain/machine_artifacts/document_type_json/gpt_sit_finding.json"
+    },
+    {
+      "date": "2026-03-28",
+      "change": "Initial brain model: gpt-4o",
+      "reason": "Standard choice for structured output and code review tasks."
+    }
+  ],
+
+  "retired_models": [
+    {
+      "model": "gpt-4o",
+      "retired_date": "2026-03-30",
+      "reason": "Cannot self-correct in iterative loops. Cannot drive comprehensive autonomous testing. Tested 7/35 requirements and declared PASS. See FIND-SIT-001."
+    },
+    {
+      "model": "o3",
+      "retired_date": "2026-03-30",
+      "reason": "Improved over gpt-4o (tested 9/35 vs 7/35) but still insufficient for autonomous SIT. Consumed 1.6M input tokens in 15 iterations. Boss directed upgrade to gpt-5.3."
+    }
+  ],
+
+  "findings": {
+    "reference": "brain/machine_artifacts/document_type_json/gpt_sit_finding.json",
+    "summary": "GPT models (4o, o3) cannot drive autonomous SIT. Key failures: no self-correction, incomplete coverage, premature success declaration. Correct operating model: Claude drives execution, GPT evaluates results."
+  }
+}

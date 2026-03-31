@@ -158,6 +158,17 @@
     .gm-m001 { background: var(--accent); border-color: #8a5c00; }
     .gm-m002 { background: var(--teal); border-color: #065955; width: 20px; height: 20px; border-width: 3px; }
     .gm-m003 { background: #7c3aed; border-color: #5b21b6; width: 20px; height: 20px; border-width: 3px; }
+    .gm-m004 { background: #d97706; border-color: #92400e; width: 20px; height: 20px; border-width: 3px; }
+    .gm-m005 { background: #059669; border-color: #065f46; width: 20px; height: 20px; border-width: 3px; }
+
+    .gantt-row-biz { background: #1a1a1a; border-bottom: 2px solid #333 !important; min-height: 42px; }
+    .gantt-row-biz .gantt-row-name { font-weight: 700; font-size: 0.9rem; color: #fff; }
+    .gantt-row-biz .gantt-row-id { color: #d97706; font-weight: 700; }
+    .gantt-row-biz .gantt-planned { color: #fff; }
+    .gantt-biz-label {
+      position: absolute; top: -16px; font-size: 9px; font-weight: 600;
+      white-space: nowrap; transform: translateX(-50%); z-index: 4;
+    }
 
     .gantt-row-ms       { background: var(--teal-light); border-bottom: 2px solid var(--teal-mid) !important; min-height: 36px; }
     .gantt-row-ms-beta  { background: #f5f3ff; border-bottom: 2px solid #c4b5fd !important; min-height: 36px; }
@@ -253,6 +264,32 @@
           </div>
         </div>
 
+        <!-- ── Business Milestones row ─────────────────────────────────── -->
+        <div class="gantt-row gantt-row-biz">
+          <div class="gantt-row-label">
+            <span class="gantt-row-id">BIZ</span>
+            <span class="gantt-row-name">Business Milestones</span>
+          </div>
+          <div class="gantt-planned" style="color:#fff;">—</div>
+          <div class="gantt-track" style="position:relative;">
+            <!-- Alpha Launch: Apr 30 = 20% -->
+            <div class="gantt-milestone gm-m002" style="left:20%"></div>
+            <div class="gantt-biz-label" style="left:20%; color:var(--teal);">Alpha<br>Apr 30</div>
+            <!-- Funding: Jul 31 = 50% -->
+            <div class="gantt-milestone gm-m004" style="left:50%"></div>
+            <div class="gantt-biz-label" style="left:50%; color:#d97706;">Funding<br>Jul 31</div>
+            <!-- Beta Launch: Aug 25 = 58% -->
+            <div class="gantt-milestone gm-m003" style="left:58%"></div>
+            <div class="gantt-biz-label" style="left:58%; color:#7c3aed;">Beta<br>Aug 25</div>
+            <!-- Prod Launch: Nov 20 = 87% -->
+            <div class="gantt-milestone gm-m005" style="left:87%"></div>
+            <div class="gantt-biz-label" style="left:87%; color:#059669;">Prod<br>Nov 20</div>
+            <!-- Mobile App: Dec 15 = 95% -->
+            <div class="gantt-milestone" style="left:95%; background:#2563eb; border-color:#1e40af; width:14px; height:14px; border-width:2px; position:absolute; top:50%; z-index:3; transform:translate(-50%,-50%) rotate(45deg); border-style:solid;"></div>
+            <div class="gantt-biz-label" style="left:95%; color:#2563eb;">App<br>Dec 15</div>
+          </div>
+        </div>
+
         <!-- ── Alpha milestone ───────────────────────────────────────── -->
         <div class="gantt-row gantt-row-ms">
           <div class="gantt-row-label">
@@ -328,7 +365,7 @@
         </div>
 
         <!-- ── Beta milestone ─────────────────────────────────────────── -->
-        <!-- Beta = 20 days after farthest deliverable (INFRA-004 Aug 31) = Sep 20 = 67% -->
+        <!-- Beta = Aug 25 = 58% -->
         <div class="gantt-row gantt-row-ms-beta">
           <div class="gantt-row-label">
             <span class="gantt-row-id">M-003</span>
@@ -336,8 +373,8 @@
           </div>
           <div class="gantt-planned yes">Yes</div>
           <div class="gantt-track">
-            <div class="gantt-bar gb-future" style="left:20%;width:47%"></div>
-            <div class="gantt-milestone gm-m003" style="left:67%"></div>
+            <div class="gantt-bar gb-future" style="left:20%;width:38%"></div>
+            <div class="gantt-milestone gm-m003" style="left:58%"></div>
           </div>
         </div>
 
@@ -530,7 +567,7 @@
         <span class="item-id">M-003</span>
         <span class="item-title" style="font-size:1.1rem;">Beta Launch</span>
         <span class="badge" style="background:#7c3aed; color:#fff; border-color:#7c3aed;">Major Milestone</span>
-        <span class="badge" style="background:#f0ebff; color:#5b21b6; border: 1px solid #c4b5fd;">September 20, 2026</span>
+        <span class="badge" style="background:#f0ebff; color:#5b21b6; border: 1px solid #c4b5fd;">August 25, 2026</span>
       </div>
       <p>A hardened, monitored ChatHealthy.ai ready for enterprise evaluation: autonomous pipeline
       management, observability, and security controls in place.</p>
@@ -541,6 +578,67 @@
         <li>VNet integration — storage and Function App on subnet</li>
         <li>Production MongoDB cluster (INFRA-005)</li>
         <li>CopyToRuntime blue-green swap (INFRA-001)</li>
+      </ul>
+    </div>
+
+    <div class="item" style="border-color:#d97706; border-width:2px; background:#fffbeb;">
+      <div class="item-header">
+        <span class="item-id">M-004</span>
+        <span class="item-title" style="font-size:1.1rem;">Seed Funding Close</span>
+        <span class="badge" style="background:#d97706; color:#fff; border-color:#d97706;">Major Milestone</span>
+        <span class="badge" style="background:#fef3c7; color:#92400e; border: 1px solid #fbbf24;">July 31, 2026</span>
+      </div>
+      <p>Seed funding secured. Enables hiring, infrastructure scaling, and enterprise tooling.</p>
+      <ul>
+        <li>Content management GUI for marketing/business founder (CM-001 Phase 2)</li>
+        <li>Marketing founder / content owner hire</li>
+        <li>Enterprise sales tooling and demo environment</li>
+        <li>Multi-state data load — all 50 states (compute + embedding cost)</li>
+        <li>GUI content management tool — CRUD templates, preview, approval workflow</li>
+      </ul>
+    </div>
+
+    <div class="item" style="border-color:#059669; border-width:2px; background:#ecfdf5;">
+      <div class="item-header">
+        <span class="item-id">M-005</span>
+        <span class="item-title" style="font-size:1.1rem;">Production Launch</span>
+        <span class="badge" style="background:#059669; color:#fff; border-color:#059669;">Major Milestone</span>
+        <span class="badge" style="background:#d1fae5; color:#065f46; border: 1px solid #6ee7b7;">November 20, 2026</span>
+      </div>
+      <p>Full production release of ChatHealthy.ai. Consumer-ready platform with all three components live.</p>
+    </div>
+
+    <div class="item" style="border-color:#2563eb; border-width:2px; background:#eff6ff;">
+      <div class="item-header">
+        <span class="item-id">M-006</span>
+        <span class="item-title" style="font-size:1.1rem;">iPhone &amp; Android App Launch</span>
+        <span class="badge" style="background:#2563eb; color:#fff; border-color:#2563eb;">Major Milestone</span>
+        <span class="badge" style="background:#dbeafe; color:#1e40af; border: 1px solid #93c5fd;">December 15, 2026</span>
+      </div>
+      <p>Native mobile apps for iOS and Android. Full platform capability in the consumer's pocket.</p>
+    </div>
+
+    <!-- Post-Alpha Tasks -->
+    <h2>Post-Alpha Deliverables</h2>
+
+    <div class="item">
+      <div class="item-header">
+        <span class="item-id">UX-ABOUT-001</span>
+        <span class="item-title">Unified About Us tool — consolidate about intents</span>
+        <span class="badge badge-open" style="background:#e8f4e8; color:#1a6b1a; border-color:#90c890;">Post-Alpha (1 sprint)</span>
+      </div>
+      <div class="item-meta">
+        <span><strong>Status:</strong> Backlog — scheduled post-Alpha</span>
+      </div>
+      <p>Merge <code>get_skip_snow_context</code> and <code>get_chathealthy_context</code> into a single
+      <strong>About Us</strong> tool backed by extensible content artifacts. Currently two tools sharing
+      one class — should be one tool that routes to any number of about-related content sources
+      (founder, company, team, advisors, investors, press).</p>
+      <ul>
+        <li>Single <code>get_about_context(topic)</code> tool replaces two separate tools</li>
+        <li>Content loaded from brain artifacts or MongoDB (CM-001 path)</li>
+        <li>Extensible: add new topics without new tool registrations</li>
+        <li>One sprint delivery</li>
       </ul>
     </div>
 

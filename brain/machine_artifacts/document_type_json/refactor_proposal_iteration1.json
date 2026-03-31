@@ -1,0 +1,204 @@
+{
+  "iteration": 1,
+  "summary": "Modular monolith refactor with strict host adapter boundary. Two business domains (FindCare, EvaluateCareQuality) with explicit service classes per UAT feature. HuggingFace reduced to entrypoint + adapter only.",
+  "top_level_architecture": {
+    "pattern": "Modular Monolith (single process, domain-separated)",
+    "layers": [
+      "Host Adapter (HuggingFace only)",
+      "Application Layer (use cases / orchestration)",
+      "Domain Layer (business logic)",
+      "Infrastructure Layer (external APIs, DB, embeddings)"
+    ],
+    "dependency_direction": "Host -> Application -> Domain -> Infrastructure (no upward imports)"
+  },
+  "huggingface_surface": {
+    "allowed_files": [
+      "app.py",
+      "requirements.txt",
+      "static/"
+    ],
+    "responsibilities": [
+      "HTTP routing",
+      "request/response translation",
+      "stream relay",
+      "no business logic"
+    ],
+    "adapter_class": "HostChatAdapter"
+  },
+  "proposed_repo_structure": {
+    "Code/ConversationalUX/FindCareChat/": {
+      "app.py": "HuggingFace entrypoint only",
+      "adapter/host_chat_adapter.py": "Translates HTTP <-> Application",
+      "application/": {
+        "chat_orchestrator.py": "Main orchestrator replacing main.py",
+        "tool_router.py": "Safe tool dispatch (replaces globals().get)",
+        "session_manager.py": "Chat state + timer"
+      },
+      "domain/": {
+        "find_care/": {
+          "provider_search_service.py": "Feature 1",
+          "specialty_service.py": "Feature 2",
+          "provider_detail_service.py": "Feature 8"
+        },
+        "evaluate_care_quality/": {
+          "clinical_trials_service.py": "Feature 3"
+        },
+        "shared/": {
+          "safety/": {
+            "safety_service.py": "Feature 5",
+            "emergency_detector.py": "F-09 fix"
+          },
+          "consent/": {
+            "consent_service.py": "Feature 7"
+          },
+          "lead_capture/": {
+            "lead_service.py": "Feature 6"
+          },
+          "content/": {
+            "about_service.py": "Feature 4"
+          },
+          "unknowns/": {
+            "unknown_question_service.py": "Feature 12"
+          },
+          "url/": {
+            "url_guardian.py": "Feature 9 (existing, moved)"
+          }
+        }
+      },
+      "infrastructure/": {
+        "mongo/": {
+          "provider_repository.py": "read-only queries"
+        },
+        "external_apis/": {
+          "npi_client.py",
+          "clinical_trials_client.py",
+          "google_routes_client.py"
+        },
+        "embeddings/": {
+          "embedding_client.py"
+        }
+      }
+    },
+    "Code/DataPipelines/": {
+      "no_change": "Acknowledged (F-02 strength)",
+      "security_patch": "Add auth to status endpoint (F-06)"
+    },
+    "Code/Shared/": {
+      "logging/": "central logger",
+      "config/": "env config loader"
+    }
+  },
+  "tooling_design": {
+    "tool_router_class": "ToolRouter",
+    "registration_pattern": "explicit dict mapping tool_name -> callable",
+    "example": {
+      "provider_search": "ProviderSearchService.search()",
+      "clinical_trials": "ClinicalTrialsService.search()"
+    },
+    "fixes": [
+      "F-05 eliminate globals().get",
+      "F-17 server-side enforcement via router allowlist"
+    ]
+  },
+  "application_layer": {
+    "chat_orchestrator_class": "ChatOrchestrator",
+    "methods": [
+      "handle_user_message(session_id, message)",
+      "invoke_tool(tool_name, args)",
+      "build_system_prompt()"
+    ],
+    "responsibilities": [
+      "LLM interaction",
+      "tool selection loop",
+      "safety gating before/after tool calls"
+    ]
+  },
+  "uat_feature_mapping": [
+    {
+      "feature": "Provider Search",
+      "class": "ProviderSearchService",
+      "justification": "Core FindCare domain logic"
+    },
+    {
+      "feature": "Specialty Identification",
+      "class": "SpecialtyService",
+      "justification": "Distinct NLP + taxonomy mapping"
+    },
+    {
+      "feature": "Clinical Trials Search",
+      "class": "ClinicalTrialsService",
+      "justification": "EvaluateCareQuality domain separation"
+    },
+    {
+      "feature": "About ChatHealthy",
+      "class": "AboutService",
+      "justification": "Static content but tool-exposed"
+    },
+    {
+      "feature": "Safety Filter",
+      "class": "SafetyService",
+      "justification": "Cross-cutting, must be centralized"
+    },
+    {
+      "feature": "Lead Capture",
+      "class": "LeadService",
+      "justification": "Separate consent + storage boundary"
+    },
+    {
+      "feature": "Consent Framework",
+      "class": "ConsentService",
+      "justification": "Regulatory separation required"
+    },
+    {
+      "feature": "Provider Detail",
+      "class": "ProviderDetailService",
+      "justification": "Distinct NPI lookup logic"
+    },
+    {
+      "feature": "URL Guardian",
+      "class": "URLGuardian",
+      "justification": "Already isolated, reused"
+    },
+    {
+      "feature": "Chat UX",
+      "class": "SessionManager",
+      "justification": "Application-level state, not domain"
+    },
+    {
+      "feature": "Blob Storage Infrastructure",
+      "class": "BlobStorageClient",
+      "justification": "Infrastructure concern"
+    },
+    {
+      "feature": "Unanswerable Question Handling",
+      "class": "UnknownQuestionService",
+      "justification": "Distinct fallback pathway"
+    },
+    {
+      "feature": "Markdown Table Rendering",
+      "class": "FrontendOnly",
+      "justification": "Pure React concern"
+    }
+  ],
+  "security_fixes": {
+    "F-05": "ToolRouter allowlist replaces globals dispatch",
+    "F-06": "Add API key validation middleware to pipeline status endpoint",
+    "F-09": "EmergencyDetector with configurable keyword + embedding similarity",
+    "F-17": "All tool access enforced server-side via router",
+    "F-16": "Add BrainLockManager with TTL (design only, not implemented)"
+  },
+  "performance_fixes": {
+    "F-10": "Configurable result limit (default 25, adaptive based on query intent)"
+  },
+  "governance_alignment": {
+    "GOV-001": "No provider prioritization logic in services",
+    "GOV-002": "Single-tenant config enforced in Config",
+    "GOV-004": "LLM suggests, ToolRouter enforces execution",
+    "GOV-005": "Strict separation preserved"
+  },
+  "open_questions": [
+    "Should ChatOrchestrator own system prompt or move to PromptBuilder class?",
+    "Do we unify FindCare + EvaluateCareQuality under a single facade service?",
+    "How strict should tool input validation be (pydantic vs lightweight)?"
+  ]
+}

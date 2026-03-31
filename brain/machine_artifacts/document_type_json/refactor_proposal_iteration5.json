@@ -1,0 +1,181 @@
+{
+  "iteration": 3,
+  "summary": "Adds phased migration plan, frontend architecture, testing strategy, and final entrypoint definition. Design now fully executable with low-risk incremental refactor.",
+  "migration_plan": {
+    "strategy": "Strangler Fig pattern inside same codebase (incremental extraction, zero downtime)",
+    "phases": [
+      {
+        "phase": 1,
+        "name": "Introduce Skeleton Architecture",
+        "changes": [
+          "Create folder structure (application/, domain/, infrastructure/, adapter/)",
+          "Add ChatOrchestrator (empty pass-through)",
+          "Add ToolRouter with static mapping (still calls existing main.py functions)",
+          "Wrap existing functions with adapter methods (no logic moved yet)"
+        ],
+        "result": "App compiles, behavior unchanged, routing no longer uses globals().get",
+        "risk": "LOW"
+      },
+      {
+        "phase": 2,
+        "name": "Extract First Domain (FindCare - Provider Search)",
+        "changes": [
+          "Move find_providers() -> ProviderSearchService.search()",
+          "Introduce FindCareFacade.search_providers()",
+          "Update ToolRouter to call facade instead of main.py"
+        ],
+        "result": "One feature fully migrated, validates pattern",
+        "risk": "LOW"
+      },
+      {
+        "phase": 3,
+        "name": "Extract Remaining FindCare सेवices",
+        "changes": [
+          "Move SpecialtyService",
+          "Wire through FindCareFacade",
+          "Remove corresponding logic from main.py"
+        ],
+        "risk": "LOW-MEDIUM"
+      },
+      {
+        "phase": 4,
+        "name": "Extract EvaluateCareQuality Domain",
+        "changes": [
+          "Move ClinicalTrialsService",
+          "Move ProviderDetailService",
+          "Introduce EvaluateCareFacade"
+        ],
+        "risk": "MEDIUM"
+      },
+      {
+        "phase": 5,
+        "name": "Extract Shared Services",
+        "changes": [
+          "SafetyService + EmergencyDetector",
+          "ConsentService",
+          "LeadService",
+          "UnknownQuestionService",
+          "AboutService",
+          "URLGuardian relocation"
+        ],
+        "risk": "MEDIUM (cross-cutting concerns)"
+      },
+      {
+        "phase": 6,
+        "name": "Introduce Pydantic Tool Models",
+        "changes": [
+          "Define all tool input/output schemas",
+          "Wrap ToolRouter validation layer",
+          "Gradually enforce typing per tool"
+        ],
+        "risk": "MEDIUM (schema mismatches)"
+      },
+      {
+        "phase": 7,
+        "name": "Delete main.py Monolith",
+        "changes": [
+          "Remove remaining functions",
+          "Ensure all calls go through orchestrator + services",
+          "Rename app entrypoint"
+        ],
+        "risk": "LOW (if prior phases complete)"
+      }
+    ],
+    "safety_mechanism": [
+      "Each phase preserves working state",
+      "Feature-by-feature migration (no big bang)",
+      "Fallback: old functions remain callable until replaced"
+    ]
+  },
+  "frontend_architecture": {
+    "location": "Code/ConversationalUX/FindCareChat/frontend/",
+    "pattern": "Feature-light, API-driven (no domain duplication)",
+    "structure": {
+      "src/": {
+        "components/": [
+          "ChatWindow.tsx",
+          "MessageBubble.tsx",
+          "EmergencyBanner.tsx",
+          "TypingIndicator.tsx"
+        ],
+        "api/": [
+          "chat_client.ts (calls /chat endpoint)"
+        ],
+        "state/": [
+          "chat_store.ts (session state, timer, stop control)"
+        ],
+        "rendering/": [
+          "markdown_renderer.tsx (remark-gfm)"
+        ],
+        "styles/": [
+          "chat.css"
+        ]
+      }
+    },
+    "decision": "Do NOT mirror backend domains. Frontend remains thin and presentation-focused. All domain logic stays server-side.",
+    "feature_mapping": {
+      "Chat UX": "chat_store.ts + ChatWindow.tsx",
+      "Markdown Rendering": "markdown_renderer.tsx",
+      "Emergency UI": "EmergencyBanner.tsx"
+    }
+  },
+  "testing_strategy": {
+    "structure": {
+      "tests/": {
+        "application/": "test_chat_orchestrator.py",
+        "domain/": {
+          "find_care/": [
+            "test_provider_search_service.py",
+            "test_specialty_service.py"
+          ],
+          "evaluate_care_quality/": [
+            "test_clinical_trials_service.py",
+            "test_provider_detail_service.py"
+          ],
+          "shared/": [
+            "test_safety_service.py",
+            "test_emergency_detector.py",
+            "test_consent_service.py",
+            "test_lead_service.py",
+            "test_unknown_question_service.py"
+          ]
+        },
+        "infrastructure/": [
+          "test_provider_repository.py (mocked Mongo)",
+          "test_external_clients.py (mock APIs)"
+        ]
+      }
+    },
+    "strategy": {
+      "unit_tests": "All domain services mocked dependencies",
+      "integration_tests": [
+        "ToolRouter + Facades",
+        "ChatOrchestrator with fake LLM responses"
+      ],
+      "no_live_calls": "External APIs always mocked in CI",
+      "regression": [
+        "Capture baseline outputs from main.py before refactor",
+        "Replay test prompts and compare outputs"
+      ],
+      "existing_tests": "Retained initially, then migrated per service"
+    }
+  },
+  "entrypoint_final_state": {
+    "main_py": "DELETED",
+    "replacement": "app.py",
+    "location": "Code/ConversationalUX/FindCareChat/app.py",
+    "responsibility": [
+      "FastAPI app initialization",
+      "Route definitions (/chat, /health, /welcome)",
+      "Delegates ALL logic to HostChatAdapter"
+    ],
+    "adapter": "adapter/host_chat_adapter.py calls ChatOrchestrator",
+    "result": "Zero business logic in entrypoint (HuggingFace compliant)"
+  },
+  "final_notes": [
+    "Design now fully incremental and deployable at every phase",
+    "Frontend intentionally thin to preserve portability",
+    "Testing ensures no regression during phased extraction",
+    "main.py fully eliminated to resolve F-07"
+  ]
+}

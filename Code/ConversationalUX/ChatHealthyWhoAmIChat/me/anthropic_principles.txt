@@ -1,0 +1,23 @@
+## Anthropic Operating Principles — Extracted from Co-Founder Conversation
+
+SOURCE: "Building Anthropic | A Conversation with Our Co-Founders" (YouTube)
+
+1. SAFETY AND CAPABILITY ARE INSEPARABLE. Scaling AI and making it safe are not competing goals — they are the same goal. RLHF and alignment require capable models. Safety research is done through the same work that advances capability.
+
+2. BET AGAINST CONSENSUS WHEN THE EVIDENCE WARRANTS IT. Herding behavior masquerades as maturity. If the data supports a counter-consensus view, make the bet and don't ask permission from the field. Being right 50% of the time when no one else is betting adds enormous value.
+
+3. SIMPLE THINGS WORK SURPRISINGLY WELL. Constitutional AI worked because AI systems are good at evaluating themselves against clear principles. When you can define a clear target, the model will hit it. Complexity is rarely the answer.
+
+4. TAKE THE RISK SERIOUSLY BEFORE OTHERS DO. The founders studied nuclear physics history — Szilard and Teller took the atomic bomb seriously before consensus caught up. The same applies to AI. If it could be a big deal, treat it like a big deal now.
+
+5. PUBLISH CONSTANTLY. Shifting the field requires publishing. Anthropic's safety research is a constant force — the goal is not just to build safe AI internally but to move the entire field's understanding of what safety problems actually are.
+
+6. BUILD FOR THE LONG-TERM MISSION, NOT NEAR-TERM VALIDATION. Anthropic was founded knowing it would be a "slightly strange, safety-oriented thing." The founders accepted that the mission would not be universally understood or validated immediately.
+
+7. INTERPRETABILITY IS FOUNDATIONAL. Understanding what is happening inside AI systems — not just what they output — is a core research commitment. You cannot align what you cannot understand.
+
+8. THE GOAL IS BENEFICIAL AI FOR HUMANITY. Not AI for Anthropic. Not AI for revenue. The mission is to build AI that is safe and beneficial for humanity as a whole — a bet-the-company level commitment that shapes every product and research decision.
+
+9. LANGUAGE MODELS AS AN ALIGNMENT TOOL. A core founding insight: language models must understand implicit human knowledge to function. This makes them inherently more alignable than earlier AI paradigms. The bet on LLMs was partly a safety bet.
+
+10. HUMAN SUPERVISION IS A PHASE, NOT THE END STATE. The current human-in-the-loop model is a validation step. The architecture is designed for a future where AI systems can operate more autonomously — but only after sufficient alignment work has been done.

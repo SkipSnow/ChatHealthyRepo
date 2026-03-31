@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Skip Snow. All rights reserved.
+# Licensed under the FindCare Evaluation License (FEL-1.0).
+
 # Incremental copy of remaining VA providers from pipeline to frontend.
 # Skips records that already exist on frontend (by NPI).
 # Low stress: 2 workers, batch size 200.

@@ -11,6 +11,8 @@ on:
       - 'Code/ConversationalUX/FindCareChat/frontend/**'
       - 'Code/ConversationalUX/ChatHealthyWhoAmIChat/me/**'
       - 'Code/Shared/ChatHealthyMongoUtilities.py'
+      - 'Code/Shared/prompt_system_maker.py'
+      - 'brain/machine_artifacts/emergency_keywords.json'
       - '.github/workflows/deploy-findcare-backend.yml'
 
 jobs:
@@ -87,8 +89,17 @@ jobs:
           # Pre-built React frontend → static/
           cp -r Code/ConversationalUX/FindCareChat/frontend/dist hf_space/static
 
-          # Shared MongoDB utility
+          # Shared utilities
           cp Code/Shared/ChatHealthyMongoUtilities.py hf_space/
+          cp Code/Shared/prompt_system_maker.py hf_space/
+
+          # Brain artifacts needed at runtime
+          mkdir -p hf_space/brain/machine_artifacts
+          cp brain/machine_artifacts/emergency_keywords.json hf_space/brain/machine_artifacts/
+
+          # UAT report tool
+          mkdir -p hf_space/ops
+          cp Code/Shared/ops/uat_report.py hf_space/ops/
 
           # me/ context files (PDFs, summary, codebase)
           mkdir -p hf_space/me
