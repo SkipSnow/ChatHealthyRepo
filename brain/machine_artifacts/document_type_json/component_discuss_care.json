@@ -154,5 +154,14 @@
       "billing": "All bot research incurs token fees \u2014 premium revenue stream",
       "architectural_note": "Shared service, not inside any facade. Accessible via all three facades and pipeline orchestrator."
     }
-  }
+  },
+  "governance_rules": [
+    {
+      "id": "DC-GOV-01",
+      "rule": "NO PROVIDERS IN THE ROOM",
+      "description": "Doctors, providers, and licensed clinicians are NEVER participants in a Discuss Care session. The session transcript is shared WITH the doctor after. The doctor is never IN the room.",
+      "rationale": "Provider presence creates clinical decision support risk (FDA), malpractice exposure, and transforms the platform from consumer navigation to clinical tool. This boundary is permanent.",
+      "status": "permanent"
+    }
+  ]
 }
