@@ -217,5 +217,20 @@
     ]
   },
   "vision": "We provide the data, tools, and an AI-enlightened space allowing regular people the ability to prevail over a broken healthcare system and get the best possible care, at the best value given their circumstances. By presenting care options, evaluating them, and then allowing the person to bring their friends to the table and different AI models.",
-  "mission": "Help people make better healthcare decisions together."
+  "mission": "Help people make better healthcare decisions together.",
+  "funding_model": {
+    "key_insight": "AI vendors are CAPITAL, not income. They fund the ramp-up. Consumer token markup is the revenue.",
+    "capital_sources": [
+      "Anthropic \u2014 partnership program, then Series A participation",
+      "OpenAI \u2014 partnership program, then Series A participation",
+      "Google \u2014 partnership program, then Series A participation",
+      "NVIDIA \u2014 infrastructure partnership, GPU credits, investment arm"
+    ],
+    "revenue_sources": [
+      "Consumer premium token markup (Discuss Care)",
+      "Evaluate Care paywall (post-trust)"
+    ],
+    "distinction": "Vendor access fees fund growth (capital). Consumer token markup funds operations (revenue). Do not confuse the two in the pitch.",
+    "pitch_framing": "We buy tokens at your rate. We resell at a premium. You fund our growth so your model is in the healthcare decision room. Both sides win."
+  }
 }
