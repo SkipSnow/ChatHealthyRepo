@@ -95,7 +95,29 @@
       "Clear differentiation from legacy healthcare systems"
     ]
   },
-  "competitive_landscape": "No existing platform combines provider discovery, quality evaluation, and real-time collaborative decision-making with multiple AI systems. Current solutions are fragmented: search tools, ratings sites, telehealth platforms, and standalone AI products. None own the decision environment. ChatHealthy.ai is not competing within a category \u2014 it defines a new one.",
+  "competitive_landscape": {
+    "positioning": "ChatHealthy.ai fills a gap that existing platforms created by compromising their neutrality. We are not creating a category. The category exists. The incumbents just sold out.",
+    "incumbents": [
+      {
+        "name": "Yelp Health",
+        "problem": "Earns revenue from sponsored listings. Providers who pay appear first. Consumer trust is the product being sold."
+      },
+      {
+        "name": "ZocDoc",
+        "problem": "Charges providers for patient bookings. The platform is a referral engine disguised as a search tool."
+      },
+      {
+        "name": "Healthgrades",
+        "problem": "Revenue from provider advertising and hospital partnerships. Ratings influenced by who pays."
+      },
+      {
+        "name": "Angies List",
+        "problem": "Merged with HomeAdvisor. Lead generation model. Providers pay for leads. Consumer is the product."
+      }
+    ],
+    "the_gap": "Every incumbent earns money from the care chain -- providers, hospitals, or payers. This creates a structural conflict of interest. The consumer cannot trust a platform that is paid by the people it is supposed to evaluate.",
+    "our_position": "ChatHealthy.ai will never take money from providers, hospitals, payers, pharmaceutical companies, PBMs, or any entity in the care delivery or payment chain. This is not a guideline. It is governance policy GOV-001, permanent and non-negotiable. Our revenue comes exclusively from consumers (token premiums) and technology partners (AI vendor capital). This is our moat. No incumbent can match it without destroying their business model."
+  },
   "investment_thesis": "ChatHealthy.ai sits at the intersection of two inevitable shifts: consumer control of healthcare decisions and AI participation in those decisions. The company captures value by owning the environment where both converge. Investors are backing a platform that becomes the default interface for navigating a $4 trillion market. Strategic value is immediate for AI companies seeking distribution, and long-term for any entity that benefits from influencing healthcare decisions without regulatory exposure.",
   "timeline": {
     "April 2026": "Quality month; architecture refinement and system hardening",
