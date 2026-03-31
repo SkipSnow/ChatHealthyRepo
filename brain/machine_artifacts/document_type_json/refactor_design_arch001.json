@@ -671,5 +671,119 @@
       "status": "APPROVED",
       "notes": "Architecture is sound. Facade pattern correctly separates domains. Pydantic enforcement at tool boundary is the right pattern."
     }
+  },
+
+  "appendix_ai_models": {
+    "title": "Appendix A: AI Model Usage by Prompt",
+    "description": "Every AI prompt in the system with the model used, its purpose, and cost profile.",
+    "runtime_prompts": [
+      {
+        "prompt": "Chat conversation (user-facing)",
+        "model": "Claude Sonnet 4.6 (Anthropic)",
+        "location": "ChatOrchestrator._call_llm()",
+        "purpose": "Main conversational AI — tool selection, response generation, intent routing",
+        "invocation": "Every user message",
+        "cost_profile": "High volume, per-conversation"
+      },
+      {
+        "prompt": "Safety classifier (emergency detection)",
+        "model": "GPT-4.1-mini (OpenAI)",
+        "location": "SafetyService._classify_safety()",
+        "purpose": "Semantic emergency classifier — second trigger in dual-trigger OR logic",
+        "invocation": "Every user message (parallel with keyword check)",
+        "cost_profile": "High volume, low cost per call"
+      },
+      {
+        "prompt": "Vector embedding (provider search)",
+        "model": "text-embedding-3-large (OpenAI)",
+        "location": "infrastructure/embeddings/embedding_client.py",
+        "purpose": "Embed user query for vector similarity search against provider descriptions",
+        "invocation": "Every provider search tool call",
+        "cost_profile": "Medium volume, low cost"
+      },
+      {
+        "prompt": "Vector embedding (specialty search)",
+        "model": "text-embedding-3-large (OpenAI)",
+        "location": "infrastructure/embeddings/embedding_client.py",
+        "purpose": "Embed specialty query for NUCC code matching",
+        "invocation": "Every specialty identification tool call",
+        "cost_profile": "Low volume, low cost"
+      },
+      {
+        "prompt": "De-identification (consent flow)",
+        "model": "Claude Haiku 4.5 (Anthropic)",
+        "location": "ConsentService.de_identify()",
+        "purpose": "Summarize and strip PII from conversation transcript",
+        "invocation": "Only when user declines verbatim but accepts summary consent",
+        "cost_profile": "Very low volume, low cost"
+      },
+      {
+        "prompt": "Conversation summarization (consent flow)",
+        "model": "Claude Haiku 4.5 (Anthropic)",
+        "location": "ConsentService._summarize()",
+        "purpose": "Generate summary of conversation before de-identification",
+        "invocation": "Only when Tier 2 consent granted",
+        "cost_profile": "Very low volume, low cost"
+      }
+    ],
+    "pipeline_prompts": [
+      {
+        "prompt": "Provider description embedding (batch)",
+        "model": "text-embedding-3-large (OpenAI)",
+        "location": "Code/DataPipelines/embedding_worker.py",
+        "purpose": "Generate 3072-dim embeddings for provider vector search index",
+        "invocation": "Pipeline run only (batch, 8.9M records)",
+        "cost_profile": "High cost, infrequent (per data load)"
+      },
+      {
+        "prompt": "County enrichment (geocoding)",
+        "model": "N/A (Google Maps API, not AI)",
+        "location": "Code/DataPipelines/county_enrichment_job.py",
+        "purpose": "Reverse geocode lat/lng to county FIPS",
+        "invocation": "Pipeline run only",
+        "cost_profile": "Medium cost, infrequent"
+      }
+    ],
+    "brain_prompts": [
+      {
+        "prompt": "GPT architecture review / SIT / design collaboration",
+        "model": "GPT-5.3-chat-latest (OpenAI)",
+        "location": "Code/Shared/ops/brain_refactor_collab.py, gpt_sit_with_gpt.py",
+        "purpose": "Enterprise architect role — design proposals, SIT execution, code audit",
+        "invocation": "On-demand by Claude via brain runner",
+        "cost_profile": "Variable, per-assignment"
+      },
+      {
+        "prompt": "GPT assurance loop (assignment review)",
+        "model": "GPT-5.3-chat-latest (OpenAI)",
+        "location": "Code/Shared/brain_runner.py",
+        "purpose": "Review Claude's work against assignments, produce assurance output",
+        "invocation": "Per brain assignment",
+        "cost_profile": "Low volume, medium cost per call"
+      }
+    ],
+    "model_selection_rationale": [
+      {
+        "model": "Claude Sonnet 4.6",
+        "why": "Best tool-use performance for conversational AI. Native streaming. Anthropic SDK integration."
+      },
+      {
+        "model": "GPT-5.3-chat-latest",
+        "why": "Reasoning model for architecture and QA. Replaced GPT-4o and o3 after SIT testing showed GPT-4o cannot self-correct in iterative loops and o3 was cost-inefficient (3.3M tokens for 32 iterations). See FIND-SIT-001.",
+        "replaces": "GPT-4o, o3"
+      },
+      {
+        "model": "GPT-4.1-mini",
+        "why": "Cheapest OpenAI model sufficient for binary safety classification. Called on every message — cost sensitivity is critical."
+      },
+      {
+        "model": "Claude Haiku 4.5",
+        "why": "Fast, cheap, sufficient for summarization and de-identification. Only invoked during consent flow (rare path)."
+      },
+      {
+        "model": "text-embedding-3-large",
+        "why": "3072-dim embeddings for high-quality vector search. OpenAI's best embedding model. Used for both runtime queries and batch pipeline."
+      }
+    ]
   }
 }
