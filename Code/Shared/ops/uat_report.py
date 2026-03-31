@@ -62,7 +62,11 @@ ENHANCEMENT_CLASSIFICATIONS = {
 def _get_uat_status(db, env_prefix: str, session_start: str = None) -> dict:
     """Read UAT status from MongoDB. Returns {feature_id: {done, bugs_fixed, new_features, notes}}.
 
-    If session_start is set and the DB record is older, returns empty (fresh session).
+    New session logic (session_start > record updated):
+    - Bugs_fixed and new_features: KEPT (accumulate across sessions)
+    - Notes: KEPT (bug history is valuable)
+    - Done status: CLEARED for non-deferred features (re-test needed)
+    - DEF status: KEPT (deferred stays deferred)
     """
     if db is None:
         return {}
@@ -71,12 +75,15 @@ def _get_uat_status(db, env_prefix: str, session_start: str = None) -> dict:
         doc = coll.find_one({"_id": "current"})
         if not doc or "features" not in doc:
             return {}
-        # If session_start date is newer than the record, reset
+        status = {f["id"]: f for f in doc["features"]}
+        # If session_start is newer than record, reset Done for non-deferred
         if session_start and doc.get("updated"):
             if session_start > doc["updated"]:
-                _log.info("UAT session_start %s > record %s — fresh report", session_start, doc["updated"])
-                return {}
-        return {f["id"]: f for f in doc["features"]}
+                _log.info("UAT new session %s > record %s — clearing non-deferred status", session_start, doc["updated"])
+                for fid, feat in status.items():
+                    if feat.get("done") not in ("DEF", "SIT"):
+                        feat["done"] = ""
+        return status
     except Exception:
         pass
     return {}
