@@ -156,6 +156,22 @@
     {"id": "MAPS", "title": "Interactive map for provider search results", "day": "Tuesday"}
   ],
 
+  "next_sprint": {
+    "title": "Sprint v0.1.4",
+    "start": "2026-04-06 (Monday)",
+    "deadline": "2026-04-08 (Wednesday)",
+    "theme": "Performance Tuning + Hardening",
+    "deliverables": [
+      {
+        "id": "PERF-001",
+        "task": "Performance tuning — end-to-end response time optimization",
+        "detail": "Profile and optimize: startup time (FIPS load 2x, ~120s), provider search latency (BUG-PERF-001, 87s VA), embedding call overhead, MongoDB query patterns, cold start reduction.",
+        "deadline": "2026-04-08 (Wednesday)",
+        "priority": "HIGH"
+      }
+    ]
+  },
+
   "deferred_to_next_sprint": [
     "F-06: Durable Functions status URL auth (Pipeline concern, not chat refactor)",
     "F-08: All-state coverage (pipeline run, not code change)",
