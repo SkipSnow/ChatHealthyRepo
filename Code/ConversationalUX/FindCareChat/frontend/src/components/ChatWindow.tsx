@@ -15,7 +15,7 @@ export interface Message {
 
 const API_URL = import.meta.env.VITE_API_URL ?? ''
 const RETRY_SECONDS = 10
-const TIMEOUT_THRESHOLD_SECONDS = 10  // TEMP: lowered for UAT boundary test, revert to 45
+const TIMEOUT_THRESHOLD_SECONDS = 45
 
 const LOADING_MESSAGE: Message = {
   role: 'assistant',
