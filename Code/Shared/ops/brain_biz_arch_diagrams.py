@@ -227,40 +227,53 @@ def generate_discuss_care_room(spec):
 
 
 def generate_moat_diagram(spec):
-    """Concentric moat diagram."""
+    """Concentric moat diagram with readable labels."""
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
 
-    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-    ax.set_xlim(0, 8)
-    ax.set_ylim(0, 8)
+    fig, ax = plt.subplots(1, 1, figsize=(14, 10))
+    ax.set_xlim(0, 14)
+    ax.set_ylim(0, 10)
     ax.axis('off')
     fig.patch.set_facecolor('white')
 
-    ax.text(4, 7.6, 'Competitive Moat', ha='center', va='center', fontsize=14, fontweight='bold', color='#111827')
+    ax.text(7, 9.5, 'Competitive Moat', ha='center', va='center', fontsize=20, fontweight='bold', color='#111827')
+
+    center = (7, 4.8)
 
     # Concentric rings (outer to inner)
     rings = [
-        (3.0, '#fef2f2', '#dc2626', 'Regulatory Willingness'),
-        (2.4, '#f5f3ff', '#7c3aed', 'Governance Framework'),
-        (1.8, '#ecfdf5', '#059669', 'Data + Network'),
-        (1.2, '#eff6ff', '#2563eb', 'Trust'),
-        (0.6, '#fef3c7', '#d97706', 'Patent'),
+        (4.2, '#fef2f2', '#dc2626', 'Regulatory Willingness'),
+        (3.3, '#f5f3ff', '#7c3aed', 'Governance Framework'),
+        (2.4, '#ecfdf5', '#059669', 'Data + Network Effects'),
+        (1.6, '#eff6ff', '#2563eb', 'Consumer Trust'),
+        (0.9, '#fef3c7', '#d97706', 'Patent'),
     ]
-    center = (4, 3.8)
+
     for radius, fc, ec, label in rings:
-        ax.add_patch(mpatches.Circle(center, radius, facecolor=fc, edgecolor=ec, linewidth=2, alpha=0.7))
-        if radius > 1.0:
-            ax.text(center[0], center[1] + radius - 0.2, label, ha='center', va='center', fontsize=8, fontweight='bold', color=ec)
-        elif radius == 0.6:
-            ax.text(center[0], center[1], 'Patent', ha='center', va='center', fontsize=9, fontweight='bold', color=ec)
-        else:
-            ax.text(center[0], center[1] + radius - 0.15, label, ha='center', va='center', fontsize=8, fontweight='bold', color=ec)
+        ax.add_patch(mpatches.Circle(center, radius, facecolor=fc, edgecolor=ec, linewidth=2.5, alpha=0.6))
+
+    # Labels positioned to the right with lines pointing to rings
+    label_x = 12.0
+    label_data = [
+        (4.2, '#dc2626', 'Regulatory Willingness', 'AI vendors avoid FDA/HIPAA'),
+        (3.3, '#7c3aed', 'Governance Framework', 'Safety, consent, floor control'),
+        (2.4, '#059669', 'Data + Network', 'Provider signals compound'),
+        (1.6, '#2563eb', 'Consumer Trust', 'Years to build, seconds to lose'),
+        (0.9, '#d97706', 'Patent', 'LLM quality signal synthesis'),
+    ]
+    for i, (radius, color, label, sublabel) in enumerate(label_data):
+        y = center[1] + radius * 0.7
+        ax.text(label_x, y, label, ha='left', va='center', fontsize=12, fontweight='bold', color=color)
+        ax.text(label_x, y - 0.35, sublabel, ha='left', va='center', fontsize=9, color='#6b7280')
+        # Line from ring to label
+        ring_edge_x = center[0] + radius * 0.7
+        ax.plot([ring_edge_x, label_x - 0.1], [center[1] + radius * 0.5, y], color=color, linewidth=1, alpha=0.5)
 
     # Core
-    ax.add_patch(mpatches.Circle(center, 0.45, facecolor='#1a1a1a', edgecolor='#1a1a1a', linewidth=0))
-    ax.text(center[0], center[1] + 0.1, 'Trade Secrets', ha='center', va='center', fontsize=7, fontweight='bold', color='white')
-    ax.text(center[0], center[1] - 0.1, '& IP Protection', ha='center', va='center', fontsize=7, fontweight='bold', color='white')
+    ax.add_patch(mpatches.Circle(center, 0.6, facecolor='#1a1a1a', edgecolor='#1a1a1a', linewidth=0))
+    ax.text(center[0], center[1] + 0.15, 'Trade Secrets', ha='center', va='center', fontsize=11, fontweight='bold', color='white')
+    ax.text(center[0], center[1] - 0.15, '& IP Protection', ha='center', va='center', fontsize=11, fontweight='bold', color='white')
 
     plt.tight_layout()
     path = str(DIAGRAM_DIR / 'moat_diagram.png')
