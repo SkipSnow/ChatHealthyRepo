@@ -1,10 +1,9 @@
 {
-  "title": "Sprint Plan — v0.1.3",
+  "title": "Sprint Plan \u2014 v0.1.3",
   "status": "PROPOSED",
   "date": "2026-03-30",
   "sprint_start": "2026-03-31",
   "sprint_goal": "Refactor architecture (ARCH-001), maps, current functionality enhancements",
-
   "schedule": [
     {
       "day": "2026-03-31 (Tuesday)",
@@ -13,7 +12,7 @@
         {
           "id": "B-187",
           "task": "ARCH-001 Phase 1: Skeleton Architecture + ToolRouter",
-          "detail": "Create folder structure, ChatOrchestrator pass-through, ToolRouter with allowlist (kills globals().get — F-05). App runs unchanged.",
+          "detail": "Create folder structure, ChatOrchestrator pass-through, ToolRouter with allowlist (kills globals().get \u2014 F-05). App runs unchanged.",
           "risk": "LOW",
           "deploy": "dev"
         },
@@ -122,13 +121,13 @@
           "id": "B-199",
           "task": "Boss UAT on QA",
           "detail": "Boss tests maps, provider search, clinical trials, safety, consent on QA environment.",
-          "risk": "N/A — Boss pass/fail",
+          "risk": "N/A \u2014 Boss pass/fail",
           "deploy": "qa"
         }
       ]
     },
     {
-      "day": "2026-04-05 (Sunday) — if needed",
+      "day": "2026-04-05 (Sunday) \u2014 if needed",
       "theme": "Bug fixes + Production",
       "builds": [
         {
@@ -148,15 +147,33 @@
       ]
     }
   ],
-
   "enhancements_included": [
-    {"id": "F-05", "title": "ToolRouter replaces globals() dispatch", "day": "Tuesday (Phase 1)"},
-    {"id": "F-09", "title": "Emergency keyword expansion", "day": "Tuesday"},
-    {"id": "F-10", "title": "Provider search cap raised to 25", "day": "Wednesday"},
-    {"id": "MAPS", "title": "Interactive map for provider search results", "day": "Tuesday"},
-    {"id": "UX-TIMEOUT", "title": "Long-running request timeout UX with consent-gated performance logging", "day": "This sprint"}
+    {
+      "id": "F-05",
+      "title": "ToolRouter replaces globals() dispatch",
+      "day": "Tuesday (Phase 1)"
+    },
+    {
+      "id": "F-09",
+      "title": "Emergency keyword expansion",
+      "day": "Tuesday"
+    },
+    {
+      "id": "F-10",
+      "title": "Provider search cap raised to 25",
+      "day": "Wednesday"
+    },
+    {
+      "id": "MAPS",
+      "title": "Interactive map for provider search results",
+      "day": "Tuesday"
+    },
+    {
+      "id": "UX-TIMEOUT",
+      "title": "Long-running request timeout UX with consent-gated performance logging",
+      "day": "This sprint"
+    }
   ],
-
   "feature_requests": [
     {
       "id": "UX-TIMEOUT",
@@ -176,7 +193,15 @@
       "performance_logging": {
         "trigger": "After request completes (success, abandon, or error) AND after user completes consent path",
         "collection": "MongoDB performance record",
-        "fields": ["request_id", "elapsed_ms", "user_action (completed/abandoned)", "abandon_count", "continue_count", "tool_calls", "timestamp"]
+        "fields": [
+          "request_id",
+          "elapsed_ms",
+          "user_action (completed/abandoned)",
+          "abandon_count",
+          "continue_count",
+          "tool_calls",
+          "timestamp"
+        ]
       },
       "implementation_notes": [
         "Frontend: modal overlay with Yes/No radio buttons",
@@ -186,7 +211,6 @@
       ]
     }
   ],
-
   "next_sprint": {
     "title": "Sprint v0.1.4",
     "start": "2026-04-06 (Monday)",
@@ -195,7 +219,7 @@
     "deliverables": [
       {
         "id": "PERF-001",
-        "task": "Performance tuning — end-to-end response time optimization",
+        "task": "Performance tuning \u2014 end-to-end response time optimization",
         "detail": "Profile and optimize: startup time (FIPS load 2x, ~120s), provider search latency (BUG-PERF-001, 87s VA), embedding call overhead, MongoDB query patterns, cold start reduction.",
         "deadline": "2026-04-08 (Wednesday)",
         "priority": "HIGH"
@@ -210,26 +234,42 @@
       },
       {
         "id": "PERF-002",
-        "task": "Compound vector search indexes — city+embedding, county+embedding, state+embedding",
+        "task": "Compound vector search indexes \u2014 city+embedding, county+embedding, state+embedding",
         "detail": "Create compound indexes on providers collection: {practice_address.city, embedding}, {county.name, embedding}, {practice_address.state, embedding}. These allow MongoDB Atlas vector search to pre-filter by geography before scoring embeddings, eliminating full-collection scans. Directly addresses BUG-PERF-001 (87s VA search).",
         "deadline": "2026-04-08 (Wednesday)",
         "priority": "HIGH",
         "indexes": [
-          {"name": "provider_vector_city_idx", "fields": "practice_address.city + embedding", "purpose": "City-scoped vector search"},
-          {"name": "provider_vector_county_idx", "fields": "county.name + embedding", "purpose": "County-scoped vector search"},
-          {"name": "provider_vector_state_idx", "fields": "practice_address.state + embedding", "purpose": "State-scoped vector search (current index, verify exists)"}
+          {
+            "name": "provider_vector_city_idx",
+            "fields": "practice_address.city + embedding",
+            "purpose": "City-scoped vector search"
+          },
+          {
+            "name": "provider_vector_county_idx",
+            "fields": "county.name + embedding",
+            "purpose": "County-scoped vector search"
+          },
+          {
+            "name": "provider_vector_state_idx",
+            "fields": "practice_address.state + embedding",
+            "purpose": "State-scoped vector search (current index, verify exists)"
+          }
         ]
       }
     ]
   },
-
   "backlog_content_management": {
     "id": "CM-001",
     "title": "Content Management System",
     "phase_1": {
       "target": "v0.1.4",
       "description": "Templates in MongoDB (admin.content_templates). Loadable without code deploy. Claude/GPT can update via brain loop.",
-      "scope": ["unanswerable question templates", "welcome message", "emergency response text", "consent prompts"]
+      "scope": [
+        "unanswerable question templates",
+        "welcome message",
+        "emergency response text",
+        "consent prompts"
+      ]
     },
     "phase_2": {
       "target": "post-funding",
@@ -237,11 +277,10 @@
       "dependency": "funding"
     }
   },
-
   "funding_milestone": {
-    "target_date": "2026-07-31",
+    "target_date": "See Website/roadmap.html",
     "title": "Seed Funding Close",
-    "note": "GUI tooling, marketing hire, content management UI deferred until funding secured",
+    "note": "All milestone dates maintained in Website/roadmap.html (source of truth). Do not duplicate.",
     "items_deferred_to_funding": [
       "CM-001 Phase 2: Content management GUI",
       "Marketing founder / content owner",
@@ -249,7 +288,6 @@
       "Multi-state data load (compute cost)"
     ]
   },
-
   "deferred_to_next_sprint": [
     "F-06: Durable Functions status URL auth (Pipeline concern, not chat refactor)",
     "F-08: All-state coverage (pipeline run, not code change)",
@@ -260,9 +298,8 @@
     "R35: Paused cluster UAT",
     "BL-001 through BL-010: Perplexity backlog (v0.1.4)"
   ],
-
   "risks": [
-    "Phase 4-5 (Thursday) is the highest risk day — extracting two domains + shared services. If behind, push Phase 5 to Friday.",
+    "Phase 4-5 (Thursday) is the highest risk day \u2014 extracting two domains + shared services. If behind, push Phase 5 to Friday.",
     "Maps depends on frontend map library selection (Leaflet vs Google Maps vs Mapbox). Decision needed Tuesday morning.",
     "Pydantic phase may surface schema mismatches between what Claude sends and what tools expect. Budget extra time."
   ]

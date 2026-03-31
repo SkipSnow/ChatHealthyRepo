@@ -284,31 +284,7 @@
   },
   "investment_thesis": "ChatHealthy.ai sits at the intersection of two shifts: consumers'  thwarted desire to control healthcare decisions and AI's new capability to participate in those decisions. The company captures value by providing consumers a platform they are willing to pay for. ChatHealthy.ai is already a product, now it must become a brand. Built upon an impartial platform finding objectivity through objectivity because it can see the intricate patterns in the immense amount of data and help the consumer make decisions based on facts. Investors back a platform becoming the default interface to navigate the purposefully opaque American Healthcare system. Monetization comes when the brand can sustain its growth behind a pay gate. ChatHealthy.ai is the place people come to find care, evaluate care, and discuss care with loved ones and AI.",
   "timeline": {
-    "milestones": [
-      {
-        "date": "2026-04-30",
-        "milestone": "Alpha Launch (Find Care + Evaluate Care)"
-      },
-      {
-        "date": "2026-05-31",
-        "milestone": "Discuss Care Beta Sprint 1"
-      },
-      {
-        "date": "2026-07-31",
-        "milestone": "Seed Funding Close"
-      },
-      {
-        "date": "2026-08-25",
-        "milestone": "Beta Launch"
-      },
-      {
-        "date": "2026-11-20",
-        "milestone": "Production Launch"
-      },
-      {
-        "date": "2026-12-15",
-        "milestone": "iPhone & Android App Launch"
-      }
-    ]
+    "source_of_truth": "Website/roadmap.html",
+    "note": "All milestone dates are maintained in the roadmap. This document renders from that source. Do not duplicate dates here."
   }
 }
