@@ -67,7 +67,8 @@
       "_record_id": "ip_license_agreement",
       "_source_file": "ip_license_agreement.json",
       "description": "FindCare Evaluation License (FEL-1.0) v11 draft. Pending legal review.",
-      "publish": false
+      "publish": false,
+      "business_artifact": "brain/BusinessArtifacts/ip_license_agreement_draft_v11.pdf"
     },
     {
       "document": "Revocable Intellectual Property License Agreement",
