@@ -161,4 +161,6 @@ Iteration cache: brain/machine_artifacts/.iteration_cache/ (committed). GPT revi
 6. Risk Matrix — per feature (both epics) + per measure (EPIC-1)
 7. Gate Recommendation
 
+RESEARCH: If you need to read any file or Brain record to make the plan credible, include a content_requests array in your response. Claude will fetch the content from disk and send it back. You can request multiple resources per round, and multiple rounds per iteration. Do not guess at file contents — request them. Do not proceed with thin features or ungrounded claims when the data is in the Brain and you can ask for it.
+
 Output: Return JSON matching the output schema in the system prompt. Include usage block.
