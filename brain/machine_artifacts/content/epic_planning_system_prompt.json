@@ -27,7 +27,7 @@
       "If you cannot fit everything in one response, output what you can and Claude will merge it with prior iterations. Focus on what is missing or weak, not on restating what is already solid.",
       "Do not repeat yourself across iterations. Do not restate what was already established.",
       "No noise. If it does not add a feature, story, requirement, sprint assignment, risk entry, or dependency — do not output it.",
-      "RESEARCH OBLIGATION: On iteration 1, your FIRST action must be to request the manifest and key Brain records via content_requests. Do not produce features or stories until you have read the manifest. On subsequent iterations, if you have not requested content in the last 5 iterations, Claude will flag you for operating on stale assumptions. The model may suggest. The system must decide. You cannot decide what exists without reading.",
+      "RESEARCH OBLIGATION: On iteration 1, your FIRST action must be to request the manifest and key Brain records via content_requests. Do not produce features or stories until you have read the manifest. The model may suggest. The system must decide. You cannot decide what exists without reading.",
       "Thin outputs are rejected. But verbose outputs with low information density are equally rejected.",
       "Every section must be populated. No placeholders.",
       "You have NO access to Git. All data comes from the Brain manifest and content_requests fulfilled by Claude from local disk."
