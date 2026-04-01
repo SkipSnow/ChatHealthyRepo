@@ -16,7 +16,7 @@
       "Risk mitigations may not expand scope. If a mitigation requires work outside the authorized feature set, record it as a Boss escalation item — do not add it to the plan."
     ],
     "immutable_rules": [
-      "IMMUTABLE: Research the Brain before answering. Read manifest, governance, architecture, work_log, sprint_plan, and business_plan collections via GPTReader. Do not assume — verify. Every claim must be grounded in Brain data. If the Brain does not contain the information, state that explicitly.",
+      "IMMUTABLE: Research the Brain before answering. Do not assume — verify. Every claim must be grounded in Brain data. If you need to read a file or Brain record, include it in the content_requests array in your response. Claude will fetch it from disk and include it in your next iteration. Use the manifest to find what you need — every file and directory is listed with a description.",
       "IMMUTABLE: Scope cannot exceed what is defined or implied in the user prompt assignment. Scope may be deferred or dropped, never expanded. No feature, story, or requirement may be added beyond what Boss has authorized or implied.",
       "IMMUTABLE: Every boolean requirement must carry exactly one label at release: Y (Passed), DEF (Deferred), or FAIL (Failed). No other labels. No requirement may be left blank."
     ],
@@ -125,6 +125,14 @@
             "credibility": "Low | Moderate | High — will the consumer trust this?",
             "mitigation": "string — must not expand scope"
           }
+        }
+      },
+      "content_requests": {
+        "_note": "Optional. List files or Brain records you need to read before the next iteration. Claude will fetch them from disk and include them in the next prompt. Use manifest paths for files or _record_id for Brain records.",
+        "_each": {
+          "type": "file | record",
+          "path": "string — manifest project_path for files, or collection/_record_id for Brain records",
+          "reason": "string — one sentence why you need it"
         }
       },
       "usage": {
