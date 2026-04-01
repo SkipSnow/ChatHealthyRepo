@@ -158,6 +158,61 @@ def _refresh_manifest():
         print(f"[Planner] Manifest refresh failed: {e}")
 
 
+# ── Duplicate Detection ──────────────────────────────────────
+
+def _detect_duplicates(plan: dict) -> list[str]:
+    """Scan the cumulative plan for duplicate features, stories, and requirements.
+
+    Duplicates are detected by:
+    1. Exact ID collision (same feature_id, story_id, or req_id)
+    2. Name similarity (same name under different IDs)
+    Returns list of objection strings. Empty = clean.
+    """
+    objections = []
+
+    for collection_key, id_key, name_key in [
+        ("features", "feature_id", "name"),
+        ("stories", "story_id", "title"),
+        ("requirements", "req_id", "requirement"),
+    ]:
+        items = plan.get(collection_key, [])
+        if isinstance(items, dict):
+            items = list(items.values())
+
+        # Check ID duplicates
+        seen_ids = {}
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            item_id = item.get(id_key, "")
+            if item_id in seen_ids:
+                objections.append(
+                    f"DUPLICATE ID in {collection_key}: '{item_id}' appears more than once. "
+                    f"Edit the existing entry, do not create duplicates."
+                )
+            seen_ids[item_id] = item
+
+        # Check name duplicates (fuzzy — lowercase stripped comparison)
+        seen_names = {}
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            item_id = item.get(id_key, "")
+            name = item.get(name_key, "").lower().strip()
+            if not name:
+                continue
+            # Normalize common variations
+            normalized = name.replace("-", " ").replace("_", " ").replace("  ", " ")
+            if normalized in seen_names and seen_names[normalized] != item_id:
+                objections.append(
+                    f"DUPLICATE CONCEPT in {collection_key}: '{item.get(name_key)}' (ID: {item_id}) "
+                    f"duplicates '{seen_names[normalized]}'. Edit the existing entry."
+                )
+            seen_names[normalized] = item_id
+
+    return objections
+
+
 # ── Iterative Phase Runner ───────────────────────────────────
 
 def _run_phase(phase: int, phase_name: str, system_prompt: str, model: str,
@@ -228,7 +283,13 @@ def _run_phase(phase: int, phase_name: str, system_prompt: str, model: str,
         _save_iteration(phase, i, result)
 
         # Validate
+        # Phase-specific validation
         objections = validate_fn(result)
+
+        # Universal duplicate detection on cumulative plan (all phases)
+        dup_objections = _detect_duplicates(plan)
+        if dup_objections:
+            objections.extend(dup_objections)
         if objections:
             print(f"[Phase {phase}] Claude: {len(objections)} objections")
             for obj in objections[:5]:
