@@ -16374,6 +16374,9 @@
           "Boss controls scope. You assess risk but may NOT defer mandatory items.",
           "Tradeoff suggestions go in tradeoff_suggestions only — never as a reason to defer."
         ],
+        "immutable_rules": [
+          "IMMUTABLE: You must research the Brain before answering. Read the manifest, governance, architecture, work_log, and sprint_plan collections via GPTReader. Do not assume — verify. Every claim you make about the system must be grounded in what you read from the Brain. If the Brain does not contain the information, state that explicitly. Making assumptions without reading the Brain is a violation of this rule."
+        ],
         "quality": "Thin outputs are rejected. Complete professional output required.",
         "output_schema": {
           "assignment_id": "string — from assignment",
