@@ -158,6 +158,79 @@ def _refresh_manifest():
         print(f"[Planner] Manifest refresh failed: {e}")
 
 
+# ── Deduplication ────────────────────────────────────────────
+
+def dedup_plan(plan: dict = None) -> dict:
+    """Claude calls this to deduplicate the cumulative plan.
+
+    Can be called anywhere — between phases, after convergence, on demand.
+    Merges items with the same normalized name, keeps the richest version.
+    Returns the cleaned plan and saves it.
+    """
+    if plan is None:
+        plan = _load_plan()
+
+    for collection_key, id_key, name_key in [
+        ("features", "feature_id", "name"),
+        ("stories", "story_id", "title"),
+        ("requirements", "req_id", "requirement"),
+    ]:
+        items = plan.get(collection_key, [])
+        if isinstance(items, dict):
+            items = list(items.values())
+        if not items:
+            continue
+
+        # Group by normalized name
+        groups = {}
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            name = item.get(name_key, "").lower().strip()
+            normalized = name.replace("-", " ").replace("_", " ").replace("  ", " ")
+            if not normalized:
+                normalized = item.get(id_key, "unknown")
+            if normalized not in groups:
+                groups[normalized] = []
+            groups[normalized].append(item)
+
+        # For each group, keep the richest version
+        deduped = []
+        for normalized, group in groups.items():
+            if len(group) == 1:
+                deduped.append(group[0])
+            else:
+                # Score by content richness
+                def _richness(item):
+                    score = 0
+                    for key in ["description", "evidence", "notes"]:
+                        score += len(str(item.get(key, "")))
+                    # Prefer items with more fields populated
+                    score += sum(10 for k, v in item.items() if v)
+                    return score
+
+                best = max(group, key=_richness)
+                # Merge evidence from all versions into the best
+                all_evidence = set()
+                for item in group:
+                    ev = item.get("evidence", "")
+                    if ev:
+                        all_evidence.add(ev)
+                if all_evidence:
+                    best["evidence"] = "; ".join(sorted(all_evidence))
+                deduped.append(best)
+
+        before = len(items)
+        after = len(deduped)
+        if before != after:
+            print(f"[Dedup] {collection_key}: {before} -> {after} (removed {before - after} duplicates)")
+
+        plan[collection_key] = deduped
+
+    _save_plan(plan)
+    return plan
+
+
 # ── Duplicate Detection ──────────────────────────────────────
 
 def _detect_duplicates(plan: dict) -> list[str]:
@@ -661,10 +734,16 @@ def run(max_iterations: int = 50, start_phase: int = 1):
 
     if start_phase <= 1:
         run_phase1(system_prompt, model, max_iterations)
+        print("[Planner] Dedup after Phase 1...")
+        dedup_plan()
     if start_phase <= 2:
         run_phase2(system_prompt, model, max_iterations)
+        print("[Planner] Dedup after Phase 2...")
+        dedup_plan()
     if start_phase <= 3:
         run_phase3(system_prompt, model, max_iterations)
+        print("[Planner] Dedup after Phase 3...")
+        dedup_plan()
     if start_phase <= 4:
         run_phase4(system_prompt, model, max_iterations)
     if start_phase <= 5:
