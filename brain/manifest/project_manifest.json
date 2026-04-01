@@ -566,8 +566,8 @@
   },
   {
     "project_path": "Code/DataPipelines/tests/gpt_sit_runner.py",
-    "size": 18286,
-    "content_hash": "5ae9acb1ed108c2c"
+    "size": 18228,
+    "content_hash": "86d5514d195044a4"
   },
   {
     "project_path": "Code/DataPipelines/tests/gpt_sit_with_gpt.py",
@@ -631,8 +631,8 @@
   },
   {
     "project_path": "Code/Shared/brain_runner.py",
-    "size": 19371,
-    "content_hash": "1bb36a02c2b204d7"
+    "size": 13151,
+    "content_hash": "5d177d31e2e9ff21"
   },
   {
     "project_path": "Code/Shared/cost_guard.py",
@@ -661,8 +661,8 @@
   },
   {
     "project_path": "Code/Shared/ops/brain_refactor_collab.py",
-    "size": 20186,
-    "content_hash": "ecf112195320a3c1"
+    "size": 20180,
+    "content_hash": "0c64b21002257d70"
   },
   {
     "project_path": "Code/Shared/ops/bump_build.py",
@@ -681,18 +681,18 @@
   },
   {
     "project_path": "Code/Shared/ops/gen_investor_docx.py",
-    "size": 10899,
-    "content_hash": "5c85aaaae8f4876d"
+    "size": 10873,
+    "content_hash": "bca3ba61ea626eb6"
   },
   {
     "project_path": "Code/Shared/ops/gen_investor_docx_v3.py",
-    "size": 19128,
-    "content_hash": "7687c920503c2fea"
+    "size": 19073,
+    "content_hash": "6b9bc61cc9b8ea2f"
   },
   {
     "project_path": "Code/Shared/ops/gen_investor_pdf_v2.py",
-    "size": 12107,
-    "content_hash": "8d902d548fb9a93a"
+    "size": 12081,
+    "content_hash": "d8bbb312cc89c404"
   },
   {
     "project_path": "Code/Shared/ops/gen_moat_v4.py",
@@ -741,8 +741,8 @@
   },
   {
     "project_path": "Code/Shared/prompt_system_maker.py",
-    "size": 15530,
-    "content_hash": "66d6e1bf991c3ae6"
+    "size": 16722,
+    "content_hash": "1a25cb7d68f6f68d"
   },
   {
     "project_path": "Legal/Licence.txt",
@@ -890,11 +890,6 @@
     "content_hash": "cba51e8aacdab152"
   },
   {
-    "project_path": "brain/BusinessArtifacts/SUP-001_hf_build_failure.pdf",
-    "size": 4007,
-    "content_hash": "7415b92beba480dc"
-  },
-  {
     "project_path": "brain/BusinessArtifacts/biz_arch_investor.pdf",
     "size": 9250,
     "content_hash": "5b32d68050facc85"
@@ -985,6 +980,11 @@
     "content_hash": "b369a0718ee06d24"
   },
   {
+    "project_path": "brain/BusinessArtifacts/production_release_status.docx",
+    "size": 39113,
+    "content_hash": "70dacccf56710e82"
+  },
+  {
     "project_path": "brain/BusinessArtifacts/qa_report_v012_final.pdf",
     "size": 4542,
     "content_hash": "d094b499eda3b060"
@@ -1015,309 +1015,74 @@
     "content_hash": "df45611a55071769"
   },
   {
-    "project_path": "brain/machine_artifacts/document_type_json/ai_governance_policy_draft.json",
-    "size": 4329,
-    "content_hash": "bbff0399567f9a86"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/ai_model_decisions.json",
-    "size": 2478,
-    "content_hash": "6a80e7037a8bb38f"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/assignment_queue.json",
-    "size": 65765,
-    "content_hash": "ff23023606b335f5"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/assurance_results.json",
-    "size": 57800,
-    "content_hash": "9ecc791d3084e338"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/backlog_0_1_4_perplexity.json",
-    "size": 8539,
-    "content_hash": "fda3196412d22ad4"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/backlog_brand_audit.json",
-    "size": 505,
-    "content_hash": "dffeff318a3c4ed7"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/biz_arch_collab_transcript.json",
-    "size": 32175,
-    "content_hash": "ef7cb0eb57169300"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/biz_arch_diagram_review.json",
-    "size": 1238,
-    "content_hash": "fb6d1df74c972706"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/biz_arch_draft_v1.json",
-    "size": 14370,
-    "content_hash": "ebe8463926ab1ee3"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/biz_arch_investor.json",
-    "size": 13920,
-    "content_hash": "3145be5115b3ccae"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/biz_arch_investor_v2.json",
-    "size": 17689,
-    "content_hash": "7d3b65bef664eb01"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/bizplan_cost_analysis_results.json",
-    "size": 189,
-    "content_hash": "755d048e01cbaa87"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/budget_config.json",
-    "size": 689,
-    "content_hash": "86c75c9a2efc2825"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/business_model.json",
-    "size": 11363,
-    "content_hash": "e2710bec0cf22ce6"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/component_discuss_care.json",
-    "size": 15014,
-    "content_hash": "c3069631b0b00a60"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/consent_framework_feature.json",
-    "size": 2486,
-    "content_hash": "10d5de94629b0e48"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/corporate_governance.json",
-    "size": 5176,
-    "content_hash": "da9bf02a7cb86c6e"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/current_activity.json",
-    "size": 218,
-    "content_hash": "a1250b4c01856035"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/devops_build_promotion.json",
-    "size": 5487,
-    "content_hash": "7bdcc379147cf6b7"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/diagram_creative_direction.json",
-    "size": 4373,
-    "content_hash": "f8905ef2443c867f"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/e2e_regression_report.json",
-    "size": 3954,
-    "content_hash": "37efdd7434fe9bab"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/execution_state.json",
-    "size": 199,
-    "content_hash": "df86b2e8b9afa0d6"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/external_audit_registry.json",
-    "size": 1457,
-    "content_hash": "d5ae74597b30ce3c"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/external_audit_v1.json",
-    "size": 10988,
-    "content_hash": "3fddfdce3de82810"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/gpt_qa_release_approval.json",
-    "size": 310,
-    "content_hash": "0bfb44a563098b34"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/gpt_reader_qa_report.json",
-    "size": 7138,
-    "content_hash": "42b8dfc8ac01fd15"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/gpt_sit_finding.json",
-    "size": 4971,
-    "content_hash": "e7617b9624313b4d"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/gpt_sit_report.json",
-    "size": 617447,
-    "content_hash": "95d8af91987bef6a"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/ip_agreement_inputs.json",
-    "size": 1566,
-    "content_hash": "f870f4d137219a7b"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/ip_license_signoff.json",
-    "size": 825,
-    "content_hash": "deafa30554a9180e"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/pending_legal_questions.json",
-    "size": 2280,
-    "content_hash": "1f680df48831a05d"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/portability_refactoring_report.json",
-    "size": 16808,
-    "content_hash": "02406251e9e42057"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/qa_report_feature.json",
-    "size": 2585,
-    "content_hash": "74269be7f9f5dc30"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/qa_report_v013_release.json",
-    "size": 3774,
-    "content_hash": "18ace33519dc475c"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/qa_report_v013_sprint1.json",
-    "size": 3631,
-    "content_hash": "f8ca9f824e5d955b"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/refactor_collab_transcript.json",
-    "size": 27636,
-    "content_hash": "d7c4336869009192"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/refactor_design_arch001.json",
-    "size": 49104,
-    "content_hash": "777c2430a825745e"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/refactor_design_final.json",
-    "size": 11770,
-    "content_hash": "1bad013752d86c5c"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/refactor_proposal_iteration1.json",
-    "size": 6750,
-    "content_hash": "6ce235236afda1e2"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/refactor_proposal_iteration3.json",
-    "size": 7552,
-    "content_hash": "f108507d6305646e"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/refactor_proposal_iteration5.json",
-    "size": 6225,
-    "content_hash": "018fbb53c3e57f92"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/refactor_results.json",
-    "size": 199,
-    "content_hash": "db8a12e85075be2e"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/release_gate_v012.json",
-    "size": 1573,
-    "content_hash": "b3f83db57514f026"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/review_queue.json",
-    "size": 21,
-    "content_hash": "b1f7c7c613385732"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/risk_acceptance_register.json",
-    "size": 1401,
-    "content_hash": "75d83d9467283779"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/safety_signoff.json",
-    "size": 2353,
-    "content_hash": "93203d8150ff7751"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/session_2026_03_28_mind_dump.json",
-    "size": 8403,
-    "content_hash": "55724d62fa766af7"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/sprint_plan_v013.json",
-    "size": 13314,
-    "content_hash": "e0c232474a3bc3d6"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/support_tickets.json",
-    "size": 1091,
-    "content_hash": "6b7d7ed9085fb58b"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/task_based_system_prompts.json",
-    "size": 4952,
-    "content_hash": "c71b013bfcc90961"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/test_plan_results.json",
-    "size": 48779,
-    "content_hash": "d81e401fa61b43ac"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/uat_library.json",
-    "size": 23,
-    "content_hash": "fef50861690f6095"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/uat_v013.json",
-    "size": 3939,
-    "content_hash": "aa5a5ee8aac11f49"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_json/usage_log.json",
-    "size": 2452,
-    "content_hash": "84f32ab0d38c87dd"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_md/pending_legal_questions.md",
-    "size": 6325,
-    "content_hash": "95fee75f17b4c08d"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_md/qa_report_v012_final.md",
-    "size": 4862,
-    "content_hash": "4f0f12cbe2715262"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_md/qa_report_v012_text.md",
-    "size": 5065,
-    "content_hash": "f43a667e3e95c648"
-  },
-  {
-    "project_path": "brain/machine_artifacts/document_type_py/generate_uat_excel.py",
-    "size": 1911,
-    "content_hash": "9e85e6273b941abc"
-  },
-  {
-    "project_path": "brain/machine_artifacts/emergency_keywords.json",
-    "size": 1738,
-    "content_hash": "05d8757258c69d28"
-  },
-  {
-    "project_path": "brain/machine_artifacts/generate_arch001_pdf.py",
+    "project_path": "brain/machine_artifacts/code/generate_arch001_pdf.py",
     "size": 18242,
     "content_hash": "896eb79e69907841"
   },
   {
+    "project_path": "brain/machine_artifacts/content/ai_operations.json",
+    "size": 716212,
+    "content_hash": "0c96a1c7d673f9dd"
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/architecture.json",
+    "size": 133985,
+    "content_hash": "5b78dc305312263b"
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/business_plan.json",
+    "size": 65795,
+    "content_hash": "107c2a346d8b3458"
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/devops.json",
+    "size": 7440,
+    "content_hash": "d55a8dcb9e664d96"
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/emergency_keywords.json",
+    "size": 1738,
+    "content_hash": "05d8757258c69d28"
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/external_audits.json",
+    "size": 13892,
+    "content_hash": "be9d9fb0b2865124"
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/governance.json",
+    "size": 14677,
+    "content_hash": "e9f7c03424e4d197"
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/legal.json",
+    "size": 12624,
+    "content_hash": "6d52bb4e22b386d3"
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/qa_reports.json",
+    "size": 94802,
+    "content_hash": "f5afeba93fd3d301"
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/schema.json",
+    "size": 3607,
+    "content_hash": "c75d56242a0f5d14"
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/sprint_plan.json",
+    "size": 36158,
+    "content_hash": "fe51027525427a93"
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/work_log.json",
+    "size": 210730,
+    "content_hash": "f92803a693c650b9"
+  },
+  {
     "project_path": "brain/manifest/project_manifest.json",
-    "size": 127898,
-    "content_hash": "aa78a7b57b1be38f"
+    "size": 41468,
+    "content_hash": "4a6e93bb770cad5f"
   },
   {
     "project_path": "brain_v0.1.3_design.json",

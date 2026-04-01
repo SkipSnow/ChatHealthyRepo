@@ -16438,6 +16438,128 @@
             "tokens_in": "integer",
             "tokens_out": "integer"
           }
+        },
+        "brain_manifest": {
+          "description": "The brain is organized into 10 collection JSONs in brain/machine_artifacts/content/. Each collection contains records[] with _record_id per record.",
+          "collections": {
+            "ai_operations": {
+              "record_count": 9,
+              "records": [
+                "ai_model_decisions",
+                "budget_config",
+                "gpt_qa_release_approval",
+                "gpt_reader_qa_report",
+                "gpt_sit_finding",
+                "gpt_sit_report",
+                "task_based_system_prompts",
+                "usage_log",
+                "gpt_assignment_system_prompt"
+              ]
+            },
+            "architecture": {
+              "record_count": 8,
+              "records": [
+                "component_discuss_care",
+                "portability_refactoring_report",
+                "refactor_design_arch001",
+                "refactor_design_final",
+                "refactor_proposal_iteration1",
+                "refactor_proposal_iteration3",
+                "refactor_proposal_iteration5",
+                "refactor_results"
+              ]
+            },
+            "business_plan": {
+              "record_count": 6,
+              "records": [
+                "biz_arch_draft_v1",
+                "biz_arch_investor",
+                "biz_arch_investor_v2",
+                "bizplan_cost_analysis_results",
+                "business_model",
+                "staffing_cost_analysis"
+              ]
+            },
+            "devops": {
+              "record_count": 2,
+              "records": [
+                "devops_build_promotion",
+                "support_tickets"
+              ]
+            },
+            "external_audits": {
+              "record_count": 2,
+              "records": [
+                "external_audit_registry",
+                "external_audit_v1"
+              ]
+            },
+            "governance": {
+              "record_count": 4,
+              "records": [
+                "ai_governance_policy_draft",
+                "corporate_governance",
+                "risk_acceptance_register",
+                "safety_signoff"
+              ]
+            },
+            "legal": {
+              "record_count": 5,
+              "records": [
+                "ip_agreement_inputs",
+                "ip_license_agreement",
+                "ip_license_signoff",
+                "pending_legal_questions",
+                "pending_legal_questions"
+              ]
+            },
+            "qa_reports": {
+              "record_count": 9,
+              "records": [
+                "e2e_regression_report",
+                "production_release_status",
+                "qa_report_v012",
+                "qa_report_v012_final",
+                "qa_report_v012_text",
+                "qa_report_v013_release",
+                "qa_report_v013_sprint1",
+                "release_gate_v012",
+                "test_plan_results"
+              ]
+            },
+            "sprint_plan": {
+              "record_count": 7,
+              "records": [
+                "backlog_0_1_4_perplexity",
+                "backlog_brand_audit",
+                "consent_framework_feature",
+                "qa_report_feature",
+                "sprint_plan_v013",
+                "uat_library",
+                "uat_v013"
+              ]
+            },
+            "work_log": {
+              "record_count": 10,
+              "records": [
+                "assignment_queue",
+                "assurance_results",
+                "biz_arch_collab_transcript",
+                "biz_arch_diagram_review",
+                "current_activity",
+                "diagram_creative_direction",
+                "execution_state",
+                "refactor_collab_transcript",
+                "review_queue",
+                "session_2026_03_28_mind_dump"
+              ]
+            }
+          }
+        },
+        "business_artifacts": {
+          "description": "Business artifacts (PDF, DOCX, diagrams) are in brain/BusinessArtifacts/. Each should map to a brain record.",
+          "path": "brain/BusinessArtifacts/",
+          "diagrams_path": "brain/BusinessArtifacts/diagrams/"
         }
       }
     }
