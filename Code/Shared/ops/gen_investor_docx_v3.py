@@ -11,9 +11,9 @@ from docx.shared import Inches, Pt, RGBColor, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.section import WD_ORIENT
 
-with open("brain/machine_artifacts/business_plan/biz_arch_investor_v2.json", "r", encoding="utf-8") as f:
+with open("brain/machine_artifacts/business_plan.json", "r", encoding="utf-8") as f:
     data = json.load(f)
-with open("brain/machine_artifacts/architecture/component_discuss_care.json", "r", encoding="utf-8") as f:
+with open("brain/machine_artifacts/architecture.json", "r", encoding="utf-8") as f:
     dc = json.load(f)
 
 DIAGRAM_DIR = "brain/BusinessArtifacts/diagrams"

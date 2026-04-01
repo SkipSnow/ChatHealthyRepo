@@ -13,7 +13,7 @@
 #
 # Usage: python gpt_sit_runner.py
 #
-# Output: brain/machine_artifacts/ai_operations/gpt_reader_qa_report.json
+# Output: brain/machine_artifacts/ai_operations.json
 #         brain/BusinessArtifacts/gpt_reader_qa_report.pdf
 
 import base64

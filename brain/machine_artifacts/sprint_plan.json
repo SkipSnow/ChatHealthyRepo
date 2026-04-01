@@ -1,0 +1,789 @@
+{
+  "collection": "sprint_plan",
+  "record_count": 7,
+  "records": [
+    {
+      "backlog_version": "brain_0.1.4_prep",
+      "source_review_author": "Perplexity",
+      "date_added": "2026-03-30",
+      "items": [
+        {
+          "id": "BL-0.1.4-001",
+          "title": "Server-Side Scope Enforcement as Authoritative Boundary",
+          "priority": "high",
+          "type": "security",
+          "description": "Ensure Azure Function (gpt_reader.py) independently enforces allowlist scope for environment, database, collection, and artifact access. Enforcement must not rely on Claude prompt discipline.",
+          "problem_statement": "Current design risks treating Claude as the enforcement layer, creating a potential bypass if Claude is manipulated (e.g., prompt injection).",
+          "acceptance_criteria": [
+            "Azure Function validates all scope constraints independent of request origin.",
+            "Out-of-scope requests return HTTP 403 regardless of Claude behavior.",
+            "Implementation explicitly documents enforcement location inside Azure Function.",
+            "Live UAT demonstrates rejection of out-of-scope access."
+          ],
+          "risk_level": "high",
+          "deferred_from_version": "0.1.3",
+          "target_version": "0.1.4",
+          "attribution": "Perplexity review"
+        },
+        {
+          "id": "BL-0.1.4-002",
+          "title": "Bearer Token Lifecycle Management (Rotation, Expiration, Revocation)",
+          "priority": "high",
+          "type": "security",
+          "description": "Define and implement lifecycle controls for GPTReader Bearer token including rotation schedule, expiration policy, and revocation procedure.",
+          "problem_statement": "Token exists but lacks lifecycle governance, increasing risk of long-lived credential compromise.",
+          "acceptance_criteria": [
+            "Token rotation schedule defined and documented.",
+            "Revocation procedure documented and executable.",
+            "Expired or revoked tokens return HTTP 401.",
+            "Secrets stored only in secure runtime configuration."
+          ],
+          "risk_level": "high",
+          "deferred_from_version": "0.1.3",
+          "target_version": "0.1.4",
+          "attribution": "Perplexity review"
+        },
+        {
+          "id": "BL-0.1.4-003",
+          "title": "Brain Lock TTL and Deadlock Recovery",
+          "priority": "high",
+          "type": "reliability",
+          "description": "Add TTL and recovery mechanism to brain lock (R32) to prevent indefinite lock conditions.",
+          "problem_statement": "Current mutex design can deadlock if the locking process crashes, blocking all future writes.",
+          "acceptance_criteria": [
+            "Lock includes owner, timestamp, and TTL/expiration.",
+            "Expired locks are automatically recoverable or explicitly releasable.",
+            "Concurrent write protection remains enforced.",
+            "Lock acquisition and recovery events are logged."
+          ],
+          "risk_level": "high",
+          "deferred_from_version": "0.1.3",
+          "target_version": "0.1.4",
+          "attribution": "Perplexity review"
+        },
+        {
+          "id": "BL-0.1.4-004",
+          "title": "Independent Append-Only Audit Logging",
+          "priority": "high",
+          "type": "governance",
+          "description": "Move audit logging to an independent, append-only store and expand coverage to include Claude operations.",
+          "problem_statement": "Current audit logs are co-located with service logic and do not cover Claude's privileged actions.",
+          "acceptance_criteria": [
+            "Audit logs stored outside gpt_reader.py execution context.",
+            "Append-only behavior enforced or documented with compensating controls.",
+            "Retention policy defined.",
+            "Audit includes GPT reads and Claude operations (sync, manifest updates, lock events)."
+          ],
+          "risk_level": "high",
+          "deferred_from_version": "0.1.3",
+          "target_version": "0.1.4",
+          "attribution": "Perplexity review"
+        },
+        {
+          "id": "BL-0.1.4-005",
+          "title": "Local Disk Source-of-Truth Resilience (Backup and Rollback)",
+          "priority": "medium",
+          "type": "resilience",
+          "description": "Introduce backup, versioning, and rollback capability for local disk source-of-truth model.",
+          "problem_statement": "Local disk lacks inherent version history and creates single-machine dependency risk.",
+          "acceptance_criteria": [
+            "Backup mechanism defined and implemented.",
+            "Rollback procedure defined for corrupted sync scenarios.",
+            "Data loss risk from local failure mitigated.",
+            "Clear distinction between working state and recoverable state."
+          ],
+          "risk_level": "medium",
+          "deferred_from_version": "0.1.3",
+          "target_version": "0.1.4",
+          "attribution": "Perplexity review"
+        },
+        {
+          "id": "BL-0.1.4-006",
+          "title": "Manifest Snapshot Freshness Policy",
+          "priority": "medium",
+          "type": "consistency",
+          "description": "Define snapshot expiration, freshness thresholds, and refresh triggers.",
+          "problem_statement": "Snapshots may become stale during execution with no defined policy or warning threshold.",
+          "acceptance_criteria": [
+            "Max snapshot age defined.",
+            "Soft warning threshold before expiration.",
+            "Refresh trigger conditions explicitly defined.",
+            "Behavior on stale snapshot documented."
+          ],
+          "risk_level": "medium",
+          "deferred_from_version": "0.1.3",
+          "target_version": "0.1.4",
+          "attribution": "Perplexity review"
+        },
+        {
+          "id": "BL-0.1.4-007",
+          "title": "Health Check Endpoint for GPTReader Service",
+          "priority": "medium",
+          "type": "operations",
+          "description": "Add /health or /ping endpoint for Azure Function to verify availability before assignment execution.",
+          "problem_statement": "No mechanism to detect service availability prior to execution, leading to wasted iterations.",
+          "acceptance_criteria": [
+            "Health endpoint returns service readiness status.",
+            "Claude checks health before initiating assignments.",
+            "Failure states are clearly communicated."
+          ],
+          "risk_level": "medium",
+          "deferred_from_version": "0.1.3",
+          "target_version": "0.1.4",
+          "attribution": "Perplexity review"
+        },
+        {
+          "id": "BL-0.1.4-008",
+          "title": "Rate Limiting Definition and Enforcement",
+          "priority": "medium",
+          "type": "operations",
+          "description": "Define explicit rate limits and enforce them at the service level.",
+          "problem_statement": "429 error exists but no defined limits, preventing capacity planning and predictable behavior.",
+          "acceptance_criteria": [
+            "Requests-per-minute limits defined.",
+            "Rate limiting enforced at Azure Function or gateway layer.",
+            "429 responses include retry guidance."
+          ],
+          "risk_level": "medium",
+          "deferred_from_version": "0.1.3",
+          "target_version": "0.1.4",
+          "attribution": "Perplexity review"
+        },
+        {
+          "id": "BL-0.1.4-009",
+          "title": "Mongo Query Size Estimation Strategy (507 Handling)",
+          "priority": "low",
+          "type": "performance",
+          "description": "Clarify and optimize how estimated_result is computed for 507 responses.",
+          "problem_statement": "Unclear whether countDocuments or planner estimates are used; naive counting may be expensive.",
+          "acceptance_criteria": [
+            "Estimation strategy documented.",
+            "Performance impact of estimation minimized.",
+            "Behavior consistent across collections."
+          ],
+          "risk_level": "low",
+          "deferred_from_version": "0.1.3",
+          "target_version": "0.1.4",
+          "attribution": "Perplexity review"
+        },
+        {
+          "id": "BL-0.1.4-010",
+          "title": "Multi-Cluster Connection String Governance",
+          "priority": "medium",
+          "type": "operations",
+          "description": "Define storage, naming, rotation, and ownership of multiple MongoDB connection strings.",
+          "problem_statement": "Multi-cluster access introduced without operational governance for connection strings.",
+          "acceptance_criteria": [
+            "Connection string storage location defined.",
+            "Naming convention established.",
+            "Rotation and update procedure documented.",
+            "Ownership and responsibility assigned."
+          ],
+          "risk_level": "medium",
+          "deferred_from_version": "0.1.3",
+          "target_version": "0.1.4",
+          "attribution": "Perplexity review"
+        }
+      ],
+      "_record_id": "backlog_0_1_4_perplexity",
+      "_source_file": "backlog_0_1_4_perplexity.json"
+    },
+    {
+      "id": "BRAND-001",
+      "title": "Brand name audit \u2014 ChatHealthy.ai everywhere",
+      "rule": "The brand name is ALWAYS 'ChatHealthy.ai' with the .ai suffix. Never 'ChatHealthy' alone. This applies to ALL business artifacts, documentation, code comments, UI text, marketing, and legal documents.",
+      "scope": "All business artifacts in brain/BusinessArtifacts/, Website/, code UI strings, system prompts, welcome messages, legal docs, investor docs",
+      "status": "backlog",
+      "priority": "high",
+      "_record_id": "backlog_brand_audit",
+      "_source_file": "backlog_brand_audit.json"
+    },
+    {
+      "feature": "Consent Framework (Two Streams)",
+      "feature_id": 14,
+      "status": "deferred",
+      "description": "Separate consent flows for unknown questions vs contact-me requests. Each stream has different de-identification and storage rules.",
+      "streams": {
+        "stream_1_unknown_questions": {
+          "trigger": "User asks a question the system cannot answer",
+          "flow": [
+            "System presents template response (3-path classification)",
+            "System asks: 'May I record your question so we can improve? We would save a de-identified version of this conversation.'",
+            "If yes: de-identify chat history ALWAYS (no verbatim option), store question + de-identified history",
+            "If no: do not store question or history",
+            "Either way: offer follow-up from ChatHealthy team"
+          ],
+          "de_identification": "Always. No verbatim option for unknown questions.",
+          "collection": "AboutUs.AboutSkip"
+        },
+        "stream_2_contact_me": {
+          "trigger": "User wants someone from ChatHealthy to follow up",
+          "flow": [
+            "Collect name and email",
+            "PHI warning: 'This conversation may contain personal health information. ChatHealthy is not a HIPAA covered entity.'",
+            "User chooses: 'Would you like us to save the full verbatim transcript, or would you prefer we de-identify it first?'",
+            "If verbatim: store full raw chat history with consent_verbatim=true",
+            "If de-identify: run deIdentify, store scrubbed version with consent_verbatim=false, consent_summary=true",
+            "If neither: store contact fields only, no history"
+          ],
+          "de_identification": "User's choice \u2014 verbatim or de-identified.",
+          "collection": "AboutUs.lead"
+        }
+      },
+      "bugs_found": [
+        {
+          "bug": "Sonnet set consent_verbatim=true when user explicitly asked for de-identification",
+          "root_cause": "System prompt consent instructions not specific enough about mapping user response to consent flags",
+          "status": "deferred"
+        },
+        {
+          "bug": "PII not scrubbed in stored chat history when de-identify was requested",
+          "root_cause": "consent_verbatim=true overrode de-identification \u2014 deIdentify was never called",
+          "status": "deferred"
+        }
+      ],
+      "governance": {
+        "rule": "GOV-004 HIPAA Consent Framework",
+        "legal_dependency": "Pending legal questions LEG Q1 (unanswerable question consent), LEG Q2 (contact us consent)"
+      },
+      "_record_id": "consent_framework_feature",
+      "_source_file": "consent_framework_feature.json"
+    },
+    {
+      "feature": "QA Report (Human Testing Mode)",
+      "feature_id": 13,
+      "status": "implemented",
+      "description": "Self-documenting UAT test report rendered as the welcome splash when HUMAN_TESTING=true. Provides real-time visibility into test progress, bugs, and enhancements during a test cycle.",
+      "requirements": [
+        {
+          "id": "QA-REQ-001",
+          "requirement": "QA Report header with two summary tables: build range (start/end/count) and scenario summary (total/passed/deferred/failed/to-test)",
+          "status": "implemented"
+        },
+        {
+          "id": "QA-REQ-002",
+          "requirement": "Feature tracking table with columns: #, Feature, Done (Y/DEF/FAIL/blank), Bugs Fixed, Feat Impl",
+          "status": "implemented"
+        },
+        {
+          "id": "QA-REQ-003",
+          "requirement": "Done column statuses: Y (passed), DEF (deferred), FAIL (failed), blank (untested). Only Boss can set these during UAT.",
+          "status": "implemented"
+        },
+        {
+          "id": "QA-REQ-004",
+          "requirement": "Repeating header row every 7 features for readability",
+          "status": "implemented"
+        },
+        {
+          "id": "QA-REQ-005",
+          "requirement": "Notes section showing all features with notes (bugs, enhancements, deferrals, failures)",
+          "status": "implemented"
+        },
+        {
+          "id": "QA-REQ-006",
+          "requirement": "Auto-incrementing build number on each server restart",
+          "status": "implemented"
+        },
+        {
+          "id": "QA-REQ-007",
+          "requirement": "HUMAN_TESTING flag in .env toggles test mode. Production override: if ENV_PREFIX=prod, test mode is always false (commented out, activate when ENV_PREFIX routing is live).",
+          "status": "implemented"
+        },
+        {
+          "id": "QA-REQ-008",
+          "requirement": "Frontend fetches /welcome from API (not hardcoded). Supports dynamic welcome content.",
+          "status": "implemented"
+        },
+        {
+          "id": "QA-REQ-009",
+          "requirement": "GFM markdown table rendering with bordered cells (remark-gfm + rehype-sanitize whitelist)",
+          "status": "implemented"
+        },
+        {
+          "id": "QA-REQ-010",
+          "requirement": "Start build and end build tracked in header. Builds Tested count computed automatically.",
+          "status": "implemented"
+        }
+      ],
+      "governance": {
+        "uat_signoff_rule": "Only Boss can mark features as pass, fail, or deferred. Claude documents bugs and implements fixes but does not change UAT status.",
+        "production_override": "HUMAN_TESTING is always false in production regardless of env var setting."
+      },
+      "_record_id": "qa_report_feature",
+      "_source_file": "qa_report_feature.json"
+    },
+    {
+      "title": "Sprint Plan \u2014 v0.1.3",
+      "status": "PROPOSED",
+      "date": "2026-03-30",
+      "sprint_start": "2026-03-31",
+      "sprint_goal": "Refactor architecture (ARCH-001), maps, current functionality enhancements",
+      "schedule": [
+        {
+          "day": "2026-03-31 (Tuesday)",
+          "theme": "Skeleton + Security Fix + Maps",
+          "builds": [
+            {
+              "id": "B-187",
+              "task": "ARCH-001 Phase 1: Skeleton Architecture + ToolRouter",
+              "detail": "Create folder structure, ChatOrchestrator pass-through, ToolRouter with allowlist (kills globals().get \u2014 F-05). App runs unchanged.",
+              "risk": "LOW",
+              "deploy": "dev"
+            },
+            {
+              "id": "B-188",
+              "task": "Maps: Provider search results on map",
+              "detail": "Add map component to frontend. Providers already have lat/lng from NPI data. Display results on interactive map alongside bullet list.",
+              "risk": "LOW-MEDIUM",
+              "deploy": "dev"
+            },
+            {
+              "id": "B-189",
+              "task": "F-09: Expand emergency keyword list",
+              "detail": "Add burns, drowning, trauma, diabetic emergency, childbirth keywords. Create brain/machine_artifacts/emergency_keywords.json.",
+              "risk": "LOW",
+              "deploy": "dev"
+            }
+          ]
+        },
+        {
+          "day": "2026-04-01 (Wednesday)",
+          "theme": "Extract FindCare Domain",
+          "builds": [
+            {
+              "id": "B-190",
+              "task": "ARCH-001 Phase 2: Extract ProviderSearchService",
+              "detail": "Move find_providers() to ProviderSearchService. Introduce FindCareFacade. Update ToolRouter. Validate pattern.",
+              "risk": "LOW",
+              "deploy": "dev"
+            },
+            {
+              "id": "B-191",
+              "task": "ARCH-001 Phase 3: Extract SpecialtyService",
+              "detail": "Move find_specialty_codes() to SpecialtyService. Wire through FindCareFacade.",
+              "risk": "LOW-MEDIUM",
+              "deploy": "dev"
+            },
+            {
+              "id": "B-192",
+              "task": "F-10: Raise provider search result cap to 25",
+              "detail": "Configurable limit in ProviderSearchService (new class). Default 25.",
+              "risk": "LOW",
+              "deploy": "dev"
+            }
+          ]
+        },
+        {
+          "day": "2026-04-02 (Thursday)",
+          "theme": "Extract EvaluateCareQuality + Shared",
+          "builds": [
+            {
+              "id": "B-193",
+              "task": "ARCH-001 Phase 4: Extract ClinicalTrialsService + ProviderDetailService",
+              "detail": "Move to EvaluateCareQuality domain. Introduce EvaluateCareFacade. Facade-to-facade for travel calculations.",
+              "risk": "MEDIUM",
+              "deploy": "dev"
+            },
+            {
+              "id": "B-194",
+              "task": "ARCH-001 Phase 5: Extract Shared Services",
+              "detail": "SafetyService, EmergencyDetector, ConsentService, LeadService, UnknownQuestionService, AboutService, URLGuardian relocation.",
+              "risk": "MEDIUM",
+              "deploy": "dev"
+            }
+          ]
+        },
+        {
+          "day": "2026-04-03 (Friday)",
+          "theme": "Pydantic + Cleanup + QA",
+          "builds": [
+            {
+              "id": "B-195",
+              "task": "ARCH-001 Phase 6: Pydantic tool models",
+              "detail": "Define input/output schemas for all 9 tools. Validation layer in ToolRouter.",
+              "risk": "MEDIUM",
+              "deploy": "dev"
+            },
+            {
+              "id": "B-196",
+              "task": "ARCH-001 Phase 7: Delete main.py",
+              "detail": "Remove monolith. app.py + HostChatAdapter is the entry point. Zero business logic in HuggingFace surface.",
+              "risk": "LOW",
+              "deploy": "dev"
+            },
+            {
+              "id": "B-197",
+              "task": "Full regression test + SIT",
+              "detail": "Run all unit tests, integration tests, GPT-5.3 SIT on refactored code. Baseline comparison against pre-refactor outputs.",
+              "risk": "LOW",
+              "deploy": "dev"
+            }
+          ]
+        },
+        {
+          "day": "2026-04-04 (Saturday)",
+          "theme": "QA Promotion + Stabilization",
+          "builds": [
+            {
+              "id": "B-198",
+              "task": "Promote to QA",
+              "detail": "Merge dev to qa. Deploy to qa HF Space + qa Cloudflare. Smoke test.",
+              "risk": "LOW",
+              "deploy": "qa"
+            },
+            {
+              "id": "B-199",
+              "task": "Boss UAT on QA",
+              "detail": "Boss tests maps, provider search, clinical trials, safety, consent on QA environment.",
+              "risk": "N/A \u2014 Boss pass/fail",
+              "deploy": "qa"
+            }
+          ]
+        },
+        {
+          "day": "2026-04-05 (Sunday) \u2014 if needed",
+          "theme": "Bug fixes + Production",
+          "builds": [
+            {
+              "id": "B-200",
+              "task": "Fix any UAT bugs",
+              "detail": "Address Boss feedback from QA testing.",
+              "risk": "VARIES",
+              "deploy": "qa"
+            },
+            {
+              "id": "B-201",
+              "task": "Promote to Production",
+              "detail": "Merge qa to main. Deploy. Boss sign-off required (GOV-007).",
+              "risk": "LOW (if QA passed)",
+              "deploy": "prod"
+            }
+          ]
+        }
+      ],
+      "enhancements_included": [
+        {
+          "id": "F-05",
+          "title": "ToolRouter replaces globals() dispatch",
+          "day": "Tuesday (Phase 1)"
+        },
+        {
+          "id": "F-09",
+          "title": "Emergency keyword expansion",
+          "day": "Tuesday"
+        },
+        {
+          "id": "F-10",
+          "title": "Provider search cap raised to 25",
+          "day": "Wednesday"
+        },
+        {
+          "id": "MAPS",
+          "title": "Interactive map for provider search results",
+          "day": "Tuesday"
+        },
+        {
+          "id": "UX-TIMEOUT",
+          "title": "Long-running request timeout UX with consent-gated performance logging",
+          "day": "This sprint"
+        }
+      ],
+      "feature_requests": [
+        {
+          "id": "UX-TIMEOUT",
+          "title": "Long-running request timeout with user consent and performance logging",
+          "priority": "HIGH",
+          "sprint": "v0.1.3 (current)",
+          "description": "When a chat request exceeds a configurable threshold, show a modal asking if the user wants to continue.",
+          "behavior": {
+            "threshold": "Configurable from MongoDB or environment variable (e.g., 30s default)",
+            "first_trigger": "After threshold elapsed: overlay modal 'This is taking a long time. Do you want to continue?'",
+            "options": {
+              "no_abandon": "User clicks No -> request is abandoned, response discarded",
+              "yes_continue": "User clicks Yes -> keep waiting. Ask again at each multiplier of threshold (2x, 3x, etc.)"
+            },
+            "repeat": "Each multiplier of the timeout threshold re-asks the question"
+          },
+          "performance_logging": {
+            "trigger": "After request completes (success, abandon, or error) AND after user completes consent path",
+            "collection": "MongoDB performance record",
+            "fields": [
+              "request_id",
+              "elapsed_ms",
+              "user_action (completed/abandoned)",
+              "abandon_count",
+              "continue_count",
+              "tool_calls",
+              "timestamp"
+            ]
+          },
+          "implementation_notes": [
+            "Frontend: modal overlay with Yes/No radio buttons",
+            "Frontend: AbortController to cancel fetch on abandon",
+            "Backend: timeout threshold from env var or admin.config collection",
+            "Backend: performance record written after consent path completes"
+          ]
+        }
+      ],
+      "next_sprint": {
+        "title": "Sprint v0.1.4",
+        "start": "2026-04-06 (Monday)",
+        "deadline": "2026-04-08 (Wednesday)",
+        "theme": "Performance Tuning + Hardening",
+        "deliverables": [
+          {
+            "id": "PERF-001",
+            "task": "Performance tuning \u2014 end-to-end response time optimization",
+            "detail": "Profile and optimize: startup time (FIPS load 2x, ~120s), provider search latency (BUG-PERF-001, 87s VA), embedding call overhead, MongoDB query patterns, cold start reduction.",
+            "deadline": "2026-04-08 (Wednesday)",
+            "priority": "HIGH"
+          },
+          {
+            "id": "DEVOPS-WARMUP",
+            "task": "Post-deploy warmup script",
+            "detail": "After every deploy, run a warmup script that hits /health (waits for 200), then fires a test provider search and specialty query to force FIPS load, MongoDB connection pool init, and OpenAI client init. First real user gets a warm server. Add to all deploy workflows (deploy-findcare-backend.yml, manual deploys).",
+            "deadline": "2026-04-08 (Wednesday)",
+            "priority": "HIGH",
+            "deployment_requirement": true
+          },
+          {
+            "id": "PERF-002",
+            "task": "Compound vector search indexes \u2014 city+embedding, county+embedding, state+embedding",
+            "detail": "Create compound indexes on providers collection: {practice_address.city, embedding}, {county.name, embedding}, {practice_address.state, embedding}. These allow MongoDB Atlas vector search to pre-filter by geography before scoring embeddings, eliminating full-collection scans. Directly addresses BUG-PERF-001 (87s VA search).",
+            "deadline": "2026-04-08 (Wednesday)",
+            "priority": "HIGH",
+            "indexes": [
+              {
+                "name": "provider_vector_city_idx",
+                "fields": "practice_address.city + embedding",
+                "purpose": "City-scoped vector search"
+              },
+              {
+                "name": "provider_vector_county_idx",
+                "fields": "county.name + embedding",
+                "purpose": "County-scoped vector search"
+              },
+              {
+                "name": "provider_vector_state_idx",
+                "fields": "practice_address.state + embedding",
+                "purpose": "State-scoped vector search (current index, verify exists)"
+              }
+            ]
+          },
+          {
+            "id": "DEVOPS-UAT-AUTO",
+            "task": "Automated UAT status updates on commit",
+            "detail": "When Claude commits a bug fix or feature, automatically update the UAT status in MongoDB. No manual reseeding. The commit message contains the feature ID and classification \u2014 parse it and update the DB as part of the commit workflow.",
+            "deadline": "2026-04-08 (Wednesday)",
+            "priority": "MEDIUM",
+            "origin": "AI operational error during Cycle 1 \u2014 manual reseed was required because UAT timestamps were out of sync."
+          },
+          {
+            "id": "DEVOPS-UAT-INJECT",
+            "task": "Automate UAT report via HuggingFace Space config injection",
+            "detail": "Investigate: can we parameterize HUMAN_TESTING via HF Space API or redirect? Goal: Claude triggers a fresh UAT session programmatically without Boss manually editing secrets. Options: HF API to update secrets, redirect with query param, or environment variable injection from GitHub Actions deploy workflow.",
+            "deadline": "2026-04-08 (Wednesday)",
+            "priority": "MEDIUM",
+            "origin": "Manual secret editing during Cycle 1 was error-prone. UAT report display should be automated as part of deploy pipeline."
+          }
+        ]
+      },
+      "backlog_content_management": {
+        "id": "CM-001",
+        "title": "Content Management System",
+        "phase_1": {
+          "target": "v0.1.4",
+          "description": "Templates in MongoDB (admin.content_templates). Loadable without code deploy. Claude/GPT can update via brain loop.",
+          "scope": [
+            "unanswerable question templates",
+            "welcome message",
+            "emergency response text",
+            "consent prompts"
+          ]
+        },
+        "phase_2": {
+          "target": "post-funding",
+          "description": "GUI content management tool for marketing/business founder. CRUD on templates, preview, approval workflow.",
+          "dependency": "funding"
+        }
+      },
+      "funding_milestone": {
+        "target_date": "See Website/roadmap.html",
+        "title": "Seed Funding Close",
+        "note": "All milestone dates maintained in Website/roadmap.html (source of truth). Do not duplicate.",
+        "items_deferred_to_funding": [
+          "CM-001 Phase 2: Content management GUI",
+          "Marketing founder / content owner",
+          "Enterprise sales tooling",
+          "Multi-state data load (compute cost)"
+        ]
+      },
+      "deferred_to_next_sprint": [
+        "F-06: Durable Functions status URL auth (Pipeline concern, not chat refactor)",
+        "F-08: All-state coverage (pipeline run, not code change)",
+        "F-11: FIPS hack resolution (pipeline re-run)",
+        "F-12: DeepSeek privacy disclosure (legal/copy)",
+        "F-13: Lock architecture docs (Boss decision on access gate)",
+        "R19: Azure Function timeout UAT",
+        "R35: Paused cluster UAT",
+        "BL-001 through BL-010: Perplexity backlog (v0.1.4)"
+      ],
+      "risks": [
+        "Phase 4-5 (Thursday) is the highest risk day \u2014 extracting two domains + shared services. If behind, push Phase 5 to Friday.",
+        "Maps depends on frontend map library selection (Leaflet vs Google Maps vs Mapbox). Decision needed Tuesday morning.",
+        "Pydantic phase may surface schema mismatches between what Claude sends and what tools expect. Budget extra time."
+      ],
+      "beta_sprint_1": {
+        "title": "Beta Sprint 1 \u2014 May 2026 (first sprint after Alpha release)",
+        "epic": {
+          "id": "BRAIN-021",
+          "name": "Brain V.3",
+          "version": "0.2.1",
+          "description": "Third generation brain infrastructure. Production-grade brain with content management, manifest automation, automated UAT reporting, and operational tooling.",
+          "deliverables": [
+            "Discuss Care MVP (DC-01 through DC-15)",
+            "Content management from MongoDB (CM-001 Phase 1)",
+            "Automated UAT status updates on commit (DEVOPS-UAT-AUTO)",
+            "Automated UAT report injection via HF API (DEVOPS-UAT-INJECT)",
+            "Brain manifest auto-update on commit",
+            "Break-fix environment for production hotfixes",
+            "Patent provisional draft session (first Discuss Care use case)"
+          ],
+          "source": "Website/roadmap.html (milestone dates)",
+          "target": "May 2026"
+        }
+      },
+      "_record_id": "sprint_plan_v013",
+      "_source_file": "sprint_plan_v013.json"
+    },
+    {
+      "scenarios": [],
+      "_record_id": "uat_library",
+      "_source_file": "uat_library.json"
+    },
+    {
+      "title": "UAT Feature List \u2014 v0.1.3",
+      "status": "DRAFT",
+      "date": "2026-03-30",
+      "base_version": "v0.1.2",
+      "owner": "Boss",
+      "features": [
+        {
+          "id": 1,
+          "feature": "Provider Search (DE + MS + VA, vector + regex)",
+          "v012_status": "PASS",
+          "v013_status": "pending",
+          "notes": "VA added in v0.1.2 hotfix. Full three-state coverage."
+        },
+        {
+          "id": 2,
+          "feature": "Specialty Identification (NUCC + AI expansion)",
+          "v012_status": "DEFERRED",
+          "v013_status": "pending",
+          "notes": "Sufficiently working in v0.1.2. Deep testing deferred."
+        },
+        {
+          "id": 3,
+          "feature": "Clinical Trials Search (+ travel time)",
+          "v012_status": "PASS",
+          "v013_status": "pending",
+          "notes": "Travel distance via Google Routes API. Two-pass UX."
+        },
+        {
+          "id": 4,
+          "feature": "About ChatHealthy / Skip Snow",
+          "v012_status": "PASS",
+          "v013_status": "pending",
+          "notes": "Known issue: Sonnet answers outside context. Fix: PreScreen class (Sprint 2)."
+        },
+        {
+          "id": 5,
+          "feature": "Safety Filter (dual-trigger, IP lock, audit)",
+          "v012_status": "PASS",
+          "v013_status": "pending",
+          "notes": "GPT-4.1-mini classifier. 3 bugs fixed in v0.1.2."
+        },
+        {
+          "id": 6,
+          "feature": "Lead Capture (follow-up offer)",
+          "v012_status": "PASS",
+          "v013_status": "pending",
+          "notes": ""
+        },
+        {
+          "id": 7,
+          "feature": "Consent Framework (two-stream)",
+          "v012_status": "DEFERRED",
+          "v013_status": "pending",
+          "notes": "Stream 1: questions (always de-identify). Stream 2: contact-me (user chooses)."
+        },
+        {
+          "id": 8,
+          "feature": "Provider Detail (external links + NPI lookup)",
+          "v012_status": "DEFERRED",
+          "v013_status": "pending",
+          "notes": "NPI Registry API added. Healthgrades/Zocdoc link quality issues."
+        },
+        {
+          "id": 9,
+          "feature": "URL Guardian (validate + defang broken links)",
+          "v012_status": "DEFERRED",
+          "v013_status": "pending",
+          "notes": "V2 design ready: 3-stage HEAD, AI content verify, Google search correction."
+        },
+        {
+          "id": 10,
+          "feature": "Chat UX (timer, stop, markdown, emergency)",
+          "v012_status": "DEFERRED",
+          "v013_status": "pending",
+          "notes": "Sufficient for v0.1.2. Deep testing deferred."
+        },
+        {
+          "id": 11,
+          "feature": "Blob Storage Infrastructure",
+          "v012_status": "PASS",
+          "v013_status": "pending",
+          "notes": "admin + dev-brain containers. Consolidated provider-data."
+        },
+        {
+          "id": 12,
+          "feature": "Unanswerable Question Handling (3-path classification)",
+          "v012_status": "PASS",
+          "v013_status": "pending",
+          "notes": "Template responses. Consent before recording. BUG-CLASSIFY-001 open."
+        },
+        {
+          "id": 13,
+          "feature": "Markdown Table Rendering (GFM)",
+          "v012_status": "PASS",
+          "v013_status": "pending",
+          "notes": "remark-gfm + sanitize whitelist. Bordered cells."
+        },
+        {
+          "id": 14,
+          "feature": "Git Security \u2014 private repo + GPT access",
+          "v012_status": "N/A",
+          "v013_status": "pending",
+          "notes": "CRITICAL ALPHA GATE. Make repo private. Fine-grained PAT for GPT. ASN-GITSEC01."
+        },
+        {
+          "id": 15,
+          "feature": "DevOps \u2014 dev/qa/prod promotion pipeline",
+          "v012_status": "N/A",
+          "v013_status": "pending",
+          "notes": "Framework 1.1. Three HF Spaces, three Cloudflare websites, PromoteData on Azure."
+        },
+        {
+          "id": 16,
+          "feature": "Performance \u2014 provider search response time",
+          "v012_status": "N/A",
+          "v013_status": "pending",
+          "notes": "BUG-PERF-001. VA search 87s without vector index. Index auto-creation added."
+        }
+      ],
+      "_record_id": "uat_v013",
+      "_source_file": "uat_v013.json"
+    }
+  ]
+}
