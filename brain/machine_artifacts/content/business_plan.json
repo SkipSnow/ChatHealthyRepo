@@ -558,7 +558,7 @@
       "_record_id": "biz_arch_investor",
       "_source_file": "biz_arch_investor.json",
       "description": "Legacy: first investor doc. Superseded by biz_arch_investor_v2.",
-      "business_artifact": "brain/BusinessArtifacts/biz_arch_investor.pdf",
+      "business_artifact": "brain/BusinessArtifacts/biz_arch_investor_v2.pdf",
       "publish": false
     },
     {
