@@ -1,6 +1,6 @@
 {
   "collection": "ai_operations",
-  "record_count": 9,
+  "record_count": 10,
   "records": [
     {
       "title": "AI Model Selection Decisions",
@@ -10,7 +10,7 @@
         "claude": {
           "model": "claude-opus-4-6",
           "provider": "Anthropic",
-          "role": "Engineer \u2014 writes code, executes tests, drives workflows",
+          "role": "Engineer — writes code, executes tests, drives workflows",
           "context_window": "1M tokens",
           "strengths": [
             "Code generation",
@@ -38,7 +38,7 @@
         {
           "date": "2026-03-30",
           "change": "GPT brain model upgraded from gpt-4o to o3 to gpt-5.3-chat-latest",
-          "reason": "GPT-4o failed autonomous SIT testing \u2014 could not self-correct in iterative tool-use loops (100 identical failing commands across 2 runs). o3 improved (15 iterations, 9 requirements tested) but still tested only 9/35 and consumed 1.6M input tokens. Boss directed switch to GPT-5.3 reasoning model.",
+          "reason": "GPT-4o failed autonomous SIT testing — could not self-correct in iterative tool-use loops (100 identical failing commands across 2 runs). o3 improved (15 iterations, 9 requirements tested) but still tested only 9/35 and consumed 1.6M input tokens. Boss directed switch to GPT-5.3 reasoning model.",
           "decision_by": "Boss",
           "evidence": "brain/machine_artifacts/gpt_sit_finding.json"
         },
@@ -368,7 +368,7 @@
           "iterations_max": 50,
           "tokens_in": 217959,
           "tokens_out": 2644,
-          "result": "FAIL \u2014 GPT sent the same malformed command 50 times. Never adapted. Never submitted a report.",
+          "result": "FAIL — GPT sent the same malformed command 50 times. Never adapted. Never submitted a report.",
           "root_cause": "GPT could not figure out the proxy command format (nested JSON). Sent {\"action\": \"call_gpt_reader\"} without a config payload every iteration."
         },
         {
@@ -377,7 +377,7 @@
           "iterations_max": 50,
           "tokens_in": 216706,
           "tokens_out": 1666,
-          "result": "FAIL \u2014 Identical to attempt 1. Circuit breaker warning was added but GPT ignored it.",
+          "result": "FAIL — Identical to attempt 1. Circuit breaker warning was added but GPT ignored it.",
           "root_cause": "Same malformed command. Circuit breaker comparison failed because elapsed_ms differed between responses, so 'same error' detection never triggered."
         },
         {
@@ -386,8 +386,8 @@
           "iterations_max": 50,
           "tokens_in": 572626,
           "tokens_out": 558,
-          "result": "INCOMPLETE PASS \u2014 GPT tested 7 of 35 requirements and declared victory.",
-          "root_cause": "Proxy was rewritten to accept GPTReader payloads directly (no nesting). GPT finally executed real calls. But it tested only R1, R2, R3, R4, R6, R8, R26 \u2014 then submitted a report declaring PASS with 28 requirements marked NOT_TESTABLE.",
+          "result": "INCOMPLETE PASS — GPT tested 7 of 35 requirements and declared victory.",
+          "root_cause": "Proxy was rewritten to accept GPTReader payloads directly (no nesting). GPT finally executed real calls. But it tested only R1, R2, R3, R4, R6, R8, R26 — then submitted a report declaring PASS with 28 requirements marked NOT_TESTABLE.",
           "requirements_tested": [
             "R1",
             "R2",
@@ -462,17 +462,17 @@
           "evidence": "Code review attempt: 31 PASS, 3 NOT_TESTABLE, 0 FAIL across all 34 requirements. Interactive SIT: 7 PASS, 28 NOT_TESTABLE."
         }
       ],
-      "recommendation": "GPT should be used as a code reviewer and design critic, not as an autonomous test executor. For SIT, Claude should execute the tests and GPT should evaluate the results \u2014 which is the model that succeeded (code review pass on all 34 requirements).",
+      "recommendation": "GPT should be used as a code reviewer and design critic, not as an autonomous test executor. For SIT, Claude should execute the tests and GPT should evaluate the results — which is the model that succeeded (code review pass on all 34 requirements).",
       "policy_implication": "This validates the AI Governance Policy core principle: 'The model may suggest. The system must decide.' GPT should not be trusted to autonomously determine test completeness.",
-      "system_prompt_used": "See gpt_sit_with_gpt.py _build_system_prompt() \u2014 structured JSON with role, rules, command examples, report format, governance policies.",
-      "user_prompt_used": "See gpt_sit_with_gpt.py _build_initial_prompt() \u2014 all 35 requirements listed, available connections, token instructions, 'Begin testing' directive.",
+      "system_prompt_used": "See gpt_sit_with_gpt.py _build_system_prompt() — structured JSON with role, rules, command examples, report format, governance policies.",
+      "user_prompt_used": "See gpt_sit_with_gpt.py _build_initial_prompt() — all 35 requirements listed, available connections, token instructions, 'Begin testing' directive.",
       "_record_id": "gpt_sit_finding",
       "_source_file": "gpt_sit_finding.json",
       "description": "FIND-SIT-001: GPT-4o cannot drive autonomous SIT. 3 attempts, 1M+ tokens, documented failure.",
       "publish": false
     },
     {
-      "report_title": "GPT SIT Report \u2014 Round 2 (Remaining)",
+      "report_title": "GPT SIT Report — Round 2 (Remaining)",
       "design_version": "6.3",
       "overall_verdict": "FAIL",
       "summary": {
@@ -487,7 +487,7 @@
         {
           "requirement_id": "R7",
           "verdict": "PASS",
-          "test_evidence": "Query limit=100 \u2192 HTTP 507 response with error=response_too_large and estimated_result=101",
+          "test_evidence": "Query limit=100 → HTTP 507 response with error=response_too_large and estimated_result=101",
           "notes": "Response cap enforced correctly"
         },
         {
@@ -553,7 +553,7 @@
             "http_status": 507,
             "response": {
               "error": "response_too_large",
-              "message": "Query matches 101+ documents. Max is 100. Your limit (100) doesn't help \u2014 add a filter.",
+              "message": "Query matches 101+ documents. Max is 100. Your limit (100) doesn't help — add a filter.",
               "max_documents": 100,
               "estimated_result": 101,
               "suggestion": "Add a filter or reduce limit."
@@ -16363,7 +16363,7 @@
     },
     {
       "_record_id": "gpt_assignment_system_prompt",
-      "title": "GPT Assignment System Prompt (Static \u2014 Prompt Cacheable)",
+      "title": "GPT Assignment System Prompt (Static — Prompt Cacheable)",
       "model": "gpt-5.3-chat-latest",
       "role": "Enterprise Architect",
       "cacheable": true,
@@ -16372,11 +16372,11 @@
         "governance": [
           "GOV-004: The model may suggest. The system must decide.",
           "Boss controls scope. You assess risk but may NOT defer mandatory items.",
-          "Tradeoff suggestions go in tradeoff_suggestions only \u2014 never as a reason to defer."
+          "Tradeoff suggestions go in tradeoff_suggestions only — never as a reason to defer."
         ],
         "quality": "Thin outputs are rejected. Complete professional output required.",
         "output_schema": {
-          "assignment_id": "string \u2014 from assignment",
+          "assignment_id": "string — from assignment",
           "timestamp": "ISO 8601 UTC",
           "architecture_status": "pass | fail",
           "behavior_status": "pass | fail",
@@ -16387,7 +16387,7 @@
           "scope_assessment": {
             "_when": "one entry per MANDATORY SCOPE item (empty array if none)",
             "_each": {
-              "feature": "string \u2014 exact name from scope",
+              "feature": "string — exact name from scope",
               "risk": "Low | Moderate | High | Critical",
               "assessment": "string",
               "conditions": "array of strings (empty if Low risk)"
@@ -16579,6 +16579,22 @@
         ]
       },
       "description": "Static system prompt for GPT assignments. Prompt-cacheable. Includes brain manifest and output schema.",
+      "publish": false
+    },
+    {
+      "_record_id": "epic_planning_user_prompt_v014",
+      "title": "Epic Planning User Prompt -- v0.1.4",
+      "assignment": "Planning for April 2026, Epic 2 Deliver credible quality module",
+      "function": "epic planning doc and JSON production",
+      "model": "gpt-5.3-chat-latest",
+      "system_prompt_ref": "gpt_assignment_system_prompt",
+      "cacheable": false,
+      "iteration": {
+        "current": 1,
+        "max": 1000,
+        "note": "Claude increments on each submission"
+      },
+      "description": "Epic planning user prompt for v0.1.4. Two epics: Evaluate Care (80%) and Maintenance (20%). Produces Word doc + JSON.",
       "publish": false
     }
   ]
