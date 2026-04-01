@@ -372,58 +372,85 @@ def run(max_iterations: int = 1000, prompt_record_id: str = "epic_planning_user_
         except (ImportError, FileNotFoundError):
             pass  # cost_guard or budget config not available, proceed
 
-        print(f"[EpicPlanner] Calling {model}...")
-        try:
-            raw_text, tokens_in, tokens_out = _call_gpt(system_prompt, user_message, model)
-        except Exception as e:
-            error_str = str(e)
-            print(f"[EpicPlanner] ERROR: GPT call failed — {error_str}")
-            # Don't retry the same error endlessly
-            if not hasattr(run, '_last_error'):
-                run._last_error = error_str
-                run._error_count = 1
-            elif run._last_error == error_str:
-                run._error_count += 1
-                if run._error_count >= 3:
-                    print(f"[EpicPlanner] Same error 3 times — stopping. Fix the issue and rerun.")
-                    break
+        # Inner loop: research phase — GPT asks for content, Claude fulfills, repeat
+        result = None
+        research_round = 0
+        max_research = 10  # cap research rounds per iteration
+        current_message = user_message
+
+        while True:
+            research_round += 1
+            print(f"[EpicPlanner] Calling {model} (research round {research_round})...")
+            try:
+                raw_text, tokens_in, tokens_out = _call_gpt(system_prompt, current_message, model)
+            except Exception as e:
+                error_str = str(e)
+                print(f"[EpicPlanner] ERROR: GPT call failed — {error_str}")
+                if not hasattr(run, '_last_error'):
+                    run._last_error = error_str
+                    run._error_count = 1
+                elif run._last_error == error_str:
+                    run._error_count += 1
+                    if run._error_count >= 3:
+                        print(f"[EpicPlanner] Same error 3 times — stopping.")
+                        break
+                else:
+                    run._last_error = error_str
+                    run._error_count = 1
+                print(f"[EpicPlanner] Retrying ({run._error_count}/3)...")
+                break
+
+            total_tokens_in += tokens_in
+            total_tokens_out += tokens_out
+            print(f"[EpicPlanner] Tokens: {tokens_in} in / {tokens_out} out")
+
+            try:
+                from cost_guard import log_usage
+                log_usage(agent="GPT", model=model, tokens_in=tokens_in, tokens_out=tokens_out,
+                          assignment_id="epic_planning_v014", call_type="epic_planning")
+            except Exception:
+                pass
+
+            try:
+                result = json.loads(raw_text)
+            except json.JSONDecodeError as e:
+                print(f"[EpicPlanner] ERROR: Not valid JSON — {e}")
+                print(f"[EpicPlanner] Raw (first 500): {raw_text[:500]}")
+                break
+
+            # Check if GPT is asking for more content
+            content_requests = result.get("content_requests", [])
+            if content_requests and isinstance(content_requests, list) and len(content_requests) > 0 and research_round < max_research:
+                print(f"[EpicPlanner] GPT requesting {len(content_requests)} resources — fulfilling...")
+                for req in content_requests:
+                    if isinstance(req, dict):
+                        print(f"  -> {req.get('type','?')}: {req.get('path','?')} ({req.get('reason','?')})")
+                fulfilled = _fulfill_content_requests(result)
+                # Send fulfilled content back as a follow-up message
+                current_message = (
+                    f"Iteration {i}, research round {research_round + 1}.\n"
+                    f"Here is the content you requested:\n\n{fulfilled}\n\n"
+                    f"Continue building the plan. Do not repeat content_requests for resources already provided."
+                )
+                continue
             else:
-                run._last_error = error_str
-                run._error_count = 1
-            print(f"[EpicPlanner] Retrying ({run._error_count}/3)...")
+                if content_requests and research_round >= max_research:
+                    print(f"[EpicPlanner] Research cap ({max_research}) reached — proceeding with what we have")
+                break
+
+        # If we broke out due to error or no result, continue to next iteration
+        if not isinstance(result, dict):
             continue
-
-        total_tokens_in += tokens_in
-        total_tokens_out += tokens_out
-        print(f"[EpicPlanner] Tokens: {tokens_in} in / {tokens_out} out")
-
-        try:
-            from cost_guard import log_usage
-            cost = log_usage(
-                agent="GPT",
-                model=model,
-                tokens_in=tokens_in,
-                tokens_out=tokens_out,
-                assignment_id=f"epic_planning_v014",
-                call_type="epic_planning",
-            )
-            print(f"[EpicPlanner] Cost this call: ${cost:.4f}")
-        except Exception as e:
-            print(f"[EpicPlanner] Cost logging skipped: {e}")
-
-        # Parse response
-        try:
-            result = json.loads(raw_text)
-        except json.JSONDecodeError as e:
-            print(f"[EpicPlanner] ERROR: Response is not valid JSON — {e}")
-            print(f"[EpicPlanner] Raw (first 500): {raw_text[:500]}")
-            continue
+        # Reset error tracking on success
+        run._last_error = None
+        run._error_count = 0
 
         # Add metadata
         result["_iteration"] = i
         result["_timestamp"] = datetime.now(timezone.utc).isoformat()
-        result["_tokens_in"] = tokens_in
-        result["_tokens_out"] = tokens_out
+        result["_tokens_in"] = total_tokens_in
+        result["_tokens_out"] = total_tokens_out
+        result["_research_rounds"] = research_round
 
         # Check for non-trivial changes flagged by GPT
         if result.get("non_trivial_changes_from_last"):
