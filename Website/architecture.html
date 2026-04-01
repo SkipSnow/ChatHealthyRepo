@@ -200,22 +200,33 @@
       <nav class="toc" aria-label="Table of contents">
         <h3>Contents</h3>
         <ol>
-          <li><a href="#repositories">Repositories &amp; Source Files</a></li>
-          <li><a href="#product-vision">Product Vision</a></li>
-          <li><a href="#infrastructure">Components</a></li>
-          <li><a href="#website">Website — Static Layer (Cloudflare)</a></li>
-          <li><a href="#four-app">Four-Application Architecture</a></li>
-          <li><a href="#session-routing">Session and Routing Model</a></li>
-          <li><a href="#chat-component">Chat Component Design</a></li>
-          <li><a href="#workflow">Example Workflows</a></li>
-          <li><a href="#data-privacy">Data and Privacy</a></li>
-          <li><a href="#devops">DevOps</a></li>
-          <li><a href="#pipeline-architecture">Data Pipeline Architecture</a></li>
-          <li><a href="#environment">Environment &amp; Data Model</a></li>
-          <li><a href="#networking">Networking</a></li>
-          <li><a href="#models">AI Models &amp; Cost at Scale</a></li>
-          <li><a href="#deferred">Deferred</a></li>
-
+          <li><a href="#overview">Overview</a>
+            <ol style="margin-top:4px;">
+              <li><a href="#repositories">Repositories &amp; Source Files</a></li>
+              <li><a href="#product-vision">Product Vision</a></li>
+            </ol>
+          </li>
+          <li><a href="#biz-arch">Business Architecture</a>
+            <ol style="margin-top:4px;">
+              <li><a href="#four-app">Four-Application Architecture</a></li>
+              <li><a href="#data-privacy">Data and Privacy</a></li>
+            </ol>
+          </li>
+          <li><a href="#tech-arch">Technical Architecture</a>
+            <ol style="margin-top:4px;">
+              <li><a href="#infrastructure">Source Files by Application</a></li>
+              <li><a href="#website">Website — Static Layer (Cloudflare)</a></li>
+              <li><a href="#session-routing">Session and Routing Model</a></li>
+              <li><a href="#chat-component">Chat Component Design</a></li>
+              <li><a href="#workflow">Example Workflows</a></li>
+              <li><a href="#devops">DevOps</a></li>
+              <li><a href="#pipeline-architecture">Data Pipeline Architecture</a></li>
+              <li><a href="#environment">Environment &amp; Data Model</a></li>
+              <li><a href="#networking">Networking</a></li>
+              <li><a href="#models">AI Models &amp; Cost at Scale</a></li>
+              <li><a href="#deferred">Deferred</a></li>
+            </ol>
+          </li>
         </ol>
         <ul style="margin:8px 0 0 18px; font-size:0.88rem; line-height:1.9; list-style:disc;">
           <li><strong>Designs:</strong>
@@ -236,10 +247,13 @@
         </ul>
       </nav>
 
-      <!-- 0. REPOSITORIES & SOURCE FILES -->
-      <h2 id="repositories">0. Repositories &amp; Source Files</h2>
+      <!-- ═══════════════════════════════════════════════ -->
+      <!-- SECTION 1: OVERVIEW                            -->
+      <!-- ═══════════════════════════════════════════════ -->
+      <h2 id="overview" style="font-size:1.4rem; margin-top:40px; border-bottom:3px solid var(--teal); padding-bottom:8px;">1. Overview</h2>
 
-      <h3>Git Repositories</h3>
+      <h3 id="repositories">1.1 Repositories &amp; Source Files</h3>
+      <h4>Git Repositories</h4>
       <table>
         <tr><th>Repository</th><th>Purpose</th><th>URL</th></tr>
         <tr><td><strong>ChatHealthyRepo</strong></td><td>Monorepo — all production code, pipelines, website, brain</td><td><a href="https://github.com/SkipSnow/ChatHealthyRepo">github.com/SkipSnow/ChatHealthyRepo</a></td></tr>
@@ -319,7 +333,7 @@
       </table>
 
       <!-- 1 -->
-      <h2 id="product-vision">1. Product Vision</h2>
+      <h3 id="product-vision">1.2 Product Vision</h3>
       <p>
         ChatHealthy / FindCare is a unified healthcare discovery platform that turns fragmented
         public data into an AI based knowledge system. A continuously updated
@@ -344,8 +358,129 @@
         the primary runtime, not an add-on.
       </p>
 
-      <!-- 2 -->
-      <h2 id="infrastructure">2. Components</h2>
+      <!-- ═══════════════════════════════════════════════ -->
+      <!-- SECTION 2: BUSINESS ARCHITECTURE                -->
+      <!-- ═══════════════════════════════════════════════ -->
+      <h2 id="biz-arch" style="font-size:1.4rem; margin-top:40px; border-bottom:3px solid var(--teal); padding-bottom:8px;">2. Business Architecture</h2>
+
+      <h3 id="four-app">2.1 Four-Application Architecture</h3>
+      <p>The system is four applications in two categories: three <strong>Product</strong> applications (customer-facing) and one <strong>DevOps</strong> application (SDLC).</p>
+
+      <h4 style="margin-top:28px; color:var(--teal); font-size:0.85rem; letter-spacing:0.06em; text-transform:uppercase;">Product Applications</h4>
+
+      <h4>App 1 — Static Website (Cloudflare)</h4>
+      <p>Static HTML, CSS, and JavaScript only. No business logic, no LLM calls, no database access. Embeds App 2 via iframe. That is the only coupling.</p>
+
+      <h4>App 2 — Chat Window (HuggingFace)</h4>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+          <tr><td>Frontend</td><td>React + shadcn/ui</td><td>Chat interface; inline maps, charts, provider cards</td></tr>
+          <tr><td>Backend</td><td>FastAPI (Python)</td><td>API routes, tool definitions, session management</td></tr>
+          <tr><td>Router</td><td>Claude tool selector</td><td>Intent routing — Claude's tool selection IS the router; no separate routing service</td></tr>
+          <tr><td>AI — Chat</td><td>Claude Sonnet 4.6 (Anthropic)</td><td>Main conversation, tool calling, response generation</td></tr>
+          <tr><td>AI — Utility</td><td>Claude Haiku 4.5 (Anthropic)</td><td>Safety classification, summarization, de-identification</td></tr>
+          <tr><td>Hosting</td><td>HuggingFace Docker Space</td><td>Container-based, free tier available</td></tr>
+          <tr style="color:#0b7a75;"><td>Maps</td><td>Google Maps</td><td><strong>Roadmap.</strong> Provider location display — interactive map rendered inline in the chat response showing provider pins, distances, and directions</td></tr>
+        </table>
+      </div>
+
+      <h4>App 3 — Data Management &amp; Pipelines (Azure Functions)</h4>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+          <tr><td>Orchestration</td><td>CrewAI</td><td>Multi-agent coordination; multi-LLM support</td></tr>
+          <tr><td>Runtime</td><td>Azure Function App</td><td>Pay-per-use; Python 3.12.10</td></tr>
+          <tr><td>Library</td><td>ChatHealthyLib.pipelines</td><td>Core pipeline logic</td></tr>
+          <tr><td>Trigger</td><td>API call from App 2</td><td>Invoked when complex workflow needed</td></tr>
+        </table>
+      </div>
+
+      <p>
+        <strong>Why CrewAI?</strong> Multi-LLM support — each agent can use the best model for its task.
+        No single vendor lock-in; models are swapped as the landscape evolves.
+      </p>
+
+      <h4 style="margin-top:28px; color:var(--teal); font-size:0.85rem; letter-spacing:0.06em; text-transform:uppercase;">DevOps Application</h4>
+
+      <h4>App 4 — The Brain (AI-Native SDLC)</h4>
+      <p>
+        The Brain is an end-to-end automated but attended native AI SDLC with gateways and governance.
+        It governs how the product gets built. It is public (GOV-003) but is not a customer-facing application.
+      </p>
+      <p>
+        The FindCare alpha release candidate (v0.1.3, Build 324) is stable and sufficient.
+        The Brain exists to maintain enterprise discipline as the product evolves.
+      </p>
+
+      <h5>Operational Today</h5>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Component</th><th>Technology</th><th>Status</th></tr>
+          <tr><td>Governance</td><td>JSON (brain/machine_artifacts/content/governance.json)</td><td>Live — GOV-001 through GOV-009, AI governance, risk register</td></tr>
+          <tr><td>Assignments</td><td>JSON (brain/machine_artifacts/content/work_log.json)</td><td>Live — structured work queue for GPT and Claude</td></tr>
+          <tr><td>Audit</td><td>JSON + PDF (brain/machine_artifacts/, brain/BusinessArtifacts/)</td><td>Live — SIT reports, QA reports, UAT sign-offs, execution logs</td></tr>
+          <tr><td>Manifest</td><td>JSON (brain/manifest/project_manifest.json)</td><td>Live — every code file catalogued with capabilities</td></tr>
+          <tr><td>GPTReader</td><td>Azure Function (Code/DataPipelines/gpt_reader.py)</td><td>Live — read-only broker, authenticated, audited, 27/27 SIT pass</td></tr>
+          <tr><td>Brain Runner</td><td>Python (Code/Shared/brain_runner.py)</td><td>Live — executes GPT/Claude assignments via API</td></tr>
+        </table>
+      </div>
+
+      <h5>Planned</h5>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Component</th><th>Technology</th><th>Target</th></tr>
+          <tr><td>Prompts</td><td>Brain pseudo-collection (migrating from code)</td><td>v0.1.4 — centralize all AI agent prompts, cached and versioned</td></tr>
+          <tr><td>Plans</td><td>JSON (brain/machine_artifacts/content/sprint_plan.json)</td><td>v0.1.4 — epic/feature/story/requirement breakdowns</td></tr>
+        </table>
+      </div>
+
+      <p>
+        <strong>Roles:</strong> Boss directs and holds all gate authority.
+        GPT (Enterprise Architect, gpt-5.3) plans, reviews, and gates.
+        Claude (Engineer, claude-opus-4-6) executes code, tests, and deploys.
+      </p>
+      <p>
+        <strong>Integration:</strong> GPTReader API on Azure Functions (read-only, authenticated, audited).
+        Brain data lives in <code>brain/</code> in the monorepo (local source of truth), synced to MongoDB and Azure Blob.
+      </p>
+
+      <h3 id="data-privacy">2.2 Data and Privacy</h3>
+
+      <h4>HIPAA Consent Flow</h4>
+      <div class="diagram">
+        <div class="diagram-inner">
+          <div class="flow-step"><strong>Q1:</strong> "May we save a verbatim transcript of this conversation with your contact details?"</div>
+          <div class="flow-yes">Yes → Store full chat history (PII intact, consent exchange included as evidence)</div>
+          <div class="flow-step"><strong>Q2 (if Q1 declined):</strong> "May we save a de-identified summary instead?"</div>
+          <div class="flow-yes">Yes → LLM summarizes → deIdentify() scrubs PII → stored in notes field only</div>
+          <div class="flow-step">Neither consented → Contact fields only; no history stored</div>
+          <div class="flow-step" style="margin-top:8px;">Unknown questions always de-identified and recorded regardless of consent</div>
+        </div>
+      </div>
+
+      <h4>MongoDB Lead Record Schema</h4>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+          <tr><td>email</td><td>string</td><td>User contact</td></tr>
+          <tr><td>name</td><td>string</td><td>User contact</td></tr>
+          <tr><td>notes</td><td>string</td><td>De-identified summary if consent_summary=true</td></tr>
+          <tr><td>reason_for_contact</td><td>string</td><td>Extracted by AI</td></tr>
+          <tr><td>consent_verbatim</td><td>boolean</td><td>Explicit verbatim consent</td></tr>
+          <tr><td>consent_summary</td><td>boolean / null</td><td>Explicit summary consent</td></tr>
+          <tr><td>chat_history</td><td>array</td><td>Present only if consent_verbatim=true</td></tr>
+          <tr><td>datetime</td><td>ISO string</td><td>Record creation timestamp</td></tr>
+          <tr><td>testdata</td><td>boolean</td><td>true for automated test records only</td></tr>
+        </table>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════ -->
+      <!-- SECTION 3: TECHNICAL ARCHITECTURE               -->
+      <!-- ═══════════════════════════════════════════════ -->
+      <h2 id="tech-arch" style="font-size:1.4rem; margin-top:40px; border-bottom:3px solid var(--teal); padding-bottom:8px;">3. Technical Architecture</h2>
+
+      <h3 id="infrastructure">3.1 Source Files by Application</h3>
       <div class="diagram" style="overflow-x:auto;">
         <svg xmlns="http://www.w3.org/2000/svg" width="760" height="455" font-family="'DM Sans',sans-serif" font-size="11" fill="#0d1117">
           <defs>
@@ -524,7 +659,7 @@
       </div>
 
       <!-- 3 -->
-      <h2 id="website">3. Website — Static Layer (Cloudflare)</h2>
+      <h3 id="website">3.2 Website — Static Layer (Cloudflare)</h3>
       <p>
         The <code>Website/</code> directory is served as static pages by Cloudflare at
         <strong>www.chathealthy.ai</strong>. It contains no server-side code — all behavior is
@@ -562,91 +697,8 @@
         </table>
       </div>
 
-      <!-- 4 -->
-      <h2 id="four-app">4. Four-Application Architecture</h2>
-      <p>The system is four applications in two categories: three <strong>Product</strong> applications (customer-facing) and one <strong>DevOps</strong> application (SDLC).</p>
-
-      <h3 style="margin-top:28px; color:var(--teal); font-size:0.85rem; letter-spacing:0.06em; text-transform:uppercase;">Product Applications</h3>
-
-      <h3>App 1 — Static Website (Cloudflare)</h3>
-      <p>Static HTML, CSS, and JavaScript only. No business logic, no LLM calls, no database access. Embeds App 2 via iframe. That is the only coupling.</p>
-
-      <h3>App 2 — Chat Window (HuggingFace)</h3>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
-          <tr><td>Frontend</td><td>React + shadcn/ui</td><td>Chat interface; inline maps, charts, provider cards</td></tr>
-          <tr><td>Backend</td><td>FastAPI (Python)</td><td>API routes, tool definitions, session management</td></tr>
-          <tr><td>Router</td><td>Claude tool selector</td><td>Intent routing — Claude's tool selection IS the router; no separate routing service</td></tr>
-          <tr><td>AI — Chat</td><td>Claude Sonnet 4.6 (Anthropic)</td><td>Main conversation, tool calling, response generation</td></tr>
-          <tr><td>AI — Utility</td><td>Claude Haiku 4.5 (Anthropic)</td><td>Safety classification, summarization, de-identification</td></tr>
-          <tr><td>Hosting</td><td>HuggingFace Docker Space</td><td>Container-based, free tier available</td></tr>
-          <tr style="color:#0b7a75;"><td>Maps</td><td>Google Maps</td><td><strong>Roadmap.</strong> Provider location display — interactive map rendered inline in the chat response showing provider pins, distances, and directions</td></tr>
-        </table>
-      </div>
-
-      <h3>App 3 — Data Management &amp; Pipelines (Azure Functions)</h3>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
-          <tr><td>Orchestration</td><td>CrewAI</td><td>Multi-agent coordination; multi-LLM support</td></tr>
-          <tr><td>Runtime</td><td>Azure Function App</td><td>Pay-per-use; Python 3.12.10</td></tr>
-          <tr><td>Library</td><td>ChatHealthyLib.pipelines</td><td>Core pipeline logic</td></tr>
-          <tr><td>Trigger</td><td>API call from App 2</td><td>Invoked when complex workflow needed</td></tr>
-        </table>
-      </div>
-
-      <p>
-        <strong>Why CrewAI?</strong> Multi-LLM support — each agent can use the best model for its task.
-        No single vendor lock-in; models are swapped as the landscape evolves.
-      </p>
-
-      <h3 style="margin-top:28px; color:var(--teal); font-size:0.85rem; letter-spacing:0.06em; text-transform:uppercase;">DevOps Application</h3>
-
-      <h3>App 4 — The Brain (AI-Native SDLC)</h3>
-      <p>
-        The Brain is an end-to-end automated but attended native AI SDLC with gateways and governance.
-        It governs how the product gets built. It is public (GOV-003) but is not a customer-facing application.
-      </p>
-      <p>
-        The FindCare alpha release candidate (v0.1.3, Build 324) is stable and sufficient.
-        The Brain exists to maintain enterprise discipline as the product evolves.
-      </p>
-
-      <h4>Operational Today</h4>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Component</th><th>Technology</th><th>Status</th></tr>
-          <tr><td>Governance</td><td>JSON (brain/machine_artifacts/content/governance.json)</td><td>Live — GOV-001 through GOV-009, AI governance, risk register</td></tr>
-          <tr><td>Assignments</td><td>JSON (brain/machine_artifacts/content/work_log.json)</td><td>Live — structured work queue for GPT and Claude</td></tr>
-          <tr><td>Audit</td><td>JSON + PDF (brain/machine_artifacts/, brain/BusinessArtifacts/)</td><td>Live — SIT reports, QA reports, UAT sign-offs, execution logs</td></tr>
-          <tr><td>Manifest</td><td>JSON (brain/manifest/project_manifest.json)</td><td>Live — every code file catalogued with capabilities</td></tr>
-          <tr><td>GPTReader</td><td>Azure Function (Code/DataPipelines/gpt_reader.py)</td><td>Live — read-only broker, authenticated, audited, 27/27 SIT pass</td></tr>
-          <tr><td>Brain Runner</td><td>Python (Code/Shared/brain_runner.py)</td><td>Live — executes GPT/Claude assignments via API</td></tr>
-        </table>
-      </div>
-
-      <h4>Planned</h4>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Component</th><th>Technology</th><th>Target</th></tr>
-          <tr><td>Prompts</td><td>Brain pseudo-collection (migrating from code)</td><td>v0.1.4 — centralize all AI agent prompts, cached and versioned</td></tr>
-          <tr><td>Plans</td><td>JSON (brain/machine_artifacts/content/sprint_plan.json)</td><td>v0.1.4 — epic/feature/story/requirement breakdowns</td></tr>
-        </table>
-      </div>
-
-      <p>
-        <strong>Roles:</strong> Boss directs and holds all gate authority.
-        GPT (Enterprise Architect, gpt-5.3) plans, reviews, and gates.
-        Claude (Engineer, claude-opus-4-6) executes code, tests, and deploys.
-      </p>
-      <p>
-        <strong>Integration:</strong> GPTReader API on Azure Functions (read-only, authenticated, audited).
-        Brain data lives in <code>brain/</code> in the monorepo (local source of truth), synced to MongoDB and Azure Blob.
-      </p>
-
-      <!-- 5 -->
-      <h2 id="session-routing">5. Session and Routing Model</h2>
+      <!-- 5 (was 4 — Business Architecture moved to before Technical Architecture) -->
+      <h3 id="session-routing">3.3 Session and Routing Model</h3>
       <div class="diagram">
         <div class="diagram-inner">
           <div class="d-center"><div class="d-box d-box-wide"><strong>User Message</strong><small>"Find me an oncologist near me"</small></div></div>
@@ -675,7 +727,7 @@
       </p>
 
       <!-- 6 -->
-      <h2 id="chat-component">6. Chat Component Design</h2>
+      <h3 id="chat-component">3.4 Chat Component Design</h3>
       <p style="background:var(--teal-light);border:1px solid var(--teal-mid);border-radius:var(--radius);padding:10px 16px;margin-bottom:14px;font-size:0.92rem;">
         <strong>Full specification:</strong> <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('chat-app-design.html'),('Chat App Design'));return false;" style="color:var(--teal);text-decoration:none;font-weight:500;">Chat App Design Document</a>
       </p>
@@ -788,7 +840,7 @@
       </div>
 
       <!-- 7 -->
-      <h2 id="workflow">7. Example Workflows</h2>
+      <h3 id="workflow">3.5 Example Workflows</h3>
 
       <h3>Clinical Trial Research <span style="display:inline-block;background:#0b7a75;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">LIVE</span></h3>
       <div class="diagram">
@@ -838,39 +890,8 @@
         </div>
       </div>
 
-      <!-- 8 -->
-      <h2 id="data-privacy">8. Data and Privacy</h2>
-
-      <h3>HIPAA Consent Flow</h3>
-      <div class="diagram">
-        <div class="diagram-inner">
-          <div class="flow-step"><strong>Q1:</strong> "May we save a verbatim transcript of this conversation with your contact details?"</div>
-          <div class="flow-yes">Yes → Store full chat history (PII intact, consent exchange included as evidence)</div>
-          <div class="flow-step"><strong>Q2 (if Q1 declined):</strong> "May we save a de-identified summary instead?"</div>
-          <div class="flow-yes">Yes → LLM summarizes → deIdentify() scrubs PII → stored in notes field only</div>
-          <div class="flow-step">Neither consented → Contact fields only; no history stored</div>
-          <div class="flow-step" style="margin-top:8px;">Unknown questions always de-identified and recorded regardless of consent</div>
-        </div>
-      </div>
-
-      <h3>MongoDB Lead Record Schema</h3>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
-          <tr><td>email</td><td>string</td><td>User contact</td></tr>
-          <tr><td>name</td><td>string</td><td>User contact</td></tr>
-          <tr><td>notes</td><td>string</td><td>De-identified summary if consent_summary=true</td></tr>
-          <tr><td>reason_for_contact</td><td>string</td><td>Extracted by AI</td></tr>
-          <tr><td>consent_verbatim</td><td>boolean</td><td>Explicit verbatim consent</td></tr>
-          <tr><td>consent_summary</td><td>boolean / null</td><td>Explicit summary consent</td></tr>
-          <tr><td>chat_history</td><td>array</td><td>Present only if consent_verbatim=true</td></tr>
-          <tr><td>datetime</td><td>ISO string</td><td>Record creation timestamp</td></tr>
-          <tr><td>testdata</td><td>boolean</td><td>true for automated test records only</td></tr>
-        </table>
-      </div>
-
-      <!-- 9 -->
-      <h2 id="devops">9. DevOps</h2>
+      <!-- 9 (Data and Privacy moved to Section 2: Business Architecture) -->
+      <h3 id="devops">3.6 DevOps</h3>
       <div class="table-wrap">
         <table>
           <tr><th>Concern</th><th>Tool</th><th>Detail</th></tr>
@@ -888,7 +909,7 @@
       </div>
 
       <!-- 10 -->
-      <h2 id="pipeline-architecture">10. Data Pipeline Architecture</h2>
+      <h3 id="pipeline-architecture">3.7 Data Pipeline Architecture</h3>
 
       <p>Public health data (providers, specialties, ICD-10, procedures, prescriptions) is loaded
       and enriched by App 3 on a monthly cadence. The pipeline is triggered manually via POST to
@@ -1023,7 +1044,7 @@
       </div>
 
       <!-- 11 -->
-      <h2 id="environment">11. Environment &amp; Data Model</h2>
+      <h3 id="environment">3.8 Environment &amp; Data Model</h3>
 
       <h3>MongoDB Atlas — ChatHealthyDev Project</h3>
       <p>Two dedicated clusters, each with a distinct role. Security and access are enforced at the cluster level.</p>
@@ -1096,7 +1117,7 @@
       </ul>
 
       <!-- 12 -->
-      <h2 id="networking">12. Networking</h2>
+      <h3 id="networking">3.9 Networking</h3>
       <p>
         The DataPipelines Function App runs inside a dedicated Azure Virtual Network.
         Outbound connections to MongoDB Atlas route through the VNet via peering — traffic
@@ -1147,7 +1168,7 @@
       </div>
 
       <!-- 13 -->
-      <h2 id="models">13. AI Models &amp; Cost at Scale</h2>
+      <h3 id="models">3.10 AI Models &amp; Cost at Scale</h3>
 
       <h3>Active Models</h3>
       <table>
@@ -1316,7 +1337,7 @@
         <li>2% of sessions trigger consent flow (1 summarize + 1 de-identify)</li>
       </ul>
 
-      <h2 id="deferred">14. Deferred</h2>
+      <h3 id="deferred">3.11 Deferred</h3>
       <ul>
         <li><strong>CopyToRuntime + Blue-Green Collection Swap</strong> — fan-out copy of <code>providers</code> → <code>providers_new</code> on ChatHealthyFrontEnd cluster, then atomic rename swap. Until implemented, runtime reads are served from the DataPipelines cluster.</li>
         <li><strong>Cluster manager agent</strong> — dedicated agent/service to start/stop the DataPipelines cluster on a schedule, fully decoupled from the pipeline itself. Current approach: manual.</li>
