@@ -556,7 +556,8 @@
       "sign_off": "Prepared for investor, partner, and legal review.",
       "_record_id": "biz_arch_investor",
       "_source_file": "biz_arch_investor.json",
-      "description": "Legacy: first investor doc. Superseded by biz_arch_investor_v2."
+      "description": "Legacy: first investor doc. Superseded by biz_arch_investor_v2.",
+      "business_artifact": "brain/BusinessArtifacts/biz_arch_investor.pdf"
     },
     {
       "vision": "ChatHealthy.ai provides the data, tools, and an AI-enlightened space to empower regular people to prevail over the broken healthcare system. Whatever a person's circumstances might be, they deserve the best possible care, at the best value. ChatHealthy.ai gives them the platform to get it. By presenting and evaluating care options but never giving medical advice, the platform allows families, individuals, and friends to collaborate with the most powerful AI models in order to choose the best provider they can have.",
@@ -1177,7 +1178,8 @@
       },
       "_record_id": "business_model",
       "_source_file": "business_model.json",
-      "description": "Core business model: Find Care (free) + Evaluate Care (paywall) + Discuss Care (premium tokens)."
+      "description": "Core business model: Find Care (free) + Evaluate Care (paywall) + Discuss Care (premium tokens).",
+      "business_artifact": "brain/BusinessArtifacts/business_model_v1.pdf"
     },
     {
       "title": "Staffing & Cost Analysis \u2014 ChatHealthy.ai Development Equivalency",

@@ -128,7 +128,8 @@
       ],
       "_record_id": "pending_legal_questions",
       "_source_file": "pending_legal_questions.json",
-      "description": "Open legal questions: FDA classification, DeepSeek disclosure, consent wording."
+      "description": "Open legal questions: FDA classification, DeepSeek disclosure, consent wording.",
+      "business_artifact": "brain/BusinessArtifacts/pending_legal_questions.pdf"
     }
   ]
 }

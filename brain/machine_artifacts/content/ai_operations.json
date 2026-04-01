@@ -346,7 +346,8 @@
       ],
       "_record_id": "gpt_reader_qa_report",
       "_source_file": "gpt_reader_qa_report.json",
-      "description": "GPT Reader service SIT results. 27 tests, all requirements mapped."
+      "description": "GPT Reader service SIT results. 27 tests, all requirements mapped.",
+      "business_artifact": "brain/BusinessArtifacts/gpt_reader_qa_report.pdf"
     },
     {
       "title": "GPT-4o Cannot Drive an SIT Autonomously",
@@ -16125,7 +16126,8 @@
       ],
       "_record_id": "gpt_sit_report",
       "_source_file": "gpt_sit_report.json",
-      "description": "GPT-5.3 SIT execution report. Live test results, bugs found, per-requirement verdicts."
+      "description": "GPT-5.3 SIT execution report. Live test results, bugs found, per-requirement verdicts.",
+      "business_artifact": "brain/BusinessArtifacts/gpt_sit_report.pdf"
     },
     {
       "description": "Prompt templates for different GPT task types (architecture, QA, design).",

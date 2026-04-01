@@ -14,7 +14,8 @@
         "ai_governance"
       ],
       "produces_artifact": true,
-      "artifact_format": "pdf"
+      "artifact_format": "pdf",
+      "biz_artifact_folder": null
     },
     "architecture": {
       "path": "brain/machine_artifacts/architecture/",
@@ -26,7 +27,8 @@
         "refactor_result"
       ],
       "produces_artifact": true,
-      "artifact_format": "pdf"
+      "artifact_format": "pdf",
+      "biz_artifact_folder": "diagrams"
     },
     "business_plan": {
       "path": "brain/machine_artifacts/business_plan/",
@@ -37,7 +39,8 @@
         "cost_analysis"
       ],
       "produces_artifact": true,
-      "artifact_format": "docx"
+      "artifact_format": "docx",
+      "biz_artifact_folder": null
     },
     "sprint_plan": {
       "path": "brain/machine_artifacts/sprint_plan/",
@@ -48,7 +51,8 @@
         "feature_request",
         "uat_features"
       ],
-      "produces_artifact": false
+      "produces_artifact": false,
+      "biz_artifact_folder": null
     },
     "qa_reports": {
       "path": "brain/machine_artifacts/qa_reports/",
@@ -60,7 +64,8 @@
         "production_status"
       ],
       "produces_artifact": true,
-      "artifact_format": "pdf"
+      "artifact_format": "pdf",
+      "biz_artifact_folder": null
     },
     "external_audits": {
       "path": "brain/machine_artifacts/external_audits/",
@@ -70,7 +75,8 @@
         "audit_report"
       ],
       "produces_artifact": true,
-      "artifact_format": "docx"
+      "artifact_format": "docx",
+      "biz_artifact_folder": null
     },
     "ai_operations": {
       "path": "brain/machine_artifacts/ai_operations/",
@@ -83,7 +89,8 @@
         "usage_log",
         "budget"
       ],
-      "produces_artifact": false
+      "produces_artifact": false,
+      "biz_artifact_folder": null
     },
     "devops": {
       "path": "brain/machine_artifacts/devops/",
@@ -92,7 +99,8 @@
         "build_config",
         "support_ticket"
       ],
-      "produces_artifact": false
+      "produces_artifact": false,
+      "biz_artifact_folder": null
     },
     "legal": {
       "path": "brain/machine_artifacts/legal/",
@@ -103,7 +111,8 @@
         "legal_question"
       ],
       "produces_artifact": true,
-      "artifact_format": "pdf"
+      "artifact_format": "pdf",
+      "biz_artifact_folder": null
     },
     "work_log": {
       "path": "brain/machine_artifacts/work_log/",
@@ -113,7 +122,14 @@
         "collaboration_transcript",
         "activity_state"
       ],
-      "produces_artifact": false
+      "produces_artifact": false,
+      "biz_artifact_folder": null
     }
-  }
+  },
+  "entity_types": [
+    "file",
+    "directory",
+    "collection",
+    "diagram"
+  ]
 }
