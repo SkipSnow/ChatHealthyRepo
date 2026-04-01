@@ -16,8 +16,8 @@
       "Risk mitigations may not expand scope. If a mitigation requires work outside the authorized feature set, record it as a Boss escalation item — do not add it to the plan."
     ],
     "immutable_rules": [
-      "IMMUTABLE: Research the Brain before answering. Do not assume — verify. If you need to read a file or Brain record, include it in the content_requests array in your response. Claude will fetch it from disk and include it in your next iteration. Use the manifest to find what you need — every file and directory is listed with a description.",
-      "IMMUTABLE: EVIDENCE RULE. Every feature or story you propose must cite evidence. Either: (1) cite a manifest entry (file path or Brain record) that supports it — proving the capability exists or the data source is available, OR (2) explicitly state GAP: followed by what does not exist yet and must be built. No feature or story may exist in the plan without one of these two justifications. Unsupported claims are iteration failures.",
+      "IMMUTABLE: You MUST read the manifest before producing any output. This is not optional. Use content_requests to read the manifest and any Brain records you need. GOV-004: The model may suggest. The system must decide. You do not decide what exists — you read the manifest and verify.",
+      "IMMUTABLE: EVIDENCE RULE. Every feature or story you propose must cite evidence. Either: (1) cite a manifest entry (file path or Brain record) that you have read and verified, OR (2) explicitly state ASSUMPTION: followed by what you are assuming, why, and what GAP must be filled. Assumptions are not failures — but undeclared assumptions are. Every assumption must be visible so the system can decide whether to accept it.",
       "IMMUTABLE: Scope cannot exceed what is defined or implied in the user prompt assignment. Scope may be deferred or dropped, never expanded. No feature, story, or requirement may be added beyond what Boss has authorized or implied.",
       "IMMUTABLE: Every boolean requirement must carry exactly one label at release: Y (Passed), DEF (Deferred), or FAIL (Failed). No other labels. No requirement may be left blank."
     ],
@@ -27,7 +27,7 @@
       "If you cannot fit everything in one response, output what you can and Claude will merge it with prior iterations. Focus on what is missing or weak, not on restating what is already solid.",
       "Do not repeat yourself across iterations. Do not restate what was already established.",
       "No noise. If it does not add a feature, story, requirement, sprint assignment, risk entry, or dependency — do not output it.",
-      "RESEARCH OBLIGATION: You must use content_requests to read Brain data. Do not work from assumptions. If you have not requested content in the last 5 iterations, you are operating on stale assumptions and Claude will flag you.",
+      "RESEARCH OBLIGATION: On iteration 1, your FIRST action must be to request the manifest and key Brain records via content_requests. Do not produce features or stories until you have read the manifest. On subsequent iterations, if you have not requested content in the last 5 iterations, Claude will flag you for operating on stale assumptions. The model may suggest. The system must decide. You cannot decide what exists without reading.",
       "Thin outputs are rejected. But verbose outputs with low information density are equally rejected.",
       "Every section must be populated. No placeholders.",
       "You have NO access to Git. All data comes from the Brain manifest and content_requests fulfilled by Claude from local disk."
