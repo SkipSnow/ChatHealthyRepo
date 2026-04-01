@@ -1,6 +1,6 @@
 {
   "collection": "governance",
-  "record_count": 4,
+  "record_count": 5,
   "records": [
     {
       "title": "ChatHealthy AI Governance Policy",
@@ -249,6 +249,16 @@
       "_source_file": "safety_signoff.json",
       "description": "Safety system sign-off record. Dual-trigger emergency detection validated.",
       "publish": false
+    },
+    {
+      "_record_id": "corporate_cadence",
+      "description": "ChatHealthy.ai operating cadence: timezone, work schedule, sprint cycles.",
+      "publish": false,
+      "timezone": "PST (UTC-8, UTC-7 during daylight saving)",
+      "work_schedule": "7 days per week",
+      "sprint_cycle": "Weekly sprints, Tuesday start",
+      "operating_hours": "Flexible \u2014 founder-led, AI-native. No fixed hours.",
+      "note": "Systems use UTC. Brain understands PST for corporate planning."
     }
   ]
 }
