@@ -855,7 +855,7 @@
       "record_type": "business_architecture",
       "_record_id": "biz_arch_investor_v2",
       "_source_file": "biz_arch_investor_v2.json",
-      "description": "Active investor business architecture. 3 components, revenue, moat, timeline. Maps to ChatHealthyOperationalBusinessArchitecture.docx.",
+      "description": "Active investor business architecture. 4 components (3 product + 1 DevOps: The Brain), revenue, moat, timeline. Funding pitch: biz_arch_investor_v2.pdf. Operational: ChatHealthyOperationalBusinessArchitecture.docx.",
       "publish": false
     },
     {
