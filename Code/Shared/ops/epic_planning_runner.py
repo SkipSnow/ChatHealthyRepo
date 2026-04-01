@@ -138,6 +138,140 @@ def _synthesize(cumulative: dict, incremental: dict) -> dict:
     return result
 
 
+def _recommend_stories(feature_id: str, feature: dict) -> list[str]:
+    """Claude recommends story breakdowns for thin features."""
+    if not isinstance(feature, dict):
+        return ["define schema", "implement logic", "write tests"]
+
+    fname = feature.get("name", "").lower()
+    layer = feature.get("layer", "").lower()
+    capability = feature.get("capability", "").lower()
+
+    # Measure features (backend data extraction)
+    if "measure" in feature_id.lower() or "measure" in fname:
+        return [
+            "Define measure schema (input fields, score range, weight default)",
+            "Implement data extraction from source (NPI/ClinicalTrials.gov/etc)",
+            "Implement normalization and scoring logic",
+            "Write unit tests with edge cases (missing data, invalid values)",
+        ]
+
+    # Scoring engine
+    if "score" in fname or "scoring" in fname:
+        return [
+            "Define composite score schema (measures array, weights, total)",
+            "Implement weighted aggregation with deterministic output",
+            "Handle missing measures gracefully (degrade, don't fail)",
+            "Write unit tests (all measures present, partial, none)",
+            "Integration test with real measure outputs",
+        ]
+
+    # Explainability
+    if "explain" in fname:
+        if "ui" in fname or "ux" in fname or "frontend" in layer:
+            return [
+                "Design score card component layout",
+                "Implement score rendering with measure breakdown",
+                "Implement visual weight indicators",
+                "Handle loading/error states",
+                "Write component tests",
+            ]
+        return [
+            "Define explainability response schema",
+            "Implement measure contribution calculation",
+            "Generate human-readable rationale per measure",
+            "Write unit tests for explanation accuracy",
+        ]
+
+    # Maps
+    if "map" in fname:
+        return [
+            "Integrate Google Maps JS API",
+            "Render provider markers from lat/lng",
+            "Implement click-to-detail on markers",
+            "Handle map loading/error states",
+            "Write component tests",
+        ]
+
+    # Distance
+    if "distance" in fname or "dist" in feature_id.lower():
+        if "frontend" in layer or "ux" in fname or "display" in fname:
+            return [
+                "Display distance in provider cards",
+                "Display distance in search results list",
+                "Handle missing distance gracefully",
+                "Write component tests",
+            ]
+        return [
+            "Implement geolocation from user browser",
+            "Calculate distance from user to provider (Haversine or Google Routes)",
+            "Add distance field to all address-returning API responses",
+            "Write unit tests (same city, cross-state, missing coords)",
+        ]
+
+    # Architecture refactor
+    if "arch" in fname or "refactor" in fname:
+        return [
+            "Extract domain services from monolith (phase 1: facades)",
+            "Extract domain services (phase 2: individual services)",
+            "Wire ToolRouter to new service layer",
+            "Delete monolith main.py business logic",
+            "Regression test all existing tools against new architecture",
+        ]
+
+    # Consent
+    if "consent" in fname:
+        return [
+            "Fix consent_verbatim flag inversion",
+            "Fix PII not scrubbed when de-identify requested",
+            "Write regression tests for both consent tiers",
+        ]
+
+    # Prescription behavior
+    if "rx" in feature_id.lower() or "prescription" in fname:
+        return [
+            "Identify prescription data source (CMS Open Payments, Medicare Part D, etc)",
+            "Design prescription-to-condition mapping schema",
+            "Implement data extraction pipeline",
+            "Implement AI analysis of prescription patterns",
+            "Write tests with known prescription profiles",
+        ]
+
+    # Brand audit
+    if "brand" in fname:
+        return [
+            "Scan all code for 'ChatHealthy' without '.ai' suffix",
+            "Scan all brain artifacts and business docs",
+            "Fix all instances",
+            "Write automated check to prevent regression",
+        ]
+
+    # Brain enhancements
+    if "brain" in fname:
+        return [
+            "Identify specific Brain improvements for v0.1.4 delivery",
+            "Implement improvements",
+            "Write tests",
+        ]
+
+    # Weights (stretch)
+    if "weight" in fname:
+        return [
+            "Design weight adjustment UI (sliders or inputs per measure)",
+            "Implement weight persistence per session",
+            "Implement score recalculation on weight change",
+            "Write tests (default weights, custom weights, edge values)",
+        ]
+
+    # Generic fallback
+    return [
+        "Define schema and data contract",
+        "Implement core logic",
+        "Write API endpoint or UI component",
+        "Write unit tests with edge cases",
+    ]
+
+
 def _validate_iteration(result: dict, iteration: int) -> list[str]:
     """Claude validates the iteration and returns a list of objections.
 
@@ -210,6 +344,29 @@ def _validate_iteration(result: dict, iteration: int) -> list[str]:
         objections.append("STRETCH GOAL: EVAL-WEIGHTS not present, deferred, or declined. Must be addressed.")
     if "rx" not in all_content_str.lower() and "prescription" not in all_content_str.lower():
         objections.append("BOSS SUGGESTION: Prescription behavior (EVAL-P-RX) not addressed.")
+
+    # Check story granularity — minimum 3 stories per feature
+    feat_story_count = {}
+    for sid, s in stories.items():
+        parent = s.get("parent_feature", "")
+        feat_story_count[parent] = feat_story_count.get(parent, 0) + 1
+
+    thin_story_features = [fid for fid in features if feat_story_count.get(fid, 0) < 3]
+    if thin_story_features:
+        # Build Claude's story recommendations for thin features
+        story_recs = []
+        for fid in thin_story_features:
+            f = features[fid]
+            fname = f.get("name", fid) if isinstance(f, dict) else fid
+            current = feat_story_count.get(fid, 0)
+            recs = _recommend_stories(fid, f)
+            story_recs.append(f"{fid} ({fname}): has {current} story, needs minimum 3. "
+                              f"Claude recommends: {'; '.join(recs)}")
+        objections.append(
+            f"STORY GRANULARITY: {len(thin_story_features)} features have fewer than 3 stories. "
+            f"Break each feature into implementation stories (schema, logic, API, tests, integration). "
+            f"Recommendations:\n" + "\n".join(f"  - {r}" for r in story_recs)
+        )
 
     # Check change_log for iteration 2+
     if iteration > 1 and not result.get("change_log"):
