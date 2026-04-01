@@ -54,6 +54,90 @@ def _load_last_iteration() -> dict | None:
         return json.load(f)
 
 
+def _synthesize(cumulative: dict, incremental: dict) -> dict:
+    """Claude synthesizes: merge incremental GPT output into cumulative plan.
+
+    GPT builds incrementally — adds, never replaces. Claude merges.
+    """
+    if not cumulative:
+        return incremental
+
+    def _merge_collection(cum_val, inc_val, id_key):
+        """Merge list-of-dicts or dict-of-dicts by ID, preferring incremental for updates."""
+        # Normalize to dict
+        def _to_dict(val):
+            if isinstance(val, dict):
+                return dict(val)
+            if isinstance(val, list):
+                return {item.get(id_key, f"_anon_{i}"): item for i, item in enumerate(val) if isinstance(item, dict)}
+            return {}
+
+        cum_map = _to_dict(cum_val)
+        inc_map = _to_dict(inc_val)
+
+        # Merge — incremental wins on conflict
+        merged = dict(cum_map)
+        for k, v in inc_map.items():
+            merged[k] = v
+
+        # Return as list (GPT may output either format)
+        return list(merged.values())
+
+    result = dict(cumulative)
+
+    # Merge collections by their ID keys
+    merge_keys = {
+        "features": "feature_id",
+        "stories": "story_id",
+        "requirements": "req_id",
+    }
+    for key, id_key in merge_keys.items():
+        if key in incremental and incremental[key]:
+            result[key] = _merge_collection(
+                cumulative.get(key, []),
+                incremental[key],
+                id_key
+            )
+
+    # Sprint map — replace by sprint number
+    if "sprint_capability_map" in incremental and incremental["sprint_capability_map"]:
+        inc_map = incremental["sprint_capability_map"]
+        cum_map = cumulative.get("sprint_capability_map", {})
+        if isinstance(inc_map, list):
+            inc_map = {str(s.get("sprint", i)): s for i, s in enumerate(inc_map) if isinstance(s, dict)}
+        if isinstance(cum_map, list):
+            cum_map = {str(s.get("sprint", i)): s for i, s in enumerate(cum_map) if isinstance(s, dict)}
+        merged_map = dict(cum_map) if isinstance(cum_map, dict) else {}
+        if isinstance(inc_map, dict):
+            merged_map.update(inc_map)
+        result["sprint_capability_map"] = list(merged_map.values()) if merged_map else inc_map
+
+    # Risk matrix — deep merge
+    if "risk_matrix" in incremental and incremental["risk_matrix"]:
+        cum_rm = cumulative.get("risk_matrix", {})
+        inc_rm = incremental["risk_matrix"]
+        if isinstance(cum_rm, dict) and isinstance(inc_rm, dict):
+            merged_rm = dict(cum_rm)
+            for k, v in inc_rm.items():
+                if isinstance(v, list) and isinstance(merged_rm.get(k), list):
+                    # Merge lists by feature_id
+                    existing = {item.get("feature_id", ""): item for item in merged_rm[k] if isinstance(item, dict)}
+                    for item in v:
+                        if isinstance(item, dict):
+                            existing[item.get("feature_id", "")] = item
+                    merged_rm[k] = list(existing.values())
+                else:
+                    merged_rm[k] = v
+            result["risk_matrix"] = merged_rm
+
+    # Scalar fields — take incremental
+    for key in ["epics", "issues", "notes", "risk", "gate_recommendation", "change_log", "content_requests"]:
+        if key in incremental and incremental[key]:
+            result[key] = incremental[key]
+
+    return result
+
+
 def _validate_iteration(result: dict, iteration: int) -> list[str]:
     """Claude validates the iteration and returns a list of objections.
 
@@ -336,6 +420,7 @@ def run(max_iterations: int = 1000, prompt_record_id: str = "epic_planning_user_
     print(f"[EpicPlanner] Cache: {_CACHE_DIR}")
 
     last_iteration = _load_last_iteration()
+    cumulative_plan = last_iteration  # Claude's synthesized plan
     if last_iteration:
         print(f"[EpicPlanner] Found prior iteration in cache — GPT will review as starting place")
     else:
@@ -343,6 +428,7 @@ def run(max_iterations: int = 1000, prompt_record_id: str = "epic_planning_user_
 
     total_tokens_in = 0
     total_tokens_out = 0
+    iterations_since_content_request = 0
 
     for i in range(1, max_iterations + 1):
         print(f"\n{'='*60}")
@@ -445,67 +531,62 @@ def run(max_iterations: int = 1000, prompt_record_id: str = "epic_planning_user_
         run._last_error = None
         run._error_count = 0
 
-        # Add metadata
-        result["_iteration"] = i
-        result["_timestamp"] = datetime.now(timezone.utc).isoformat()
-        result["_tokens_in"] = total_tokens_in
-        result["_tokens_out"] = total_tokens_out
-        result["_research_rounds"] = research_round
+        # Track content_request usage — ding GPT if 5 iterations without research
+        content_reqs = result.get("content_requests", [])
+        if content_reqs and isinstance(content_reqs, list) and len(content_reqs) > 0:
+            iterations_since_content_request = 0
+        else:
+            iterations_since_content_request += 1
 
-        # Check for non-trivial changes flagged by GPT
-        if result.get("non_trivial_changes_from_last"):
-            print(f"[EpicPlanner] GPT flagged non-trivial changes:")
-            for change in result["non_trivial_changes_from_last"]:
-                print(f"  - {change}")
+        # Claude synthesizes: merge incremental GPT output into cumulative plan
+        cumulative_plan = _synthesize(cumulative_plan, result)
+        cumulative_plan["_iteration"] = i
+        cumulative_plan["_timestamp"] = datetime.now(timezone.utc).isoformat()
+        cumulative_plan["_tokens_in"] = total_tokens_in
+        cumulative_plan["_tokens_out"] = total_tokens_out
+        cumulative_plan["_research_rounds"] = research_round
 
-        # Cache
-        cache_path = _cache_iteration(i, result, raw_text)
-        print(f"[EpicPlanner] Cached: {cache_path.name}")
+        # Cache the synthesized plan (not raw GPT output)
+        cache_path = _cache_iteration(i, cumulative_plan, "")
+        print(f"[EpicPlanner] Synthesized and cached: {cache_path.name}")
 
-        # Check convergence — both Claude and GPT must agree at 100%
-        claude_objections = _validate_iteration(result, i)
+        # Report cumulative stats
+        def _count(val):
+            if isinstance(val, (dict, list)): return len(val)
+            return 0
+        print(f"[EpicPlanner] Cumulative: feat={_count(cumulative_plan.get('features',[]))} "
+              f"stories={_count(cumulative_plan.get('stories',[]))} "
+              f"reqs={_count(cumulative_plan.get('requirements',[]))}")
+
+        # Claude validates the CUMULATIVE plan, not just the latest GPT output
+        claude_objections = _validate_iteration(cumulative_plan, i)
+
+        # Ding GPT if 5 iterations without content_request
+        if iterations_since_content_request >= 5:
+            claude_objections.append(
+                f"RESEARCH: You have not requested any Brain content in {iterations_since_content_request} iterations. "
+                f"Do not work from assumptions. Use content_requests to read the Brain before proceeding."
+            )
+
         gpt_says_done = result.get("gate_recommendation") in ("auto", "proceed_with_warning")
 
-        if not claude_objections and gpt_says_done and _is_converged(result, last_iteration, i):
+        if not claude_objections and gpt_says_done and _is_converged(cumulative_plan, last_iteration, i):
             print(f"\n{'='*60}")
             print(f"  CONVERGED at iteration {i}")
-            print(f"  Claude: 0 objections")
+            print(f"  Claude: 0 objections on cumulative plan")
             print(f"  GPT: gate={result.get('gate_recommendation')}")
             print(f"  Both agree — plan is complete.")
             print(f"  Total tokens: {total_tokens_in} in / {total_tokens_out} out")
             print(f"{'='*60}")
             break
         elif not claude_objections and gpt_says_done:
-            print(f"[EpicPlanner] Claude agrees, GPT agrees, but structure changed — iterating once more for stability")
+            print(f"[EpicPlanner] Claude agrees, GPT agrees, but structure changed — one more for stability")
         elif not claude_objections:
             print(f"[EpicPlanner] Claude agrees but GPT gate={result.get('gate_recommendation')} — continuing")
         else:
             print(f"[EpicPlanner] Claude has {len(claude_objections)} objections — continuing")
 
-        # Check gate recommendation
-        gate = result.get("gate_recommendation", "")
-        risk = result.get("risk", "")
-        print(f"[EpicPlanner] Risk: {risk} | Gate: {gate}")
-
-        if gate in ("auto", "proceed_with_warning"):
-            print(f"[EpicPlanner] GPT recommends proceeding — checking if plan is complete...")
-            # Check assignment DoD
-            has_features = bool(result.get("feature_set", {}).get("ships"))
-            has_requirements = bool(result.get("requirements"))
-            has_sprint_map = bool(result.get("sprint_capability_map"))
-            has_risk_matrix = bool(result.get("risk_matrix"))
-            if all([has_features, has_requirements, has_sprint_map, has_risk_matrix]):
-                print(f"[EpicPlanner] Plan appears complete at iteration {i} — stopping for Claude validation")
-                break
-            else:
-                missing = []
-                if not has_features: missing.append("features")
-                if not has_requirements: missing.append("requirements")
-                if not has_sprint_map: missing.append("sprint_capability_map")
-                if not has_risk_matrix: missing.append("risk_matrix")
-                print(f"[EpicPlanner] Plan incomplete — missing: {', '.join(missing)}")
-
-        last_iteration = result
+        last_iteration = cumulative_plan
 
     else:
         print(f"\n[EpicPlanner] Reached max iterations ({max_iterations}) without convergence")

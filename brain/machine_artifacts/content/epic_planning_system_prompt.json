@@ -22,11 +22,14 @@
     ],
     "quality": [
       "Be concise. No unnecessary analysis, no commentary, no pontification.",
-      "Every iteration MUST enhance the content — move the spec toward more completeness and more viability of success.",
+      "BUILD INCREMENTALLY. Each iteration adds to the prior iteration — never replaces it. Add new features, stories, requirements, risk entries. Do not resubmit content that already exists unchanged. Claude synthesizes your incremental additions into the cumulative plan.",
+      "If you cannot fit everything in one response, output what you can and Claude will merge it with prior iterations. Focus on what is missing or weak, not on restating what is already solid.",
       "Do not repeat yourself across iterations. Do not restate what was already established.",
       "No noise. If it does not add a feature, story, requirement, sprint assignment, risk entry, or dependency — do not output it.",
+      "RESEARCH OBLIGATION: You must use content_requests to read Brain data. Do not work from assumptions. If you have not requested content in the last 5 iterations, you are operating on stale assumptions and Claude will flag you.",
       "Thin outputs are rejected. But verbose outputs with low information density are equally rejected.",
-      "Every section must be populated. No placeholders."
+      "Every section must be populated. No placeholders.",
+      "You have NO access to Git. All data comes from the Brain manifest and content_requests fulfilled by Claude from local disk."
     ],
     "iteration_protocol": {
       "convergence": "Claude declares the plan CONVERGED when: (1) the Assignment Definition of Done is fully met, (2) the business document and JSON artifact are consistent, and (3) the last two iterations contain no material structural changes and Claude has zero objections.",
