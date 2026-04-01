@@ -223,7 +223,7 @@
       "vision": "ChatHealthy.ai provides the data, tools, and an AI-enlightened space to empower regular people to prevail over the broken healthcare system. Whatever a person's circumstances might be, they deserve the best possible care, at the best value. ChatHealthy.ai gives them the platform to get it. By presenting and evaluating care options but never giving medical advice, the platform allows families, individuals, and friends to collaborate with the most powerful AI models in order to choose the best provider they can have.",
       "mission": "Help people make better healthcare decisions together.",
       "funding_model": {
-        "key_insight": "AI vendors are CAPITAL, not income. They fund the ramp-up. Consumer token markup is the revenue.",
+        "key_insight": "AI vendors contribute capital ($1.5M seed) to launch and grow in exchange for equity and future token sales. Consumer token markup is the revenue.",
         "capital_sources": [
           "Anthropic \u2014 partnership program, then Series A participation",
           "OpenAI \u2014 partnership program, then Series A participation",
@@ -235,7 +235,9 @@
           "Evaluate Care paywall (post-trust)"
         ],
         "distinction": "Vendor access fees fund growth (capital). Consumer token markup funds operations (revenue). Do not confuse the two in the pitch.",
-        "pitch_framing": "We buy tokens at your rate. We resell at a premium. You fund our growth so your model is in the healthcare decision room. Both sides win."
+        "pitch_framing": "We buy tokens at your rate. We resell at a premium. You fund our growth so your model is in the healthcare decision room. Both sides win.",
+        "seed_amount": 1500000,
+        "seed_date": "2026-07-31"
       },
       "future_revenue_epics": [
         {
