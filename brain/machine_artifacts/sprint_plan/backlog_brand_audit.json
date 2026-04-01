@@ -1,8 +1,0 @@
-{
-  "id": "BRAND-001",
-  "title": "Brand name audit — ChatHealthy.ai everywhere",
-  "rule": "The brand name is ALWAYS 'ChatHealthy.ai' with the .ai suffix. Never 'ChatHealthy' alone. This applies to ALL business artifacts, documentation, code comments, UI text, marketing, and legal documents.",
-  "scope": "All business artifacts in brain/BusinessArtifacts/, Website/, code UI strings, system prompts, welcome messages, legal docs, investor docs",
-  "status": "backlog",
-  "priority": "high"
-}

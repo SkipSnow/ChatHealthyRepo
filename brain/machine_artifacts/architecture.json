@@ -1,0 +1,2804 @@
+{
+  "collection": "architecture",
+  "record_count": 8,
+  "records": [
+    {
+      "title": "Discuss Care \u2014 Business Component Definition",
+      "component_name": "Discuss Care",
+      "date": "2026-03-31",
+      "author": "Boss (Skip Snow)",
+      "status": "CONCEPT",
+      "target": "Beta Sprint 1 (May 2026). April is quality month \u2014 no new components.",
+      "three_component_architecture": {
+        "1": "Find Care \u2014 find providers, specialties, navigate the system",
+        "2": "Evaluate Care \u2014 clinical trials, provider credentials, quality metrics",
+        "3": "Discuss Care \u2014 multi-participant AI-assisted healthcare collaboration"
+      },
+      "overview": "Multi-participant healthcare collaboration chat. Consumers invite friends, family, and caregivers into a shared AI-assisted session. All participants have access to all healthcare tools. All conversations constrained to healthcare mission.",
+      "features": [
+        {
+          "id": "DC-01",
+          "feature": "Shared Chat Session",
+          "description": "Multiple humans in one conversation with AI assistance"
+        },
+        {
+          "id": "DC-02",
+          "feature": "Invite System",
+          "description": "User sends invite link to friends, family, caregivers. No account required."
+        },
+        {
+          "id": "DC-03",
+          "feature": "Multi-Model AI",
+          "description": "Multiple AI models participate in the same session (Claude, GPT, etc.), each with access to all tools"
+        },
+        {
+          "id": "DC-04",
+          "feature": "Shared Tool Access",
+          "description": "All participants (human and AI) can trigger provider search, clinical trials, specialty identification, provider detail"
+        },
+        {
+          "id": "DC-05",
+          "feature": "Healthcare Guardrails",
+          "description": "Conversations constrained to healthcare navigation. Same safety filter, emergency detection, scope rules."
+        },
+        {
+          "id": "DC-06",
+          "feature": "Session Transcript",
+          "description": "Exportable transcript for sharing with doctors, care teams"
+        },
+        {
+          "id": "DC-07",
+          "feature": "Consent per Participant",
+          "description": "Each participant manages their own consent tier independently"
+        },
+        {
+          "id": "DC-08",
+          "feature": "Participant Roles",
+          "description": "Session creator (host), invited participant (peer). No admin/enterprise roles."
+        },
+        {
+          "id": "DC-09",
+          "feature": "Real-Time Collaboration",
+          "description": "All participants see messages and AI responses live"
+        },
+        {
+          "id": "DC-10",
+          "feature": "Session Persistence",
+          "description": "Sessions survive disconnects, resumable by invite link"
+        },
+        {
+          "id": "DC-14",
+          "feature": "Shared Research Bot",
+          "description": "Any participant or component can dispatch a research bot to gather information. Shared object across all three components and pipelines. Bot runs autonomously, returns findings to the session. Dispatched by consensus or individual request. All bot work incurs a fee."
+        },
+        {
+          "id": "DC-15",
+          "feature": "Licensed Provider Detection and Compliance Disclosure",
+          "description": "If a participant identifies as or is detected as a licensed healthcare provider, the system triggers automatic compliance disclosure: (1) ChatHealthy.ai is not subject to HIPAA, (2) This session does not create a provider-patient relationship, (3) Security standards disclosed (HITRUST/DOD/SOC2). All participants must acknowledge before session continues. Consent re-confirmed."
+        }
+      ],
+      "architectural_implications": [
+        "Third business component alongside FindCare and EvaluateCareQuality",
+        "WebSocket or SSE for real-time multi-user",
+        "Session state in MongoDB (participants, messages, consent per user)",
+        "Tool access governed by same ToolRouter \u2014 no new tools, just shared access",
+        "GOV-001 preserved: consumer-only, no payer revenue",
+        "DiscussCareFacade as the entry point \u2014 same pattern as FindCare and EvaluateCare"
+      ],
+      "origin": "Boss insight: wanted to invite himself and Perplexity into a conversation. Realized consumers benefit from the same pattern \u2014 invite family into a healthcare chat with AI assistance.",
+      "revenue_model": {
+        "name": "Choose Your AI",
+        "mechanism": "AI model providers pay ChatHealthy.ai for access to user sessions",
+        "why_they_pay": [
+          "User attention in healthcare \u2014 highest-value decision context",
+          "Tool usage generates training signal in healthcare domain",
+          "Brand presence at point of care decision",
+          "Distribution channel they cannot build themselves"
+        ],
+        "gov_001_compliance": "AI vendors are TECHNOLOGY partners, not care-chain entities. No payer, no provider, no pharma revenue. GOV-001 preserved.",
+        "pitch": "Your model is in the room when a family decides where Mom gets cancer treatment. What's that worth?",
+        "user_experience": "User selects which AI models participate in their session. Models compete on helpfulness. User pays nothing.",
+        "series_a_story": "We own the healthcare decision room. AI companies pay to be in it."
+      },
+      "moat": {
+        "regulatory_willingness": "AI vendors avoid healthcare regulation like the plague. FDA clinical decision support classification and HIPAA compliance are existential risks for companies valued on growth. They NEED someone else to own the healthcare room.",
+        "trust": "Consumers chose ChatHealthy.ai for care decisions. Trust takes years to build, seconds to lose.",
+        "data": "Provider + clinical trials + quality data. Takes years to assemble and curate.",
+        "governance": "Multi-AI healthcare safety framework. Floor control, consent per participant, emergency detection. Nobody else has this.",
+        "network": "Every session adds participants and signal. Compound growth.",
+        "legal_model": "Apple precedent \u2014 platform charges both sides. Good lawyers. Not a conflict, a marketplace."
+      },
+      "pricing_model": {
+        "find_care": "FREE \u2014 100% free forever. This is the funnel.",
+        "evaluate_care": "FREE now. Paywall option once trusted brand established. Premium quality metrics, deeper credential analysis, comparative ratings.",
+        "discuss_care": "Premium token markup on AI usage",
+        "principle": "All healthcare navigation is free. Users only pay when they choose premium AI models in Discuss Care sessions. The markup on tokens is the ONLY revenue from users.",
+        "partnership_path": [
+          "Stage 1: Sign up for AI vendor partnership/startup programs. Get free credits.",
+          "Stage 2: Build relationships with partner team humans. Show real healthcare usage.",
+          "Stage 3: Demonstrate value \u2014 their model is already in healthcare decision rooms.",
+          "Stage 4: Partners underwrite Series A. They've seen the data."
+        ],
+        "gov_001_note": "Token revenue is from technology consumption, not care-chain entities. GOV-001 preserved."
+      },
+      "patent_concept": {
+        "claim": "Method for synthesizing healthcare provider quality signals using large language models to produce consumer-comprehensible provider assessments",
+        "signals": [
+          "NPI data",
+          "board certifications",
+          "disciplinary actions",
+          "malpractice history",
+          "patient outcomes",
+          "clinical trial participation",
+          "prescription patterns",
+          "CMS quality scores",
+          "state licensing records"
+        ],
+        "innovation": "All signals are public. LLMs exist. The method of combining them for consumer healthcare navigation is novel.",
+        "next_steps": [
+          "GPT patent search",
+          "Provisional patent draft in Discuss Care beta session (Boss + Claude + GPT + patent lawyer)",
+          "Patent attorney files and negotiates"
+        ],
+        "first_use_case_for_discuss_care": "Drafting the provisional patent IS the beta test of the product."
+      },
+      "shared_objects": {
+        "research_bot": {
+          "name": "Shared Research Bot",
+          "scope": "Cross-component shared object \u2014 not owned by any single component",
+          "used_by": [
+            "Find Care",
+            "Evaluate Care",
+            "Discuss Care",
+            "DataPipelines"
+          ],
+          "capabilities": [
+            "Autonomous research tasks dispatched from any component",
+            "Provider deep-dive (credentials, history, quality signals)",
+            "Clinical trial matching and eligibility analysis",
+            "Comparative provider analysis across geographies",
+            "Pipeline data enrichment (gap filling, validation)",
+            "Returns structured findings to requesting session or pipeline"
+          ],
+          "billing": "All bot research incurs token fees \u2014 premium revenue stream",
+          "architectural_note": "Shared service, not inside any facade. Accessible via all three facades and pipeline orchestrator."
+        }
+      },
+      "governance_rules": [
+        {
+          "id": "DC-GOV-01",
+          "rule": "NO PROVIDERS IN THE ROOM",
+          "description": "Doctors, providers, and licensed clinicians are NEVER participants in a Discuss Care session. The session transcript is shared WITH the doctor after. The doctor is never IN the room.",
+          "rationale": "Provider presence creates clinical decision support risk (FDA), malpractice exposure, and transforms the platform from consumer navigation to clinical tool. This boundary is permanent.",
+          "status": "permanent"
+        },
+        {
+          "id": "DC-GOV-02",
+          "rule": "SECURITY DISCLOSURE AND HIPAA POSITIONING",
+          "description": "ChatHealthy.ai is NOT a HIPAA covered entity and is NOT subject to HIPAA regulations. We are a consumer navigation platform, not a healthcare provider or business associate. However, we voluntarily adopt enterprise-grade security standards to protect user data.",
+          "security_standards": [
+            "HITRUST CSF certification (if eligible)",
+            "DOD-level security audit standard (FedRAMP or equivalent)",
+            "SOC 2 Type II compliance path"
+          ],
+          "disclosure_requirement": "Every session and every document must disclose: (1) We are not subject to HIPAA. (2) We voluntarily maintain audited security at enterprise healthcare standards. (3) Even if a participant happens to be a licensed provider, the platform remains a consumer tool and does not create a provider-patient relationship.",
+          "rationale": "Neutrality requires transparency. We earn trust by choosing to be secure, not by being compelled. This avoids HIPAA regulatory burden while exceeding the security expectations of healthcare buyers.",
+          "status": "permanent"
+        }
+      ],
+      "marketing_positioning": {
+        "headline": "We are not required to protect your data. We choose to. And we do it better than the ones who are required to.",
+        "context": "Healthcare organizations suffer constant data breaches DESPITE being under HIPAA. HIPAA is a compliance checkbox, not a security guarantee. ChatHealthy.ai voluntarily adopts HITRUST/DOD-level security because our business depends on consumer trust, not regulatory compulsion.",
+        "marketing_use": [
+          "Landing page trust badge: \"Voluntarily HITRUST certified \u2014 exceeding HIPAA standards\"",
+          "Investor pitch: security by choice signals product-market fit and consumer-first values",
+          "Enterprise sales: healthcare buyers trust voluntary security over mandatory compliance",
+          "Competitive differentiation: incumbents are breached monthly under HIPAA. We choose higher standards.",
+          "Press/PR: \"The healthcare platform that protects your data better than your hospital does\""
+        ],
+        "why_it_works": "Consumers instinctively trust companies that choose to do the right thing over companies forced to. Voluntary security is a brand asset, not a cost center.",
+        "security_certifications_path": [
+          {
+            "standard": "HITRUST CSF",
+            "what": "Healthcare-specific security framework. Gold standard for health tech. Maps to HIPAA, NIST, ISO 27001.",
+            "why": "Healthcare buyers require it. Proves we exceed HIPAA without being subject to it."
+          },
+          {
+            "standard": "SOC 2 Type II",
+            "what": "Independent audit of security controls over 6-12 months. Trust Services Criteria.",
+            "why": "Enterprise table stakes. Proves operational security, not just policy."
+          },
+          {
+            "standard": "NIST SP 800-171",
+            "what": "DOD standard for protecting Controlled Unclassified Information. 110 security controls.",
+            "why": "Direct path to FedRAMP. If VA or DOD wants ChatHealthy, we are ready."
+          },
+          {
+            "standard": "Annual External Penetration Test",
+            "what": "Third-party security audit. Published results.",
+            "why": "Transparency. We publish what hospitals hide."
+          }
+        ]
+      },
+      "vision": "ChatHealthy.ai provides the data, tools, and an AI-enlightened space to empower regular people to prevail over the broken healthcare system. Whatever a person's circumstances might be, they deserve the best possible care, at the best value. ChatHealthy.ai gives them the platform to get it. By presenting and evaluating care options but never giving medical advice, the platform allows families, individuals, and friends to collaborate with the most powerful AI models in order to choose the best provider they can have.",
+      "mission": "Help people make better healthcare decisions together.",
+      "funding_model": {
+        "key_insight": "AI vendors are CAPITAL, not income. They fund the ramp-up. Consumer token markup is the revenue.",
+        "capital_sources": [
+          "Anthropic \u2014 partnership program, then Series A participation",
+          "OpenAI \u2014 partnership program, then Series A participation",
+          "Google \u2014 partnership program, then Series A participation",
+          "NVIDIA \u2014 infrastructure partnership, GPU credits, investment arm"
+        ],
+        "revenue_sources": [
+          "Consumer premium token markup (Discuss Care)",
+          "Evaluate Care paywall (post-trust)"
+        ],
+        "distinction": "Vendor access fees fund growth (capital). Consumer token markup funds operations (revenue). Do not confuse the two in the pitch.",
+        "pitch_framing": "We buy tokens at your rate. We resell at a premium. You fund our growth so your model is in the healthcare decision room. Both sides win."
+      },
+      "future_revenue_epics": [
+        {
+          "id": "REV-001",
+          "title": "Out-of-Network Claims Filing Service",
+          "description": "File out-of-network insurance claims on behalf of the consumer. The platform already knows the provider, the service, and the payer. Automate the claims submission process as a paid service.",
+          "revenue_model": "Per-claim fee or subscription",
+          "component": "Evaluate Care (extends provider + payer knowledge)",
+          "status": "concept",
+          "target": "post-funding",
+          "gov_001_note": "Revenue from consumer for service rendered. Not from payer or provider. GOV-001 clean."
+        }
+      ],
+      "_record_id": "component_discuss_care",
+      "_source_file": "component_discuss_care.json"
+    },
+    {
+      "report": "FindCare Backend Portability Refactoring \u2014 Design Report",
+      "date": "2026-03-27",
+      "authors": {
+        "architect": "GPT-4o (Enterprise Architect role)",
+        "engineer": "Claude Opus 4.6 (Implementation Engineer)",
+        "sponsor": "Skip Snow (Boss)"
+      },
+      "collaboration": {
+        "method": "Brain Loop \u2014 4 iteration design review",
+        "iterations": 4,
+        "budget": 5,
+        "total_tokens": {
+          "in": 8318,
+          "out": 4310
+        }
+      },
+      "problem_statement": {
+        "summary": "The FindCare backend is a 1,323-line monolithic main.py. All business logic, FastAPI setup, prompt construction, tool dispatch, safety checks, provider search, clinical trials, lead capture, notifications, and static file serving live in one file. Porting to a different host (e.g., Azure App Service) requires touching the monolith.",
+        "boss_directive": "Porting to Azure should not be major work. Portability must be a design property, not an afterthought.",
+        "trigger": "Delaware Division of Professional Regulation board search URL (https://dpr.delaware.gov/boardsearch/) returns 404 \u2014 exposed the need for URL validation AND highlighted how tightly coupled the app is to its hosting environment."
+      },
+      "design": {
+        "principle": "Separate what changes per host from what never changes. All business logic is host-agnostic. Only HostConfig and the entry point know where the app is running.",
+        "modules": [
+          {
+            "file": "main.py",
+            "lines": 30,
+            "class": null,
+            "responsibility": "Thin entry point. Creates HostConfig from environment, wires URLGuardian, PromptFactory, and FindCareApp together, hands them to GUIHelper, starts the server.",
+            "depends_on": [
+              "HostConfig",
+              "URLGuardian",
+              "PromptFactory",
+              "FindCareApp",
+              "GUIHelper"
+            ],
+            "host_specific": true
+          },
+          {
+            "file": "host_config.py",
+            "lines": 25,
+            "class": "HostConfig (dataclass)",
+            "responsibility": "All host-specific configuration in one place. Factory method from_env() reads environment variables with sensible defaults.",
+            "fields": {
+              "port": {
+                "type": "int",
+                "hf_default": 7860,
+                "azure_default": 8000
+              },
+              "static_file_path": {
+                "type": "str",
+                "hf_default": "./static",
+                "azure_default": "null (Cloudflare serves frontend)"
+              },
+              "cors_origins": {
+                "type": "list[str]",
+                "hf_default": [
+                  "https://chathealthy.ai",
+                  "https://dev.chathealthy.ai"
+                ]
+              },
+              "cors_origin_regex": {
+                "type": "str",
+                "default": "http://localhost(:\\d+)?$"
+              },
+              "mount_static_files": {
+                "type": "bool",
+                "hf_default": true,
+                "azure_default": false
+              },
+              "asgi_server": {
+                "type": "str",
+                "hf_default": "uvicorn",
+                "azure_default": "gunicorn"
+              },
+              "env_prefix": {
+                "type": "str",
+                "default": "dev",
+                "note": "Controls database routing: dev/qa/prod"
+              },
+              "debug": {
+                "type": "bool",
+                "default": false
+              }
+            },
+            "depends_on": [],
+            "host_specific": true
+          },
+          {
+            "file": "findcare_app.py",
+            "lines": 800,
+            "class": "FindCareApp",
+            "constructor": "FindCareApp(host_config: HostConfig, prompt_factory: PromptFactory, url_guardian: URLGuardian)",
+            "responsibility": "ALL business logic. Safety system, provider search, clinical trials, lead capture, chat conversation loop, tool dispatch, notifications, debug logging. Creates its own MongoDB connection and Anthropic/OpenAI clients internally.",
+            "functions": {
+              "safety": [
+                "_is_ip_locked",
+                "_lock_ip",
+                "_safety_collection",
+                "_lock_ip_db",
+                "_check_ip_lock_db",
+                "_admin_unlock",
+                "_session_is_locked",
+                "_safety_check"
+              ],
+              "database": [
+                "_get_db",
+                "commitSignificantActivity",
+                "_format_chat_history"
+              ],
+              "providers": [
+                "_expand_query_terms",
+                "find_specialty_codes",
+                "_load_fips_county_map",
+                "_make_county_filter",
+                "_get_oai_client",
+                "_get_query_embedding",
+                "_format_provider",
+                "_vector_search_providers",
+                "find_providers"
+              ],
+              "clinical_trials": [
+                "search_clinical_trials"
+              ],
+              "lead_capture": [
+                "record_user_details",
+                "_summarize_conversation",
+                "deIdentify",
+                "record_unknown_question"
+              ],
+              "external_lookup": [
+                "lookup_provider_external"
+              ],
+              "notifications": [
+                "push"
+              ],
+              "debug": [
+                "_debug_log_chat"
+              ],
+              "chat": [
+                "chat_inner",
+                "_handle_tool_calls"
+              ]
+            },
+            "depends_on": [
+              "HostConfig",
+              "PromptFactory",
+              "URLGuardian",
+              "ChatHealthyMongoUtilities"
+            ],
+            "host_specific": false
+          },
+          {
+            "file": "gui_helper.py",
+            "lines": 150,
+            "class": "GUIHelper",
+            "constructor": "GUIHelper(findcare_app: FindCareApp, host_config: HostConfig)",
+            "responsibility": "Creates the FastAPI app instance. Configures CORS. Registers endpoints (/health, /welcome, /chat). Mounts static files if host_config.mount_static_files is true. Defines Pydantic request/response models.",
+            "endpoints": [
+              "/health (GET)",
+              "/welcome (GET)",
+              "/chat (POST)"
+            ],
+            "models": [
+              "ChatRequest",
+              "ChatResponse"
+            ],
+            "depends_on": [
+              "FindCareApp",
+              "HostConfig",
+              "FastAPI"
+            ],
+            "host_specific": false
+          },
+          {
+            "file": "prompt_factory.py",
+            "lines": 200,
+            "class": "PromptFactory",
+            "constructor": "PromptFactory(me_dir: str)",
+            "responsibility": "Loads context documents (PDFs, text files) at init. Constructs the system prompt. Holds the Anthropic tool schema list. Maintains a tool registry (name -> callable) for dispatch.",
+            "functions": [
+              "_load_me_context",
+              "system_prompt",
+              "get_skip_snow_context",
+              "get_chathealthy_context",
+              "_trim",
+              "register_tool",
+              "get_tool"
+            ],
+            "tool_registry": {
+              "what": "dict[str, Callable] mapping tool names to function references",
+              "how": "FindCareApp calls prompt_factory.register_tool('find_providers', self.find_providers) at init",
+              "why": "Replaces globals().get(name) \u2014 explicit registration, no magic lookup",
+              "dispatch": "FindCareApp._handle_tool_calls does: fn = self.prompt_factory.get_tool(name); result = fn(**args)"
+            },
+            "depends_on": [],
+            "host_specific": false
+          },
+          {
+            "file": "url_guardian.py",
+            "lines": 130,
+            "class": "URLGuardian",
+            "constructor": "URLGuardian(cache_ttl=3600, request_timeout=5, max_workers=4)",
+            "responsibility": "Validates URLs in tool results and LLM text responses. Removes broken links, follows redirects, caches results.",
+            "status": "IMPLEMENTED \u2014 Sprint 1 (2026-03-27)",
+            "methods": {
+              "check_url(url)": "Returns (is_valid, redirect_url). HEAD request with GET fallback.",
+              "guard_tool_result(result)": "Validates URLs in a tool result dict. Removes broken links from the 'links' key.",
+              "guard_text(text)": "Validates markdown links and bare URLs in text. Defangs broken links (keeps text, removes href)."
+            },
+            "features": [
+              "HEAD request with GET fallback on HTTP 405",
+              "Redirect following \u2014 updates URL if server redirects",
+              "Trusted domain whitelist \u2014 Healthgrades, Zocdoc skip validation (bot protection blocks server-side requests)",
+              "In-memory TTL cache \u2014 avoids repeated HEAD requests within cache window",
+              "Concurrent validation \u2014 ThreadPoolExecutor for batch URL checks"
+            ],
+            "depends_on": [
+              "requests"
+            ],
+            "host_specific": false
+          }
+        ]
+      },
+      "decisions": [
+        {
+          "id": "D-001",
+          "topic": "Module count",
+          "gpt_proposed": "11 modules \u2014 separate files for DatabaseHelpers, NotificationService, ProviderTools, ClinicalTrialsSearch, ExternalProviderLookup, ContextLoader, ToolDefinitions, etc.",
+          "claude_decided": "5 modules + HostConfig dataclass. Single-function concerns stay as private methods inside FindCareApp.",
+          "rationale": "Over-fragmentation adds import complexity for no testability gain. ClinicalTrialsSearch is one function. NotificationService is one function. These don't justify their own files.",
+          "risk_of_this_decision": "findcare_app.py is ~800 lines \u2014 still large. Acceptable because it's cohesive (all business logic) and can be further split in a future sprint if needed."
+        },
+        {
+          "id": "D-002",
+          "topic": "Dependency injection for MongoDB and notifications",
+          "gpt_proposed": "Inject DatabaseManager and NotificationService into FindCareApp constructor for testability.",
+          "claude_decided": "FindCareApp creates its own MongoDB connection and SparkPost notifier internally. NOT injected.",
+          "rationale": "Boss rule: e2e tests use real systems (MongoDB, Anthropic, SparkPost) \u2014 no mocks. DI for testability is pointless when you don't mock. Injecting adds constructor complexity for zero practical benefit.",
+          "risk_of_this_decision": "Harder to unit test FindCareApp in isolation. Mitigated by the fact that this project's testing strategy is e2e with real systems."
+        },
+        {
+          "id": "D-003",
+          "topic": "Tool dispatch location",
+          "gpt_proposed": "_handle_tool_calls lives in PromptFactory alongside tool schemas.",
+          "claude_decided": "Tool dispatch stays in FindCareApp. PromptFactory holds only the registry (name -> callable map) and tool schemas.",
+          "rationale": "Tool functions (find_providers, record_user_details, etc.) live in FindCareApp and need access to FindCareApp state (DB connection, chat history, IP locks). Dispatch must be in the same class. The registry pattern decouples schema definition from implementation.",
+          "risk_of_this_decision": "FindCareApp has a dependency on PromptFactory for the registry. Acceptable \u2014 they're always used together."
+        },
+        {
+          "id": "D-004",
+          "topic": "URL validation scope",
+          "gpt_proposed": "Validate URLs in the final LLM text response only.",
+          "claude_decided": "Dual-mode: validate both tool results (guard_tool_result) and LLM text (guard_text).",
+          "rationale": "Tool-constructed URLs are the higher-priority fix \u2014 we build them deterministically (e.g., Delaware board search). If we know the URL template is broken, we should catch it before the LLM even sees it. Text validation catches anything the LLM generates or hallucinates.",
+          "risk_of_this_decision": "Two validation points means two places to maintain. Acceptable \u2014 both use the same URLGuardian instance and cache."
+        },
+        {
+          "id": "D-005",
+          "topic": "Trusted domain whitelist",
+          "claude_decided": "Healthgrades and Zocdoc are whitelisted \u2014 their search URLs skip validation.",
+          "rationale": "Both sites aggressively block server-side requests (bot protection). Our constructed search URLs (e.g., healthgrades.com/search?what=smith) are valid browser URLs but return 403/blocking pages to HEAD/GET from a server. Whitelisting prevents false negatives.",
+          "risk_of_this_decision": "If Healthgrades or Zocdoc change their URL patterns, broken links would not be caught. Mitigated by the fact that we construct these URLs ourselves with known patterns."
+        },
+        {
+          "id": "D-006",
+          "topic": "Anthropic client ownership",
+          "claude_decided": "FindCareApp owns a single Anthropic client instance, created in __init__.",
+          "rationale": "Currently the Anthropic client is created fresh in _chat_inner and _safety_check on every call. A single shared instance avoids repeated initialization and is the standard pattern for API clients.",
+          "risk_of_this_decision": "None \u2014 Anthropic SDK client is thread-safe."
+        },
+        {
+          "id": "D-007",
+          "topic": "Sprint timing \u2014 defer refactoring to Sprint 2",
+          "boss_decided": "Do not refactor before the Tuesday 2026-03-31 release. Ship URLGuardian now, refactoring in Sprint 2.",
+          "rationale": "App is release-ready. Refactoring 1,323 lines of working code 3 days before deadline is risk with no user-facing payoff. Quality over velocity.",
+          "risk_of_this_decision": "main.py stays monolithic through Sprint 1 release. Acceptable \u2014 it works, and URLGuardian is the only new capability needed now."
+        }
+      ],
+      "risks": [
+        {
+          "id": "R-001",
+          "risk": "Refactoring may introduce subtle bugs in tool dispatch or chat conversation loop",
+          "likelihood": "Medium",
+          "impact": "High \u2014 broken chat is a showstopper",
+          "mitigation": "Each migration step produces a working app. Full e2e test after each step. Stop at any step if tests fail."
+        },
+        {
+          "id": "R-002",
+          "risk": "URL validation adds latency to chat responses",
+          "likelihood": "Low",
+          "impact": "Medium \u2014 user waits longer for responses",
+          "mitigation": "Concurrent HEAD requests (ThreadPoolExecutor). TTL cache avoids repeated checks. Trusted domain whitelist skips bot-protected sites. Timeout of 5 seconds per URL."
+        },
+        {
+          "id": "R-003",
+          "risk": "Large PR \u2014 1,300 lines moved across 5 files",
+          "likelihood": "High",
+          "impact": "Medium \u2014 hard to review, merge conflicts with any parallel work",
+          "mitigation": "Incremental migration steps. Each step is a separate commit. Can stop after any step with a working app."
+        },
+        {
+          "id": "R-004",
+          "risk": "Trusted domain whitelist becomes stale \u2014 Healthgrades/Zocdoc change URL patterns",
+          "likelihood": "Low",
+          "impact": "Low \u2014 worst case is a working but outdated search URL",
+          "mitigation": "We construct these URLs ourselves. If patterns change, update the URL construction in lookup_provider_external."
+        },
+        {
+          "id": "R-005",
+          "risk": "findcare_app.py at ~800 lines is still large",
+          "likelihood": "Certain",
+          "impact": "Low \u2014 it's cohesive (all business logic), just long",
+          "mitigation": "Can further split in a future sprint if needed. Provider tools and safety system are natural extraction candidates."
+        }
+      ],
+      "migration_plan": [
+        {
+          "step": 1,
+          "action": "Create host_config.py with HostConfig dataclass and from_env() factory",
+          "test": "Import in main.py, verify all env vars load correctly",
+          "rollback": "Delete host_config.py, revert main.py import"
+        },
+        {
+          "step": 2,
+          "action": "Extract prompt_factory.py \u2014 system prompt, tool schemas, context loading, tool registry",
+          "test": "main.py imports PromptFactory, system prompt output matches current",
+          "rollback": "Delete prompt_factory.py, revert main.py"
+        },
+        {
+          "step": 3,
+          "action": "url_guardian.py already implemented \u2014 no action needed",
+          "test": "Already passing smoke tests",
+          "rollback": "N/A"
+        },
+        {
+          "step": 4,
+          "action": "Extract gui_helper.py \u2014 FastAPI app creation, CORS, endpoints, static mount",
+          "test": "/health, /welcome, /chat endpoints respond identically to pre-refactoring",
+          "rollback": "Delete gui_helper.py, revert main.py"
+        },
+        {
+          "step": 5,
+          "action": "Extract findcare_app.py \u2014 all remaining business logic",
+          "test": "Full e2e: provider search, safety trigger, lead capture, clinical trials, About Us",
+          "rollback": "Delete findcare_app.py, revert main.py"
+        },
+        {
+          "step": 6,
+          "action": "Thin main.py to ~30 lines \u2014 entry point only",
+          "test": "Full regression. App behaves identically to pre-refactoring.",
+          "rollback": "Revert main.py from git"
+        }
+      ],
+      "portability_matrix": {
+        "huggingface_docker": {
+          "port": 7860,
+          "mount_static_files": true,
+          "asgi_server": "uvicorn",
+          "dockerfile": "Single-stage Python image, COPY all modules",
+          "changes_from_current": "None \u2014 this is the current default"
+        },
+        "azure_app_service": {
+          "port": 8000,
+          "mount_static_files": false,
+          "asgi_server": "gunicorn",
+          "dockerfile": "Not needed \u2014 Azure deploys from zip",
+          "changes_from_current": "Set 3 env vars: PORT=8000, MOUNT_STATIC=false, ASGI_SERVER=gunicorn. Frontend served by Cloudflare Pages, not the backend."
+        },
+        "bare_metal": {
+          "port": "configurable",
+          "mount_static_files": true,
+          "asgi_server": "uvicorn or gunicorn",
+          "dockerfile": "Optional",
+          "changes_from_current": "Install Python dependencies, set env vars, run main.py"
+        }
+      },
+      "backlog_references": {
+        "refactoring": "ASN-PORT01 (ARCH-001 in roadmap.html)",
+        "tool_registry": "ASN-PORT02 (ARCH-002 in roadmap.html)",
+        "design_doc": "brain/refactor_design_final.json",
+        "collaboration_log": "brain/refactor_results.json"
+      },
+      "_record_id": "portability_refactoring_report",
+      "_source_file": "portability_refactoring_report.json"
+    },
+    {
+      "title": "ChatHealthy.ai \u2014 ARCH-001 Refactor Design",
+      "document_id": "ARCH-001",
+      "status": "APPROVED",
+      "date": "2026-03-30",
+      "copyright": "Copyright 2026 Skip Snow. All rights reserved.",
+      "collaboration": "Claude Opus 4.6 (engineer) + GPT-5.3 (architect), 5 iterations, 2026-03-27 through 2026-03-30",
+      "consolidated_from": [
+        "refactor_proposal_iteration1.json",
+        "refactor_proposal_iteration3.json",
+        "refactor_proposal_iteration5.json"
+      ],
+      "executive_summary": "Modular monolith refactor of FindCare backend from a 1,712-line main.py monolith to a facade-oriented domain architecture. Two business domains (FindCare, EvaluateCareQuality) with explicit service classes per UAT feature. HuggingFace reduced to entrypoint + adapter only. Strangler Fig migration in 7 phases, zero downtime, deployable at every phase. Pydantic-enforced tool boundaries. Full Perplexity audit response covering all 18 findings.",
+      "top_level_architecture": {
+        "pattern": "Modular Monolith (Facade-Oriented Domains)",
+        "layers": [
+          "Host Adapter (HuggingFace only \u2014 app.py + HostChatAdapter)",
+          "Application Layer (ChatOrchestrator + Facades + ToolRouter)",
+          "Domain Layer (Business Services per UAT feature)",
+          "Infrastructure Layer (MongoDB, External APIs, Embeddings, Config)"
+        ],
+        "dependency_direction": "Host -> Application -> Domain -> Infrastructure (no upward imports)"
+      },
+      "business_components": {
+        "find_care": {
+          "facade": "FindCareFacade",
+          "description": "Core provider discovery and specialty identification",
+          "services": [
+            {
+              "class": "ProviderSearchService",
+              "file": "domain/find_care/provider_search_service.py",
+              "feature": "Provider Search (UAT Feature 1)",
+              "responsibility": "Vector search, query expansion, FIPS county mapping, result formatting"
+            },
+            {
+              "class": "SpecialtyService",
+              "file": "domain/find_care/specialty_service.py",
+              "feature": "Specialty Identification (UAT Feature 2)",
+              "responsibility": "NLP taxonomy mapping, specialty code lookup"
+            }
+          ],
+          "facade_methods": [
+            "search_providers(criteria: ProviderSearchInput) -> ProviderSearchOutput",
+            "identify_specialty(input: SpecialtyInput) -> SpecialtyOutput",
+            "get_provider_location(npi: str) -> dict"
+          ]
+        },
+        "evaluate_care_quality": {
+          "facade": "EvaluateCareFacade",
+          "description": "Clinical trials search and provider quality evaluation",
+          "services": [
+            {
+              "class": "ClinicalTrialsService",
+              "file": "domain/evaluate_care_quality/clinical_trials_service.py",
+              "feature": "Clinical Trials Search (UAT Feature 3)",
+              "responsibility": "ClinicalTrials.gov API integration, result filtering"
+            },
+            {
+              "class": "ProviderDetailService",
+              "file": "domain/evaluate_care_quality/provider_detail_service.py",
+              "feature": "Provider Detail (UAT Feature 8)",
+              "responsibility": "NPI lookup, external provider data aggregation"
+            }
+          ],
+          "facade_methods": [
+            "search_clinical_trials(input: ClinicalTrialsInput) -> ClinicalTrialsOutput",
+            "get_provider_details(npi: str) -> ProviderDetailOutput"
+          ],
+          "cross_calls": [
+            "EvaluateCareFacade calls FindCareFacade.get_provider_location() for travel calculations"
+          ]
+        }
+      },
+      "shared_infrastructure": {
+        "services": [
+          {
+            "class": "SafetyService",
+            "file": "domain/shared/safety/safety_service.py",
+            "feature": "Safety Filter (UAT Feature 5)",
+            "responsibility": "IP locking, session safety state, pre-tool gating"
+          },
+          {
+            "class": "EmergencyDetector",
+            "file": "domain/shared/safety/emergency_detector.py",
+            "feature": "Emergency Detection (F-09 fix)",
+            "responsibility": "Config-driven keyword + embedding similarity detection",
+            "config_source": "brain/machine_artifacts/emergency_keywords.json"
+          },
+          {
+            "class": "ConsentService",
+            "file": "domain/shared/consent/consent_service.py",
+            "feature": "Consent Framework (UAT Feature 7)",
+            "responsibility": "Full two-tier HIPAA consent workflow \u2014 see Section 4.1 Consent Flow Detail"
+          },
+          {
+            "class": "LeadService",
+            "file": "domain/shared/lead_capture/lead_service.py",
+            "feature": "Lead Capture (UAT Feature 6)",
+            "responsibility": "Contact record creation, consent integration"
+          },
+          {
+            "class": "AboutService",
+            "file": "domain/shared/content/about_service.py",
+            "feature": "About ChatHealthy (UAT Feature 4)",
+            "responsibility": "Static content loading for about intents"
+          },
+          {
+            "class": "UnknownQuestionService",
+            "file": "domain/shared/unknowns/unknown_question_service.py",
+            "feature": "Unanswerable Question Handling (UAT Feature 12)",
+            "responsibility": "De-identified logging of unanswerable questions"
+          },
+          {
+            "class": "URLGuardian",
+            "file": "domain/shared/url/url_guardian.py",
+            "feature": "URL Validation (UAT Feature 9)",
+            "responsibility": "Dual-mode URL validation (tool results + LLM text)",
+            "status": "IMPLEMENTED (Sprint 1)"
+          }
+        ]
+      },
+      "consent_flow": {
+        "title": "Consent Framework \u2014 Full Workflow Design",
+        "class": "ConsentService",
+        "file": "domain/shared/consent/consent_service.py",
+        "description": "HIPAA-aligned two-tier consent framework controlling what user data is stored and how. Consent is a full-time workflow \u2014 not a flag. It governs the entire data lifecycle of a user session.",
+        "trigger": "Every 5th user message, system prompt instructs Claude to ask: 'Would you like someone from ChatHealthy.AI to follow up with you personally?'",
+        "tiers": [
+          {
+            "tier": 1,
+            "name": "Verbatim Consent",
+            "prompt": "May we save a verbatim transcript of this conversation with your contact details?",
+            "if_yes": {
+              "consent_verbatim": true,
+              "stored": "Full chat_history (PII intact), email, name, notes, reason_for_contact",
+              "evidence": "Consent exchange itself is included in the stored transcript"
+            },
+            "if_no": "Proceed to Tier 2"
+          },
+          {
+            "tier": 2,
+            "name": "De-Identified Summary Consent",
+            "prompt": "May we save a de-identified summary of this conversation instead?",
+            "if_yes": {
+              "consent_verbatim": false,
+              "consent_summary": true,
+              "stored": "LLM-generated summary passed through deIdentify() \u2014 no PII, no chat_history",
+              "process": "Claude summarizes -> deIdentify() scrubs PII -> stored in notes field"
+            },
+            "if_no": {
+              "consent_verbatim": false,
+              "consent_summary": false,
+              "stored": "Contact fields only (email, name). No history, no summary."
+            }
+          }
+        ],
+        "data_streams": [
+          {
+            "stream": "Questions (unanswerable)",
+            "consent_required": false,
+            "treatment": "Always de-identified before storage. No PII. No consent needed.",
+            "collection": "AboutUs.AboutSkip"
+          },
+          {
+            "stream": "Contact / Lead Capture",
+            "consent_required": true,
+            "treatment": "Two-tier consent governs what is stored. User chooses verbatim or summary.",
+            "collection": "AboutUs.lead"
+          }
+        ],
+        "lead_record_schema": {
+          "email": "string",
+          "name": "string",
+          "notes": "string (summary if consent_summary=true, else empty)",
+          "reason_for_contact": "string",
+          "consent_verbatim": "boolean",
+          "consent_summary": "boolean or null",
+          "chat_history": "array (present ONLY if consent_verbatim=true)",
+          "datetime": "ISO string",
+          "testdata": "boolean"
+        },
+        "methods": [
+          "request_consent(session_id) -> ConsentState",
+          "record_verbatim_consent(session_id, chat_history, contact_info) -> LeadRecord",
+          "record_summary_consent(session_id, summary, contact_info) -> LeadRecord",
+          "record_no_consent(session_id, contact_info) -> LeadRecord",
+          "de_identify(text: str) -> str"
+        ],
+        "integration_points": [
+          "ChatOrchestrator: triggers consent prompt every 5th message",
+          "LeadService: delegates to ConsentService for data handling",
+          "System Prompt: RULE 7 defines the consent UX flow",
+          "deIdentify(): shared utility used by ConsentService and UnknownQuestionService"
+        ],
+        "regulatory_notes": [
+          "Consent exchange itself must be preserved as evidence (included in verbatim transcript)",
+          "De-identification must be applied BEFORE storage, not after",
+          "Emergency records (BTC-003) must NEVER be deleted regardless of consent state",
+          "Test data tagged with testdata=true for filtering"
+        ],
+        "growth_trajectory": {
+          "note": "This service will GROW, not diminish. Consent is a first-class, expanding concern.",
+          "planned_additions": [
+            "Granular consent: per-data-type consent (contact info separate from conversation history)",
+            "Consent revocation: user can withdraw consent after the fact \u2014 must retroactively de-identify or delete",
+            "Consent audit trail: immutable log of every consent grant, revocation, and data action",
+            "HIPAA minimum necessary: only collect what is needed for the stated purpose",
+            "Consent expiration: time-limited consent with re-confirmation workflow",
+            "Enterprise consent: when healthcare orgs use the platform, their compliance policies override defaults",
+            "Consent portability: export consent records for regulatory audit (state AG, HHS OCR)",
+            "Multi-jurisdiction: state-specific consent rules (e.g., California CCPA, NY SHIELD, HIPAA federal)"
+          ],
+          "architectural_implication": "ConsentService must be its own bounded context with dedicated tools, dedicated pydantic models, dedicated tests, and dedicated audit logging. It is NOT a helper inside LeadService."
+        },
+        "pydantic_models": [
+          "ConsentRequestInput: session_id",
+          "ConsentState: session_id, tier, status (pending/granted/declined), timestamp",
+          "VerbatimConsentInput: session_id, chat_history, contact_info",
+          "SummaryConsentInput: session_id, summary_text, contact_info",
+          "ConsentAuditEntry: session_id, action, tier, timestamp, evidence_hash"
+        ]
+      },
+      "huggingface_surface": {
+        "allowed_files": [
+          "app.py",
+          "requirements.txt",
+          "static/"
+        ],
+        "responsibilities": [
+          "HTTP routing (FastAPI app creation, CORS, endpoints)",
+          "Request/response translation",
+          "Stream relay",
+          "NO business logic"
+        ],
+        "adapter_class": "HostChatAdapter",
+        "adapter_file": "adapter/host_chat_adapter.py",
+        "entrypoint_final_state": {
+          "main_py": "DELETED",
+          "replacement": "app.py",
+          "location": "Code/ConversationalUX/FindCareChat/app.py",
+          "responsibility": [
+            "FastAPI app initialization",
+            "Route definitions (/chat, /health, /welcome)",
+            "Delegates ALL logic to HostChatAdapter"
+          ]
+        }
+      },
+      "facade_design": {
+        "FindCareFacade": {
+          "file": "application/facades/find_care_facade.py",
+          "methods": [
+            "search_providers(criteria: ProviderSearchInput) -> ProviderSearchOutput",
+            "identify_specialty(input: SpecialtyInput) -> SpecialtyOutput",
+            "get_provider_location(npi: str) -> dict"
+          ],
+          "delegates_to": [
+            "ProviderSearchService",
+            "SpecialtyService"
+          ]
+        },
+        "EvaluateCareFacade": {
+          "file": "application/facades/evaluate_care_facade.py",
+          "methods": [
+            "search_clinical_trials(input: ClinicalTrialsInput) -> ClinicalTrialsOutput",
+            "get_provider_details(npi: str) -> ProviderDetailOutput"
+          ],
+          "delegates_to": [
+            "ClinicalTrialsService",
+            "ProviderDetailService"
+          ],
+          "cross_calls": [
+            "FindCareFacade.get_provider_location()"
+          ]
+        }
+      },
+      "tool_registry": {
+        "class": "ToolRouter",
+        "file": "application/tool_router.py",
+        "pattern": "Pydantic-validated allowlist dispatch",
+        "dispatch_map": {
+          "find_providers": {
+            "model": "ProviderSearchInput",
+            "handler": "FindCareFacade.search_providers"
+          },
+          "find_specialty_codes": {
+            "model": "SpecialtyInput",
+            "handler": "FindCareFacade.identify_specialty"
+          },
+          "search_clinical_trials": {
+            "model": "ClinicalTrialsInput",
+            "handler": "EvaluateCareFacade.search_clinical_trials"
+          },
+          "lookup_provider_external": {
+            "model": "ProviderDetailInput",
+            "handler": "EvaluateCareFacade.get_provider_details"
+          },
+          "get_skip_snow_context": {
+            "model": "None",
+            "handler": "AboutService.get_skip_snow_context"
+          },
+          "get_chathealthy_context": {
+            "model": "None",
+            "handler": "AboutService.get_chathealthy_context"
+          },
+          "request_consent": {
+            "model": "ConsentRequestInput",
+            "handler": "ConsentService.request_consent"
+          },
+          "record_verbatim_consent": {
+            "model": "VerbatimConsentInput",
+            "handler": "ConsentService.record_verbatim_consent"
+          },
+          "record_summary_consent": {
+            "model": "SummaryConsentInput",
+            "handler": "ConsentService.record_summary_consent"
+          },
+          "record_user_details": {
+            "model": "LeadInput",
+            "handler": "LeadService.record_user_details"
+          },
+          "record_unknown_question": {
+            "model": "UnknownInput",
+            "handler": "UnknownQuestionService.record"
+          },
+          "get_provider_location": {
+            "model": "LocationInput",
+            "handler": "FindCareFacade.get_provider_location"
+          },
+          "commit_significant_activity": {
+            "model": "ActivityInput",
+            "handler": "LeadService.commit_activity",
+            "note": "Generic DB write for custom activities \u2014 retained from v0.1.2"
+          }
+        },
+        "enforcement": [
+          "Reject unknown tools (F-05 fix \u2014 eliminates globals().get)",
+          "Validate all inputs via Pydantic models",
+          "Validate outputs before returning to LLM",
+          "Server-side enforcement (F-17 fix)"
+        ]
+      },
+      "repo_structure": {
+        "Code/ConversationalUX/FindCareChat/": {
+          "app.py": "HuggingFace entrypoint only (~30 lines)",
+          "adapter/": {
+            "host_chat_adapter.py": "Translates HTTP <-> ChatOrchestrator"
+          },
+          "application/": {
+            "chat_orchestrator.py": "LLM loop, system prompt, safety gating",
+            "tool_router.py": "Pydantic-validated tool dispatch (allowlist enforced)",
+            "session_manager.py": "Chat session + UX state + timer",
+            "facades/": {
+              "find_care_facade.py": "Entry point for all FindCare capabilities",
+              "evaluate_care_facade.py": "Entry point for all EvaluateCareQuality capabilities"
+            },
+            "tool_models/": {
+              "__init__.py": "",
+              "provider_search_models.py": "Pydantic input/output for provider search",
+              "clinical_trials_models.py": "Pydantic input/output for clinical trials",
+              "consent_models.py": "Pydantic models for consent workflow (ConsentRequestInput, ConsentState, etc.)",
+              "shared_models.py": "Common tool schemas (LeadInput, UnknownInput, LocationInput)"
+            }
+          },
+          "domain/": {
+            "find_care/": {
+              "provider_search_service.py": "Feature 1 \u2014 vector search, query expansion, formatting",
+              "specialty_service.py": "Feature 2 \u2014 NLP taxonomy mapping"
+            },
+            "evaluate_care_quality/": {
+              "clinical_trials_service.py": "Feature 3 \u2014 ClinicalTrials.gov integration",
+              "provider_detail_service.py": "Feature 8 \u2014 NPI lookup, external data"
+            },
+            "shared/": {
+              "safety/": {
+                "safety_service.py": "Feature 5 \u2014 IP locking, session safety",
+                "emergency_detector.py": "F-09 \u2014 config-driven emergency detection"
+              },
+              "consent/": {
+                "__init__.py": "",
+                "consent_service.py": "Feature 7 \u2014 two-tier HIPAA consent",
+                "de_identify.py": "Shared PII scrubbing utility (used by ConsentService + UnknownQuestionService)"
+              },
+              "lead_capture/": {
+                "lead_service.py": "Feature 6 \u2014 contact record creation"
+              },
+              "content/": {
+                "about_service.py": "Feature 4 \u2014 about intents"
+              },
+              "unknowns/": {
+                "unknown_question_service.py": "Feature 12 \u2014 unanswerable question logging"
+              },
+              "url/": {
+                "url_guardian.py": "Feature 9 \u2014 dual-mode URL validation (IMPLEMENTED)"
+              }
+            }
+          },
+          "infrastructure/": {
+            "mongo/": {
+              "provider_repository.py": "Read-only provider queries"
+            },
+            "external_apis/": {
+              "__init__.py": "",
+              "npi_client.py": "NPI registry lookups",
+              "clinical_trials_client.py": "ClinicalTrials.gov API",
+              "google_routes_client.py": "Travel time calculations (used by ClinicalTrialsService)"
+            },
+            "embeddings/": {
+              "embedding_client.py": "Vector search client"
+            },
+            "config/": {
+              "config_loader.py": "Loads brain artifacts + environment variables"
+            }
+          },
+          "frontend/": {
+            "src/": {
+              "components/": [
+                "ChatWindow.tsx",
+                "MessageBubble.tsx",
+                "EmergencyBanner.tsx",
+                "TypingIndicator.tsx"
+              ],
+              "api/": [
+                "chat_client.ts"
+              ],
+              "state/": [
+                "chat_store.ts"
+              ],
+              "rendering/": [
+                "markdown_renderer.tsx"
+              ],
+              "styles/": [
+                "chat.css"
+              ]
+            }
+          }
+        },
+        "Code/DataPipelines/": {
+          "status": "No structural change (GOV-005 preserved)",
+          "security_patch": "Add APIKeyMiddleware to status endpoint (F-06)"
+        },
+        "Code/Shared/": {
+          "purpose": "Cross-application infrastructure only (NO business logic)",
+          "logging/": "Central structured logging",
+          "config/": "Shared env loader",
+          "contracts/": "Optional shared DTOs (non-domain)"
+        },
+        "Website/": {
+          "status": "No change \u2014 remains Cloudflare static (GOV-005)",
+          "note": "Remove any leaked architecture docs (F-13)"
+        }
+      },
+      "migration_plan": {
+        "strategy": "Strangler Fig pattern inside same codebase (incremental extraction, zero downtime)",
+        "phases": [
+          {
+            "phase": 1,
+            "name": "Introduce Skeleton Architecture",
+            "changes": [
+              "Create folder structure (application/, domain/, infrastructure/, adapter/)",
+              "Add ChatOrchestrator (empty pass-through)",
+              "Add ToolRouter with static mapping (still calls existing main.py functions)",
+              "Wrap existing functions with adapter methods (no logic moved yet)"
+            ],
+            "result": "App compiles, behavior unchanged, routing no longer uses globals().get",
+            "risk": "LOW",
+            "build": "B-187"
+          },
+          {
+            "phase": 2,
+            "name": "Extract FindCare \u2014 Provider Search",
+            "changes": [
+              "Move find_providers() -> ProviderSearchService.search()",
+              "Introduce FindCareFacade.search_providers()",
+              "Update ToolRouter to call facade instead of main.py"
+            ],
+            "result": "One feature fully migrated, validates pattern",
+            "risk": "LOW",
+            "build": "B-190"
+          },
+          {
+            "phase": 3,
+            "name": "Extract FindCare \u2014 Specialty Service",
+            "changes": [
+              "Move find_specialty_codes() to SpecialtyService",
+              "Wire through FindCareFacade",
+              "Remove corresponding logic from main.py"
+            ],
+            "risk": "LOW-MEDIUM",
+            "build": "B-191"
+          },
+          {
+            "phase": 4,
+            "name": "Extract EvaluateCareQuality Domain",
+            "changes": [
+              "Move ClinicalTrialsService",
+              "Move ProviderDetailService",
+              "Introduce EvaluateCareFacade",
+              "Wire facade-to-facade for travel calculations"
+            ],
+            "risk": "MEDIUM",
+            "build": "B-193"
+          },
+          {
+            "phase": 5,
+            "name": "Extract Shared Services",
+            "changes": [
+              "SafetyService + EmergencyDetector",
+              "ConsentService",
+              "LeadService",
+              "UnknownQuestionService",
+              "AboutService",
+              "URLGuardian relocation"
+            ],
+            "risk": "MEDIUM",
+            "build": "B-194"
+          },
+          {
+            "phase": 6,
+            "name": "Introduce Pydantic Tool Models",
+            "changes": [
+              "Define all tool input/output schemas",
+              "Wrap ToolRouter validation layer",
+              "Gradually enforce typing per tool"
+            ],
+            "risk": "MEDIUM",
+            "build": "B-195"
+          },
+          {
+            "phase": 7,
+            "name": "Delete main.py Monolith",
+            "changes": [
+              "Remove remaining functions from main.py",
+              "Ensure all calls go through orchestrator + services",
+              "app.py + HostChatAdapter is the sole entry point",
+              "Zero business logic in HuggingFace surface"
+            ],
+            "risk": "LOW (if prior phases complete)",
+            "build": "B-196"
+          }
+        ],
+        "safety_mechanisms": [
+          "Each phase preserves working state",
+          "Feature-by-feature migration (no big bang)",
+          "Fallback: old functions remain callable until replaced",
+          "Full regression test after Phase 7 (B-197)"
+        ]
+      },
+      "frontend_architecture": {
+        "location": "Code/ConversationalUX/FindCareChat/frontend/",
+        "pattern": "Feature-light, API-driven (no domain duplication)",
+        "decision": "Do NOT mirror backend domains. Frontend remains thin and presentation-focused. All domain logic stays server-side.",
+        "structure": {
+          "components": [
+            "ChatWindow.tsx",
+            "MessageBubble.tsx",
+            "EmergencyBanner.tsx",
+            "TypingIndicator.tsx",
+            "MapView.tsx"
+          ],
+          "api": [
+            "chat_client.ts \u2014 calls /chat endpoint"
+          ],
+          "state": [
+            "chat_store.ts \u2014 session state, timer, stop control"
+          ],
+          "rendering": [
+            "markdown_renderer.tsx \u2014 remark-gfm"
+          ],
+          "styles": [
+            "chat.css"
+          ]
+        },
+        "feature_mapping": {
+          "Chat UX": "chat_store.ts + ChatWindow.tsx",
+          "Markdown Rendering": "markdown_renderer.tsx",
+          "Emergency UI": "EmergencyBanner.tsx"
+        }
+      },
+      "testing_strategy": {
+        "structure": {
+          "tests/application/": [
+            "test_chat_orchestrator.py"
+          ],
+          "tests/domain/find_care/": [
+            "test_provider_search_service.py",
+            "test_specialty_service.py"
+          ],
+          "tests/domain/evaluate_care_quality/": [
+            "test_clinical_trials_service.py",
+            "test_provider_detail_service.py"
+          ],
+          "tests/domain/shared/": [
+            "test_safety_service.py",
+            "test_emergency_detector.py",
+            "test_consent_service.py",
+            "test_lead_service.py",
+            "test_unknown_question_service.py"
+          ],
+          "tests/infrastructure/": [
+            "test_provider_repository.py",
+            "test_external_clients.py"
+          ]
+        },
+        "approach": {
+          "unit_tests": "All domain services with mocked dependencies",
+          "integration_tests": [
+            "ToolRouter + Facades",
+            "ChatOrchestrator with fake LLM responses"
+          ],
+          "e2e_tests": "Real systems (MongoDB, Anthropic) \u2014 no mocks per Boss directive",
+          "regression": [
+            "Capture baseline outputs from main.py before refactor",
+            "Replay test prompts and compare outputs"
+          ],
+          "existing_tests": "Retained initially, then migrated per service"
+        }
+      },
+      "pydantic_strategy": {
+        "scope": "All tool inputs and outputs validated via Pydantic models",
+        "location": "application/tool_models/",
+        "models": [
+          "ProviderSearchInput / ProviderSearchOutput",
+          "SpecialtyInput / SpecialtyOutput",
+          "ClinicalTrialsInput / ClinicalTrialsOutput",
+          "ProviderDetailInput / ProviderDetailOutput",
+          "ConsentRequestInput / ConsentState",
+          "VerbatimConsentInput / VerbatimConsentOutput",
+          "SummaryConsentInput / SummaryConsentOutput",
+          "ConsentAuditEntry",
+          "LeadInput / LeadOutput",
+          "UnknownInput / UnknownOutput",
+          "LocationInput"
+        ],
+        "enforcement": [
+          "ToolRouter validates input before calling handler",
+          "ToolRouter validates output before returning to LLM",
+          "Schema mismatches raise ValidationError (not silently ignored)"
+        ]
+      },
+      "perplexity_audit_response": {
+        "audit_source": "Perplexity external audit v1 (2026-03-28)",
+        "total_findings": 18,
+        "findings": [
+          {
+            "id": "F-01",
+            "title": "Three-application separation is clean and well-reasoned",
+            "status": "STRENGTH",
+            "response": "Three-application boundary rules preserved. GOV-005 enforced throughout refactor."
+          },
+          {
+            "id": "F-02",
+            "title": "Production-grade pipeline engineering",
+            "status": "STRENGTH",
+            "response": "DataPipelines remains independent. No structural changes. GOV-005 alignment confirmed."
+          },
+          {
+            "id": "F-03",
+            "title": "Safety system is well-designed for a health application",
+            "status": "STRENGTH",
+            "response": "Safety system preserved in SafetyService + EmergencyDetector. FDA legal review recommended (before Alpha, not code)."
+          },
+          {
+            "id": "F-04",
+            "title": "Pipeline framework is correctly designed for AI-operated company",
+            "status": "STRENGTH",
+            "response": "Pipeline framework unchanged. Correct for Claude-as-developer model."
+          },
+          {
+            "id": "F-05",
+            "title": "globals().get(name) tool dispatch is a security surface",
+            "status": "RESOLVED",
+            "response": "ToolRouter allowlist replaces globals() dispatch. Phase 1 (B-187)."
+          },
+          {
+            "id": "F-06",
+            "title": "Durable Functions status URL exposes orchestration state",
+            "status": "DEFERRED",
+            "response": "Add APIKeyMiddleware to DataPipelines status endpoint. Pipeline concern, not chat refactor. Deferred to next sprint."
+          },
+          {
+            "id": "F-07",
+            "title": "main.py monolith is a velocity blocker",
+            "status": "RESOLVED",
+            "response": "main.py eliminated in Phase 7 (B-196). Replaced by modular domain architecture."
+          },
+          {
+            "id": "F-08",
+            "title": "Three-state coverage is thin but rationale is sound",
+            "status": "DEFERRED",
+            "response": "Pipeline data run, not code change. Deferred to next sprint."
+          },
+          {
+            "id": "F-09",
+            "title": "Emergency keyword list has coverage gaps",
+            "status": "RESOLVED",
+            "response": "EmergencyDetector with config-driven keywords from brain/machine_artifacts/emergency_keywords.json. Phase 5 + B-189."
+          },
+          {
+            "id": "F-10",
+            "title": "Vector search hard cap of 10 results is too restrictive",
+            "status": "RESOLVED",
+            "response": "Configurable limit in ProviderSearchService (default 25). B-192."
+          },
+          {
+            "id": "F-11",
+            "title": "FIPS hack should be resolved in next pipeline run",
+            "status": "DEFERRED",
+            "response": "Pipeline re-run required. Deferred to next sprint."
+          },
+          {
+            "id": "F-12",
+            "title": "DeepSeek disclosure in privacy policy is incomplete",
+            "status": "DEFERRED",
+            "response": "Legal/copy concern. Deferred to next sprint."
+          },
+          {
+            "id": "F-13",
+            "title": "Architecture documentation is publicly accessible",
+            "status": "DEFERRED",
+            "response": "Boss decision required on access gate before Alpha."
+          },
+          {
+            "id": "F-14",
+            "title": "Documentation inconsistencies",
+            "status": "DEFERRED",
+            "response": "Copyright year, broken links, nav button. Low priority, deferred."
+          },
+          {
+            "id": "F-15",
+            "title": "Brain governance system is an effective SDLC",
+            "status": "STRENGTH",
+            "response": "Brain governance preserved and strengthened. GPT Reader service extends GPT's independent audit capability."
+          },
+          {
+            "id": "F-16",
+            "title": "Brain lock has no deadlock recovery",
+            "status": "ACKNOWLEDGED",
+            "response": "BrainLockManager with TTL design documented. Implementation deferred to v0.1.4 (BL-003)."
+          },
+          {
+            "id": "F-17",
+            "title": "Server-side scope enforcement must be independent of Claude",
+            "status": "RESOLVED",
+            "response": "ToolRouter + Pydantic validation enforces server-side. No tool can be called without being in the allowlist."
+          },
+          {
+            "id": "F-18",
+            "title": "Audit should cover Claude's actions too",
+            "status": "ACKNOWLEDGED",
+            "response": "Central structured logging planned in Code/Shared/logging/. Claude audit trail deferred to v0.1.4 (BL-004)."
+          }
+        ],
+        "summary": {
+          "resolved_in_sprint": 8,
+          "deferred_to_next_sprint": 6,
+          "acknowledged_for_hardening": 4,
+          "confirmed_strengths": 1
+        }
+      },
+      "sprint_schedule": {
+        "source": "sprint_plan_v013.json",
+        "sprint_start": "2026-03-31",
+        "sprint_goal": "Refactor architecture (ARCH-001), maps, current functionality enhancements",
+        "schedule": [
+          {
+            "day": "2026-03-31 (Tuesday)",
+            "theme": "Skeleton + Security Fix + Maps",
+            "builds": [
+              {
+                "id": "B-187",
+                "task": "ARCH-001 Phase 1: Skeleton Architecture + ToolRouter",
+                "risk": "LOW",
+                "deploy": "dev"
+              },
+              {
+                "id": "B-188",
+                "task": "Maps: Provider search results on map",
+                "risk": "LOW-MEDIUM",
+                "deploy": "dev"
+              },
+              {
+                "id": "B-189",
+                "task": "F-09: Expand emergency keyword list",
+                "risk": "LOW",
+                "deploy": "dev"
+              }
+            ]
+          },
+          {
+            "day": "2026-04-01 (Wednesday)",
+            "theme": "Extract FindCare Domain",
+            "builds": [
+              {
+                "id": "B-190",
+                "task": "ARCH-001 Phase 2: Extract ProviderSearchService",
+                "risk": "LOW",
+                "deploy": "dev"
+              },
+              {
+                "id": "B-191",
+                "task": "ARCH-001 Phase 3: Extract SpecialtyService",
+                "risk": "LOW-MEDIUM",
+                "deploy": "dev"
+              },
+              {
+                "id": "B-192",
+                "task": "F-10: Raise provider search result cap to 25",
+                "risk": "LOW",
+                "deploy": "dev"
+              }
+            ]
+          },
+          {
+            "day": "2026-04-02 (Thursday)",
+            "theme": "Extract EvaluateCareQuality + Shared",
+            "builds": [
+              {
+                "id": "B-193",
+                "task": "ARCH-001 Phase 4: Extract ClinicalTrialsService + ProviderDetailService",
+                "risk": "MEDIUM",
+                "deploy": "dev"
+              },
+              {
+                "id": "B-194",
+                "task": "ARCH-001 Phase 5: Extract Shared Services",
+                "risk": "MEDIUM",
+                "deploy": "dev"
+              }
+            ]
+          },
+          {
+            "day": "2026-04-03 (Friday)",
+            "theme": "Pydantic + Cleanup + QA",
+            "builds": [
+              {
+                "id": "B-195",
+                "task": "ARCH-001 Phase 6: Pydantic tool models",
+                "risk": "MEDIUM",
+                "deploy": "dev"
+              },
+              {
+                "id": "B-196",
+                "task": "ARCH-001 Phase 7: Delete main.py",
+                "risk": "LOW",
+                "deploy": "dev"
+              },
+              {
+                "id": "B-197",
+                "task": "Full regression test + SIT",
+                "risk": "LOW",
+                "deploy": "dev"
+              }
+            ]
+          },
+          {
+            "day": "2026-04-04 (Saturday)",
+            "theme": "QA Promotion + Stabilization",
+            "builds": [
+              {
+                "id": "B-198",
+                "task": "Promote to QA",
+                "risk": "LOW",
+                "deploy": "qa"
+              },
+              {
+                "id": "B-199",
+                "task": "Boss UAT on QA",
+                "risk": "N/A",
+                "deploy": "qa"
+              }
+            ]
+          },
+          {
+            "day": "2026-04-05 (Sunday)",
+            "theme": "Bug fixes + Production (if needed)",
+            "builds": [
+              {
+                "id": "B-200",
+                "task": "Fix any UAT bugs",
+                "risk": "VARIES",
+                "deploy": "qa"
+              },
+              {
+                "id": "B-201",
+                "task": "Promote to Production",
+                "risk": "LOW (if QA passed)",
+                "deploy": "prod"
+              }
+            ]
+          }
+        ],
+        "enhancements_included": [
+          {
+            "id": "F-05",
+            "title": "ToolRouter replaces globals() dispatch",
+            "day": "Tuesday (Phase 1)"
+          },
+          {
+            "id": "F-09",
+            "title": "Emergency keyword expansion",
+            "day": "Tuesday"
+          },
+          {
+            "id": "F-10",
+            "title": "Provider search cap raised to 25",
+            "day": "Wednesday"
+          },
+          {
+            "id": "MAPS",
+            "title": "Interactive map for provider search results",
+            "day": "Tuesday"
+          }
+        ],
+        "deferred_to_next_sprint": [
+          "F-06: Durable Functions status URL auth",
+          "F-08: All-state coverage (pipeline run)",
+          "F-11: FIPS hack resolution (pipeline re-run)",
+          "F-12: DeepSeek privacy disclosure (legal/copy)",
+          "F-13: Lock architecture docs (Boss decision)",
+          "R19: Azure Function timeout UAT",
+          "R35: Paused cluster UAT",
+          "BL-001 through BL-010: Perplexity backlog (v0.1.4)"
+        ]
+      },
+      "architectural_decisions": [
+        {
+          "decision": "Facade-oriented domains over flat service layer",
+          "rationale": "Two business domains (FindCare, EvaluateCareQuality) each get a facade. Facades are the ONLY entry point from ToolRouter to domain services. Prevents cross-domain coupling."
+        },
+        {
+          "decision": "Pydantic validation at ToolRouter boundary",
+          "rationale": "Claude sends JSON tool arguments. Pydantic validates at the ToolRouter before reaching domain services. Catches schema mismatches early."
+        },
+        {
+          "decision": "System prompt stays in ChatOrchestrator (not PromptBuilder)",
+          "rationale": "Per Boss decision. Prompt references tool names only (not class names). ToolRouter is source of truth for available tools."
+        },
+        {
+          "decision": "Provider Detail belongs to EvaluateCareQuality (not FindCare)",
+          "rationale": "Provider detail is a quality evaluation concern (NPI lookup, board certifications, ratings). Finding a provider and evaluating their quality are distinct business actions."
+        },
+        {
+          "decision": "Frontend remains thin \u2014 no domain duplication",
+          "rationale": "All domain logic stays server-side. Frontend is presentation-only: ChatWindow, MessageBubble, EmergencyBanner. No backend domain structure mirrored."
+        },
+        {
+          "decision": "Strangler Fig migration (not big bang)",
+          "rationale": "7 phases, each deployable. Old functions remain callable until replaced. Zero downtime throughout migration."
+        },
+        {
+          "decision": "No dependency injection for MongoDB/notification clients",
+          "rationale": "Boss rule: e2e tests use real systems, no mocks. DI for testability is unnecessary when you do not mock."
+        }
+      ],
+      "governance_alignment": {
+        "GOV-001": "No provider prioritization logic in services",
+        "GOV-002": "Single-tenant config enforced in Config",
+        "GOV-004": "LLM suggests, ToolRouter enforces execution",
+        "GOV-005": "Strict three-application separation preserved"
+      },
+      "sign_off": {
+        "boss": {
+          "role": "CEO / Final Authority",
+          "status": "APPROVED",
+          "date": "2026-03-30",
+          "notes": "Design and sprint plan approved. Consent elevated to bounded context per Boss directive. Appendix A (AI model usage) approved. Proceed to build."
+        },
+        "claude": {
+          "role": "Engineer",
+          "model": "Claude Opus 4.6",
+          "status": "APPROVED",
+          "date": "2026-03-30",
+          "notes": "Design is fully executable. 7-phase migration is incremental and safe. All 18 Perplexity findings addressed.",
+          "engineering_review": {
+            "review_date": "2026-03-30",
+            "issues_found": 8,
+            "issues_fixed": 8,
+            "fixes_applied": [
+              "Fixed executive summary line count (1,323 -> 1,712)",
+              "Corrected all 18 Perplexity finding titles to match actual audit (F-01 through F-18)",
+              "Added consent_models.py to tool_models/ file tree",
+              "Added __init__.py to Python packages requiring them",
+              "Added MapView.tsx to frontend components (supports B-188 maps build)",
+              "Added de_identify.py to consent/ directory (shared utility was referenced but not in tree)",
+              "Added commit_significant_activity tool to ToolRouter (was in v0.1.2, dropped without acknowledgment)",
+              "Clarified google_routes_client.py is used by ClinicalTrialsService for travel calculations"
+            ],
+            "compliance_check": "PASS \u2014 see appendix_traceability"
+          }
+        },
+        "gpt": {
+          "role": "Architect",
+          "model": "GPT-5.3",
+          "status": "APPROVED",
+          "date": "2026-03-30",
+          "notes": "Architecture is sound. Facade pattern correctly separates domains. Pydantic enforcement at tool boundary is the right pattern."
+        }
+      },
+      "appendix_ai_models": {
+        "title": "Appendix A: AI Model Usage by Prompt",
+        "description": "Every AI prompt in the system with the model used, its purpose, and cost profile.",
+        "runtime_prompts": [
+          {
+            "prompt": "Chat conversation (user-facing)",
+            "model": "Claude Sonnet 4.6 (Anthropic)",
+            "location": "ChatOrchestrator._call_llm()",
+            "purpose": "Main conversational AI \u2014 tool selection, response generation, intent routing",
+            "invocation": "Every user message",
+            "cost_profile": "High volume, per-conversation"
+          },
+          {
+            "prompt": "Safety classifier (emergency detection)",
+            "model": "GPT-4.1-mini (OpenAI)",
+            "location": "SafetyService._classify_safety()",
+            "purpose": "Semantic emergency classifier \u2014 second trigger in dual-trigger OR logic",
+            "invocation": "Every user message (parallel with keyword check)",
+            "cost_profile": "High volume, low cost per call"
+          },
+          {
+            "prompt": "Vector embedding (provider search)",
+            "model": "text-embedding-3-large (OpenAI)",
+            "location": "infrastructure/embeddings/embedding_client.py",
+            "purpose": "Embed user query for vector similarity search against provider descriptions",
+            "invocation": "Every provider search tool call",
+            "cost_profile": "Medium volume, low cost"
+          },
+          {
+            "prompt": "Vector embedding (specialty search)",
+            "model": "text-embedding-3-large (OpenAI)",
+            "location": "infrastructure/embeddings/embedding_client.py",
+            "purpose": "Embed specialty query for NUCC code matching",
+            "invocation": "Every specialty identification tool call",
+            "cost_profile": "Low volume, low cost"
+          },
+          {
+            "prompt": "De-identification (consent flow)",
+            "model": "Claude Haiku 4.5 (Anthropic)",
+            "location": "ConsentService.de_identify()",
+            "purpose": "Summarize and strip PII from conversation transcript",
+            "invocation": "Only when user declines verbatim but accepts summary consent",
+            "cost_profile": "Very low volume, low cost"
+          },
+          {
+            "prompt": "Conversation summarization (consent flow)",
+            "model": "Claude Haiku 4.5 (Anthropic)",
+            "location": "ConsentService._summarize()",
+            "purpose": "Generate summary of conversation before de-identification",
+            "invocation": "Only when Tier 2 consent granted",
+            "cost_profile": "Very low volume, low cost"
+          }
+        ],
+        "pipeline_prompts": [
+          {
+            "prompt": "Provider description embedding (batch)",
+            "model": "text-embedding-3-large (OpenAI)",
+            "location": "Code/DataPipelines/embedding_worker.py",
+            "purpose": "Generate 3072-dim embeddings for provider vector search index",
+            "invocation": "Pipeline run only (batch, 8.9M records)",
+            "cost_profile": "High cost, infrequent (per data load)"
+          },
+          {
+            "prompt": "County enrichment (geocoding)",
+            "model": "N/A (Google Maps API, not AI)",
+            "location": "Code/DataPipelines/county_enrichment_job.py",
+            "purpose": "Reverse geocode lat/lng to county FIPS",
+            "invocation": "Pipeline run only",
+            "cost_profile": "Medium cost, infrequent"
+          }
+        ],
+        "brain_prompts": [
+          {
+            "prompt": "GPT architecture review / SIT / design collaboration",
+            "model": "GPT-5.3-chat-latest (OpenAI)",
+            "location": "Code/Shared/ops/brain_refactor_collab.py, gpt_sit_with_gpt.py",
+            "purpose": "Enterprise architect role \u2014 design proposals, SIT execution, code audit",
+            "invocation": "On-demand by Claude via brain runner",
+            "cost_profile": "Variable, per-assignment"
+          },
+          {
+            "prompt": "GPT assurance loop (assignment review)",
+            "model": "GPT-5.3-chat-latest (OpenAI)",
+            "location": "Code/Shared/brain_runner.py",
+            "purpose": "Review Claude's work against assignments, produce assurance output",
+            "invocation": "Per brain assignment",
+            "cost_profile": "Low volume, medium cost per call"
+          }
+        ],
+        "model_selection_rationale": [
+          {
+            "model": "Claude Sonnet 4.6",
+            "why": "Best tool-use performance for conversational AI. Native streaming. Anthropic SDK integration."
+          },
+          {
+            "model": "GPT-5.3-chat-latest",
+            "why": "Reasoning model for architecture and QA. Replaced GPT-4o and o3 after SIT testing showed GPT-4o cannot self-correct in iterative loops and o3 was cost-inefficient (3.3M tokens for 32 iterations). See FIND-SIT-001.",
+            "replaces": "GPT-4o, o3"
+          },
+          {
+            "model": "GPT-4.1-mini",
+            "why": "Cheapest OpenAI model sufficient for binary safety classification. Called on every message \u2014 cost sensitivity is critical."
+          },
+          {
+            "model": "Claude Haiku 4.5",
+            "why": "Fast, cheap, sufficient for summarization and de-identification. Only invoked during consent flow (rare path)."
+          },
+          {
+            "model": "text-embedding-3-large",
+            "why": "3072-dim embeddings for high-quality vector search. OpenAI's best embedding model. Used for both runtime queries and batch pipeline."
+          }
+        ]
+      },
+      "appendix_traceability": {
+        "title": "Appendix B: PDF-to-JSON Traceability Matrix",
+        "description": "Compliance check: every section in the PDF maps to a JSON key. No orphan sections, no missing data.",
+        "matrix": [
+          {
+            "pdf_section": "1. Executive Summary",
+            "json_key": "executive_summary",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "2. Top-Level Architecture",
+            "json_key": "top_level_architecture",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "3. Business Components",
+            "json_key": "business_components",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "3.1 FindCareFacade",
+            "json_key": "business_components.find_care",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "3.2 EvaluateCareFacade",
+            "json_key": "business_components.evaluate_care_quality",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "4. Shared Infrastructure Services",
+            "json_key": "shared_infrastructure",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "4.1 Consent Framework",
+            "json_key": "consent_flow",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "5. HuggingFace Surface Contract",
+            "json_key": "huggingface_surface",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "6. Facade Design",
+            "json_key": "facade_design",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "7. Tool Registry (ToolRouter)",
+            "json_key": "tool_registry",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "8. Repository File Tree",
+            "json_key": "repo_structure",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "9. Migration Plan",
+            "json_key": "migration_plan",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "10. Testing Strategy",
+            "json_key": "testing_strategy",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "11. Pydantic Strategy",
+            "json_key": "pydantic_strategy",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "12. Perplexity Audit Response",
+            "json_key": "perplexity_audit_response",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "13. Sprint Schedule",
+            "json_key": "sprint_schedule",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "14. Architectural Decisions",
+            "json_key": "architectural_decisions",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "15. Governance Alignment",
+            "json_key": "governance_alignment",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "16. Sign-Off",
+            "json_key": "sign_off",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "Appendix A: AI Model Usage",
+            "json_key": "appendix_ai_models",
+            "status": "TRACED"
+          },
+          {
+            "pdf_section": "Appendix B: Traceability Matrix",
+            "json_key": "appendix_traceability",
+            "status": "TRACED"
+          }
+        ],
+        "uat_feature_traceability": [
+          {
+            "uat_feature": 1,
+            "name": "Provider Search",
+            "json_class": "ProviderSearchService",
+            "json_path": "business_components.find_care.services[0]",
+            "tool": "find_providers",
+            "test": "test_provider_search_service.py"
+          },
+          {
+            "uat_feature": 2,
+            "name": "Specialty Identification",
+            "json_class": "SpecialtyService",
+            "json_path": "business_components.find_care.services[1]",
+            "tool": "find_specialty_codes",
+            "test": "test_specialty_service.py"
+          },
+          {
+            "uat_feature": 3,
+            "name": "Clinical Trials Search",
+            "json_class": "ClinicalTrialsService",
+            "json_path": "business_components.evaluate_care_quality.services[0]",
+            "tool": "search_clinical_trials",
+            "test": "test_clinical_trials_service.py"
+          },
+          {
+            "uat_feature": 4,
+            "name": "About ChatHealthy",
+            "json_class": "AboutService",
+            "json_path": "shared_infrastructure.services[4]",
+            "tool": "get_skip_snow_context / get_chathealthy_context",
+            "test": "N/A (static content)"
+          },
+          {
+            "uat_feature": 5,
+            "name": "Safety Filter",
+            "json_class": "SafetyService + EmergencyDetector",
+            "json_path": "shared_infrastructure.services[0-1]",
+            "tool": "N/A (pre-tool gating)",
+            "test": "test_safety_service.py + test_emergency_detector.py"
+          },
+          {
+            "uat_feature": 6,
+            "name": "Lead Capture",
+            "json_class": "LeadService",
+            "json_path": "shared_infrastructure.services[3]",
+            "tool": "record_user_details",
+            "test": "test_lead_service.py"
+          },
+          {
+            "uat_feature": 7,
+            "name": "Consent Framework",
+            "json_class": "ConsentService",
+            "json_path": "shared_infrastructure.services[2] + consent_flow",
+            "tool": "request_consent / record_verbatim_consent / record_summary_consent",
+            "test": "test_consent_service.py"
+          },
+          {
+            "uat_feature": 8,
+            "name": "Provider Detail",
+            "json_class": "ProviderDetailService",
+            "json_path": "business_components.evaluate_care_quality.services[1]",
+            "tool": "lookup_provider_external",
+            "test": "test_provider_detail_service.py"
+          },
+          {
+            "uat_feature": 9,
+            "name": "URL Guardian",
+            "json_class": "URLGuardian",
+            "json_path": "shared_infrastructure.services[6]",
+            "tool": "N/A (post-response filter)",
+            "test": "N/A (existing tests)"
+          },
+          {
+            "uat_feature": 10,
+            "name": "Chat UX",
+            "json_class": "SessionManager",
+            "json_path": "repo_structure...application/session_manager.py",
+            "tool": "N/A (application layer)",
+            "test": "test_chat_orchestrator.py"
+          },
+          {
+            "uat_feature": 11,
+            "name": "Blob Storage",
+            "json_class": "BlobStorageClient",
+            "json_path": "Code/DataPipelines/ (unchanged)",
+            "tool": "N/A (infrastructure)",
+            "test": "N/A (pipeline concern)"
+          },
+          {
+            "uat_feature": 12,
+            "name": "Unanswerable Questions",
+            "json_class": "UnknownQuestionService",
+            "json_path": "shared_infrastructure.services[5]",
+            "tool": "record_unknown_question",
+            "test": "test_unknown_question_service.py"
+          },
+          {
+            "uat_feature": 13,
+            "name": "Markdown Rendering",
+            "json_class": "N/A",
+            "json_path": "frontend_architecture.structure.rendering",
+            "tool": "N/A (frontend only)",
+            "test": "N/A (frontend)"
+          }
+        ],
+        "perplexity_finding_traceability": [
+          {
+            "finding": "F-01",
+            "json_key": "perplexity_audit_response.findings[0]",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-02",
+            "json_key": "perplexity_audit_response.findings[1]",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-03",
+            "json_key": "perplexity_audit_response.findings[2]",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-04",
+            "json_key": "perplexity_audit_response.findings[3]",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-05",
+            "json_key": "perplexity_audit_response.findings[4] + tool_registry",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-06",
+            "json_key": "perplexity_audit_response.findings[5]",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-07",
+            "json_key": "perplexity_audit_response.findings[6] + migration_plan",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-08",
+            "json_key": "perplexity_audit_response.findings[7]",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-09",
+            "json_key": "perplexity_audit_response.findings[8] + shared_infrastructure.services[1]",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-10",
+            "json_key": "perplexity_audit_response.findings[9]",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-11",
+            "json_key": "perplexity_audit_response.findings[10]",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-12",
+            "json_key": "perplexity_audit_response.findings[11]",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-13",
+            "json_key": "perplexity_audit_response.findings[12]",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-14",
+            "json_key": "perplexity_audit_response.findings[13]",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-15",
+            "json_key": "perplexity_audit_response.findings[14]",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-16",
+            "json_key": "perplexity_audit_response.findings[15]",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-17",
+            "json_key": "perplexity_audit_response.findings[16] + tool_registry.enforcement",
+            "status": "TRACED"
+          },
+          {
+            "finding": "F-18",
+            "json_key": "perplexity_audit_response.findings[17]",
+            "status": "TRACED"
+          }
+        ],
+        "compliance_result": "ALL TRACED \u2014 21 PDF sections map to JSON keys. 13 UAT features traced to classes, tools, and tests. 18 Perplexity findings traced to JSON responses. Zero orphans."
+      },
+      "_record_id": "refactor_design_arch001",
+      "_source_file": "refactor_design_arch001.json"
+    },
+    {
+      "title": "FindCare Backend Portability Refactoring \u2014 Sprint 2 Design",
+      "status": "approved_design_pending_implementation",
+      "collaboration": "Claude (engineer) + GPT (architect), 4 iterations, 2026-03-27",
+      "trigger": "Boss directive: porting to Azure should not be major work. Portability must be a design property.",
+      "current_state": {
+        "file": "Code/ConversationalUX/FindCareChat/backend/main.py",
+        "lines": 1323,
+        "problem": "Monolithic \u2014 all business logic, FastAPI setup, prompt construction, tool dispatch, safety, providers, clinical trials, lead capture, notifications, and static file serving in a single file.",
+        "sprint_1_mitigation": "URLGuardian class extracted as standalone module (url_guardian.py) \u2014 validates URLs in tool results and LLM text responses. Integrated into main.py with 3 lines of code."
+      },
+      "target_state": {
+        "modules": {
+          "main.py": {
+            "lines": "~30",
+            "responsibility": "Thin entry point \u2014 creates HostConfig, wires dependencies, starts server",
+            "pseudocode": [
+              "from host_config import HostConfig",
+              "from url_guardian import URLGuardian",
+              "from prompt_factory import PromptFactory",
+              "from findcare_app import FindCareApp",
+              "from gui_helper import GUIHelper",
+              "",
+              "config = HostConfig.from_env()",
+              "guardian = URLGuardian()",
+              "prompts = PromptFactory(me_dir=config.me_dir)",
+              "app_logic = FindCareApp(config, prompts, guardian)",
+              "gui = GUIHelper(app_logic, config)",
+              "",
+              "# Register tools from both FindCareApp and PromptFactory",
+              "prompts.register_tool('find_providers', app_logic.find_providers)",
+              "prompts.register_tool('get_skip_snow_context', prompts.get_skip_snow_context)",
+              "# ... etc",
+              "",
+              "if __name__ == '__main__':",
+              "    gui.run()"
+            ]
+          },
+          "host_config.py": {
+            "lines": "~25",
+            "responsibility": "Dataclass with all host-specific settings",
+            "fields": {
+              "port": {
+                "type": "int",
+                "default": 7860,
+                "note": "7860 on HuggingFace, 8000 on Azure"
+              },
+              "static_file_path": {
+                "type": "str",
+                "default": "./static",
+                "note": "None on Azure (Cloudflare serves frontend)"
+              },
+              "cors_origins": {
+                "type": "list[str]",
+                "note": "Production domains"
+              },
+              "cors_origin_regex": {
+                "type": "str",
+                "note": "Dynamic CORS matching for dev"
+              },
+              "mount_static_files": {
+                "type": "bool",
+                "default": true,
+                "note": "False on Azure (frontend on Cloudflare)"
+              },
+              "asgi_server": {
+                "type": "str",
+                "default": "uvicorn",
+                "note": "gunicorn on Azure"
+              },
+              "env_prefix": {
+                "type": "str",
+                "default": "dev",
+                "note": "Controls database routing: dev/qa/prod"
+              },
+              "debug": {
+                "type": "bool",
+                "default": false
+              }
+            },
+            "factory": "HostConfig.from_env() reads all values from environment variables with sensible defaults"
+          },
+          "findcare_app.py": {
+            "lines": "~800",
+            "responsibility": "ALL business logic \u2014 safety, providers, clinical trials, lead capture, chat loop, tool dispatch",
+            "constructor": "FindCareApp(host_config: HostConfig, prompt_factory: PromptFactory, url_guardian: URLGuardian)",
+            "internal_dependencies": "Creates its own MongoDB connection (ChatHealthyMongoUtilities), Anthropic client, OpenAI client, SparkPost notifier. These are NOT injected \u2014 they are implementation details.",
+            "functions": {
+              "safety": [
+                "_is_ip_locked",
+                "_lock_ip",
+                "_safety_collection",
+                "_lock_ip_db",
+                "_check_ip_lock_db",
+                "_admin_unlock",
+                "_session_is_locked",
+                "_safety_check"
+              ],
+              "database": [
+                "_get_db",
+                "commitSignificantActivity",
+                "_format_chat_history"
+              ],
+              "providers": [
+                "_expand_query_terms",
+                "find_specialty_codes",
+                "_load_fips_county_map",
+                "_make_county_filter",
+                "_get_oai_client",
+                "_get_query_embedding",
+                "_format_provider",
+                "_vector_search_providers",
+                "find_providers"
+              ],
+              "clinical_trials": [
+                "search_clinical_trials"
+              ],
+              "lead_capture": [
+                "record_user_details",
+                "_summarize_conversation",
+                "deIdentify",
+                "record_unknown_question"
+              ],
+              "external_lookup": [
+                "lookup_provider_external"
+              ],
+              "notifications": [
+                "push"
+              ],
+              "debug": [
+                "_debug_log_chat"
+              ],
+              "chat": [
+                "chat_inner",
+                "_handle_tool_calls"
+              ]
+            }
+          },
+          "gui_helper.py": {
+            "lines": "~150",
+            "responsibility": "FastAPI app creation, CORS, endpoints, static file mount",
+            "constructor": "GUIHelper(findcare_app: FindCareApp, host_config: HostConfig)",
+            "creates": "FastAPI app instance",
+            "registers": [
+              "/health",
+              "/welcome",
+              "/chat endpoints"
+            ],
+            "delegates": "All business logic calls go to FindCareApp",
+            "models": [
+              "ChatRequest (Pydantic)",
+              "ChatResponse (Pydantic)"
+            ]
+          },
+          "prompt_factory.py": {
+            "lines": "~200",
+            "responsibility": "System prompt construction, tool schemas, tool registry, context loading",
+            "constructor": "PromptFactory(me_dir: str)",
+            "functions": [
+              "_load_me_context",
+              "system_prompt",
+              "get_skip_snow_context",
+              "get_chathealthy_context",
+              "_trim"
+            ],
+            "tool_registry": {
+              "anthropic_tools": "List of Anthropic-format tool schemas",
+              "registry": "dict[str, Callable] \u2014 tool name to function reference",
+              "register_tool(name, fn)": "Adds a tool to the registry",
+              "get_tool(name)": "Returns the callable for a tool name",
+              "note": "FindCareApp populates the registry at init time. Replaces globals().get(name) pattern."
+            }
+          },
+          "url_guardian.py": {
+            "lines": "~130",
+            "status": "IMPLEMENTED (Sprint 1)",
+            "responsibility": "URL extraction, validation, and correction",
+            "constructor": "URLGuardian(cache_ttl=3600, request_timeout=5, max_workers=4)",
+            "dual_mode": {
+              "guard_tool_result(result)": "Validates URLs in tool result dicts (e.g. lookup_provider_external). Removes broken links.",
+              "guard_text(text)": "Validates URLs in markdown text. Defangs broken links (keeps text, removes href)."
+            },
+            "features": [
+              "HEAD request with GET fallback on 405",
+              "Redirect following \u2014 updates URL if redirected",
+              "Trusted domain whitelist (Healthgrades, Zocdoc) \u2014 skip validation for bot-protected search sites",
+              "In-memory TTL cache \u2014 avoids repeated requests",
+              "Concurrent validation with ThreadPoolExecutor"
+            ]
+          }
+        }
+      },
+      "design_decisions": {
+        "claude_overrides": [
+          {
+            "issue": "GPT proposed 11 modules",
+            "resolution": "Consolidated to 5+1 (HostConfig). Small files like NotificationService, ClinicalTrialsSearch, ExternalProviderLookup are private methods inside FindCareApp, not separate modules.",
+            "reason": "Over-fragmentation adds import complexity for no testability gain. These are single-function concerns."
+          },
+          {
+            "issue": "GPT wanted DatabaseManager and NotificationService injected into FindCareApp",
+            "resolution": "FindCareApp creates its own MongoDB and notification internals",
+            "reason": "Boss rule: e2e tests use real systems, no mocks. DI for testability is pointless when you don't mock."
+          },
+          {
+            "issue": "GPT placed _handle_tool_calls in PromptFactory",
+            "resolution": "Tool dispatch stays in FindCareApp. PromptFactory holds the registry (name->callable map).",
+            "reason": "Tool functions live in FindCareApp. Dispatch needs access to FindCareApp state (chat history, DB). Registry pattern decouples schema from implementation."
+          },
+          {
+            "issue": "GPT proposed URL validation on text only",
+            "resolution": "Dual-mode: guard_tool_result (for constructed URLs) + guard_text (for LLM-generated markdown)",
+            "reason": "Tool-constructed URLs (like the broken Delaware board search) are the higher-priority fix. Text validation catches LLM hallucinated URLs."
+          }
+        ]
+      },
+      "migration_plan": [
+        {
+          "step": 1,
+          "action": "Create host_config.py with HostConfig dataclass and from_env() factory",
+          "test": "Import in main.py, verify all env vars load correctly"
+        },
+        {
+          "step": 2,
+          "action": "Extract prompt_factory.py \u2014 system prompt, tool schemas, context loading, tool registry",
+          "test": "main.py imports PromptFactory, system prompt matches current output"
+        },
+        {
+          "step": 3,
+          "action": "url_guardian.py already exists \u2014 no action needed",
+          "test": "Already passing smoke tests"
+        },
+        {
+          "step": 4,
+          "action": "Extract gui_helper.py \u2014 FastAPI app, CORS, endpoints, static mount",
+          "test": "/health, /welcome, /chat endpoints respond identically"
+        },
+        {
+          "step": 5,
+          "action": "Extract findcare_app.py \u2014 all business logic",
+          "test": "Full e2e test: provider search, safety, lead capture, clinical trials"
+        },
+        {
+          "step": 6,
+          "action": "Thin main.py to ~30 lines",
+          "test": "Full regression \u2014 app behaves identically to pre-refactoring"
+        }
+      ],
+      "prescreen_design": {
+        "description": "PreScreen class - single GPT-4.1-mini call, two classifications per user message",
+        "pattern": "One prompt, two functions",
+        "call": "GPT-4.1-mini with combined system prompt",
+        "input": "User message + list of answerable topics",
+        "output": {
+          "emergency": "bool",
+          "confidence": "float",
+          "answerable": "bool"
+        },
+        "routing": {
+          "emergency_true": "Lock IP, return 911 response, store audit trail",
+          "answerable_false": "Call record_unknown_question, inject 'say I dont know' into Sonnet system prompt",
+          "answerable_true": "Pass to Sonnet normally"
+        },
+        "class_structure": {
+          "file": "prescreen.py",
+          "class": "PreScreen",
+          "constructor": "PreScreen(openai_key: str, answerable_topics: list[str])",
+          "methods": {
+            "check(message: str)": "Returns PreScreenResult(emergency, confidence, answerable)",
+            "answerable_topics": "List of topics the system can answer: healthcare navigation, provider search, clinical trials, Skip Snow career, ChatHealthy mission, Anthropic principles"
+          }
+        },
+        "cost": "Zero additional API calls - replaces existing safety check, adds answerability to same prompt",
+        "status": "Sprint 2 - part of portability refactoring",
+        "proposed_by": "Claude Opus 4.6",
+        "boss_approval": "Not yet reviewed. Skip has neither agreed nor disagreed with this approach."
+      },
+      "portability_matrix": {
+        "huggingface_docker": {
+          "port": 7860,
+          "static_files": true,
+          "asgi": "uvicorn",
+          "changes_needed": "None \u2014 current default"
+        },
+        "azure_app_service": {
+          "port": 8000,
+          "static_files": false,
+          "asgi": "gunicorn",
+          "changes_needed": "Set env vars: PORT=8000, MOUNT_STATIC=false, ASGI_SERVER=gunicorn. Frontend on Cloudflare Pages."
+        },
+        "bare_metal": {
+          "port": "any",
+          "static_files": true,
+          "asgi": "uvicorn or gunicorn",
+          "changes_needed": "Install dependencies, set env vars"
+        }
+      },
+      "risks": [
+        {
+          "risk": "Refactoring may introduce subtle bugs in tool dispatch or chat loop",
+          "mitigation": "Each migration step produces a working app. Full e2e test after each step."
+        },
+        {
+          "risk": "URL validation adds latency to chat responses",
+          "mitigation": "Concurrent validation + TTL cache. Trusted domain whitelist skips bot-protected sites."
+        },
+        {
+          "risk": "Large PR \u2014 1300 lines moved across 5 files",
+          "mitigation": "Incremental steps. Can stop after any step with a working app."
+        }
+      ],
+      "_record_id": "refactor_design_final",
+      "_source_file": "refactor_design_final.json"
+    },
+    {
+      "_record_id": "refactor_proposal_iteration1",
+      "_source_file": "refactor_proposal_iteration1.json",
+      "content": "{\n  \"iteration\": 1,\n  \"summary\": \"Modular monolith refactor with strict host adapter boundary. Two business domains (FindCare, EvaluateCareQuality) with explicit service classes per UAT feature. HuggingFace reduced to entrypoint + adapter only.\",\n  \"top_level_architecture\": {\n    \"pattern\": \"Modular Monolith (single process, domain-separated)\",\n    \"layers\": [\n      \"Host Adapter (HuggingFace only)\",\n      \"Application Layer (use cases / orchestration)\",\n      \"Domain Layer (business logic)\",\n      \"Infrastructure Layer (external APIs, DB, embeddings)\"\n    ],\n    \"dependency_direction\": \"Host -> Application -> Domain -> Infrastructure (no upward imports)\"\n  },\n  \"huggingface_surface\": {\n    \"allowed_files\": [\n      \"app.py\",\n      \"requirements.txt\",\n      \"static/\"\n    ],\n    \"responsibilities\": [\n      \"HTTP routing\",\n      \"request/response translation\",\n      \"stream relay\",\n      \"no business logic\"\n    ],\n    \"adapter_class\": \"HostChatAdapter\"\n  },\n  \"proposed_repo_structure\": {\n    \"Code/ConversationalUX/FindCareChat/\": {\n      \"app.py\": \"HuggingFace entrypoint only\",\n      \"adapter/host_chat_adapter.py\": \"Translates HTTP <-> Application\",\n      \"application/\": {\n        \"chat_orchestrator.py\": \"Main orchestrator replacing main.py\",\n        \"tool_router.py\": \"Safe tool dispatch (replaces globals().get)\",\n        \"session_manager.py\": \"Chat state + timer\"\n      },\n      \"domain/\": {\n        \"find_care/\": {\n          \"provider_search_service.py\": \"Feature 1\",\n          \"specialty_service.py\": \"Feature 2\",\n          \"provider_detail_service.py\": \"Feature 8\"\n        },\n        \"evaluate_care_quality/\": {\n          \"clinical_trials_service.py\": \"Feature 3\"\n        },\n        \"shared/\": {\n          \"safety/\": {\n            \"safety_service.py\": \"Feature 5\",\n            \"emergency_detector.py\": \"F-09 fix\"\n          },\n          \"consent/\": {\n            \"consent_service.py\": \"Feature 7\"\n          },\n          \"lead_capture/\": {\n            \"lead_service.py\": \"Feature 6\"\n          },\n          \"content/\": {\n            \"about_service.py\": \"Feature 4\"\n          },\n          \"unknowns/\": {\n            \"unknown_question_service.py\": \"Feature 12\"\n          },\n          \"url/\": {\n            \"url_guardian.py\": \"Feature 9 (existing, moved)\"\n          }\n        }\n      },\n      \"infrastructure/\": {\n        \"mongo/\": {\n          \"provider_repository.py\": \"read-only queries\"\n        },\n        \"external_apis/\": {\n          \"npi_client.py\",\n          \"clinical_trials_client.py\",\n          \"google_routes_client.py\"\n        },\n        \"embeddings/\": {\n          \"embedding_client.py\"\n        }\n      }\n    },\n    \"Code/DataPipelines/\": {\n      \"no_change\": \"Acknowledged (F-02 strength)\",\n      \"security_patch\": \"Add auth to status endpoint (F-06)\"\n    },\n    \"Code/Shared/\": {\n      \"logging/\": \"central logger\",\n      \"config/\": \"env config loader\"\n    }\n  },\n  \"tooling_design\": {\n    \"tool_router_class\": \"ToolRouter\",\n    \"registration_pattern\": \"explicit dict mapping tool_name -> callable\",\n    \"example\": {\n      \"provider_search\": \"ProviderSearchService.search()\",\n      \"clinical_trials\": \"ClinicalTrialsService.search()\"\n    },\n    \"fixes\": [\n      \"F-05 eliminate globals().get\",\n      \"F-17 server-side enforcement via router allowlist\"\n    ]\n  },\n  \"application_layer\": {\n    \"chat_orchestrator_class\": \"ChatOrchestrator\",\n    \"methods\": [\n      \"handle_user_message(session_id, message)\",\n      \"invoke_tool(tool_name, args)\",\n      \"build_system_prompt()\"\n    ],\n    \"responsibilities\": [\n      \"LLM interaction\",\n      \"tool selection loop\",\n      \"safety gating before/after tool calls\"\n    ]\n  },\n  \"uat_feature_mapping\": [\n    {\n      \"feature\": \"Provider Search\",\n      \"class\": \"ProviderSearchService\",\n      \"justification\": \"Core FindCare domain logic\"\n    },\n    {\n      \"feature\": \"Specialty Identification\",\n      \"class\": \"SpecialtyService\",\n      \"justification\": \"Distinct NLP + taxonomy mapping\"\n    },\n    {\n      \"feature\": \"Clinical Trials Search\",\n      \"class\": \"ClinicalTrialsService\",\n      \"justification\": \"EvaluateCareQuality domain separation\"\n    },\n    {\n      \"feature\": \"About ChatHealthy\",\n      \"class\": \"AboutService\",\n      \"justification\": \"Static content but tool-exposed\"\n    },\n    {\n      \"feature\": \"Safety Filter\",\n      \"class\": \"SafetyService\",\n      \"justification\": \"Cross-cutting, must be centralized\"\n    },\n    {\n      \"feature\": \"Lead Capture\",\n      \"class\": \"LeadService\",\n      \"justification\": \"Separate consent + storage boundary\"\n    },\n    {\n      \"feature\": \"Consent Framework\",\n      \"class\": \"ConsentService\",\n      \"justification\": \"Regulatory separation required\"\n    },\n    {\n      \"feature\": \"Provider Detail\",\n      \"class\": \"ProviderDetailService\",\n      \"justification\": \"Distinct NPI lookup logic\"\n    },\n    {\n      \"feature\": \"URL Guardian\",\n      \"class\": \"URLGuardian\",\n      \"justification\": \"Already isolated, reused\"\n    },\n    {\n      \"feature\": \"Chat UX\",\n      \"class\": \"SessionManager\",\n      \"justification\": \"Application-level state, not domain\"\n    },\n    {\n      \"feature\": \"Blob Storage Infrastructure\",\n      \"class\": \"BlobStorageClient\",\n      \"justification\": \"Infrastructure concern\"\n    },\n    {\n      \"feature\": \"Unanswerable Question Handling\",\n      \"class\": \"UnknownQuestionService\",\n      \"justification\": \"Distinct fallback pathway\"\n    },\n    {\n      \"feature\": \"Markdown Table Rendering\",\n      \"class\": \"FrontendOnly\",\n      \"justification\": \"Pure React concern\"\n    }\n  ],\n  \"security_fixes\": {\n    \"F-05\": \"ToolRouter allowlist replaces globals dispatch\",\n    \"F-06\": \"Add API key validation middleware to pipeline status endpoint\",\n    \"F-09\": \"EmergencyDetector with configurable keyword + embedding similarity\",\n    \"F-17\": \"All tool access enforced server-side via router\",\n    \"F-16\": \"Add BrainLockManager with TTL (design only, not implemented)\"\n  },\n  \"performance_fixes\": {\n    \"F-10\": \"Configurable result limit (default 25, adaptive based on query intent)\"\n  },\n  \"governance_alignment\": {\n    \"GOV-001\": \"No provider prioritization logic in services\",\n    \"GOV-002\": \"Single-tenant config enforced in Config\",\n    \"GOV-004\": \"LLM suggests, ToolRouter enforces execution\",\n    \"GOV-005\": \"Strict separation preserved\"\n  },\n  \"open_questions\": [\n    \"Should ChatOrchestrator own system prompt or move to PromptBuilder class?\",\n    \"Do we unify FindCare + EvaluateCareQuality under a single facade service?\",\n    \"How strict should tool input validation be (pydantic vs lightweight)?\"\n  ]\n}"
+    },
+    {
+      "iteration": 2,
+      "summary": "Refined modular monolith with explicit facades, corrected domain ownership, full repo coverage, and Pydantic-enforced tool boundaries. Prompt co-location strategy and configurable safety introduced.",
+      "top_level_architecture": {
+        "pattern": "Modular Monolith (Facade-Oriented Domains)",
+        "layers": [
+          "Host Adapter (HuggingFace)",
+          "Application Layer (Orchestration + Facades)",
+          "Domain Layer (Business Services)",
+          "Infrastructure Layer (External + DB + Config)"
+        ],
+        "dependency_direction": "Host -> Application -> Domain -> Infrastructure"
+      },
+      "repo_refactor_scope": {
+        "Code/ConversationalUX/FindCareChat/": {
+          "app.py": "HuggingFace entrypoint only",
+          "adapter/host_chat_adapter.py": "HTTP <-> ChatOrchestrator",
+          "application/": {
+            "chat_orchestrator.py": "LLM loop, system prompt (per Boss decision), safety gating",
+            "tool_router.py": "Pydantic-validated tool dispatch (allowlist enforced)",
+            "session_manager.py": "Chat session + UX state",
+            "facades/": {
+              "find_care_facade.py": "Entry point for all FindCare capabilities",
+              "evaluate_care_facade.py": "Entry point for all EvaluateCareQuality capabilities"
+            },
+            "tool_models/": {
+              "provider_search_models.py": "Pydantic input/output",
+              "clinical_trials_models.py": "Pydantic input/output",
+              "shared_models.py": "Common tool schemas"
+            }
+          },
+          "domain/": {
+            "find_care/": {
+              "provider_search_service.py": "Feature 1",
+              "specialty_service.py": "Feature 2"
+            },
+            "evaluate_care_quality/": {
+              "clinical_trials_service.py": "Feature 3",
+              "provider_detail_service.py": "Feature 8 (MOVED per feedback)"
+            },
+            "shared/": {
+              "safety/": {
+                "safety_service.py": "Feature 5",
+                "emergency_detector.py": "Config-driven (F-09 fix)"
+              },
+              "consent/consent_service.py": "Feature 7",
+              "lead_capture/lead_service.py": "Feature 6",
+              "content/about_service.py": "Feature 4",
+              "unknowns/unknown_question_service.py": "Feature 12",
+              "url/url_guardian.py": "Feature 9"
+            }
+          },
+          "infrastructure/": {
+            "mongo/provider_repository.py": "read-only",
+            "external_apis/": {
+              "npi_client.py": "used by ProviderDetailService",
+              "clinical_trials_client.py": "used by ClinicalTrialsService",
+              "google_routes_client.py": "travel time"
+            },
+            "embeddings/embedding_client.py": "vector search",
+            "config/config_loader.py": "loads brain artifacts + env"
+          }
+        },
+        "Code/DataPipelines/": {
+          "architecture_alignment": "Remains independent (GOV-005)",
+          "changes": [
+            "Add APIKeyMiddleware to status endpoint (F-06)",
+            "Expose blob schema via Shared contracts if needed"
+          ]
+        },
+        "Code/Shared/": {
+          "purpose": "Cross-application infrastructure only (NO business logic)",
+          "modules": {
+            "logging/logger.py": "central structured logging",
+            "config/global_config.py": "shared env loader",
+            "contracts/": "optional shared DTOs (non-domain)"
+          }
+        },
+        "Website/": {
+          "no_change": "Remains Cloudflare static (GOV-005)",
+          "note": "Remove any leaked architecture docs (F-13)"
+        },
+        "brain/": {
+          "machine_artifacts/": {
+            "emergency_keywords.json": "loaded by EmergencyDetector",
+            "tool_registry.json": "optional future sync for prompt/tool alignment"
+          },
+          "governance": [
+            "Add BrainLock TTL design (F-16 acknowledgment)"
+          ]
+        }
+      },
+      "facade_design": {
+        "FindCareFacade": {
+          "methods": [
+            "search_providers(criteria: ProviderSearchInput) -> ProviderSearchOutput",
+            "identify_specialty(input: SpecialtyInput) -> SpecialtyOutput",
+            "get_provider_location(npi: str) -> dict"
+          ]
+        },
+        "EvaluateCareFacade": {
+          "methods": [
+            "search_clinical_trials(input: ClinicalTrialsInput) -> ClinicalTrialsOutput",
+            "get_provider_details(npi: str) -> ProviderDetailOutput"
+          ],
+          "cross_calls": [
+            "calls FindCareFacade.get_provider_location() for travel calculations"
+          ]
+        }
+      },
+      "tooling_and_pydantic": {
+        "tool_router": {
+          "class": "ToolRouter",
+          "dispatch_map": {
+            "provider_search": {
+              "model": "ProviderSearchInput",
+              "handler": "FindCareFacade.search_providers"
+            },
+            "clinical_trials": {
+              "model": "ClinicalTrialsInput",
+              "handler": "EvaluateCareFacade.search_clinical_trials"
+            }
+          },
+          "enforcement": [
+            "Reject unknown tools (F-05 fix)",
+            "Validate all inputs via Pydantic (Boss decision)",
+            "Validate outputs before returning to LLM"
+          ]
+        }
+      },
+      "system_prompt_strategy": {
+        "location": "ChatOrchestrator._build_system_prompt()",
+        "strategy": [
+          "Prompt references TOOL NAMES only (not class names)",
+          "ToolRouter is source of truth for available tools",
+          "Optional: load tool descriptions dynamically from tool_models docstrings",
+          "Future-ready: tool_registry.json in brain for external sync"
+        ],
+        "consistency_rule": "If a tool is not registered in ToolRouter, it cannot appear in prompt"
+      },
+      "uat_feature_mapping": [
+        {
+          "feature": "Provider Search",
+          "class": "ProviderSearchService",
+          "domain": "FindCare"
+        },
+        {
+          "feature": "Specialty Identification",
+          "class": "SpecialtyService",
+          "domain": "FindCare"
+        },
+        {
+          "feature": "Clinical Trials Search",
+          "class": "ClinicalTrialsService",
+          "domain": "EvaluateCareQuality"
+        },
+        {
+          "feature": "About ChatHealthy",
+          "class": "AboutService",
+          "domain": "Shared"
+        },
+        {
+          "feature": "Safety Filter",
+          "class": "SafetyService",
+          "domain": "Shared"
+        },
+        {
+          "feature": "Lead Capture",
+          "class": "LeadService",
+          "domain": "Shared"
+        },
+        {
+          "feature": "Consent Framework",
+          "class": "ConsentService",
+          "domain": "Shared"
+        },
+        {
+          "feature": "Provider Detail",
+          "class": "ProviderDetailService",
+          "domain": "EvaluateCareQuality"
+        },
+        {
+          "feature": "URL Guardian",
+          "class": "URLGuardian",
+          "domain": "Shared"
+        },
+        {
+          "feature": "Chat UX",
+          "class": "SessionManager",
+          "domain": "Application"
+        },
+        {
+          "feature": "Blob Storage Infrastructure",
+          "class": "BlobStorageClient",
+          "domain": "Infrastructure"
+        },
+        {
+          "feature": "Unanswerable Question Handling",
+          "class": "UnknownQuestionService",
+          "domain": "Shared"
+        },
+        {
+          "feature": "Markdown Table Rendering",
+          "class": "FrontendOnly",
+          "domain": "Frontend"
+        }
+      ],
+      "safety_configuration": {
+        "EmergencyDetector": {
+          "config_source": "brain/machine_artifacts/emergency_keywords.json",
+          "reload_strategy": "loaded at startup (no runtime mutation)",
+          "future": "can add embedding similarity expansion"
+        }
+      },
+      "audit_alignment": {
+        "F-05": "Resolved via ToolRouter allowlist",
+        "F-06": "API key protection added to pipelines",
+        "F-07": "main.py eliminated -> modular structure",
+        "F-09": "Config-driven emergency detection",
+        "F-10": "Result limit configurable in ProviderSearchService",
+        "F-13": "Website removes sensitive architecture docs",
+        "F-16": "BrainLock TTL acknowledged in brain design",
+        "F-17": "Server-side enforcement via ToolRouter + Pydantic"
+      },
+      "_record_id": "refactor_proposal_iteration3",
+      "_source_file": "refactor_proposal_iteration3.json"
+    },
+    {
+      "iteration": 3,
+      "summary": "Adds phased migration plan, frontend architecture, testing strategy, and final entrypoint definition. Design now fully executable with low-risk incremental refactor.",
+      "migration_plan": {
+        "strategy": "Strangler Fig pattern inside same codebase (incremental extraction, zero downtime)",
+        "phases": [
+          {
+            "phase": 1,
+            "name": "Introduce Skeleton Architecture",
+            "changes": [
+              "Create folder structure (application/, domain/, infrastructure/, adapter/)",
+              "Add ChatOrchestrator (empty pass-through)",
+              "Add ToolRouter with static mapping (still calls existing main.py functions)",
+              "Wrap existing functions with adapter methods (no logic moved yet)"
+            ],
+            "result": "App compiles, behavior unchanged, routing no longer uses globals().get",
+            "risk": "LOW"
+          },
+          {
+            "phase": 2,
+            "name": "Extract First Domain (FindCare - Provider Search)",
+            "changes": [
+              "Move find_providers() -> ProviderSearchService.search()",
+              "Introduce FindCareFacade.search_providers()",
+              "Update ToolRouter to call facade instead of main.py"
+            ],
+            "result": "One feature fully migrated, validates pattern",
+            "risk": "LOW"
+          },
+          {
+            "phase": 3,
+            "name": "Extract Remaining FindCare \u0938\u0947\u0935ices",
+            "changes": [
+              "Move SpecialtyService",
+              "Wire through FindCareFacade",
+              "Remove corresponding logic from main.py"
+            ],
+            "risk": "LOW-MEDIUM"
+          },
+          {
+            "phase": 4,
+            "name": "Extract EvaluateCareQuality Domain",
+            "changes": [
+              "Move ClinicalTrialsService",
+              "Move ProviderDetailService",
+              "Introduce EvaluateCareFacade"
+            ],
+            "risk": "MEDIUM"
+          },
+          {
+            "phase": 5,
+            "name": "Extract Shared Services",
+            "changes": [
+              "SafetyService + EmergencyDetector",
+              "ConsentService",
+              "LeadService",
+              "UnknownQuestionService",
+              "AboutService",
+              "URLGuardian relocation"
+            ],
+            "risk": "MEDIUM (cross-cutting concerns)"
+          },
+          {
+            "phase": 6,
+            "name": "Introduce Pydantic Tool Models",
+            "changes": [
+              "Define all tool input/output schemas",
+              "Wrap ToolRouter validation layer",
+              "Gradually enforce typing per tool"
+            ],
+            "risk": "MEDIUM (schema mismatches)"
+          },
+          {
+            "phase": 7,
+            "name": "Delete main.py Monolith",
+            "changes": [
+              "Remove remaining functions",
+              "Ensure all calls go through orchestrator + services",
+              "Rename app entrypoint"
+            ],
+            "risk": "LOW (if prior phases complete)"
+          }
+        ],
+        "safety_mechanism": [
+          "Each phase preserves working state",
+          "Feature-by-feature migration (no big bang)",
+          "Fallback: old functions remain callable until replaced"
+        ]
+      },
+      "frontend_architecture": {
+        "location": "Code/ConversationalUX/FindCareChat/frontend/",
+        "pattern": "Feature-light, API-driven (no domain duplication)",
+        "structure": {
+          "src/": {
+            "components/": [
+              "ChatWindow.tsx",
+              "MessageBubble.tsx",
+              "EmergencyBanner.tsx",
+              "TypingIndicator.tsx"
+            ],
+            "api/": [
+              "chat_client.ts (calls /chat endpoint)"
+            ],
+            "state/": [
+              "chat_store.ts (session state, timer, stop control)"
+            ],
+            "rendering/": [
+              "markdown_renderer.tsx (remark-gfm)"
+            ],
+            "styles/": [
+              "chat.css"
+            ]
+          }
+        },
+        "decision": "Do NOT mirror backend domains. Frontend remains thin and presentation-focused. All domain logic stays server-side.",
+        "feature_mapping": {
+          "Chat UX": "chat_store.ts + ChatWindow.tsx",
+          "Markdown Rendering": "markdown_renderer.tsx",
+          "Emergency UI": "EmergencyBanner.tsx"
+        }
+      },
+      "testing_strategy": {
+        "structure": {
+          "tests/": {
+            "application/": "test_chat_orchestrator.py",
+            "domain/": {
+              "find_care/": [
+                "test_provider_search_service.py",
+                "test_specialty_service.py"
+              ],
+              "evaluate_care_quality/": [
+                "test_clinical_trials_service.py",
+                "test_provider_detail_service.py"
+              ],
+              "shared/": [
+                "test_safety_service.py",
+                "test_emergency_detector.py",
+                "test_consent_service.py",
+                "test_lead_service.py",
+                "test_unknown_question_service.py"
+              ]
+            },
+            "infrastructure/": [
+              "test_provider_repository.py (mocked Mongo)",
+              "test_external_clients.py (mock APIs)"
+            ]
+          }
+        },
+        "strategy": {
+          "unit_tests": "All domain services mocked dependencies",
+          "integration_tests": [
+            "ToolRouter + Facades",
+            "ChatOrchestrator with fake LLM responses"
+          ],
+          "no_live_calls": "External APIs always mocked in CI",
+          "regression": [
+            "Capture baseline outputs from main.py before refactor",
+            "Replay test prompts and compare outputs"
+          ],
+          "existing_tests": "Retained initially, then migrated per service"
+        }
+      },
+      "entrypoint_final_state": {
+        "main_py": "DELETED",
+        "replacement": "app.py",
+        "location": "Code/ConversationalUX/FindCareChat/app.py",
+        "responsibility": [
+          "FastAPI app initialization",
+          "Route definitions (/chat, /health, /welcome)",
+          "Delegates ALL logic to HostChatAdapter"
+        ],
+        "adapter": "adapter/host_chat_adapter.py calls ChatOrchestrator",
+        "result": "Zero business logic in entrypoint (HuggingFace compliant)"
+      },
+      "final_notes": [
+        "Design now fully incremental and deployable at every phase",
+        "Frontend intentionally thin to preserve portability",
+        "Testing ensures no regression during phased extraction",
+        "main.py fully eliminated to resolve F-07"
+      ],
+      "_record_id": "refactor_proposal_iteration5",
+      "_source_file": "refactor_proposal_iteration5.json"
+    },
+    {
+      "title": "Portability Refactoring Results",
+      "status": "placeholder \u2014 referenced by portability_refactoring_report.json, not yet populated",
+      "created": "2026-03-29",
+      "results": [],
+      "_record_id": "refactor_results",
+      "_source_file": "refactor_results.json"
+    }
+  ]
+}

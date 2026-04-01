@@ -1,0 +1,1210 @@
+{
+  "collection": "business_plan",
+  "record_count": 6,
+  "records": [
+    {
+      "title": "ChatHealthy.ai \u2014 Business Architecture",
+      "subtitle": "Find Care. Evaluate Care. Discuss Care.",
+      "version": "1.0",
+      "date": "2026-03-31",
+      "executive_summary": "ChatHealthy.ai is a consumer-first healthcare navigation platform structured around a simple but underbuilt reality: people must find care, evaluate options, and make decisions\u2014often with others. Existing solutions fragment this journey across search engines, provider directories, ratings sites, and disconnected conversations. ChatHealthy integrates these steps into a single architecture designed for clarity, trust, and decision support.\n\nThe platform consists of three tightly coupled components. Find Care provides free, high-quality provider discovery. Evaluate Care builds trust through structured analysis of provider quality and clinical options. Discuss Care introduces a new category: multi-participant, AI-assisted healthcare decision-making. This final component transforms passive research into active collaboration, where families and caregivers make decisions together with AI support.\n\nThe business model aligns with governance constraints: no care-chain revenue. Instead, ChatHealthy monetizes through premium AI usage and AI vendor partnerships. AI companies pay to participate in high-value healthcare decision contexts, while users retain control and pay only for optional premium AI engagement. The result is a platform that owns the healthcare decision room without compromising neutrality.",
+      "mission": "Help people make better healthcare decisions together.",
+      "components": {
+        "find_care": {
+          "name": "Find Care",
+          "tagline": "Find the right care, fast",
+          "description": "Find Care is the entry point into the platform, enabling users to locate healthcare providers, specialties, and services with precision. It uses vector search and taxonomy matching to interpret user intent and map it to relevant providers across geographies. The system is designed to reduce friction in navigating the healthcare system, especially for users unfamiliar with medical terminology or care pathways.",
+          "capabilities": [
+            "Natural language provider search",
+            "Specialty and condition mapping",
+            "Geographic filtering (DE, MS, VA expanding to all states)",
+            "Provider detail lookup",
+            "Healthcare system navigation guidance"
+          ],
+          "data_sources": [
+            "NPI Registry",
+            "State provider registries",
+            "Internal taxonomy and vector embeddings"
+          ],
+          "pricing": "free forever",
+          "role_in_value_chain": "the funnel"
+        },
+        "evaluate_care": {
+          "name": "Evaluate Care",
+          "tagline": "Understand your options",
+          "description": "Evaluate Care helps users assess healthcare options using structured data and AI synthesis. It aggregates provider credentials, clinical trial availability, and quality indicators into a unified view. The system translates complex, multi-source data into consumer-comprehensible insights while maintaining transparency of underlying signals.",
+          "capabilities": [
+            "Provider credential analysis",
+            "Clinical trial discovery and matching",
+            "Quality signal aggregation",
+            "Comparative provider evaluation",
+            "Explainable AI summaries of provider quality"
+          ],
+          "data_sources": [
+            "NPI Registry",
+            "ClinicalTrials.gov",
+            "State medical boards",
+            "CMS quality data",
+            "Public disciplinary records"
+          ],
+          "pricing": "free now, paywall post-trust",
+          "patent_concept": {
+            "claim": "Method for synthesizing healthcare provider quality signals using large language models to produce consumer-comprehensible provider assessments",
+            "signals": [
+              "NPI data",
+              "board certifications",
+              "disciplinary actions",
+              "malpractice history",
+              "patient outcomes",
+              "clinical trial participation",
+              "prescription patterns",
+              "CMS quality scores",
+              "state licensing records"
+            ],
+            "innovation": "Structured synthesis of heterogeneous public healthcare quality signals into explainable consumer-facing assessments using LLMs",
+            "status": "pre-provisional"
+          },
+          "role_in_value_chain": "trust builder"
+        },
+        "discuss_care": {
+          "name": "Discuss Care",
+          "tagline": "Decide together",
+          "description": "Discuss Care is a multi-participant, AI-assisted healthcare collaboration environment. Users invite family, friends, and caregivers into a shared session where humans and multiple AI models interact in real time. All participants have access to the same tools and data, enabling informed, collective decision-making. The system enforces healthcare-specific guardrails and structured interaction to maintain clarity, safety, and focus.",
+          "features": [
+            {
+              "id": "DC-01",
+              "name": "Shared Chat Session",
+              "description": "Multiple humans collaborate in a single AI-assisted conversation"
+            },
+            {
+              "id": "DC-02",
+              "name": "Invite System",
+              "description": "Link-based access for participants without requiring accounts"
+            },
+            {
+              "id": "DC-03",
+              "name": "Multi-Model AI",
+              "description": "Multiple AI systems participate simultaneously in the same session"
+            },
+            {
+              "id": "DC-04",
+              "name": "Shared Tool Access",
+              "description": "All participants can invoke healthcare tools within the session"
+            },
+            {
+              "id": "DC-05",
+              "name": "Healthcare Guardrails",
+              "description": "Conversations constrained to healthcare navigation with safety enforcement"
+            },
+            {
+              "id": "DC-06",
+              "name": "Session Transcript",
+              "description": "Exportable record for sharing with providers and care teams"
+            },
+            {
+              "id": "DC-07",
+              "name": "Consent per Participant",
+              "description": "Each participant controls their own data sharing and permissions"
+            },
+            {
+              "id": "DC-08",
+              "name": "Participant Roles",
+              "description": "Host and peer roles with equal access to tools"
+            },
+            {
+              "id": "DC-09",
+              "name": "Real-Time Collaboration",
+              "description": "Live synchronized interaction across all participants"
+            },
+            {
+              "id": "DC-10",
+              "name": "Session Persistence",
+              "description": "Sessions persist and can be resumed via invite link"
+            }
+          ],
+          "floor_control": {
+            "model": "Moderated turn-taking system",
+            "rules": [
+              "One active speaker at a time",
+              "Queue-based participation for humans and AI",
+              "Humans always take precedence over AI",
+              "Bot moderator enforces order and resolves conflicts"
+            ],
+            "purpose": "Maintain clarity, prevent AI dominance, ensure human-centered decisions"
+          },
+          "choose_your_ai": {
+            "mechanism": "Users select which AI models participate in the session",
+            "vendor_value": [
+              "Presence in high-stakes healthcare decisions",
+              "Access to real-world healthcare interaction patterns",
+              "Brand exposure at decision point"
+            ],
+            "platform_role": "Neutral host orchestrating multi-model interaction",
+            "user_experience": "Transparent AI participation with visible model identities"
+          },
+          "pricing": "premium tokens + vendor partnerships",
+          "role_in_value_chain": "revenue engine"
+        }
+      },
+      "value_chain": {
+        "flow": "Find -> Evaluate -> Discuss",
+        "description": "Users begin by discovering providers (Find Care), build confidence through structured evaluation (Evaluate Care), and then move into collaborative decision-making with others and AI (Discuss Care). Each step increases engagement, trust, and context depth, culminating in high-value decision sessions."
+      },
+      "revenue_model": {
+        "streams": [
+          {
+            "name": "AI Token Markup",
+            "description": "Users pay for premium AI usage within Discuss Care sessions",
+            "driver": "High-value, multi-participant decision contexts"
+          },
+          {
+            "name": "AI Vendor Partnerships",
+            "description": "AI providers pay for access to participate in healthcare decision sessions",
+            "driver": "Distribution and presence in critical decision environments"
+          },
+          {
+            "name": "Evaluate Care Premium (Future)",
+            "description": "Advanced provider quality insights and comparative analytics behind paywall",
+            "driver": "Established trust and demand for deeper analysis"
+          }
+        ],
+        "gov_001_compliance": "All revenue originates from technology usage and AI vendors, not from providers, payers, or pharmaceutical companies. This preserves neutrality and aligns with Apple-style platform economics."
+      },
+      "moat": {
+        "barriers": [
+          "Regulatory positioning: AI vendors avoid direct exposure to healthcare regulation, creating dependency on a neutral platform",
+          "Trust accumulation: healthcare decision trust compounds slowly and is difficult to replicate",
+          "Data aggregation: multi-source provider and quality data requires long-term curation",
+          "Governance framework: multi-AI safety, consent, and moderation system is non-trivial to design and operate",
+          "Network effects: each session adds participants and behavioral signal",
+          "Patent protection: LLM-based synthesis of provider quality signals"
+        ]
+      },
+      "governance": {
+        "policies": [
+          "GOV-001: No care-chain revenue",
+          "GOV-002: Single-tenant session isolation",
+          "GOV-004: AI suggests, humans decide"
+        ],
+        "safety": "All components share a unified safety layer including healthcare scope enforcement, emergency detection, AI output constraints, and participant-level consent controls. Discuss Care adds moderation and floor control to ensure safe multi-party interaction."
+      },
+      "timeline": {
+        "milestones": [
+          {
+            "date": "2026-04-30",
+            "milestone": "Alpha launch (Find Care + Evaluate Care hardened)"
+          },
+          {
+            "date": "2026-05-31",
+            "milestone": "Discuss Care Beta Sprint 1"
+          },
+          {
+            "date": "2026-07-31",
+            "milestone": "Seed funding close"
+          },
+          {
+            "date": "2026-08-25",
+            "milestone": "Production launch"
+          },
+          {
+            "date": "2026-09-20",
+            "milestone": "Beta launch"
+          }
+        ]
+      },
+      "diagrams": {
+        "component_diagram": {
+          "description": "Three horizontally aligned boxes labeled Find Care, Evaluate Care, Discuss Care. Arrows flow left to right. Below all three is a shared layer labeled Data + AI Infrastructure (NPI, ClinicalTrials, State Boards, LLMs). On top is a Governance Layer spanning all components.",
+          "elements": [
+            "Box: Find Care",
+            "Box: Evaluate Care",
+            "Box: Discuss Care",
+            "Arrow: Find Care -> Evaluate Care",
+            "Arrow: Evaluate Care -> Discuss Care",
+            "Layer below: Data + AI Infrastructure",
+            "Layer above: Governance Layer"
+          ]
+        },
+        "value_chain_diagram": {
+          "description": "Linear flow with three stages: Discover, Assess, Decide. Each stage maps to Find Care, Evaluate Care, Discuss Care respectively. Increasing user engagement and value density shown as upward gradient.",
+          "elements": [
+            "Stage 1: Discover (Find Care)",
+            "Stage 2: Assess (Evaluate Care)",
+            "Stage 3: Decide (Discuss Care)",
+            "Arrow progression left to right",
+            "Value gradient increasing"
+          ]
+        },
+        "revenue_flow_diagram": {
+          "description": "Users on left, AI vendors on right, platform in center. Users send token payments to platform. AI vendors send partnership fees to platform. No arrows from providers/payers.",
+          "elements": [
+            "Entity: Users -> Platform (token payments)",
+            "Entity: AI Vendors -> Platform (partnership fees)",
+            "Platform: ChatHealthy",
+            "No connection to care-chain entities"
+          ]
+        },
+        "participant_model_diagram": {
+          "description": "Central session box with multiple human participants and multiple AI agents connected. Moderator sits above enforcing rules. All participants connected to shared tool layer.",
+          "elements": [
+            "Node: Session",
+            "Nodes: Human participants",
+            "Nodes: AI models",
+            "Node: Moderator",
+            "Shared tool layer connection"
+          ]
+        },
+        "care_decision_lifecycle": {
+          "description": "Circular loop: Identify need -> Find providers -> Evaluate options -> Discuss with stakeholders -> Decide -> Re-engage if needed.",
+          "elements": [
+            "Step: Identify need",
+            "Step: Find providers",
+            "Step: Evaluate options",
+            "Step: Discuss",
+            "Step: Decide",
+            "Loop back arrow"
+          ]
+        }
+      },
+      "competitive_landscape": "Search engines provide discovery but lack healthcare-specific evaluation. Provider directories offer listings without synthesis. Ratings platforms lack clinical depth and trust. Telehealth platforms focus on service delivery, not decision-making. AI companies provide general reasoning but avoid regulated healthcare contexts. None integrate multi-party collaboration, structured evaluation, and neutral governance in a single system.",
+      "investment_thesis": "ChatHealthy.ai defines and owns the healthcare decision layer. By integrating discovery, evaluation, and collaborative decision-making, it captures the highest-value moment in healthcare: where choices are made. The platform's neutral revenue model aligns incentives, while AI vendor participation creates a scalable, defensible monetization path. With strong architectural foundations and clear governance, the company is positioned to become the default interface for healthcare decisions.",
+      "sign_off": "Prepared for investor and partner review.",
+      "_record_id": "biz_arch_draft_v1",
+      "_source_file": "biz_arch_draft_v1.json"
+    },
+    {
+      "title": "ChatHealthy.ai -- Business Architecture",
+      "subtitle": "Find Care. Evaluate Care. Discuss Care.",
+      "version": "1.1",
+      "date": "2026-03-31",
+      "executive_summary": "ChatHealthy.ai is a consumer-first healthcare navigation platform built around the full decision lifecycle: finding care, evaluating options, and deciding with others. Today, this journey is fragmented across search, provider directories, ratings sites, and private conversations. ChatHealthy unifies these steps into a single, governed system designed for clarity, trust, and collaborative decision-making.\n\nThe platform consists of three components. Find Care enables precise, intent-driven provider discovery. Evaluate Care builds trust through structured synthesis of provider quality and clinical options. Discuss Care introduces a new category: multi-human, multi-AI healthcare decision collaboration with shared tools, consent, and governance. This is where decisions are actually made.\n\nThe business model follows a platform approach similar to Apple: users pay for premium AI usage, and AI vendors pay for distribution into high-value healthcare decision contexts. ChatHealthy does not take revenue from the care chain. The result is a neutral platform that owns the healthcare decision room while aligning incentives across users and technology providers.",
+      "mission": "Help people make better healthcare decisions together.",
+      "components": {
+        "find_care": {
+          "name": "Find Care",
+          "tagline": "Find the right care, fast",
+          "description": "Find Care is the entry point into the platform, enabling users to locate healthcare providers, specialties, and services using natural language. It combines vector search with healthcare taxonomy mapping to interpret user intent and return relevant providers across geographies. The system reduces friction in navigating complex healthcare systems and serves as the primary acquisition funnel.",
+          "capabilities": [
+            "Natural language provider search",
+            "Specialty and condition mapping",
+            "Geographic filtering (DE, MS, VA expanding nationally)",
+            "Provider detail lookup",
+            "Healthcare navigation guidance"
+          ],
+          "data_sources": [
+            "NPI Registry",
+            "State provider registries",
+            "Internal taxonomy and vector embeddings"
+          ],
+          "pricing": "free forever",
+          "role_in_value_chain": "the funnel"
+        },
+        "evaluate_care": {
+          "name": "Evaluate Care",
+          "tagline": "Understand your options",
+          "description": "Evaluate Care enables users to assess healthcare options through structured aggregation and synthesis of provider quality signals and clinical data. It translates complex, multi-source information into clear, consumer-comprehensible insights while preserving transparency and traceability of underlying data.",
+          "capabilities": [
+            "Provider credential analysis",
+            "Clinical trial discovery and matching",
+            "Quality signal aggregation",
+            "Comparative provider evaluation",
+            "Explainable AI summaries"
+          ],
+          "data_sources": [
+            "NPI Registry",
+            "ClinicalTrials.gov",
+            "State medical boards",
+            "CMS quality datasets",
+            "Public disciplinary records"
+          ],
+          "pricing": "free now, paywall post-trust",
+          "patent_concept": {
+            "claim": "Method for synthesizing healthcare provider quality signals using large language models to produce consumer-comprehensible provider assessments.",
+            "signals": [
+              "NPI data",
+              "Board certifications",
+              "Disciplinary actions",
+              "Malpractice history",
+              "Patient outcomes",
+              "Clinical trial participation",
+              "Prescription patterns",
+              "CMS quality scores",
+              "State licensing records"
+            ],
+            "innovation": "Combining heterogeneous public healthcare signals into structured, explainable, consumer-facing assessments using LLM orchestration",
+            "status": "pre-provisional"
+          },
+          "role_in_value_chain": "trust builder"
+        },
+        "discuss_care": {
+          "name": "Discuss Care",
+          "tagline": "Decide together",
+          "description": "Discuss Care is a multi-human, multi-AI healthcare collaboration environment where decisions are made. Users invite family, friends, and caregivers into a shared session where all participants--human and AI--can access the same tools, data, and context. The system enforces healthcare guardrails, structured interaction, consent, and moderation to ensure safe, focused, and human-centered decision-making.",
+          "features": [
+            {
+              "id": "DC-01",
+              "name": "Shared Chat Session",
+              "description": "Multiple humans collaborate in one AI-assisted session"
+            },
+            {
+              "id": "DC-02",
+              "name": "Invite System",
+              "description": "Link-based access with no account required"
+            },
+            {
+              "id": "DC-03",
+              "name": "Multi-Model AI",
+              "description": "Multiple AI models participate simultaneously"
+            },
+            {
+              "id": "DC-04",
+              "name": "Shared Tool Access",
+              "description": "All participants can invoke healthcare tools"
+            },
+            {
+              "id": "DC-05",
+              "name": "Healthcare Guardrails",
+              "description": "Scope enforcement, safety filters, emergency detection"
+            },
+            {
+              "id": "DC-06",
+              "name": "Session Transcript",
+              "description": "Exportable transcript for care teams"
+            },
+            {
+              "id": "DC-07",
+              "name": "Consent per Participant",
+              "description": "Independent consent control per user"
+            },
+            {
+              "id": "DC-08",
+              "name": "Participant Roles",
+              "description": "Host and peer roles"
+            },
+            {
+              "id": "DC-09",
+              "name": "Real-Time Collaboration",
+              "description": "Live synchronized interaction"
+            },
+            {
+              "id": "DC-10",
+              "name": "Session Persistence",
+              "description": "Sessions resumable via link"
+            },
+            {
+              "id": "DC-11",
+              "name": "Floor Control",
+              "description": "Moderated turn-taking with human precedence and dynamic ranking"
+            },
+            {
+              "id": "DC-12",
+              "name": "Presence Layer",
+              "description": "Humans use camera or image; AI uses brand avatars (non-human)"
+            },
+            {
+              "id": "DC-13",
+              "name": "Voice Mode",
+              "description": "Speech-to-text interaction with full floor control support"
+            }
+          ],
+          "floor_control": {
+            "model": "Queue-based moderated turn-taking",
+            "precedence_rules": [
+              "Humans have default priority over AI participants",
+              "Participants are dynamically ranked based on contribution quality",
+              "Time-wasting behavior results in demotion in queue priority",
+              "Constructive contributions restore priority over time"
+            ],
+            "moderation": "Bot moderator nudges participants, suggests ordering, and enforces structure without forcing decisions (GOV-004)",
+            "purpose": "Ensure human-led, high-signal collaboration in multi-party sessions"
+          },
+          "choose_your_ai": {
+            "mechanism": "Users select which AI models join the session",
+            "vendor_value": [
+              "Presence in high-stakes healthcare decisions",
+              "Real-world healthcare interaction signal",
+              "Brand visibility at point of decision"
+            ],
+            "platform_role": "Neutral orchestrator of multi-model interaction",
+            "user_experience": "Transparent AI identity and performance comparison within session"
+          },
+          "pricing": "premium tokens + vendor partnerships",
+          "role_in_value_chain": "revenue engine"
+        }
+      },
+      "value_chain": {
+        "flow": "Find -> Evaluate -> Discuss",
+        "description": "Users move from discovering providers (Find Care), to understanding and comparing options (Evaluate Care), to making decisions collaboratively (Discuss Care). Each stage increases context, trust, and engagement, culminating in high-value decision sessions."
+      },
+      "revenue_model": {
+        "streams": [
+          {
+            "name": "AI Token Markup",
+            "description": "Users pay for premium AI participation in Discuss Care sessions"
+          },
+          {
+            "name": "AI Vendor Access Fees",
+            "description": "AI vendors pay for distribution into healthcare decision sessions"
+          },
+          {
+            "name": "Evaluate Care Premium",
+            "description": "Advanced provider insights and analytics behind paywall"
+          }
+        ],
+        "gov_001_compliance": "No revenue is derived from providers, payers, or pharmaceutical companies. The model follows an Apple-style platform approach where both users and technology providers pay, preserving neutrality and avoiding care-chain conflicts."
+      },
+      "moat": {
+        "barriers": [
+          "Regulatory willingness: AI vendors avoid FDA classification risk and HIPAA exposure; they require a neutral platform to operate in healthcare decision contexts",
+          "Trust: consumer trust in healthcare decisions compounds over time and is difficult to replicate",
+          "Data: longitudinal aggregation of provider, trial, and quality data",
+          "Governance: multi-human, multi-AI safety, consent, and moderation framework",
+          "Network effects: each session adds participants and behavioral signal",
+          "Patent: LLM-based synthesis of provider quality signals"
+        ]
+      },
+      "governance": {
+        "policies": [
+          "GOV-001: No care-chain revenue",
+          "GOV-002: Single-tenant session isolation",
+          "GOV-004: AI suggests, humans decide"
+        ],
+        "safety": "Unified safety layer across all components including scope restriction to healthcare navigation, emergency detection, explainability constraints, participant-level consent, and moderated multi-party interaction in Discuss Care."
+      },
+      "timeline": {
+        "milestones": [
+          {
+            "date": "2026-04-30",
+            "milestone": "Alpha launch (Find Care + Evaluate Care)"
+          },
+          {
+            "date": "2026-05-31",
+            "milestone": "Discuss Care Beta Sprint 1"
+          },
+          {
+            "date": "2026-07-31",
+            "milestone": "Seed funding close"
+          },
+          {
+            "date": "2026-08-25",
+            "milestone": "Production launch"
+          },
+          {
+            "date": "2026-09-20",
+            "milestone": "Beta launch"
+          }
+        ]
+      },
+      "diagrams": {
+        "component_diagram": {
+          "description": "Canvas 1200x600. Three horizontal boxes centered: left (blue) 'Find Care', middle (green) 'Evaluate Care', right (purple) 'Discuss Care'. Solid arrows left-to-right between boxes. Below all three, a full-width gray rectangle labeled 'Data + AI Infrastructure (NPI, ClinicalTrials, State Boards, LLMs)'. Above all three, a full-width red bar labeled 'Governance Layer (Safety, Consent, Policy)'.",
+          "elements": [
+            "Box blue: Find Care (left)",
+            "Box green: Evaluate Care (center)",
+            "Box purple: Discuss Care (right)",
+            "Arrow: Find -> Evaluate",
+            "Arrow: Evaluate -> Discuss",
+            "Bottom layer gray: Data + AI Infrastructure",
+            "Top layer red: Governance Layer"
+          ]
+        },
+        "value_chain_diagram": {
+          "description": "Horizontal flow 1000x400. Three labeled stages with increasing height bars: left 'Discover (Find Care)' light blue, middle 'Assess (Evaluate Care)' green, right 'Decide (Discuss Care)' purple. Arrow connecting each. Background gradient increases in intensity left to right to indicate rising value.",
+          "elements": [
+            "Stage 1: Discover",
+            "Stage 2: Assess",
+            "Stage 3: Decide",
+            "Directional arrows",
+            "Increasing value gradient"
+          ]
+        },
+        "revenue_flow_diagram": {
+          "description": "Canvas 1000x500. Center box 'ChatHealthy Platform'. Left side circle 'Users' with arrow to center labeled 'Token Payments'. Right side circle 'AI Vendors' with arrow to center labeled 'Access Fees'. No other entities shown. Clean white background.",
+          "elements": [
+            "Entity left: Users",
+            "Entity right: AI Vendors",
+            "Center: Platform",
+            "Arrow Users -> Platform",
+            "Arrow Vendors -> Platform"
+          ]
+        },
+        "participant_model_diagram": {
+          "description": "Canvas 1000x600. Central box 'Session'. Surrounding nodes: multiple circles labeled 'Human' (with camera icon) and squares labeled 'AI Model' (with brand avatar icon). Above session, triangle labeled 'Moderator'. Below session, rectangle 'Shared Tools'. Lines connect all participants to session and tools.",
+          "elements": [
+            "Center: Session",
+            "Humans (circles)",
+            "AI models (squares)",
+            "Moderator (top)",
+            "Shared tools (bottom)"
+          ]
+        },
+        "care_decision_lifecycle": {
+          "description": "Circular diagram 800x800. Five nodes clockwise: 'Identify Need' -> 'Find Care' -> 'Evaluate Care' -> 'Discuss Care' -> 'Decision'. Arrow loops back to Identify Need. Each node color-coded (blue, green, purple progression).",
+          "elements": [
+            "Step 1: Identify Need",
+            "Step 2: Find Care",
+            "Step 3: Evaluate Care",
+            "Step 4: Discuss Care",
+            "Step 5: Decision",
+            "Loop arrow"
+          ]
+        }
+      },
+      "competitive_landscape": "No existing platform provides multi-human, multi-AI healthcare collaboration with shared tools, structured evaluation, floor control, consent management, and governance. Search engines, directories, ratings platforms, and AI tools operate in isolation and do not support real decision-making contexts. This category does not currently exist.",
+      "investment_thesis": "ChatHealthy.ai owns the healthcare decision room--the highest-value point in the care journey where choices are made. By controlling this layer, the platform becomes the gateway through which AI participates in healthcare. AI companies pay to be present in these decisions, creating a scalable, defensible revenue model. This is not a chatbot; it is the infrastructure for healthcare decision-making.",
+      "sign_off": "Prepared for investor, partner, and legal review.",
+      "_record_id": "biz_arch_investor",
+      "_source_file": "biz_arch_investor.json"
+    },
+    {
+      "vision": "ChatHealthy.ai provides the data, tools, and an AI-enlightened space to empower regular people to prevail over the broken healthcare system. Whatever a person's circumstances might be, they deserve the best possible care, at the best value. ChatHealthy.ai gives them the platform to get it. By presenting and evaluating care options but never giving medical advice, the platform allows families, individuals, and friends to collaborate with the most powerful AI models in order to choose the best provider they can have.",
+      "mission": "Help people make better healthcare decisions together.",
+      "executive_summary": "Healthcare is the largest consumer market in the world, yet the individual remains the least empowered participant. Decisions are fragmented across search, opaque quality data, and isolated conversations with no coordination. The result is predictable: overpayment, underperformance, and preventable harm. ChatHealthy.ai exists because this gap is not a feature of the system \u2014 it is the system\u2019s failure point.\n\nChatHealthy.ai unifies the healthcare decision process into a single consumer-controlled environment: find care, evaluate it with real quality signals, and decide collaboratively with people and AI. This is not another point solution. It is the decision layer sitting above the entire healthcare system, where choices are actually made. Once this layer exists, control shifts from institutions to individuals.\n\nThe business model follows the control point. We own the decision room. AI companies, not patients, pay to participate in it. As healthcare decisions become AI-assisted and collaborative by default, ChatHealthy.ai becomes the gateway through which those decisions flow. This is not a feature set. It is inevitable infrastructure.",
+      "components": {
+        "find_care": {
+          "description": "The entry point to the healthcare system, redesigned for clarity and control. Users discover providers, specialties, and care pathways without friction or bias.",
+          "capabilities": [
+            "Provider and specialty discovery",
+            "Navigation of care pathways",
+            "Geographic and access-based filtering",
+            "Integrated entry into evaluation and discussion"
+          ],
+          "pricing": "Free forever",
+          "role": "Top-of-funnel acquisition and trust layer. Establishes ChatHealthy.ai as the default starting point for any healthcare decision."
+        },
+        "evaluate_care": {
+          "description": "Transforms fragmented public and clinical data into clear, consumer-comprehensible quality signals using proprietary AI synthesis.",
+          "capabilities": [
+            "Clinical trials discovery and matching",
+            "Provider credential analysis",
+            "Quality signal aggregation and interpretation",
+            "Comparative provider evaluation"
+          ],
+          "pricing": "Free initially, with premium paid tiers for advanced insights and deeper analysis",
+          "role": "Trust engine. Converts raw data into decision-grade intelligence and establishes defensible intellectual property.",
+          "patent_concept": {
+            "claim": "Method for synthesizing healthcare provider quality signals using large language models to produce consumer-comprehensible provider assessments",
+            "signals": [
+              "NPI data",
+              "board certifications",
+              "disciplinary actions",
+              "malpractice history",
+              "patient outcomes",
+              "clinical trial participation",
+              "prescription patterns",
+              "CMS quality scores",
+              "state licensing records"
+            ],
+            "innovation": "All signals are public. LLMs exist. The method of combining them for consumer healthcare navigation is novel.",
+            "next_steps": [
+              "GPT patent search",
+              "Provisional patent draft in Discuss Care beta session (Boss + Claude + GPT + patent lawyer)",
+              "Patent attorney files and negotiates"
+            ],
+            "first_use_case_for_discuss_care": "Drafting the provisional patent IS the beta test of the product."
+          }
+        },
+        "discuss_care": {
+          "description": "A real-time, multi-participant decision environment where individuals bring family, caregivers, and multiple AI models into a single structured conversation.",
+          "capabilities": [
+            "Multi-human, multi-AI shared sessions",
+            "Invite-based collaboration with no account friction",
+            "AI model selection and competition within the same session",
+            "Shared tools across participants (search, evaluation, trials)",
+            "Persistent sessions with exportable transcripts",
+            "Shared research bot for autonomous analysis",
+            "Consent-based participation and governance controls"
+          ],
+          "pricing": "Premium via AI token usage markup; users pay only when they choose advanced AI participation",
+          "role": "The control point of the platform. Where decisions are made, value is captured, and revenue is generated.",
+          "features": [
+            {
+              "id": "DC-01",
+              "feature": "Shared Chat Session",
+              "description": "Multiple humans in one conversation with AI assistance"
+            },
+            {
+              "id": "DC-02",
+              "feature": "Invite System",
+              "description": "User sends invite link to friends, family, caregivers. No account required."
+            },
+            {
+              "id": "DC-03",
+              "feature": "Multi-Model AI",
+              "description": "Multiple AI models participate in the same session (Claude, GPT, etc.), each with access to all tools"
+            },
+            {
+              "id": "DC-04",
+              "feature": "Shared Tool Access",
+              "description": "All participants (human and AI) can trigger provider search, clinical trials, specialty identification, provider detail"
+            },
+            {
+              "id": "DC-05",
+              "feature": "Healthcare Guardrails",
+              "description": "Conversations constrained to healthcare navigation. Same safety filter, emergency detection, scope rules."
+            },
+            {
+              "id": "DC-06",
+              "feature": "Session Transcript",
+              "description": "Exportable transcript for sharing with doctors, care teams"
+            },
+            {
+              "id": "DC-07",
+              "feature": "Consent per Participant",
+              "description": "Each participant manages their own consent tier independently"
+            },
+            {
+              "id": "DC-08",
+              "feature": "Participant Roles",
+              "description": "Session creator (host), invited participant (peer). No admin/enterprise roles."
+            },
+            {
+              "id": "DC-09",
+              "feature": "Real-Time Collaboration",
+              "description": "All participants see messages and AI responses live"
+            },
+            {
+              "id": "DC-10",
+              "feature": "Session Persistence",
+              "description": "Sessions survive disconnects, resumable by invite link"
+            },
+            {
+              "id": "DC-14",
+              "feature": "Shared Research Bot",
+              "description": "Any participant or component can dispatch a research bot to gather information. Shared object across all three components and pipelines. Bot runs autonomously, returns findings to the session. Dispatched by consensus or individual request. All bot work incurs a fee."
+            },
+            {
+              "id": "DC-15",
+              "feature": "Licensed Provider Detection and Compliance Disclosure",
+              "description": "If a participant identifies as or is detected as a licensed healthcare provider, the system triggers automatic compliance disclosure: (1) ChatHealthy.ai is not subject to HIPAA, (2) This session does not create a provider-patient relationship, (3) Security standards disclosed (HITRUST/DOD/SOC2). All participants must acknowledge before session continues. Consent re-confirmed."
+            }
+          ],
+          "floor_control": [
+            {
+              "id": "DC-01",
+              "feature": "Shared Chat Session",
+              "description": "Multiple humans in one conversation with AI assistance"
+            },
+            {
+              "id": "DC-02",
+              "feature": "Invite System",
+              "description": "User sends invite link to friends, family, caregivers. No account required."
+            },
+            {
+              "id": "DC-03",
+              "feature": "Multi-Model AI",
+              "description": "Multiple AI models participate in the same session (Claude, GPT, etc.), each with access to all tools"
+            },
+            {
+              "id": "DC-04",
+              "feature": "Shared Tool Access",
+              "description": "All participants (human and AI) can trigger provider search, clinical trials, specialty identification, provider detail"
+            },
+            {
+              "id": "DC-05",
+              "feature": "Healthcare Guardrails",
+              "description": "Conversations constrained to healthcare navigation. Same safety filter, emergency detection, scope rules."
+            },
+            {
+              "id": "DC-06",
+              "feature": "Session Transcript",
+              "description": "Exportable transcript for sharing with doctors, care teams"
+            },
+            {
+              "id": "DC-07",
+              "feature": "Consent per Participant",
+              "description": "Each participant manages their own consent tier independently"
+            },
+            {
+              "id": "DC-08",
+              "feature": "Participant Roles",
+              "description": "Session creator (host), invited participant (peer). No admin/enterprise roles."
+            },
+            {
+              "id": "DC-09",
+              "feature": "Real-Time Collaboration",
+              "description": "All participants see messages and AI responses live"
+            },
+            {
+              "id": "DC-10",
+              "feature": "Session Persistence",
+              "description": "Sessions survive disconnects, resumable by invite link"
+            },
+            {
+              "id": "DC-14",
+              "feature": "Shared Research Bot",
+              "description": "Any participant or component can dispatch a research bot to gather information. Shared object across all three components and pipelines. Bot runs autonomously, returns findings to the session. Dispatched by consensus or individual request. All bot work incurs a fee."
+            },
+            {
+              "id": "DC-15",
+              "feature": "Licensed Provider Detection and Compliance Disclosure",
+              "description": "If a participant identifies as or is detected as a licensed healthcare provider, the system triggers automatic compliance disclosure: (1) ChatHealthy.ai is not subject to HIPAA, (2) This session does not create a provider-patient relationship, (3) Security standards disclosed (HITRUST/DOD/SOC2). All participants must acknowledge before session continues. Consent re-confirmed."
+            }
+          ]
+        }
+      },
+      "value_chain": "The consumer orchestrates the entire experience. They move fluidly between finding care, evaluating options, and discussing decisions in a single environment. This is not a linear funnel but a dynamic loop, where discovery, analysis, and collaboration reinforce each other. ChatHealthy.ai does not replace providers \u2014 it positions the consumer above them, in control of the decision process.",
+      "revenue_model": {
+        "streams": [
+          "AI token markup on premium model usage within Discuss Care",
+          "AI vendor access fees to participate in decision sessions",
+          "Future premium subscriptions for advanced evaluation insights"
+        ],
+        "ai_reseller_positioning": "ChatHealthy.ai operates as the decision-layer marketplace for AI in healthcare. Users choose which models participate; AI vendors pay for access to those moments. This mirrors the Apple model: control the environment, monetize participation.",
+        "economic_logic": "Healthcare decisions represent the highest-value context for AI deployment. Being present at the moment a family chooses a provider or treatment has measurable economic value. ChatHealthy.ai captures that value by owning the environment where those decisions occur."
+      },
+      "moat": {
+        "barriers": [
+          {
+            "name": "Regulatory Willingness",
+            "description": "AI vendors avoid FDA classification and HIPAA compliance. They need someone else to own the healthcare room."
+          },
+          {
+            "name": "Governance Framework",
+            "description": "Multi-AI safety, consent, floor control, moderation. Nobody else has this."
+          },
+          {
+            "name": "Data + Network",
+            "description": "Provider, trial, and quality signals compound over time. Takes years to build."
+          },
+          {
+            "name": "Consumer Trust",
+            "description": "Years to build, seconds to lose. Trust is the ultimate barrier."
+          },
+          {
+            "name": "Patent",
+            "description": "LLM-based synthesis of provider quality signals. Method patent pending."
+          },
+          {
+            "name": "IP Protection & Trade Secrets",
+            "description": "Proprietary algorithms, data processing methods, and governance frameworks."
+          }
+        ]
+      },
+      "security_positioning": {
+        "principle": "ChatHealthy.ai is not required to meet HIPAA standards. It chooses to exceed them.",
+        "approach": "Security is treated as a product feature and trust driver, not a compliance obligation.",
+        "certifications_path": [
+          "HITRUST CSF certification",
+          "SOC 2 Type II compliance",
+          "NIST SP 800-171 alignment",
+          "Annual third-party penetration testing with published results"
+        ],
+        "differentiation": "Healthcare incumbents are frequently breached despite regulatory requirements. ChatHealthy.ai positions voluntary, transparent security as a competitive advantage."
+      },
+      "governance": {
+        "rules": [
+          "No providers in decision sessions; collaboration remains consumer-led",
+          "All sessions explicitly disclose non-HIPAA status and security posture",
+          "No creation of provider-patient relationships within the platform"
+        ],
+        "disclosures": [
+          "ChatHealthy.ai is not a HIPAA-covered entity",
+          "Enterprise-grade security is voluntarily maintained",
+          "Participation does not establish clinical or legal relationships"
+        ]
+      },
+      "marketing_positioning": {
+        "headlines": [
+          "We are not required to protect your data. We choose to.",
+          "The healthcare platform that protects your data better than your hospital does",
+          "Make healthcare decisions like you make every other important decision \u2014 together"
+        ],
+        "uses": [
+          "Consumer trust acquisition through transparency",
+          "Investor narrative around voluntary security and control",
+          "Enterprise credibility despite non-HIPAA positioning",
+          "Clear differentiation from legacy healthcare systems"
+        ]
+      },
+      "competitive_landscape": {
+        "positioning": "The healthcare navigation market is dominated by platforms that earn revenue from the providers they claim to evaluate. ChatHealthy.ai is the only platform built entirely on the consumer side of the table.",
+        "incumbents": [
+          {
+            "name": "Yelp Health",
+            "problem": "Earns revenue from sponsored listings. Providers who pay appear first. Consumer trust is the product being sold."
+          },
+          {
+            "name": "ZocDoc",
+            "problem": "Charges providers for patient bookings. The platform is a referral engine disguised as a search tool."
+          },
+          {
+            "name": "Healthgrades",
+            "problem": "Revenue from provider advertising and hospital partnerships. Ratings influenced by who pays."
+          },
+          {
+            "name": "Angies List",
+            "problem": "Merged with HomeAdvisor. Lead generation model. Providers pay for leads. Consumer is the product."
+          }
+        ],
+        "the_gap": "Every incumbent earns money from the care chain -- providers, hospitals, or payers. This creates a structural conflict of interest. The consumer cannot trust a platform that is paid by the people it is supposed to evaluate.",
+        "our_position": "ChatHealthy.ai will never take money from providers, hospitals, payers, pharmaceutical companies, PBMs, or any entity in the care delivery or payment chain. This is not a guideline. It is governance policy GOV-001, permanent and non-negotiable. Our revenue comes exclusively from consumers (token premiums) and technology partners (AI vendor capital). This is our moat. No incumbent can match it without destroying their business model."
+      },
+      "investment_thesis": "ChatHealthy.ai sits at the intersection of two shifts: consumers'  thwarted desire to control healthcare decisions and AI's new capability to participate in those decisions. The company captures value by providing consumers a platform they are willing to pay for. ChatHealthy.ai is already a product, now it must become a brand. Built upon an impartial platform finding objectivity through objectivity because it can see the intricate patterns in the immense amount of data and help the consumer make decisions based on facts. Investors back a platform becoming the default interface to navigate the purposefully opaque American Healthcare system. Monetization comes when the brand can sustain its growth behind a pay gate. ChatHealthy.ai is the place people come to find care, evaluate care, and discuss care with loved ones and AI.",
+      "timeline": {
+        "source_of_truth": "Website/roadmap.html",
+        "note": "All milestone dates are maintained in the roadmap. This document renders from that source. Do not duplicate dates here."
+      },
+      "business_artifact": "brain/BusinessArtifacts/ChatHealthyOperationalBusinessArchitecture.docx",
+      "collection": "architecture",
+      "record_type": "business_architecture",
+      "_record_id": "biz_arch_investor_v2",
+      "_source_file": "biz_arch_investor_v2.json"
+    },
+    {
+      "title": "Business Plan Cost Analysis Results",
+      "status": "placeholder \u2014 referenced by assignment_queue.json, not yet populated",
+      "created": "2026-03-29",
+      "results": [],
+      "_record_id": "bizplan_cost_analysis_results",
+      "_source_file": "bizplan_cost_analysis_results.json"
+    },
+    {
+      "title": "ChatHealthy FindCare - Business Model",
+      "version": "1.0",
+      "date": "2026-03-28",
+      "approved_by": "Skip Snow (Founder/CEO)",
+      "company": {
+        "name": "ChatHealthy.AI",
+        "product": "FindCare",
+        "founder": "Skip Snow",
+        "founder_background": "Enterprise healthcare (Humana)",
+        "stage": "Alpha (v0.1.2)",
+        "founding_year": 2026,
+        "entity_type": "Sole proprietorship (IP licensing pending - LEG Q4)",
+        "website": "chathealthy.ai",
+        "repo": "github.com/SkipSnow/ChatHealthyRepo",
+        "public_by_default": true
+      },
+      "product": {
+        "description": "AI-native consumer healthcare navigation chatbot. Users describe needs in natural language, system finds providers, identifies specialties, discovers clinical trials, and handles lead capture with HIPAA-compliant consent.",
+        "supported_states": [
+          "DE",
+          "MS"
+        ],
+        "expansion_plan": "National",
+        "data_sources": [
+          "NPI Registry (8.5M providers)",
+          "NUCC Taxonomy",
+          "ClinicalTrials.gov API"
+        ],
+        "features": [
+          "Provider Search (vector + regex, city/county/state filters)",
+          "Specialty Identification (NUCC + AI query expansion)",
+          "Clinical Trials Search (ClinicalTrials.gov)",
+          "About ChatHealthy / Founder Q&A",
+          "Safety Filter (dual-trigger: keywords + AI classifier)",
+          "Lead Capture (follow-up offer, duplicate detection)",
+          "HIPAA Consent Flow (two-tier: verbatim/de-identified/contact-only)",
+          "Provider Detail (Healthgrades, Zocdoc, NPI Registry)",
+          "URL Guardian (validate + defang broken links, AI content verification)",
+          "Chat UX (think timer, stop button, markdown, emergency lock)",
+          "Blob Storage Infrastructure (admin, lifecycle-managed brain)",
+          "Validated Provider Web Research (NPI API lookup + link validation)",
+          "Unanswerable Question Handling (record + de-identify)",
+          "Markdown Table Rendering (GFM tables in chat)"
+        ]
+      },
+      "technology": {
+        "architecture": "Three-application: Website (Cloudflare), Chat (HuggingFace/Azure), DataPipelines (Azure Functions)",
+        "frontend": "React + TypeScript (Cloudflare Pages, free)",
+        "backend": "FastAPI on Python",
+        "hosting_current": "HuggingFace Spaces (Docker)",
+        "hosting_target": "Azure App Service (portability designed, Sprint 2)",
+        "models": {
+          "main_chat": {
+            "model": "claude-sonnet-4-6",
+            "vendor": "Anthropic",
+            "role": "Conversation, intent routing, tool calls"
+          },
+          "safety_classifier": {
+            "model": "gpt-4.1-mini",
+            "vendor": "OpenAI",
+            "role": "Emergency detection on every message"
+          },
+          "utility": {
+            "model": "claude-haiku-4-5",
+            "vendor": "Anthropic",
+            "role": "Query expansion, summarization, de-identification, URL verification"
+          },
+          "embeddings_large": {
+            "model": "text-embedding-3-large",
+            "vendor": "OpenAI",
+            "role": "Provider vector search"
+          },
+          "embeddings_small": {
+            "model": "text-embedding-3-small",
+            "vendor": "OpenAI",
+            "role": "Specialty vector search"
+          }
+        },
+        "database": "MongoDB Atlas (FrontEnd cluster: always-on, DataPipelines cluster: on-demand)",
+        "blob_storage": "Azure Blob Storage (admin, dev-brain, provider-data, chathealthy-public-data)",
+        "vendor_diversity": "Safety classifier on OpenAI (GPT-4.1-mini), main chat on Anthropic (Sonnet). If one vendor goes down, safety still works."
+      },
+      "unit_economics": {
+        "staff": {
+          "headcount": 3,
+          "cash_comp": 1050000,
+          "benefits": 286125,
+          "fully_loaded": 1336125,
+          "note": "3 employees at $350K base + 27.3% benefits burden ($95,375/employee)"
+        },
+        "per_million_users_annual": {
+          "total_operating_cost": 8987020,
+          "staff_cost": 1336125,
+          "total_it_cost": 7650895,
+          "llm_ai_cost": 7594427,
+          "infrastructure_cost": 56468,
+          "staff_percentage": 14.9,
+          "ai_percentage": 84.5,
+          "infrastructure_percentage": 0.6
+        },
+        "per_user": {
+          "annual": 8.99,
+          "monthly": 0.75,
+          "note": "Includes staff + IT. IT-only: $7.65/year, $0.64/month"
+        },
+        "cost_breakdown": {
+          "main_chat_sonnet": {
+            "annual_per_1m": 7391250,
+            "percentage": 97.3
+          },
+          "safety_gpt41mini": {
+            "annual_per_1m": 83220,
+            "percentage": 1.1
+          },
+          "query_expansion_haiku": {
+            "annual_per_1m": 49275,
+            "percentage": 0.6
+          },
+          "embeddings": {
+            "annual_per_1m": 3066,
+            "percentage": 0.04
+          },
+          "url_verify_haiku": {
+            "annual_per_1m": 15056,
+            "percentage": 0.2
+          },
+          "summarize_deidentify_haiku": {
+            "annual_per_1m": 52560,
+            "percentage": 0.7
+          },
+          "azure_compute_storage": {
+            "annual_per_1m": 22176,
+            "percentage": 0.3
+          },
+          "mongodb_atlas": {
+            "annual_per_1m": 26400,
+            "percentage": 0.3
+          },
+          "other_infra": {
+            "annual_per_1m": 7892,
+            "percentage": 0.1
+          }
+        },
+        "usage_assumptions": {
+          "logins_per_month": 3,
+          "queries_per_session": 15,
+          "monthly_queries_per_1m_users": 45000000,
+          "annual_queries_per_1m_users": 540000000,
+          "provider_search_rate": 0.2,
+          "url_verify_rate": 0.05,
+          "consent_flow_rate": 0.02
+        }
+      },
+      "revenue_model": {
+        "primary_streams": [
+          {
+            "stream": "Consumer Subscriptions",
+            "description": "Direct-to-consumer monthly subscription for premium healthcare navigation",
+            "pricing_tiers": [
+              {
+                "price": 4.99,
+                "gross_margin_incl_staff": 85.0
+              },
+              {
+                "price": 7.99,
+                "gross_margin_incl_staff": 90.6
+              },
+              {
+                "price": 9.99,
+                "gross_margin_incl_staff": 92.5
+              },
+              {
+                "price": 14.99,
+                "gross_margin_incl_staff": 95.0
+              }
+            ]
+          },
+          {
+            "stream": "Healthcare SaaS Vendor Licensing",
+            "description": "License ChatHealthy navigation engine to healthcare technology vendors who serve health plans, providers, PBMs. The SaaS vendor pays ChatHealthy. ChatHealthy has no direct financial relationship with care-chain entities.",
+            "compliance": "GOV-001 compliant - revenue from technology partner, not care-chain entity"
+          },
+          {
+            "stream": "Freemium",
+            "description": "Free tier for user acquisition, premium features for subscribers",
+            "purpose": "Lower barrier to entry, build user base, convert to paid"
+          }
+        ],
+        "prohibited_revenue_sources": [
+          "Health plans / insurance companies",
+          "Provider organizations",
+          "PBMs (pharmacy benefit managers)",
+          "Pharmaceutical companies",
+          "Any entity in the care delivery or payment chain"
+        ],
+        "exit_strategy": {
+          "description": "Acquisition by healthcare SaaS vendor, competitor, insurance company, or technology company. GOV-001 constrains operating revenue, not exit. Acquirer buys the technology, user base, and proprietary data.",
+          "acquirer_types": [
+            "Healthcare SaaS vendors",
+            "Health tech competitors",
+            "Insurance companies",
+            "Technology companies"
+          ],
+          "key_assets": [
+            "Proprietary navigation engine",
+            "User base + engagement data",
+            "De-identified aggregate health navigation dataset",
+            "Brain Loop AI collaboration framework",
+            "Trust-based brand (neutrality)"
+          ]
+        }
+      },
+      "competitive_analysis": {
+        "moat": {
+          "type": "Trust-based governance moat",
+          "description": "ChatHealthy's governance policies (neutrality, single-tenant, transparency) are business decisions that competitors won't make because they conflict with revenue optimization. Neutrality means no referral fees. These constraints build user trust that monetization-first platforms cannot replicate.",
+          "components": [
+            "Provider neutrality (GOV-001) - no care-chain revenue = unbiased recommendations",
+            "Proprietary provider quality scoring from user interactions (over time)",
+            "De-identified aggregate health navigation data (unique dataset)",
+            "Brain Loop AI collaboration framework (development methodology advantage)",
+            "First-mover in AI-native healthcare navigation (vs AI bolted onto existing platforms)"
+          ]
+        },
+        "competitors": [
+          {
+            "name": "Zocdoc",
+            "differentiator": "Provider-paid marketplace. ChatHealthy is neutral."
+          },
+          {
+            "name": "Healthgrades",
+            "differentiator": "Advertising-driven. ChatHealthy has no ads."
+          },
+          {
+            "name": "Doctor on Demand",
+            "differentiator": "Telemedicine, not navigation. Different segment."
+          },
+          {
+            "name": "Google Health",
+            "differentiator": "General search, not specialized. No HIPAA consent flow."
+          }
+        ]
+      },
+      "risk_assessment": {
+        "risks": [
+          {
+            "risk": "Consumer adoption doesn't scale",
+            "severity": "High",
+            "mitigation": "SaaS vendor partnerships for indirect B2B revenue + exit/acquisition as fallback",
+            "status": "mitigated"
+          },
+          {
+            "risk": "LLM vendor concentration (97% on Anthropic Sonnet)",
+            "severity": "High",
+            "mitigation": "Safety on OpenAI (vendor diversity). Portability refactoring (Sprint 2) enables model swapping. LLM costs dropping ~50% YoY.",
+            "status": "partially_mitigated"
+          },
+          {
+            "risk": "Regulatory/HIPAA compliance gaps",
+            "severity": "High",
+            "mitigation": "Two-tier consent flow implemented. 4 pending legal questions tracked. Legal review before beta.",
+            "status": "in_progress"
+          },
+          {
+            "risk": "Single founder execution capacity",
+            "severity": "Medium",
+            "mitigation": "AI-assisted development (Claude + ChatGPT). Brain Loop autonomous collaboration. Hire after funding.",
+            "status": "accepted"
+          },
+          {
+            "risk": "Weak moat - competitors replicate AI features",
+            "severity": "Medium",
+            "mitigation": "Governance-as-moat (trust). Proprietary data over time. First-mover advantage.",
+            "status": "mitigated"
+          },
+          {
+            "risk": "Public-by-default exposes IP",
+            "severity": "Low",
+            "mitigation": "Temporary policy (GOV-003). Revisit when funding secured. Copyright retained.",
+            "status": "accepted"
+          }
+        ]
+      },
+      "investor_pitch": {
+        "narrative": "ChatHealthy is the only AI-native healthcare navigation platform that refuses revenue from the care chain. Our governance policies - neutrality, single-tenant, transparency - are our competitive moat. Users trust us because we have no incentive to bias recommendations. Dual-path growth: consumer subscriptions for direct revenue, SaaS vendor licensing for scale, acquisition for exit.",
+        "key_metrics_needed": [
+          "100K+ active users (prove demand)",
+          "Resolved HIPAA compliance questions (remove investor blockers)",
+          "At least one healthcare SaaS vendor partnership (prove B2B model)",
+          "User retention and engagement data (prove value)"
+        ],
+        "ask": "Seed funding to scale from alpha (2 states) to beta (10+ states), hire engineering + compliance team, execute SaaS vendor partnerships."
+      },
+      "timeline": {
+        "alpha_v012": {
+          "date": "2026-03-31",
+          "milestone": "12 features, DE + MS, manual UAT"
+        },
+        "beta_v05": {
+          "date": "2026-Q3",
+          "milestone": "10+ states, automated tests, ErrorBoundary, portability refactoring, maps"
+        },
+        "production_v10": {
+          "date": "2026-Q4",
+          "milestone": "National coverage, SaaS vendor partnership, investor-ready"
+        },
+        "series_a": {
+          "date": "2027-H1",
+          "milestone": "100K users, proven B2B model, regulatory compliance complete"
+        }
+      },
+      "_record_id": "business_model",
+      "_source_file": "business_model.json"
+    },
+    {
+      "title": "Staffing & Cost Analysis \u2014 ChatHealthy.ai Development Equivalency",
+      "record_type": "cost_analysis",
+      "collection": "business_plan",
+      "date": "2026-03-30",
+      "author": "Perplexity Computer (External Auditor)",
+      "owner": "Skip Snow, CEO/CTO",
+      "business_artifact": "brain/BusinessArtifacts/staffing_cost_comparison.docx",
+      "summary": {
+        "scenario_a_startup": {
+          "team": 9,
+          "annual_cost": 1955200,
+          "time_to_current": "6-9 months",
+          "cost_to_current": "1.0M-1.5M"
+        },
+        "scenario_b_enterprise": {
+          "team": 21,
+          "annual_cost": 5558000,
+          "time_to_current": "12-18 months",
+          "cost_to_current": "4.0M-7.0M"
+        },
+        "actual_ai_native": {
+          "team": 1,
+          "time_to_current": "2 weeks",
+          "infra_annual": "minimal",
+          "note": "Excludes founder opportunity cost"
+        }
+      },
+      "key_insight": "AI-native solo founder achieved in 2 weeks what a 9-person startup would take 6-9 months and 1M-1.5M, or a 21-person enterprise would take 12-18 months and 4M-7M.",
+      "_record_id": "staffing_cost_analysis",
+      "_source_file": "staffing_cost_analysis.json"
+    }
+  ]
+}

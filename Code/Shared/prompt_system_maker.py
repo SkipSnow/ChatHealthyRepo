@@ -46,6 +46,29 @@ class PromptSystemMaker:
         return Path("brain")
 
     # ------------------------------------------------------------------
+    # Brain reader — reads records from collection JSONs
+    # Source: brain/machine_artifacts/{collection}.json -> records[]
+    # ------------------------------------------------------------------
+    def read_collection(self, collection: str) -> list[dict]:
+        """Read all records from a brain collection JSON."""
+        path = self._brain / "machine_artifacts" / f"{collection}.json"
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data.get("records", [])
+        except Exception as exc:
+            _log.warning("Failed to read collection '%s': %s", collection, exc)
+            return []
+
+    def read_record(self, collection: str, record_id: str) -> dict:
+        """Read a specific record from a brain collection by _record_id."""
+        for record in self.read_collection(collection):
+            if record.get("_record_id") == record_id:
+                return record
+        _log.warning("Record '%s' not found in collection '%s'", record_id, collection)
+        return {}
+
+    # ------------------------------------------------------------------
     # Emergency keywords
     # Source: brain/machine_artifacts/emergency_keywords.json
     # ------------------------------------------------------------------

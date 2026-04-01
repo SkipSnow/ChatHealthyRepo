@@ -1,0 +1,135 @@
+{
+  "collection": "legal",
+  "record_count": 5,
+  "records": [
+    {
+      "agreement_name": "ChatHealthy IP License and Future Assignment Agreement",
+      "effective_date": "TBD",
+      "ip_owner": "Skip Snow, individually",
+      "company": "ChatHealthy.ai LLC",
+      "project_name": "ChatHealthy / FindCare",
+      "intent": [
+        "Founder retains ownership of all ChatHealthy-related intellectual property prior to financing.",
+        "Company receives exclusive, commercial, sublicensable rights to operate.",
+        "All future IP related to ChatHealthy is included automatically unless explicitly excluded.",
+        "Upon financing or defined trigger, IP transfers to the company.",
+        "Agreement must be investor-grade and preserve founder optionality."
+      ],
+      "scope_of_ip": [
+        "Source code (frontend, backend, pipelines)",
+        "Prompting and system prompts",
+        "Architecture and design artifacts",
+        "Machine brain / orchestration artifacts",
+        "Databases and data models",
+        "Embeddings and vector structures",
+        "Branding, domains, product assets",
+        "All derivatives and improvements"
+      ],
+      "commercial_requirements": [
+        "Exclusive",
+        "Worldwide",
+        "Commercial",
+        "Sublicensable",
+        "Investor-grade"
+      ],
+      "operating_constraints": [
+        "Single-founder",
+        "Pre-alpha",
+        "No funding yet",
+        "Rapid iteration"
+      ],
+      "review_process": [
+        "GPT drafts",
+        "Boss + GPT align",
+        "Ex-wife redlines",
+        "Boss reviews",
+        "GPT integrates",
+        "Boss approves",
+        "Skip signs (individual)",
+        "Skip signs (company)"
+      ],
+      "target_deadline": "2026-04-15",
+      "_record_id": "ip_agreement_inputs",
+      "_source_file": "ip_agreement_inputs.json"
+    },
+    {
+      "title": "IP License Agreement \u2014 FindCare Evaluation License (FEL-1.0)",
+      "record_type": "ip_agreement",
+      "collection": "legal",
+      "date": "2026-03-28",
+      "version": "v11 (draft)",
+      "business_artifact_pdf": "brain/BusinessArtifacts/ip_license_agreement_draft_v11.pdf",
+      "business_artifact_docx": "brain/BusinessArtifacts/ip_license_agreement_draft_v11.pdf.docx",
+      "suggested_home_for_docx": "legal/ collection \u2014 editable source alongside the PDF",
+      "status": "draft \u2014 pending legal review",
+      "_record_id": "ip_license_agreement",
+      "_source_file": "ip_license_agreement.json"
+    },
+    {
+      "document": "Revocable Intellectual Property License Agreement",
+      "version": "DRAFT v11",
+      "date": "2026-03-29",
+      "status": "Approved for licensed legal review",
+      "approved_by": "Boss",
+      "reviewer": "Paralegal (external)",
+      "gpt_iterations": 11,
+      "file": "brain/ip_license_agreement_draft_v11.pdf",
+      "key_terms": {
+        "licensor": "Harvey (Skip) Snow",
+        "licensee": "ChatHealthy.AI (Delaware entity)",
+        "license_type": "Revocable (exclusivity not specified)",
+        "revocation_notice": "5 days written",
+        "scope": "Code, architecture, design documents, data, business plans, and other trade secrets",
+        "jurisdiction": "Delaware",
+        "fel_license": "FEL-1.0 (non-standard, in Git repo)",
+        "trade_secrets": "NDA clause included",
+        "severability": "Standard boilerplate"
+      },
+      "_record_id": "ip_license_signoff",
+      "_source_file": "ip_license_signoff.json"
+    },
+    {
+      "title": "Pending Legal Questions - FindCare v0.1.2+",
+      "status": "tracking",
+      "questions": [
+        {
+          "id": "LEG-001",
+          "topic": "Emergency safety incident storage without consent",
+          "question": "When the safety filter triggers (911/ER emergency), we store a de-identified truncated chat history and IP lock record in MongoDB without explicit user consent. Is this covered under HIPAA emergency exception? Do we need a disclosure notice?",
+          "current_behavior": "System stores de-identified incident record (IP, trigger message truncated to 500 chars, chat history truncated to 300 chars per message) in dev_Safety.emergency_incidents. No consent asked.",
+          "risk": "Medium - currently operating under assumption that HIPAA emergency exception applies",
+          "status": "open",
+          "raised_by": "Skip Snow",
+          "date_raised": "2026-03-28"
+        },
+        {
+          "id": "LEG-002",
+          "topic": "De-identification adequacy for HIPAA Safe Harbor",
+          "question": "Is our LLM-based deIdentify() function (Claude Haiku) sufficient to meet HIPAA Safe Harbor requirements? The function removes names, geographic identifiers, dates, phone, email, SSN, etc. but relies on LLM judgment rather than rule-based scrubbing.",
+          "current_behavior": "deIdentify() sends chat history to Claude Haiku with HIPAA Safe Harbor instructions. LLM returns scrubbed content. No validation that all 18 Safe Harbor identifiers are actually removed.",
+          "risk": "High - LLM may miss identifiers, no automated verification",
+          "status": "open",
+          "raised_by": "Claude Opus 4.6",
+          "date_raised": "2026-03-28"
+        },
+        {
+          "id": "LEG-003",
+          "topic": "Consent evidence retention",
+          "question": "When a user consents to verbatim storage, the consent exchange is stored as part of chat_history. Is this sufficient as evidence of consent, or do we need a separate signed consent record?",
+          "current_behavior": "Consent question and user answer stored inline in chat_history array. No separate consent record or timestamp.",
+          "risk": "Medium - may not meet evidentiary standard for consent",
+          "status": "open",
+          "raised_by": "Claude Opus 4.6",
+          "date_raised": "2026-03-28"
+        }
+      ],
+      "_record_id": "pending_legal_questions",
+      "_source_file": "pending_legal_questions.json"
+    },
+    {
+      "content": "# Pending Legal Questions - ChatHealthy FindCare\n\n## Overview\n\nChatHealthy FindCare is a healthcare navigation chatbot entering alpha release (v0.1.2, target 2026-03-31). The application collects, stores, and processes user data across several interaction patterns \u2014 each with distinct consent and compliance implications. The following questions require legal review before the product moves beyond alpha into beta (v0.5) and production (v1.0). Resolution of these questions will inform the consent UX, data retention policies, and terms of service.\n\nThese questions are ordered by release urgency. Q1-Q3 should be reviewed before beta. Q4 is a corporate governance item that should be resolved before any external funding or partnership activity.\n\n---\n\n## Q1: Unanswerable Question Consent\n\n**Context:** When a user asks a question the system cannot answer from its loaded context documents (e.g., \"Does ChatHealthy accept insurance?\"), the system records the question to MongoDB (`AboutUs.AboutSkip` collection) after de-identifying it via an LLM-based HIPAA Safe Harbor scrub. This is done automatically \u2014 the user is not informed that their question is being recorded.\n\n**Current Behavior:** The `record_unknown_question` tool is called by the LLM before composing a response. The question text and de-identified chat history are stored. No consent is requested. No disclosure is made to the user.\n\n**Questions for Legal Review:**\n1. Does recording a de-identified user question require explicit consent, or is a terms-of-service disclosure sufficient?\n2. If disclosure is sufficient, what language must appear in the terms of service or chat interface?\n3. Does the de-identification process (LLM-based, not rule-based) meet the standard required for the data to be considered non-PII?\n\n---\n\n## Q2: Contact Us / Lead Capture Consent\n\n**Context:** When a user provides their email and contact details through the lead capture flow, the system implements a two-tier HIPAA consent protocol before storing conversation data alongside the contact record.\n\n**Current Behavior:**\n- **Tier 1 (Verbatim):** \"May we save a verbatim transcript of this conversation with your contact details?\" If yes, the full chat history is stored with `consent_verbatim=true`. The consent exchange itself is included in the stored transcript as evidence.\n- **Tier 2 (De-identified Summary):** If Tier 1 is declined, the system asks: \"May we save a de-identified summary instead?\" If yes, the conversation is summarized by LLM, de-identified, and stored in the `notes` field with `consent_summary=true`.\n- **Tier 3 (Contact Only):** If both are declined, only contact fields (email, name) are stored. No conversation content is retained.\n\n**Questions for Legal Review:**\n1. Is the in-chat verbal consent (captured in the transcript) legally sufficient, or is a separate signed/clicked consent artifact required?\n2. For Tier 2 (de-identified summary), does the user need to review and approve the de-identified version before storage?\n3. What retention period applies to each tier? Is indefinite retention acceptable for alpha/beta, or must a retention policy be in place before storing any user data?\n4. Does the two-tier flow meet HIPAA minimum necessary standard \u2014 are we collecting only what is needed for the stated purpose?\n\n---\n\n## Q3: Safety Audit Trail Consent\n\n**Context:** When the safety filter detects a potential medical emergency (e.g., \"chest pain\", \"I want to kill myself\"), the system immediately responds with a 911/ER directive and locks the chat session for 1 hour. An incident record is written to MongoDB (`Safety.emergency_incidents`) containing the triggering message (truncated to 500 characters), a de-identified chat history (truncated to 300 characters per message), the user's IP address, and timestamps.\n\n**Current Behavior:** This data is stored automatically as an audit trail. No consent is requested. The rationale is that this is an operational safety log, not a user-requested data collection. The Boss has confirmed: \"We are not asking for consent on this one because it is our audit trail.\"\n\n**Questions for Legal Review:**\n1. Does storing IP address and de-identified chat history for safety incidents require disclosure in the terms of service or privacy policy?\n2. Is the HIPAA emergency exception applicable here, or does it only apply to covered entities providing treatment?\n3. What is the appropriate retention period for safety incident records? Should they be purged after a defined period or retained indefinitely for liability protection?\n4. If a user requests data deletion (e.g., under CCPA), does the safety audit trail qualify for an exception, or must it be deleted?\n\n---\n\n## Q4: Intellectual Property License Agreement \u2014 Skip Snow to ChatHealthy.AI\n\n**Context:** Skip Snow is the sole founder and developer of ChatHealthy.AI. All code, architecture, design documents, and business plans were created by Skip Snow, with AI assistance from Claude (Anthropic) and ChatGPT (OpenAI). The codebase is in a public GitHub repository (`SkipSnow/ChatHealthyRepo`). There is currently no formal IP assignment or license agreement between Skip Snow (individual) and ChatHealthy.AI (the business entity).\n\n**Current State:** All code carries the copyright notice \"Copyright 2026 Skip Snow. All rights reserved. Licensed under the FindCare Evaluation License (FEL-1.0).\" The AI tools used in development (Claude, ChatGPT) have terms of service that assign output ownership to the user. No third-party code with restrictive licenses has been incorporated.\n\n**Questions for Legal Review (paralegal review sufficient):**\n1. What form of IP agreement is appropriate \u2014 assignment, exclusive license, or contribution agreement?\n2. Does the use of AI coding assistants (Claude, ChatGPT) create any IP ownership ambiguity that should be addressed in the agreement?\n3. Should the agreement cover future contributions, or only existing IP as of a specific date?\n4. Is the FindCare Evaluation License (FEL-1.0) \u2014 a custom license \u2014 legally enforceable, or should a standard open-source or proprietary license be adopted?\n5. What is the minimum documentation needed to establish clear IP ownership before engaging investors or partners?\n",
+      "_record_id": "pending_legal_questions",
+      "_source_file": "pending_legal_questions.md"
+    }
+  ]
+}
