@@ -131,5 +131,18 @@
     "directory",
     "collection",
     "diagram"
-  ]
+  ],
+  "roadmap_publish_rules": {
+    "description": "Every roadmap value must have a publish flag. Default is publish=true.",
+    "internal_only_fields": [
+      {
+        "field": "funding_amount",
+        "value": "1500000",
+        "publish": false,
+        "reason": "Dollar amount is internal. Date is public."
+      }
+    ],
+    "default_publish": true,
+    "note": "All roadmap milestones are publish=true unless explicitly marked. Only the funding amount is internal."
+  }
 }
