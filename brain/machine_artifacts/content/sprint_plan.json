@@ -699,6 +699,21 @@
                 "GPT must reconcile these and present to Boss"
               ]
             }
+          },
+          {
+            "id": "EVAL-REQ-001",
+            "title": "Agile Requirements Brain Collection",
+            "description": "Create requirements.json pseudo collection in the brain. Agile hierarchy: Epic > Feature > Story. Every requirement has an ID, links to implementing code file, capability description derived from the requirement, and traceability to tests. Source of truth for what the system must do.",
+            "committed_day": "2026-04-02 (Wednesday)",
+            "priority": "HIGH",
+            "acceptance_criteria": [
+              "requirements.json collection exists in brain/machine_artifacts/content/",
+              "Schema: epic > feature > story hierarchy",
+              "Each story links to implementing code file(s)",
+              "Capability descriptions derive from requirements, not code inspection",
+              "ManifestGenerator reads capabilities from requirements collection",
+              "Traceability chain: requirement -> code file -> capability -> test"
+            ]
           }
         ]
       }
