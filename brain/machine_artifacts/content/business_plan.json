@@ -915,7 +915,28 @@
         ]
       },
       "technology": {
-        "architecture": "Three-application: Website (Cloudflare), Chat (HuggingFace/Azure), DataPipelines (Azure Functions)",
+        "architecture": "Four-application in two categories. PRODUCT: (1) Website (Cloudflare), (2) Chat (HuggingFace/Azure), (3) DataPipelines (Azure Functions). DEVOPS: (4) The Brain (local + Azure) — AI-native SDLC operating system.",
+        "the_brain": {
+          "description": "End-to-end automated but attended native AI SDLC with gateways and governance. The Brain is the SDLC operating system — it stores governance, prompts, plans, assignments, audit trails, manifests, work logs, and all machine-generated artifacts.",
+          "category": "DevOps (not product)",
+          "public": true,
+          "components": {
+            "governance": "Corporate policies (GOV-001 through GOV-009), AI governance, risk register",
+            "prompts": "All AI agent system and user prompts — cached, versioned, loaded at runtime",
+            "plans": "Sprint plans, epic plans, feature/story/requirement breakdowns",
+            "assignments": "Work queue for GPT and Claude — structured JSON, schema-validated",
+            "audit": "Execution logs, SIT reports, QA reports, UAT sign-offs",
+            "manifest": "Project manifest — every code file catalogued with capabilities",
+            "artifacts": "Business artifacts — QA PDFs, IP agreements, investor docs"
+          },
+          "roles": {
+            "boss": "Directs, attends, holds all gate authority",
+            "gpt": "Enterprise Architect — plans, reviews, gates (gpt-5.3-chat-latest)",
+            "claude": "Engineer — executes code, tests, deploys, drives workflows (claude-opus-4-6)"
+          },
+          "hosting": "brain/ directory in monorepo (local source of truth), synced to MongoDB (Brain collections) and Azure Blob (binary artifacts)",
+          "integration": "GPTReader API on Azure Functions (read-only broker for GPT access to Brain data)"
+        },
         "frontend": "React + TypeScript (Cloudflare Pages, free)",
         "backend": "FastAPI on Python",
         "hosting_current": "HuggingFace Spaces (Docker)",

@@ -204,7 +204,7 @@
           <li><a href="#product-vision">Product Vision</a></li>
           <li><a href="#infrastructure">Components</a></li>
           <li><a href="#website">Website — Static Layer (Cloudflare)</a></li>
-          <li><a href="#three-app">Three-Application Architecture</a></li>
+          <li><a href="#four-app">Four-Application Architecture</a></li>
           <li><a href="#session-routing">Session and Routing Model</a></li>
           <li><a href="#chat-component">Chat Component Design</a></li>
           <li><a href="#workflow">Example Workflows</a></li>
@@ -563,7 +563,10 @@
       </div>
 
       <!-- 4 -->
-      <h2 id="three-app">4. Three-Application Architecture</h2>
+      <h2 id="four-app">4. Four-Application Architecture</h2>
+      <p>The system is four applications in two categories: three <strong>Product</strong> applications (customer-facing) and one <strong>DevOps</strong> application (SDLC).</p>
+
+      <h3 style="margin-top:28px; color:var(--teal); font-size:0.85rem; letter-spacing:0.06em; text-transform:uppercase;">Product Applications</h3>
 
       <h3>App 1 — Static Website (Cloudflare)</h3>
       <p>Static HTML, CSS, and JavaScript only. No business logic, no LLM calls, no database access. Embeds App 2 via iframe. That is the only coupling.</p>
@@ -596,6 +599,50 @@
       <p>
         <strong>Why CrewAI?</strong> Multi-LLM support — each agent can use the best model for its task.
         No single vendor lock-in; models are swapped as the landscape evolves.
+      </p>
+
+      <h3 style="margin-top:28px; color:var(--teal); font-size:0.85rem; letter-spacing:0.06em; text-transform:uppercase;">DevOps Application</h3>
+
+      <h3>App 4 — The Brain (AI-Native SDLC)</h3>
+      <p>
+        The Brain is an end-to-end automated but attended native AI SDLC with gateways and governance.
+        It governs how the product gets built. It is public (GOV-003) but is not a customer-facing application.
+      </p>
+      <p>
+        The FindCare alpha release candidate (v0.1.3, Build 324) is stable and sufficient.
+        The Brain exists to maintain enterprise discipline as the product evolves.
+      </p>
+
+      <h4>Operational Today</h4>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Component</th><th>Technology</th><th>Status</th></tr>
+          <tr><td>Governance</td><td>JSON (brain/machine_artifacts/content/governance.json)</td><td>Live — GOV-001 through GOV-009, AI governance, risk register</td></tr>
+          <tr><td>Assignments</td><td>JSON (brain/machine_artifacts/content/work_log.json)</td><td>Live — structured work queue for GPT and Claude</td></tr>
+          <tr><td>Audit</td><td>JSON + PDF (brain/machine_artifacts/, brain/BusinessArtifacts/)</td><td>Live — SIT reports, QA reports, UAT sign-offs, execution logs</td></tr>
+          <tr><td>Manifest</td><td>JSON (brain/manifest/project_manifest.json)</td><td>Live — every code file catalogued with capabilities</td></tr>
+          <tr><td>GPTReader</td><td>Azure Function (Code/DataPipelines/gpt_reader.py)</td><td>Live — read-only broker, authenticated, audited, 27/27 SIT pass</td></tr>
+          <tr><td>Brain Runner</td><td>Python (Code/Shared/brain_runner.py)</td><td>Live — executes GPT/Claude assignments via API</td></tr>
+        </table>
+      </div>
+
+      <h4>Planned</h4>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Component</th><th>Technology</th><th>Target</th></tr>
+          <tr><td>Prompts</td><td>Brain pseudo-collection (migrating from code)</td><td>v0.1.4 — centralize all AI agent prompts, cached and versioned</td></tr>
+          <tr><td>Plans</td><td>JSON (brain/machine_artifacts/content/sprint_plan.json)</td><td>v0.1.4 — epic/feature/story/requirement breakdowns</td></tr>
+        </table>
+      </div>
+
+      <p>
+        <strong>Roles:</strong> Boss directs and holds all gate authority.
+        GPT (Enterprise Architect, gpt-5.3) plans, reviews, and gates.
+        Claude (Engineer, claude-opus-4-6) executes code, tests, and deploys.
+      </p>
+      <p>
+        <strong>Integration:</strong> GPTReader API on Azure Functions (read-only, authenticated, audited).
+        Brain data lives in <code>brain/</code> in the monorepo (local source of truth), synced to MongoDB and Azure Blob.
       </p>
 
       <!-- 5 -->
