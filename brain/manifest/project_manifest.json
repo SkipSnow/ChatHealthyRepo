@@ -595,8 +595,7 @@
     "entity_type": "file",
     "capabilities": [
       "MongoDB Atlas cluster scaling via API",
-      "Pause/resume for cost optimization",
-      "State polling with IDLE wait"
+      "Pause/resume for cost optimization"
     ]
   },
   {
@@ -605,8 +604,7 @@
     "content_hash": "bb817202cbe9241d",
     "entity_type": "file",
     "capabilities": [
-      "Bearer token validation for Azure Functions",
-      "Token map JSON parsing"
+      "Bearer token validation for Azure Functions"
     ]
   },
   {
@@ -659,8 +657,7 @@
     "capabilities": [
       "Distributed provider embedding (text-embedding-3-large)",
       "100-doc batch processing",
-      "Rate limit backoff",
-      "Cursor resumption"
+      "Rate limit backoff"
     ]
   },
   {
@@ -917,8 +914,8 @@
   },
   {
     "project_path": "Code/Shared/brain_runner.py",
-    "size": 13151,
-    "content_hash": "5d177d31e2e9ff21",
+    "size": 13294,
+    "content_hash": "727b95d0bb144539",
     "entity_type": "file",
     "capabilities": [
       "GPT assignment orchestration",
@@ -1069,9 +1066,14 @@
     "capabilities": [
       "Project file sync to admin.project_files",
       "Text/binary classification",
-      "Manifest snapshot generation",
-      "Artifact type classification"
+      "Manifest snapshot generation"
     ]
+  },
+  {
+    "project_path": "Code/Shared/ops/test_brain_questions.py",
+    "size": 3835,
+    "content_hash": "a44ae121b6cf311f",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/uat_report.py",
@@ -1080,7 +1082,7 @@
     "entity_type": "file",
     "capabilities": [
       "UAT feature matrix (18 features)",
-      "Bug/enhancement classification (PE, DB, LG, MS, UX, CF, IF)",
+      "Bug/enhancement classification",
       "MongoDB UAT status reading",
       "Clean-start welcome generation"
     ]
@@ -1089,6 +1091,12 @@
     "project_path": "Code/Shared/ops/update_brain_descriptions.py",
     "size": 9109,
     "content_hash": "296fb3a24507f905",
+    "entity_type": "file"
+  },
+  {
+    "project_path": "Code/Shared/ops/update_manifest_capabilities.py",
+    "size": 7970,
+    "content_hash": "9440a820a438954e",
     "entity_type": "file"
   },
   {
@@ -1196,8 +1204,8 @@
   },
   {
     "project_path": "Website/roadmap.html",
-    "size": 60965,
-    "content_hash": "3cbd8066298dda13",
+    "size": 61080,
+    "content_hash": "09b65b33e3a00e2d",
     "entity_type": "file"
   },
   {
@@ -1436,26 +1444,26 @@
   },
   {
     "project_path": "brain/machine_artifacts/content/ai_operations.json",
-    "size": 717034,
-    "content_hash": "2122fdb0f99051ca",
+    "size": 717119,
+    "content_hash": "d63714c06c2d011a",
     "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/architecture.json",
-    "size": 135532,
-    "content_hash": "f9bac48feff3897a",
+    "size": 135746,
+    "content_hash": "83bb11a8a8460420",
     "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/business_plan.json",
-    "size": 66646,
-    "content_hash": "62a97113ffa0d73e",
+    "size": 66796,
+    "content_hash": "b2409dfe70c54516",
     "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/devops.json",
-    "size": 7530,
-    "content_hash": "a7ec22b742d84643",
+    "size": 7580,
+    "content_hash": "bc6ae544418acf38",
     "entity_type": "collection"
   },
   {
@@ -1466,56 +1474,50 @@
   },
   {
     "project_path": "brain/machine_artifacts/content/external_audits.json",
-    "size": 14119,
-    "content_hash": "70586b72cacf8680",
-    "entity_type": "collection"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/funding_recommendation.json",
-    "size": 663,
-    "content_hash": "00a7e4230ea3f523",
+    "size": 14169,
+    "content_hash": "6e672978d9acc74e",
     "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/governance.json",
-    "size": 14961,
-    "content_hash": "78830f571d7dc532",
+    "size": 15570,
+    "content_hash": "8b2b97c6de1bca26",
     "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/legal.json",
-    "size": 6567,
-    "content_hash": "011661ece7e5119a",
+    "size": 6757,
+    "content_hash": "f5c3fe5717911e4d",
     "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/qa_reports.json",
-    "size": 95810,
-    "content_hash": "cd0f4419486ea45a",
+    "size": 96035,
+    "content_hash": "e7f493f98a988ebf",
     "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/schema.json",
-    "size": 4065,
-    "content_hash": "e3789d864629c197",
+    "size": 4556,
+    "content_hash": "625c8767e5732af3",
     "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/sprint_plan.json",
-    "size": 36527,
-    "content_hash": "f1a3fe3672aa060c",
+    "size": 39014,
+    "content_hash": "0b03d639b3120dfc",
     "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/work_log.json",
-    "size": 211475,
-    "content_hash": "16218d26835edf60",
+    "size": 211725,
+    "content_hash": "ccae828e6a8ab718",
     "entity_type": "collection"
   },
   {
     "project_path": "brain/manifest/project_manifest.json",
-    "size": 33617,
-    "content_hash": "5c7e35bf627b9138",
+    "size": 48031,
+    "content_hash": "f667633758dbe5ff",
     "entity_type": "file"
   },
   {
