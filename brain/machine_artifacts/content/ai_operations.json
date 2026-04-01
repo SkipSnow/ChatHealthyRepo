@@ -16575,7 +16575,7 @@
           "If you find conflicting data across brain collections, flag all values with sources to Boss.",
           "Return raw JSON only.",
           "No secrets in output.",
-          "The user prompt includes current_datetime. Use it to assess deadlines, urgency, and time-sensitive decisions."
+          "current_datetime in user prompt is UTC. ChatHealthy.ai operates in PST (UTC-8, UTC-7 during daylight saving)."
         ]
       },
       "description": "Static system prompt for GPT assignments. Prompt-cacheable. Includes brain manifest and output schema.",
