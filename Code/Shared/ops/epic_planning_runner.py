@@ -142,6 +142,66 @@ def _validate_iteration(result: dict, iteration: int) -> list[str]:
     return objections
 
 
+def _fulfill_content_requests(last_iteration: dict | None) -> str:
+    """Read files/records GPT requested in its content_requests array.
+
+    Returns formatted content string to inject in the next prompt.
+    """
+    if not last_iteration:
+        return ""
+    requests = last_iteration.get("content_requests", [])
+    if not requests or not isinstance(requests, list):
+        return ""
+
+    parts = []
+    for req in requests:
+        if not isinstance(req, dict):
+            continue
+        req_type = req.get("type", "file")
+        path = req.get("path", "")
+        reason = req.get("reason", "")
+
+        if req_type == "file":
+            full_path = _REPO_ROOT / path
+            if full_path.exists() and full_path.is_file():
+                try:
+                    content = full_path.read_text(encoding="utf-8")
+                    # Cap individual file at 10K chars
+                    if len(content) > 10000:
+                        content = content[:10000] + "\n... (truncated at 10K chars)"
+                    parts.append(f"=== REQUESTED: {path} (reason: {reason}) ===\n{content}")
+                except Exception as e:
+                    parts.append(f"=== REQUESTED: {path} — read error: {e} ===")
+            else:
+                parts.append(f"=== REQUESTED: {path} — file not found ===")
+
+        elif req_type == "record":
+            # path format: collection_name/_record_id
+            try:
+                coll_name, record_id = path.split("/", 1)
+                coll_path = _BRAIN_DIR / "machine_artifacts" / "content" / f"{coll_name}.json"
+                if coll_path.exists():
+                    with open(coll_path, encoding="utf-8") as f:
+                        data = json.load(f)
+                    for r in data.get("records", []):
+                        if isinstance(r, dict) and r.get("_record_id") == record_id:
+                            content = json.dumps(r, indent=2, ensure_ascii=False)
+                            if len(content) > 10000:
+                                content = content[:10000] + "\n... (truncated)"
+                            parts.append(f"=== REQUESTED RECORD: {path} (reason: {reason}) ===\n{content}")
+                            break
+                    else:
+                        parts.append(f"=== REQUESTED RECORD: {path} — record not found ===")
+                else:
+                    parts.append(f"=== REQUESTED RECORD: {path} — collection not found ===")
+            except Exception as e:
+                parts.append(f"=== REQUESTED RECORD: {path} — error: {e} ===")
+
+    if not parts:
+        return ""
+    return "\n\n".join(parts)
+
+
 def _build_user_message(prompt_text: str, iteration: int, max_iter: int,
                         last_iteration: dict | None, claude_feedback: list[str] | None = None) -> str:
     """Build the user message for this iteration.
@@ -152,10 +212,15 @@ def _build_user_message(prompt_text: str, iteration: int, max_iter: int,
     # Substitute iteration placeholders
     message = prompt_text.replace("{iteration}", str(iteration)).replace("{max_iterations}", str(max_iter))
 
-    # Inject Brain manifest — GPT sees the table of contents, uses GPTReader for content
+    # Inject Brain manifest — GPT sees the table of contents
     from brain_snapshot import take_snapshot
     manifest = take_snapshot()
-    message += "\n\n---\n\nBRAIN MANIFEST (table of contents — use GPTReader to fetch content):\n\n" + manifest
+    message += "\n\n---\n\nBRAIN MANIFEST (table of contents — request content via content_requests in your response):\n\n" + manifest
+
+    # Fulfill content requests from last iteration
+    fulfilled = _fulfill_content_requests(last_iteration)
+    if fulfilled:
+        message += "\n\n---\n\nREQUESTED CONTENT (fetched from disk by Claude):\n\n" + fulfilled
 
     if last_iteration:
         last_str = json.dumps(last_iteration, indent=2, ensure_ascii=False)

@@ -277,9 +277,8 @@ def run(assignment_id: str = None) -> dict:
         context = take_snapshot()
         print(f"[BrainRunner] Brain manifest: {len(context)} chars — GPT will use GPTReader for content")
     except Exception as e:
-        print(f"[BrainRunner] Brain manifest failed: {e} — falling back to GitHub fetch")
-        scope_files = assignment.get("scope", [])
-        context = _fetch_context(additional_files=scope_files)
+        print(f"[BrainRunner] Brain manifest failed: {e} — cannot proceed without Brain state")
+        return {}
 
     print("[BrainRunner] Calling GPT-4o...")
     prompt = _build_prompt(assignment, context, mb_context)
