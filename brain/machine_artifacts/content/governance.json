@@ -152,9 +152,9 @@
         },
         {
           "id": "GOV-005",
-          "name": "Three-Application Boundary",
-          "policy": "The system is exactly three applications: (1) Static Website on Cloudflare, (2) Chat Window on HuggingFace/Azure, (3) Data Pipelines on Azure Functions. Boundaries are strict. Integration only via prescribed patterns (iframe for App1-App2, HTTP POST /api/Router for App2-App3). No application may bypass these boundaries.",
-          "rationale": "Separation of concerns, independent scaling, and clear ownership. Each app has a single deployment pipeline and a single hosting provider.",
+          "name": "Four-Application Boundary",
+          "policy": "The system is exactly four applications in two categories. PRODUCT (customer-facing): (1) Static Website on Cloudflare, (2) Chat Window on HuggingFace/Azure, (3) Data Pipelines on Azure Functions. DEVOPS: (4) The Brain — AI-native SDLC operating system (local + Azure, public). Boundaries are strict. Integration only via prescribed patterns: iframe (App1→App2), HTTP POST /api/Router (App2→App3), GPTReader API (Brain→App3). No application may bypass these boundaries.",
+          "rationale": "Separation of concerns, independent scaling, and clear ownership. Product applications serve customers. The Brain governs how the product gets built — governance, prompts, plans, assignments, audit trails, manifests. Separating DevOps from product prevents SDLC concerns from leaking into customer-facing code.",
           "status": "permanent"
         },
         {
@@ -177,11 +177,18 @@
           "policy": "No release to production without completed business artifacts. Required artifacts per release: (1) QA Report PDF with GPT release gate approval, (2) IP License Agreement (current, signed), (3) Business Model (current version). These are business documents, not engineering artifacts. Stored in Azure admin container. Boss owns the checklist.",
           "rationale": "A release is a business event, not just a code event. Business readiness must be demonstrated alongside technical readiness.",
           "status": "permanent"
+        },
+        {
+          "id": "GOV-009",
+          "name": "Role In System Prompt",
+          "policy": "Every AI agent role definition (identity, responsibilities, constraints, governance bindings) must be defined in the system prompt, never in the user prompt. The system prompt is the authoritative source for who the agent is. The user prompt contains only the assignment payload. This enables prompt caching — the static role definition is sent once and reused across assignments.",
+          "rationale": "Mixing role definition into user prompts defeats prompt caching, inflates token cost, and creates drift risk where the same agent gets subtly different identities across assignments. Separation of identity (system) from task (user) is a first principle of reliable AI operations.",
+          "status": "permanent"
         }
       ],
       "_record_id": "corporate_governance",
       "_source_file": "corporate_governance.json",
-      "description": "GOV-001 through GOV-007. Provider neutrality, single-tenant, public-by-default, Boss sign-off.",
+      "description": "GOV-001 through GOV-009. Provider neutrality, single-tenant, public-by-default, Boss sign-off, role-in-system-prompt.",
       "publish": false
     },
     {
