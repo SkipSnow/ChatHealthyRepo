@@ -66,7 +66,8 @@
       },
       "_record_id": "ai_model_decisions",
       "_source_file": "ai_model_decisions.json",
-      "description": "Model selection history: GPT-4o to o3 to GPT-5.3. Rationale, SIT findings, retirement reasons."
+      "description": "Model selection history: GPT-4o to o3 to GPT-5.3. Rationale, SIT findings, retirement reasons.",
+      "publish": false
     },
     {
       "limits": {
@@ -104,7 +105,8 @@
       },
       "_record_id": "budget_config",
       "_source_file": "budget_config.json",
-      "description": "Token budget limits and cost thresholds for AI operations."
+      "description": "Token budget limits and cost thresholds for AI operations.",
+      "publish": false
     },
     {
       "verdict": "GO",
@@ -112,7 +114,8 @@
       "notes": "All previously blocking conditions have been addressed to an acceptable level for an alpha release. Remaining risks (performance, partial regression depth) are acknowledged and contained. Suitable for controlled alpha exposure, not broader production scale yet.",
       "_record_id": "gpt_qa_release_approval",
       "_source_file": "gpt_qa_release_approval.json",
-      "description": "GPT formal GO/NO-GO verdict for production release. Conditions and risk assessment."
+      "description": "GPT formal GO/NO-GO verdict for production release. Conditions and risk assessment.",
+      "publish": false
     },
     {
       "title": "GPT Reader SIT Report",
@@ -347,7 +350,8 @@
       "_record_id": "gpt_reader_qa_report",
       "_source_file": "gpt_reader_qa_report.json",
       "description": "GPT Reader service SIT results. 27 tests, all requirements mapped.",
-      "business_artifact": "brain/BusinessArtifacts/gpt_reader_qa_report.pdf"
+      "business_artifact": "brain/BusinessArtifacts/gpt_reader_qa_report.pdf",
+      "publish": false
     },
     {
       "title": "GPT-4o Cannot Drive an SIT Autonomously",
@@ -464,7 +468,8 @@
       "user_prompt_used": "See gpt_sit_with_gpt.py _build_initial_prompt() \u2014 all 35 requirements listed, available connections, token instructions, 'Begin testing' directive.",
       "_record_id": "gpt_sit_finding",
       "_source_file": "gpt_sit_finding.json",
-      "description": "FIND-SIT-001: GPT-4o cannot drive autonomous SIT. 3 attempts, 1M+ tokens, documented failure."
+      "description": "FIND-SIT-001: GPT-4o cannot drive autonomous SIT. 3 attempts, 1M+ tokens, documented failure.",
+      "publish": false
     },
     {
       "report_title": "GPT SIT Report \u2014 Round 2 (Remaining)",
@@ -16127,7 +16132,8 @@
       "_record_id": "gpt_sit_report",
       "_source_file": "gpt_sit_report.json",
       "description": "GPT-5.3 SIT execution report. Live test results, bugs found, per-requirement verdicts.",
-      "business_artifact": "brain/BusinessArtifacts/gpt_sit_report.pdf"
+      "business_artifact": "brain/BusinessArtifacts/gpt_sit_report.pdf",
+      "publish": false
     },
     {
       "description": "Prompt templates for different GPT task types (architecture, QA, design).",
@@ -16254,7 +16260,8 @@
         }
       },
       "_record_id": "task_based_system_prompts",
-      "_source_file": "task_based_system_prompts.json"
+      "_source_file": "task_based_system_prompts.json",
+      "publish": false
     },
     {
       "entries": [
@@ -16351,7 +16358,8 @@
       ],
       "_record_id": "usage_log",
       "_source_file": "usage_log.json",
-      "description": "Token consumption log across all GPT/Claude API calls."
+      "description": "Token consumption log across all GPT/Claude API calls.",
+      "publish": false
     },
     {
       "_record_id": "gpt_assignment_system_prompt",
@@ -16571,7 +16579,8 @@
           "diagrams_path": "brain/BusinessArtifacts/diagrams/"
         }
       },
-      "description": "Static system prompt for GPT assignments. Prompt-cacheable. Includes brain manifest and output schema."
+      "description": "Static system prompt for GPT assignments. Prompt-cacheable. Includes brain manifest and output schema.",
+      "publish": false
     }
   ]
 }

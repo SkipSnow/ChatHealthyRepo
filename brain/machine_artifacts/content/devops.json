@@ -115,7 +115,8 @@
       ],
       "_record_id": "devops_build_promotion",
       "_source_file": "devops_build_promotion.json",
-      "description": "Build numbering, env-prefix routing, promotion pipeline (dev to qa to prod)."
+      "description": "Build numbering, env-prefix routing, promotion pipeline (dev to qa to prod).",
+      "publish": false
     },
     {
       "description": "Support ticket log. Production incidents and resolutions.",
@@ -138,7 +139,8 @@
         }
       ],
       "_record_id": "support_tickets",
-      "_source_file": "support_tickets.json"
+      "_source_file": "support_tickets.json",
+      "publish": false
     }
   ]
 }

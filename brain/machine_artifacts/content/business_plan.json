@@ -271,7 +271,8 @@
       "sign_off": "Prepared for investor and partner review.",
       "_record_id": "biz_arch_draft_v1",
       "_source_file": "biz_arch_draft_v1.json",
-      "description": "Legacy: first GPT draft of business architecture. Superseded by v2."
+      "description": "Legacy: first GPT draft of business architecture. Superseded by v2.",
+      "publish": true
     },
     {
       "title": "ChatHealthy.ai -- Business Architecture",
@@ -557,7 +558,8 @@
       "_record_id": "biz_arch_investor",
       "_source_file": "biz_arch_investor.json",
       "description": "Legacy: first investor doc. Superseded by biz_arch_investor_v2.",
-      "business_artifact": "brain/BusinessArtifacts/biz_arch_investor.pdf"
+      "business_artifact": "brain/BusinessArtifacts/biz_arch_investor.pdf",
+      "publish": false
     },
     {
       "vision": "ChatHealthy.ai provides the data, tools, and an AI-enlightened space to empower regular people to prevail over the broken healthcare system. Whatever a person's circumstances might be, they deserve the best possible care, at the best value. ChatHealthy.ai gives them the platform to get it. By presenting and evaluating care options but never giving medical advice, the platform allows families, individuals, and friends to collaborate with the most powerful AI models in order to choose the best provider they can have.",
@@ -853,7 +855,8 @@
       "record_type": "business_architecture",
       "_record_id": "biz_arch_investor_v2",
       "_source_file": "biz_arch_investor_v2.json",
-      "description": "Active investor business architecture. 3 components, revenue, moat, timeline. Maps to ChatHealthyOperationalBusinessArchitecture.docx."
+      "description": "Active investor business architecture. 3 components, revenue, moat, timeline. Maps to ChatHealthyOperationalBusinessArchitecture.docx.",
+      "publish": false
     },
     {
       "title": "Business Plan Cost Analysis Results",
@@ -862,7 +865,8 @@
       "results": [],
       "_record_id": "bizplan_cost_analysis_results",
       "_source_file": "bizplan_cost_analysis_results.json",
-      "description": "GPT cost analysis output for business plan scenarios."
+      "description": "GPT cost analysis output for business plan scenarios.",
+      "publish": true
     },
     {
       "title": "ChatHealthy FindCare - Business Model",
@@ -1179,7 +1183,8 @@
       "_record_id": "business_model",
       "_source_file": "business_model.json",
       "description": "Core business model: Find Care (free) + Evaluate Care (paywall) + Discuss Care (premium tokens).",
-      "business_artifact": "brain/BusinessArtifacts/business_model_v1.pdf"
+      "business_artifact": "brain/BusinessArtifacts/business_model_v1.pdf",
+      "publish": true
     },
     {
       "title": "Staffing & Cost Analysis \u2014 ChatHealthy.ai Development Equivalency",
@@ -1212,7 +1217,8 @@
       "key_insight": "AI-native solo founder achieved in 2 weeks what a 9-person startup would take 6-9 months and 1M-1.5M, or a 21-person enterprise would take 12-18 months and 4M-7M.",
       "_record_id": "staffing_cost_analysis",
       "_source_file": "staffing_cost_analysis.json",
-      "description": "Perplexity: staffing equivalency. Startup=$1.5M/9mo, Enterprise=$7M/18mo, AI-native=2wks. Maps to staffing_cost_comparison.docx."
+      "description": "Perplexity: staffing equivalency. Startup=$1.5M/9mo, Enterprise=$7M/18mo, AI-native=2wks. Maps to staffing_cost_comparison.docx.",
+      "publish": false
     }
   ]
 }

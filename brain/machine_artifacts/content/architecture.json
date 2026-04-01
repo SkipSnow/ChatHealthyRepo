@@ -119,7 +119,8 @@
           "Stage 3: Demonstrate value \u2014 their model is already in healthcare decision rooms.",
           "Stage 4: Partners underwrite Series A. They've seen the data."
         ],
-        "gov_001_note": "Token revenue is from technology consumption, not care-chain entities. GOV-001 preserved."
+        "gov_001_note": "Token revenue is from technology consumption, not care-chain entities. GOV-001 preserved.",
+        "publish": true
       },
       "patent_concept": {
         "claim": "Method for synthesizing healthcare provider quality signals using large language models to produce consumer-comprehensible provider assessments",
@@ -237,7 +238,9 @@
         "distinction": "Vendor access fees fund growth (capital). Consumer token markup funds operations (revenue). Do not confuse the two in the pitch.",
         "pitch_framing": "We buy tokens at your rate. We resell at a premium. You fund our growth so your model is in the healthcare decision room. Both sides win.",
         "seed_amount": 1500000,
-        "seed_date": "2026-07-31"
+        "seed_date": "2026-07-31",
+        "publish_amount": false,
+        "publish_strategy": true
       },
       "future_revenue_epics": [
         {

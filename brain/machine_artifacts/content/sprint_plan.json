@@ -589,7 +589,8 @@
             "priority": "MEDIUM",
             "origin": "Manual secret editing during Cycle 1 was error-prone. UAT report display should be automated as part of deploy pipeline."
           }
-        ]
+        ],
+        "publish": true
       },
       "backlog_content_management": {
         "id": "CM-001",
@@ -620,7 +621,9 @@
           "Enterprise sales tooling",
           "Multi-state data load (compute cost)"
         ],
-        "amount": 1500000
+        "amount": 1500000,
+        "publish_date": true,
+        "publish_amount": false
       },
       "deferred_to_next_sprint": [
         "F-06: Durable Functions status URL auth (Pipeline concern, not chat refactor)",
@@ -655,7 +658,8 @@
           ],
           "source": "Website/roadmap.html (milestone dates)",
           "target": "May 2026"
-        }
+        },
+        "publish": true
       },
       "_record_id": "sprint_plan_v013",
       "_source_file": "sprint_plan_v013.json",
