@@ -19,9 +19,9 @@
         "total": 18
       },
       "artifacts": {
-        "machine_report": "brain/machine_artifacts/document_type_json/external_audit_v1.json",
+        "machine_report": "brain/machine_artifacts/external_audit_v1.json",
         "business_report_word": "brain/BusinessArtifacts/GPT_Brain_Loop_Manual_v04.docx",
-        "backlog_items": "brain/machine_artifacts/document_type_json/backlog_0_1_4_perplexity.json"
+        "backlog_items": "brain/machine_artifacts/backlog_0_1_4_perplexity.json"
       },
       "overall_assessment": "Architecturally sound, engineering quality exceeds expectations for pre-alpha. Primary risks are strategic and legal, not technical. Three highest-priority items: (1) tool registry to close globals() security gap, (2) legal counsel on FDA/clinical decision support boundary, (3) lock architecture docs behind NDA before Alpha.",
       "status": "received"
