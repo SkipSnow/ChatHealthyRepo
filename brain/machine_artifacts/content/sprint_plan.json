@@ -658,7 +658,44 @@
       },
       "_record_id": "sprint_plan_v013",
       "_source_file": "sprint_plan_v013.json",
-      "description": "Sprint v0.1.3 plan: 7-phase refactor, maps, enhancements. Beta Sprint 1 epic (BRAIN-021)."
+      "description": "Sprint v0.1.3 plan: 7-phase refactor, maps, enhancements. Beta Sprint 1 epic (BRAIN-021).",
+      "evaluate_care_epic": {
+        "id": "EVAL-CARE-014",
+        "name": "Evaluate Care 0.1.4",
+        "component_version": "0.1",
+        "target": "April 2026 (Alpha delivery)",
+        "features": [
+          {
+            "id": "EVAL-BRAIN-001",
+            "title": "Brain-Powered AI Collaboration",
+            "description": "Ensure Brain allows GPT and Claude to collaborate from a solid knowledge base. GPT must be able to research the ChatHealthy.ai corporate knowledge system (10 collections, 62 records, all business artifacts) to make the best possible decisions. No more hand-built summaries.",
+            "acceptance_criteria": [
+              "GPT system prompt includes full brain manifest with record IDs and descriptions",
+              "GPT can read any collection via PromptSystemMaker.read_collection()",
+              "GPT can read any record via PromptSystemMaker.read_record()",
+              "GPT can identify which business artifacts map to which brain records",
+              "When brain records conflict, GPT flags the conflict to Boss"
+            ],
+            "test_question": {
+              "question": "How much money must we raise and when?",
+              "purpose": "GPT must research business_plan, architecture (component_discuss_care), sprint_plan, and governance collections to synthesize the answer. If there are conflicting numbers or dates across records, GPT must flag the discrepancy.",
+              "expected_sources": [
+                "business_plan/biz_arch_investor_v2 (revenue model, funding milestone)",
+                "architecture/component_discuss_care (funding_model, pricing_model)",
+                "sprint_plan/sprint_plan_v013 (funding_milestone target_date)",
+                "Website/roadmap.html (M-004 Seed Funding Close date)"
+              ],
+              "known_conflicts": [
+                "funding_recommendation.json says 00K by Sep 15 (GPT estimate from thin context)",
+                "sprint_plan says Jul 31 funding close",
+                "roadmap says Jul 31",
+                "component_discuss_care says post-funding for Discuss Care",
+                "GPT must reconcile these and present to Boss"
+              ]
+            }
+          }
+        ]
+      }
     },
     {
       "scenarios": [],
