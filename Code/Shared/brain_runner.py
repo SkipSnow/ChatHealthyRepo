@@ -156,7 +156,12 @@ def _build_prompt(assignment: dict, context: str, mb_context: str) -> str:
     else:
         scope_block = ""
 
-    return f"""ASSIGNMENT {aid}
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    return f"""current_datetime: {now}
+
+ASSIGNMENT {aid}
 Title: {assignment['title']}
 Priority: {assignment['priority']} | Estimated risk: {assignment['estimated_risk']}
 

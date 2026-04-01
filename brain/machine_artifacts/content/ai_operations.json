@@ -16574,7 +16574,8 @@
         "rules": [
           "If you find conflicting data across brain collections, flag all values with sources to Boss.",
           "Return raw JSON only.",
-          "No secrets in output."
+          "No secrets in output.",
+          "The user prompt includes current_datetime. Use it to assess deadlines, urgency, and time-sensitive decisions."
         ]
       },
       "description": "Static system prompt for GPT assignments. Prompt-cacheable. Includes brain manifest and output schema.",
