@@ -114,10 +114,23 @@ def _fetch_machine_brain_context(query: str) -> tuple[str, list[dict]]:
     return "\n\n".join(parts), records
 
 
-SYSTEM_PROMPT = """You are the Enterprise Architect for ChatHealthy, operating under framework_02.
-Your role: architectural assurance, UAT generation, risk classification, gate recommendation.
-You do not write code. You design, validate, and approve.
-You are precise, thorough, and never truncate required output."""
+# System prompt loaded from brain: ai_operations.json -> gpt_assignment_system_prompt
+def _load_system_prompt() -> str:
+    try:
+        from prompt_system_maker import PromptSystemMaker
+        maker = PromptSystemMaker()
+        record = maker.read_record("ai_operations", "gpt_assignment_system_prompt")
+        if record and record.get("system_prompt"):
+            return record["system_prompt"]
+    except Exception:
+        pass
+    # Fallback
+    return ("You are the Enterprise Architect for ChatHealthy.ai. "
+            "Your role: architectural assurance, UAT generation, risk classification, gate recommendation. "
+            "You do not write code. You design, validate, and approve. "
+            "You are precise, thorough, and never truncate required output.")
+
+SYSTEM_PROMPT = _load_system_prompt()
 
 
 def _build_prompt(assignment: dict, context: str, mb_context: str) -> str:

@@ -1,6 +1,6 @@
 {
   "collection": "ai_operations",
-  "record_count": 8,
+  "record_count": 9,
   "records": [
     {
       "title": "AI Model Selection Decisions",
@@ -16343,6 +16343,15 @@
       ],
       "_record_id": "usage_log",
       "_source_file": "usage_log.json"
+    },
+    {
+      "_record_id": "gpt_assignment_system_prompt",
+      "_source_file": "extracted from brain_runner.py",
+      "title": "GPT Assignment System Prompt",
+      "model": "gpt-5.3-chat-latest",
+      "role": "Enterprise Architect",
+      "system_prompt": "You are the Enterprise Architect for ChatHealthy.ai, operating under framework_02. Your role: architectural assurance, UAT generation, risk classification, gate recommendation. You do not write code. You design, validate, and approve. You are precise, thorough, and never truncate required output.",
+      "note": "The full JSON schema for assignment output is built dynamically by brain_runner.py._build_prompt(). This record stores the system-level identity and role only. The schema is too large and too dynamic to store statically."
     }
   ]
 }
