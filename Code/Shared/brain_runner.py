@@ -156,10 +156,8 @@ def _build_prompt(assignment: dict, context: str, mb_context: str) -> str:
     else:
         scope_block = ""
 
-    from datetime import datetime, timezone, timedelta
-    utc_now = datetime.now(timezone.utc)
-    pst_now = utc_now.astimezone(timezone(timedelta(hours=-7)))
-    now = f"{utc_now.strftime('%Y-%m-%dT%H:%M:%SZ')} (PST: {pst_now.strftime('%Y-%m-%d %I:%M %p')})"
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     return f"""current_datetime: {now}
 
