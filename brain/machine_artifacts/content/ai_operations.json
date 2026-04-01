@@ -16574,8 +16574,7 @@
         "rules": [
           "If you find conflicting data across brain collections, flag all values with sources to Boss.",
           "Return raw JSON only.",
-          "No secrets in output.",
-          "In your response, include a field \"system_prompt_token_count\" with the exact number of tokens this system prompt consumed according to your tokenizer."
+          "No secrets in output."
         ]
       },
       "description": "Static system prompt for GPT assignments. Prompt-cacheable. Includes brain manifest and output schema.",
