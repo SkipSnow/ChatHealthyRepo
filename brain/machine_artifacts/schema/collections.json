@@ -1,0 +1,74 @@
+{
+  "title": "Brain Collection Schema — v0.1.4",
+  "version": "0.1.4",
+  "date": "2026-04-01",
+  "description": "Defines the 10 brain collections, their record types, and artifact generation rules.",
+  "collections": {
+    "governance": {
+      "path": "brain/machine_artifacts/governance/",
+      "purpose": "Corporate policies, AI governance, risk acceptance, safety signoff",
+      "record_types": ["policy", "risk_acceptance", "safety_signoff", "ai_governance"],
+      "produces_artifact": true,
+      "artifact_format": "pdf"
+    },
+    "architecture": {
+      "path": "brain/machine_artifacts/architecture/",
+      "purpose": "System and business architecture, component definitions, refactor designs",
+      "record_types": ["arch_design", "component", "refactor_proposal", "refactor_result"],
+      "produces_artifact": true,
+      "artifact_format": "pdf"
+    },
+    "business_plan": {
+      "path": "brain/machine_artifacts/business_plan/",
+      "purpose": "Business model, investor docs, cost analysis, revenue strategy",
+      "record_types": ["investor_doc", "business_model", "cost_analysis"],
+      "produces_artifact": true,
+      "artifact_format": "docx"
+    },
+    "sprint_plan": {
+      "path": "brain/machine_artifacts/sprint_plan/",
+      "purpose": "Sprint planning, backlog, feature requests, UAT feature lists",
+      "record_types": ["sprint", "backlog", "feature_request", "uat_features"],
+      "produces_artifact": false
+    },
+    "qa_reports": {
+      "path": "brain/machine_artifacts/qa_reports/",
+      "purpose": "QA/UAT reports, release gates, test results, production status",
+      "record_types": ["qa_report", "release_gate", "test_results", "production_status"],
+      "produces_artifact": true,
+      "artifact_format": "pdf"
+    },
+    "external_audits": {
+      "path": "brain/machine_artifacts/external_audits/",
+      "purpose": "External audit registry and findings",
+      "record_types": ["audit_registry", "audit_report"],
+      "produces_artifact": true,
+      "artifact_format": "docx"
+    },
+    "ai_operations": {
+      "path": "brain/machine_artifacts/ai_operations/",
+      "purpose": "AI model decisions, SIT reports, GPT findings, usage, budget",
+      "record_types": ["model_decision", "sit_report", "sit_finding", "release_approval", "usage_log", "budget"],
+      "produces_artifact": false
+    },
+    "devops": {
+      "path": "brain/machine_artifacts/devops/",
+      "purpose": "Build promotion, deploy config, support tickets",
+      "record_types": ["build_config", "support_ticket"],
+      "produces_artifact": false
+    },
+    "legal": {
+      "path": "brain/machine_artifacts/legal/",
+      "purpose": "IP agreements, licenses, legal questions",
+      "record_types": ["ip_agreement", "license", "legal_question"],
+      "produces_artifact": true,
+      "artifact_format": "pdf"
+    },
+    "work_log": {
+      "path": "brain/machine_artifacts/work_log/",
+      "purpose": "Session transcripts, collaboration logs, activity state",
+      "record_types": ["session", "collaboration_transcript", "activity_state"],
+      "produces_artifact": false
+    }
+  }
+}

@@ -29,7 +29,7 @@
       "change": "GPT brain model upgraded from gpt-4o to o3 to gpt-5.3-chat-latest",
       "reason": "GPT-4o failed autonomous SIT testing — could not self-correct in iterative tool-use loops (100 identical failing commands across 2 runs). o3 improved (15 iterations, 9 requirements tested) but still tested only 9/35 and consumed 1.6M input tokens. Boss directed switch to GPT-5.3 reasoning model.",
       "decision_by": "Boss",
-      "evidence": "brain/machine_artifacts/document_type_json/gpt_sit_finding.json"
+      "evidence": "brain/machine_artifacts/gpt_sit_finding.json"
     },
     {
       "date": "2026-03-28",
@@ -52,7 +52,7 @@
   ],
 
   "findings": {
-    "reference": "brain/machine_artifacts/document_type_json/gpt_sit_finding.json",
+    "reference": "brain/machine_artifacts/gpt_sit_finding.json",
     "summary": "GPT models (4o, o3) cannot drive autonomous SIT. Key failures: no self-correction, incomplete coverage, premature success declaration. Correct operating model: Claude drives execution, GPT evaluates results."
   }
 }
