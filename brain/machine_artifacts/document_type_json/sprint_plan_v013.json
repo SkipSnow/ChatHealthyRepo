@@ -318,5 +318,25 @@
     "Phase 4-5 (Thursday) is the highest risk day \u2014 extracting two domains + shared services. If behind, push Phase 5 to Friday.",
     "Maps depends on frontend map library selection (Leaflet vs Google Maps vs Mapbox). Decision needed Tuesday morning.",
     "Pydantic phase may surface schema mismatches between what Claude sends and what tools expect. Budget extra time."
-  ]
+  ],
+  "beta_sprint_1": {
+    "title": "Beta Sprint 1 \u2014 May 2026 (first sprint after Alpha release)",
+    "epic": {
+      "id": "BRAIN-021",
+      "name": "Brain V.3",
+      "version": "0.2.1",
+      "description": "Third generation brain infrastructure. Production-grade brain with content management, manifest automation, automated UAT reporting, and operational tooling.",
+      "deliverables": [
+        "Discuss Care MVP (DC-01 through DC-15)",
+        "Content management from MongoDB (CM-001 Phase 1)",
+        "Automated UAT status updates on commit (DEVOPS-UAT-AUTO)",
+        "Automated UAT report injection via HF API (DEVOPS-UAT-INJECT)",
+        "Brain manifest auto-update on commit",
+        "Break-fix environment for production hotfixes",
+        "Patent provisional draft session (first Discuss Care use case)"
+      ],
+      "source": "Website/roadmap.html (milestone dates)",
+      "target": "May 2026"
+    }
+  }
 }
