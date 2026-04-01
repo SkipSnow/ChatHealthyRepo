@@ -64,13 +64,36 @@ class ManifestGenerator:
         "Code/logging_config.py": ["Tee stream for stdout/stderr to log file", "Environment-based log path"],
     }
 
-    DIRECTORIES = [
-        "brain/machine_artifacts/content/",
-        "brain/machine_artifacts/code/",
-        "brain/BusinessArtifacts/",
-        "brain/BusinessArtifacts/diagrams/",
-        "brain/manifest/",
-    ]
+    DIRECTORIES = {
+        "brain/": "The Brain — AI-native SDLC operating system. Governance, prompts, plans, assignments, audit trails, manifests.",
+        "brain/machine_artifacts/": "Machine-generated Brain artifacts. Collections, code tools, iteration cache.",
+        "brain/machine_artifacts/content/": "Brain pseudo-collections. JSON files with records[] and _record_id per record. Source of truth for all Brain data.",
+        "brain/machine_artifacts/code/": "Brain tools — scripts that generate PDFs, manifests, and other artifacts.",
+        "brain/machine_artifacts/.iteration_cache/": "Epic planning iteration cache. GPT and Claude working artifacts. Cleaned after planning cycle.",
+        "brain/BusinessArtifacts/": "Business gate artifacts — QA reports, IP agreements, investor docs, UAT reports.",
+        "brain/BusinessArtifacts/diagrams/": "Business architecture diagrams — component, moat, revenue, compliance.",
+        "brain/manifest/": "Project manifest — every file cataloged with capabilities and descriptions.",
+        "Code/": "All production code. Three applications + shared.",
+        "Code/ConversationalUX/": "App 2 — Chat Window. React frontend + FastAPI backend.",
+        "Code/ConversationalUX/FindCareChat/": "FindCare chat application. Active development.",
+        "Code/ConversationalUX/FindCareChat/backend/": "FastAPI backend — tools, safety, search, consent, LLM orchestration.",
+        "Code/ConversationalUX/FindCareChat/backend/domain/": "Domain services — business logic separated by bounded context.",
+        "Code/ConversationalUX/FindCareChat/backend/application/": "Application layer — facades, tool router, Pydantic models.",
+        "Code/ConversationalUX/FindCareChat/backend/infrastructure/": "Infrastructure — embeddings, debug logging, MongoDB utilities.",
+        "Code/ConversationalUX/FindCareChat/frontend/": "React + TypeScript frontend. Chat UI, message rendering.",
+        "Code/ConversationalUX/FindCareChat/frontend/src/": "Frontend source — components, styles, app root.",
+        "Code/ConversationalUX/FindCareChat/frontend/src/components/": "React components — ChatWindow, MessageBubble.",
+        "Code/ConversationalUX/ChatHealthyWhoAmIChat/": "Legacy Gradio chatbot. Active until FindCare replaces it.",
+        "Code/DataPipelines/": "App 3 — Data Pipelines. Azure Functions, provider load, county enrichment.",
+        "Code/DataPipelines/tests/": "Pipeline tests — integration, SIT runner, GPT SIT.",
+        "Code/Shared/": "Shared code — MongoDB utilities, Brain runner, cost guard, prompt maker.",
+        "Code/Shared/ops/": "DevOps tools — UAT report, manifest generator, build bump, epic planning runner.",
+        "Website/": "App 1 — Static Website. Cloudflare Pages. Design docs, roadmap, architecture.",
+        "Website/tests/": "Website tests.",
+        "Legal/": "Legal documents — IP license, compliance.",
+        ".github/": "GitHub configuration.",
+        ".github/workflows/": "CI/CD — deploy pipelines, test workflows, build promotion.",
+    }
 
     def __init__(self, project_root: str = None):
         self._root = project_root or str(Path(__file__).parent.parent.parent.parent)
@@ -205,13 +228,14 @@ class ManifestGenerator:
 
             self._manifest.append(entry)
 
-        # Add directories
-        for d in self.DIRECTORIES:
+        # Add directories with descriptions
+        for d, desc in self.DIRECTORIES.items():
             self._manifest.append({
                 "project_path": d,
                 "size": 0,
                 "content_hash": "",
                 "entity_type": "directory",
+                "description": desc,
             })
 
         return self._manifest

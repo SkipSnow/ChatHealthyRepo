@@ -1105,6 +1105,13 @@
     "description": "Python module: brain_refactor_collab"
   },
   {
+    "project_path": "Code/Shared/ops/brain_snapshot.py",
+    "size": 3059,
+    "content_hash": "69945ec274f6726a",
+    "entity_type": "file",
+    "description": "Python module: brain_snapshot"
+  },
+  {
     "project_path": "Code/Shared/ops/bump_build.py",
     "size": 1578,
     "content_hash": "b1077602ce12e2f2",
@@ -1205,8 +1212,8 @@
   },
   {
     "project_path": "Code/Shared/ops/manifest_generator.py",
-    "size": 14668,
-    "content_hash": "1b50d0be18001458",
+    "size": 17606,
+    "content_hash": "90ebbe8040e1b3d9",
     "entity_type": "file",
     "capabilities": [
       "Complete project manifest generation",
@@ -1787,8 +1794,8 @@
   },
   {
     "project_path": "brain/manifest/project_manifest.json",
-    "size": 48008,
-    "content_hash": "fcbc28ffb9e628be",
+    "size": 67281,
+    "content_hash": "c1835990a9abfc18",
     "entity_type": "file",
     "description": "Project manifest \u2014 file catalog with capabilities"
   },
@@ -1912,33 +1919,199 @@
     "description": "file in gpt_thoughts"
   },
   {
+    "project_path": "brain/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "The Brain \u2014 AI-native SDLC operating system. Governance, prompts, plans, assignments, audit trails, manifests."
+  },
+  {
+    "project_path": "brain/machine_artifacts/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "Machine-generated Brain artifacts. Collections, code tools, iteration cache."
+  },
+  {
     "project_path": "brain/machine_artifacts/content/",
     "size": 0,
     "content_hash": "",
-    "entity_type": "directory"
+    "entity_type": "directory",
+    "description": "Brain pseudo-collections. JSON files with records[] and _record_id per record. Source of truth for all Brain data."
   },
   {
     "project_path": "brain/machine_artifacts/code/",
     "size": 0,
     "content_hash": "",
-    "entity_type": "directory"
+    "entity_type": "directory",
+    "description": "Brain tools \u2014 scripts that generate PDFs, manifests, and other artifacts."
+  },
+  {
+    "project_path": "brain/machine_artifacts/.iteration_cache/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "Epic planning iteration cache. GPT and Claude working artifacts. Cleaned after planning cycle."
   },
   {
     "project_path": "brain/BusinessArtifacts/",
     "size": 0,
     "content_hash": "",
-    "entity_type": "directory"
+    "entity_type": "directory",
+    "description": "Business gate artifacts \u2014 QA reports, IP agreements, investor docs, UAT reports."
   },
   {
     "project_path": "brain/BusinessArtifacts/diagrams/",
     "size": 0,
     "content_hash": "",
-    "entity_type": "directory"
+    "entity_type": "directory",
+    "description": "Business architecture diagrams \u2014 component, moat, revenue, compliance."
   },
   {
     "project_path": "brain/manifest/",
     "size": 0,
     "content_hash": "",
-    "entity_type": "directory"
+    "entity_type": "directory",
+    "description": "Project manifest \u2014 every file cataloged with capabilities and descriptions."
+  },
+  {
+    "project_path": "Code/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "All production code. Three applications + shared."
+  },
+  {
+    "project_path": "Code/ConversationalUX/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "App 2 \u2014 Chat Window. React frontend + FastAPI backend."
+  },
+  {
+    "project_path": "Code/ConversationalUX/FindCareChat/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "FindCare chat application. Active development."
+  },
+  {
+    "project_path": "Code/ConversationalUX/FindCareChat/backend/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "FastAPI backend \u2014 tools, safety, search, consent, LLM orchestration."
+  },
+  {
+    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "Domain services \u2014 business logic separated by bounded context."
+  },
+  {
+    "project_path": "Code/ConversationalUX/FindCareChat/backend/application/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "Application layer \u2014 facades, tool router, Pydantic models."
+  },
+  {
+    "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "Infrastructure \u2014 embeddings, debug logging, MongoDB utilities."
+  },
+  {
+    "project_path": "Code/ConversationalUX/FindCareChat/frontend/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "React + TypeScript frontend. Chat UI, message rendering."
+  },
+  {
+    "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "Frontend source \u2014 components, styles, app root."
+  },
+  {
+    "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/components/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "React components \u2014 ChatWindow, MessageBubble."
+  },
+  {
+    "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "Legacy Gradio chatbot. Active until FindCare replaces it."
+  },
+  {
+    "project_path": "Code/DataPipelines/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "App 3 \u2014 Data Pipelines. Azure Functions, provider load, county enrichment."
+  },
+  {
+    "project_path": "Code/DataPipelines/tests/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "Pipeline tests \u2014 integration, SIT runner, GPT SIT."
+  },
+  {
+    "project_path": "Code/Shared/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "Shared code \u2014 MongoDB utilities, Brain runner, cost guard, prompt maker."
+  },
+  {
+    "project_path": "Code/Shared/ops/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "DevOps tools \u2014 UAT report, manifest generator, build bump, epic planning runner."
+  },
+  {
+    "project_path": "Website/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "App 1 \u2014 Static Website. Cloudflare Pages. Design docs, roadmap, architecture."
+  },
+  {
+    "project_path": "Website/tests/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "Website tests."
+  },
+  {
+    "project_path": "Legal/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "Legal documents \u2014 IP license, compliance."
+  },
+  {
+    "project_path": ".github/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "GitHub configuration."
+  },
+  {
+    "project_path": ".github/workflows/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory",
+    "description": "CI/CD \u2014 deploy pipelines, test workflows, build promotion."
   }
 ]
