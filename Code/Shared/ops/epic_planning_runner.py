@@ -389,15 +389,24 @@ def _validate_iteration(result: dict, iteration: int) -> list[str]:
             f"{', '.join(stories_no_evidence[:10])}. Every story must cite evidence or state GAP."
         )
 
-    # If there are GAPs, GPT should be requesting content to verify them
+    # Count assumptions — every assumption is visible but must be researched
     all_evidence = json.dumps([f.get("evidence", "") for f in features.values() if isinstance(f, dict)]
                               + [s.get("evidence", "") for s in stories.values() if isinstance(s, dict)])
-    gap_count = all_evidence.lower().count("gap:")
+    assumption_count = all_evidence.lower().count("assumption:")
     has_requests = bool(result.get("content_requests"))
-    if gap_count > 3 and not has_requests:
+
+    # GPT must always be researching. No exceptions. GOV-004.
+    if not has_requests:
         objections.append(
-            f"RESEARCH NEEDED: {gap_count} GAPs identified but no content_requests made. "
-            f"Use content_requests to verify GAPs against the manifest and Brain before proceeding."
+            "RESEARCH MANDATORY: You made no content_requests this iteration. "
+            "GOV-004: The model may suggest. The system must decide. "
+            "You must read the manifest and Brain records. Request them now."
+        )
+
+    if assumption_count > 0:
+        objections.append(
+            f"ASSUMPTIONS: {assumption_count} assumptions declared. Each must be verified or "
+            f"accepted by Boss. Use content_requests to verify what you can."
         )
 
     # Check change_log for iteration 2+
