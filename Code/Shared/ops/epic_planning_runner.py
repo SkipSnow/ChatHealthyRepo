@@ -368,6 +368,38 @@ def _validate_iteration(result: dict, iteration: int) -> list[str]:
             f"Recommendations:\n" + "\n".join(f"  - {r}" for r in story_recs)
         )
 
+    # Check evidence on every feature and story
+    features_no_evidence = []
+    for fid, f in features.items():
+        if isinstance(f, dict) and not f.get("evidence"):
+            features_no_evidence.append(fid)
+    if features_no_evidence:
+        objections.append(
+            f"EVIDENCE MISSING: {len(features_no_evidence)} features have no evidence field: "
+            f"{', '.join(features_no_evidence[:10])}. Every feature must cite a manifest entry or state GAP."
+        )
+
+    stories_no_evidence = []
+    for sid, s in stories.items():
+        if isinstance(s, dict) and not s.get("evidence"):
+            stories_no_evidence.append(sid)
+    if stories_no_evidence:
+        objections.append(
+            f"EVIDENCE MISSING: {len(stories_no_evidence)} stories have no evidence field: "
+            f"{', '.join(stories_no_evidence[:10])}. Every story must cite evidence or state GAP."
+        )
+
+    # If there are GAPs, GPT should be requesting content to verify them
+    all_evidence = json.dumps([f.get("evidence", "") for f in features.values() if isinstance(f, dict)]
+                              + [s.get("evidence", "") for s in stories.values() if isinstance(s, dict)])
+    gap_count = all_evidence.lower().count("gap:")
+    has_requests = bool(result.get("content_requests"))
+    if gap_count > 3 and not has_requests:
+        objections.append(
+            f"RESEARCH NEEDED: {gap_count} GAPs identified but no content_requests made. "
+            f"Use content_requests to verify GAPs against the manifest and Brain before proceeding."
+        )
+
     # Check change_log for iteration 2+
     if iteration > 1 and not result.get("change_log"):
         objections.append("CHANGE LOG MISSING: Required from iteration 2+.")

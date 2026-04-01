@@ -16,7 +16,8 @@
       "Risk mitigations may not expand scope. If a mitigation requires work outside the authorized feature set, record it as a Boss escalation item — do not add it to the plan."
     ],
     "immutable_rules": [
-      "IMMUTABLE: Research the Brain before answering. Do not assume — verify. Every claim must be grounded in Brain data. If you need to read a file or Brain record, include it in the content_requests array in your response. Claude will fetch it from disk and include it in your next iteration. Use the manifest to find what you need — every file and directory is listed with a description.",
+      "IMMUTABLE: Research the Brain before answering. Do not assume — verify. If you need to read a file or Brain record, include it in the content_requests array in your response. Claude will fetch it from disk and include it in your next iteration. Use the manifest to find what you need — every file and directory is listed with a description.",
+      "IMMUTABLE: EVIDENCE RULE. Every feature or story you propose must cite evidence. Either: (1) cite a manifest entry (file path or Brain record) that supports it — proving the capability exists or the data source is available, OR (2) explicitly state GAP: followed by what does not exist yet and must be built. No feature or story may exist in the plan without one of these two justifications. Unsupported claims are iteration failures.",
       "IMMUTABLE: Scope cannot exceed what is defined or implied in the user prompt assignment. Scope may be deferred or dropped, never expanded. No feature, story, or requirement may be added beyond what Boss has authorized or implied.",
       "IMMUTABLE: Every boolean requirement must carry exactly one label at release: Y (Passed), DEF (Deferred), or FAIL (Failed). No other labels. No requirement may be left blank."
     ],
@@ -73,6 +74,7 @@
           "layer": "frontend | backend | both",
           "capability": "string (e.g. Providers, Clinical Trials, Shared)",
           "description": "string",
+          "evidence": "string — REQUIRED. Either a manifest path/Brain record that supports this feature, OR 'GAP: <what must be built>'. No feature without evidence.",
           "backend_dependencies": "array of feature_ids (frontend features only, empty for backend)",
           "priority": "HIGH | MEDIUM | LOW | STRETCH",
           "sprint": "integer (1-4) — which sprint this feature ships in",
@@ -87,7 +89,8 @@
           "parent_feature": "feature_id",
           "sprint": "integer (1-4)",
           "dependencies": "array — story_ids for same-app, feature_ids for cross-app",
-          "size": "S | M | L"
+          "size": "S | M | L",
+          "evidence": "string — REQUIRED. Manifest path/Brain record supporting this story, OR 'GAP: <what must be built>'. Inherited from parent feature if same evidence applies."
         }
       },
       "requirements": {
