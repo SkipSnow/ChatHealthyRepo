@@ -106,7 +106,8 @@
       "enforcement": "Any component violating this policy must be corrected before production release. This policy overrides convenience, speed, and model capability.",
       "final_statement": "Fluency is not evidence. Models assist. Systems decide. Data grounds truth.",
       "_record_id": "ai_governance_policy_draft",
-      "_source_file": "ai_governance_policy_draft.json"
+      "_source_file": "ai_governance_policy_draft.json",
+      "description": "AI governance policy: The model may suggest. The system must decide. Draft for formal adoption."
     },
     {
       "title": "ChatHealthy Corporate Business Governance Policies",
@@ -178,11 +179,12 @@
         }
       ],
       "_record_id": "corporate_governance",
-      "_source_file": "corporate_governance.json"
+      "_source_file": "corporate_governance.json",
+      "description": "GOV-001 through GOV-007. Provider neutrality, single-tenant, public-by-default, Boss sign-off."
     },
     {
       "title": "Risk Acceptance Register",
-      "description": "Formal record of risks explicitly accepted by Boss (CEO). Claude warned, Boss decided. GOV-004: The model may suggest. The system must decide.",
+      "description": "Formal risks accepted by Boss. RISK-001: competitor trademarks in investor materials.",
       "entries": [
         {
           "id": "RISK-001",
@@ -241,7 +243,8 @@
         "de_identification_verified": "State names scrubbed to [STATE], provider names to [PROVIDER NAME], addresses/phones/NPIs scrubbed"
       },
       "_record_id": "safety_signoff",
-      "_source_file": "safety_signoff.json"
+      "_source_file": "safety_signoff.json",
+      "description": "Safety system sign-off record. Dual-trigger emergency detection validated."
     }
   ]
 }

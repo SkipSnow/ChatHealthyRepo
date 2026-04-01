@@ -1,0 +1,13 @@
+{
+  "amount": 100000,
+  "date": "2026-09-15",
+  "rationale": "$150k is still more than needed for a tight, distribution-only proof phase. $100k is sufficient to identify 1–2 repeatable acquisition channels, validate CAC < LTV on token markup, and demonstrate early retention across a few states. It minimizes dilution and forces discipline. If metrics hit targets, raise a larger round quickly on stronger terms.",
+  "use_of_funds": {
+    "growth_and_distribution": 75000,
+    "ai_inference_and_vendor_float": 15000,
+    "compliance_and_legal_multistate": 5000,
+    "infra_and_ops": 2000,
+    "founder_minimal_draw": 3000
+  },
+  "runway_months": 4
+}

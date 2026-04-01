@@ -89,7 +89,8 @@
         "total": 14
       },
       "_record_id": "e2e_regression_report",
-      "_source_file": "e2e_regression_report.json"
+      "_source_file": "e2e_regression_report.json",
+      "description": "End-to-end regression test results. Pre-refactor baseline."
     },
     {
       "title": "Production Release Status Report \u2014 v0.1.3",
@@ -408,7 +409,8 @@
         "diagrams/value_chain.png"
       ],
       "_record_id": "production_release_status",
-      "_source_file": "production_release_status.json"
+      "_source_file": "production_release_status.json",
+      "description": "v0.1.3 production release status. Environment parity, deploy results, brain inventory."
     },
     {
       "title": "QA Report \u2014 v0.1.2 Pre-Alpha Release",
@@ -432,17 +434,20 @@
       "release_gate": "conditional-go (GPT-4o Enterprise Architect)",
       "conditions": "Consent framework bugs (Sprint 2), Provider Detail link quality (Sprint 2), Automated tests (Sprint 2)",
       "_record_id": "qa_report_v012",
-      "_source_file": "qa_report_v012.json"
+      "_source_file": "qa_report_v012.json",
+      "description": "v0.1.2 QA report: 13 features, 8 pass, 5 deferred, 48 builds."
     },
     {
       "content": "**QA Report: v0.1.2**\n\n| Start Build | End Build | Builds Tested |\n|:-----------:|:---------:|:-------------:|\n| 100 | 148 | 48 |\n\n| Total Scenarios | Passed | Deferred | Failed | To Test |\n|:---------------:|:------:|:--------:|:------:|:-------:|\n| 13 | 8 | 5 | 0 | 0 |\n\n\n| &nbsp;#&nbsp; | Feature | &nbsp;Done&nbsp; | Bugs Fixed | Feat Impl |\n|:---:|---------|:------:|:----------:|:---------:|\n|   1 | Provider Search (DE + MS, vector + regex) | Y | 0 | 0 |\n|   2 | Specialty Identification (NUCC + AI expansion) | DEF | 0 | 0 |\n|   3 | Clinical Trials Search | Y | 0 | 2 |\n|   4 | About ChatHealthy / Skip Snow | Y | 0 | 0 |\n|   5 | Safety Filter (dual-trigger, IP lock, audit) | Y | 3 | 2 |\n|   6 | Lead Capture (follow-up offer) | Y | 0 | 0 |\n|   7 | Consent Framework | DEF | 0 | 0 |\n\n| &nbsp;#&nbsp; | Feature | &nbsp;Done&nbsp; | Bugs Fixed | Feat Impl |\n|:---:|---------|:------:|:----------:|:---------:|\n|   8 | Provider Detail | DEF | 1 | 1 |\n|   9 | URL Guardian (validate + defang broken links) | DEF | 0 | 0 |\n|  10 | Chat UX (timer, stop, markdown, emergency) | DEF | 0 | 0 |\n|  11 | Blob Storage Infrastructure | Y | 0 | 2 |\n|  12 | Unanswerable Question Handling | Y | 3 | 4 |\n|  13 | Markdown Table Rendering (GFM tables in chat) | Y | 1 | 11 |\n| | **TOTALS** | **13/13** | **8** | **22** |\n\n**Notes:**\n\n- **#2 Specialty Identification (NUCC + AI expansion)**\n  - DEFERRED: Sufficiently working for release. Deep testing deferred - too complex for alpha.\n- **#3 Clinical Trials Search**\n  - **Enhancements (2):**\n    - Travel distance + drive time via Google Routes API\n    - Two-pass UX: results first, travel on request\n- **#4 About ChatHealthy / Skip Snow**\n  - **Bugs (1):**\n    - Sonnet answers questions outside context instead of saying I don't know. Fix: PreScreen class (Sprint 2)\n- **#5 Safety Filter (dual-trigger, IP lock, audit)**\n  - **Bugs (3):**\n    - False positive on provider name lookup (safe-prefix bypass added)\n    - Unlock code visible in audit record (deIdentify added)\n    - Triggering message missing from audit history (append current msg)\n  - **Enhancements (2):**\n    - Switched classifier to GPT-4.1-mini (vendor diversity, 2.5x cheaper)\n    - Full de-identified conversation history in safety audit trail\n- **#7 Consent Framework**\n  - FAIL: Two consent streams needed: Stream 1 (questions) always de-identify. Stream 2 (contact me) user chooses verbatim or de-identify with PHI warning.\n  - **Bugs (4):**\n    - Sonnet set consent_verbatim=true when user asked for de-identification\n    - PII not scrubbed when de-identify was requested\n    - Exact consent wording needs legal review before beta\n    - No separation between question consent and contact-me consent\n- **#8 Provider Detail**\n  - FAIL: External link quality unreliable. Full fix deferred.\n  - **Bugs (2):**\n    - Healthgrades fuzzy match returns wrong provider\n    - Zocdoc blocks all third-party links (403)\n  - **Enhancements (2):**\n    - NPI Registry API lookup for real provider data\n    - Repositioned links as research sites with user guidance\n- **#9 URL Guardian (validate + defang broken links)**\n  - DEFERRED: Link check deferred to next build. V2 design ready (3-stage: HEAD, AI content verify, Google search correction).\n- **#10 Chat UX (timer, stop, markdown, emergency)**\n  - DEFERRED: Sufficient for v0.1.2. Deep testing deferred.\n- **#11 Blob Storage Infrastructure**\n  - **Enhancements (2):**\n    - Created admin + dev-brain containers\n    - Consolidated provider-data into chathealthy-public-data\n- **#12 Unanswerable Question Handling**\n  - **Bugs (3):**\n    - System answered unanswerable questions without recording (fixed: RULE 2 source-bounded knowledge)\n    - Responses too verbose (fixed: template responses from tool)\n    - Mid-session context caused rule bypass (fixed: evaluate each message independently)\n  - **Enhancements (4):**\n    - 3-path classification (healthcare capability / medical advice / irrelevant)\n    - Template responses \u2014 verbatim from tool, no Sonnet elaboration\n    - Consent before recording questions\n    - Follow-up offer after recording\n- **#13 Markdown Table Rendering (GFM tables in chat)**\n  - **Bugs (1):**\n    - GFM tables not rendering (fixed: remark-gfm + sanitize whitelist)\n  - **Enhancements (11):**\n    - Bordered table cells\n    - Repeating header every 7 rows\n    - Notes section\n    - DEF/FAIL status in Done column\n    - Build number auto-increment\n    - Summary counts in header\n    - Removed deferred columns\n    - Frontend fetches /welcome from API\n    - QA Report header with build range + scenario summary\n    - Column width fix (nowrap for short columns)\n    - Structured notes with bugs/enhancements\n\nTest the features above. Type normally to interact with the chatbot.\n",
       "_record_id": "qa_report_v012_final",
-      "_source_file": "qa_report_v012_final.md"
+      "_source_file": "qa_report_v012_final.md",
+      "description": "v0.1.2 final QA markdown. Detailed feature-by-feature results."
     },
     {
       "content": "**QA Report: v0.1.2**\n\n| Start Build | End Build | Builds Tested |\n|:-----------:|:---------:|:-------------:|\n| 100 | 157 | 57 |\n\n| Total Scenarios | Passed | Deferred | Failed | To Test |\n|:---------------:|:------:|:--------:|:------:|:-------:|\n| 13 | 8 | 5 | 0 | 0 |\n\n**Release Gate:** GPT-4o Enterprise Architect: **conditional-go** | Risk: Moderate | Conditions: Consent framework bugs (Sprint 2), Provider Detail link quality (Sprint 2), Automated tests (Sprint 2)\n\n\n| &nbsp;#&nbsp; | Feature | &nbsp;Done&nbsp; | Bugs Fixed | Feat Impl |\n|:---:|---------|:------:|:----------:|:---------:|\n|   1 | Provider Search (DE + MS, vector + regex) | Y | 0 | 0 |\n|   2 | Specialty Identification (NUCC + AI expansion) | DEF | 0 | 0 |\n|   3 | Clinical Trials Search | Y | 0 | 2 |\n|   4 | About ChatHealthy / Skip Snow | Y | 0 | 0 |\n|   5 | Safety Filter (dual-trigger, IP lock, audit) | Y | 3 | 2 |\n|   6 | Lead Capture (follow-up offer) | Y | 0 | 0 |\n|   7 | Consent Framework | DEF | 0 | 0 |\n\n| &nbsp;#&nbsp; | Feature | &nbsp;Done&nbsp; | Bugs Fixed | Feat Impl |\n|:---:|---------|:------:|:----------:|:---------:|\n|   8 | Provider Detail | DEF | 1 | 1 |\n|   9 | URL Guardian (validate + defang broken links) | DEF | 0 | 0 |\n|  10 | Chat UX (timer, stop, markdown, emergency) | DEF | 0 | 0 |\n|  11 | Blob Storage Infrastructure | Y | 0 | 2 |\n|  12 | Unanswerable Question Handling | Y | 3 | 4 |\n|  13 | Markdown Table Rendering (GFM tables in chat) | Y | 1 | 11 |\n| | **TOTALS** | **13/13** | **8** | **22** |\n\n**Notes:**\n\n- **#2 Specialty Identification (NUCC + AI expansion)**\n  - DEFERRED: Sufficiently working for release. Deep testing deferred - too complex for alpha.\n- **#3 Clinical Trials Search**\n  - **Enhancements (2):**\n    - Travel distance + drive time via Google Routes API\n    - Two-pass UX: results first, travel on request\n- **#4 About ChatHealthy / Skip Snow**\n  - **Bugs (1):**\n    - Sonnet answers questions outside context instead of saying I don't know. Fix: PreScreen class (Sprint 2)\n- **#5 Safety Filter (dual-trigger, IP lock, audit)**\n  - **Bugs (3):**\n    - False positive on provider name lookup (safe-prefix bypass added)\n    - Unlock code visible in audit record (deIdentify added)\n    - Triggering message missing from audit history (append current msg)\n  - **Enhancements (2):**\n    - Switched classifier to GPT-4.1-mini (vendor diversity, 2.5x cheaper)\n    - Full de-identified conversation history in safety audit trail\n- **#7 Consent Framework**\n  - FAIL: Two consent streams needed: Stream 1 (questions) always de-identify. Stream 2 (contact me) user chooses verbatim or de-identify with PHI warning.\n  - **Bugs (4):**\n    - Sonnet set consent_verbatim=true when user asked for de-identification\n    - PII not scrubbed when de-identify was requested\n    - Exact consent wording needs legal review before beta\n    - No separation between question consent and contact-me consent\n- **#8 Provider Detail**\n  - FAIL: External link quality unreliable. Full fix deferred.\n  - **Bugs (2):**\n    - Healthgrades fuzzy match returns wrong provider\n    - Zocdoc blocks all third-party links (403)\n  - **Enhancements (2):**\n    - NPI Registry API lookup for real provider data\n    - Repositioned links as research sites with user guidance\n- **#9 URL Guardian (validate + defang broken links)**\n  - DEFERRED: Link check deferred to next build. V2 design ready (3-stage: HEAD, AI content verify, Google search correction).\n- **#10 Chat UX (timer, stop, markdown, emergency)**\n  - DEFERRED: Sufficient for v0.1.2. Deep testing deferred.\n- **#11 Blob Storage Infrastructure**\n  - **Enhancements (2):**\n    - Created admin + dev-brain containers\n    - Consolidated provider-data into chathealthy-public-data\n- **#12 Unanswerable Question Handling**\n  - **Bugs (3):**\n    - System answered unanswerable questions without recording (fixed: RULE 2 source-bounded knowledge)\n    - Responses too verbose (fixed: template responses from tool)\n    - Mid-session context caused rule bypass (fixed: evaluate each message independently)\n  - **Enhancements (4):**\n    - 3-path classification (healthcare capability / medical advice / irrelevant)\n    - Template responses \u2014 verbatim from tool, no Sonnet elaboration\n    - Consent before recording questions\n    - Follow-up offer after recording\n- **#13 Markdown Table Rendering (GFM tables in chat)**\n  - **Bugs (1):**\n    - GFM tables not rendering (fixed: remark-gfm + sanitize whitelist)\n  - **Enhancements (11):**\n    - Bordered table cells\n    - Repeating header every 7 rows\n    - Notes section\n    - DEF/FAIL status in Done column\n    - Build number auto-increment\n    - Summary counts in header\n    - Removed deferred columns\n    - Frontend fetches /welcome from API\n    - QA Report header with build range + scenario summary\n    - Column width fix (nowrap for short columns)\n    - Structured notes with bugs/enhancements\n\nTest the features above. Type normally to interact with the chatbot.\n",
       "_record_id": "qa_report_v012_text",
-      "_source_file": "qa_report_v012_text.md"
+      "_source_file": "qa_report_v012_text.md",
+      "description": "v0.1.2 QA plain text export."
     },
     {
       "title": "QA Report \u2014 v0.1.3 Sprint 1 (Release)",
@@ -606,7 +611,8 @@
       ],
       "generated": "2026-03-31T21:39:10.374951+00:00",
       "_record_id": "qa_report_v013_release",
-      "_source_file": "qa_report_v013_release.json"
+      "_source_file": "qa_report_v013_release.json",
+      "description": "v0.1.3 RELEASE QA: 14 pass, 3 deferred, 0 fail. Boss+Claude+GPT GO."
     },
     {
       "title": "UAT Report \u2014 v0.1.3 Sprint 1",
@@ -751,7 +757,8 @@
       ],
       "generated": "2026-03-31T05:24:42.501196+00:00",
       "_record_id": "qa_report_v013_sprint1",
-      "_source_file": "qa_report_v013_sprint1.json"
+      "_source_file": "qa_report_v013_sprint1.json",
+      "description": "v0.1.3 Sprint 1 UAT report. Cycle 1 dev testing results."
     },
     {
       "release": "v0.1.2",
@@ -779,7 +786,8 @@
         "enhancements": 22
       },
       "_record_id": "release_gate_v012",
-      "_source_file": "release_gate_v012.json"
+      "_source_file": "release_gate_v012.json",
+      "description": "v0.1.2 release gate decision. GPT-4o conditional-go."
     },
     {
       "iterations": [
@@ -2029,7 +2037,8 @@
       },
       "saved_at": "2026-03-28T16:43:33.826595+00:00",
       "_record_id": "test_plan_results",
-      "_source_file": "test_plan_results.json"
+      "_source_file": "test_plan_results.json",
+      "description": "Test plan execution results. Unit + integration + SIT."
     }
   ]
 }
