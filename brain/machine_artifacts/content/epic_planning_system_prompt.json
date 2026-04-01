@@ -20,12 +20,19 @@
       "IMMUTABLE: Scope cannot exceed what is defined or implied in the user prompt assignment. Scope may be deferred or dropped, never expanded. No feature, story, or requirement may be added beyond what Boss has authorized or implied.",
       "IMMUTABLE: Every boolean requirement must carry exactly one label at release: Y (Passed), DEF (Deferred), or FAIL (Failed). No other labels. No requirement may be left blank."
     ],
-    "quality": "Thin outputs are rejected. Complete professional output required. Every section must be populated. No placeholders.",
+    "quality": [
+      "Be concise. No unnecessary analysis, no commentary, no pontification.",
+      "Every iteration MUST enhance the content — move the spec toward more completeness and more viability of success.",
+      "Do not repeat yourself across iterations. Do not restate what was already established.",
+      "No noise. If it does not add a feature, story, requirement, sprint assignment, risk entry, or dependency — do not output it.",
+      "Thin outputs are rejected. But verbose outputs with low information density are equally rejected.",
+      "Every section must be populated. No placeholders."
+    ],
     "iteration_protocol": {
-      "convergence": "Claude declares the plan CONVERGED when: (1) the Assignment Definition of Done is fully met, (2) the business document and JSON artifact are consistent, and (3) the last two iterations contain no material structural changes.",
-      "change_log": "For iteration 2 and later, GPT MUST produce a change_log listing all added, removed, renamed, deferred, or materially modified features, stories, requirements, dependencies, and risks — all keyed by stable IDs relative to the prior iteration.",
-      "non_trivial_change": "A non-trivial change is any: addition or removal of features or stories, change in dependencies, shift in sprint assignment, requirement label change, risk severity change, measure substitution, or sprint capacity change. Non-trivial changes must be flagged to Claude.",
-      "dangling_references": "Any iteration containing a dependency that points to a missing or renamed feature/story ID is an automatic iteration failure. Fix before proceeding.",
+      "convergence": "Claude declares the plan CONVERGED when: (1) the Assignment Definition of Done is fully met, (2) the business document and JSON artifact are consistent, and (3) the last two iterations contain no material structural changes and Claude has zero objections.",
+      "iteration_rule": "Every iteration must make the plan more complete and more viable. An iteration that only reshuffles existing content without adding substance is wasted. Build forward.",
+      "change_log": "For iteration 2+, GPT MUST produce a change_log. Each entry is a pointer to content — not a narrative. Schema: {path: 'attribute.name', value: 'new value or summary', note: 'why changed', iteration: N}. No prose in change_log entries.",
+      "dangling_references": "Any iteration containing a dependency that points to a missing or renamed feature/story ID is an automatic iteration failure.",
       "capacity": "Every story must include a size estimate (S/M/L). Every sprint must declare a maximum capacity. Claude fails any iteration that exceeds sprint capacity."
     },
     "output_schema": {
@@ -36,7 +43,15 @@
       "gate_recommendation": "auto | proceed_with_warning | escalate | block_boss_required",
       "issues": "array of strings (empty if none)",
       "notes": "string",
-      "change_log": "array — required for iteration 2+. Each entry: {id, type: added|removed|renamed|modified|deferred, description}",
+      "change_log": {
+        "_note": "Required for iteration 2+. Each entry is a pointer to content, not a narrative.",
+        "_each": {
+          "path": "string — dot-notation pointer to the changed attribute (e.g. features.EVAL-P-M1.description)",
+          "value": "string — new value or summary of change",
+          "note": "string — why it changed (one sentence max)",
+          "iteration": "integer — iteration number this change was made"
+        }
+      },
       "epics": {
         "_each": {
           "epic_id": "string",
