@@ -1,0 +1,22 @@
+{
+  "title": "QA Report \u2014 v0.1.2 Pre-Alpha Release",
+  "record_type": "qa_report",
+  "collection": "qa_reports",
+  "date": "2026-03-28",
+  "tester": "Skip Snow",
+  "engineer": "Claude Opus 4.6",
+  "architect": "GPT-4o",
+  "business_artifact": "brain/BusinessArtifacts/qa_report_v012_final.pdf",
+  "summary": {
+    "build_range": "100-148",
+    "total_builds": 48,
+    "total_features": 13,
+    "passed": 8,
+    "deferred": 5,
+    "failed": 0,
+    "bugs_fixed": 8,
+    "enhancements": 22
+  },
+  "release_gate": "conditional-go (GPT-4o Enterprise Architect)",
+  "conditions": "Consent framework bugs (Sprint 2), Provider Detail link quality (Sprint 2), Automated tests (Sprint 2)"
+}

@@ -286,5 +286,8 @@
   "timeline": {
     "source_of_truth": "Website/roadmap.html",
     "note": "All milestone dates are maintained in the roadmap. This document renders from that source. Do not duplicate dates here."
-  }
+  },
+  "business_artifact": "brain/BusinessArtifacts/ChatHealthyOperationalBusinessArchitecture.docx",
+  "collection": "architecture",
+  "record_type": "business_architecture"
 }

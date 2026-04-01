@@ -1,0 +1,30 @@
+{
+  "title": "Staffing & Cost Analysis \u2014 ChatHealthy.ai Development Equivalency",
+  "record_type": "cost_analysis",
+  "collection": "business_plan",
+  "date": "2026-03-30",
+  "author": "Perplexity Computer (External Auditor)",
+  "owner": "Skip Snow, CEO/CTO",
+  "business_artifact": "brain/BusinessArtifacts/staffing_cost_comparison.docx",
+  "summary": {
+    "scenario_a_startup": {
+      "team": 9,
+      "annual_cost": 1955200,
+      "time_to_current": "6-9 months",
+      "cost_to_current": "1.0M-1.5M"
+    },
+    "scenario_b_enterprise": {
+      "team": 21,
+      "annual_cost": 5558000,
+      "time_to_current": "12-18 months",
+      "cost_to_current": "4.0M-7.0M"
+    },
+    "actual_ai_native": {
+      "team": 1,
+      "time_to_current": "2 weeks",
+      "infra_annual": "minimal",
+      "note": "Excludes founder opportunity cost"
+    }
+  },
+  "key_insight": "AI-native solo founder achieved in 2 weeks what a 9-person startup would take 6-9 months and 1M-1.5M, or a 21-person enterprise would take 12-18 months and 4M-7M."
+}
