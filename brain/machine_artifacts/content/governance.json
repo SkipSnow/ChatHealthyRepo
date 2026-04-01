@@ -107,7 +107,8 @@
       "final_statement": "Fluency is not evidence. Models assist. Systems decide. Data grounds truth.",
       "_record_id": "ai_governance_policy_draft",
       "_source_file": "ai_governance_policy_draft.json",
-      "description": "AI governance policy: The model may suggest. The system must decide. Draft for formal adoption."
+      "description": "AI governance policy: The model may suggest. The system must decide. Draft for formal adoption.",
+      "publish": false
     },
     {
       "title": "ChatHealthy Corporate Business Governance Policies",
@@ -180,7 +181,8 @@
       ],
       "_record_id": "corporate_governance",
       "_source_file": "corporate_governance.json",
-      "description": "GOV-001 through GOV-007. Provider neutrality, single-tenant, public-by-default, Boss sign-off."
+      "description": "GOV-001 through GOV-007. Provider neutrality, single-tenant, public-by-default, Boss sign-off.",
+      "publish": false
     },
     {
       "title": "Risk Acceptance Register",
@@ -202,7 +204,8 @@
         }
       ],
       "_record_id": "risk_acceptance_register",
-      "_source_file": "risk_acceptance_register.json"
+      "_source_file": "risk_acceptance_register.json",
+      "publish": false
     },
     {
       "feature": "Safety Filter (dual-trigger, IP lock, audit)",
@@ -244,7 +247,8 @@
       },
       "_record_id": "safety_signoff",
       "_source_file": "safety_signoff.json",
-      "description": "Safety system sign-off record. Dual-trigger emergency detection validated."
+      "description": "Safety system sign-off record. Dual-trigger emergency detection validated.",
+      "publish": false
     }
   ]
 }

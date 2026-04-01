@@ -801,7 +801,8 @@
       ],
       "_record_id": "assignment_queue",
       "_source_file": "assignment_queue.json",
-      "description": "Pending GPT assignments. Brain runner reads from this queue."
+      "description": "Pending GPT assignments. Brain runner reads from this queue.",
+      "publish": false
     },
     {
       "results": [
@@ -1392,7 +1393,8 @@
       },
       "_record_id": "assurance_results",
       "_source_file": "assurance_results.json",
-      "description": "GPT assurance output history. Architectural review results."
+      "description": "GPT assurance output history. Architectural review results.",
+      "publish": false
     },
     {
       "title": "Business Architecture Collaboration Transcript",
@@ -1428,7 +1430,8 @@
       ],
       "_record_id": "biz_arch_collab_transcript",
       "_source_file": "biz_arch_collab_transcript.json",
-      "description": "Claude+GPT business architecture collaboration. 3 iterations."
+      "description": "Claude+GPT business architecture collaboration. 3 iterations.",
+      "publish": false
     },
     {
       "sufficiency": "Strong core set. Covers product, value, monetization, experience, and defensibility. Investor-ready baseline.",
@@ -1458,7 +1461,8 @@
       ],
       "_record_id": "biz_arch_diagram_review",
       "_source_file": "biz_arch_diagram_review.json",
-      "description": "GPT review of 5 business architecture diagrams."
+      "description": "GPT review of 5 business architecture diagrams.",
+      "publish": false
     },
     {
       "current_activity": "refactoring",
@@ -1466,7 +1470,8 @@
       "description": "Current system activity and authorization mode.",
       "authorization_mode": "explicit \u2014 all writes require Boss approval",
       "_record_id": "current_activity",
-      "_source_file": "current_activity.json"
+      "_source_file": "current_activity.json",
+      "publish": false
     },
     {
       "diagrams": [
@@ -1789,7 +1794,8 @@
       ],
       "_record_id": "diagram_creative_direction",
       "_source_file": "diagram_creative_direction.json",
-      "description": "GPT creative direction for Find Care + Evaluate Care diagrams."
+      "description": "GPT creative direction for Find Care + Evaluate Care diagrams.",
+      "publish": false
     },
     {
       "current_review_id": "ASN-12058C",
@@ -1800,7 +1806,8 @@
       "escalation_reason": null,
       "_record_id": "execution_state",
       "_source_file": "execution_state.json",
-      "description": "Brain runner execution state. Last run, pending items."
+      "description": "Brain runner execution state. Last run, pending items.",
+      "publish": false
     },
     {
       "title": "ARCH-001 Refactor Design Collaboration Transcript",
@@ -1847,13 +1854,15 @@
       ],
       "_record_id": "refactor_collab_transcript",
       "_source_file": "refactor_collab_transcript.json",
-      "description": "ARCH-001 Claude+GPT design collaboration. 5 iterations, agreed design."
+      "description": "ARCH-001 Claude+GPT design collaboration. 5 iterations, agreed design.",
+      "publish": false
     },
     {
       "reviews": [],
       "_record_id": "review_queue",
       "_source_file": "review_queue.json",
-      "description": "Pending review items for GPT architect."
+      "description": "Pending review items for GPT architect.",
+      "publish": false
     },
     {
       "title": "Testing Session Mind Dump - Saturday 2026-03-28",
@@ -2009,7 +2018,8 @@
       },
       "_record_id": "session_2026_03_28_mind_dump",
       "_source_file": "session_2026_03_28_mind_dump.json",
-      "description": "Saturday March 28 testing session notes. Pre-refactor baseline."
+      "description": "Saturday March 28 testing session notes. Pre-refactor baseline.",
+      "publish": false
     }
   ]
 }

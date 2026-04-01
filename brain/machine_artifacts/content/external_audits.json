@@ -32,7 +32,8 @@
         }
       ],
       "_record_id": "external_audit_registry",
-      "_source_file": "external_audit_registry.json"
+      "_source_file": "external_audit_registry.json",
+      "publish": false
     },
     {
       "title": "External Audit \u2014 ChatHealthy.ai Platform Review",
@@ -262,7 +263,8 @@
       "_record_id": "external_audit_v1",
       "_source_file": "external_audit_v1.json",
       "description": "Perplexity full platform review: 18 findings, 0 critical, 3 high, 9 medium. Architecture validated.",
-      "business_artifact": "brain/BusinessArtifacts/external_audit_v1.docx"
+      "business_artifact": "brain/BusinessArtifacts/external_audit_v1.docx",
+      "publish": false
     }
   ]
 }

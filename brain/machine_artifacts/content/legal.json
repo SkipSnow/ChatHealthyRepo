@@ -51,7 +51,8 @@
       "target_deadline": "2026-04-15",
       "_record_id": "ip_agreement_inputs",
       "_source_file": "ip_agreement_inputs.json",
-      "description": "Input parameters for IP license agreement generation."
+      "description": "Input parameters for IP license agreement generation.",
+      "publish": false
     },
     {
       "title": "IP License Agreement \u2014 FindCare Evaluation License (FEL-1.0)",
@@ -65,7 +66,8 @@
       "status": "draft \u2014 pending legal review",
       "_record_id": "ip_license_agreement",
       "_source_file": "ip_license_agreement.json",
-      "description": "FindCare Evaluation License (FEL-1.0) v11 draft. Pending legal review."
+      "description": "FindCare Evaluation License (FEL-1.0) v11 draft. Pending legal review.",
+      "publish": false
     },
     {
       "document": "Revocable Intellectual Property License Agreement",
@@ -89,7 +91,8 @@
       },
       "_record_id": "ip_license_signoff",
       "_source_file": "ip_license_signoff.json",
-      "description": "IP license sign-off tracking. Status and approvals."
+      "description": "IP license sign-off tracking. Status and approvals.",
+      "publish": false
     },
     {
       "title": "Pending Legal Questions - FindCare v0.1.2+",
@@ -129,7 +132,8 @@
       "_record_id": "pending_legal_questions",
       "_source_file": "pending_legal_questions.json",
       "description": "Open legal questions: FDA classification, DeepSeek disclosure, consent wording.",
-      "business_artifact": "brain/BusinessArtifacts/pending_legal_questions.pdf"
+      "business_artifact": "brain/BusinessArtifacts/pending_legal_questions.pdf",
+      "publish": false
     }
   ]
 }
