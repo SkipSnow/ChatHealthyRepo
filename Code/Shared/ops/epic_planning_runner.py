@@ -21,6 +21,8 @@ _REPO_ROOT = _SHARED_DIR.parent.parent
 _BRAIN_DIR = _REPO_ROOT / "brain"
 _CACHE_DIR = _BRAIN_DIR / "machine_artifacts" / ".iteration_cache"
 _AI_OPS = _BRAIN_DIR / "machine_artifacts" / "content" / "ai_operations.json"
+_EPIC_SYSTEM_PROMPT = _BRAIN_DIR / "machine_artifacts" / "content" / "epic_planning_system_prompt.json"
+_EPIC_USER_PROMPT = _BRAIN_DIR / "machine_artifacts" / "content" / "epic_planning_user_prompt_v014.txt"
 
 sys.path.insert(0, str(_SHARED_DIR))
 from dotenv import load_dotenv
@@ -28,24 +30,17 @@ load_dotenv(_SHARED_DIR.parent / ".env")
 
 
 def _load_system_prompt() -> str:
-    """Load the cached system prompt from brain."""
-    with open(_AI_OPS, encoding="utf-8") as f:
+    """Load the epic planning system prompt from brain."""
+    with open(_EPIC_SYSTEM_PROMPT, encoding="utf-8") as f:
         data = json.load(f)
-    for rec in data["records"]:
-        if rec.get("_record_id") == "gpt_assignment_system_prompt":
-            sp = rec.get("system_prompt", {})
-            return json.dumps(sp) if isinstance(sp, dict) else str(sp)
-    return "You are the Enterprise Architect for ChatHealthy.ai."
+    sp = data.get("system_prompt", {})
+    return json.dumps(sp, ensure_ascii=False) if isinstance(sp, dict) else str(sp)
 
 
-def _load_user_prompt(record_id: str) -> dict:
-    """Load the user prompt record from brain."""
-    with open(_AI_OPS, encoding="utf-8") as f:
-        data = json.load(f)
-    for rec in data["records"]:
-        if rec.get("_record_id") == record_id:
-            return rec
-    raise ValueError(f"Prompt record '{record_id}' not found in ai_operations.json")
+def _load_user_prompt_text() -> str:
+    """Load the full user prompt text from brain."""
+    with open(_EPIC_USER_PROMPT, encoding="utf-8") as f:
+        return f.read()
 
 
 def _load_last_iteration() -> dict | None:
@@ -59,39 +54,38 @@ def _load_last_iteration() -> dict | None:
         return json.load(f)
 
 
-def _build_user_message(prompt_record: dict, iteration: int, last_iteration: dict | None) -> str:
-    """Build the user message for this iteration."""
-    # Update iteration counter
-    prompt_record["iteration"]["current"] = iteration
-    prompt_record["metadata"]["iteration"] = f"{iteration} of {prompt_record['iteration']['max']}"
+def _build_user_message(prompt_text: str, iteration: int, max_iter: int, last_iteration: dict | None) -> str:
+    """Build the user message for this iteration.
 
-    msg_parts = [
-        f"Iteration: {iteration} of {prompt_record['iteration']['max']}",
-        "",
-        json.dumps(prompt_record, indent=2, ensure_ascii=False),
-    ]
+    Sends the full Boss-approved prompt text with iteration counter substituted.
+    """
+    # Substitute iteration placeholders
+    message = prompt_text.replace("{iteration}", str(iteration)).replace("{max_iterations}", str(max_iter))
 
     if last_iteration:
-        msg_parts.extend([
-            "",
-            "=== LAST ITERATION (review as starting place) ===",
-            json.dumps(last_iteration, indent=2, ensure_ascii=False)[:50000],  # cap context
-        ])
+        last_str = json.dumps(last_iteration, indent=2, ensure_ascii=False)
+        if len(last_str) > 40000:
+            last_str = last_str[:40000] + "\n... (truncated)"
+        message += (
+            "\n\n---\n\n"
+            "LAST ITERATION (review as starting place — flag non-trivial changes per iteration protocol):\n\n"
+            + last_str
+        )
 
-    return "\n".join(msg_parts)
+    return message
 
 
 def _call_gpt(system_prompt: str, user_message: str, model: str) -> tuple[str, int, int]:
     """Call GPT. Returns (response_text, tokens_in, tokens_out)."""
     import openai
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    # GPT-5.3 only supports temperature=1 (default). Do not override.
     response = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message},
         ],
-        temperature=0.2,
         response_format={"type": "json_object"},
     )
     text = response.choices[0].message.content
@@ -129,8 +123,12 @@ def run(max_iterations: int = 1000, prompt_record_id: str = "epic_planning_user_
     """Run the epic planning iteration loop."""
     print(f"[EpicPlanner] Loading prompts...")
     system_prompt = _load_system_prompt()
-    prompt_record = _load_user_prompt(prompt_record_id)
-    model = prompt_record.get("model", "gpt-5.3-chat-latest")
+    prompt_text = _load_user_prompt_text()
+
+    # Read model from system prompt file
+    with open(_EPIC_SYSTEM_PROMPT, encoding="utf-8") as f:
+        sp_data = json.load(f)
+    model = sp_data.get("model", "gpt-5.3-chat-latest")
 
     print(f"[EpicPlanner] Model: {model}")
     print(f"[EpicPlanner] Max iterations: {max_iterations}")
@@ -150,7 +148,7 @@ def run(max_iterations: int = 1000, prompt_record_id: str = "epic_planning_user_
         print(f"  ITERATION {i} of {max_iterations}")
         print(f"{'='*60}")
 
-        user_message = _build_user_message(prompt_record, i, last_iteration)
+        user_message = _build_user_message(prompt_text, i, max_iterations, last_iteration)
 
         try:
             from cost_guard import check_budget
@@ -159,15 +157,28 @@ def run(max_iterations: int = 1000, prompt_record_id: str = "epic_planning_user_
                 print(f"[EpicPlanner] BUDGET BLOCKED: {budget['reason']}")
                 print(f"[EpicPlanner] Stopping at iteration {i}")
                 break
-        except ImportError:
-            pass  # cost_guard not available, proceed
+        except (ImportError, FileNotFoundError):
+            pass  # cost_guard or budget config not available, proceed
 
         print(f"[EpicPlanner] Calling {model}...")
         try:
             raw_text, tokens_in, tokens_out = _call_gpt(system_prompt, user_message, model)
         except Exception as e:
-            print(f"[EpicPlanner] ERROR: GPT call failed — {e}")
-            print(f"[EpicPlanner] Retrying in next iteration...")
+            error_str = str(e)
+            print(f"[EpicPlanner] ERROR: GPT call failed — {error_str}")
+            # Don't retry the same error endlessly
+            if not hasattr(run, '_last_error'):
+                run._last_error = error_str
+                run._error_count = 1
+            elif run._last_error == error_str:
+                run._error_count += 1
+                if run._error_count >= 3:
+                    print(f"[EpicPlanner] Same error 3 times — stopping. Fix the issue and rerun.")
+                    break
+            else:
+                run._last_error = error_str
+                run._error_count = 1
+            print(f"[EpicPlanner] Retrying ({run._error_count}/3)...")
             continue
 
         total_tokens_in += tokens_in
@@ -185,7 +196,7 @@ def run(max_iterations: int = 1000, prompt_record_id: str = "epic_planning_user_
                 call_type="epic_planning",
             )
             print(f"[EpicPlanner] Cost this call: ${cost:.4f}")
-        except (ImportError, Exception) as e:
+        except Exception as e:
             print(f"[EpicPlanner] Cost logging skipped: {e}")
 
         # Parse response
