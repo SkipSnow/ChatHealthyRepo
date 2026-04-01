@@ -261,7 +261,8 @@
       "overall_assessment": "The platform is architecturally sound and the engineering quality exceeds expectations for pre-alpha. The primary risks are strategic and legal, not technical. The three highest-priority action items are: (1) implement the tool registry to close the globals() security gap (current sprint, 1 hour), (2) get legal counsel on FDA/clinical decision support boundary (before Alpha), and (3) lock architecture docs behind NDA access before Alpha. The Brain governance system and the AI-native operating model are genuine innovations that should be preserved and strengthened.",
       "_record_id": "external_audit_v1",
       "_source_file": "external_audit_v1.json",
-      "description": "Perplexity full platform review: 18 findings, 0 critical, 3 high, 9 medium. Architecture validated."
+      "description": "Perplexity full platform review: 18 findings, 0 critical, 3 high, 9 medium. Architecture validated.",
+      "business_artifact": "brain/BusinessArtifacts/external_audit_v1.docx"
     }
   ]
 }

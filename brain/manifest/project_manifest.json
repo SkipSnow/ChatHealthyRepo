@@ -2,1171 +2,1447 @@
   {
     "project_path": ".github/workflows/deploy-findcare-backend.yml",
     "size": 3835,
-    "content_hash": "046ef919d1d61582"
+    "content_hash": "046ef919d1d61582",
+    "entity_type": "file"
   },
   {
     "project_path": ".github/workflows/deploy-findcare-website-dev.yml",
     "size": 1327,
-    "content_hash": "ef5e9d33fdbcc6b4"
+    "content_hash": "ef5e9d33fdbcc6b4",
+    "entity_type": "file"
   },
   {
     "project_path": ".github/workflows/deploy-findcare-website-qa.yml",
     "size": 1319,
-    "content_hash": "935e461cf124b162"
+    "content_hash": "935e461cf124b162",
+    "entity_type": "file"
   },
   {
     "project_path": ".github/workflows/deploy-pipelines.yml",
     "size": 5742,
-    "content_hash": "21cb9bcd42e44f44"
+    "content_hash": "21cb9bcd42e44f44",
+    "entity_type": "file"
   },
   {
     "project_path": ".github/workflows/promote-build.yml",
     "size": 3156,
-    "content_hash": "35181dc931ff64cf"
+    "content_hash": "35181dc931ff64cf",
+    "entity_type": "file"
   },
   {
     "project_path": ".github/workflows/promote-data.yml",
     "size": 2130,
-    "content_hash": "50cc4c389d6a8f9e"
+    "content_hash": "50cc4c389d6a8f9e",
+    "entity_type": "file"
   },
   {
     "project_path": ".github/workflows/test.yml",
     "size": 892,
-    "content_hash": "1b24e6342cb250c3"
+    "content_hash": "1b24e6342cb250c3",
+    "entity_type": "file"
   },
   {
     "project_path": ".gitignore",
     "size": 745,
-    "content_hash": "823b14dc690e1b6d"
+    "content_hash": "823b14dc690e1b6d",
+    "entity_type": "file"
   },
   {
     "project_path": ".vscode/settings.json",
     "size": 189,
-    "content_hash": "59730a2544a0a123"
+    "content_hash": "59730a2544a0a123",
+    "entity_type": "file"
   },
   {
     "project_path": "Analysis/embedding-design-2026-03-24.md",
     "size": 13313,
-    "content_hash": "0fa3432cbbc6b720"
+    "content_hash": "0fa3432cbbc6b720",
+    "entity_type": "file"
   },
   {
     "project_path": "CLAUDE.md",
     "size": 10053,
-    "content_hash": "95ee798eb06b665d"
+    "content_hash": "95ee798eb06b665d",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/BuildingAnthropicAConversationWithItsCo-foundersYouTube.pdf",
     "size": 1553440,
-    "content_hash": "29ed00193606189e"
+    "content_hash": "29ed00193606189e",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/SkipSnowLinkedInProfile.pdf",
     "size": 64441,
-    "content_hash": "6bbafe2abd049cc4"
+    "content_hash": "6bbafe2abd049cc4",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/anthropic_principles.txt",
     "size": 2645,
-    "content_hash": "2411d22d8d44cefd"
+    "content_hash": "2411d22d8d44cefd",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/chatHealthy_ai_business_plan.pdf",
     "size": 24298,
-    "content_hash": "692271fe5c5e8db3"
+    "content_hash": "692271fe5c5e8db3",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/findcare-code-package.json",
     "size": 1009280,
-    "content_hash": "8e309e96e3051328"
+    "content_hash": "8e309e96e3051328",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/summary.txt",
     "size": 2687,
-    "content_hash": "1f3f150b11c6be49"
+    "content_hash": "1f3f150b11c6be49",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/tests/__init__.py",
     "size": 0,
-    "content_hash": "e3b0c44298fc1c14"
+    "content_hash": "e3b0c44298fc1c14",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/Dockerfile",
     "size": 157,
-    "content_hash": "ff1720a452f1c34f"
+    "content_hash": "ff1720a452f1c34f",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/README.md",
     "size": 139,
-    "content_hash": "0d78a893ecf1379a"
+    "content_hash": "0d78a893ecf1379a",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/adapter/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/application/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/application/facades/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py",
     "size": 1962,
-    "content_hash": "b61b630715e3c09a"
+    "content_hash": "b61b630715e3c09a",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py",
     "size": 2097,
-    "content_hash": "58e32e4fea693868"
+    "content_hash": "58e32e4fea693868",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py",
     "size": 744,
-    "content_hash": "5c8d89a1c9688d38"
+    "content_hash": "5c8d89a1c9688d38",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py",
     "size": 939,
-    "content_hash": "f390d864d75a6dd0"
+    "content_hash": "f390d864d75a6dd0",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py",
     "size": 734,
-    "content_hash": "937489d2f8e47f65"
+    "content_hash": "937489d2f8e47f65",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py",
     "size": 4512,
-    "content_hash": "47cb4921be128e0a"
+    "content_hash": "47cb4921be128e0a",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/build.txt",
     "size": 16,
-    "content_hash": "4007ba29c87188e3"
+    "content_hash": "4007ba29c87188e3",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py",
     "size": 6236,
-    "content_hash": "6fea15b7b3b6f9c2"
+    "content_hash": "6fea15b7b3b6f9c2",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py",
     "size": 4725,
-    "content_hash": "940d7f30f7f69c0a"
+    "content_hash": "940d7f30f7f69c0a",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py",
     "size": 10331,
-    "content_hash": "f0f5c1ea1038b15e"
+    "content_hash": "f0f5c1ea1038b15e",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py",
     "size": 5562,
-    "content_hash": "0f785a870e08b0f2"
+    "content_hash": "0f785a870e08b0f2",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py",
     "size": 4057,
-    "content_hash": "7d70553facd7a2ec"
+    "content_hash": "7d70553facd7a2ec",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/content/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/content/about_service.py",
     "size": 1437,
-    "content_hash": "7879c8a15ba64146"
+    "content_hash": "7879c8a15ba64146",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py",
     "size": 2939,
-    "content_hash": "7601ba934606a9e7"
+    "content_hash": "7601ba934606a9e7",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py",
     "size": 6904,
-    "content_hash": "5fd19dfe49fa1e0b"
+    "content_hash": "5fd19dfe49fa1e0b",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py",
     "size": 3082,
-    "content_hash": "300d38092ae94040"
+    "content_hash": "300d38092ae94040",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/url/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/config/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py",
     "size": 2027,
-    "content_hash": "1a7806f09666bd50"
+    "content_hash": "1a7806f09666bd50",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/embeddings/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/embeddings/embedding_client.py",
     "size": 3050,
-    "content_hash": "d70e7f48626a3e2c"
+    "content_hash": "d70e7f48626a3e2c",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/external_apis/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/mongo/__init__.py",
     "size": 115,
-    "content_hash": "135a3457297a2c96"
+    "content_hash": "135a3457297a2c96",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/main.py",
     "size": 16481,
-    "content_hash": "926d42a44bb982d1"
+    "content_hash": "926d42a44bb982d1",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/requirements.txt",
     "size": 186,
-    "content_hash": "7895e8109954846a"
+    "content_hash": "7895e8109954846a",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py",
     "size": 2292,
-    "content_hash": "7eb2e47dd4acfc79"
+    "content_hash": "7eb2e47dd4acfc79",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_embedding_client.py",
     "size": 2490,
-    "content_hash": "001d4530de334a30"
+    "content_hash": "001d4530de334a30",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_human_testing_mode.py",
     "size": 7507,
-    "content_hash": "b996fe1d2756d53f"
+    "content_hash": "b996fe1d2756d53f",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_prompt_system_maker.py",
     "size": 2756,
-    "content_hash": "ca987cb0a44c0949"
+    "content_hash": "ca987cb0a44c0949",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py",
     "size": 2416,
-    "content_hash": "cf6cf1e0dc2153c4"
+    "content_hash": "cf6cf1e0dc2153c4",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_unanswerable_questions.py",
     "size": 10281,
-    "content_hash": "a5f699a6eef2c275"
+    "content_hash": "a5f699a6eef2c275",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py",
     "size": 15120,
-    "content_hash": "39d227976f122923"
+    "content_hash": "39d227976f122923",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/.env.example",
     "size": 80,
-    "content_hash": "de64098832814085"
+    "content_hash": "de64098832814085",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/index.html",
     "size": 319,
-    "content_hash": "5ecf1274d1c7d061"
+    "content_hash": "5ecf1274d1c7d061",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/package-lock.json",
     "size": 126412,
-    "content_hash": "82fb54eb9c829c02"
+    "content_hash": "82fb54eb9c829c02",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/package.json",
     "size": 581,
-    "content_hash": "d99f5f8ed6ee716f"
+    "content_hash": "d99f5f8ed6ee716f",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/public/_redirects",
     "size": 20,
-    "content_hash": "94f76bf42ffc51f4"
+    "content_hash": "94f76bf42ffc51f4",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx",
     "size": 346,
-    "content_hash": "0970e1c60ad8e7bc"
+    "content_hash": "0970e1c60ad8e7bc",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx",
     "size": 13086,
-    "content_hash": "3510dd91a8fef697"
+    "content_hash": "3510dd91a8fef697",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx",
     "size": 3302,
-    "content_hash": "780f1d2d3f0e61bd"
+    "content_hash": "780f1d2d3f0e61bd",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/index.css",
     "size": 465,
-    "content_hash": "93061e4d8f7b60f5"
+    "content_hash": "93061e4d8f7b60f5",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/main.tsx",
     "size": 360,
-    "content_hash": "bfc1cc672c927151"
+    "content_hash": "bfc1cc672c927151",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/vite-env.d.ts",
     "size": 158,
-    "content_hash": "c1c0f7b0c6c2a9c2"
+    "content_hash": "c1c0f7b0c6c2a9c2",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/tsconfig.json",
     "size": 425,
-    "content_hash": "1f8dae17cb4d3599"
+    "content_hash": "1f8dae17cb4d3599",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/vite.config.ts",
     "size": 178,
-    "content_hash": "c85e5714c53fe5ef"
+    "content_hash": "c85e5714c53fe5ef",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/ChatHealthyMongoUtilities.py",
     "size": 5149,
-    "content_hash": "8ee50558cbb57262"
+    "content_hash": "8ee50558cbb57262",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/atlas_cluster_manager.py",
     "size": 8660,
-    "content_hash": "41ffca05b01b23b7"
+    "content_hash": "41ffca05b01b23b7",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/auth.py",
     "size": 1966,
-    "content_hash": "bb817202cbe9241d"
+    "content_hash": "bb817202cbe9241d",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/blob_client.py",
     "size": 1629,
-    "content_hash": "b73b4b817442c098"
+    "content_hash": "b73b4b817442c098",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/copy_to_frontend.py",
     "size": 9325,
-    "content_hash": "8b6e94801797dd00"
+    "content_hash": "8b6e94801797dd00",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/copy_va_incremental.py",
     "size": 3093,
-    "content_hash": "7422cb13aeea34f8"
+    "content_hash": "7422cb13aeea34f8",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/county_enrichment_job.py",
     "size": 65851,
-    "content_hash": "35018d470e8e9b31"
+    "content_hash": "35018d470e8e9b31",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/data_fetcher_base.py",
     "size": 7298,
-    "content_hash": "d06a056cb7f18b79"
+    "content_hash": "d06a056cb7f18b79",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/discrepancy_reporter.py",
     "size": 7932,
-    "content_hash": "0f8bc1c2d2ff2f93"
+    "content_hash": "0f8bc1c2d2ff2f93",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/embed_va_backfill.py",
     "size": 4395,
-    "content_hash": "a33d88000e9f1c13"
+    "content_hash": "a33d88000e9f1c13",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/embedding_worker.py",
     "size": 9351,
-    "content_hash": "49927886691658a5"
+    "content_hash": "49927886691658a5",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/favicon.ico",
     "size": 15406,
-    "content_hash": "887a11acad37e20c"
+    "content_hash": "887a11acad37e20c",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/function_app.py",
     "size": 17073,
-    "content_hash": "1b5113d10378da86"
+    "content_hash": "1b5113d10378da86",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/gpt_reader.py",
     "size": 9756,
-    "content_hash": "c85b1b064211aa1f"
+    "content_hash": "c85b1b064211aa1f",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/host.json",
     "size": 620,
-    "content_hash": "097f91a273f9057f"
+    "content_hash": "097f91a273f9057f",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/icd10_loader.py",
     "size": 8526,
-    "content_hash": "8478c1b5af4f4400"
+    "content_hash": "8478c1b5af4f4400",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/idle_monitor.py",
     "size": 5447,
-    "content_hash": "660c0eaa14e562cb"
+    "content_hash": "660c0eaa14e562cb",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/instance_warmer.py",
     "size": 5475,
-    "content_hash": "bf7616749f9fbe11"
+    "content_hash": "bf7616749f9fbe11",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/legal/licence.txt",
     "size": 1508,
-    "content_hash": "4fe5ff88648faf2d"
+    "content_hash": "4fe5ff88648faf2d",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/load_provider_data.py",
     "size": 587,
-    "content_hash": "2a3fe149ac387bae"
+    "content_hash": "2a3fe149ac387bae",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/load_specialty_data.py",
     "size": 8839,
-    "content_hash": "d8f9abade7e89483"
+    "content_hash": "d8f9abade7e89483",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/migrate_discrepancy_reports.py",
     "size": 4126,
-    "content_hash": "1edb2a2b8f982ecc"
+    "content_hash": "1edb2a2b8f982ecc",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/move_to_frontend.py",
     "size": 4294,
-    "content_hash": "698415fdc4d62ca1"
+    "content_hash": "698415fdc4d62ca1",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/otp_manager.py",
     "size": 3180,
-    "content_hash": "e10fe6d028fa44b0"
+    "content_hash": "e10fe6d028fa44b0",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/pipeline_health.py",
     "size": 3124,
-    "content_hash": "736f24dc4095ab26"
+    "content_hash": "736f24dc4095ab26",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/pipeline_worker_base.py",
     "size": 7457,
-    "content_hash": "3b427940469d3ae9"
+    "content_hash": "3b427940469d3ae9",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/promote_data_fn.py",
     "size": 5363,
-    "content_hash": "98548ac4da1fd46e"
+    "content_hash": "98548ac4da1fd46e",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/provider_embedding.py",
     "size": 15840,
-    "content_hash": "c3d219867fe515fa"
+    "content_hash": "c3d219867fe515fa",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/provider_load_manager.py",
     "size": 30125,
-    "content_hash": "7dbbff7d8ca4e709"
+    "content_hash": "7dbbff7d8ca4e709",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/provider_worker.py",
     "size": 15030,
-    "content_hash": "bbfe984cf702eb30"
+    "content_hash": "bbfe984cf702eb30",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/qa_provider_load.py",
     "size": 15160,
-    "content_hash": "59786655b6bad6fa"
+    "content_hash": "59786655b6bad6fa",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/refactor_db.py",
     "size": 3808,
-    "content_hash": "6b8857d43dca9cd0"
+    "content_hash": "6b8857d43dca9cd0",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/rename_to_dev.py",
     "size": 4008,
-    "content_hash": "89ac236a94e94b9f"
+    "content_hash": "89ac236a94e94b9f",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/requirements-pipeline.txt",
     "size": 208,
-    "content_hash": "34c329c96252eded"
+    "content_hash": "34c329c96252eded",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/tests/gpt_sit_runner.py",
     "size": 18228,
-    "content_hash": "86d5514d195044a4"
+    "content_hash": "86d5514d195044a4",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/tests/gpt_sit_with_gpt.py",
     "size": 24032,
-    "content_hash": "7400a9ef3a0f9e0a"
+    "content_hash": "7400a9ef3a0f9e0a",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/tests/test_gpt_reader.py",
     "size": 12078,
-    "content_hash": "f16dce098018d1b6"
+    "content_hash": "f16dce098018d1b6",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/tests/test_gpt_reader_integration.py",
     "size": 15241,
-    "content_hash": "6264e926dd25c32f"
+    "content_hash": "6264e926dd25c32f",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/tests/test_pipeline_worker_base.py",
     "size": 8794,
-    "content_hash": "0437063e1c5c1605"
+    "content_hash": "0437063e1c5c1605",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/tests/test_provider_embedding.py",
     "size": 13581,
-    "content_hash": "ce20a90034c49786"
+    "content_hash": "ce20a90034c49786",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/validate_provider_load.py",
     "size": 12500,
-    "content_hash": "5ea25dd109a95abd"
+    "content_hash": "5ea25dd109a95abd",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/DataPipelines/zip_county_crosswalk_loader.py",
     "size": 6907,
-    "content_hash": "aa0db46e38d2b1fe"
+    "content_hash": "aa0db46e38d2b1fe",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Schemas/ChatHealthy.Providers.json",
     "size": 18020,
-    "content_hash": "5ebfcd1f2ac40ba4"
+    "content_hash": "5ebfcd1f2ac40ba4",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ChatHealthyMongoUtilities.py",
     "size": 4914,
-    "content_hash": "2714180bc789f3bf"
+    "content_hash": "2714180bc789f3bf",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/backlog.py",
     "size": 6250,
-    "content_hash": "18dfffa3e458116c"
+    "content_hash": "18dfffa3e458116c",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/brain_auth.py",
     "size": 2955,
-    "content_hash": "8d60d26e6adc6031"
+    "content_hash": "8d60d26e6adc6031",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/brain_loop.py",
     "size": 26771,
-    "content_hash": "7c5519497a2ec3cc"
+    "content_hash": "7c5519497a2ec3cc",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/brain_runner.py",
     "size": 13151,
-    "content_hash": "5d177d31e2e9ff21"
+    "content_hash": "5d177d31e2e9ff21",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/cost_guard.py",
     "size": 9504,
-    "content_hash": "8cd47452678a5633"
+    "content_hash": "8cd47452678a5633",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/machine_brain.py",
     "size": 11978,
-    "content_hash": "7ab8ad1778821cea"
+    "content_hash": "7ab8ad1778821cea",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/atlas_cluster_toggle.py",
     "size": 2479,
-    "content_hash": "0034e24e0d3673a7"
+    "content_hash": "0034e24e0d3673a7",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/brain_biz_arch_collab.py",
     "size": 13309,
-    "content_hash": "aa2a608127333a49"
+    "content_hash": "aa2a608127333a49",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/brain_biz_arch_diagrams.py",
     "size": 18287,
-    "content_hash": "2aa4f3a698235af3"
+    "content_hash": "2aa4f3a698235af3",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/brain_refactor_collab.py",
     "size": 20180,
-    "content_hash": "0c64b21002257d70"
+    "content_hash": "0c64b21002257d70",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/bump_build.py",
     "size": 1578,
-    "content_hash": "b1077602ce12e2f2"
+    "content_hash": "b1077602ce12e2f2",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/framework_version.py",
     "size": 3689,
-    "content_hash": "04c9ccc43d093ac3"
+    "content_hash": "04c9ccc43d093ac3",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/gen_evaluate_care_v3.py",
     "size": 6882,
-    "content_hash": "0b9bb838ea5c8b5c"
+    "content_hash": "0b9bb838ea5c8b5c",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/gen_investor_docx.py",
     "size": 10873,
-    "content_hash": "bca3ba61ea626eb6"
+    "content_hash": "bca3ba61ea626eb6",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/gen_investor_docx_v3.py",
     "size": 19073,
-    "content_hash": "6b9bc61cc9b8ea2f"
+    "content_hash": "6b9bc61cc9b8ea2f",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/gen_investor_pdf_v2.py",
     "size": 12081,
-    "content_hash": "d8bbb312cc89c404"
+    "content_hash": "d8bbb312cc89c404",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/gen_moat_v4.py",
     "size": 3914,
-    "content_hash": "97aef1c1c5767d12"
+    "content_hash": "97aef1c1c5767d12",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/hf_space_create.py",
     "size": 6452,
-    "content_hash": "37da45370039e334"
+    "content_hash": "37da45370039e334",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/hf_space_delete.py",
     "size": 3865,
-    "content_hash": "11e84d7ac839b3ee"
+    "content_hash": "11e84d7ac839b3ee",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/hf_space_restart.py",
     "size": 1468,
-    "content_hash": "29ee38da5b9c7301"
+    "content_hash": "29ee38da5b9c7301",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/hf_space_status.py",
     "size": 1956,
-    "content_hash": "130eb06dbe667381"
+    "content_hash": "130eb06dbe667381",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/promote_build.py",
     "size": 3633,
-    "content_hash": "a734755fe0ccd303"
+    "content_hash": "a734755fe0ccd303",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/promote_data.py",
     "size": 4164,
-    "content_hash": "e84c53df7e975d1b"
+    "content_hash": "e84c53df7e975d1b",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/sync_to_mongo.py",
     "size": 10383,
-    "content_hash": "29d11ca1fb439653"
+    "content_hash": "29d11ca1fb439653",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/ops/uat_report.py",
     "size": 8841,
-    "content_hash": "68fd998a623c89b1"
+    "content_hash": "68fd998a623c89b1",
+    "entity_type": "file"
+  },
+  {
+    "project_path": "Code/Shared/ops/update_brain_descriptions.py",
+    "size": 9109,
+    "content_hash": "296fb3a24507f905",
+    "entity_type": "file"
   },
   {
     "project_path": "Code/Shared/prompt_system_maker.py",
     "size": 16722,
-    "content_hash": "1a25cb7d68f6f68d"
+    "content_hash": "1a25cb7d68f6f68d",
+    "entity_type": "file"
   },
   {
     "project_path": "Legal/Licence.txt",
     "size": 1542,
-    "content_hash": "fb69ab582da4b74a"
+    "content_hash": "fb69ab582da4b74a",
+    "entity_type": "file"
   },
   {
     "project_path": "README.md",
     "size": 1437,
-    "content_hash": "5687c742d7220779"
+    "content_hash": "5687c742d7220779",
+    "entity_type": "file"
   },
   {
     "project_path": "ROADMAP.md",
     "size": 9657,
-    "content_hash": "954b61a913a09dd3"
+    "content_hash": "954b61a913a09dd3",
+    "entity_type": "file"
   },
   {
     "project_path": "Website/_headers",
     "size": 117,
-    "content_hash": "a49b93bebaf0a9eb"
+    "content_hash": "a49b93bebaf0a9eb",
+    "entity_type": "file"
   },
   {
     "project_path": "Website/architecture.html",
     "size": 103006,
-    "content_hash": "ab1c38b885035e4a"
+    "content_hash": "ab1c38b885035e4a",
+    "entity_type": "file"
   },
   {
     "project_path": "Website/chat-app-design.html",
     "size": 68505,
-    "content_hash": "fd17380f9b30c853"
+    "content_hash": "fd17380f9b30c853",
+    "entity_type": "file"
   },
   {
     "project_path": "Website/chat-url.txt",
     "size": 27,
-    "content_hash": "698c5014b7312471"
+    "content_hash": "698c5014b7312471",
+    "entity_type": "file"
   },
   {
     "project_path": "Website/embedding-design.html",
     "size": 25838,
-    "content_hash": "9d27a52a4ce898a7"
+    "content_hash": "9d27a52a4ce898a7",
+    "entity_type": "file"
   },
   {
     "project_path": "Website/index.html",
     "size": 24556,
-    "content_hash": "a08df5c6851a3e4f"
+    "content_hash": "a08df5c6851a3e4f",
+    "entity_type": "file"
   },
   {
     "project_path": "Website/load-perf-report.html",
     "size": 33021,
-    "content_hash": "45660b4156767dfe"
+    "content_hash": "45660b4156767dfe",
+    "entity_type": "file"
   },
   {
     "project_path": "Website/load_comparison.png",
     "size": 126583,
-    "content_hash": "9dcaf9a3f0fbfa7f"
+    "content_hash": "9dcaf9a3f0fbfa7f",
+    "entity_type": "file"
   },
   {
     "project_path": "Website/load_progress.png",
     "size": 51182,
-    "content_hash": "7eabb664fdb423f2"
+    "content_hash": "7eabb664fdb423f2",
+    "entity_type": "file"
   },
   {
     "project_path": "Website/privacy.html",
     "size": 19068,
-    "content_hash": "2670f2cca89dc4c6"
+    "content_hash": "2670f2cca89dc4c6",
+    "entity_type": "file"
   },
   {
     "project_path": "Website/products.html",
     "size": 14180,
-    "content_hash": "08d333f81e8a4d72"
+    "content_hash": "08d333f81e8a4d72",
+    "entity_type": "file"
   },
   {
     "project_path": "Website/provider-data-load.html",
     "size": 69413,
-    "content_hash": "8eb289606b5e928f"
+    "content_hash": "8eb289606b5e928f",
+    "entity_type": "file"
   },
   {
     "project_path": "Website/roadmap.html",
     "size": 60965,
-    "content_hash": "3cbd8066298dda13"
+    "content_hash": "3cbd8066298dda13",
+    "entity_type": "file"
   },
   {
     "project_path": "Website/terms.html",
     "size": 12616,
-    "content_hash": "d5d4ba16a8e3647b"
+    "content_hash": "d5d4ba16a8e3647b",
+    "entity_type": "file"
   },
   {
     "project_path": "Website/tests/conftest.py",
     "size": 1072,
-    "content_hash": "017a17208ddf9cb9"
+    "content_hash": "017a17208ddf9cb9",
+    "entity_type": "file"
   },
   {
     "project_path": "Website/tests/test_website.py",
     "size": 17544,
-    "content_hash": "4bc1a66f9b0361f8"
+    "content_hash": "4bc1a66f9b0361f8",
+    "entity_type": "file"
   },
   {
     "project_path": "archive/V0_1/business/SUP-001_hf_build_failure.pdf",
     "size": 4007,
-    "content_hash": "7415b92beba480dc"
+    "content_hash": "7415b92beba480dc",
+    "entity_type": "file"
   },
   {
     "project_path": "archive/V0_1/business/business_model_v1.pdf",
     "size": 10054,
-    "content_hash": "87608ecd41c7187d"
+    "content_hash": "87608ecd41c7187d",
+    "entity_type": "file"
   },
   {
     "project_path": "archive/V0_1/business/ip_license_agreement_draft_v11.pdf",
     "size": 4278,
-    "content_hash": "fb236f5ce2230d83"
+    "content_hash": "fb236f5ce2230d83",
+    "entity_type": "file"
   },
   {
     "project_path": "archive/V0_1/business/ip_license_agreement_draft_v11.pdf.docx",
     "size": 16926,
-    "content_hash": "30e89c533b40f8f3"
+    "content_hash": "30e89c533b40f8f3",
+    "entity_type": "file"
   },
   {
     "project_path": "archive/V0_1/business/pending_legal_questions.pdf",
     "size": 7725,
-    "content_hash": "b369a0718ee06d24"
+    "content_hash": "b369a0718ee06d24",
+    "entity_type": "file"
   },
   {
     "project_path": "archive/V0_1/business/qa_report_v012_final.pdf",
     "size": 4542,
-    "content_hash": "d094b499eda3b060"
+    "content_hash": "d094b499eda3b060",
+    "entity_type": "file"
   },
   {
     "project_path": "archive/V0_1/legacy_machine_docs/machine_brain_seed.py",
     "size": 9066,
-    "content_hash": "f78af9bb8924fb8f"
+    "content_hash": "f78af9bb8924fb8f",
+    "entity_type": "file"
   },
   {
     "project_path": "archive/V0_1/legacy_machine_docs/machine_brain_seed_gpt.py",
     "size": 36119,
-    "content_hash": "f601f93ac1f18418"
+    "content_hash": "f601f93ac1f18418",
+    "entity_type": "file"
   },
   {
     "project_path": "archive/V0_1/legacy_machine_docs/seed_findcare_requirements.py",
     "size": 16741,
-    "content_hash": "6a0e99de9f83c84b"
+    "content_hash": "6a0e99de9f83c84b",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/ChatHealthyOperationalBusinessArchitecture.docx",
     "size": 1233734,
-    "content_hash": "cba51e8aacdab152"
+    "content_hash": "cba51e8aacdab152",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/biz_arch_investor.pdf",
     "size": 9250,
-    "content_hash": "5b32d68050facc85"
+    "content_hash": "5b32d68050facc85",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/biz_arch_investor_v2.pdf",
     "size": 984581,
-    "content_hash": "c3a62ff885c3bff7"
+    "content_hash": "c3a62ff885c3bff7",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/business_model_v1.pdf",
     "size": 10054,
-    "content_hash": "87608ecd41c7187d"
+    "content_hash": "87608ecd41c7187d",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/diagrams/competitor_logos.png",
     "size": 23592,
-    "content_hash": "8a63907ffe5dde9c"
+    "content_hash": "8a63907ffe5dde9c",
+    "entity_type": "diagram"
   },
   {
     "project_path": "brain/BusinessArtifacts/diagrams/compliance_flow.png",
     "size": 123328,
-    "content_hash": "b6b427f264b71227"
+    "content_hash": "b6b427f264b71227",
+    "entity_type": "diagram"
   },
   {
     "project_path": "brain/BusinessArtifacts/diagrams/component_diagram.png",
     "size": 78283,
-    "content_hash": "2f07cb44cccbe7e0"
+    "content_hash": "2f07cb44cccbe7e0",
+    "entity_type": "diagram"
   },
   {
     "project_path": "brain/BusinessArtifacts/diagrams/discuss_care_room.png",
     "size": 78029,
-    "content_hash": "836a07c362ecbc9a"
+    "content_hash": "836a07c362ecbc9a",
+    "entity_type": "diagram"
   },
   {
     "project_path": "brain/BusinessArtifacts/diagrams/evaluate_care_diagram.png",
     "size": 303032,
-    "content_hash": "cd15d90f7d3b1075"
+    "content_hash": "cd15d90f7d3b1075",
+    "entity_type": "diagram"
   },
   {
     "project_path": "brain/BusinessArtifacts/diagrams/find_care_diagram.png",
     "size": 109864,
-    "content_hash": "4fe7d368045407db"
+    "content_hash": "4fe7d368045407db",
+    "entity_type": "diagram"
   },
   {
     "project_path": "brain/BusinessArtifacts/diagrams/moat_diagram.png",
     "size": 288098,
-    "content_hash": "7fa607971d48c35a"
+    "content_hash": "7fa607971d48c35a",
+    "entity_type": "diagram"
   },
   {
     "project_path": "brain/BusinessArtifacts/diagrams/revenue_flow.png",
     "size": 73222,
-    "content_hash": "03b99ec88e9a22ed"
+    "content_hash": "03b99ec88e9a22ed",
+    "entity_type": "diagram"
   },
   {
     "project_path": "brain/BusinessArtifacts/diagrams/value_chain.png",
     "size": 117295,
-    "content_hash": "bb7601d132220607"
+    "content_hash": "bb7601d132220607",
+    "entity_type": "diagram"
   },
   {
     "project_path": "brain/BusinessArtifacts/external_audit_v1.docx",
     "size": 19935,
-    "content_hash": "f615918441ad9f7f"
+    "content_hash": "f615918441ad9f7f",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/gpt_reader_qa_report.pdf",
     "size": 4251,
-    "content_hash": "28908281e609e746"
+    "content_hash": "28908281e609e746",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/gpt_sit_report.pdf",
     "size": 2519,
-    "content_hash": "687a51d7c834392a"
+    "content_hash": "687a51d7c834392a",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/ip_license_agreement_draft_v11.pdf",
     "size": 4278,
-    "content_hash": "fb236f5ce2230d83"
+    "content_hash": "fb236f5ce2230d83",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/ip_license_agreement_draft_v11.pdf.docx",
     "size": 16926,
-    "content_hash": "30e89c533b40f8f3"
+    "content_hash": "30e89c533b40f8f3",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/pending_legal_questions.pdf",
     "size": 7725,
-    "content_hash": "b369a0718ee06d24"
+    "content_hash": "b369a0718ee06d24",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/production_release_status.docx",
     "size": 39113,
-    "content_hash": "70dacccf56710e82"
+    "content_hash": "70dacccf56710e82",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/qa_report_v012_final.pdf",
     "size": 4542,
-    "content_hash": "d094b499eda3b060"
+    "content_hash": "d094b499eda3b060",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/qa_report_v013_release.pdf",
     "size": 3986,
-    "content_hash": "ad7778db098ed7c9"
+    "content_hash": "ad7778db098ed7c9",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/qa_report_v013_sprint1.pdf",
     "size": 3869,
-    "content_hash": "42a6abf286138031"
+    "content_hash": "42a6abf286138031",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/refactor_design_arch001.pdf",
     "size": 38490,
-    "content_hash": "641d600b6ab648df"
+    "content_hash": "641d600b6ab648df",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/staffing_cost_comparison.docx",
     "size": 18822,
-    "content_hash": "c38bb2bec1069363"
+    "content_hash": "c38bb2bec1069363",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/BusinessArtifacts/uat_v013.pdf",
     "size": 3418,
-    "content_hash": "df45611a55071769"
+    "content_hash": "df45611a55071769",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/machine_artifacts/code/generate_arch001_pdf.py",
     "size": 18242,
-    "content_hash": "896eb79e69907841"
+    "content_hash": "896eb79e69907841",
+    "entity_type": "file"
   },
   {
     "project_path": "brain/machine_artifacts/content/ai_operations.json",
-    "size": 716880,
-    "content_hash": "e19e395c24589811"
+    "size": 717034,
+    "content_hash": "2122fdb0f99051ca",
+    "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/architecture.json",
-    "size": 134815,
-    "content_hash": "d2b97b628ee4b201"
+    "size": 135532,
+    "content_hash": "f9bac48feff3897a",
+    "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/business_plan.json",
-    "size": 66492,
-    "content_hash": "9bd18f8fc0723ca7"
+    "size": 66646,
+    "content_hash": "62a97113ffa0d73e",
+    "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/devops.json",
     "size": 7530,
-    "content_hash": "a7ec22b742d84643"
+    "content_hash": "a7ec22b742d84643",
+    "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/emergency_keywords.json",
     "size": 1738,
-    "content_hash": "05d8757258c69d28"
+    "content_hash": "05d8757258c69d28",
+    "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/external_audits.json",
-    "size": 14041,
-    "content_hash": "9402589e10e700b2"
+    "size": 14119,
+    "content_hash": "70586b72cacf8680",
+    "entity_type": "collection"
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/funding_recommendation.json",
+    "size": 663,
+    "content_hash": "00a7e4230ea3f523",
+    "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/governance.json",
     "size": 14961,
-    "content_hash": "78830f571d7dc532"
+    "content_hash": "78830f571d7dc532",
+    "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/legal.json",
-    "size": 6484,
-    "content_hash": "e3180cb335c25783"
+    "size": 6567,
+    "content_hash": "011661ece7e5119a",
+    "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/qa_reports.json",
-    "size": 95560,
-    "content_hash": "47c82af70ed8e409"
+    "size": 95810,
+    "content_hash": "cd0f4419486ea45a",
+    "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/schema.json",
-    "size": 3607,
-    "content_hash": "c75d56242a0f5d14"
+    "size": 4065,
+    "content_hash": "e3789d864629c197",
+    "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/sprint_plan.json",
-    "size": 36459,
-    "content_hash": "66c5c3dcc61558ee"
+    "size": 36527,
+    "content_hash": "f1a3fe3672aa060c",
+    "entity_type": "collection"
   },
   {
     "project_path": "brain/machine_artifacts/content/work_log.json",
     "size": 211475,
-    "content_hash": "16218d26835edf60"
+    "content_hash": "16218d26835edf60",
+    "entity_type": "collection"
   },
   {
     "project_path": "brain/manifest/project_manifest.json",
-    "size": 33618,
-    "content_hash": "5e0c6b18129dca77"
+    "size": 33617,
+    "content_hash": "5c7e35bf627b9138",
+    "entity_type": "file"
   },
   {
     "project_path": "brain_v0.1.3_design.json",
     "size": 21469,
-    "content_hash": "0feaeea16a2b8445"
+    "content_hash": "0feaeea16a2b8445",
+    "entity_type": "file"
   },
   {
     "project_path": "claude_thoughts/.gitkeep",
     "size": 0,
-    "content_hash": "e3b0c44298fc1c14"
+    "content_hash": "e3b0c44298fc1c14",
+    "entity_type": "file"
   },
   {
     "project_path": "code/logging_config.py",
     "size": 1981,
-    "content_hash": "7896572d10bceb08"
+    "content_hash": "7896572d10bceb08",
+    "entity_type": "file"
   },
   {
     "project_path": "docs/adr/ADR-0001-three-application-architecture.md",
     "size": 813,
-    "content_hash": "f93e881f90733898"
+    "content_hash": "f93e881f90733898",
+    "entity_type": "file"
   },
   {
     "project_path": "docs/adr/ADR-0002-cloudflare-pages-frontend.md",
     "size": 736,
-    "content_hash": "e943e0cef67b49e4"
+    "content_hash": "e943e0cef67b49e4",
+    "entity_type": "file"
   },
   {
     "project_path": "docs/adr/ADR-0003-fastapi-azure-app-service.md",
     "size": 903,
-    "content_hash": "ce0c0d9a065abed7"
+    "content_hash": "ce0c0d9a065abed7",
+    "entity_type": "file"
   },
   {
     "project_path": "docs/adr/ADR-0004-env-prefix-routing.md",
     "size": 786,
-    "content_hash": "90df7cfd7c5ee0a6"
+    "content_hash": "90df7cfd7c5ee0a6",
+    "entity_type": "file"
   },
   {
     "project_path": "docs/adr/ADR-0005-chat-url-injection.md",
     "size": 824,
-    "content_hash": "3e87be2a3beca0f2"
+    "content_hash": "3e87be2a3beca0f2",
+    "entity_type": "file"
   },
   {
     "project_path": "docs/adr/ADR-0006-two-mongodb-clusters.md",
     "size": 790,
-    "content_hash": "9a24774fc931d032"
+    "content_hash": "9a24774fc931d032",
+    "entity_type": "file"
   },
   {
     "project_path": "docs/adr/ADR-0007-machine-brain.md",
     "size": 1033,
-    "content_hash": "96067b76f7b61c46"
+    "content_hash": "96067b76f7b61c46",
+    "entity_type": "file"
   },
   {
     "project_path": "docs/adr/ADR-0008-main-branch-naming.md",
     "size": 795,
-    "content_hash": "4ad4b437b12cad94"
+    "content_hash": "4ad4b437b12cad94",
+    "entity_type": "file"
   },
   {
     "project_path": "docs/adr/ADR-0009-persist-mode.md",
     "size": 872,
-    "content_hash": "7374d43ed91700f3"
+    "content_hash": "7374d43ed91700f3",
+    "entity_type": "file"
   },
   {
     "project_path": "docs/adr/ADR-0010-safety-incident-logging.md",
     "size": 961,
-    "content_hash": "b653442c0241d66f"
+    "content_hash": "b653442c0241d66f",
+    "entity_type": "file"
   },
   {
     "project_path": "docs/adr/ADR-0011-dev-branch-naming.md",
     "size": 806,
-    "content_hash": "788edd7ed726dc95"
+    "content_hash": "788edd7ed726dc95",
+    "entity_type": "file"
   },
   {
     "project_path": "docs/machine-brain-claude-spec.md",
     "size": 10220,
-    "content_hash": "591273a12e094c45"
+    "content_hash": "591273a12e094c45",
+    "entity_type": "file"
   },
   {
     "project_path": "docs/manifests/.gitkeep",
     "size": 0,
-    "content_hash": "e3b0c44298fc1c14"
+    "content_hash": "e3b0c44298fc1c14",
+    "entity_type": "file"
   },
   {
     "project_path": "gpt_thoughts/.gitkeep",
     "size": 0,
-    "content_hash": "e3b0c44298fc1c14"
+    "content_hash": "e3b0c44298fc1c14",
+    "entity_type": "file"
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory"
+  },
+  {
+    "project_path": "brain/machine_artifacts/code/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory"
+  },
+  {
+    "project_path": "brain/BusinessArtifacts/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory"
+  },
+  {
+    "project_path": "brain/BusinessArtifacts/diagrams/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory"
+  },
+  {
+    "project_path": "brain/manifest/",
+    "size": 0,
+    "content_hash": "",
+    "entity_type": "directory"
   }
 ]

@@ -1,6 +1,6 @@
 {
   "collection": "architecture",
-  "record_count": 8,
+  "record_count": 9,
   "records": [
     {
       "title": "Discuss Care \u2014 Business Component Definition",
@@ -2064,7 +2064,8 @@
       },
       "_record_id": "refactor_design_arch001",
       "_source_file": "refactor_design_arch001.json",
-      "description": "ARCH-001 approved design: 4-layer modular monolith, 2 facades, 9 services, 7-phase migration."
+      "description": "ARCH-001 approved design: 4-layer modular monolith, 2 facades, 9 services, 7-phase migration.",
+      "business_artifact": "brain/BusinessArtifacts/refactor_design_arch001.pdf"
     },
     {
       "title": "FindCare Backend Portability Refactoring \u2014 Sprint 2 Design",
@@ -2807,6 +2808,23 @@
       "_record_id": "refactor_results",
       "_source_file": "refactor_results.json",
       "description": "Legacy: portability refactoring execution results. Superseded."
+    },
+    {
+      "_record_id": "business_diagrams",
+      "description": "9 investor diagrams: component, value chain, revenue, moat, discuss care room, find care, evaluate care, compliance, competitor logos.",
+      "business_artifact": "brain/BusinessArtifacts/diagrams/",
+      "entity_type": "directory",
+      "files": [
+        "competitor_logos.png",
+        "compliance_flow.png",
+        "component_diagram.png",
+        "discuss_care_room.png",
+        "evaluate_care_diagram.png",
+        "find_care_diagram.png",
+        "moat_diagram.png",
+        "revenue_flow.png",
+        "value_chain.png"
+      ]
     }
   ]
 }

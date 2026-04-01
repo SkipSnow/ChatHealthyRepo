@@ -410,7 +410,8 @@
       ],
       "_record_id": "production_release_status",
       "_source_file": "production_release_status.json",
-      "description": "v0.1.3 production release status. Environment parity, deploy results, brain inventory."
+      "description": "v0.1.3 production release status. Environment parity, deploy results, brain inventory.",
+      "business_artifact": "brain/BusinessArtifacts/production_release_status.docx"
     },
     {
       "title": "QA Report \u2014 v0.1.2 Pre-Alpha Release",
@@ -612,7 +613,8 @@
       "generated": "2026-03-31T21:39:10.374951+00:00",
       "_record_id": "qa_report_v013_release",
       "_source_file": "qa_report_v013_release.json",
-      "description": "v0.1.3 RELEASE QA: 14 pass, 3 deferred, 0 fail. Boss+Claude+GPT GO."
+      "description": "v0.1.3 RELEASE QA: 14 pass, 3 deferred, 0 fail. Boss+Claude+GPT GO.",
+      "business_artifact": "brain/BusinessArtifacts/qa_report_v013_release.pdf"
     },
     {
       "title": "UAT Report \u2014 v0.1.3 Sprint 1",
@@ -758,7 +760,8 @@
       "generated": "2026-03-31T05:24:42.501196+00:00",
       "_record_id": "qa_report_v013_sprint1",
       "_source_file": "qa_report_v013_sprint1.json",
-      "description": "v0.1.3 Sprint 1 UAT report. Cycle 1 dev testing results."
+      "description": "v0.1.3 Sprint 1 UAT report. Cycle 1 dev testing results.",
+      "business_artifact": "brain/BusinessArtifacts/qa_report_v013_sprint1.pdf"
     },
     {
       "release": "v0.1.2",
