@@ -1,11 +1,15 @@
 # Copyright (c) 2026 Skip Snow. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# epic_planning_runner.py — Iterative epic planning loop.
-# Drives GPT (Enterprise Architect) through up to 1000 iterations
-# to produce an agreed epic plan (Word + JSON).
+# epic_planning_runner.py — Phased epic planning loop.
+# Five phases, each converges before advancing:
+#   Phase 1: Feature list with evidence
+#   Phase 2: Stories per feature (one at a time)
+#   Phase 3: Requirements per story (one at a time)
+#   Phase 4: Sprint map and capacity
+#   Phase 5: Risk matrix and gate recommendation
 #
-# Usage: python epic_planning_runner.py [--max-iterations N] [--prompt-record RECORD_ID]
+# Usage: python epic_planning_runner.py [--max-iterations N] [--phase N]
 
 import argparse
 import json
@@ -14,23 +18,24 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Setup paths
 _THIS_DIR = Path(__file__).parent
 _SHARED_DIR = _THIS_DIR.parent
 _REPO_ROOT = _SHARED_DIR.parent.parent
 _BRAIN_DIR = _REPO_ROOT / "brain"
 _CACHE_DIR = _BRAIN_DIR / "machine_artifacts" / ".iteration_cache"
-_AI_OPS = _BRAIN_DIR / "machine_artifacts" / "content" / "ai_operations.json"
 _EPIC_SYSTEM_PROMPT = _BRAIN_DIR / "machine_artifacts" / "content" / "epic_planning_system_prompt.json"
 _EPIC_USER_PROMPT = _BRAIN_DIR / "machine_artifacts" / "content" / "epic_planning_user_prompt_v014.txt"
+_PLAN_FILE = _CACHE_DIR / "cumulative_plan.json"
 
 sys.path.insert(0, str(_SHARED_DIR))
+sys.path.insert(0, str(_THIS_DIR))
 from dotenv import load_dotenv
 load_dotenv(_SHARED_DIR.parent / ".env")
 
 
+# ── Load / Save ──────────────────────────────────────────────
+
 def _load_system_prompt() -> str:
-    """Load the epic planning system prompt from brain."""
     with open(_EPIC_SYSTEM_PROMPT, encoding="utf-8") as f:
         data = json.load(f)
     sp = data.get("system_prompt", {})
@@ -38,403 +43,55 @@ def _load_system_prompt() -> str:
 
 
 def _load_user_prompt_text() -> str:
-    """Load the full user prompt text from brain."""
     with open(_EPIC_USER_PROMPT, encoding="utf-8") as f:
         return f.read()
 
 
-def _load_last_iteration() -> dict | None:
-    """Load the last cached iteration if it exists."""
-    if not _CACHE_DIR.exists():
-        return None
-    jsons = sorted(_CACHE_DIR.glob("iteration_*.json"), reverse=True)
-    if not jsons:
-        return None
-    with open(jsons[0], encoding="utf-8") as f:
-        return json.load(f)
+def _load_plan() -> dict:
+    if _PLAN_FILE.exists():
+        with open(_PLAN_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    return {}
 
 
-def _synthesize(cumulative: dict, incremental: dict) -> dict:
-    """Claude synthesizes: merge incremental GPT output into cumulative plan.
-
-    GPT builds incrementally — adds, never replaces. Claude merges.
-    """
-    if not cumulative:
-        return incremental
-
-    def _merge_collection(cum_val, inc_val, id_key):
-        """Merge list-of-dicts or dict-of-dicts by ID, preferring incremental for updates."""
-        # Normalize to dict
-        def _to_dict(val):
-            if isinstance(val, dict):
-                return dict(val)
-            if isinstance(val, list):
-                return {item.get(id_key, f"_anon_{i}"): item for i, item in enumerate(val) if isinstance(item, dict)}
-            return {}
-
-        cum_map = _to_dict(cum_val)
-        inc_map = _to_dict(inc_val)
-
-        # Merge — incremental wins on conflict
-        merged = dict(cum_map)
-        for k, v in inc_map.items():
-            merged[k] = v
-
-        # Return as list (GPT may output either format)
-        return list(merged.values())
-
-    result = dict(cumulative)
-
-    # Merge collections by their ID keys
-    merge_keys = {
-        "features": "feature_id",
-        "stories": "story_id",
-        "requirements": "req_id",
-    }
-    for key, id_key in merge_keys.items():
-        if key in incremental and incremental[key]:
-            result[key] = _merge_collection(
-                cumulative.get(key, []),
-                incremental[key],
-                id_key
-            )
-
-    # Sprint map — replace by sprint number
-    if "sprint_capability_map" in incremental and incremental["sprint_capability_map"]:
-        inc_map = incremental["sprint_capability_map"]
-        cum_map = cumulative.get("sprint_capability_map", {})
-        if isinstance(inc_map, list):
-            inc_map = {str(s.get("sprint", i)): s for i, s in enumerate(inc_map) if isinstance(s, dict)}
-        if isinstance(cum_map, list):
-            cum_map = {str(s.get("sprint", i)): s for i, s in enumerate(cum_map) if isinstance(s, dict)}
-        merged_map = dict(cum_map) if isinstance(cum_map, dict) else {}
-        if isinstance(inc_map, dict):
-            merged_map.update(inc_map)
-        result["sprint_capability_map"] = list(merged_map.values()) if merged_map else inc_map
-
-    # Risk matrix — deep merge
-    if "risk_matrix" in incremental and incremental["risk_matrix"]:
-        cum_rm = cumulative.get("risk_matrix", {})
-        inc_rm = incremental["risk_matrix"]
-        if isinstance(cum_rm, dict) and isinstance(inc_rm, dict):
-            merged_rm = dict(cum_rm)
-            for k, v in inc_rm.items():
-                if isinstance(v, list) and isinstance(merged_rm.get(k), list):
-                    # Merge lists by feature_id
-                    existing = {item.get("feature_id", ""): item for item in merged_rm[k] if isinstance(item, dict)}
-                    for item in v:
-                        if isinstance(item, dict):
-                            existing[item.get("feature_id", "")] = item
-                    merged_rm[k] = list(existing.values())
-                else:
-                    merged_rm[k] = v
-            result["risk_matrix"] = merged_rm
-
-    # Scalar fields — take incremental
-    for key in ["epics", "issues", "notes", "risk", "gate_recommendation", "change_log", "content_requests"]:
-        if key in incremental and incremental[key]:
-            result[key] = incremental[key]
-
-    return result
+def _save_plan(plan: dict):
+    _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    with open(_PLAN_FILE, "w", encoding="utf-8") as f:
+        json.dump(plan, f, indent=2, ensure_ascii=False)
 
 
-def _recommend_stories(feature_id: str, feature: dict) -> list[str]:
-    """Claude recommends story breakdowns for thin features."""
-    if not isinstance(feature, dict):
-        return ["define schema", "implement logic", "write tests"]
-
-    fname = feature.get("name", "").lower()
-    layer = feature.get("layer", "").lower()
-    capability = feature.get("capability", "").lower()
-
-    # Measure features (backend data extraction)
-    if "measure" in feature_id.lower() or "measure" in fname:
-        return [
-            "Define measure schema (input fields, score range, weight default)",
-            "Implement data extraction from source (NPI/ClinicalTrials.gov/etc)",
-            "Implement normalization and scoring logic",
-            "Write unit tests with edge cases (missing data, invalid values)",
-        ]
-
-    # Scoring engine
-    if "score" in fname or "scoring" in fname:
-        return [
-            "Define composite score schema (measures array, weights, total)",
-            "Implement weighted aggregation with deterministic output",
-            "Handle missing measures gracefully (degrade, don't fail)",
-            "Write unit tests (all measures present, partial, none)",
-            "Integration test with real measure outputs",
-        ]
-
-    # Explainability
-    if "explain" in fname:
-        if "ui" in fname or "ux" in fname or "frontend" in layer:
-            return [
-                "Design score card component layout",
-                "Implement score rendering with measure breakdown",
-                "Implement visual weight indicators",
-                "Handle loading/error states",
-                "Write component tests",
-            ]
-        return [
-            "Define explainability response schema",
-            "Implement measure contribution calculation",
-            "Generate human-readable rationale per measure",
-            "Write unit tests for explanation accuracy",
-        ]
-
-    # Maps
-    if "map" in fname:
-        return [
-            "Integrate Google Maps JS API",
-            "Render provider markers from lat/lng",
-            "Implement click-to-detail on markers",
-            "Handle map loading/error states",
-            "Write component tests",
-        ]
-
-    # Distance
-    if "distance" in fname or "dist" in feature_id.lower():
-        if "frontend" in layer or "ux" in fname or "display" in fname:
-            return [
-                "Display distance in provider cards",
-                "Display distance in search results list",
-                "Handle missing distance gracefully",
-                "Write component tests",
-            ]
-        return [
-            "Implement geolocation from user browser",
-            "Calculate distance from user to provider (Haversine or Google Routes)",
-            "Add distance field to all address-returning API responses",
-            "Write unit tests (same city, cross-state, missing coords)",
-        ]
-
-    # Architecture refactor
-    if "arch" in fname or "refactor" in fname:
-        return [
-            "Extract domain services from monolith (phase 1: facades)",
-            "Extract domain services (phase 2: individual services)",
-            "Wire ToolRouter to new service layer",
-            "Delete monolith main.py business logic",
-            "Regression test all existing tools against new architecture",
-        ]
-
-    # Consent
-    if "consent" in fname:
-        return [
-            "Fix consent_verbatim flag inversion",
-            "Fix PII not scrubbed when de-identify requested",
-            "Write regression tests for both consent tiers",
-        ]
-
-    # Prescription behavior
-    if "rx" in feature_id.lower() or "prescription" in fname:
-        return [
-            "Identify prescription data source (CMS Open Payments, Medicare Part D, etc)",
-            "Design prescription-to-condition mapping schema",
-            "Implement data extraction pipeline",
-            "Implement AI analysis of prescription patterns",
-            "Write tests with known prescription profiles",
-        ]
-
-    # Brand audit
-    if "brand" in fname:
-        return [
-            "Scan all code for 'ChatHealthy' without '.ai' suffix",
-            "Scan all brain artifacts and business docs",
-            "Fix all instances",
-            "Write automated check to prevent regression",
-        ]
-
-    # Brain enhancements
-    if "brain" in fname:
-        return [
-            "Identify specific Brain improvements for v0.1.4 delivery",
-            "Implement improvements",
-            "Write tests",
-        ]
-
-    # Weights (stretch)
-    if "weight" in fname:
-        return [
-            "Design weight adjustment UI (sliders or inputs per measure)",
-            "Implement weight persistence per session",
-            "Implement score recalculation on weight change",
-            "Write tests (default weights, custom weights, edge values)",
-        ]
-
-    # Generic fallback
-    return [
-        "Define schema and data contract",
-        "Implement core logic",
-        "Write API endpoint or UI component",
-        "Write unit tests with edge cases",
-    ]
+def _save_iteration(phase: int, iteration: int, data: dict):
+    _CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    path = _CACHE_DIR / f"phase{phase}_iter{iteration:04d}_{ts}.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    return path
 
 
-def _validate_iteration(result: dict, iteration: int) -> list[str]:
-    """Claude validates the iteration and returns a list of objections.
+# ── GPT Call ─────────────────────────────────────────────────
 
-    Empty list = Claude agrees. Non-empty = GPT must address these in next iteration.
-    """
-    objections = []
-
-    # Check all required top-level keys exist
-    required_keys = ["epics", "features", "stories", "requirements", "sprint_capability_map", "risk_matrix"]
-    for k in required_keys:
-        if k not in result or not result[k]:
-            objections.append(f"MISSING: '{k}' is empty or absent.")
-
-    # Normalize features/stories/requirements — GPT may return dict or list
-    def _to_id_map(val, id_key):
-        """Convert list-of-dicts to {id: dict} or pass through dict."""
-        if isinstance(val, dict):
-            return val
-        if isinstance(val, list):
-            return {item.get(id_key, f"?_{i}"): item for i, item in enumerate(val) if isinstance(item, dict)}
-        return {}
-
-    features = _to_id_map(result.get("features", {}), "feature_id")
-    stories = _to_id_map(result.get("stories", {}), "story_id")
-    requirements = _to_id_map(result.get("requirements", {}), "req_id")
-    sprint_map = result.get("sprint_capability_map", {})
-    if isinstance(sprint_map, list):
-        sprint_map = {str(s.get("sprint", i)): s for i, s in enumerate(sprint_map) if isinstance(s, dict)}
-
-    # Check every story has at least one requirement
-    story_ids_with_reqs = set()
-    for rid, r in requirements.items():
-        story_ids_with_reqs.add(r.get("story_id", ""))
-    stories_without_reqs = [sid for sid in stories if sid not in story_ids_with_reqs]
-    if stories_without_reqs:
-        objections.append(
-            f"REQUIREMENT COVERAGE: {len(stories_without_reqs)} stories have zero requirements: "
-            f"{', '.join(stories_without_reqs[:10])}. Every story must have boolean requirements."
-        )
-
-    # Check requirement density
-    req_count = len(requirements)
-    story_count = len(stories)
-    if story_count > 0 and req_count < story_count * 3:
-        objections.append(
-            f"THIN REQUIREMENTS: Only {req_count} requirements across {story_count} stories. "
-            f"Procedural stories need all happy paths + 2 exception paths. LLM stories need 10."
-        )
-
-    # Check feature descriptions are substantive
-    thin_features = [fid for fid, f in features.items() if len(str(f.get("description", ""))) < 30]
-    if thin_features:
-        objections.append(
-            f"THIN FEATURES: {len(thin_features)} features have descriptions under 30 chars: "
-            f"{', '.join(thin_features[:10])}. Specify data source, calculation, and why credible."
-        )
-
-    # Check EPIC-2 features aren't silently dropped
-    expected_maint = ["MAINT-MAPS", "MAINT-DIST", "MAINT-DIST-UX", "MAINT-ARCH",
-                      "MAINT-CONSENT", "MAINT-BRAIN", "BRAND-001"]
-    all_content_str = json.dumps(result)
-    truly_missing = [f for f in expected_maint if f not in all_content_str]
-    if truly_missing:
-        objections.append(
-            f"DROPPED FEATURES: {', '.join(truly_missing)} disappeared without deferral rationale."
-        )
-
-    # Check stretch goal and Boss suggestion are addressed
-    if "EVAL-WEIGHTS" not in all_content_str:
-        objections.append("STRETCH GOAL: EVAL-WEIGHTS not present, deferred, or declined. Must be addressed.")
-    if "rx" not in all_content_str.lower() and "prescription" not in all_content_str.lower():
-        objections.append("BOSS SUGGESTION: Prescription behavior (EVAL-P-RX) not addressed.")
-
-    # Check story granularity — minimum 3 stories per feature
-    feat_story_count = {}
-    for sid, s in stories.items():
-        parent = s.get("parent_feature", "")
-        feat_story_count[parent] = feat_story_count.get(parent, 0) + 1
-
-    thin_story_features = [fid for fid in features if feat_story_count.get(fid, 0) < 3]
-    if thin_story_features:
-        # Build Claude's story recommendations for thin features
-        story_recs = []
-        for fid in thin_story_features:
-            f = features[fid]
-            fname = f.get("name", fid) if isinstance(f, dict) else fid
-            current = feat_story_count.get(fid, 0)
-            recs = _recommend_stories(fid, f)
-            story_recs.append(f"{fid} ({fname}): has {current} story, needs minimum 3. "
-                              f"Claude recommends: {'; '.join(recs)}")
-        objections.append(
-            f"STORY GRANULARITY: {len(thin_story_features)} features have fewer than 3 stories. "
-            f"Break each feature into implementation stories (schema, logic, API, tests, integration). "
-            f"Recommendations:\n" + "\n".join(f"  - {r}" for r in story_recs)
-        )
-
-    # Check evidence on every feature and story
-    features_no_evidence = []
-    for fid, f in features.items():
-        if isinstance(f, dict) and not f.get("evidence"):
-            features_no_evidence.append(fid)
-    if features_no_evidence:
-        objections.append(
-            f"EVIDENCE MISSING: {len(features_no_evidence)} features have no evidence field: "
-            f"{', '.join(features_no_evidence[:10])}. Every feature must cite a manifest entry or state GAP."
-        )
-
-    stories_no_evidence = []
-    for sid, s in stories.items():
-        if isinstance(s, dict) and not s.get("evidence"):
-            stories_no_evidence.append(sid)
-    if stories_no_evidence:
-        objections.append(
-            f"EVIDENCE MISSING: {len(stories_no_evidence)} stories have no evidence field: "
-            f"{', '.join(stories_no_evidence[:10])}. Every story must cite evidence or state GAP."
-        )
-
-    # Count assumptions — every assumption is visible but must be researched
-    all_evidence = json.dumps([f.get("evidence", "") for f in features.values() if isinstance(f, dict)]
-                              + [s.get("evidence", "") for s in stories.values() if isinstance(s, dict)])
-    assumption_count = all_evidence.lower().count("assumption:")
-    has_requests = bool(result.get("content_requests"))
-
-    # GPT must always be researching. No exceptions. GOV-004.
-    if not has_requests:
-        objections.append(
-            "RESEARCH MANDATORY: You made no content_requests this iteration. "
-            "GOV-004: The model may suggest. The system must decide. "
-            "You must read the manifest and Brain records. Request them now."
-        )
-
-    if assumption_count > 0:
-        objections.append(
-            f"ASSUMPTIONS: {assumption_count} assumptions declared. Each must be verified or "
-            f"accepted by Boss. Use content_requests to verify what you can."
-        )
-
-    # Check change_log for iteration 2+
-    if iteration > 1 and not result.get("change_log"):
-        objections.append("CHANGE LOG MISSING: Required from iteration 2+.")
-
-    # Check sprint capacity
-    for sid, s in sprint_map.items():
-        shipped = s.get("features_shipped", [])
-        if isinstance(shipped, list) and len(shipped) > 6:
-            objections.append(f"OVERLOADED: Sprint {sid} has {len(shipped)} features.")
-        if str(sid) in ("1", "2", "3", "4") and isinstance(shipped, list) and len(shipped) == 0:
-            objections.append(f"EMPTY SPRINT: Sprint {sid} ships zero features.")
-
-    return objections
+def _call_gpt(system_prompt: str, user_message: str, model: str) -> tuple[str, int, int]:
+    import openai
+    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message},
+        ],
+        response_format={"type": "json_object"},
+    )
+    text = response.choices[0].message.content
+    return text, response.usage.prompt_tokens, response.usage.completion_tokens
 
 
-def _fulfill_content_requests(last_iteration: dict | None) -> str:
-    """Read files/records GPT requested in its content_requests array.
+# ── Content Fulfillment ──────────────────────────────────────
 
-    Returns formatted content string to inject in the next prompt.
-    """
-    if not last_iteration:
-        return ""
-    requests = last_iteration.get("content_requests", [])
+def _fulfill_content_requests(result: dict) -> str:
+    requests = result.get("content_requests", [])
     if not requests or not isinstance(requests, list):
         return ""
-
     parts = []
     for req in requests:
         if not isinstance(req, dict):
@@ -448,17 +105,14 @@ def _fulfill_content_requests(last_iteration: dict | None) -> str:
             if full_path.exists() and full_path.is_file():
                 try:
                     content = full_path.read_text(encoding="utf-8")
-                    # Cap individual file at 10K chars
                     if len(content) > 10000:
-                        content = content[:10000] + "\n... (truncated at 10K chars)"
-                    parts.append(f"=== REQUESTED: {path} (reason: {reason}) ===\n{content}")
+                        content = content[:10000] + "\n... (truncated at 10K)"
+                    parts.append(f"=== {path} (reason: {reason}) ===\n{content}")
                 except Exception as e:
-                    parts.append(f"=== REQUESTED: {path} — read error: {e} ===")
+                    parts.append(f"=== {path} — read error: {e} ===")
             else:
-                parts.append(f"=== REQUESTED: {path} — file not found ===")
-
+                parts.append(f"=== {path} — not found ===")
         elif req_type == "record":
-            # path format: collection_name/_record_id
             try:
                 coll_name, record_id = path.split("/", 1)
                 coll_path = _BRAIN_DIR / "machine_artifacts" / "content" / f"{coll_name}.json"
@@ -470,336 +124,510 @@ def _fulfill_content_requests(last_iteration: dict | None) -> str:
                             content = json.dumps(r, indent=2, ensure_ascii=False)
                             if len(content) > 10000:
                                 content = content[:10000] + "\n... (truncated)"
-                            parts.append(f"=== REQUESTED RECORD: {path} (reason: {reason}) ===\n{content}")
+                            parts.append(f"=== RECORD {path} ===\n{content}")
                             break
                     else:
-                        parts.append(f"=== REQUESTED RECORD: {path} — record not found ===")
+                        parts.append(f"=== RECORD {path} — not found ===")
                 else:
-                    parts.append(f"=== REQUESTED RECORD: {path} — collection not found ===")
+                    parts.append(f"=== RECORD {path} — collection not found ===")
             except Exception as e:
-                parts.append(f"=== REQUESTED RECORD: {path} — error: {e} ===")
-
-    if not parts:
-        return ""
-    return "\n\n".join(parts)
+                parts.append(f"=== RECORD {path} — error: {e} ===")
+    return "\n\n".join(parts) if parts else ""
 
 
-def _build_user_message(prompt_text: str, iteration: int, max_iter: int,
-                        last_iteration: dict | None, claude_feedback: list[str] | None = None) -> str:
-    """Build the user message for this iteration.
+# ── Brain Snapshot ───────────────────────────────────────────
 
-    Sends the full Boss-approved prompt text with iteration counter substituted.
-    If Claude has feedback from validating the last iteration, it's injected.
-    """
-    # Substitute iteration placeholders
-    message = prompt_text.replace("{iteration}", str(iteration)).replace("{max_iterations}", str(max_iter))
-
-    # Inject Brain manifest — GPT sees the table of contents
-    from brain_snapshot import take_snapshot
-    manifest = take_snapshot()
-    message += "\n\n---\n\nBRAIN MANIFEST (table of contents — request content via content_requests in your response):\n\n" + manifest
-
-    # Fulfill content requests from last iteration
-    fulfilled = _fulfill_content_requests(last_iteration)
-    if fulfilled:
-        message += "\n\n---\n\nREQUESTED CONTENT (fetched from disk by Claude):\n\n" + fulfilled
-
-    if last_iteration:
-        last_str = json.dumps(last_iteration, indent=2, ensure_ascii=False)
-        if len(last_str) > 40000:
-            last_str = last_str[:40000] + "\n... (truncated)"
-        message += (
-            "\n\n---\n\n"
-            "LAST ITERATION (review as starting place — flag non-trivial changes per iteration protocol):\n\n"
-            + last_str
-        )
-
-    if claude_feedback:
-        feedback_text = "\n".join(f"- {obj}" for obj in claude_feedback)
-        message += (
-            "\n\n---\n\n"
-            "CLAUDE VALIDATION FEEDBACK (Engineer review of last iteration — must address all items):\n\n"
-            + feedback_text
-            + "\n\nAddress every item above in this iteration. Do not ignore any."
-        )
-
-    return message
-
-
-def _call_gpt(system_prompt: str, user_message: str, model: str) -> tuple[str, int, int]:
-    """Call GPT. Returns (response_text, tokens_in, tokens_out)."""
-    import openai
-    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    # GPT-5.3 only supports temperature=1 (default). Do not override.
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message},
-        ],
-        response_format={"type": "json_object"},
-    )
-    text = response.choices[0].message.content
-    tokens_in = response.usage.prompt_tokens
-    tokens_out = response.usage.completion_tokens
-    return text, tokens_in, tokens_out
-
-
-def _cache_iteration(iteration: int, result: dict, raw_text: str) -> Path:
-    """Cache this iteration's JSON to the iteration cache."""
-    _CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    path = _CACHE_DIR / f"iteration_{iteration:04d}_{ts}.json"
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(result, f, indent=2, ensure_ascii=False)
-    return path
-
-
-def _is_converged(current: dict, previous: dict | None, iteration: int) -> bool:
-    """Check if the plan has converged.
-
-    Convergence requires:
-    1. Claude has zero objections to the current iteration
-    2. No material structural changes from previous iteration
-    """
-    if previous is None:
-        return False
-
-    # Claude must validate first — if there are objections, not converged
-    objections = _validate_iteration(current, iteration)
-    if objections:
-        return False
-
-    # Compare key structural elements — normalize to sorted JSON for comparison
-    for key in ["features", "stories", "requirements", "sprint_capability_map", "risk_matrix"]:
-        try:
-            cur = json.dumps(current.get(key, {}), sort_keys=True)
-            prev = json.dumps(previous.get(key, {}), sort_keys=True)
-        except TypeError:
-            cur = str(current.get(key, ""))
-            prev = str(previous.get(key, ""))
-        if cur != prev:
-            return False
-
-    return True
-
-
-def refresh_manifest():
-    """Regenerate the project manifest before running the planning loop.
-
-    Called at Boss or Claude discretion to ensure GPT reads fresh Brain context.
-    """
+def _brain_snapshot() -> str:
     try:
-        sys.path.insert(0, str(_THIS_DIR))
+        from brain_snapshot import take_snapshot
+        return take_snapshot()
+    except Exception as e:
+        return f"(Brain snapshot failed: {e})"
+
+
+# ── Manifest Refresh ─────────────────────────────────────────
+
+def _refresh_manifest():
+    try:
         from manifest_generator import ManifestGenerator
         gen = ManifestGenerator()
         gen.generate()
-        path = gen.save()
-        print(f"[EpicPlanner] Manifest refreshed: {gen.file_count} files, {gen.total_entries} entries -> {path}")
+        gen.save()
+        print(f"[Planner] Manifest: {gen.file_count} files")
     except Exception as e:
-        print(f"[EpicPlanner] Manifest refresh failed: {e} — continuing with stale manifest")
+        print(f"[Planner] Manifest refresh failed: {e}")
 
 
-def run(max_iterations: int = 1000, prompt_record_id: str = "epic_planning_user_prompt_v014"):
-    """Run the epic planning iteration loop."""
-    # Always refresh manifest before an assignment — GPT must read fresh context
-    refresh_manifest()
-    print(f"[EpicPlanner] Loading prompts...")
-    system_prompt = _load_system_prompt()
-    prompt_text = _load_user_prompt_text()
+# ── Iterative Phase Runner ───────────────────────────────────
 
-    # Read model from system prompt file
-    with open(_EPIC_SYSTEM_PROMPT, encoding="utf-8") as f:
-        sp_data = json.load(f)
-    model = sp_data.get("model", "gpt-5.3-chat-latest")
+def _run_phase(phase: int, phase_name: str, system_prompt: str, model: str,
+               build_prompt_fn, validate_fn, merge_fn,
+               max_iterations: int = 50) -> dict:
+    """Run one phase to convergence.
 
-    print(f"[EpicPlanner] Model: {model}")
-    print(f"[EpicPlanner] Max iterations: {max_iterations}")
-    print(f"[EpicPlanner] Cache: {_CACHE_DIR}")
+    Args:
+        build_prompt_fn(iteration, last_result, fulfilled_content) -> str
+        validate_fn(result) -> list[str]  (objections, empty = pass)
+        merge_fn(cumulative, incremental) -> dict
+    """
+    print(f"\n{'='*60}")
+    print(f"  PHASE {phase}: {phase_name}")
+    print(f"{'='*60}")
 
-    last_iteration = _load_last_iteration()
-    cumulative_plan = last_iteration  # Claude's synthesized plan
-    if last_iteration:
-        print(f"[EpicPlanner] Found prior iteration in cache — GPT will review as starting place")
-    else:
-        print(f"[EpicPlanner] No prior iteration — starting fresh")
-
-    total_tokens_in = 0
-    total_tokens_out = 0
-    iterations_since_content_request = 0
+    plan = _load_plan()
+    last_result = plan
+    total_in = 0
+    total_out = 0
 
     for i in range(1, max_iterations + 1):
-        print(f"\n{'='*60}")
-        print(f"  ITERATION {i} of {max_iterations}")
-        print(f"{'='*60}")
+        print(f"\n[Phase {phase}] Iteration {i}/{max_iterations}")
 
-        # Claude validates the last iteration and provides feedback for GPT
-        claude_feedback = None
-        if last_iteration and i > 1:
-            claude_feedback = _validate_iteration(last_iteration, i - 1)
-            if claude_feedback:
-                print(f"[EpicPlanner] Claude feedback ({len(claude_feedback)} items):")
-                for fb in claude_feedback:
-                    print(f"  - {fb[:120]}")
-            else:
-                print(f"[EpicPlanner] Claude: no objections to last iteration")
+        # Build prompt
+        fulfilled = ""
+        prompt = build_prompt_fn(i, last_result, fulfilled)
 
-        user_message = _build_user_message(prompt_text, i, max_iterations, last_iteration, claude_feedback)
-
-        try:
-            from cost_guard import check_budget
-            budget = check_budget(f"epic_planning_v014_iter_{i}")
-            if not budget["ok"]:
-                print(f"[EpicPlanner] BUDGET BLOCKED: {budget['reason']}")
-                print(f"[EpicPlanner] Stopping at iteration {i}")
-                break
-        except (ImportError, FileNotFoundError):
-            pass  # cost_guard or budget config not available, proceed
-
-        # Inner loop: research phase — GPT asks for content, Claude fulfills, repeat
-        result = None
+        # Inner research loop
         research_round = 0
-        max_research = 10  # cap research rounds per iteration
-        current_message = user_message
-
-        while True:
+        result = None
+        while research_round < 10:
             research_round += 1
-            print(f"[EpicPlanner] Calling {model} (research round {research_round})...")
             try:
-                raw_text, tokens_in, tokens_out = _call_gpt(system_prompt, current_message, model)
+                raw, tok_in, tok_out = _call_gpt(system_prompt, prompt, model)
+                total_in += tok_in
+                total_out += tok_out
             except Exception as e:
-                error_str = str(e)
-                print(f"[EpicPlanner] ERROR: GPT call failed — {error_str}")
-                if not hasattr(run, '_last_error'):
-                    run._last_error = error_str
-                    run._error_count = 1
-                elif run._last_error == error_str:
-                    run._error_count += 1
-                    if run._error_count >= 3:
-                        print(f"[EpicPlanner] Same error 3 times — stopping.")
-                        break
-                else:
-                    run._last_error = error_str
-                    run._error_count = 1
-                print(f"[EpicPlanner] Retrying ({run._error_count}/3)...")
+                print(f"[Phase {phase}] GPT error: {e}")
                 break
 
-            total_tokens_in += tokens_in
-            total_tokens_out += tokens_out
-            print(f"[EpicPlanner] Tokens: {tokens_in} in / {tokens_out} out")
-
             try:
-                from cost_guard import log_usage
-                log_usage(agent="GPT", model=model, tokens_in=tokens_in, tokens_out=tokens_out,
-                          assignment_id="epic_planning_v014", call_type="epic_planning")
-            except Exception:
-                pass
-
-            try:
-                result = json.loads(raw_text)
-            except json.JSONDecodeError as e:
-                print(f"[EpicPlanner] ERROR: Not valid JSON — {e}")
-                print(f"[EpicPlanner] Raw (first 500): {raw_text[:500]}")
+                result = json.loads(raw)
+            except json.JSONDecodeError:
+                print(f"[Phase {phase}] Invalid JSON")
                 break
 
-            # Check if GPT is asking for more content
-            content_requests = result.get("content_requests", [])
-            if content_requests and isinstance(content_requests, list) and len(content_requests) > 0 and research_round < max_research:
-                print(f"[EpicPlanner] GPT requesting {len(content_requests)} resources — fulfilling...")
-                for req in content_requests:
+            # Check for content requests
+            cr = result.get("content_requests", [])
+            if cr and isinstance(cr, list) and len(cr) > 0:
+                print(f"[Phase {phase}] GPT requesting {len(cr)} resources")
+                for req in cr:
                     if isinstance(req, dict):
-                        print(f"  -> {req.get('type','?')}: {req.get('path','?')} ({req.get('reason','?')})")
+                        print(f"  -> {req.get('type','?')}: {req.get('path','?')}")
                 fulfilled = _fulfill_content_requests(result)
-                # Send fulfilled content back as a follow-up message
-                current_message = (
-                    f"Iteration {i}, research round {research_round + 1}.\n"
-                    f"Here is the content you requested:\n\n{fulfilled}\n\n"
-                    f"Continue building the plan. Do not repeat content_requests for resources already provided."
+                prompt = (
+                    f"Phase {phase}, research round {research_round + 1}.\n"
+                    f"Requested content:\n\n{fulfilled}\n\n"
+                    f"Continue. Do not re-request what was already provided."
                 )
                 continue
-            else:
-                if content_requests and research_round >= max_research:
-                    print(f"[EpicPlanner] Research cap ({max_research}) reached — proceeding with what we have")
-                break
+            break
 
-        # If we broke out due to error or no result, continue to next iteration
         if not isinstance(result, dict):
             continue
-        # Reset error tracking on success
-        run._last_error = None
-        run._error_count = 0
 
-        # Track content_request usage — ding GPT if 5 iterations without research
-        content_reqs = result.get("content_requests", [])
-        if content_reqs and isinstance(content_reqs, list) and len(content_reqs) > 0:
-            iterations_since_content_request = 0
+        # Save raw iteration
+        _save_iteration(phase, i, result)
+
+        # Validate
+        objections = validate_fn(result)
+        if objections:
+            print(f"[Phase {phase}] Claude: {len(objections)} objections")
+            for obj in objections[:5]:
+                print(f"  - {obj[:120]}")
         else:
-            iterations_since_content_request += 1
+            print(f"[Phase {phase}] Claude: no objections")
 
-        # Claude synthesizes: merge incremental GPT output into cumulative plan
-        cumulative_plan = _synthesize(cumulative_plan, result)
-        cumulative_plan["_iteration"] = i
-        cumulative_plan["_timestamp"] = datetime.now(timezone.utc).isoformat()
-        cumulative_plan["_tokens_in"] = total_tokens_in
-        cumulative_plan["_tokens_out"] = total_tokens_out
-        cumulative_plan["_research_rounds"] = research_round
+        # Merge into cumulative plan
+        plan = merge_fn(plan, result)
+        _save_plan(plan)
 
-        # Cache the synthesized plan (not raw GPT output)
-        cache_path = _cache_iteration(i, cumulative_plan, "")
-        print(f"[EpicPlanner] Synthesized and cached: {cache_path.name}")
+        # Report
+        print(f"[Phase {phase}] Tokens: {tok_in} in / {tok_out} out")
 
-        # Report cumulative stats
-        def _count(val):
-            if isinstance(val, (dict, list)): return len(val)
-            return 0
-        print(f"[EpicPlanner] Cumulative: feat={_count(cumulative_plan.get('features',[]))} "
-              f"stories={_count(cumulative_plan.get('stories',[]))} "
-              f"reqs={_count(cumulative_plan.get('requirements',[]))}")
+        # Converge if no objections and structure stable
+        if not objections:
+            prev_key = json.dumps(last_result.get(phase_name, {}), sort_keys=True) if last_result else ""
+            curr_key = json.dumps(plan.get(phase_name, {}), sort_keys=True) if plan else ""
+            if prev_key == curr_key and i > 1:
+                print(f"[Phase {phase}] CONVERGED at iteration {i}")
+                break
+            elif i > 1:
+                print(f"[Phase {phase}] No objections but structure changed — one more")
 
-        # Claude validates the CUMULATIVE plan, not just the latest GPT output
-        claude_objections = _validate_iteration(cumulative_plan, i)
+        # Inject Claude feedback for next iteration
+        last_result = result
+        last_result["_claude_feedback"] = objections
 
-        # Ding GPT if 5 iterations without content_request
-        if iterations_since_content_request >= 5:
-            claude_objections.append(
-                f"RESEARCH: You have not requested any Brain content in {iterations_since_content_request} iterations. "
-                f"Do not work from assumptions. Use content_requests to read the Brain before proceeding."
+    print(f"[Phase {phase}] Total: {total_in} in / {total_out} out")
+    return plan
+
+
+# ── Phase 1: Features ───────────────────────────────────────
+
+def run_phase1(system_prompt: str, model: str, max_iter: int = 50) -> dict:
+    user_prompt = _load_user_prompt_text()
+    manifest = _brain_snapshot()
+
+    def build_prompt(iteration, last_result, fulfilled):
+        feedback = last_result.get("_claude_feedback", []) if isinstance(last_result, dict) else []
+        msg = (
+            f"PHASE 1: Define the feature list with evidence.\n"
+            f"Iteration {iteration}. Do not write stories or requirements yet — features only.\n"
+            f"Every feature must have: feature_id, name, layer, capability, description, evidence "
+            f"(manifest cite or ASSUMPTION: with justification), backend_dependencies, priority.\n\n"
+            f"ASSIGNMENT:\n{user_prompt}\n\n"
+            f"BRAIN MANIFEST:\n{manifest}\n"
+        )
+        if fulfilled:
+            msg += f"\nREQUESTED CONTENT:\n{fulfilled}\n"
+        if last_result and isinstance(last_result, dict) and last_result.get("features"):
+            msg += f"\nLAST FEATURES:\n{json.dumps(last_result.get('features', []), indent=2, ensure_ascii=False)[:20000]}\n"
+        if feedback:
+            msg += "\nCLAUDE FEEDBACK (address all):\n" + "\n".join(f"- {f}" for f in feedback) + "\n"
+        return msg
+
+    def validate(result):
+        objections = []
+        features = result.get("features", [])
+        if isinstance(features, dict):
+            features = list(features.values())
+        if not features:
+            objections.append("No features produced.")
+            return objections
+        for f in features:
+            if not isinstance(f, dict):
+                continue
+            fid = f.get("feature_id", "?")
+            if not f.get("evidence"):
+                objections.append(f"{fid}: missing evidence field.")
+            if not f.get("description") or len(str(f.get("description", ""))) < 20:
+                objections.append(f"{fid}: description too thin.")
+            if not f.get("layer"):
+                objections.append(f"{fid}: missing layer (frontend/backend).")
+        if not result.get("content_requests") and not any(
+            "manifest" in str(f.get("evidence", "")).lower() for f in features if isinstance(f, dict)
+        ):
+            objections.append("RESEARCH: No content_requests and no manifest citations in evidence. Read the manifest.")
+        return objections
+
+    def merge(plan, result):
+        plan = dict(plan)
+        new_features = result.get("features", [])
+        if isinstance(new_features, dict):
+            new_features = list(new_features.values())
+        if isinstance(plan.get("features"), dict):
+            plan["features"] = list(plan["features"].values())
+        existing = {f.get("feature_id", ""): f for f in plan.get("features", []) if isinstance(f, dict)}
+        for f in new_features:
+            if isinstance(f, dict):
+                existing[f.get("feature_id", "")] = f
+        plan["features"] = list(existing.values())
+        for key in ["epics", "issues", "notes", "risk", "gate_recommendation", "content_requests"]:
+            if key in result and result[key]:
+                plan[key] = result[key]
+        return plan
+
+    return _run_phase(1, "features", system_prompt, model, build_prompt, validate, merge, max_iter)
+
+
+# ── Phase 2: Stories per Feature ─────────────────────────────
+
+def run_phase2(system_prompt: str, model: str, max_iter: int = 20) -> dict:
+    plan = _load_plan()
+    features = plan.get("features", [])
+    if isinstance(features, dict):
+        features = list(features.values())
+    manifest = _brain_snapshot()
+
+    for feat in features:
+        if not isinstance(feat, dict):
+            continue
+        fid = feat.get("feature_id", "?")
+        fname = feat.get("name", fid)
+
+        # Collect dependencies
+        deps = feat.get("backend_dependencies", [])
+        dep_features = [f for f in features if isinstance(f, dict) and f.get("feature_id") in deps]
+
+        def build_prompt(iteration, last_result, fulfilled, _feat=feat, _deps=dep_features):
+            feedback = last_result.get("_claude_feedback", []) if isinstance(last_result, dict) else []
+            msg = (
+                f"PHASE 2: Write stories for feature {_feat.get('feature_id')}.\n"
+                f"Feature: {json.dumps(_feat, indent=2, ensure_ascii=False)}\n"
+                f"Iteration {iteration}. Write 3-5 stories for this feature.\n"
+                f"Each story: story_id, title, description, parent_feature, sprint, dependencies, size, evidence.\n"
+                f"Minimum 3 stories. Break into: schema/contract, core logic, API/UI, tests, integration.\n\n"
             )
+            if _deps:
+                msg += f"DEPENDENCIES:\n{json.dumps(_deps, indent=2, ensure_ascii=False)[:5000]}\n\n"
+            msg += f"BRAIN MANIFEST:\n{manifest}\n"
+            if fulfilled:
+                msg += f"\nREQUESTED CONTENT:\n{fulfilled}\n"
+            if last_result and isinstance(last_result, dict) and last_result.get("stories"):
+                msg += f"\nLAST STORIES:\n{json.dumps(last_result.get('stories', []), indent=2, ensure_ascii=False)[:10000]}\n"
+            if feedback:
+                msg += "\nCLAUDE FEEDBACK:\n" + "\n".join(f"- {f}" for f in feedback) + "\n"
+            return msg
 
-        gpt_says_done = result.get("gate_recommendation") in ("auto", "proceed_with_warning")
+        def validate(result, _fid=fid):
+            objections = []
+            stories = result.get("stories", [])
+            if isinstance(stories, dict):
+                stories = list(stories.values())
+            mine = [s for s in stories if isinstance(s, dict) and s.get("parent_feature") == _fid]
+            if len(mine) < 3:
+                objections.append(f"Only {len(mine)} stories for {_fid}. Minimum 3.")
+            for s in mine:
+                sid = s.get("story_id", "?")
+                if not s.get("evidence"):
+                    objections.append(f"{sid}: missing evidence.")
+                if not s.get("size"):
+                    objections.append(f"{sid}: missing size (S/M/L).")
+            return objections
 
-        if not claude_objections and gpt_says_done and _is_converged(cumulative_plan, last_iteration, i):
-            print(f"\n{'='*60}")
-            print(f"  CONVERGED at iteration {i}")
-            print(f"  Claude: 0 objections on cumulative plan")
-            print(f"  GPT: gate={result.get('gate_recommendation')}")
-            print(f"  Both agree — plan is complete.")
-            print(f"  Total tokens: {total_tokens_in} in / {total_tokens_out} out")
-            print(f"{'='*60}")
-            break
-        elif not claude_objections and gpt_says_done:
-            print(f"[EpicPlanner] Claude agrees, GPT agrees, but structure changed — one more for stability")
-        elif not claude_objections:
-            print(f"[EpicPlanner] Claude agrees but GPT gate={result.get('gate_recommendation')} — continuing")
-        else:
-            print(f"[EpicPlanner] Claude has {len(claude_objections)} objections — continuing")
+        def merge(plan_dict, result, _fid=fid):
+            plan_dict = dict(plan_dict)
+            new_stories = result.get("stories", [])
+            if isinstance(new_stories, dict):
+                new_stories = list(new_stories.values())
+            existing = {s.get("story_id", ""): s for s in plan_dict.get("stories", []) if isinstance(s, dict)}
+            for s in new_stories:
+                if isinstance(s, dict):
+                    existing[s.get("story_id", "")] = s
+            plan_dict["stories"] = list(existing.values())
+            return plan_dict
 
-        last_iteration = cumulative_plan
+        print(f"\n--- Feature: {fid} ({fname}) ---")
+        _run_phase(2, "stories", system_prompt, model, build_prompt, validate, merge, max_iter)
 
-    else:
-        print(f"\n[EpicPlanner] Reached max iterations ({max_iterations}) without convergence")
+    return _load_plan()
 
-    print(f"\n[EpicPlanner] Total tokens: {total_tokens_in} in / {total_tokens_out} out")
-    print(f"[EpicPlanner] Cache directory: {_CACHE_DIR}")
-    print(f"[EpicPlanner] Claude: validate the last cached iteration and produce the Word doc")
+
+# ── Phase 3: Requirements per Story ──────────────────────────
+
+def run_phase3(system_prompt: str, model: str, max_iter: int = 10) -> dict:
+    plan = _load_plan()
+    stories = plan.get("stories", [])
+    if isinstance(stories, dict):
+        stories = list(stories.values())
+    features = plan.get("features", [])
+    if isinstance(features, dict):
+        features = list(features.values())
+    manifest = _brain_snapshot()
+
+    for story in stories:
+        if not isinstance(story, dict):
+            continue
+        sid = story.get("story_id", "?")
+        stitle = story.get("title", sid)
+        parent_fid = story.get("parent_feature", "")
+        parent_feat = next((f for f in features if isinstance(f, dict) and f.get("feature_id") == parent_fid), {})
+        epic_goal = ""
+        for e in plan.get("epics", []):
+            if isinstance(e, dict):
+                epic_goal = e.get("goal", "")
+                break
+
+        def build_prompt(iteration, last_result, fulfilled, _story=story, _feat=parent_feat, _goal=epic_goal):
+            feedback = last_result.get("_claude_feedback", []) if isinstance(last_result, dict) else []
+            msg = (
+                f"PHASE 3: Write boolean requirements for story {_story.get('story_id')}.\n"
+                f"Story: {json.dumps(_story, indent=2, ensure_ascii=False)}\n"
+                f"Parent feature: {json.dumps(_feat, indent=2, ensure_ascii=False)}\n"
+                f"Epic goal: {_goal[:500]}\n\n"
+                f"Iteration {iteration}. Write boolean testable requirements.\n"
+                f"Each: req_id, story_id, requirement ('The system must...'), source, priority, label (blank until UAT).\n"
+                f"Every requirement must trace to the epic goal.\n"
+                f"Procedural stories: all happy paths + 2 exception paths minimum.\n"
+                f"LLM behavior stories: minimum 10 semantically different requirements.\n\n"
+            )
+            msg += f"BRAIN MANIFEST:\n{manifest}\n"
+            if fulfilled:
+                msg += f"\nREQUESTED CONTENT:\n{fulfilled}\n"
+            if feedback:
+                msg += "\nCLAUDE FEEDBACK:\n" + "\n".join(f"- {f}" for f in feedback) + "\n"
+            return msg
+
+        def validate(result, _sid=sid):
+            objections = []
+            reqs = result.get("requirements", [])
+            if isinstance(reqs, dict):
+                reqs = list(reqs.values())
+            mine = [r for r in reqs if isinstance(r, dict) and r.get("story_id") == _sid]
+            if len(mine) < 3:
+                objections.append(f"Only {len(mine)} requirements for {_sid}. Need at least 3.")
+            for r in mine:
+                rid = r.get("req_id", "?")
+                req_text = r.get("requirement", "")
+                if not req_text.lower().startswith("the system must"):
+                    objections.append(f"{rid}: must start with 'The system must...'")
+                if not r.get("priority"):
+                    objections.append(f"{rid}: missing priority.")
+            return objections
+
+        def merge(plan_dict, result):
+            plan_dict = dict(plan_dict)
+            new_reqs = result.get("requirements", [])
+            if isinstance(new_reqs, dict):
+                new_reqs = list(new_reqs.values())
+            existing = {r.get("req_id", ""): r for r in plan_dict.get("requirements", []) if isinstance(r, dict)}
+            for r in new_reqs:
+                if isinstance(r, dict):
+                    existing[r.get("req_id", "")] = r
+            plan_dict["requirements"] = list(existing.values())
+            return plan_dict
+
+        print(f"\n--- Story: {sid} ({stitle}) ---")
+        _run_phase(3, "requirements", system_prompt, model, build_prompt, validate, merge, max_iter)
+
+    return _load_plan()
+
+
+# ── Phase 4: Sprint Map ──────────────────────────────────────
+
+def run_phase4(system_prompt: str, model: str, max_iter: int = 20) -> dict:
+    plan = _load_plan()
+    manifest = _brain_snapshot()
+
+    def build_prompt(iteration, last_result, fulfilled):
+        feedback = last_result.get("_claude_feedback", []) if isinstance(last_result, dict) else []
+        msg = (
+            f"PHASE 4: Build the sprint capability map.\n"
+            f"Iteration {iteration}.\n"
+            f"Features: {json.dumps(plan.get('features', []), indent=2, ensure_ascii=False)[:15000]}\n\n"
+            f"Stories: {json.dumps(plan.get('stories', []), indent=2, ensure_ascii=False)[:15000]}\n\n"
+            f"5 sprints: 1-4 development, 5 UAT+release.\n"
+            f"Every sprint delivers at least one complete feature.\n"
+            f"All stories in a feature land in the same sprint.\n"
+            f"No sprint overloaded beyond one engineer per week.\n"
+            f"Account for pipeline execution time.\n\n"
+        )
+        if fulfilled:
+            msg += f"REQUESTED CONTENT:\n{fulfilled}\n"
+        if last_result and isinstance(last_result, dict) and last_result.get("sprint_capability_map"):
+            msg += f"\nLAST MAP:\n{json.dumps(last_result.get('sprint_capability_map'), indent=2, ensure_ascii=False)[:10000]}\n"
+        if feedback:
+            msg += "\nCLAUDE FEEDBACK:\n" + "\n".join(f"- {f}" for f in feedback) + "\n"
+        return msg
+
+    def validate(result):
+        objections = []
+        smap = result.get("sprint_capability_map", [])
+        if isinstance(smap, dict):
+            smap = list(smap.values())
+        if len(smap) < 5:
+            objections.append(f"Only {len(smap)} sprints. Need 5.")
+        for s in smap:
+            if isinstance(s, dict):
+                shipped = s.get("features_shipped", [])
+                sprint_num = s.get("sprint", "?")
+                if str(sprint_num) in ("1", "2", "3", "4") and isinstance(shipped, list) and len(shipped) == 0:
+                    objections.append(f"Sprint {sprint_num} ships zero features.")
+        return objections
+
+    def merge(plan_dict, result):
+        plan_dict = dict(plan_dict)
+        if "sprint_capability_map" in result:
+            plan_dict["sprint_capability_map"] = result["sprint_capability_map"]
+        return plan_dict
+
+    return _run_phase(4, "sprint_capability_map", system_prompt, model, build_prompt, validate, merge, max_iter)
+
+
+# ── Phase 5: Risk Matrix + Gate ──────────────────────────────
+
+def run_phase5(system_prompt: str, model: str, max_iter: int = 20) -> dict:
+    plan = _load_plan()
+
+    def build_prompt(iteration, last_result, fulfilled):
+        feedback = last_result.get("_claude_feedback", []) if isinstance(last_result, dict) else []
+        msg = (
+            f"PHASE 5: Risk matrix and gate recommendation.\n"
+            f"Iteration {iteration}.\n"
+            f"Features: {json.dumps(plan.get('features', []), indent=2, ensure_ascii=False)[:10000]}\n\n"
+            f"Risk matrix has two dimensions:\n"
+            f"- Per feature (both epics): likelihood, impact, mitigation (must not expand scope)\n"
+            f"- Per measure (EPIC-1 only): data_source_availability, data_quality, credibility, mitigation\n\n"
+            f"Gate recommendation: overall risk + recommendation + issues array.\n"
+            f"Risk mitigations may not expand scope. If mitigation needs unauthorized scope, mark for Boss escalation.\n"
+        )
+        if fulfilled:
+            msg += f"REQUESTED CONTENT:\n{fulfilled}\n"
+        if feedback:
+            msg += "\nCLAUDE FEEDBACK:\n" + "\n".join(f"- {f}" for f in feedback) + "\n"
+        return msg
+
+    def validate(result):
+        objections = []
+        rm = result.get("risk_matrix", {})
+        if not isinstance(rm, dict) or not rm:
+            objections.append("No risk matrix.")
+            return objections
+        if "per_feature" not in rm:
+            objections.append("Missing per_feature risk dimension.")
+        if "per_measure" not in rm:
+            objections.append("Missing per_measure risk dimension.")
+        if not result.get("gate_recommendation"):
+            objections.append("Missing gate_recommendation.")
+        return objections
+
+    def merge(plan_dict, result):
+        plan_dict = dict(plan_dict)
+        if "risk_matrix" in result:
+            plan_dict["risk_matrix"] = result["risk_matrix"]
+        if "gate_recommendation" in result:
+            plan_dict["gate_recommendation"] = result["gate_recommendation"]
+        if "issues" in result:
+            plan_dict["issues"] = result["issues"]
+        if "risk" in result:
+            plan_dict["risk"] = result["risk"]
+        return plan_dict
+
+    return _run_phase(5, "risk_matrix", system_prompt, model, build_prompt, validate, merge, max_iter)
+
+
+# ── Orchestrator ─────────────────────────────────────────────
+
+def run(max_iterations: int = 50, start_phase: int = 1):
+    _refresh_manifest()
+
+    system_prompt = _load_system_prompt()
+    with open(_EPIC_SYSTEM_PROMPT, encoding="utf-8") as f:
+        model = json.load(f).get("model", "gpt-5.3-chat-latest")
+
+    print(f"[Planner] Model: {model}")
+    print(f"[Planner] Max iterations per phase: {max_iterations}")
+    print(f"[Planner] Starting from phase: {start_phase}")
+
+    if start_phase <= 1:
+        run_phase1(system_prompt, model, max_iterations)
+    if start_phase <= 2:
+        run_phase2(system_prompt, model, max_iterations)
+    if start_phase <= 3:
+        run_phase3(system_prompt, model, max_iterations)
+    if start_phase <= 4:
+        run_phase4(system_prompt, model, max_iterations)
+    if start_phase <= 5:
+        run_phase5(system_prompt, model, max_iterations)
+
+    plan = _load_plan()
+    def ct(v):
+        if isinstance(v, (dict, list)): return len(v)
+        return 0
+
+    print(f"\n{'='*60}")
+    print(f"  EPIC PLAN COMPLETE")
+    print(f"  Features:     {ct(plan.get('features', []))}")
+    print(f"  Stories:      {ct(plan.get('stories', []))}")
+    print(f"  Requirements: {ct(plan.get('requirements', []))}")
+    print(f"  Sprint map:   {ct(plan.get('sprint_capability_map', []))}")
+    print(f"  Risk matrix:  {'present' if plan.get('risk_matrix') else 'MISSING'}")
+    print(f"  Gate:         {plan.get('gate_recommendation', 'MISSING')}")
+    print(f"{'='*60}")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="ChatHealthy.ai Epic Planning Runner")
-    parser.add_argument("--max-iterations", type=int, default=1000)
-    parser.add_argument("--prompt-record", default="epic_planning_user_prompt_v014")
-    parser.add_argument("--refresh-manifest", action="store_true", help="Regenerate project manifest before running")
+    parser = argparse.ArgumentParser(description="ChatHealthy.ai Phased Epic Planning")
+    parser.add_argument("--max-iterations", type=int, default=50, help="Max iterations per phase")
+    parser.add_argument("--phase", type=int, default=1, help="Start from phase (1-5)")
     args = parser.parse_args()
-    if args.refresh_manifest:
-        refresh_manifest()
-    run(max_iterations=args.max_iterations, prompt_record_id=args.prompt_record)
+    run(max_iterations=args.max_iterations, start_phase=args.phase)
