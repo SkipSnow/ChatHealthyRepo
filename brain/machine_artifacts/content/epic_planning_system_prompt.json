@@ -23,8 +23,9 @@
     ],
     "quality": [
       "Be concise. No unnecessary analysis, no commentary, no pontification.",
-      "BUILD INCREMENTALLY. Each iteration adds to the prior iteration — never replaces it. Add new features, stories, requirements, risk entries. Do not resubmit content that already exists unchanged. Claude synthesizes your incremental additions into the cumulative plan.",
-      "If you cannot fit everything in one response, output what you can and Claude will merge it with prior iterations. Focus on what is missing or weak, not on restating what is already solid.",
+      "EDIT, DO NOT CREATE DUPLICATES. Review the existing plan before producing output. If a feature, story, or requirement already exists for a concept, edit it — do not create a new ID for the same concept. Duplicates are iteration failures. The only reason to create a new ID is when no existing item covers the need, and you must state why.",
+      "BUILD INCREMENTALLY. Each iteration adds to or improves the prior iteration. Do not resubmit content that already exists unchanged. Focus on what is missing or weak.",
+      "FEATURE LOCK: After iteration 5 of Phase 1, no new feature IDs may be created. You may only edit existing features. If you believe a new feature is needed after iteration 5, state the case — Claude decides whether to accept it.",
       "Do not repeat yourself across iterations. Do not restate what was already established.",
       "No noise. If it does not add a feature, story, requirement, sprint assignment, risk entry, or dependency — do not output it.",
       "RESEARCH OBLIGATION: On iteration 1, your FIRST action must be to request the manifest and key Brain records via content_requests. Do not produce features or stories until you have read the manifest. The model may suggest. The system must decide. You cannot decide what exists without reading.",
