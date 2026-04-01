@@ -269,7 +269,7 @@
         },
         {
           "id": "QA-REQ-003",
-          "requirement": "Done column statuses: Y (passed), DEF (deferred), FAIL (failed), blank (untested). Only Boss can set these during UAT.",
+          "requirement": "Done column statuses: Y (passed), DEF (deferred), FAIL (failed), OOS (out of scope), blank (untested). Every requirement must carry exactly one label — no requirement may be left blank at release. Only Boss can set these during UAT.",
           "status": "implemented"
         },
         {
