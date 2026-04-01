@@ -161,11 +161,11 @@ def _refresh_manifest():
 # ── Deduplication ────────────────────────────────────────────
 
 def dedup_plan(plan: dict = None) -> dict:
-    """Claude calls this to deduplicate the cumulative plan.
+    """AI-assisted deduplication of the cumulative plan.
 
-    Can be called anywhere — between phases, after convergence, on demand.
-    Merges items with the same normalized name, keeps the richest version.
-    Returns the cleaned plan and saves it.
+    Uses gpt-4o-mini to semantically identify duplicates that string
+    matching would miss. Cheap, fast, accurate enough for dedup.
+    Falls back to string-based dedup if API call fails.
     """
     if plan is None:
         plan = _load_plan()
@@ -178,57 +178,92 @@ def dedup_plan(plan: dict = None) -> dict:
         items = plan.get(collection_key, [])
         if isinstance(items, dict):
             items = list(items.values())
-        if not items:
+        if not items or len(items) < 2:
             continue
 
-        # Group by normalized name
-        groups = {}
+        # Build a compact list for the LLM
+        compact = []
         for item in items:
-            if not isinstance(item, dict):
-                continue
-            name = item.get(name_key, "").lower().strip()
-            normalized = name.replace("-", " ").replace("_", " ").replace("  ", " ")
-            if not normalized:
-                normalized = item.get(id_key, "unknown")
-            if normalized not in groups:
-                groups[normalized] = []
-            groups[normalized].append(item)
+            if isinstance(item, dict):
+                compact.append({
+                    "id": item.get(id_key, "?"),
+                    "name": item.get(name_key, "?"),
+                    "description": str(item.get("description", ""))[:100],
+                })
 
-        # For each group, keep the richest version
-        deduped = []
-        for normalized, group in groups.items():
-            if len(group) == 1:
-                deduped.append(group[0])
-            else:
-                # Score by content richness
-                def _richness(item):
-                    score = 0
-                    for key in ["description", "evidence", "notes"]:
-                        score += len(str(item.get(key, "")))
-                    # Prefer items with more fields populated
-                    score += sum(10 for k, v in item.items() if v)
-                    return score
+        if len(compact) < 2:
+            continue
 
-                best = max(group, key=_richness)
-                # Merge evidence from all versions into the best
-                all_evidence = set()
-                for item in group:
-                    ev = item.get("evidence", "")
-                    if ev:
-                        all_evidence.add(ev)
-                if all_evidence:
-                    best["evidence"] = "; ".join(sorted(all_evidence))
-                deduped.append(best)
+        # Ask gpt-4o-mini to find duplicates
+        merge_map = _ai_dedup(collection_key, compact)
 
-        before = len(items)
-        after = len(deduped)
-        if before != after:
-            print(f"[Dedup] {collection_key}: {before} -> {after} (removed {before - after} duplicates)")
+        if merge_map:
+            # Apply the merge map
+            items_by_id = {item.get(id_key, ""): item for item in items if isinstance(item, dict)}
+            to_remove = set()
 
-        plan[collection_key] = deduped
+            for keep_id, remove_ids in merge_map.items():
+                if keep_id not in items_by_id:
+                    continue
+                keeper = items_by_id[keep_id]
+                for rid in remove_ids:
+                    if rid in items_by_id and rid != keep_id:
+                        # Merge evidence from removed into keeper
+                        removed = items_by_id[rid]
+                        removed_ev = removed.get("evidence", "")
+                        keeper_ev = keeper.get("evidence", "")
+                        if removed_ev and removed_ev not in keeper_ev:
+                            keeper["evidence"] = keeper_ev + "; " + removed_ev if keeper_ev else removed_ev
+                        # Merge description if richer
+                        if len(str(removed.get("description", ""))) > len(str(keeper.get("description", ""))):
+                            keeper["description"] = removed["description"]
+                        to_remove.add(rid)
+
+            if to_remove:
+                before = len(items)
+                items = [i for i in items if isinstance(i, dict) and i.get(id_key, "") not in to_remove]
+                print(f"[Dedup] {collection_key}: {before} -> {len(items)} (merged {len(to_remove)} duplicates)")
+
+        plan[collection_key] = items
 
     _save_plan(plan)
     return plan
+
+
+def _ai_dedup(collection_name: str, items: list[dict]) -> dict:
+    """Call gpt-4o-mini to identify semantic duplicates.
+
+    Returns {keep_id: [remove_id1, remove_id2, ...]} merge map.
+    Returns empty dict on failure.
+    """
+    import openai
+
+    prompt = (
+        f"You are a deduplication engine. Below is a list of {collection_name} from a software plan.\n"
+        f"Identify items that are duplicates or near-duplicates (same concept, different wording or ID).\n"
+        f"Return a JSON object where each key is the ID to KEEP (the richest/best version) and the value "
+        f"is an array of IDs to REMOVE (the duplicates that should be merged into the keeper).\n"
+        f"If there are no duplicates, return an empty object {{}}.\n"
+        f"Only flag true semantic duplicates — items that describe the same capability.\n\n"
+        f"Items:\n{json.dumps(items, indent=2)}\n\n"
+        f"Return JSON only. No explanation."
+    )
+
+    try:
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+            temperature=0,
+        )
+        result = json.loads(response.choices[0].message.content)
+        tokens = response.usage.prompt_tokens + response.usage.completion_tokens
+        print(f"[Dedup] AI dedup for {collection_name}: {tokens} tokens, {len(result)} merge groups")
+        return result if isinstance(result, dict) else {}
+    except Exception as e:
+        print(f"[Dedup] AI dedup failed for {collection_name}: {e} — skipping")
+        return {}
 
 
 # ── Duplicate Detection ──────────────────────────────────────
