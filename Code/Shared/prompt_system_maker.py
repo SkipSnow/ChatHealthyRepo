@@ -51,7 +51,7 @@ class PromptSystemMaker:
     # ------------------------------------------------------------------
     def read_collection(self, collection: str) -> list[dict]:
         """Read all records from a brain collection JSON."""
-        path = self._brain / "machine_artifacts" / f"{collection}.json"
+        path = self._brain / "machine_artifacts" / "content" / f"{collection}.json"
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -77,7 +77,7 @@ class PromptSystemMaker:
         if self._emergency_keywords is not None:
             return self._emergency_keywords
 
-        path = self._brain / "machine_artifacts" / "emergency_keywords.json"
+        path = self._brain / "machine_artifacts" / "content" / "emergency_keywords.json"
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
