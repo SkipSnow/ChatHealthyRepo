@@ -141,13 +141,23 @@
     "project_path": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py",
     "size": 1962,
     "content_hash": "b61b630715e3c09a",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Facade for EvaluateCareQuality (UAT 3, 8)",
+      "Clinical trials search orchestration",
+      "Provider detail lookup via NPI"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py",
     "size": 2097,
     "content_hash": "58e32e4fea693868",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Facade for FindCare (UAT 1, 2)",
+      "Provider search with vector+taxonomy fallback",
+      "Specialty identification with NUCC codes"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/__init__.py",
@@ -159,25 +169,42 @@
     "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py",
     "size": 744,
     "content_hash": "5c8d89a1c9688d38",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Pydantic validation for clinical trials inputs"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py",
     "size": 939,
     "content_hash": "f390d864d75a6dd0",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Pydantic validation for lead capture",
+      "Pydantic validation for unanswerable questions"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py",
     "size": 734,
     "content_hash": "937489d2f8e47f65",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Pydantic validation for provider search",
+      "Pydantic validation for specialty queries"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py",
     "size": 4512,
     "content_hash": "47cb4921be128e0a",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Allowlist tool dispatch (GOV-004)",
+      "Pydantic input validation (F-05)",
+      "Anthropic tool_use block handling",
+      "Chat history injection"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/build.txt",
@@ -201,13 +228,23 @@
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py",
     "size": 6236,
     "content_hash": "6fea15b7b3b6f9c2",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "ClinicalTrials.gov API search (RECRUITING filter)",
+      "Google Routes travel distance+duration",
+      "Trial location extraction and formatting"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py",
     "size": 4725,
     "content_hash": "940d7f30f7f69c0a",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "NPI Registry CMS API lookup",
+      "State medical board links (DE, MS, VA)",
+      "Research site URL construction"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/__init__.py",
@@ -219,13 +256,24 @@
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py",
     "size": 10331,
     "content_hash": "f0f5c1ea1038b15e",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "MongoDB Atlas vector search (text-embedding-3-large)",
+      "Taxonomy fallback with NUCC codes",
+      "FIPS-to-county mapping (ASN-4AFBDA)",
+      "Multi-stage state/city/county filtering"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py",
     "size": 5562,
     "content_hash": "0f785a870e08b0f2",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Dual-pipeline specialty ID: regex + vector parallel",
+      "AI query expansion via Claude Haiku",
+      "NUCC code dedup and classification aggregation"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/__init__.py",
@@ -243,7 +291,12 @@
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py",
     "size": 4057,
     "content_hash": "7d70553facd7a2ec",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Two-tier HIPAA consent workflow",
+      "Conversation summarization via Haiku",
+      "De-identification per HIPAA Safe Harbor"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/content/__init__.py",
@@ -255,7 +308,12 @@
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/content/about_service.py",
     "size": 1437,
     "content_hash": "7879c8a15ba64146",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Skip Snow professional context serving",
+      "ChatHealthy.ai business plan delivery",
+      "Markdown link preservation for contact info"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/__init__.py",
@@ -267,7 +325,12 @@
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py",
     "size": 2939,
     "content_hash": "7601ba934606a9e7",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Lead record creation with consent tiers",
+      "Duplicate email detection",
+      "ConsentService integration for Tier 2"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/__init__.py",
@@ -279,7 +342,13 @@
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py",
     "size": 6904,
     "content_hash": "5fd19dfe49fa1e0b",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Dual-trigger emergency detection (keyword + GPT-4.1-mini)",
+      "IP-based session locking (1hr expiration)",
+      "Admin unlock with secret key",
+      "Emergency audit trail"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/__init__.py",
@@ -291,7 +360,12 @@
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py",
     "size": 3082,
     "content_hash": "300d38092ae94040",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Three-class question classification",
+      "Template responses with consent flow",
+      "De-identification before recording"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/url/__init__.py",
@@ -315,7 +389,12 @@
     "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py",
     "size": 2027,
     "content_hash": "1a7806f09666bd50",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Chat metadata persistence to MongoDB",
+      "Error-triggered de-identification",
+      "Token usage tracking"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/embeddings/__init__.py",
@@ -327,7 +406,12 @@
     "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/embeddings/embedding_client.py",
     "size": 3050,
     "content_hash": "d70e7f48626a3e2c",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Dual-model embeddings (large + small)",
+      "AI query expansion via Claude Haiku",
+      "Lazy OpenAI client initialization"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/external_apis/__init__.py",
@@ -345,7 +429,13 @@
     "project_path": "Code/ConversationalUX/FindCareChat/backend/main.py",
     "size": 16481,
     "content_hash": "926d42a44bb982d1",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "FastAPI host adapter (329 lines)",
+      "Claude Sonnet 4.6 agentic tool-use loop",
+      "Service wiring for all domain classes",
+      "PromptSystemMaker integration"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/backend/requirements.txt",
@@ -393,7 +483,13 @@
     "project_path": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py",
     "size": 15120,
     "content_hash": "39d227976f122923",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "3-stage URL validation (HEAD, AI verify, Google correction)",
+      "Markdown link defanging",
+      "Batch concurrent validation",
+      "TTL-based URL cache"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/.env.example",
@@ -435,13 +531,26 @@
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx",
     "size": 13086,
     "content_hash": "3510dd91a8fef697",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Chat UI with message history",
+      "45s timeout modal with continue/abandon",
+      "Environment banner (dev/qa/local)",
+      "AbortController for request cancellation",
+      "Session history filtering through safety unlock"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx",
     "size": 3302,
     "content_hash": "780f1d2d3f0e61bd",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Markdown rendering (react-markdown + GFM)",
+      "HTML sanitization",
+      "Error message styling",
+      "Token/timing metadata footer"
+    ]
   },
   {
     "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/index.css",
@@ -483,13 +592,22 @@
     "project_path": "Code/DataPipelines/atlas_cluster_manager.py",
     "size": 8660,
     "content_hash": "41ffca05b01b23b7",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "MongoDB Atlas cluster scaling via API",
+      "Pause/resume for cost optimization",
+      "State polling with IDLE wait"
+    ]
   },
   {
     "project_path": "Code/DataPipelines/auth.py",
     "size": 1966,
     "content_hash": "bb817202cbe9241d",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Bearer token validation for Azure Functions",
+      "Token map JSON parsing"
+    ]
   },
   {
     "project_path": "Code/DataPipelines/blob_client.py",
@@ -537,7 +655,13 @@
     "project_path": "Code/DataPipelines/embedding_worker.py",
     "size": 9351,
     "content_hash": "49927886691658a5",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Distributed provider embedding (text-embedding-3-large)",
+      "100-doc batch processing",
+      "Rate limit backoff",
+      "Cursor resumption"
+    ]
   },
   {
     "project_path": "Code/DataPipelines/favicon.ico",
@@ -549,13 +673,26 @@
     "project_path": "Code/DataPipelines/function_app.py",
     "size": 17073,
     "content_hash": "1b5113d10378da86",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Azure Durable Functions orchestration",
+      "Provider load pipeline",
+      "County enrichment pipeline",
+      "Cluster warming/cooling"
+    ]
   },
   {
     "project_path": "Code/DataPipelines/gpt_reader.py",
     "size": 9756,
     "content_hash": "c85b1b064211aa1f",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Read-only MongoDB broker for GPT",
+      "Bearer token auth",
+      "500KB response cap",
+      "100-doc query limit",
+      "Audit logging"
+    ]
   },
   {
     "project_path": "Code/DataPipelines/host.json",
@@ -735,43 +872,83 @@
     "project_path": "Code/Shared/ChatHealthyMongoUtilities.py",
     "size": 4914,
     "content_hash": "2714180bc789f3bf",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "MongoDB connection lifecycle management",
+      "Ping validation per access",
+      "Context manager support",
+      "commit() write utility"
+    ]
   },
   {
     "project_path": "Code/Shared/backlog.py",
     "size": 6250,
     "content_hash": "18dfffa3e458116c",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Product backlog management",
+      "Feature/story hierarchy",
+      "Status tracking",
+      "Brain assignment linkage"
+    ]
   },
   {
     "project_path": "Code/Shared/brain_auth.py",
     "size": 2955,
     "content_hash": "8d60d26e6adc6031",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Bearer token auth for Brain API",
+      "Agent identity resolution",
+      "Scope-based access control"
+    ]
   },
   {
     "project_path": "Code/Shared/brain_loop.py",
     "size": 26771,
     "content_hash": "7c5519497a2ec3cc",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Claude-GPT autonomous review loop",
+      "Assignment queue management",
+      "Gate decision logic",
+      "UAT scenario execution"
+    ]
   },
   {
     "project_path": "Code/Shared/brain_runner.py",
     "size": 13151,
     "content_hash": "5d177d31e2e9ff21",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "GPT assignment orchestration",
+      "Static system prompt from brain",
+      "Context fetching + Machine Brain search",
+      "Usage logging to cost_guard"
+    ]
   },
   {
     "project_path": "Code/Shared/cost_guard.py",
     "size": 9504,
     "content_hash": "8cd47452678a5633",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Token usage tracking per call",
+      "Model-specific pricing",
+      "Budget enforcement (daily/monthly)"
+    ]
   },
   {
     "project_path": "Code/Shared/machine_brain.py",
     "size": 11978,
     "content_hash": "7ab8ad1778821cea",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Voyage AI vector embedding (1024 dim)",
+      "MongoDB Atlas vector search",
+      "Decision persistence with ADR tagging",
+      "Keyword fallback search"
+    ]
   },
   {
     "project_path": "Code/Shared/ops/atlas_cluster_toggle.py",
@@ -801,7 +978,11 @@
     "project_path": "Code/Shared/ops/bump_build.py",
     "size": 1578,
     "content_hash": "b1077602ce12e2f2",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Build counter increment in MongoDB",
+      "Environment-specific tracking"
+    ]
   },
   {
     "project_path": "Code/Shared/ops/framework_version.py",
@@ -873,19 +1054,36 @@
     "project_path": "Code/Shared/ops/promote_data.py",
     "size": 4164,
     "content_hash": "e84c53df7e975d1b",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Batch data promotion between environments",
+      "PublicHealthData copying",
+      "Dry-run capability"
+    ]
   },
   {
     "project_path": "Code/Shared/ops/sync_to_mongo.py",
     "size": 10383,
     "content_hash": "29d11ca1fb439653",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "Project file sync to admin.project_files",
+      "Text/binary classification",
+      "Manifest snapshot generation",
+      "Artifact type classification"
+    ]
   },
   {
     "project_path": "Code/Shared/ops/uat_report.py",
     "size": 8841,
     "content_hash": "68fd998a623c89b1",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "UAT feature matrix (18 features)",
+      "Bug/enhancement classification (PE, DB, LG, MS, UX, CF, IF)",
+      "MongoDB UAT status reading",
+      "Clean-start welcome generation"
+    ]
   },
   {
     "project_path": "Code/Shared/ops/update_brain_descriptions.py",
@@ -897,7 +1095,14 @@
     "project_path": "Code/Shared/prompt_system_maker.py",
     "size": 16722,
     "content_hash": "1a25cb7d68f6f68d",
-    "entity_type": "file"
+    "entity_type": "file",
+    "capabilities": [
+      "System prompt assembly from brain artifacts",
+      "Tool definition loading (Anthropic schema)",
+      "Emergency keyword registry",
+      "Brain collection and record reading",
+      "ME context loading"
+    ]
   },
   {
     "project_path": "Legal/Licence.txt",
