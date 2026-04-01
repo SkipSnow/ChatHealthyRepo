@@ -270,7 +270,8 @@
       "investment_thesis": "ChatHealthy.ai defines and owns the healthcare decision layer. By integrating discovery, evaluation, and collaborative decision-making, it captures the highest-value moment in healthcare: where choices are made. The platform's neutral revenue model aligns incentives, while AI vendor participation creates a scalable, defensible monetization path. With strong architectural foundations and clear governance, the company is positioned to become the default interface for healthcare decisions.",
       "sign_off": "Prepared for investor and partner review.",
       "_record_id": "biz_arch_draft_v1",
-      "_source_file": "biz_arch_draft_v1.json"
+      "_source_file": "biz_arch_draft_v1.json",
+      "description": "Legacy: first GPT draft of business architecture. Superseded by v2."
     },
     {
       "title": "ChatHealthy.ai -- Business Architecture",
@@ -554,7 +555,8 @@
       "investment_thesis": "ChatHealthy.ai owns the healthcare decision room--the highest-value point in the care journey where choices are made. By controlling this layer, the platform becomes the gateway through which AI participates in healthcare. AI companies pay to be present in these decisions, creating a scalable, defensible revenue model. This is not a chatbot; it is the infrastructure for healthcare decision-making.",
       "sign_off": "Prepared for investor, partner, and legal review.",
       "_record_id": "biz_arch_investor",
-      "_source_file": "biz_arch_investor.json"
+      "_source_file": "biz_arch_investor.json",
+      "description": "Legacy: first investor doc. Superseded by biz_arch_investor_v2."
     },
     {
       "vision": "ChatHealthy.ai provides the data, tools, and an AI-enlightened space to empower regular people to prevail over the broken healthcare system. Whatever a person's circumstances might be, they deserve the best possible care, at the best value. ChatHealthy.ai gives them the platform to get it. By presenting and evaluating care options but never giving medical advice, the platform allows families, individuals, and friends to collaborate with the most powerful AI models in order to choose the best provider they can have.",
@@ -849,7 +851,8 @@
       "collection": "architecture",
       "record_type": "business_architecture",
       "_record_id": "biz_arch_investor_v2",
-      "_source_file": "biz_arch_investor_v2.json"
+      "_source_file": "biz_arch_investor_v2.json",
+      "description": "Active investor business architecture. 3 components, revenue, moat, timeline. Maps to ChatHealthyOperationalBusinessArchitecture.docx."
     },
     {
       "title": "Business Plan Cost Analysis Results",
@@ -857,7 +860,8 @@
       "created": "2026-03-29",
       "results": [],
       "_record_id": "bizplan_cost_analysis_results",
-      "_source_file": "bizplan_cost_analysis_results.json"
+      "_source_file": "bizplan_cost_analysis_results.json",
+      "description": "GPT cost analysis output for business plan scenarios."
     },
     {
       "title": "ChatHealthy FindCare - Business Model",
@@ -1172,7 +1176,8 @@
         }
       },
       "_record_id": "business_model",
-      "_source_file": "business_model.json"
+      "_source_file": "business_model.json",
+      "description": "Core business model: Find Care (free) + Evaluate Care (paywall) + Discuss Care (premium tokens)."
     },
     {
       "title": "Staffing & Cost Analysis \u2014 ChatHealthy.ai Development Equivalency",
@@ -1204,7 +1209,8 @@
       },
       "key_insight": "AI-native solo founder achieved in 2 weeks what a 9-person startup would take 6-9 months and 1M-1.5M, or a 21-person enterprise would take 12-18 months and 4M-7M.",
       "_record_id": "staffing_cost_analysis",
-      "_source_file": "staffing_cost_analysis.json"
+      "_source_file": "staffing_cost_analysis.json",
+      "description": "Perplexity: staffing equivalency. Startup=$1.5M/9mo, Enterprise=$7M/18mo, AI-native=2wks. Maps to staffing_cost_comparison.docx."
     }
   ]
 }

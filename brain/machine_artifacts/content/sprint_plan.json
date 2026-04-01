@@ -186,7 +186,8 @@
         }
       ],
       "_record_id": "backlog_0_1_4_perplexity",
-      "_source_file": "backlog_0_1_4_perplexity.json"
+      "_source_file": "backlog_0_1_4_perplexity.json",
+      "description": "10 backlog items from Perplexity audit for v0.1.4. Security, reliability, operations."
     },
     {
       "id": "BRAND-001",
@@ -196,13 +197,14 @@
       "status": "backlog",
       "priority": "high",
       "_record_id": "backlog_brand_audit",
-      "_source_file": "backlog_brand_audit.json"
+      "_source_file": "backlog_brand_audit.json",
+      "description": "BRAND-001: audit all artifacts for ChatHealthy.ai (never ChatHealthy alone)."
     },
     {
       "feature": "Consent Framework (Two Streams)",
       "feature_id": 14,
       "status": "deferred",
-      "description": "Separate consent flows for unknown questions vs contact-me requests. Each stream has different de-identification and storage rules.",
+      "description": "Consent framework feature spec. Two-tier HIPAA flow.",
       "streams": {
         "stream_1_unknown_questions": {
           "trigger": "User asks a question the system cannot answer",
@@ -253,7 +255,7 @@
       "feature": "QA Report (Human Testing Mode)",
       "feature_id": 13,
       "status": "implemented",
-      "description": "Self-documenting UAT test report rendered as the welcome splash when HUMAN_TESTING=true. Provides real-time visibility into test progress, bugs, and enhancements during a test cycle.",
+      "description": "QA report feature template. UAT report structure definition.",
       "requirements": [
         {
           "id": "QA-REQ-001",
@@ -655,12 +657,14 @@
         }
       },
       "_record_id": "sprint_plan_v013",
-      "_source_file": "sprint_plan_v013.json"
+      "_source_file": "sprint_plan_v013.json",
+      "description": "Sprint v0.1.3 plan: 7-phase refactor, maps, enhancements. Beta Sprint 1 epic (BRAIN-021)."
     },
     {
       "scenarios": [],
       "_record_id": "uat_library",
-      "_source_file": "uat_library.json"
+      "_source_file": "uat_library.json",
+      "description": "UAT scenario library. Reusable test cases across sprints."
     },
     {
       "title": "UAT Feature List \u2014 v0.1.3",
@@ -783,7 +787,8 @@
         }
       ],
       "_record_id": "uat_v013",
-      "_source_file": "uat_v013.json"
+      "_source_file": "uat_v013.json",
+      "description": "UAT v0.1.3 feature list. 16 features with pass/fail/defer status."
     }
   ]
 }
