@@ -224,6 +224,18 @@ def run(assignment_id: str = None) -> dict:
     Returns:
         The Assurance Output dict.
     """
+    # Always refresh manifest before any assignment — GPT must read fresh context
+    try:
+        _ops_dir = Path(__file__).parent / "ops"
+        sys.path.insert(0, str(_ops_dir))
+        from manifest_generator import ManifestGenerator
+        gen = ManifestGenerator()
+        gen.generate()
+        path = gen.save()
+        print(f"[BrainRunner] Manifest refreshed: {gen.file_count} files -> {path}")
+    except Exception as e:
+        print(f"[BrainRunner] Manifest refresh failed: {e} — continuing with stale manifest")
+
     # Find the assignment
     pending = [a for a in list_assignments("pending") if a.get("assigned_to") == "GPT"]
     if not pending:
@@ -257,9 +269,17 @@ def run(assignment_id: str = None) -> dict:
     mb_context, mb_records = _fetch_machine_brain_context(mb_query)
     print(f"[BrainRunner] Machine Brain: {len(mb_records)} records retrieved")
 
-    print("[BrainRunner] Fetching repo context...")
-    scope_files = assignment.get("scope", [])
-    context = _fetch_context(additional_files=scope_files)
+    print("[BrainRunner] Loading Brain manifest from disk...")
+    try:
+        _ops_dir2 = Path(__file__).parent / "ops"
+        sys.path.insert(0, str(_ops_dir2))
+        from brain_snapshot import take_snapshot
+        context = take_snapshot()
+        print(f"[BrainRunner] Brain manifest: {len(context)} chars — GPT will use GPTReader for content")
+    except Exception as e:
+        print(f"[BrainRunner] Brain manifest failed: {e} — falling back to GitHub fetch")
+        scope_files = assignment.get("scope", [])
+        context = _fetch_context(additional_files=scope_files)
 
     print("[BrainRunner] Calling GPT-4o...")
     prompt = _build_prompt(assignment, context, mb_context)

@@ -54,13 +54,108 @@ def _load_last_iteration() -> dict | None:
         return json.load(f)
 
 
-def _build_user_message(prompt_text: str, iteration: int, max_iter: int, last_iteration: dict | None) -> str:
+def _validate_iteration(result: dict, iteration: int) -> list[str]:
+    """Claude validates the iteration and returns a list of objections.
+
+    Empty list = Claude agrees. Non-empty = GPT must address these in next iteration.
+    """
+    objections = []
+
+    # Check all required top-level keys exist
+    required_keys = ["epics", "features", "stories", "requirements", "sprint_capability_map", "risk_matrix"]
+    for k in required_keys:
+        if k not in result or not result[k]:
+            objections.append(f"MISSING: '{k}' is empty or absent.")
+
+    # Normalize features/stories/requirements — GPT may return dict or list
+    def _to_id_map(val, id_key):
+        """Convert list-of-dicts to {id: dict} or pass through dict."""
+        if isinstance(val, dict):
+            return val
+        if isinstance(val, list):
+            return {item.get(id_key, f"?_{i}"): item for i, item in enumerate(val) if isinstance(item, dict)}
+        return {}
+
+    features = _to_id_map(result.get("features", {}), "feature_id")
+    stories = _to_id_map(result.get("stories", {}), "story_id")
+    requirements = _to_id_map(result.get("requirements", {}), "req_id")
+    sprint_map = result.get("sprint_capability_map", {})
+    if isinstance(sprint_map, list):
+        sprint_map = {str(s.get("sprint", i)): s for i, s in enumerate(sprint_map) if isinstance(s, dict)}
+
+    # Check every story has at least one requirement
+    story_ids_with_reqs = set()
+    for rid, r in requirements.items():
+        story_ids_with_reqs.add(r.get("story_id", ""))
+    stories_without_reqs = [sid for sid in stories if sid not in story_ids_with_reqs]
+    if stories_without_reqs:
+        objections.append(
+            f"REQUIREMENT COVERAGE: {len(stories_without_reqs)} stories have zero requirements: "
+            f"{', '.join(stories_without_reqs[:10])}. Every story must have boolean requirements."
+        )
+
+    # Check requirement density
+    req_count = len(requirements)
+    story_count = len(stories)
+    if story_count > 0 and req_count < story_count * 3:
+        objections.append(
+            f"THIN REQUIREMENTS: Only {req_count} requirements across {story_count} stories. "
+            f"Procedural stories need all happy paths + 2 exception paths. LLM stories need 10."
+        )
+
+    # Check feature descriptions are substantive
+    thin_features = [fid for fid, f in features.items() if len(str(f.get("description", ""))) < 30]
+    if thin_features:
+        objections.append(
+            f"THIN FEATURES: {len(thin_features)} features have descriptions under 30 chars: "
+            f"{', '.join(thin_features[:10])}. Specify data source, calculation, and why credible."
+        )
+
+    # Check EPIC-2 features aren't silently dropped
+    expected_maint = ["MAINT-MAPS", "MAINT-DIST", "MAINT-DIST-UX", "MAINT-ARCH",
+                      "MAINT-CONSENT", "MAINT-BRAIN", "BRAND-001"]
+    all_content_str = json.dumps(result)
+    truly_missing = [f for f in expected_maint if f not in all_content_str]
+    if truly_missing:
+        objections.append(
+            f"DROPPED FEATURES: {', '.join(truly_missing)} disappeared without deferral rationale."
+        )
+
+    # Check stretch goal and Boss suggestion are addressed
+    if "EVAL-WEIGHTS" not in all_content_str:
+        objections.append("STRETCH GOAL: EVAL-WEIGHTS not present, deferred, or declined. Must be addressed.")
+    if "rx" not in all_content_str.lower() and "prescription" not in all_content_str.lower():
+        objections.append("BOSS SUGGESTION: Prescription behavior (EVAL-P-RX) not addressed.")
+
+    # Check change_log for iteration 2+
+    if iteration > 1 and not result.get("change_log"):
+        objections.append("CHANGE LOG MISSING: Required from iteration 2+.")
+
+    # Check sprint capacity
+    for sid, s in sprint_map.items():
+        shipped = s.get("features_shipped", [])
+        if isinstance(shipped, list) and len(shipped) > 6:
+            objections.append(f"OVERLOADED: Sprint {sid} has {len(shipped)} features.")
+        if str(sid) in ("1", "2", "3", "4") and isinstance(shipped, list) and len(shipped) == 0:
+            objections.append(f"EMPTY SPRINT: Sprint {sid} ships zero features.")
+
+    return objections
+
+
+def _build_user_message(prompt_text: str, iteration: int, max_iter: int,
+                        last_iteration: dict | None, claude_feedback: list[str] | None = None) -> str:
     """Build the user message for this iteration.
 
     Sends the full Boss-approved prompt text with iteration counter substituted.
+    If Claude has feedback from validating the last iteration, it's injected.
     """
     # Substitute iteration placeholders
     message = prompt_text.replace("{iteration}", str(iteration)).replace("{max_iterations}", str(max_iter))
+
+    # Inject Brain manifest — GPT sees the table of contents, uses GPTReader for content
+    from brain_snapshot import take_snapshot
+    manifest = take_snapshot()
+    message += "\n\n---\n\nBRAIN MANIFEST (table of contents — use GPTReader to fetch content):\n\n" + manifest
 
     if last_iteration:
         last_str = json.dumps(last_iteration, indent=2, ensure_ascii=False)
@@ -70,6 +165,15 @@ def _build_user_message(prompt_text: str, iteration: int, max_iter: int, last_it
             "\n\n---\n\n"
             "LAST ITERATION (review as starting place — flag non-trivial changes per iteration protocol):\n\n"
             + last_str
+        )
+
+    if claude_feedback:
+        feedback_text = "\n".join(f"- {obj}" for obj in claude_feedback)
+        message += (
+            "\n\n---\n\n"
+            "CLAUDE VALIDATION FEEDBACK (Engineer review of last iteration — must address all items):\n\n"
+            + feedback_text
+            + "\n\nAddress every item above in this iteration. Do not ignore any."
         )
 
     return message
@@ -104,23 +208,55 @@ def _cache_iteration(iteration: int, result: dict, raw_text: str) -> Path:
     return path
 
 
-def _is_converged(current: dict, previous: dict | None) -> bool:
-    """Check if the plan has converged (no substantive changes)."""
+def _is_converged(current: dict, previous: dict | None, iteration: int) -> bool:
+    """Check if the plan has converged.
+
+    Convergence requires:
+    1. Claude has zero objections to the current iteration
+    2. No material structural changes from previous iteration
+    """
     if previous is None:
         return False
 
-    # Compare key structural elements
-    for key in ["feature_set", "requirements", "sprint_capability_map", "risk_matrix"]:
-        cur = json.dumps(current.get(key, {}), sort_keys=True)
-        prev = json.dumps(previous.get(key, {}), sort_keys=True)
+    # Claude must validate first — if there are objections, not converged
+    objections = _validate_iteration(current, iteration)
+    if objections:
+        return False
+
+    # Compare key structural elements — normalize to sorted JSON for comparison
+    for key in ["features", "stories", "requirements", "sprint_capability_map", "risk_matrix"]:
+        try:
+            cur = json.dumps(current.get(key, {}), sort_keys=True)
+            prev = json.dumps(previous.get(key, {}), sort_keys=True)
+        except TypeError:
+            cur = str(current.get(key, ""))
+            prev = str(previous.get(key, ""))
         if cur != prev:
             return False
 
     return True
 
 
+def refresh_manifest():
+    """Regenerate the project manifest before running the planning loop.
+
+    Called at Boss or Claude discretion to ensure GPT reads fresh Brain context.
+    """
+    try:
+        sys.path.insert(0, str(_THIS_DIR))
+        from manifest_generator import ManifestGenerator
+        gen = ManifestGenerator()
+        gen.generate()
+        path = gen.save()
+        print(f"[EpicPlanner] Manifest refreshed: {gen.file_count} files, {gen.total_entries} entries -> {path}")
+    except Exception as e:
+        print(f"[EpicPlanner] Manifest refresh failed: {e} — continuing with stale manifest")
+
+
 def run(max_iterations: int = 1000, prompt_record_id: str = "epic_planning_user_prompt_v014"):
     """Run the epic planning iteration loop."""
+    # Always refresh manifest before an assignment — GPT must read fresh context
+    refresh_manifest()
     print(f"[EpicPlanner] Loading prompts...")
     system_prompt = _load_system_prompt()
     prompt_text = _load_user_prompt_text()
@@ -148,7 +284,18 @@ def run(max_iterations: int = 1000, prompt_record_id: str = "epic_planning_user_
         print(f"  ITERATION {i} of {max_iterations}")
         print(f"{'='*60}")
 
-        user_message = _build_user_message(prompt_text, i, max_iterations, last_iteration)
+        # Claude validates the last iteration and provides feedback for GPT
+        claude_feedback = None
+        if last_iteration and i > 1:
+            claude_feedback = _validate_iteration(last_iteration, i - 1)
+            if claude_feedback:
+                print(f"[EpicPlanner] Claude feedback ({len(claude_feedback)} items):")
+                for fb in claude_feedback:
+                    print(f"  - {fb[:120]}")
+            else:
+                print(f"[EpicPlanner] Claude: no objections to last iteration")
+
+        user_message = _build_user_message(prompt_text, i, max_iterations, last_iteration, claude_feedback)
 
         try:
             from cost_guard import check_budget
@@ -223,13 +370,25 @@ def run(max_iterations: int = 1000, prompt_record_id: str = "epic_planning_user_
         cache_path = _cache_iteration(i, result, raw_text)
         print(f"[EpicPlanner] Cached: {cache_path.name}")
 
-        # Check convergence
-        if _is_converged(result, last_iteration):
+        # Check convergence — both Claude and GPT must agree at 100%
+        claude_objections = _validate_iteration(result, i)
+        gpt_says_done = result.get("gate_recommendation") in ("auto", "proceed_with_warning")
+
+        if not claude_objections and gpt_says_done and _is_converged(result, last_iteration, i):
             print(f"\n{'='*60}")
             print(f"  CONVERGED at iteration {i}")
+            print(f"  Claude: 0 objections")
+            print(f"  GPT: gate={result.get('gate_recommendation')}")
+            print(f"  Both agree — plan is complete.")
             print(f"  Total tokens: {total_tokens_in} in / {total_tokens_out} out")
             print(f"{'='*60}")
             break
+        elif not claude_objections and gpt_says_done:
+            print(f"[EpicPlanner] Claude agrees, GPT agrees, but structure changed — iterating once more for stability")
+        elif not claude_objections:
+            print(f"[EpicPlanner] Claude agrees but GPT gate={result.get('gate_recommendation')} — continuing")
+        else:
+            print(f"[EpicPlanner] Claude has {len(claude_objections)} objections — continuing")
 
         # Check gate recommendation
         gate = result.get("gate_recommendation", "")
@@ -268,5 +427,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ChatHealthy.ai Epic Planning Runner")
     parser.add_argument("--max-iterations", type=int, default=1000)
     parser.add_argument("--prompt-record", default="epic_planning_user_prompt_v014")
+    parser.add_argument("--refresh-manifest", action="store_true", help="Regenerate project manifest before running")
     args = parser.parse_args()
+    if args.refresh_manifest:
+        refresh_manifest()
     run(max_iterations=args.max_iterations, prompt_record_id=args.prompt_record)

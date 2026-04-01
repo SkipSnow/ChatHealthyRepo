@@ -76,6 +76,89 @@ class ManifestGenerator:
         self._root = project_root or str(Path(__file__).parent.parent.parent.parent)
         self._manifest = []
 
+    def _describe(self, rel_path: str, full_path: str, entity_type: str) -> str:
+        """Generate a description for any file. GPT uses this to decide what to fetch."""
+        # Known capabilities take priority
+        if rel_path in self.CAPABILITIES:
+            return "; ".join(self.CAPABILITIES[rel_path])
+
+        # Brain collections — read the collection-level description from JSON
+        if entity_type == "collection":
+            try:
+                with open(full_path, encoding="utf-8") as f:
+                    data = json.load(f)
+                coll = data.get("collection", "")
+                count = data.get("record_count", len(data.get("records", [])))
+                # Get first record descriptions as sample
+                records = data.get("records", [])
+                sample_ids = [r.get("_record_id", "") for r in records[:5] if isinstance(r, dict)]
+                return f"Brain collection '{coll}' ({count} records): {', '.join(sample_ids)}"
+            except Exception:
+                return "Brain collection (unreadable)"
+
+        # HTML design docs — extract title
+        if rel_path.startswith("Website/") and rel_path.endswith(".html"):
+            try:
+                with open(full_path, encoding="utf-8") as f:
+                    content = f.read(2000)
+                import re
+                match = re.search(r"<title>(.*?)</title>", content, re.IGNORECASE)
+                if match:
+                    return f"Design doc: {match.group(1)}"
+            except Exception:
+                pass
+            return "Website HTML page"
+
+        # GitHub workflows
+        if rel_path.startswith(".github/workflows/"):
+            name = Path(rel_path).stem
+            return f"CI/CD workflow: {name}"
+
+        # Dockerfiles
+        if Path(rel_path).name == "Dockerfile":
+            return f"Docker build for {Path(rel_path).parent.name}"
+
+        # Requirements/package files
+        if Path(rel_path).name in ("requirements.txt", "requirements-pipeline.txt", "package.json"):
+            return f"Dependencies for {Path(rel_path).parent.name}"
+
+        # Brain business artifacts
+        if rel_path.startswith("brain/BusinessArtifacts/"):
+            name = Path(rel_path).stem
+            ext = Path(rel_path).suffix
+            return f"Business artifact: {name} ({ext})"
+
+        # Brain manifest
+        if rel_path.startswith("brain/manifest/"):
+            return "Project manifest — file catalog with capabilities"
+
+        # Brain code
+        if rel_path.startswith("brain/machine_artifacts/code/"):
+            return f"Brain tool: {Path(rel_path).stem}"
+
+        # Config files
+        if Path(rel_path).name in (".gitignore", "tsconfig.json", "vite.config.ts", "tailwind.config.js"):
+            return f"Config: {Path(rel_path).name}"
+
+        # Test files
+        if "/tests/" in rel_path or rel_path.startswith("tests/"):
+            return f"Test: {Path(rel_path).stem}"
+
+        # Frontend source
+        if rel_path.endswith((".tsx", ".ts")) and "frontend" in rel_path:
+            return f"Frontend component: {Path(rel_path).stem}"
+
+        # Python source without capabilities entry
+        if rel_path.endswith(".py"):
+            return f"Python module: {Path(rel_path).stem}"
+
+        # Legal
+        if rel_path.startswith("Legal/"):
+            return f"Legal document: {Path(rel_path).stem}"
+
+        # Fallback
+        return f"{Path(rel_path).suffix or 'file'} in {Path(rel_path).parent}"
+
     def generate(self) -> list:
         """Generate the complete manifest from git tracked files."""
         result = subprocess.run(
@@ -113,9 +196,12 @@ class ManifestGenerator:
                 "entity_type": entity_type,
             }
 
-            # Capabilities
+            # Capabilities for known code files
             if rel_path in self.CAPABILITIES:
                 entry["capabilities"] = self.CAPABILITIES[rel_path]
+
+            # Description for every file — GPT needs this to decide what to read
+            entry["description"] = self._describe(rel_path, full, entity_type)
 
             self._manifest.append(entry)
 
