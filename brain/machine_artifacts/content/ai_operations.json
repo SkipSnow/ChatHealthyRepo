@@ -16577,6 +16577,22 @@
           "description": "Business artifacts (PDF, DOCX, diagrams) are in brain/BusinessArtifacts/. Each should map to a brain record.",
           "path": "brain/BusinessArtifacts/",
           "diagrams_path": "brain/BusinessArtifacts/diagrams/"
+        },
+        "data_governance": {
+          "publish_flag": "Every brain record has a publish field (true/false). publish=false means INTERNAL ONLY \u2014 never include in public-facing artifacts.",
+          "funding_amount": "The seed funding amount ($1.5M) is publish=false. The date (July 31) is publish=true.",
+          "investor_docs": "All investor documents are publish=false.",
+          "conflict_resolution": "If you find conflicting data across collections (different amounts, dates, or facts), STOP and flag the conflict to Boss. Do not average, guess, or pick one. Report all values found with their source collection and record ID.",
+          "source_of_truth": "Website/roadmap.html is the source of truth for milestone dates. Brain records point to it, not the other way around."
+        },
+        "how_to_research": {
+          "step_1": "Read the brain_manifest in this system prompt to find which collection likely has the data.",
+          "step_2": "Request the full collection via read_collection(collection_name).",
+          "step_3": "Find the specific record by _record_id.",
+          "step_4": "Check the description field to confirm relevance.",
+          "step_5": "Check the publish field before including in any output.",
+          "step_6": "If the record has a business_artifact field, that points to the corresponding PDF/DOCX.",
+          "step_7": "Cross-reference across collections. If data appears in multiple places, verify consistency."
         }
       },
       "description": "Static system prompt for GPT assignments. Prompt-cacheable. Includes brain manifest and output schema.",
