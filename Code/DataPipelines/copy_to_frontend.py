@@ -225,21 +225,102 @@ def migrate_environment(config: dict) -> dict:
         client.close()
 
 
+def migrate_small_collections(config: dict) -> dict:
+    """Migrate non-provider collections via $out. Same cluster, fast."""
+    conn = os.environ.get("MONGO_connectionString")
+    if not conn:
+        raise ValueError("MONGO_connectionString not set")
+    src_env = config.get("src_env", "dev")
+    dst_env = config.get("dst_env", "qa")
+    src_db_name = f"{src_env}_PublicHealthData"
+    dst_db_name = f"{dst_env}_PublicHealthData"
+
+    client = MongoClient(conn, serverSelectionTimeoutMS=30_000)
+    try:
+        src_db = client[src_db_name]
+        results = []
+        for coll_name in sorted(src_db.list_collection_names()):
+            if coll_name.startswith("system.") or coll_name == "providers":
+                continue
+            count = src_db[coll_name].count_documents({})
+            logging.info("Migrate $out: %s.%s (%s docs) → %s.%s",
+                         src_db_name, coll_name, f"{count:,}", dst_db_name, coll_name)
+            list(src_db[coll_name].aggregate(
+                [{"$out": {"db": dst_db_name, "coll": coll_name}}], allowDiskUse=True))
+            results.append({"collection": coll_name, "copied": count})
+        return {"collections": results}
+    finally:
+        client.close()
+
+
+def migrate_chunk(config: dict) -> dict:
+    """Copy a chunk of records by _id range within the same cluster (different databases)."""
+    from bson import ObjectId
+    conn = os.environ.get("MONGO_connectionString")
+    if not conn:
+        raise ValueError("MONGO_connectionString not set")
+
+    src_env = config.get("src_env", "dev")
+    dst_env = config.get("dst_env", "qa")
+    src_db_name = f"{src_env}_PublicHealthData"
+    dst_db_name = f"{dst_env}_PublicHealthData"
+    coll_name = config.get("collection", "providers")
+    job_number = config.get("job_number", 0)
+    start_id = ObjectId(config["start_id"])
+    end_id = ObjectId(config["end_id"])
+
+    client = MongoClient(conn, serverSelectionTimeoutMS=30_000)
+    try:
+        src = client[src_db_name][coll_name]
+        dst = client[dst_db_name][coll_name]
+        query = {"_id": {"$gte": start_id, "$lte": end_id}}
+
+        cursor = src.find(query, batch_size=BATCH_SIZE, no_cursor_timeout=True)
+        batch = []
+        copied = 0
+        start_time = time.time()
+        try:
+            for doc in cursor:
+                batch.append(doc)
+                if len(batch) >= BATCH_SIZE:
+                    dst.insert_many(batch, ordered=False)
+                    copied += len(batch)
+                    batch = []
+            if batch:
+                dst.insert_many(batch, ordered=False)
+                copied += len(batch)
+        finally:
+            cursor.close()
+
+        elapsed = time.time() - start_time
+        logging.info("MigrateChunk %d: %s docs in %.1fs", job_number, f"{copied:,}", elapsed)
+        return {"job_number": job_number, "copied": copied, "seconds": round(elapsed, 1)}
+    finally:
+        client.close()
+
+
 def drop_destination(config: dict) -> dict:
-    """Drop destination collection on frontend cluster. Called once before copy workers fan out."""
-    frontend_conn = os.environ.get("MONGO_FRONTEND_connectionString")
-    if not frontend_conn:
-        raise ValueError("MONGO_FRONTEND_connectionString not set")
+    """Drop destination collection. Uses pipeline or frontend cluster based on config."""
+    use_pipeline = config.get("use_pipeline_cluster", False)
+    if use_pipeline:
+        conn = os.environ.get("MONGO_connectionString")
+        if not conn:
+            raise ValueError("MONGO_connectionString not set")
+    else:
+        conn = os.environ.get("MONGO_FRONTEND_connectionString")
+        if not conn:
+            raise ValueError("MONGO_FRONTEND_connectionString not set")
 
     env_prefix = config.get("env_prefix", "dev")
     dst_db_name = f"{env_prefix}_PublicHealthData" if env_prefix else "PublicHealthData"
     coll_name = config.get("collection", "providers")
 
-    client = MongoClient(frontend_conn, serverSelectionTimeoutMS=30_000)
+    client = MongoClient(conn, serverSelectionTimeoutMS=30_000)
     try:
         client[dst_db_name][coll_name].drop()
-        logging.info("Dropped %s.%s on frontend cluster", dst_db_name, coll_name)
-        return {"dropped": f"{dst_db_name}.{coll_name}"}
+        cluster = "pipeline" if use_pipeline else "frontend"
+        logging.info("Dropped %s.%s on %s cluster", dst_db_name, coll_name, cluster)
+        return {"dropped": f"{dst_db_name}.{coll_name}", "cluster": cluster}
     finally:
         client.close()
 
