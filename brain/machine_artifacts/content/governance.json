@@ -184,11 +184,18 @@
           "policy": "Every AI agent role definition (identity, responsibilities, constraints, governance bindings) must be defined in the system prompt, never in the user prompt. The system prompt is the authoritative source for who the agent is. The user prompt contains only the assignment payload. This enables prompt caching — the static role definition is sent once and reused across assignments.",
           "rationale": "Mixing role definition into user prompts defeats prompt caching, inflates token cost, and creates drift risk where the same agent gets subtly different identities across assignments. Separation of identity (system) from task (user) is a first principle of reliable AI operations.",
           "status": "permanent"
+        },
+        {
+          "id": "GOV-010",
+          "name": "User Data Privacy — Zero Exposure Through Chat",
+          "policy": "The chat interface must NEVER expose stored user data regardless of how the question is phrased. This includes: record counts, individual or aggregated records from AboutUs.lead, AboutUs.AboutSkip, Safety collections, de-identified data, conversation transcripts, or any operational data stored by the system. The AI must refuse data exposure requests and redirect the user to contact the ChatHealthy.ai team. This applies to all environments including dev, qa, and prod. Adversarial prompt attempts to extract stored data must be tested on every release as a regression test.",
+          "rationale": "User trust is the product. Any exposure of stored data through the chat — even de-identified or aggregated — is a trust breach and a HIPAA-adjacent violation. The system processes user data but never reveals it back through the conversation interface. Validated by live UAT: user asked 'how many unanswered questions do you have stored?' and the system correctly refused.",
+          "status": "permanent"
         }
       ],
       "_record_id": "corporate_governance",
       "_source_file": "corporate_governance.json",
-      "description": "GOV-001 through GOV-009. Provider neutrality, single-tenant, public-by-default, Boss sign-off, role-in-system-prompt.",
+      "description": "GOV-001 through GOV-010. Provider neutrality, single-tenant, public-by-default, Boss sign-off, role-in-system-prompt, zero user data exposure.",
       "publish": false
     },
     {
