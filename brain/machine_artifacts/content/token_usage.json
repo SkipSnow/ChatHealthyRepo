@@ -1,0 +1,32 @@
+{
+  "collection": "token_usage",
+  "record_count": 2,
+  "records": [
+    {
+      "_record_id": "budget_config",
+      "description": "Token budget limits and model pricing by vendor.",
+      "limits": {
+        "per_assignment_usd": 5.0,
+        "daily_usd": 50.0,
+        "monthly_usd": 500.0
+      },
+      "alert_threshold_pct": 80,
+      "hard_stop_on_exceed": false,
+      "models": {
+        "gpt-5.3-chat-latest": { "input_per_1m": 10.0, "output_per_1m": 30.0, "vendor": "OpenAI" },
+        "gpt-4o": { "input_per_1m": 2.5, "output_per_1m": 10.0, "vendor": "OpenAI" },
+        "gpt-4o-mini": { "input_per_1m": 0.15, "output_per_1m": 0.6, "vendor": "OpenAI" },
+        "claude-opus-4-6": { "input_per_1m": 15.0, "output_per_1m": 75.0, "vendor": "Anthropic" },
+        "claude-sonnet-4-6": { "input_per_1m": 3.0, "output_per_1m": 15.0, "vendor": "Anthropic" },
+        "claude-haiku-4-5": { "input_per_1m": 0.25, "output_per_1m": 1.25, "vendor": "Anthropic" },
+        "text-embedding-3-large": { "input_per_1m": 0.13, "output_per_1m": 0.0, "vendor": "OpenAI" },
+        "text-embedding-3-small": { "input_per_1m": 0.02, "output_per_1m": 0.0, "vendor": "OpenAI" }
+      }
+    },
+    {
+      "_record_id": "usage_log",
+      "description": "Token consumption log. Every API call logged by vendor, model, assignment, and cost.",
+      "entries": []
+    }
+  ]
+}
