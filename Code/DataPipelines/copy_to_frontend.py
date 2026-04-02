@@ -73,10 +73,16 @@ def _copy_collection(src_db, dst_db, src_coll: str, dst_coll: str, query: dict =
 
 
 def snapshot_collection_fn(config: dict) -> dict:
-    """Server-side copy of a PublicHealthData collection using aggregate $out.
+    """Server-side copy of a collection using aggregate $out.
 
     No data moves over the wire — MongoDB copies internally.
     Replaces destination if it already exists.
+
+    config:
+        source       — source collection name (default: "providers")
+        destination  — destination collection name (required)
+        env_prefix   — source database prefix (default: "dev")
+        dst_db       — destination database name (optional, defaults to same as source)
     """
     source = config.get("source", "providers")
     destination = config.get("destination")
@@ -88,16 +94,27 @@ def snapshot_collection_fn(config: dict) -> dict:
         raise ValueError("MONGO_connectionString not set")
 
     env_prefix = config.get("env_prefix", "dev")
-    db_name = f"{env_prefix}_PublicHealthData" if env_prefix else "PublicHealthData"
+    src_db_name = f"{env_prefix}_PublicHealthData" if env_prefix else "PublicHealthData"
+    dst_db_name = config.get("dst_db", src_db_name)
+
     client = MongoClient(conn, serverSelectionTimeoutMS=30_000)
     try:
-        db = client[db_name]
+        db = client[src_db_name]
         count_before = db[source].count_documents({})
-        logging.info("Snapshot: %s (%s docs) → %s", source, f"{count_before:,}", destination)
-        list(db[source].aggregate([{"$out": destination}], allowDiskUse=True))
-        count_after = db[destination].count_documents({})
-        logging.info("Snapshot complete: %s → %s (%s docs)", source, destination, f"{count_after:,}")
-        return {"source": source, "destination": destination, "source_count": count_before, "copied": count_after}
+        logging.info("Snapshot: %s.%s (%s docs) → %s.%s",
+                     src_db_name, source, f"{count_before:,}", dst_db_name, destination)
+
+        if dst_db_name == src_db_name:
+            out_stage = {"$out": destination}
+        else:
+            out_stage = {"$out": {"db": dst_db_name, "coll": destination}}
+
+        list(db[source].aggregate([out_stage], allowDiskUse=True))
+        count_after = client[dst_db_name][destination].count_documents({})
+        logging.info("Snapshot complete: %s.%s → %s.%s (%s docs)",
+                     src_db_name, source, dst_db_name, destination, f"{count_after:,}")
+        return {"source": f"{src_db_name}.{source}", "destination": f"{dst_db_name}.{destination}",
+                "source_count": count_before, "copied": count_after}
     finally:
         client.close()
 
