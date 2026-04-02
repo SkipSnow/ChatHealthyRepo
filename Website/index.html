@@ -587,11 +587,57 @@
         (function() {
           var host = window.location.hostname;
           var env = host.indexOf('dev.') === 0 ? 'dev' : host.indexOf('qa.') === 0 ? 'qa' : 'prod';
-          // Naming convention: {org}-{env_prefix}-{base}.hf.space
           var org = 'skipsnow';
           var base = 'chathealthyspace';
           var spaceName = env === 'prod' ? base : env + '-' + base;
           document.getElementById('coreChatFrame').src = 'https://' + org + '-' + spaceName + '.hf.space';
+        })();
+      </script>
+
+      <!-- Control Frame — GUI surface owned by the React app via postMessage.
+           React app pushes HTML here. Clicks relay back to the app.
+           Invisible when empty. -->
+      <div id="guiControlFrame" style="min-height:0;overflow:hidden;transition:all 0.2s ease;"></div>
+
+      <script>
+        (function() {
+          var frame = document.getElementById('guiControlFrame');
+          var chatFrame = document.getElementById('coreChatFrame');
+
+          // Listen for render commands from the React app inside the iframe
+          window.addEventListener('message', function(event) {
+            // Only accept messages from our chat iframe
+            if (!chatFrame || !chatFrame.contentWindow) return;
+            if (event.source !== chatFrame.contentWindow) return;
+
+            var msg = event.data;
+            if (!msg || typeof msg !== 'object') return;
+
+            // Render command: app sends HTML to display
+            if (msg.type === 'gui:render') {
+              frame.innerHTML = msg.html || '';
+              // Attach click handlers to any [data-gui-action] elements
+              var actions = frame.querySelectorAll('[data-gui-action]');
+              for (var i = 0; i < actions.length; i++) {
+                (function(el) {
+                  var tag = el.tagName.toLowerCase();
+                  var eventType = (tag === 'select') ? 'change' : 'click';
+                  el.addEventListener(eventType, function() {
+                    chatFrame.contentWindow.postMessage({
+                      type: 'gui:event',
+                      action: el.getAttribute('data-gui-action'),
+                      value: (tag === 'select') ? el.value : (el.getAttribute('data-gui-value') || '')
+                    }, '*');
+                  });
+                })(actions[i]);
+              }
+            }
+
+            // Clear command: hide the control frame
+            if (msg.type === 'gui:clear') {
+              frame.innerHTML = '';
+            }
+          });
         })();
       </script>
 

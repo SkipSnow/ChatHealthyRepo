@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import MessageBubble from './MessageBubble'
-import { PaginationBar, useGUIManager } from './GUIManager'
+import { useGUIManager } from './GUIManager'
 
 export interface Message {
   role: 'user' | 'assistant'
@@ -340,31 +340,7 @@ export default function ChatWindow() {
         </div>
       )}
 
-      {/* Control Frame — persistent GUI layer below chat, above input.
-           Empty/invisible by default. Widgets render here when active. */}
-      <div id="gui-control-frame" style={{
-        minHeight: 0,
-        transition: 'min-height 0.2s ease',
-        ...(gui.pagination.visible ? { borderTop: '1px solid #e5e7eb' } : {}),
-      }}>
-        <PaginationBar
-          state={gui.pagination}
-          onPageForward={() => {
-            gui.pageForward()
-            // TODO: trigger search with gui.getAfterNpi() and current searchParams
-          }}
-          onPageBack={() => {
-            gui.pageBack()
-            // TODO: trigger search with gui.getAfterNpi() for the previous page
-          }}
-          onPageSizeChange={(size) => {
-            gui.setPageSize(size)
-            // TODO: re-trigger search with new page size from page 1
-          }}
-          onClose={() => gui.hidePagination()}
-        />
-        {/* Future widgets render here: filters, sort, map toggle */}
-      </div>
+      {/* Control frame lives on the static parent page — React pushes via postMessage */}
 
       <form onSubmit={handleSend} style={{ padding: '16px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: 8 }}>
         <input
