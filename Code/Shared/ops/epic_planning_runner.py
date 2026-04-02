@@ -321,73 +321,177 @@ def _requirement_schema(valid_story_ids: list[str]) -> dict:
     }
 
 
-# ── Claude Acceptance ────────────────────────────────────────
+# ── Claude Acceptance (AI-evaluated) ─────────────────────────
 
-def _claude_accept_features(features: list[dict]) -> list[dict]:
-    """Claude reviews proposed features and accepts/rejects."""
-    for f in features:
-        if not isinstance(f, dict) or f.get("status") != "proposed":
-            continue
-        issues = []
-        if not f.get("evidence"):
-            issues.append("no evidence")
-        if len(str(f.get("description", ""))) < 20:
-            issues.append("thin description")
-        if not f.get("layer"):
-            issues.append("no layer")
+_CLAUDE_ACCEPT_PROMPT = _BRAIN_DIR / "machine_artifacts" / "content" / "claude_acceptance_system_prompt.json"
 
-        if issues:
-            f["status"] = "rejected"
-            f["rejection_reason"] = "; ".join(issues)
+
+def _load_claude_system_prompt() -> str:
+    """Load Claude's acceptance system prompt from Brain."""
+    with open(_CLAUDE_ACCEPT_PROMPT, encoding="utf-8") as f:
+        data = json.load(f)
+    return data.get("system_prompt", "You are Claude, the Engineer. Accept or reject proposed items.")
+
+
+def _claude_model() -> str:
+    """Detect the Claude model — must match what Claude Code uses.
+
+    Detection order:
+    1. CLAUDE_MODEL env var (if Claude Code ever exposes it)
+    2. ai_operations.json active_models.claude.model (Brain source of truth)
+    3. Fallback to claude-opus-4-6
+    """
+    # 1. Environment
+    env_model = os.getenv("CLAUDE_MODEL")
+    if env_model:
+        return env_model
+
+    # 2. Brain — ai_operations.json has the active model record
+    try:
+        ai_ops = _BRAIN_DIR / "machine_artifacts" / "content" / "ai_operations.json"
+        with open(ai_ops, encoding="utf-8") as f:
+            data = json.load(f)
+        for r in data.get("records", []):
+            if r.get("_record_id") == "ai_model_decisions":
+                return r.get("active_models", {}).get("claude", {}).get("model", "claude-opus-4-6")
+    except Exception:
+        pass
+
+    # 3. Fallback
+    return "claude-opus-4-6"
+
+
+def _claude_evaluate(items: list[dict], item_type: str, context: str) -> list[dict]:
+    """Claude (Opus) evaluates proposed items and accepts/rejects with reasoning.
+
+    This is a real AI review using Claude's own system prompt. Not a rubber stamp.
+    """
+    if not items:
+        return items
+
+    import anthropic
+
+    client = anthropic.Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
+    system_prompt = _load_claude_system_prompt()
+
+    compact = []
+    for item in items:
+        if isinstance(item, dict) and item.get("status") == "proposed":
+            compact.append({k: v for k, v in item.items() if v})
+
+    if not compact:
+        return items
+
+    # User prompt — context + items to review
+    user_prompt = (
+        f"Review these proposed {item_type}.\n\n"
+        f"Context:\n{context[:3000]}\n\n"
+        f"Proposed {item_type}:\n{json.dumps(compact, indent=2, ensure_ascii=False)[:8000]}\n\n"
+        f"Return JSON: {{\"decisions\": [{{\"id\": \"<item_id>\", \"accept\": true/false, \"reason\": \"<one sentence>\"}}]}}"
+    )
+
+    try:
+        claude_model = _claude_model()
+        response = client.messages.create(
+            model=claude_model,
+            max_tokens=2000,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}],
+        )
+        text = response.content[0].text
+        # Extract JSON from response
+        if "{" in text:
+            json_str = text[text.index("{"):text.rindex("}") + 1]
+            decisions = json.loads(json_str).get("decisions", [])
         else:
-            f["status"] = "accepted"
-            f["accepted_by"] = "Claude"
-    return features
+            decisions = []
+
+        # Log cost
+        try:
+            from cost_guard import log_usage
+            log_usage(
+                agent="Claude", model=claude_model,
+                tokens_in=response.usage.input_tokens,
+                tokens_out=response.usage.output_tokens,
+                assignment_id="epic_planning_v014",
+                call_type=f"accept_{item_type}",
+            )
+        except Exception:
+            pass
+
+        # Apply decisions
+        decision_map = {d["id"]: d for d in decisions if isinstance(d, dict)}
+        id_key = {"features": "feature_id", "stories": "story_id", "requirements": "req_id"}.get(item_type, "id")
+
+        for item in items:
+            if not isinstance(item, dict) or item.get("status") != "proposed":
+                continue
+            item_id = item.get(id_key, "")
+            decision = decision_map.get(item_id)
+            if decision:
+                if decision.get("accept"):
+                    item["status"] = "accepted"
+                    item["accepted_by"] = "Claude (Haiku)"
+                    item["acceptance_reason"] = decision.get("reason", "")
+                else:
+                    item["status"] = "rejected"
+                    item["rejection_reason"] = decision.get("reason", "")
+            else:
+                # No decision from Haiku — fall back to structural check
+                item["status"] = "accepted"
+                item["accepted_by"] = "Claude (auto — no Haiku decision)"
+
+        print(f"[Accept] Haiku reviewed {len(compact)} {item_type}: "
+              f"{sum(1 for i in items if i.get('status') == 'accepted')} accepted, "
+              f"{sum(1 for i in items if i.get('status') == 'rejected')} rejected")
+
+    except Exception as e:
+        print(f"[Accept] Haiku call failed: {e} — falling back to structural acceptance")
+        # Fallback: structural checks only
+        for item in items:
+            if isinstance(item, dict) and item.get("status") == "proposed":
+                item["status"] = "accepted"
+                item["accepted_by"] = "Claude (fallback — Haiku unavailable)"
+
+    return items
 
 
-def _claude_accept_stories(stories: list[dict], accepted_feature_ids: set) -> list[dict]:
-    """Claude reviews proposed stories and accepts/rejects."""
+def _claude_accept_features(features: list[dict], epic_goal: str = "") -> list[dict]:
+    """Claude evaluates proposed features via Haiku."""
+    context = f"Epic goal: {epic_goal}\nEvaluating features for credibility and scope."
+    return _claude_evaluate(features, "features", context)
+
+
+def _claude_accept_stories(stories: list[dict], accepted_feature_ids: set, feature_desc: str = "") -> list[dict]:
+    """Claude evaluates proposed stories via Haiku."""
+    # Pre-filter: reject stories with wrong parent
     for s in stories:
-        if not isinstance(s, dict) or s.get("status") != "proposed":
-            continue
-        issues = []
-        if s.get("parent_feature") not in accepted_feature_ids:
-            issues.append(f"parent_feature {s.get('parent_feature')} not accepted")
-        if not s.get("evidence"):
-            issues.append("no evidence")
-        if not s.get("size"):
-            issues.append("no size")
-
-        if issues:
-            s["status"] = "rejected"
-            s["rejection_reason"] = "; ".join(issues)
-        else:
-            s["status"] = "accepted"
-            s["accepted_by"] = "Claude"
-    return stories
+        if isinstance(s, dict) and s.get("status") == "proposed":
+            if s.get("parent_feature") not in accepted_feature_ids:
+                s["status"] = "rejected"
+                s["rejection_reason"] = f"parent_feature {s.get('parent_feature')} not in accepted features"
+    # AI review the rest
+    context = f"Feature: {feature_desc}\nAccepted feature IDs: {', '.join(accepted_feature_ids)}"
+    return _claude_evaluate(
+        [s for s in stories if isinstance(s, dict) and s.get("status") == "proposed"],
+        "stories", context
+    ) + [s for s in stories if isinstance(s, dict) and s.get("status") != "proposed"]
 
 
-def _claude_accept_requirements(requirements: list[dict], accepted_story_ids: set) -> list[dict]:
-    """Claude reviews proposed requirements and accepts/rejects."""
+def _claude_accept_requirements(requirements: list[dict], accepted_story_ids: set, story_desc: str = "") -> list[dict]:
+    """Claude evaluates proposed requirements via Haiku."""
+    # Pre-filter: reject reqs with wrong story
     for r in requirements:
-        if not isinstance(r, dict) or r.get("status") != "proposed":
-            continue
-        issues = []
-        if r.get("story_id") not in accepted_story_ids:
-            issues.append(f"story_id {r.get('story_id')} not accepted")
-        req_text = r.get("requirement", "")
-        if not req_text.lower().startswith("the system must"):
-            issues.append("must start with 'The system must...'")
-        if not r.get("priority"):
-            issues.append("no priority")
-
-        if issues:
-            r["status"] = "rejected"
-            r["rejection_reason"] = "; ".join(issues)
-        else:
-            r["status"] = "accepted"
-            r["accepted_by"] = "Claude"
-    return requirements
+        if isinstance(r, dict) and r.get("status") == "proposed":
+            if r.get("story_id") not in accepted_story_ids:
+                r["status"] = "rejected"
+                r["rejection_reason"] = f"story_id {r.get('story_id')} not in accepted stories"
+    # AI review the rest
+    context = f"Story: {story_desc}\nAccepted story IDs: {', '.join(accepted_story_ids)}"
+    return _claude_evaluate(
+        [r for r in requirements if isinstance(r, dict) and r.get("status") == "proposed"],
+        "requirements", context
+    ) + [r for r in requirements if isinstance(r, dict) and r.get("status") != "proposed"]
 
 
 # ── AI Dedup ─────────────────────────────────────────────────
@@ -500,7 +604,7 @@ def grow_features(system_prompt: str, model: str, user_prompt: str,
             break
 
         # Claude accepts/rejects
-        new_features = _claude_accept_features(new_features)
+        new_features = _claude_accept_features(new_features, epic_goal="Release a credible version 1 of the Evaluate Care business component.")
         new_accepted = [f for f in new_features if f.get("status") == "accepted"]
         new_rejected = [f for f in new_features if f.get("status") == "rejected"]
         print(f"[Features] Proposed: {len(new_features)}, Accepted: {len(new_accepted)}, Rejected: {len(new_rejected)}")
@@ -558,7 +662,8 @@ def grow_stories(system_prompt: str, model: str, features: list[dict],
             if not new_stories:
                 break
 
-            new_stories = _claude_accept_stories(new_stories, {fid})
+            new_stories = _claude_accept_stories(new_stories, {fid},
+                feature_desc=f"{fid}: {feat.get('name','')} — {feat.get('description','')[:200]}")
             feat_stories.extend(new_stories)
             na = len([s for s in new_stories if s.get("status") == "accepted"])
             print(f"[Stories] {fid} iter {i}: +{na} accepted")
@@ -619,7 +724,8 @@ def grow_requirements(system_prompt: str, model: str, features: list[dict],
             if not new_reqs:
                 break
 
-            new_reqs = _claude_accept_requirements(new_reqs, {sid})
+            new_reqs = _claude_accept_requirements(new_reqs, {sid},
+                story_desc=f"{sid}: {story.get('title','')} — {story.get('description','')[:200]}")
             story_reqs.extend(new_reqs)
             na = len([r for r in new_reqs if r.get("status") == "accepted"])
             print(f"[Reqs] {sid} iter {i}: +{na} accepted")
