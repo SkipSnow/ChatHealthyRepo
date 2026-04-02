@@ -1,0 +1,38 @@
+{
+  "collection": "business_facts",
+  "record_count": 1,
+  "records": [
+    {
+      "_record_id": "valuation_pre_money",
+      "title": "Pre-Money Valuation and Advisor Equity",
+      "date": "2026-04-02",
+      "source": "Boss + GPT collaboration",
+      "valuation": {
+        "pre_money": 10000000,
+        "currency": "USD",
+        "basis": "Working system, not idea-stage"
+      },
+      "advisor_equity": {
+        "grant_value": 5000,
+        "percentage": 0.0005,
+        "display": "0.05%",
+        "positioning": "Clean, standard, credible for advisors"
+      },
+      "justification": [
+        "Not pre-product: Find Care works, Evaluate Care works, The Brain exists",
+        "Real system architecture: deterministic outputs, boolean requirements, governed SDLC",
+        "Massive market + clear wedge: healthcare decision layer, Evaluate Care is first proof point",
+        "No traction yet (honest): no users, no revenue, founder-dependent"
+      ],
+      "why_10M": [
+        "High enough to signal this is real",
+        "Low enough to avoid credibility loss",
+        "Easy math for advisor grants (0.05% per $5K)",
+        "Leaves room to step up later (15-25M after traction)"
+      ],
+      "pitch_line": "We are valuing the company at $10M pre-money based on a working system. I am offering $5K in equity for advisory participation.",
+      "description": "Pre-money valuation $10M. Advisor equity 0.05% per $5K. Working system justification.",
+      "publish": false
+    }
+  ]
+}
