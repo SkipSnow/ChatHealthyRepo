@@ -94,6 +94,52 @@ SYNC_TASK_HANDLERS = {
     "PromoteData": run_promote_data,
 }
 
+# Ops Manager tasks — infrastructure only, no pipeline business logic
+def _get_ops_manager():
+    from cluster_lifecycle_manager import ClusterLifecycleManager
+    from pymongo import MongoClient
+    conn = os.environ.get("MONGO_FRONTEND_connectionString",
+                          os.environ.get("MONGO_connectionString", ""))
+    push_fn = None
+    try:
+        from pipeline_health import send_pushover
+        push_fn = lambda title, msg: send_pushover(title, msg)
+    except Exception:
+        pass
+    return ClusterLifecycleManager(
+        get_db_fn=lambda: MongoClient(conn),
+        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
+        push_fn=push_fn,
+    )
+
+def _handle_wake_cluster(payload):
+    mgr = _get_ops_manager()
+    return mgr.reserve(
+        cluster_name=payload.get("cluster_name", "ChatHealthyDataPipelines"),
+        job_id=payload.get("job_id", f"manual_{int(__import__('time').time())}"),
+        requester=payload.get("requester", "manual"),
+        expected_duration_minutes=payload.get("expected_duration_minutes", 60),
+    )
+
+def _handle_cluster_status(payload):
+    mgr = _get_ops_manager()
+    return mgr.status(payload.get("cluster_name", "ChatHealthyDataPipelines"))
+
+def _handle_release(payload):
+    mgr = _get_ops_manager()
+    return mgr.release(payload.get("job_id", ""))
+
+def _handle_force_release(payload):
+    mgr = _get_ops_manager()
+    return mgr.force_release_all(payload.get("cluster_name", "ChatHealthyDataPipelines"))
+
+OPS_TASK_HANDLERS = {
+    "WakeCluster": _handle_wake_cluster,
+    "ClusterStatus": _handle_cluster_status,
+    "Release": _handle_release,
+    "ForceRelease": _handle_force_release,
+}
+
 # Asynchronous tasks — start a Durable orchestrator, return 202 + status URL
 ASYNC_TASK_ORCHESTRATORS = {
     "LoadProviderData": "provider_load_orchestrator",
@@ -158,7 +204,13 @@ async def dev_pipeline_management(
 
         logging.info("User '%s' requested task '%s'", user_id, task)
 
-        # Synchronous path
+        # Ops Manager path — infrastructure only
+        if task in OPS_TASK_HANDLERS:
+            result = OPS_TASK_HANDLERS[task](payload)
+            logging.info("Ops task '%s' completed", task)
+            return json_response({"success": True, "task": task, "data": result}, 200)
+
+        # Synchronous pipeline path
         if task in SYNC_TASK_HANDLERS:
             result = SYNC_TASK_HANDLERS[task](payload)
             logging.info("Task '%s' completed for user '%s'", task, user_id)
@@ -253,13 +305,18 @@ def exchange_otp_route(req: func.HttpRequest) -> func.HttpResponse:
 
 @app.timer_trigger(schedule="0 */5 * * * *", arg_name="myTimer", run_on_startup=False)
 def cluster_lifecycle_timer(myTimer: func.TimerRequest) -> None:
-    """Check for overdue cluster reservations every hour. Alerts Boss via Pushover."""
+    """Ops-only timer. No task execution. No pipeline imports.
+
+    Checks overdue reservations (alerts Boss).
+    Shuts down idle clusters (zero reservations).
+    """
     from cluster_lifecycle_manager import ClusterLifecycleManager
     from pymongo import MongoClient
-    import os
 
     try:
-        client = MongoClient(os.environ.get("MONGO_connectionString", ""))
+        conn = os.environ.get("MONGO_FRONTEND_connectionString",
+                              os.environ.get("MONGO_connectionString", ""))
+        client = MongoClient(conn)
         push_fn = None
         try:
             from pipeline_health import send_pushover
@@ -272,10 +329,10 @@ def cluster_lifecycle_timer(myTimer: func.TimerRequest) -> None:
             env_prefix=os.environ.get("ENV_PREFIX", "dev"),
             push_fn=push_fn,
         )
-        manager.process_queue()  # Execute queued tasks if cluster is IDLE
-        manager.check_overdue()  # Alert Boss on overdue reservations
-        status = manager.get_status()
-        logging.info("Cluster lifecycle check: %s, %d active reservations",
+        manager.check_overdue()
+        manager.check_idle_shutdown()
+        status = manager.status(os.environ.get("PIPELINE_CLUSTER", "ChatHealthyDataPipelines"))
+        logging.info("Ops timer: %s, %d reservations",
                      status["cluster_state"], status["active_reservations"])
     except Exception:
         logging.exception("Cluster lifecycle timer failed")
