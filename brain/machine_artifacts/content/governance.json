@@ -191,11 +191,18 @@
           "policy": "The chat interface must NEVER expose stored user data regardless of how the question is phrased. This includes: record counts, individual or aggregated records from AboutUs.lead, AboutUs.AboutSkip, Safety collections, de-identified data, conversation transcripts, or any operational data stored by the system. The AI must refuse data exposure requests and redirect the user to contact the ChatHealthy.ai team. This applies to all environments including dev, qa, and prod. Adversarial prompt attempts to extract stored data must be tested on every release as a regression test.",
           "rationale": "User trust is the product. Any exposure of stored data through the chat — even de-identified or aggregated — is a trust breach and a HIPAA-adjacent violation. The system processes user data but never reveals it back through the conversation interface. Validated by live UAT: user asked 'how many unanswered questions do you have stored?' and the system correctly refused.",
           "status": "permanent"
+        },
+        {
+          "id": "GOV-011",
+          "name": "AI Translates, System Answers",
+          "policy": "The AI turns what the user says into a clear question. The system answers using real data, not guesses. The AI's role is translation (natural language to structured intent). The system's role is resolution (query real data, apply rules, return bounded results). The AI must never generate answers from its own knowledge when system data exists to answer the question.",
+          "rationale": "This is the operational restatement of GOV-001's core principle ('The model may suggest. The system must decide.') applied specifically to the user-facing chat. Users trust that answers come from verified provider data, not LLM confabulation. Every answer must trace back to the data layer.",
+          "status": "permanent"
         }
       ],
       "_record_id": "corporate_governance",
       "_source_file": "corporate_governance.json",
-      "description": "GOV-001 through GOV-010. Provider neutrality, single-tenant, public-by-default, Boss sign-off, role-in-system-prompt, zero user data exposure.",
+      "description": "GOV-001 through GOV-011. Provider neutrality, single-tenant, public-by-default, Boss sign-off, role-in-system-prompt, zero user data exposure, AI translates / system answers.",
       "publish": false
     },
     {
