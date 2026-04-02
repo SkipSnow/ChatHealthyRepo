@@ -1,0 +1,83 @@
+{
+  "assignment_id": "PHASE-2-GOV-F-003",
+  "iteration": 12,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema/contract, API surface, and integration coverage for Brain lock lifecycle.",
+  "change_log": [
+    {
+      "path": "stories.GOV-F-003-S40",
+      "value": "Brain Lock Schema and Contract Definition",
+      "note": "Add schema layer for TTL and ownership fields",
+      "iteration": 12
+    },
+    {
+      "path": "stories.GOV-F-003-S41",
+      "value": "Lock Management API Endpoints",
+      "note": "Expose lock operations via controlled interface",
+      "iteration": 12
+    },
+    {
+      "path": "stories.GOV-F-003-S42",
+      "value": "Brain Runner Integration with Lock Lifecycle",
+      "note": "Ensure orchestration layer uses new lock logic",
+      "iteration": 12
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GOV-F-003-S40": {
+      "story_id": "GOV-F-003-S40",
+      "title": "Brain Lock Schema and Contract Definition",
+      "description": "Define and implement the MongoDB schema and data contract for Brain locks including owner_id, ttl_expiry, status (active, expired, recoverable), and audit fields. Ensure backward compatibility with any existing lock records.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S33"
+      ],
+      "size": "S",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; Code/Shared/machine_brain.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S41": {
+      "story_id": "GOV-F-003-S41",
+      "title": "Lock Management API Endpoints",
+      "description": "Implement internal API methods for lock acquire, renew, release, and recover operations. Ensure consistent interface for Brain runner and loop components, with validation and error handling for invalid ownership or expired locks.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S36",
+        "GOV-F-003-S37"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/brain_loop.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S42": {
+      "story_id": "GOV-F-003-S42",
+      "title": "Brain Runner Integration with Lock Lifecycle",
+      "description": "Integrate TTL, ownership validation, and recovery logic into Brain runner execution flow. Ensure every assignment execution acquires, renews, and releases locks correctly, and handles expired locks safely.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S36",
+        "GOV-F-003-S37",
+        "GOV-F-003-S41"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/brain_loop.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

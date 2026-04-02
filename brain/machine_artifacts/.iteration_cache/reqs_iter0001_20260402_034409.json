@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-001",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must render a board certification section within the provider scorecard inside MessageBubble when certification data is present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-002",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must display a certification status badge (e.g., Certified, Not Certified) based on normalized logic output.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-003",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must visually differentiate certification status using distinct badge styles for positive vs negative states.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-004",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must render the issuing body text exactly as provided by the normalized logic layer.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-005",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must display the certification’s contribution to the overall score in a human-readable format (e.g., +X points or included in score).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-006",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must position the board certification section consistently within the provider scorecard layout in MessageBubble.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-007",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must ensure the certification section does not break or overflow the MessageBubble layout across supported screen sizes.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-008",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must render all certification elements (badge, issuing body, score contribution) within a single cohesive UI block.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-009",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must not render the board certification section if certification data is null or undefined.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-010",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must display a fallback label (e.g., \"Certification data unavailable\") when certification data is present but incomplete.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-011",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must handle unknown or unexpected certification status values by rendering a neutral badge state.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-012",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must ensure rendering logic consumes only the defined schema from EVAL-P-BOARD-UX-S1 without direct raw backend field access.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-013",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must render the certification section within the existing MessageBubble.tsx rendering pipeline without introducing a parallel rendering path.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-014",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must ensure that the certification UI does not block or delay rendering of other scorecard elements.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-015",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must render text content (issuing body and score contribution) in a readable font size and contrast consistent with existing MessageBubble styles.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

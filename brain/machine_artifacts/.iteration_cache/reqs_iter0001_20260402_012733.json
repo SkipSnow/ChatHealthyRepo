@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CACHE-001",
+      "story_id": "EVAL-CACHE-S1",
+      "requirement": "The system must define a MongoDB collection schema for cached quality scores including fields for cache_key, entity_type, entity_id, inputs, outputs, version, created_at, and expires_at.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CACHE-002",
+      "story_id": "EVAL-CACHE-S1",
+      "requirement": "The system must generate a deterministic cache_key derived from normalized input parameters including provider_id or trial_id, location, filters, and weights.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CACHE-003",
+      "story_id": "EVAL-CACHE-S1",
+      "requirement": "The system must ensure identical input parameter sets always produce the same cache_key.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CACHE-004",
+      "story_id": "EVAL-CACHE-S1",
+      "requirement": "The system must ensure different input parameter sets produce different cache_keys.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CACHE-005",
+      "story_id": "EVAL-CACHE-S1",
+      "requirement": "The system must store the full set of normalized input parameters used to generate the cache_key within the cache document.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CACHE-006",
+      "story_id": "EVAL-CACHE-S1",
+      "requirement": "The system must include a version field in each cache record to support invalidation when scoring logic changes.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CACHE-007",
+      "story_id": "EVAL-CACHE-S1",
+      "requirement": "The system must include an expires_at timestamp in each cache record to support TTL-based expiration.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CACHE-008",
+      "story_id": "EVAL-CACHE-S1",
+      "requirement": "The system must configure a MongoDB TTL index on expires_at to automatically remove expired cache entries.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CACHE-009",
+      "story_id": "EVAL-CACHE-S1",
+      "requirement": "The system must support both provider and clinical trial entities within the same cache schema using an entity_type discriminator.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CACHE-010",
+      "story_id": "EVAL-CACHE-S1",
+      "requirement": "The system must store computed quality score outputs including overall score and individual measure results in the cache document.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CACHE-011",
+      "story_id": "EVAL-CACHE-S1",
+      "requirement": "The system must normalize input parameters (e.g., sort filters, standardize casing, remove nulls) before cache_key generation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CACHE-012",
+      "story_id": "EVAL-CACHE-S1",
+      "requirement": "The system must reject cache writes if required fields (cache_key, outputs, version, expires_at) are missing.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CACHE-013",
+      "story_id": "EVAL-CACHE-S1",
+      "requirement": "The system must handle invalid or malformed input parameters by not generating a cache_key and returning an error.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CACHE-014",
+      "story_id": "EVAL-CACHE-S1",
+      "requirement": "The system must handle MongoDB write failures by surfacing an error without corrupting existing cache records.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,115 @@
+{
+  "assignment_id": "FEAT-5-STORIES",
+  "iteration": 11,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing schema/contract, core routing logic decomposition, API integration, and test coverage stories for FEAT-5.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-5-S38",
+      "value": "Tool Allowlist Schema and Contract Definition",
+      "note": "Added schema/contract coverage for allowlist + Pydantic binding",
+      "iteration": 11
+    },
+    {
+      "path": "stories.FEAT-5-S39",
+      "value": "Core Allowlist Routing Logic Enforcement",
+      "note": "Added core routing enforcement logic story",
+      "iteration": 11
+    },
+    {
+      "path": "stories.FEAT-5-S40",
+      "value": "Anthropic Tool Use Parsing and Dispatch Integration",
+      "note": "Added integration with LLM tool_use blocks",
+      "iteration": 11
+    },
+    {
+      "path": "stories.FEAT-5-S41",
+      "value": "FastAPI Endpoint Integration with Tool Router",
+      "note": "Added API layer integration story",
+      "iteration": 11
+    },
+    {
+      "path": "stories.FEAT-5-S42",
+      "value": "Unit and Integration Tests for Tool Router Allowlist",
+      "note": "Added full test coverage story",
+      "iteration": 11
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-5-S38",
+      "title": "Tool Allowlist Schema and Contract Definition",
+      "description": "Define the allowlist structure and binding between tool names and their corresponding Pydantic models, ensuring strict input validation contracts for each supported tool.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S39",
+      "title": "Core Allowlist Routing Logic Enforcement",
+      "description": "Implement the core routing mechanism that checks incoming tool requests against the allowlist, blocks unauthorized tools, and maps valid tools to their execution handlers.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S38"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S40",
+      "title": "Anthropic Tool Use Parsing and Dispatch Integration",
+      "description": "Parse Anthropic tool_use blocks from LLM responses and integrate them with the tool router, ensuring validated inputs are passed to the correct backend services.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S39"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "FEAT-5-S41",
+      "title": "FastAPI Endpoint Integration with Tool Router",
+      "description": "Integrate the tool router into the FastAPI request lifecycle, ensuring chat requests trigger tool dispatch when appropriate and responses are correctly returned to the frontend.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S40"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "FEAT-5-S42",
+      "title": "Unit and Integration Tests for Tool Router Allowlist",
+      "description": "Develop unit and integration tests validating allowlist enforcement, Pydantic validation behavior, tool dispatch correctness, and rejection of unauthorized tools.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S39",
+        "FEAT-5-S40"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

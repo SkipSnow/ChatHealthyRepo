@@ -1,0 +1,80 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing UI rendering, LLM formatting alignment, and fallback handling stories for explainability completeness.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F5-S32",
+      "value": "Explainability UI Rendering in Chat Messages",
+      "note": "Adds frontend consumption of explainability layer",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-F5-S33",
+      "value": "LLM Prompt Integration for Explainability",
+      "note": "Ensures explainability is surfaced in conversational responses",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-F5-S34",
+      "value": "Explainability Fallback and Missing Data Handling",
+      "note": "Handles incomplete or missing explainability fields safely",
+      "iteration": 10
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F5-S32",
+      "title": "Explainability UI Rendering in Chat Messages",
+      "description": "Update frontend MessageBubble and ChatWindow components to render explainability fields (source, meaning, limitations) in a structured and readable format within chat responses, ensuring sanitization and compatibility with markdown rendering.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S29"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    {
+      "story_id": "EVAL-F5-S33",
+      "title": "LLM Prompt Integration for Explainability",
+      "description": "Modify prompt construction to ensure explainability objects are incorporated into LLM responses in a consistent narrative format, preserving structured fields while enabling conversational clarity.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S29"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/prompt_system_maker.py"
+    },
+    {
+      "story_id": "EVAL-F5-S34",
+      "title": "Explainability Fallback and Missing Data Handling",
+      "description": "Implement safeguards in the explainability builder to handle missing or partial data by populating default limitations and disclaimers, ensuring no evaluation signal is returned without explainability context.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S28"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

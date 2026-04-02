@@ -1,0 +1,31 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-008",
+  "iteration": 9,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added observability story to complete coverage (schema, logic, integration, tests, observability).",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-008-S5",
+      "value": "Added rate limiting observability and logging story",
+      "note": "Ensure visibility into throttling behavior without expanding scope",
+      "iteration": 9
+    }
+  ],
+  "stories": {
+    "BL-0.1.4-008-S5": {
+      "story_id": "BL-0.1.4-008-S5",
+      "title": "Rate Limiting Observability and Debug Logging",
+      "description": "Implement logging and lightweight metrics for rate limiting events, including request counts, throttled responses, and client identifiers. Ensure logs integrate with existing debug_logger for traceability without introducing new infrastructure.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (existing logging patterns); ASSUMPTION: No rate limit observability exists; GAP required"
+    }
+  }
+}

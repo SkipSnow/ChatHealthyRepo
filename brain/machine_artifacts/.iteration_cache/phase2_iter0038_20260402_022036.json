@@ -1,0 +1,69 @@
+{
+  "assignment_id": "GPTR-F-001-STORIES",
+  "iteration": 38,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Completes coverage with core enforcement logic and comprehensive testing layer.",
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "GPTR-F-001-S140",
+      "title": "Core Allowlist Enforcement Engine",
+      "description": "Implement the server-side enforcement engine that evaluates incoming GPTReader requests against the defined allowlist schema, including collection access, field-level filtering, operator restrictions, and query limits before execution.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S137"
+      ],
+      "size": "L",
+      "evidence": "Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    {
+      "story_id": "GPTR-F-001-S141",
+      "title": "Secure API Wrapper for GPTReader Requests",
+      "description": "Wrap GPTReader endpoints with a secure API layer that enforces validation before any database interaction, ensuring all inbound requests pass through the allowlist enforcement engine and rejection handling pipeline.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S140",
+        "GPTR-F-001-S138"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    {
+      "story_id": "GPTR-F-001-S142",
+      "title": "Unit and Integration Test Suite for Scope Enforcement",
+      "description": "Develop comprehensive unit and integration tests covering valid requests, blocked queries, edge cases (field injection, operator misuse, over-limit queries), and regression scenarios to ensure enforcement reliability.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S140",
+        "GPTR-F-001-S141"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "GPTR-F-001",
+        "likelihood": "High",
+        "impact": "Critical",
+        "mitigation": "Strict pre-execution validation and deny-by-default logic enforced in a single entry point."
+      }
+    ],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

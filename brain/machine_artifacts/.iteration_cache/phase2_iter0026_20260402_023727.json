@@ -1,0 +1,102 @@
+{
+  "assignment_id": "GOV-F-004-STORIES",
+  "iteration": 26,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added API, integration, and test coverage stories to complete feature.",
+  "change_log": [
+    {
+      "path": "stories.GOV-F-004-S84",
+      "value": "Audit Logging Service Core Write Path",
+      "note": "Adds core append-only logging implementation",
+      "iteration": 26
+    },
+    {
+      "path": "stories.GOV-F-004-S85",
+      "value": "Audit Log API Endpoints (Query + Retrieve)",
+      "note": "Adds controlled retrieval interface",
+      "iteration": 26
+    },
+    {
+      "path": "stories.GOV-F-004-S86",
+      "value": "System-wide Integration with Existing Logging Points",
+      "note": "Ensures coverage across GPT/Claude flows",
+      "iteration": 26
+    },
+    {
+      "path": "stories.GOV-F-004-S87",
+      "value": "Audit Logging Test Suite (Unit + Integration)",
+      "note": "Adds validation and regression protection",
+      "iteration": 26
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GOV-F-004-S84": {
+      "story_id": "GOV-F-004-S84",
+      "title": "Audit Logging Service Core Write Path",
+      "description": "Implement the core append-only audit logging service responsible for persisting structured audit events to MongoDB, enforcing immutability (no updates/deletes) and ensuring ordered event sequencing.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S80",
+        "GOV-F-004-S82"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (existing logging patterns); Code/Shared/ChatHealthyMongoUtilities.py (write utilities); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S85": {
+      "story_id": "GOV-F-004-S85",
+      "title": "Audit Log API Endpoints (Query + Retrieve)",
+      "description": "Expose backend API endpoints for querying audit logs by trace_id, actor, time range, and event type, with enforced pagination, access control, and redaction rules.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S83"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (FastAPI routing); Code/DataPipelines/gpt_reader.py (query limits + access control patterns); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S86": {
+      "story_id": "GOV-F-004-S86",
+      "title": "System-wide Integration with Existing Logging Points",
+      "description": "Integrate audit logging into tool_router, brain_runner, facades, and safety_service to ensure all GPT and Claude actions generate audit events with consistent schema and trace linkage.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S81",
+        "GOV-F-004-S84"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (central orchestration); Code/Shared/brain_runner.py (execution lifecycle); Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py (existing audit triggers); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S87": {
+      "story_id": "GOV-F-004-S87",
+      "title": "Audit Logging Test Suite (Unit + Integration)",
+      "description": "Develop comprehensive tests validating schema compliance, append-only guarantees, idempotency, trace_id propagation, API filtering, and redaction behavior across GPT and Claude flows.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S84",
+        "GOV-F-004-S85",
+        "GOV-F-004-S86"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py (logging tests); Code/DataPipelines/tests/test_gpt_reader_integration.py (integration patterns); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

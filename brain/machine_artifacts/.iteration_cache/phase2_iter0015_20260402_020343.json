@@ -1,0 +1,65 @@
+{
+  "stories": [
+    {
+      "story_id": "FIND-F-001-S1",
+      "title": "Enforce Canonical Provider Search Contract (No New Schema)",
+      "description": "Refactor provider_search_models to strictly conform to the canonical shared contract used by FIND-P-M1, ensuring input normalization (location, specialty, query) and output structure (ranked providers, scores, metadata) are consistent with downstream facade and tool_router expectations.",
+      "parent_feature": "FIND-F-001",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    {
+      "story_id": "FIND-F-001-S2",
+      "title": "Implement Vector Search with Deterministic Taxonomy Fallback",
+      "description": "Execute provider search using MongoDB Atlas vector search (text-embedding-3-large) with scoring and ranking, and implement deterministic fallback to NUCC taxonomy-based filtering when vector confidence thresholds are not met, including multi-stage geographic filtering.",
+      "parent_feature": "FIND-F-001",
+      "sprint": 2,
+      "dependencies": [
+        "FIND-F-001-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    {
+      "story_id": "FIND-F-001-S3",
+      "title": "Integrate Provider Search into Find Care Facade Orchestration",
+      "description": "Wire provider_search_service into find_care_facade, orchestrating specialty identification (dual pipeline), query expansion, and location normalization before invoking search, ensuring compatibility with tool_router and conversational flow.",
+      "parent_feature": "FIND-F-001",
+      "sprint": 2,
+      "dependencies": [
+        "FIND-F-001-S1",
+        "FIND-F-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    {
+      "story_id": "FIND-F-001-S4",
+      "title": "Extend Provider Search Test Coverage for Ranking and Fallback Logic",
+      "description": "Expand existing backend tests to validate vector ranking behavior, confidence thresholds, taxonomy fallback triggers, geographic filtering stages, and edge cases without duplicating existing baseline tests.",
+      "parent_feature": "FIND-F-001",
+      "sprint": 2,
+      "dependencies": [
+        "FIND-F-001-S2",
+        "FIND-F-001-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    },
+    {
+      "story_id": "FIND-F-001-S5",
+      "title": "Validate End-to-End Integration with Embeddings and Provider Data",
+      "description": "Validate full integration between provider embeddings, MongoDB vector index, and search execution, ensuring alignment between DataPipelines embedding generation, stored provider records, and runtime query behavior.",
+      "parent_feature": "FIND-F-001",
+      "sprint": 2,
+      "dependencies": [
+        "FIND-F-001-S2",
+        "FIND-F-001-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/provider_embedding.py"
+    }
+  ]
+}

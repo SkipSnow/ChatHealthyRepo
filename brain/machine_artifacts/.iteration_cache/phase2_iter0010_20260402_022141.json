@@ -1,0 +1,65 @@
+{
+  "stories": {
+    "EVAL-P-MEASURE-3-S11": {
+      "story_id": "EVAL-P-MEASURE-3-S11",
+      "title": "Enforce Disciplinary Signal Response Schema in Service Output",
+      "description": "Ensure provider_detail_service outputs disciplinary signal data in a consistent schema (presence_indicator, board_lookup_url, state) aligned with existing contract definitions.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-M3-S1"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-P-MEASURE-3-S12": {
+      "story_id": "EVAL-P-MEASURE-3-S12",
+      "title": "Implement Presence Indicator Derivation Rules",
+      "description": "Define and implement logic for determining when a disciplinary signal should be marked as present based on availability of state board lookup links and valid provider state data.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-M3-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-P-MEASURE-3-S13": {
+      "story_id": "EVAL-P-MEASURE-3-S13",
+      "title": "Handle Unsupported or Missing State Data",
+      "description": "Add logic to gracefully handle providers with missing, invalid, or unsupported state values by suppressing disciplinary signals or returning a null-safe structure.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-M3-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-P-MEASURE-3-S14": {
+      "story_id": "EVAL-P-MEASURE-3-S14",
+      "title": "Validate Disciplinary Signal Mapping in Evaluate Care Facade",
+      "description": "Ensure disciplinary signal fields are correctly mapped and preserved when passed through evaluate_care_facade into API responses, including null handling and field naming consistency.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MEASURE-3-S7",
+        "EVAL-P-MEASURE-3-S11"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-P-MEASURE-3-S15": {
+      "story_id": "EVAL-P-MEASURE-3-S15",
+      "title": "Edge Case Testing for Incomplete Provider Data",
+      "description": "Extend test coverage to include edge cases such as missing NPI fields, malformed state codes, and partial provider records to ensure disciplinary signal robustness.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MEASURE-3-S8"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-F-2-S1",
+      "title": "Provider Detail Schema and Contract",
+      "description": "Define response schema for provider detail lookup including NPI attributes (name, credentials, taxonomy, address) and validated external links (NPI registry, Healthgrades, state boards). Establish contract between service and facade.",
+      "parent_feature": "EVAL-F-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-2-S2",
+      "title": "NPI Registry Lookup Logic",
+      "description": "Implement core logic to query CMS NPI Registry API, parse provider credentials, and normalize fields into the defined schema.",
+      "parent_feature": "EVAL-F-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-2-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-2-S3",
+      "title": "External Research Link Generation",
+      "description": "Generate standardized external research links including NPI profile, Healthgrades, and supported state medical board pages based on provider attributes.",
+      "parent_feature": "EVAL-F-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-2-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-2-S4",
+      "title": "Facade Integration for Provider Detail",
+      "description": "Integrate provider detail service into EvaluateCare facade, enabling tool-based access and ensuring compatibility with tool_router orchestration.",
+      "parent_feature": "EVAL-F-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-2-S2",
+        "EVAL-F-2-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-2-S5",
+      "title": "Provider Detail Tests and URL Validation",
+      "description": "Create unit and integration tests validating NPI lookup accuracy, schema compliance, and correctness of generated external links including URL validation behavior.",
+      "parent_feature": "EVAL-F-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-2-S2",
+        "EVAL-F-2-S3",
+        "EVAL-F-2-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py; Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    }
+  ]
+}

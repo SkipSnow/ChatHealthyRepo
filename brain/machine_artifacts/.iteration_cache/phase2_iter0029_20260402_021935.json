@@ -1,0 +1,51 @@
+{
+  "stories": {
+    "GPTR-F-001-S107": {
+      "story_id": "GPTR-F-001-S107",
+      "title": "Allowlist Schema Definition for GPTReader Requests",
+      "description": "Define a strict Pydantic schema and allowlist contract for all GPTReader request types, including permitted collections, query operators, field projections, and limits, ensuring no unspecified fields or operators are accepted.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S108": {
+      "story_id": "GPTR-F-001-S108",
+      "title": "Centralized Allowlist Configuration Module",
+      "description": "Implement a centralized configuration module defining allowed collections, fields, and query patterns used by the enforcement engine, enabling consistent validation across all execution paths.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S107"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S109": {
+      "story_id": "GPTR-F-001-S109",
+      "title": "Enforcement Failure Handling and Audit Logging",
+      "description": "Implement standardized rejection responses and audit logging for all enforcement failures, including reason codes, request metadata, and security classification, aligned with existing audit logging patterns.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S102"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S110": {
+      "story_id": "GPTR-F-001-S110",
+      "title": "End-to-End Integration with Brain Auth Scope Controls",
+      "description": "Integrate server-side allowlist enforcement with Brain authentication scope validation to ensure that even authorized tokens cannot access data outside explicitly permitted query scopes.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S104",
+        "GPTR-F-001-S108"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_auth.py; Code/DataPipelines/auth.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  }
+}

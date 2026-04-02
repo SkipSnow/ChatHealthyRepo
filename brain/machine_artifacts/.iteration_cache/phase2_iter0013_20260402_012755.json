@@ -1,0 +1,88 @@
+{
+  "assignment_id": "EVAL-WEIGHTS-STORIES",
+  "iteration": 13,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories refined with concrete evidence alignment and no scope expansion.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-WEIGHTS-S1.evidence",
+      "value": "GAP: No weighting schema or persistence model exists; persistence expected via Mongo utilities",
+      "note": "Anchored persistence expectation to existing Mongo infrastructure",
+      "iteration": 13
+    },
+    {
+      "path": "stories.EVAL-WEIGHTS-S3.evidence",
+      "value": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx",
+      "note": "Aligned UI entry point with existing frontend component",
+      "iteration": 13
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "EVAL-WEIGHTS-S1",
+      "title": "Define Weighting Schema and Persistence Contract",
+      "description": "Define data model for user-adjustable weights across quality measures, including defaults, bounds, normalization rules, and persistence format for reuse across sessions.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "GAP: No weighting schema or persistence model exists; persistence expected via Mongo utilities"
+    },
+    {
+      "story_id": "EVAL-WEIGHTS-S2",
+      "title": "Implement Weighted Scoring Logic",
+      "description": "Extend provider and clinical trial scoring engines to apply user-defined weights to individual measures and recompute composite scores deterministically with normalization.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-SCORE-PROV",
+        "EVAL-SCORE-CT"
+      ],
+      "size": "L",
+      "evidence": "GAP: Existing scoring engines do not support dynamic weighting"
+    },
+    {
+      "story_id": "EVAL-WEIGHTS-S3",
+      "title": "Expose Weight Adjustment API and UI Controls",
+      "description": "Create backend endpoints and frontend controls (e.g., sliders) to allow users to adjust weights and trigger score recalculation in real time.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S1",
+        "EVAL-WEIGHTS-S2"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    },
+    {
+      "story_id": "EVAL-WEIGHTS-S4",
+      "title": "Integrate Weighting into Evaluate Care Facade",
+      "description": "Integrate weighting inputs into evaluate_care_facade so both provider and clinical trial evaluations return recalculated scores based on user preferences.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S2",
+        "EVAL-SCORE-PROV",
+        "EVAL-SCORE-CT"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-WEIGHTS-S5",
+      "title": "Weighting Logic Unit and Integration Tests",
+      "description": "Create unit tests for weighting calculations and integration tests validating end-to-end score changes when weights are adjusted across provider and trial flows.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S2",
+        "EVAL-WEIGHTS-S4"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing tests for weighting behavior"
+    }
+  ]
+}

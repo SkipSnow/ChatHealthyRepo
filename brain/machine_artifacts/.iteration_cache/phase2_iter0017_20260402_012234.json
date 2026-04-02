@@ -1,0 +1,99 @@
+{
+  "assignment_id": "PHASE-2-SHARED-F-2-STORIES",
+  "iteration": 17,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema, API, and cross-service integration coverage for Consent Framework.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-2-S48",
+      "value": "Consent Data Schema and Persistence Model",
+      "note": "Add schema/contract layer for consent storage",
+      "iteration": 17
+    },
+    {
+      "path": "stories.SHARED-F-2-S49",
+      "value": "Consent API Endpoints and Tool Interface",
+      "note": "Expose consent workflow via backend/API layer",
+      "iteration": 17
+    },
+    {
+      "path": "stories.SHARED-F-2-S50",
+      "value": "Lead Capture Integration with Consent Tiers",
+      "note": "Ensure downstream service enforces consent decisions",
+      "iteration": 17
+    },
+    {
+      "path": "stories.SHARED-F-2-S51",
+      "value": "Consent Audit Logging and Compliance Traceability",
+      "note": "Add auditability required for HIPAA compliance",
+      "iteration": 17
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "SHARED-F-2-S48": {
+      "story_id": "SHARED-F-2-S48",
+      "title": "Consent Data Schema and Persistence Model",
+      "description": "Define and implement data schema for storing consent tier, timestamps, user decisions, and de-identified artifacts. Ensure compatibility with MongoDB persistence patterns and downstream services.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; Code/Shared/ChatHealthyMongoUtilities.py"
+    },
+    "SHARED-F-2-S49": {
+      "story_id": "SHARED-F-2-S49",
+      "title": "Consent API Endpoints and Tool Interface",
+      "description": "Expose consent workflow via FastAPI endpoints and tool_router integration, enabling initiation, update, and retrieval of consent state during conversations.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S48",
+        "SHARED-F-2-S45"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "SHARED-F-2-S50": {
+      "story_id": "SHARED-F-2-S50",
+      "title": "Lead Capture Integration with Consent Tiers",
+      "description": "Integrate ConsentService with LeadService to enforce consent tier requirements before storing identifiable user data, including Tier 2 validation and rejection handling.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S45",
+        "SHARED-F-2-S48"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "SHARED-F-2-S51": {
+      "story_id": "SHARED-F-2-S51",
+      "title": "Consent Audit Logging and Compliance Traceability",
+      "description": "Implement audit logging for all consent decisions, including tier transitions, timestamps, and data handling outcomes, ensuring traceability for compliance and debugging.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S48",
+        "SHARED-F-2-S45"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-F-03-S117",
+      "title": "Define EvaluateCare Facade Input/Output Contracts",
+      "description": "Establish explicit request and response schemas for evaluate_care_facade methods, aligning with clinical_trials_models and provider input expectations to ensure consistent structured outputs for downstream tool usage.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S109"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-03-S118",
+      "title": "Implement Facade-Level Error Handling and Fallbacks",
+      "description": "Add standardized error handling within evaluate_care_facade to gracefully manage failures from clinical trials and provider detail services, including partial responses and safe fallback messaging.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S114"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/"
+    },
+    {
+      "story_id": "EVAL-F-03-S119",
+      "title": "Normalize and Format Facade Responses",
+      "description": "Implement response normalization logic in evaluate_care_facade to ensure consistent formatting of clinical trial results and provider details, including location, distance, and link structures.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S114",
+        "EVAL-F-03-S117"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-03-S120",
+      "title": "Expose EvaluateCare Facade via FastAPI Endpoint",
+      "description": "Wire evaluate_care_facade into FastAPI main application as callable endpoints (or internal handlers) to support direct invocation paths in addition to tool_router flows.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S113"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  ]
+}

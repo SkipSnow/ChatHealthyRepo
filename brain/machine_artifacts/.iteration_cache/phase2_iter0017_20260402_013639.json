@@ -1,0 +1,117 @@
+{
+  "assignment_id": "MAINT-ARCH-STORIES",
+  "iteration": 17,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Existing 5 stories already cover required breakdown (schema/contract, core logic, API, integration, tests). Minor clarifications applied to strengthen contract and integration intent without creating duplicates.",
+  "change_log": [
+    {
+      "path": "stories.MAINT-ARCH-S1.description",
+      "value": "Explicitly define service interface contracts (Pydantic schemas, request/response models, and boundary rules) across facades, domain services, and infrastructure layers, enforcing strict input/output validation and no cross-layer leakage per ARCH-001.",
+      "note": "Strengthen schema/contract specificity",
+      "iteration": 17
+    },
+    {
+      "path": "stories.MAINT-ARCH-S2.description",
+      "value": "Refactor and isolate core business logic into discrete domain services (provider_search, specialty, clinical_trials, provider_detail, consent, safety), enforcing pure domain boundaries and eliminating shared-state or cross-service coupling.",
+      "note": "Clarify core logic isolation intent",
+      "iteration": 17
+    },
+    {
+      "path": "stories.MAINT-ARCH-S3.description",
+      "value": "Align application facades and FastAPI endpoints to consume modular services via defined contracts, preserving external API behavior and ensuring compatibility with tool_router and existing tool schemas.",
+      "note": "Clarify API/contract alignment",
+      "iteration": 17
+    },
+    {
+      "path": "stories.MAINT-ARCH-S4.description",
+      "value": "Implement dependency wiring and service orchestration across layers (facade → domain → infrastructure), ensuring unidirectional flow, no circular dependencies, and runtime configuration consistency with ARCH-001.",
+      "note": "Clarify integration responsibility",
+      "iteration": 17
+    },
+    {
+      "path": "stories.MAINT-ARCH-S5.description",
+      "value": "Validate refactor via unit, integration, and regression tests ensuring contract adherence, service isolation, and full behavioral parity with pre-refactor baseline including UAT scenarios and E2E flows.",
+      "note": "Strengthen testing scope to include contracts",
+      "iteration": 17
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "MAINT-ARCH-S1": {
+      "story_id": "MAINT-ARCH-S1",
+      "title": "Define Service Boundaries and Contracts",
+      "description": "Explicitly define service interface contracts (Pydantic schemas, request/response models, and boundary rules) across facades, domain services, and infrastructure layers, enforcing strict input/output validation and no cross-layer leakage per ARCH-001.",
+      "parent_feature": "MAINT-ARCH",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "brain/machine_artifacts/content/architecture.json::refactor_design_arch001"
+    },
+    "MAINT-ARCH-S2": {
+      "story_id": "MAINT-ARCH-S2",
+      "title": "Refactor Domain Logic into Modular Services",
+      "description": "Refactor and isolate core business logic into discrete domain services (provider_search, specialty, clinical_trials, provider_detail, consent, safety), enforcing pure domain boundaries and eliminating shared-state or cross-service coupling.",
+      "parent_feature": "MAINT-ARCH",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-ARCH-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/; brain/machine_artifacts/content/architecture.json::refactor_design_arch001"
+    },
+    "MAINT-ARCH-S3": {
+      "story_id": "MAINT-ARCH-S3",
+      "title": "Align Facades and API Entrypoints",
+      "description": "Align application facades and FastAPI endpoints to consume modular services via defined contracts, preserving external API behavior and ensuring compatibility with tool_router and existing tool schemas.",
+      "parent_feature": "MAINT-ARCH",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-ARCH-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/; Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "MAINT-ARCH-S4": {
+      "story_id": "MAINT-ARCH-S4",
+      "title": "Implement Layer Integration and Dependency Wiring",
+      "description": "Implement dependency wiring and service orchestration across layers (facade → domain → infrastructure), ensuring unidirectional flow, no circular dependencies, and runtime configuration consistency with ARCH-001.",
+      "parent_feature": "MAINT-ARCH",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-ARCH-S2",
+        "MAINT-ARCH-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/Shared/; brain/machine_artifacts/content/architecture.json::refactor_design_arch001"
+    },
+    "MAINT-ARCH-S5": {
+      "story_id": "MAINT-ARCH-S5",
+      "title": "Validate Refactor with Unit and Integration Tests",
+      "description": "Validate refactor via unit, integration, and regression tests ensuring contract adherence, service isolation, and full behavioral parity with pre-refactor baseline including UAT scenarios and E2E flows.",
+      "parent_feature": "MAINT-ARCH",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-ARCH-S2",
+        "MAINT-ARCH-S3",
+        "MAINT-ARCH-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/; brain/machine_artifacts/content/qa_reports.json::test_plan_results; brain/machine_artifacts/content/qa_reports.json::e2e_regression_report"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

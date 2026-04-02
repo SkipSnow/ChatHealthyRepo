@@ -1,0 +1,115 @@
+{
+  "assignment_id": "PHASE-2-FIND-P-M1-STORIES",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added 5 stories for FIND-P-M1 covering schema, core logic, facade/API, integration, and tests.",
+  "change_log": [
+    {
+      "path": "stories.FIND-P-M1-S1",
+      "value": "Added schema/contract story for provider search inputs/outputs",
+      "note": "Phase 2 story creation",
+      "iteration": 10
+    },
+    {
+      "path": "stories.FIND-P-M1-S2",
+      "value": "Added core logic story for vector + taxonomy search",
+      "note": "Phase 2 story creation",
+      "iteration": 10
+    },
+    {
+      "path": "stories.FIND-P-M1-S3",
+      "value": "Added facade/API exposure story",
+      "note": "Phase 2 story creation",
+      "iteration": 10
+    },
+    {
+      "path": "stories.FIND-P-M1-S4",
+      "value": "Added integration story with specialty + embeddings",
+      "note": "Phase 2 story creation",
+      "iteration": 10
+    },
+    {
+      "path": "stories.FIND-P-M1-S5",
+      "value": "Added unit and integration test suite",
+      "note": "Phase 2 story creation",
+      "iteration": 10
+    }
+  ],
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "FIND-P-M1-S1",
+      "title": "Define Provider Search Schema and Contract",
+      "description": "Define Pydantic models for provider search inputs (query, location, specialty) and outputs (provider list, scores, metadata) ensuring compatibility with tool_router and facade usage.",
+      "parent_feature": "FIND-P-M1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    {
+      "story_id": "FIND-P-M1-S2",
+      "title": "Implement Vector + Taxonomy Provider Search Logic",
+      "description": "Implement provider search using MongoDB Atlas vector search with fallback to NUCC taxonomy matching, including geo filtering and ranking logic.",
+      "parent_feature": "FIND-P-M1",
+      "sprint": 1,
+      "dependencies": [
+        "FIND-P-M1-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    {
+      "story_id": "FIND-P-M1-S3",
+      "title": "Expose Provider Search via FindCareFacade",
+      "description": "Integrate provider search service into FindCareFacade and expose as callable tool for the agent loop, ensuring proper request/response mapping.",
+      "parent_feature": "FIND-P-M1",
+      "sprint": 1,
+      "dependencies": [
+        "FIND-P-M1-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    {
+      "story_id": "FIND-P-M1-S4",
+      "title": "Integrate Specialty Identification and Embedding Pipeline",
+      "description": "Integrate specialty_service for NUCC mapping and embedding_client for query vectorization to support hybrid search pipeline.",
+      "parent_feature": "FIND-P-M1",
+      "sprint": 1,
+      "dependencies": [
+        "FIND-P-M1-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    {
+      "story_id": "FIND-P-M1-S5",
+      "title": "Provider Search Unit and Integration Tests",
+      "description": "Create unit tests for search logic and integration tests validating end-to-end flow from tool_router through facade to provider search results.",
+      "parent_feature": "FIND-P-M1",
+      "sprint": 1,
+      "dependencies": [
+        "FIND-P-M1-S3",
+        "FIND-P-M1-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

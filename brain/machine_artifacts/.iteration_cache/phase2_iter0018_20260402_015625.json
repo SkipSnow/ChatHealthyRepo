@@ -1,0 +1,124 @@
+{
+  "assignment_id": "PHASE-2-SHARED-B-M1",
+  "iteration": 18,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories created for tool routing, validation, and integration based on existing tool_router implementation.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-B-M1-S1",
+      "value": "Added schema/contract story for tool routing inputs and outputs",
+      "note": "Establish validation contract",
+      "iteration": 18
+    },
+    {
+      "path": "stories.SHARED-B-M1-S2",
+      "value": "Added core routing logic story",
+      "note": "Implements allowlist dispatch",
+      "iteration": 18
+    },
+    {
+      "path": "stories.SHARED-B-M1-S3",
+      "value": "Added API integration story",
+      "note": "Connect router to FastAPI entrypoint",
+      "iteration": 18
+    },
+    {
+      "path": "stories.SHARED-B-M1-S4",
+      "value": "Added validation and error handling story",
+      "note": "Covers Pydantic enforcement and failures",
+      "iteration": 18
+    },
+    {
+      "path": "stories.SHARED-B-M1-S5",
+      "value": "Added unit and integration tests story",
+      "note": "Ensure routing correctness",
+      "iteration": 18
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "SHARED-B-M1-S1": {
+      "story_id": "SHARED-B-M1-S1",
+      "title": "Define Tool Routing Schema and Validation Contract",
+      "description": "Define Pydantic models for all tool inputs and outputs, including strict validation rules, required fields, and error handling structure for invalid tool_use payloads.",
+      "parent_feature": "SHARED-B-M1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/"
+    },
+    "SHARED-B-M1-S2": {
+      "story_id": "SHARED-B-M1-S2",
+      "title": "Implement Allowlist-Based Tool Routing Logic",
+      "description": "Implement core routing logic that dispatches tool calls only if present in an explicit allowlist, including mapping tool names to handlers and injecting chat history into execution context.",
+      "parent_feature": "SHARED-B-M1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-B-M1-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "SHARED-B-M1-S3": {
+      "story_id": "SHARED-B-M1-S3",
+      "title": "Integrate Tool Router with FastAPI Agent Loop",
+      "description": "Integrate tool routing into the FastAPI main agent loop, ensuring Anthropic tool_use blocks are correctly parsed, routed, and responses returned to the conversation pipeline.",
+      "parent_feature": "SHARED-B-M1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-B-M1-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    "SHARED-B-M1-S4": {
+      "story_id": "SHARED-B-M1-S4",
+      "title": "Implement Validation and Error Handling for Tool Execution",
+      "description": "Add robust validation handling for malformed inputs, disallowed tools, and schema violations, returning safe, structured error responses without breaking the chat loop.",
+      "parent_feature": "SHARED-B-M1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-B-M1-S1",
+        "SHARED-B-M1-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "SHARED-B-M1-S5": {
+      "story_id": "SHARED-B-M1-S5",
+      "title": "Unit and Integration Tests for Tool Routing and Validation",
+      "description": "Create unit and integration tests to verify allowlist enforcement, schema validation, error handling, and correct routing behavior across supported tools.",
+      "parent_feature": "SHARED-B-M1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-B-M1-S2",
+        "SHARED-B-M1-S3",
+        "SHARED-B-M1-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "SHARED-B-M1": {
+        "feature_id": "SHARED-B-M1",
+        "likelihood": "High",
+        "impact": "Critical",
+        "mitigation": "Strict allowlist enforcement and existing test coverage for tool_router"
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

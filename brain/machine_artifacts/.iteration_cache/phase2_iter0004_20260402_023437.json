@@ -1,0 +1,81 @@
+{
+  "assignment_id": "PHASE 2: GOV-F-004 Stories",
+  "iteration": 4,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing immutability enforcement, hash chaining integrity, and failure handling for append-only guarantee.",
+  "change_log": [
+    {
+      "path": "stories.GOV-F-004-S15",
+      "value": "Append-Only Enforcement and Write Constraints",
+      "note": "Ensure true append-only behavior at persistence layer",
+      "iteration": 4
+    },
+    {
+      "path": "stories.GOV-F-004-S16",
+      "value": "Hash Chaining and Tamper Detection",
+      "note": "Add cryptographic integrity guarantees",
+      "iteration": 4
+    },
+    {
+      "path": "stories.GOV-F-004-S17",
+      "value": "Audit Logging Failure Handling and Fallbacks",
+      "note": "Prevent silent audit loss on failures",
+      "iteration": 4
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GOV-F-004-S15": {
+      "story_id": "GOV-F-004-S15",
+      "title": "Append-Only Enforcement and Write Constraints",
+      "description": "Implement database-level and service-level constraints to guarantee append-only behavior, preventing updates or deletes of audit records.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S11"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; ASSUMPTION: MongoDB collections currently allow mutation. GAP: No append-only enforcement exists."
+    },
+    "GOV-F-004-S16": {
+      "story_id": "GOV-F-004-S16",
+      "title": "Hash Chaining and Tamper Detection",
+      "description": "Extend audit schema to include previous-record hash and compute chained hashes for each entry to enable tamper detection and audit integrity validation.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S10",
+        "GOV-F-004-S11"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; ASSUMPTION: No cryptographic chaining currently implemented. GAP: Missing tamper-evident logging."
+    },
+    "GOV-F-004-S17": {
+      "story_id": "GOV-F-004-S17",
+      "title": "Audit Logging Failure Handling and Fallbacks",
+      "description": "Implement fail-safe mechanisms to ensure audit events are not lost, including retry logic, fallback logging, and error surfacing when audit writes fail.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S11"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/Shared/cost_guard.py; ASSUMPTION: Current logging does not guarantee durability under failure. GAP: No retry/fallback mechanism."
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

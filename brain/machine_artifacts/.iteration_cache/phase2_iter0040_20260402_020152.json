@@ -1,0 +1,60 @@
+{
+  "assignment_id": "FEAT-4-STORIES",
+  "iteration": 40,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing core logic and external integration stories for Provider Detail Lookup.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-4-STORY-31",
+      "value": "Core NPI Registry lookup logic with parsing and normalization",
+      "note": "Adds missing core backend logic story",
+      "iteration": 40
+    },
+    {
+      "path": "stories.FEAT-4-STORY-32",
+      "value": "External link enrichment (state boards + research URLs)",
+      "note": "Captures external link construction capability",
+      "iteration": 40
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-4-STORY-31": {
+      "story_id": "FEAT-4-STORY-31",
+      "title": "Implement NPI Registry Lookup and Parsing Logic",
+      "description": "Build core service logic to call CMS NPI Registry API, handle responses, parse provider demographics, taxonomy, and address data, and normalize into internal schema.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "FEAT-4-STORY-32": {
+      "story_id": "FEAT-4-STORY-32",
+      "title": "Construct External Provider Validation and Research Links",
+      "description": "Implement logic to generate state medical board verification links (e.g., DE, MS, VA) and research-related URLs based on provider attributes, ensuring consistent formatting and safe output.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-31"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

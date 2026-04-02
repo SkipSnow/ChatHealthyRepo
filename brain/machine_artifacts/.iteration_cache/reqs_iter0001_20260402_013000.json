@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CT-API-001",
+      "story_id": "EVAL-CT-SCORE-API-001",
+      "requirement": "The system must return a list of clinical trials from evaluate_care_facade where each trial includes a composite_score field.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-API-002",
+      "story_id": "EVAL-CT-SCORE-API-001",
+      "requirement": "The system must include a measure_breakdown object per trial containing all contributing measures used in scoring.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-API-003",
+      "story_id": "EVAL-CT-SCORE-API-001",
+      "requirement": "The system must ensure the composite_score value is numeric and within the normalized range defined by the scoring schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-API-004",
+      "story_id": "EVAL-CT-SCORE-API-001",
+      "requirement": "The system must preserve all original clinical trial fields from clinical_trials_service alongside scoring fields in the response.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-API-005",
+      "story_id": "EVAL-CT-SCORE-API-001",
+      "requirement": "The system must invoke the clinical trial scoring logic for every trial returned by the facade.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-API-006",
+      "story_id": "EVAL-CT-SCORE-API-001",
+      "requirement": "The system must return trials sorted in descending order by composite_score by default.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-API-007",
+      "story_id": "EVAL-CT-SCORE-API-001",
+      "requirement": "The system must include a version or schema identifier for the scoring model in the response payload.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-API-008",
+      "story_id": "EVAL-CT-SCORE-API-001",
+      "requirement": "The system must ensure that measure_breakdown contains at least three measures per trial as defined by the scoring schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-API-009",
+      "story_id": "EVAL-CT-SCORE-API-001",
+      "requirement": "The system must return consistent composite_score values for identical input data across repeated calls (determinism).",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-API-010",
+      "story_id": "EVAL-CT-SCORE-API-001",
+      "requirement": "The system must expose scoring results in a JSON-serializable structure compatible with downstream UI consumption.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-API-011",
+      "story_id": "EVAL-CT-SCORE-API-001",
+      "requirement": "The system must return an empty list when no clinical trials are found, without throwing an error.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-API-012",
+      "story_id": "EVAL-CT-SCORE-API-001",
+      "requirement": "The system must handle missing or incomplete measure inputs by still returning a composite_score using fallback normalization rules.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-API-013",
+      "story_id": "EVAL-CT-SCORE-API-001",
+      "requirement": "The system must return a structured error response when the scoring logic dependency fails or is unavailable.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-API-014",
+      "story_id": "EVAL-CT-SCORE-API-001",
+      "requirement": "The system must not omit trials from the response solely due to scoring failures and instead include them with a null or flagged composite_score.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

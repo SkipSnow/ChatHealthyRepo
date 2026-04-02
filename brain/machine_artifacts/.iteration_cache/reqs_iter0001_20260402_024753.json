@@ -1,0 +1,165 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must validate that prescription data schema rejects records missing required fields (e.g., NPI, drug code, volume).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must accept and correctly parse valid prescription records that conform to the defined schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must successfully ingest and normalize a batch of prescription data into the internal data model.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must aggregate prescription data by provider (NPI) during pipeline execution.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must map normalized drug data to at least one condition (ICD-10) during ingestion or scoring.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must produce a normalized prescribing appropriateness score within a defined range (e.g., 0–1 or 0–100).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must return consistent scoring outputs for identical input datasets across multiple runs.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must expose prescription analysis results via the Evaluate Care API endpoint with expected response schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must return a non-200 error response when the API is called with an invalid provider identifier.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must handle empty or sparse prescribing datasets without crashing and return a valid but low-confidence or null score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must log ingestion and scoring errors during pipeline execution for observability.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must execute unit tests for schema validation, ingestion, scoring, and API layers with passing results.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must execute at least one end-to-end integration test covering ingestion through API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must ensure LLM-assisted condition mapping produces deterministic outputs when provided identical prompts and inputs under test conditions.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must validate that LLM-generated mappings are constrained to valid ICD-10 codes.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-016",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must fallback to non-LLM mapping logic when LLM output is unavailable or invalid.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-017",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must ensure LLM outputs do not introduce unmapped or hallucinated drug-condition relationships outside known taxonomy.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-018",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must verify that LLM-assisted scoring inputs match the normalized data produced by the ingestion pipeline.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-019",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must ensure LLM processing latency remains within acceptable bounds for integration tests (e.g., under defined timeout threshold).",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-020",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must confirm that disabling LLM components does not break the pipeline and results in degraded but valid scoring output.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

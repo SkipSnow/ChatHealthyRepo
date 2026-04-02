@@ -1,0 +1,16 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-CT-MEASURE-1-S5",
+      "title": "Extract and Normalize Trial Phase from ClinicalTrials.gov Data",
+      "description": "Implement logic within clinical_trials_service to extract trial phase values from ClinicalTrials.gov API responses and normalize them into a consistent enum (I, II, III, IV, UNKNOWN) for downstream scoring.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  ]
+}

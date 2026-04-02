@@ -1,0 +1,96 @@
+{
+  "assignment_id": "FEAT-3-STORIES",
+  "iteration": 23,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Previous iteration under-produced stories for FEAT-3 (2 < required minimum 3)"
+  ],
+  "notes": "Added missing stories to meet schema/contract, core logic, API/UI, tests, and integration coverage without duplicating prior stories.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-3-S80",
+      "value": "Clinical Trials Input/Output Schema Definition",
+      "note": "Added schema/contract story",
+      "iteration": 23
+    },
+    {
+      "path": "stories.FEAT-3-S81",
+      "value": "Clinical Trials Core Search Logic Implementation",
+      "note": "Added core logic story",
+      "iteration": 23
+    },
+    {
+      "path": "stories.FEAT-3-S82",
+      "value": "Clinical Trials API Response Formatting",
+      "note": "Added API/UI contract story",
+      "iteration": 23
+    },
+    {
+      "path": "stories.FEAT-3-S83",
+      "value": "Clinical Trials Service Tests",
+      "note": "Added test coverage story",
+      "iteration": 23
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-3-S80": {
+      "story_id": "FEAT-3-S80",
+      "title": "Clinical Trials Input/Output Schema Definition",
+      "description": "Define and validate Pydantic models for clinical trials search inputs (condition, location, recruiting status) and structured outputs including trial metadata, locations, and travel distance fields.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    "FEAT-3-S81": {
+      "story_id": "FEAT-3-S81",
+      "title": "Clinical Trials Core Search Logic Implementation",
+      "description": "Implement core service logic to query ClinicalTrials.gov with recruiting filter, extract trial locations, and compute travel distance and duration using Google Routes integration.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "FEAT-3-S82": {
+      "story_id": "FEAT-3-S82",
+      "title": "Clinical Trials API Response Formatting",
+      "description": "Format clinical trials results into structured, LLM-consumable responses including trial summaries, eligibility highlights, and distance-aware sorting for downstream chat rendering.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S81"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "FEAT-3-S83": {
+      "story_id": "FEAT-3-S83",
+      "title": "Clinical Trials Service Tests",
+      "description": "Create unit and integration tests for clinical trials search, including API response mocking, recruiting filter validation, and travel distance calculation accuracy.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S81"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

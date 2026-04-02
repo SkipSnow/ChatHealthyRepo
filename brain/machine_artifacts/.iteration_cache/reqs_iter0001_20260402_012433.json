@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-SCORE-PROV-S2",
+      "requirement": "The system must compute a composite provider score using a weighted sum of all provided quality measures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-SCORE-PROV-S2",
+      "requirement": "The system must enforce that at least 3 quality measures are present before computing a score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-SCORE-PROV-S2",
+      "requirement": "The system must normalize all input measures to a consistent scale prior to aggregation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-SCORE-PROV-S2",
+      "requirement": "The system must apply fixed, pre-defined weights from the schema without runtime modification.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-SCORE-PROV-S2",
+      "requirement": "The system must produce identical output scores for identical input data across repeated executions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-SCORE-PROV-S2",
+      "requirement": "The system must not introduce any randomness or non-deterministic functions in score computation.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-SCORE-PROV-S2",
+      "requirement": "The system must ensure that the sum of applied weights equals 1.0 before computing the score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-SCORE-PROV-S2",
+      "requirement": "The system must output the composite score within a bounded range defined by the schema (e.g., 0 to 1 or 0 to 100).",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-SCORE-PROV-S2",
+      "requirement": "The system must handle null or missing measure values by excluding them from calculation only if at least 3 valid measures remain.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-SCORE-PROV-S2",
+      "requirement": "The system must return a deterministic error response if fewer than 3 valid measures are available after validation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-SCORE-PROV-S2",
+      "requirement": "The system must return a deterministic error response if weight configuration is invalid (e.g., missing weights or sum not equal to 1.0).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-SCORE-PROV-S2",
+      "requirement": "The system must preserve input measure ordering independence such that score output is unaffected by input order.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,125 @@
+{
+  "assignment_id": "PHASE-2-MAINT-MAPS-STORIES",
+  "iteration": 2,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined existing stories to tighten contract/API clarity and remove implicit gaps. No new story IDs created.",
+  "change_log": [
+    {
+      "path": "stories.MAINT-MAPS-S1.description",
+      "value": "Define strict frontend map data contract aligned to provider schema including provider_id, name, latitude, longitude, specialty, and display metadata. Include transformation rules from provider_search_service output to map-ready format.",
+      "note": "Clarify transformation contract between backend output and frontend map",
+      "iteration": 2
+    },
+    {
+      "path": "stories.MAINT-MAPS-S2.description",
+      "value": "Implement core frontend map component capable of initializing map instance, handling viewport bounds, centering based on search results, and rendering provider markers using the defined contract.",
+      "note": "Add viewport/bounds handling for completeness of core logic",
+      "iteration": 2
+    },
+    {
+      "path": "stories.MAINT-MAPS-S3.description",
+      "value": "Build UI logic for interactive provider markers including hover/click states, info popups with provider details, and selection behavior synchronized with provider list or chat context.",
+      "note": "Clarify interaction with broader UI context",
+      "iteration": 2
+    },
+    {
+      "path": "stories.MAINT-MAPS-S4.description",
+      "value": "Integrate map component with provider search API responses to dynamically update markers based on search queries, including handling empty states and incremental result updates.",
+      "note": "Explicit API integration and edge cases",
+      "iteration": 2
+    },
+    {
+      "path": "stories.MAINT-MAPS-S4.dependencies",
+      "value": [
+        "MAINT-MAPS-S1",
+        "MAINT-MAPS-S2"
+      ],
+      "note": "Ensure contract dependency is explicit",
+      "iteration": 2
+    },
+    {
+      "path": "stories.MAINT-MAPS-S5.description",
+      "value": "Develop frontend tests validating map initialization, marker rendering accuracy, interaction behavior, contract compliance, and synchronization with provider search results.",
+      "note": "Add contract validation coverage",
+      "iteration": 2
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "MAINT-MAPS-S1",
+      "title": "Map Data Contract for Provider Locations",
+      "description": "Define strict frontend map data contract aligned to provider schema including provider_id, name, latitude, longitude, specialty, and display metadata. Include transformation rules from provider_search_service output to map-ready format.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/Schemas/ChatHealthy.Providers.json; Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    {
+      "story_id": "MAINT-MAPS-S2",
+      "title": "Core Map Rendering Component",
+      "description": "Implement core frontend map component capable of initializing map instance, handling viewport bounds, centering based on search results, and rendering provider markers using the defined contract.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S1"
+      ],
+      "size": "M",
+      "evidence": "Website/architecture.html"
+    },
+    {
+      "story_id": "MAINT-MAPS-S3",
+      "title": "Provider Marker UI and Interaction",
+      "description": "Build UI logic for interactive provider markers including hover/click states, info popups with provider details, and selection behavior synchronized with provider list or chat context.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S2"
+      ],
+      "size": "M",
+      "evidence": "Website/architecture.html; Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    },
+    {
+      "story_id": "MAINT-MAPS-S4",
+      "title": "Integration with Provider Search Results",
+      "description": "Integrate map component with provider search API responses to dynamically update markers based on search queries, including handling empty states and incremental result updates.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S1",
+        "MAINT-MAPS-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    {
+      "story_id": "MAINT-MAPS-S5",
+      "title": "Map Rendering and Interaction Tests",
+      "description": "Develop frontend tests validating map initialization, marker rendering accuracy, interaction behavior, contract compliance, and synchronization with provider search results.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S3",
+        "MAINT-MAPS-S4"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend; Website/tests/test_website.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

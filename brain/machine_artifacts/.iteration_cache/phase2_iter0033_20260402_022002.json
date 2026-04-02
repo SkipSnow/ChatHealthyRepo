@@ -1,0 +1,50 @@
+{
+  "stories": {
+    "GPTR-F-001-S122": {
+      "story_id": "GPTR-F-001-S122",
+      "title": "Allowlist Schema Definition and Validation Contract",
+      "description": "Define the canonical allowlist schema (collections, fields, operators, limits) and implement strict Pydantic validation models to enforce contract compliance for all incoming GPTReader requests.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S123": {
+      "story_id": "GPTR-F-001-S123",
+      "title": "Allowlist Configuration Loader",
+      "description": "Implement a secure configuration loader that retrieves and initializes the allowlist definitions (collections, fields, constraints) at runtime, supporting environment-specific configurations without code changes.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S122"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/host.json; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S124": {
+      "story_id": "GPTR-F-001-S124",
+      "title": "Enforcement Audit Logging",
+      "description": "Extend GPTReader to log all enforcement decisions ( թույլ/deny ) including rejected queries, violation reasons, and request metadata for auditability and security monitoring.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S118"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S125": {
+      "story_id": "GPTR-F-001-S125",
+      "title": "Standardized Error Response for Violations",
+      "description": "Implement consistent, secure error responses for allowlist violations, ensuring no sensitive schema details are leaked while providing actionable feedback for debugging and SIT validation.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S119"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "stories": {
+    "SHARED-F-2-S90": {
+      "story_id": "SHARED-F-2-S90",
+      "title": "Consent API Endpoints and Tool Routing Integration",
+      "description": "Expose consent capture, retrieval, and escalation via API endpoints and integrate with tool_router to ensure all consent-related actions are validated and dispatched through the allowlist tool framework.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S87",
+        "SHARED-F-2-S88"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py"
+    },
+    "SHARED-F-2-S91": {
+      "story_id": "SHARED-F-2-S91",
+      "title": "Consent Integration with Lead Capture and Unknown Question Flows",
+      "description": "Integrate consent framework with lead capture and unknown question services to enforce Tier 2 consent before storing identifiable data and ensure Tier 1 de-identified handling otherwise.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S88"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "SHARED-F-2-S92": {
+      "story_id": "SHARED-F-2-S92",
+      "title": "Consent Audit Logging and Persistence",
+      "description": "Implement persistent storage and audit logging for consent decisions, including tier selection, timestamps, session linkage, and de-identification status, ensuring traceability for compliance.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S87",
+        "SHARED-F-2-S88"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/Shared/ChatHealthyMongoUtilities.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "SHARED-F-2-S93": {
+      "story_id": "SHARED-F-2-S93",
+      "title": "Frontend Consent Prompt and Tier Selection Handling",
+      "description": "Implement frontend interaction patterns for consent prompts, including Tier 1 default handling and Tier 2 explicit opt-in, ensuring proper request/response handling with backend APIs.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S90"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx; Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; Code/ConversationalUX/FindCareChat/backend/main.py"
+    }
+  }
+}

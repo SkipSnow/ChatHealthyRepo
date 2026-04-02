@@ -1,0 +1,29 @@
+{
+  "assignment_id": "EVAL-WEIGHTS-STORIES",
+  "iteration": 5,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories refined for integration clarity and non-duplication; no new IDs created.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-WEIGHTS-S3.description",
+      "value": "Clarified stateless-first design with optional Mongo persistence strictly non-blocking; added validation and normalization enforcement at API boundary.",
+      "note": "Reduce ambiguity and prevent persistence scope creep",
+      "iteration": 5
+    },
+    {
+      "path": "stories.EVAL-WEIGHTS-S4.description",
+      "value": "Extended to include integration with chat tool invocation flow so weight adjustments trigger Evaluate Care recalculation via existing chat interaction patterns.",
+      "note": "Ensure alignment with chat-driven UX architecture",
+      "iteration": 5
+    },
+    {
+      "path": "stories.EVAL-WEIGHTS-S5.description",
+      "value": "Expanded to explicitly include UAT scenarios for user-adjusted weights and deterministic recomputation validation across provider and clinical trial flows.",
+      "note": "Close testing gap and align with UAT library expectations",
+      "iteration": 5
+    }
+  ]
+}

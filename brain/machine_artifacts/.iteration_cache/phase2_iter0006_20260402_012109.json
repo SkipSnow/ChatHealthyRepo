@@ -1,0 +1,83 @@
+{
+  "assignment_id": "SHARED-F-2-STORIES",
+  "iteration": 6,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing integration and test coverage stories to complete feature viability.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-2-S17",
+      "value": "Consent Core Logic Enforcement Service Layer",
+      "note": "Add explicit core logic story to separate from API wiring",
+      "iteration": 6
+    },
+    {
+      "path": "stories.SHARED-F-2-S18",
+      "value": "Consent Integration with Lead Capture and Unknown Question Flows",
+      "note": "Ensure cross-domain integration coverage",
+      "iteration": 6
+    },
+    {
+      "path": "stories.SHARED-F-2-S19",
+      "value": "Consent Framework Unit and Integration Tests",
+      "note": "Add required test coverage story",
+      "iteration": 6
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "SHARED-F-2-S17": {
+      "story_id": "SHARED-F-2-S17",
+      "title": "Consent Core Logic Enforcement Service Layer",
+      "description": "Implement core consent decision logic in ConsentService to enforce two-tier rules (e.g., de-identification for Tier 1, identifiable storage for Tier 2). Ensure all downstream services call centralized logic rather than duplicating rules.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S13",
+        "SHARED-F-2-S16"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "SHARED-F-2-S18": {
+      "story_id": "SHARED-F-2-S18",
+      "title": "Consent Integration with Lead Capture and Unknown Question Flows",
+      "description": "Integrate consent enforcement into lead_capture and unknown_question services to ensure all stored data respects consent tier, including de-identification before persistence and Tier 2 gating for identifiable data.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S17",
+        "SHARED-F-2-S14"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py"
+    },
+    "SHARED-F-2-S19": {
+      "story_id": "SHARED-F-2-S19",
+      "title": "Consent Framework Unit and Integration Tests",
+      "description": "Develop unit and integration tests validating consent tier transitions, enforcement behavior, API responses, and cross-service compliance (lead capture, unknown questions, tool routing). Include negative tests for improper data handling.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S17",
+        "SHARED-F-2-S18"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py; Code/ConversationalUX/FindCareChat/backend/tests/test_unanswerable_questions.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "stories": {
+    "GPTR-F-001-S84": {
+      "story_id": "GPTR-F-001-S84",
+      "title": "Negative Path and Fuzz Testing for Scope Violations",
+      "description": "Implement comprehensive negative tests and fuzz inputs to verify that malformed, overbroad, or adversarial queries are consistently rejected by the enforcement engine without execution.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S80"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S85": {
+      "story_id": "GPTR-F-001-S85",
+      "title": "Auth Scope Alignment with Allowlist Enforcement",
+      "description": "Ensure enforcement logic is aligned with bearer token scope validation so that only authorized identities can access permitted collections, preventing scope bypass via valid tokens.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S80"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S86": {
+      "story_id": "GPTR-F-001-S86",
+      "title": "Allowlist Configuration Management and Versioning",
+      "description": "Implement centralized configuration loading and version control for the allowlist schema, enabling safe updates and rollback without code changes.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S79"
+      ],
+      "size": "S",
+      "evidence": "Code/Shared/ops/manifest_generator.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S87": {
+      "story_id": "GPTR-F-001-S87",
+      "title": "End-to-End Integration with Mongo Query Execution Path",
+      "description": "Validate that only enforcement-approved queries reach MongoDB execution layer and confirm no bypass paths exist between Azure Function entry and database access.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S81"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/ChatHealthyMongoUtilities.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  }
+}

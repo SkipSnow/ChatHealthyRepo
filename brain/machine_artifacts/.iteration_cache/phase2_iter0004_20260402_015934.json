@@ -1,0 +1,54 @@
+{
+  "assignment_id": "EVAL-F-002-STORIES",
+  "iteration": 4,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "No new stories created. Existing set fully covers required breakdown. Minor strengthening of schema and test coverage.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-002-S1.description",
+      "value": "Define canonical response schema for provider details aligned to NPI Registry fields (specialty, license, status, address, phone, enumeration date), including explicit handling of null/missing fields and normalization rules using Pydantic validation patterns.",
+      "note": "Clarify handling of incomplete NPI data",
+      "iteration": 4
+    },
+    {
+      "path": "stories.EVAL-F-002-S5.description",
+      "value": "Implement unit and integration tests validating NPI lookup accuracy, schema adherence, facade orchestration, tool routing, external API variability (timeouts, partial data), and error handling for invalid or incomplete provider data.",
+      "note": "Expand test scope to include external API variability",
+      "iteration": 4
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "EVAL-F-002-S1",
+      "title": "Provider Detail Response Schema and Contract",
+      "description": "Define canonical response schema for provider details aligned to NPI Registry fields (specialty, license, status, address, phone, enumeration date), including explicit handling of null/missing fields and normalization rules using Pydantic validation patterns.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S5",
+      "title": "Provider Detail Lookup Test Suite",
+      "description": "Implement unit and integration tests validating NPI lookup accuracy, schema adherence, facade orchestration, tool routing, external API variability (timeouts, partial data), and error handling for invalid or incomplete provider data.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S1",
+        "EVAL-F-002-S2",
+        "EVAL-F-002-S3",
+        "EVAL-F-002-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py; Code/ConversationalUX/FindCareChat/backend/tests/"
+    }
+  ],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "assignment_id": "FEAT-6-STORIES",
+  "iteration": 44,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing core logic, API integration, and workflow orchestration stories to meet minimum coverage.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-6-S142",
+      "value": "Consent Core Logic Service Implementation",
+      "note": "Add core logic layer story",
+      "iteration": 44
+    },
+    {
+      "path": "stories.FEAT-6-S143",
+      "value": "Consent API & Tool Router Integration",
+      "note": "Add API/tool exposure story",
+      "iteration": 44
+    },
+    {
+      "path": "stories.FEAT-6-S144",
+      "value": "Consent Workflow Orchestration with Lead Capture",
+      "note": "Add cross-service integration story",
+      "iteration": 44
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-6-S142": {
+      "story_id": "FEAT-6-S142",
+      "title": "Consent Core Logic Service Implementation",
+      "description": "Implement core ConsentService logic for two-tier consent handling including tier evaluation, escalation rules, de-identification enforcement, and summarization triggers.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S140"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "FEAT-6-S143": {
+      "story_id": "FEAT-6-S143",
+      "title": "Consent API & Tool Router Integration",
+      "description": "Expose consent workflow through FastAPI endpoints and integrate with tool_router to enforce consent validation before any data persistence or downstream tool execution.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S142"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-6-S144": {
+      "story_id": "FEAT-6-S144",
+      "title": "Consent Workflow Orchestration with Lead Capture",
+      "description": "Integrate consent workflow with LeadService to enforce Tier 2 requirements for identifiable data storage, including duplicate detection and consent-gated persistence.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S142"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

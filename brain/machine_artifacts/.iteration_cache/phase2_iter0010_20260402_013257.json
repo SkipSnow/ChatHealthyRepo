@@ -1,0 +1,101 @@
+{
+  "assignment_id": "MAINT-DIST-STORIES",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Completed story set for MAINT-DIST with full lifecycle coverage.",
+  "change_log": [
+    {
+      "path": "stories.MAINT-DIST-S1",
+      "value": "Added schema/contract story",
+      "note": "Define distance input/output contract",
+      "iteration": 10
+    },
+    {
+      "path": "stories.MAINT-DIST-S2",
+      "value": "Added core logic story",
+      "note": "Implement distance computation",
+      "iteration": 10
+    },
+    {
+      "path": "stories.MAINT-DIST-S3",
+      "value": "Added integration story",
+      "note": "Integrate with existing services",
+      "iteration": 10
+    },
+    {
+      "path": "stories.MAINT-DIST-S4",
+      "value": "Added test story",
+      "note": "Validate correctness and edge cases",
+      "iteration": 10
+    }
+  ],
+  "stories": {
+    "MAINT-DIST-S1": {
+      "story_id": "MAINT-DIST-S1",
+      "title": "Define Distance Calculation Schema and Contract",
+      "description": "Define standardized input/output schema for distance calculation including coordinates (lat/long), units (miles/km), and response fields (distance, duration if available, status). Ensure compatibility with existing Google Routes response patterns.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "MAINT-DIST-S2": {
+      "story_id": "MAINT-DIST-S2",
+      "title": "Implement Core Distance Calculation Logic",
+      "description": "Implement backend service to compute distance between two coordinate pairs using existing Google Routes integration logic or fallback calculation if unavailable. Normalize output to the defined schema.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (Google Routes travel distance+duration)"
+    },
+    "MAINT-DIST-S3": {
+      "story_id": "MAINT-DIST-S3",
+      "title": "Integrate Distance Logic into Domain Services",
+      "description": "Integrate distance calculation into relevant domain services (e.g., clinical trials and provider workflows) so distance is computed consistently and reused rather than duplicated.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "MAINT-DIST-S4": {
+      "story_id": "MAINT-DIST-S4",
+      "title": "Distance Calculation Unit and Integration Tests",
+      "description": "Create unit tests for distance calculations (valid coordinates, edge cases, invalid inputs) and integration tests validating end-to-end behavior within clinical trials and provider search flows.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S2",
+        "MAINT-DIST-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/; clinical_trials_service.py integration patterns"
+    },
+    "MAINT-DIST-S5": {
+      "story_id": "MAINT-DIST-S5",
+      "title": "Expose Distance Calculation via Internal API/Facade",
+      "description": "Expose distance computation through application layer (facade or tool) so other services and chat flows can request distance consistently. Ensure alignment with existing tool_router patterns and response formats.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S1",
+        "MAINT-DIST-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  },
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

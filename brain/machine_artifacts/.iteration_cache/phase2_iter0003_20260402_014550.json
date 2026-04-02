@@ -1,0 +1,70 @@
+{
+  "assignment_id": "FEAT-2-STORIES",
+  "iteration": 3,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing stories to meet minimum and cover schema, API, and testing layers.",
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "FEAT-2-S8",
+      "title": "Specialty Identification Input/Output Schema Definition",
+      "description": "Define and validate Pydantic models for specialty identification inputs (free-text queries, symptoms, provider types) and outputs (NUCC codes, confidence scores, classification groups). Ensure compatibility with tool_router and downstream provider search.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    {
+      "story_id": "FEAT-2-S9",
+      "title": "Specialty Identification Core Logic Orchestration",
+      "description": "Implement orchestration logic combining regex matching, vector similarity, and AI query expansion into a unified pipeline. Ensure deduplication, ranking, and aggregation of NUCC codes.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    {
+      "story_id": "FEAT-2-S10",
+      "title": "Expose Specialty Identification via Facade/API",
+      "description": "Expose specialty identification functionality through the FindCare facade and tool_router, enabling agent/tool-based invocation during chat interactions.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S8",
+        "FEAT-2-S9"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    {
+      "story_id": "FEAT-2-S11",
+      "title": "Specialty Identification Unit and Integration Tests",
+      "description": "Create unit tests for regex, vector, and aggregation logic, and integration tests validating end-to-end mapping from user query to NUCC codes through the facade and tool router.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S9",
+        "FEAT-2-S10"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-001",
+      "story_id": "EVAL-WEIGHTS-S4",
+      "requirement": "The system must render adjustable UI controls (e.g., sliders or numeric inputs) for each available evaluation measure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-002",
+      "story_id": "EVAL-WEIGHTS-S4",
+      "requirement": "The system must initialize all weight controls with default values provided by the backend or schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-003",
+      "story_id": "EVAL-WEIGHTS-S4",
+      "requirement": "The system must allow users to modify weight values within defined valid ranges.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-004",
+      "story_id": "EVAL-WEIGHTS-S4",
+      "requirement": "The system must prevent users from entering invalid weight values outside allowed constraints.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-005",
+      "story_id": "EVAL-WEIGHTS-S4",
+      "requirement": "The system must trigger a recomputation request to the backend when a user changes any weight value.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-006",
+      "story_id": "EVAL-WEIGHTS-S4",
+      "requirement": "The system must debounce rapid user input changes to avoid excessive API calls.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-007",
+      "story_id": "EVAL-WEIGHTS-S4",
+      "requirement": "The system must display updated scores returned from the backend without requiring a full page refresh.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-008",
+      "story_id": "EVAL-WEIGHTS-S4",
+      "requirement": "The system must show a loading indicator while recomputed scores are being fetched.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-009",
+      "story_id": "EVAL-WEIGHTS-S4",
+      "requirement": "The system must maintain UI responsiveness while recomputation is in progress.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-010",
+      "story_id": "EVAL-WEIGHTS-S4",
+      "requirement": "The system must display an error message if the recomputation API call fails.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-011",
+      "story_id": "EVAL-WEIGHTS-S4",
+      "requirement": "The system must revert to the last known valid scores if recomputation fails.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-012",
+      "story_id": "EVAL-WEIGHTS-S4",
+      "requirement": "The system must disable or visually indicate invalid inputs until corrected by the user.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-013",
+      "story_id": "EVAL-WEIGHTS-S4",
+      "requirement": "The system must reflect the currently applied weights in the UI after each successful recomputation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-014",
+      "story_id": "EVAL-WEIGHTS-S4",
+      "requirement": "The system must handle the case where the backend returns partial or missing score data by displaying a fallback message instead of breaking the UI.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

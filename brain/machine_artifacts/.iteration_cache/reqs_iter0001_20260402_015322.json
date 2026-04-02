@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-001",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must return clinical trial results from the evaluate_care_facade that include a 'phase' field for each trial.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-002",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must include a 'phase_score' field alongside the 'phase' field in each clinical trial object in the API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-003",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must ensure the 'phase_score' value is a numeric type in the API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-004",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must ensure that for a given trial, the 'phase_score' corresponds to the deterministic mapping defined in the phase scoring logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-005",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must propagate both 'phase' and 'phase_score' fields end-to-end from the domain service through the evaluate_care_facade without omission.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-006",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must return at least one clinical trial result containing both 'phase' and 'phase_score' when valid upstream data is available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-007",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must preserve the original 'phase' string value from the ClinicalTrials.gov response without transformation beyond schema compliance.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-008",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must include 'phase_score' for all trials where 'phase' is one of the allowed values (I, II, III, IV, N/A).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-009",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must assign a valid default or null 'phase_score' when the 'phase' field is missing or empty in upstream data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-010",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must not throw an error at the facade layer when encountering a trial with an unexpected or unsupported 'phase' value.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-011",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must return a structurally valid API response even if none of the trials include 'phase' data.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-012",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must ensure the API response schema matches the defined Pydantic model including both 'phase' and 'phase_score' fields.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-013",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must validate that 'phase_score' values fall within the normalized scoring range defined by the phase scoring logic.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-014",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must include 'phase' and 'phase_score' fields in every trial object in the response array when integration is successful.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

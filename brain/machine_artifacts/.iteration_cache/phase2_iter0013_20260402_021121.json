@@ -1,0 +1,100 @@
+{
+  "assignment_id": "FEAT-6-STORIES",
+  "iteration": 13,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Adds API/UI surface, persistence contract, tests, and cross-service integration coverage for consent workflow.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-6-S42",
+      "value": "Consent persistence schema and storage contract",
+      "note": "Adds schema/contract layer",
+      "iteration": 13
+    },
+    {
+      "path": "stories.FEAT-6-S43",
+      "value": "Consent API endpoints and tool exposure",
+      "note": "Adds API layer",
+      "iteration": 13
+    },
+    {
+      "path": "stories.FEAT-6-S44",
+      "value": "Consent workflow unit and integration tests",
+      "note": "Adds test coverage",
+      "iteration": 13
+    },
+    {
+      "path": "stories.FEAT-6-S45",
+      "value": "Cross-service enforcement integration (unknowns + safety)",
+      "note": "Adds broader integration",
+      "iteration": 13
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-6-S42",
+      "title": "Consent Persistence Schema and Storage Contract",
+      "description": "Define and implement MongoDB schema and storage contract for consent records including tier level, timestamp, session linkage, and audit fields. Ensure compatibility with existing debug logger and lead storage patterns.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S36"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "FEAT-6-S43",
+      "title": "Consent API Endpoints and Tool Router Exposure",
+      "description": "Expose consent workflow via FastAPI endpoints and register tool definitions in tool_router for LLM-triggered consent capture and upgrade flows, including validation through Pydantic models.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S39"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py"
+    },
+    {
+      "story_id": "FEAT-6-S44",
+      "title": "Consent Workflow Unit and Integration Tests",
+      "description": "Implement unit and integration tests validating tier enforcement, de-identification behavior, API responses, and failure cases including invalid transitions and missing consent.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S39",
+        "FEAT-6-S40",
+        "FEAT-6-S43"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    {
+      "story_id": "FEAT-6-S45",
+      "title": "Cross-Service Consent Enforcement Integration",
+      "description": "Integrate consent enforcement into unknown question handling and safety services to ensure no identifiable data is persisted or processed without appropriate consent tier across all shared services.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S39"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

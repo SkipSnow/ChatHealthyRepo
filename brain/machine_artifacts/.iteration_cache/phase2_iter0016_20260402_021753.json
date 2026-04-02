@@ -1,0 +1,54 @@
+{
+  "stories": {
+    "GPTR-F-001-S61": {
+      "story_id": "GPTR-F-001-S61",
+      "title": "Request Contract Schema Enforcement (Pydantic Models)",
+      "description": "Define and enforce strict request/response schema using Pydantic models for GPTReader queries (collection, filters, projection, limits) ensuring only valid structures reach enforcement logic.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S57"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S62": {
+      "story_id": "GPTR-F-001-S62",
+      "title": "Core Allowlist Enforcement Engine",
+      "description": "Implement core validation engine that evaluates incoming GPTReader requests against allowlist rules (collections, fields, operators, limits) and produces deterministic pass/fail decisions.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S57",
+        "GPTR-F-001-S61"
+      ],
+      "size": "L",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S63": {
+      "story_id": "GPTR-F-001-S63",
+      "title": "Azure Function Middleware Integration",
+      "description": "Integrate enforcement engine into Azure Function entrypoint so all GPTReader requests are validated before execution, blocking unauthorized queries at the boundary.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S62"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/function_app.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S64": {
+      "story_id": "GPTR-F-001-S64",
+      "title": "Unit and Integration Tests for Enforcement Paths",
+      "description": "Create comprehensive unit and integration tests covering valid queries, allowlist violations, schema violations, and boundary limits to ensure enforcement correctness and prevent regressions.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S62",
+        "GPTR-F-001-S63"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  }
+}

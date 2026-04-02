@@ -1,0 +1,65 @@
+{
+  "stories": {
+    "FEAT-2-S139": {
+      "story_id": "FEAT-2-S139",
+      "title": "Implement Core Specialty Mapping Pipeline",
+      "description": "Implement the dual-path specialty identification pipeline combining regex-based extraction and vector similarity matching, including parallel execution and aggregation into normalized NUCC outputs.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S135"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "FEAT-2-S140": {
+      "story_id": "FEAT-2-S140",
+      "title": "Add Confidence Scoring and Deduplication Logic",
+      "description": "Enhance specialty mapping results with confidence scoring, deduplication of overlapping NUCC codes, and aggregation of similar classifications into a final ranked output.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S139"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "FEAT-2-S141": {
+      "story_id": "FEAT-2-S141",
+      "title": "Validate Tool Router Integration for Specialty Queries",
+      "description": "Ensure specialty identification is properly invoked through the tool_router with validated inputs, correct tool selection, and structured output passed back into the agent loop.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S136"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-2-S142": {
+      "story_id": "FEAT-2-S142",
+      "title": "Handle Ambiguous and Multi-Specialty Inputs",
+      "description": "Implement logic to support ambiguous queries and multi-specialty inputs, returning multiple NUCC codes with appropriate ranking and fallback behavior when confidence is low.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S140"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "FEAT-2-S143": {
+      "story_id": "FEAT-2-S143",
+      "title": "Integration Test: End-to-End Specialty to Provider Flow",
+      "description": "Create integration tests validating that user input is correctly mapped to NUCC codes and drives provider search results through the full pipeline (facade → service → provider search).",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S138",
+        "FEAT-2-S137"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    }
+  }
+}

@@ -20011,47 +20011,71 @@
   "sprint_map": [
     {
       "sprint": 1,
-      "sprint_goal": "Deliver provider scoring schema and contract",
-      "capacity_split": "100% EPIC-1",
-      "max_capacity": "1 story (1 M)",
+      "dates": "Apr 1-5",
+      "sprint_goal": "PI Planning, Design, Implementation of entire Evaluate Care system, Smoke test (Delaware only)",
+      "capacity_split": "80% EPIC-1, 20% EPIC-2",
       "features_shipped": [
-        "EVAL-SCORE-PROV"
+        "EVAL-SCORE-PROV",
+        "EVAL-SCORE-CT",
+        "EVAL-EXPLAIN",
+        "EVAL-EXPLAIN-UX",
+        "EVAL-P-MEASURE-BOARD",
+        "EVAL-CT-MEASURE-PHASE",
+        "EVAL-P-RX",
+        "EVAL-COMPARE",
+        "EVAL-P-MEASURE-MALPRACTICE",
+        "EVAL-P-RX-UX",
+        "EVAL-P-BOARD-UX",
+        "EVAL-P-MALPRACTICE-UX",
+        "EVAL-CT-PHASE-UX",
+        "EVAL-COMPARE-UX",
+        "EVAL-CT-TRIAGE",
+        "EVAL-CT-TRIAGE-UX",
+        "EVAL-CT-MEASURE-PI",
+        "EVAL-CT-PI-UX",
+        "EVAL-CT-MEASURE-SPONSOR",
+        "EVAL-CT-SPONSOR-UX",
+        "EVAL-P-TRIAGE",
+        "EVAL-P-TRIAGE-UX",
+        "PIPE-RX-INGEST",
+        "MAINT-BRAIN-DESIGN"
       ],
-      "stories": [
-        "EVAL-SCORE-PROV-S1"
-      ]
+      "notes": "Boss velocity: entire system in one sprint. PI planning completed Day 1. Design + implementation Days 2-4. Smoke test Day 5 (DE only)."
     },
     {
       "sprint": 2,
-      "sprint_goal": "No scoped feature available",
-      "capacity_split": "100% EPIC-1",
-      "max_capacity": "1 story (1 M)",
+      "dates": "Apr 7-12",
+      "sprint_goal": "Bug fixes from smoke test, expand to MS and VA",
+      "capacity_split": "100% stabilization",
       "features_shipped": [],
-      "stories": []
+      "notes": "Contingency sprint. Fix whatever Sprint 1 smoke test found."
     },
     {
       "sprint": 3,
-      "sprint_goal": "No scoped feature available",
-      "capacity_split": "100% EPIC-1",
-      "max_capacity": "1 story (1 M)",
-      "features_shipped": [],
-      "stories": []
+      "dates": "Apr 14-19",
+      "sprint_goal": "EPIC-2 maintenance features",
+      "capacity_split": "100% EPIC-2",
+      "features_shipped": [
+        "PIPE-RX-INGEST",
+        "MAINT-BRAIN-DESIGN"
+      ],
+      "notes": "Pipeline and maintenance work after core Evaluate Care is stable."
     },
     {
       "sprint": 4,
-      "sprint_goal": "No scoped feature available",
-      "capacity_split": "100% EPIC-1",
-      "max_capacity": "1 story (1 M)",
+      "dates": "Apr 21-26",
+      "sprint_goal": "Hardening and regression",
+      "capacity_split": "100% stabilization",
       "features_shipped": [],
-      "stories": []
+      "notes": "Full regression. Fix outstanding issues. Prepare for UAT."
     },
     {
       "sprint": 5,
+      "dates": "Apr 26 - May 1",
       "sprint_goal": "UAT and release",
-      "capacity_split": "100% EPIC-1",
-      "max_capacity": "1 story (1 M)",
+      "capacity_split": "100% UAT",
       "features_shipped": [],
-      "stories": []
+      "notes": "No new development. Boss UAT. Bug fixes only. Production deploy with Boss sign-off (GOV-007)."
     }
   ],
   "risk_matrix": {

@@ -1,0 +1,78 @@
+{
+  "assignment_id": "PHASE-2-GOV-F-004",
+  "iteration": 8,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing foundational and access-layer stories to complete append-only audit logging feature.",
+  "change_log": [
+    {
+      "path": "stories.GOV-F-004-S27",
+      "value": "Audit Log Schema and Contract Definition",
+      "note": "Adds schema foundation missing from prior iterations",
+      "iteration": 8
+    },
+    {
+      "path": "stories.GOV-F-004-S28",
+      "value": "Append-Only Persistence Layer",
+      "note": "Adds core storage enforcement logic",
+      "iteration": 8
+    },
+    {
+      "path": "stories.GOV-F-004-S29",
+      "value": "Audit Log Read/Query API (Internal)",
+      "note": "Adds controlled read access for audits and QA",
+      "iteration": 8
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GOV-F-004-S27": {
+      "story_id": "GOV-F-004-S27",
+      "title": "Audit Log Schema and Contract Definition",
+      "description": "Define canonical audit log schema including actor (GPT/Claude/system), action type, timestamp, payload hash, previous hash linkage, and metadata. Implement Pydantic validation models to enforce strict contract on all audit entries.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S28": {
+      "story_id": "GOV-F-004-S28",
+      "title": "Append-Only Persistence Layer",
+      "description": "Implement MongoDB-based append-only storage with enforced write-once semantics. Prevent updates/deletes at application layer and enforce hash-chain linkage (prev_hash → current_hash) to ensure tamper evidence.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S27"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S29": {
+      "story_id": "GOV-F-004-S29",
+      "title": "Audit Log Read/Query API (Internal)",
+      "description": "Create internal read/query interface for audit logs supporting filtered retrieval (by actor, action, time range) while preserving immutability guarantees. Ensure access is restricted and does not allow mutation paths.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S28"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

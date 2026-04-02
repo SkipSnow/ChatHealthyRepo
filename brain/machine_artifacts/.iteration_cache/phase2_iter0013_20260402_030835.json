@@ -1,0 +1,17 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-010",
+  "iteration": 13,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Adjusted observability story to explicitly include internal API surface (API/UI category coverage).",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-010-S4.description",
+      "value": "Provide internal observability hooks, debug logging, and a lightweight internal API endpoint that exposes selected cluster per request, routing rule applied, and cluster health status (ping/availability) to support troubleshooting and validation.",
+      "note": "Ensure explicit API layer coverage per assignment requirement",
+      "iteration": 13
+    }
+  ]
+}

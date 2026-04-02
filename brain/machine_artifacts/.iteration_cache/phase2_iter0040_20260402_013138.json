@@ -1,0 +1,65 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 40,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing core logic and API contract stories to complete explainability layer coverage.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F5-S135",
+      "value": "Added core explainability mapping logic in facade",
+      "note": "Core backend logic gap",
+      "iteration": 40
+    },
+    {
+      "path": "stories.EVAL-F5-S136",
+      "value": "Added API contract exposure for explainability payload",
+      "note": "API layer missing",
+      "iteration": 40
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F5-S135",
+      "title": "Explainability Mapping Logic in Evaluate Care Facade",
+      "description": "Implement core logic in evaluate_care_facade to transform raw provider (EVAL-F1, F2) and clinical trial signals (EVAL-F3) into the standardized explainability schema, including source attribution, human-readable meaning, and limitations.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F5-S136",
+      "title": "Explainability Payload Integration in API Responses",
+      "description": "Extend API response structures to include explainability objects alongside evaluation signals, ensuring compatibility with tool_router and FastAPI response models.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S131",
+        "EVAL-F5-S135"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

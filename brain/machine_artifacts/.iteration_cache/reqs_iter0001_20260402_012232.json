@@ -1,0 +1,149 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CT-M5-001",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must define a Pydantic input model that includes user_location with latitude and longitude as required float fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-002",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must define a Pydantic input model that includes one or more trial_locations, each with latitude and longitude.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-003",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must define optional distance_meters and duration_seconds fields in the input model to align with Google Routes outputs.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-004",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must define an output model that includes a normalized_proximity_score as a float between 0 and 1 inclusive.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-005",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must include metadata in the output model containing selected_trial_location, distance_meters, and duration_seconds.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-006",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must ensure the schema is compatible with existing clinical_trials_models by reusing or extending shared location field structures.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-007",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must ensure the schema is serializable and consumable by evaluate_care_facade without transformation errors.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-008",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must validate that latitude values are between -90 and 90 and longitude values are between -180 and 180.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-009",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must reject input where trial_locations is empty.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-010",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must allow multiple trial_locations and preserve all entries for downstream selection logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-011",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must define default null handling for distance_meters and duration_seconds when routing data is unavailable.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-012",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must raise a validation error when user_location is missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-013",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must raise a validation error when latitude or longitude values are non-numeric.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-014",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must define field names and types that exactly match the contract expected by clinical_trials_service.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-015",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must ensure no additional undefined fields are accepted in the schema (forbid extra fields).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-016",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must ensure deterministic schema generation so identical inputs always produce identical serialized outputs.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-017",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must include clear field descriptions in the schema for all inputs and outputs to support LLM interpretation.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-018",
+      "story_id": "EVAL-CT-M5-S1",
+      "requirement": "The system must ensure the schema does not introduce any fields not supported by evaluate_care_facade or tool_router.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

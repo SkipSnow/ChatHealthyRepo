@@ -1,0 +1,62 @@
+{
+  "assignment_id": "PHASE 2: FEAT-6 Stories",
+  "iteration": 34,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "FEAT-6-S110 and FEAT-6-S111 referenced but not defined in prior iterations"
+  ],
+  "notes": "Added missing core logic stories required by existing dependencies.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-6-S116",
+      "value": "Core consent tier evaluation and enforcement logic",
+      "note": "Resolve missing dependency FEAT-6-S110 equivalent",
+      "iteration": 34
+    },
+    {
+      "path": "stories.FEAT-6-S117",
+      "value": "De-identification and storage gating logic",
+      "note": "Resolve missing dependency FEAT-6-S111 equivalent",
+      "iteration": 34
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-6-S116": {
+      "story_id": "FEAT-6-S116",
+      "title": "Consent Tier Evaluation and Enforcement Logic",
+      "description": "Implement core ConsentService logic to evaluate user consent tier (Tier 1 vs Tier 2), enforce eligibility rules for data storage, and manage consent state transitions including upgrades and revocations.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "FEAT-6-S117": {
+      "story_id": "FEAT-6-S117",
+      "title": "De-identification and Storage Gating Logic",
+      "description": "Implement HIPAA Safe Harbor de-identification pipeline and enforce storage gating rules بحيث identifiable data is only persisted under Tier 2 consent while Tier 1 enforces anonymization.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S116"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

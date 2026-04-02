@@ -1,0 +1,64 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-P-M2-S1",
+      "title": "Define Specialty Match Accuracy Schema and Contract",
+      "description": "Define a strict response schema for specialty match accuracy including: input condition-derived NUCC codes, provider NUCC codes, match_score (0–1), match_type (exact | partial | mismatch), and explanation fields for downstream transparency.",
+      "parent_feature": "EVAL-P-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    {
+      "story_id": "EVAL-P-M2-S2",
+      "title": "Implement Specialty Match Accuracy Scoring Logic",
+      "description": "Implement core logic that compares condition-derived NUCC taxonomy codes against provider taxonomy codes, computes normalized similarity scores, and assigns match classifications using deterministic rules aligned with specialty_service pipelines.",
+      "parent_feature": "EVAL-P-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-M2-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    {
+      "story_id": "EVAL-P-M2-S3",
+      "title": "Expose Specialty Match Accuracy via Evaluate Care Facade",
+      "description": "Integrate specialty match scoring into evaluate_care_facade so that provider evaluation responses include match_score, classification, and supporting NUCC mappings without breaking existing provider detail contracts.",
+      "parent_feature": "EVAL-P-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-M2-S2",
+        "EVAL-F-002"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-P-M2-S4",
+      "title": "Unit and Integration Tests for Specialty Match Accuracy",
+      "description": "Develop unit tests validating scoring logic across exact, partial, and mismatch scenarios, plus integration tests covering end-to-end flow from specialty extraction through evaluate_care_facade output.",
+      "parent_feature": "EVAL-P-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-M2-S2",
+        "EVAL-P-M2-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    },
+    {
+      "story_id": "EVAL-P-M2-S5",
+      "title": "Handle Multi-Specialty and Ambiguity Edge Cases",
+      "description": "Extend scoring logic to support providers with multiple NUCC codes, including deduplication, weighting strategies, and fallback handling for ambiguous or low-confidence condition-to-specialty mappings produced by the dual-pipeline system.",
+      "parent_feature": "EVAL-P-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-M2-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    }
+  ]
+}

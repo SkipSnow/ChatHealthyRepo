@@ -1,0 +1,89 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 43,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema validation, frontend rendering, integration wiring, and tests for explainability layer.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F5-S144",
+      "value": "Add explainability schema validation models",
+      "note": "Covers schema/contract gap",
+      "iteration": 43
+    },
+    {
+      "path": "stories.EVAL-F5-S145",
+      "value": "Render explainability in chat UI",
+      "note": "Adds frontend coverage",
+      "iteration": 43
+    },
+    {
+      "path": "stories.EVAL-F5-S146",
+      "value": "End-to-end integration of explainability flow",
+      "note": "Ensures cross-layer wiring",
+      "iteration": 43
+    },
+    {
+      "path": "stories.EVAL-F5-S147",
+      "value": "Unit and integration tests for explainability layer",
+      "note": "Adds test coverage",
+      "iteration": 43
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "EVAL-F5-S144",
+      "title": "Define Explainability Schema and Validation Models",
+      "description": "Create Pydantic models defining the explainability contract (source, meaning, limitations) and enforce validation within tool models to ensure consistent structure across all evaluation signals.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S140"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models"
+    },
+    {
+      "story_id": "EVAL-F5-S145",
+      "title": "Render Explainability Metadata in Chat UI",
+      "description": "Update MessageBubble and related frontend components to display explainability fields (source, meaning, limitations) in a readable format within chat responses.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S142"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    {
+      "story_id": "EVAL-F5-S146",
+      "title": "Integrate Explainability Across Provider and Trial Flows",
+      "description": "Ensure explainability metadata is consistently included for both provider (EVAL-F1, EVAL-F2) and clinical trial (EVAL-F3) flows within EvaluateCareFacade orchestration paths.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S141",
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F5-S147",
+      "title": "Implement Unit and Integration Tests for Explainability Layer",
+      "description": "Add backend unit tests for mapping logic and schema validation, plus integration tests validating end-to-end inclusion of explainability metadata in API responses and chat outputs.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S140",
+        "EVAL-F5-S142"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  ]
+}

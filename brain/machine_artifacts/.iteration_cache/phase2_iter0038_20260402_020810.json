@@ -1,0 +1,99 @@
+{
+  "assignment_id": "PHASE-2-FEAT-5-STORIES",
+  "iteration": 38,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added additional stories to complete FEAT-5 coverage across allowlist configuration, error handling, observability, and security controls.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-5-S151",
+      "value": "Allowlist Configuration Management",
+      "note": "Adds explicit story for managing tool allowlist source of truth",
+      "iteration": 38
+    },
+    {
+      "path": "stories.FEAT-5-S152",
+      "value": "Standardized Error Handling for Tool Rejection",
+      "note": "Adds consistent rejection and error response behavior",
+      "iteration": 38
+    },
+    {
+      "path": "stories.FEAT-5-S153",
+      "value": "Tool Routing Observability and Debug Logging",
+      "note": "Adds logging and traceability for tool dispatch decisions",
+      "iteration": 38
+    },
+    {
+      "path": "stories.FEAT-5-S154",
+      "value": "Security Guardrails for Unauthorized Tool Invocation",
+      "note": "Adds explicit security enforcement for non-allowlisted tools",
+      "iteration": 38
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-5-S151": {
+      "story_id": "FEAT-5-S151",
+      "title": "Allowlist Configuration Management",
+      "description": "Define and implement a centralized allowlist configuration for permitted tools, including mapping between tool names, handlers, and associated Pydantic models used by the tool_router.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S146"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-5-S152": {
+      "story_id": "FEAT-5-S152",
+      "title": "Standardized Error Handling for Tool Rejection",
+      "description": "Implement consistent error responses for non-allowlisted tools and validation failures, including structured error payloads returned to the agent loop and safe user-facing messaging.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S147"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-5-S153": {
+      "story_id": "FEAT-5-S153",
+      "title": "Tool Routing Observability and Debug Logging",
+      "description": "Integrate debug logging into tool routing flow to capture tool selection, allowlist decisions, validation outcomes, and execution timing for traceability and QA analysis.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S148"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-5-S154": {
+      "story_id": "FEAT-5-S154",
+      "title": "Security Guardrails for Unauthorized Tool Invocation",
+      "description": "Enforce strict blocking of any tool invocation not present in the allowlist, including defensive handling of malformed or adversarial tool_use payloads to prevent unintended execution paths.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S146",
+        "FEAT-5-S151"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; brain/machine_artifacts/content/governance.json"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

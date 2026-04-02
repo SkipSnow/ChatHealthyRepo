@@ -1,0 +1,99 @@
+{
+  "assignment_id": "MAINT-BRAIN-STORIES",
+  "iteration": 4,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Adjusted to ensure API layer coverage without adding new story IDs.",
+  "change_log": [
+    {
+      "path": "stories.MAINT-BRAIN-S4.title",
+      "value": "Audit Logging and Internal API Exposure for Brain Operations",
+      "note": "Expanded to include API/UI layer responsibility",
+      "iteration": 4
+    },
+    {
+      "path": "stories.MAINT-BRAIN-S4.description",
+      "value": "Standardize audit logs for GPTReader and manifest operations and expose internal read-only endpoints for audit inspection, including request_id, timestamp, actor, query scope, response size, and outcome. Ensure compatibility with existing debug_logger and Brain observability patterns.",
+      "note": "Added API exposure requirement",
+      "iteration": 4
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "MAINT-BRAIN-S1",
+      "title": "GPTReader Response Schema and Manifest Contract",
+      "description": "Define and enforce a strict response schema for GPTReader including document limits, size caps (500KB), manifest-aligned metadata (source, collection, record_id), and error contract for consistent downstream consumption.",
+      "parent_feature": "MAINT-BRAIN",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/ops/manifest_generator.py"
+    },
+    {
+      "story_id": "MAINT-BRAIN-S2",
+      "title": "Manifest Validation and Drift Detection Logic",
+      "description": "Implement core logic to validate that GPTReader queries and outputs align with the current project manifest, including file existence checks, hash validation, and detection of stale or missing entries.",
+      "parent_feature": "MAINT-BRAIN",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-BRAIN-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/manifest_generator.py; brain/manifest/project_manifest.json"
+    },
+    {
+      "story_id": "MAINT-BRAIN-S3",
+      "title": "GPTReader Reliability Enhancements (Limits and Fallbacks)",
+      "description": "Enhance GPTReader to handle edge cases including oversized queries, partial reads, and Mongo timeouts by enforcing limits (100 docs, 500KB) and introducing safe fallback responses with clear error signaling.",
+      "parent_feature": "MAINT-BRAIN",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-BRAIN-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    },
+    {
+      "story_id": "MAINT-BRAIN-S4",
+      "title": "Audit Logging and Internal API Exposure for Brain Operations",
+      "description": "Standardize audit logs for GPTReader and manifest operations and expose internal read-only endpoints for audit inspection, including request_id, timestamp, actor, query scope, response size, and outcome. Ensure compatibility with existing debug_logger and Brain observability patterns.",
+      "parent_feature": "MAINT-BRAIN",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-BRAIN-S2",
+        "MAINT-BRAIN-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "MAINT-BRAIN-S5",
+      "title": "GPTReader and Manifest Integration Test Suite",
+      "description": "Create unit and integration tests validating schema compliance, manifest alignment, drift detection, limit enforcement, and audit logging consistency across GPTReader operations.",
+      "parent_feature": "MAINT-BRAIN",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-BRAIN-S2",
+        "MAINT-BRAIN-S3",
+        "MAINT-BRAIN-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

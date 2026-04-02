@@ -1,0 +1,57 @@
+{
+  "stories": {
+    "GPTR-F-002-S92": {
+      "story_id": "GPTR-F-002-S92",
+      "title": "Token Revocation Logic",
+      "description": "Implement explicit token revocation capability by setting revoked_at and enforcing immediate invalidation during authentication. Ensure revoked tokens cannot be reused even if not expired.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S88"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/auth.py; GAP: No revocation mechanism currently implemented"
+    },
+    "GPTR-F-002-S93": {
+      "story_id": "GPTR-F-002-S93",
+      "title": "Token Management API Endpoints",
+      "description": "Create backend API endpoints for token issuance, rotation, and revocation. Ensure endpoints are secured and align with existing Azure Function and GPTReader access patterns.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S89",
+        "GPTR-F-002-S90",
+        "GPTR-F-002-S92"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/function_app.py; Code/DataPipelines/gpt_reader.py; GAP: No lifecycle management endpoints exist"
+    },
+    "GPTR-F-002-S94": {
+      "story_id": "GPTR-F-002-S94",
+      "title": "Authentication Middleware Integration",
+      "description": "Integrate expiration, rotation, and revocation checks into the bearer token validation flow used by GPTReader and Azure Functions. Ensure a single enforcement point for all lifecycle rules.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S89",
+        "GPTR-F-002-S90",
+        "GPTR-F-002-S92"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/DataPipelines/gpt_reader.py"
+    },
+    "GPTR-F-002-S95": {
+      "story_id": "GPTR-F-002-S95",
+      "title": "Token Lifecycle Test Suite",
+      "description": "Develop unit and integration tests covering token creation, expiration, rotation chains, revocation, and invalid token scenarios. Include edge cases such as replay attempts and chained rotations.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S93",
+        "GPTR-F-002-S94"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; GAP: No lifecycle-specific test coverage exists"
+    }
+  }
+}

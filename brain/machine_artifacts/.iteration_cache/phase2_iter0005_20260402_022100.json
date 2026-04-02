@@ -1,0 +1,84 @@
+{
+  "assignment_id": "PHASE-2-EVAL-P-MEASURE-3",
+  "iteration": 5,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories created for Disciplinary History Signal feature per required breakdown.",
+  "change_log": [],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-P-M3-S1": {
+      "story_id": "EVAL-P-M3-S1",
+      "title": "Define Disciplinary Signal Schema and Contract",
+      "description": "Define a structured schema for disciplinary signals including presence indicator (boolean), state board lookup URL, state code, and disclaimer text indicating no full records are stored.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-P-M3-S2": {
+      "story_id": "EVAL-P-M3-S2",
+      "title": "Implement Disciplinary Signal Extraction Logic",
+      "description": "Implement logic in provider_detail_service to detect availability of disciplinary lookup links based on provider state and construct normalized presence indicators without retrieving or storing disciplinary records.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-M3-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-P-M3-S3": {
+      "story_id": "EVAL-P-M3-S3",
+      "title": "Integrate Disciplinary Signals into Provider Detail Response",
+      "description": "Extend provider detail response object to include disciplinary signal schema and ensure compatibility with existing response contracts used by evaluate_care_facade.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-M3-S1",
+        "EVAL-P-M3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-P-M3-S4": {
+      "story_id": "EVAL-P-M3-S4",
+      "title": "Unit Tests for Disciplinary Signal Logic",
+      "description": "Create unit tests validating state-based link generation, presence indicator accuracy, and handling of unsupported states or missing data.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-M3-S2"
+      ],
+      "size": "S",
+      "evidence": "GAP: No existing test coverage for disciplinary signal logic; must be implemented"
+    },
+    "EVAL-P-M3-S5": {
+      "story_id": "EVAL-P-M3-S5",
+      "title": "End-to-End Integration Test for Disciplinary Signal Flow",
+      "description": "Validate that disciplinary signals propagate from provider_detail_service through evaluate_care_facade to final API response without exposing raw disciplinary records.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-M3-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

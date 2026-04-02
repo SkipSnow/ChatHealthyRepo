@@ -1,0 +1,98 @@
+{
+  "assignment_id": "FEAT-4-STORIES",
+  "iteration": 48,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added additional stories to strengthen contract validation, external link integrity, and resilience.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-4-STORY-59",
+      "value": "Add Pydantic model for provider detail contract validation",
+      "note": "Ensure strict schema enforcement beyond basic response definition",
+      "iteration": 48
+    },
+    {
+      "path": "stories.FEAT-4-STORY-60",
+      "value": "Add external link validation via URL guardian",
+      "note": "Improve trustworthiness of outbound provider links",
+      "iteration": 48
+    },
+    {
+      "path": "stories.FEAT-4-STORY-61",
+      "value": "Implement error handling and fallback for NPI API failures",
+      "note": "Increase reliability of provider lookup",
+      "iteration": 48
+    },
+    {
+      "path": "stories.FEAT-4-STORY-62",
+      "value": "Add lightweight caching for NPI lookup results",
+      "note": "Reduce latency and external API dependency",
+      "iteration": 48
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-4-STORY-59": {
+      "story_id": "FEAT-4-STORY-59",
+      "title": "Implement Pydantic Validation for Provider Detail Response",
+      "description": "Define and enforce a Pydantic model for provider detail responses to validate structure, required fields, and data types before returning results to the facade.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-54"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-4-STORY-60": {
+      "story_id": "FEAT-4-STORY-60",
+      "title": "Validate External Provider Links via URL Guardian",
+      "description": "Integrate url_guardian to validate and sanitize all generated external links (state boards, research sites) before returning them in provider detail responses.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-50"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    },
+    "FEAT-4-STORY-61": {
+      "story_id": "FEAT-4-STORY-61",
+      "title": "Add Robust Error Handling for NPI Registry Failures",
+      "description": "Implement retry logic, timeout handling, and graceful fallback responses when the NPI Registry API is unavailable or returns incomplete data.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-50"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "FEAT-4-STORY-62": {
+      "story_id": "FEAT-4-STORY-62",
+      "title": "Implement Caching Layer for Provider Detail Lookups",
+      "description": "Add a short-lived caching mechanism for NPI lookup results to reduce repeated external API calls and improve response latency.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-50"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

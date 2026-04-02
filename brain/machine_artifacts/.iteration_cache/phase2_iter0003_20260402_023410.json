@@ -1,0 +1,65 @@
+{
+  "stories": [
+    {
+      "story_id": "MAINT-DIST-UX-S1",
+      "title": "Distance Field Contract for Chat Messages",
+      "description": "Define and document the frontend contract for provider distance fields (distance_miles:number, distance_text:string) within chat message payloads to ensure consistent parsing and rendering in MessageBubble.",
+      "parent_feature": "MAINT-DIST-UX",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-DIST"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx (no structured distance fields present)"
+    },
+    {
+      "story_id": "MAINT-DIST-UX-S2",
+      "title": "Distance Formatting Logic",
+      "description": "Implement client-side formatting logic to convert raw distance values into user-friendly strings (rounded miles, consistent units, fallback 'Distance unavailable').",
+      "parent_feature": "MAINT-DIST-UX",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-DIST-UX-S1"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    {
+      "story_id": "MAINT-DIST-UX-S3",
+      "title": "Render Distance in MessageBubble UI",
+      "description": "Enhance MessageBubble to display formatted distance inline with provider results while preserving markdown rendering, layout, and readability.",
+      "parent_feature": "MAINT-DIST-UX",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-DIST-UX-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    {
+      "story_id": "MAINT-DIST-UX-S4",
+      "title": "End-to-End Distance Data Integration",
+      "description": "Ensure distance values produced by backend (MAINT-DIST) are propagated through chat responses and correctly mapped to the frontend contract without loss or mismatch.",
+      "parent_feature": "MAINT-DIST-UX",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-DIST",
+        "MAINT-DIST-UX-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    {
+      "story_id": "MAINT-DIST-UX-S5",
+      "title": "Distance Display Test Coverage",
+      "description": "Add unit and UI tests validating distance formatting, rendering in MessageBubble, and graceful handling of missing/null distance values.",
+      "parent_feature": "MAINT-DIST-UX",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-DIST-UX-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    }
+  ]
+}

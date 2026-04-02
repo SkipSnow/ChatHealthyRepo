@@ -1,0 +1,67 @@
+{
+  "stories": [
+    {
+      "story_id": "PIPE-RX-INGEST-S1",
+      "title": "Define prescription data schema and MongoDB contract",
+      "description": "Design and implement MongoDB collection schema for PublicHealthData.prescriptions including fields for NPI, drug identifiers, claim counts, and derived condition taxonomy. Define ingestion contract and validation rules aligned with existing Mongo utilities.",
+      "parent_feature": "PIPE-RX-INGEST",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/ChatHealthyMongoUtilities.py; Code/Schemas/ChatHealthy.Providers.json (schema precedent); ASSUMPTION: New PublicHealthData.prescriptions collection required",
+      "status": "proposed"
+    },
+    {
+      "story_id": "PIPE-RX-INGEST-S2",
+      "title": "Implement CMS Part D ingestion and transformation pipeline",
+      "description": "Build Azure Function pipeline to fetch CMS Part D data, parse raw files, map prescriber to NPI, map drugs to condition taxonomy using ICD10 loader, normalize metrics, and prepare documents for storage.",
+      "parent_feature": "PIPE-RX-INGEST",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "L",
+      "evidence": "Code/DataPipelines/function_app.py (Azure Functions orchestration); Code/DataPipelines/data_fetcher_base.py; Code/DataPipelines/icd10_loader.py; ASSUMPTION: CMS dataset accessible via bulk download/API",
+      "status": "proposed"
+    },
+    {
+      "story_id": "PIPE-RX-INGEST-S3",
+      "title": "Persist normalized prescription data to MongoDB",
+      "description": "Implement write pipeline to store transformed prescription records into MongoDB PublicHealthData with batching, idempotency, and error handling consistent with existing pipeline_worker_base patterns.",
+      "parent_feature": "PIPE-RX-INGEST",
+      "sprint": 2,
+      "dependencies": [
+        "PIPE-RX-INGEST-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/pipeline_worker_base.py; Code/DataPipelines/provider_worker.py; Code/Shared/ChatHealthyMongoUtilities.py",
+      "status": "proposed"
+    },
+    {
+      "story_id": "PIPE-RX-INGEST-S4",
+      "title": "Expose ingestion status and data access endpoint",
+      "description": "Create internal API or function endpoint to report ingestion job status and allow retrieval of aggregated prescription data by NPI for downstream Evaluate Care usage.",
+      "parent_feature": "PIPE-RX-INGEST",
+      "sprint": 3,
+      "dependencies": [
+        "PIPE-RX-INGEST-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/pipeline_health.py; Code/DataPipelines/function_app.py; ASSUMPTION: Evaluate Care will query MongoDB via service layer",
+      "status": "proposed"
+    },
+    {
+      "story_id": "PIPE-RX-INGEST-S5",
+      "title": "Implement unit and integration tests for ingestion pipeline",
+      "description": "Develop tests covering schema validation, ingestion logic, transformation accuracy, and MongoDB persistence using existing SIT and pipeline test patterns.",
+      "parent_feature": "PIPE-RX-INGEST",
+      "sprint": 3,
+      "dependencies": [
+        "PIPE-RX-INGEST-S2",
+        "PIPE-RX-INGEST-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_pipeline_worker_base.py; Code/DataPipelines/tests/gpt_sit_runner.py; Code/DataPipelines/tests/test_gpt_reader_integration.py",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

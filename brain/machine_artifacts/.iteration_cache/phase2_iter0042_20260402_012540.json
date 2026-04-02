@@ -1,0 +1,53 @@
+{
+  "stories": {
+    "SHARED-F-2-S124": {
+      "story_id": "SHARED-F-2-S124",
+      "title": "Consent Data Schema & Storage Contract",
+      "description": "Define and implement MongoDB schema and storage contracts for consent records, including tier levels, timestamps, user/session linkage, and audit trail fields required for HIPAA compliance and traceability.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; Code/Shared/ChatHealthyMongoUtilities.py; architecture/refactor_design_arch001"
+    },
+    "SHARED-F-2-S125": {
+      "story_id": "SHARED-F-2-S125",
+      "title": "Consent Enforcement Middleware Layer",
+      "description": "Implement a reusable enforcement layer that intercepts all data persistence calls and validates consent tier before allowing storage, including fallback to de-identification when Tier 2 consent is not granted.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S121",
+        "SHARED-F-2-S124"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; architecture/refactor_design_arch001"
+    },
+    "SHARED-F-2-S126": {
+      "story_id": "SHARED-F-2-S126",
+      "title": "Consent Audit Logging & Traceability",
+      "description": "Implement detailed audit logging for all consent decisions, including consent capture, tier transitions, enforcement actions, and data storage outcomes to support compliance review and debugging.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S125"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; architecture/refactor_design_arch001"
+    },
+    "SHARED-F-2-S127": {
+      "story_id": "SHARED-F-2-S127",
+      "title": "Consent Framework Unit & Integration Tests",
+      "description": "Develop comprehensive unit and integration tests covering consent tier logic, enforcement behavior, de-identification fallback, and cross-service interactions to ensure correctness and prevent regression.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S121",
+        "SHARED-F-2-S123",
+        "SHARED-F-2-S125"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; architecture/refactor_design_arch001"
+    }
+  }
+}

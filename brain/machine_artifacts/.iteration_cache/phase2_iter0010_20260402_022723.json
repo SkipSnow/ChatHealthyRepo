@@ -1,0 +1,116 @@
+{
+  "assignment_id": "PHASE-2-EVAL-CT-MEASURE-2",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Feature previously had insufficient story coverage; now expanded to meet minimum"
+  ],
+  "notes": "Added full story set (schema, logic, API, tests) without duplicating existing debug logging story.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-CT-M2-S1",
+      "value": "Added schema/contract story",
+      "note": "Establish normalized enrollment status structure",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S2",
+      "value": "Added core logic story",
+      "note": "Implements normalization mapping",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S3",
+      "value": "Added API integration story",
+      "note": "Expose status via facade",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S4",
+      "value": "Added unit test story",
+      "note": "Ensure mapping correctness",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S5",
+      "value": "Added integration test story",
+      "note": "Validate end-to-end flow",
+      "iteration": 10
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-CT-M2-S1",
+      "title": "Define Enrollment Status Schema and Normalization Contract",
+      "description": "Define a normalized enrollment status schema (e.g., RECRUITING, ACTIVE_NOT_RECRUITING, COMPLETED, UNKNOWN) and mapping contract from raw ClinicalTrials.gov status values to standardized categories used by Evaluate Care.",
+      "parent_feature": "EVAL-CT-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-M2-S2",
+      "title": "Implement Enrollment Status Extraction and Normalization Logic",
+      "description": "Extract raw enrollment status from ClinicalTrials.gov API responses and implement deterministic mapping logic to normalize statuses into defined categories, including handling edge cases such as missing or uncommon statuses.",
+      "parent_feature": "EVAL-CT-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-M2-S3",
+      "title": "Expose Enrollment Status via Evaluate Care Facade",
+      "description": "Integrate normalized enrollment status into the clinical trials response model and expose it through the evaluate_care_facade so it is available to downstream consumers and UI rendering.",
+      "parent_feature": "EVAL-CT-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-CT-M2-S4",
+      "title": "Unit Tests for Enrollment Status Normalization",
+      "description": "Create unit tests validating correct mapping of all known ClinicalTrials.gov status values to normalized categories, including edge cases such as null, unexpected, or deprecated values.",
+      "parent_feature": "EVAL-CT-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-M2-S5",
+      "title": "Integration Test for Enrollment Status End-to-End Flow",
+      "description": "Validate that enrollment status is correctly retrieved from ClinicalTrials.gov, normalized, passed through the service layer, and exposed via the Evaluate Care facade in clinical trial responses.",
+      "parent_feature": "EVAL-CT-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

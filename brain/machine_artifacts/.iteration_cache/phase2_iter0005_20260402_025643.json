@@ -1,0 +1,79 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-006",
+  "iteration": 5,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined integration coverage; no new stories added to avoid duplication.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-006-S3.description",
+      "value": "Integrate freshness validation into execution entry points (dev_pipeline, sync_to_mongo, and Brain execution flows) and trigger manifest regeneration when TTL expiry or hash drift is detected, leveraging existing brain_snapshot and manifest generation processes.",
+      "note": "Expanded integration scope to include sync_to_mongo based on manifest lifecycle",
+      "iteration": 5
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-006-S1",
+      "title": "Manifest Snapshot Metadata Schema",
+      "description": "Define and standardize manifest snapshot metadata contract including generated_at timestamp, build_id, file_hashes (SHA-256), and configurable freshness TTL policy used for validation prior to execution.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/Shared/ops/manifest_generator.py"
+    },
+    {
+      "story_id": "BL-0.1.4-006-S2",
+      "title": "Snapshot Freshness Validation Engine",
+      "description": "Implement validation logic that independently evaluates (1) TTL expiry based on generated_at and policy, and (2) hash drift by comparing stored file_hashes against current file state using manifest_generator hashing behavior.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/manifest_generator.py; Code/Shared/ops/sync_to_mongo.py"
+    },
+    {
+      "story_id": "BL-0.1.4-006-S3",
+      "title": "Auto-Regeneration Trigger on Stale Manifest",
+      "description": "Integrate freshness validation into execution entry points (dev_pipeline, sync_to_mongo, and Brain execution flows) and trigger manifest regeneration when TTL expiry or hash drift is detected, leveraging existing brain_snapshot and manifest generation processes.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/dev_pipeline.py; Code/Shared/ops/brain_snapshot.py; Code/Shared/ops/manifest_generator.py; Code/Shared/ops/sync_to_mongo.py"
+    },
+    {
+      "story_id": "BL-0.1.4-006-S4",
+      "title": "Internal Freshness Status Interface",
+      "description": "Provide an internal interface exposing standardized freshness status (freshness_state, age_seconds, last_generated, drift_detected) for Brain runner and DevOps flows to enforce pre-execution validation gates.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/ops/dev_pipeline.py"
+    },
+    {
+      "story_id": "BL-0.1.4-006-S5",
+      "title": "Manifest Freshness Test Suite and Pipeline Integration",
+      "description": "Develop unit and integration tests covering TTL expiry, hash drift detection, regeneration triggers, and enforcement within Brain runner and pipeline execution paths, ensuring freshness gates block stale execution.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S2",
+        "BL-0.1.4-006-S3",
+        "BL-0.1.4-006-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_pipeline_worker_base.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; Code/Shared/ops/dev_pipeline.py"
+    }
+  ]
+}

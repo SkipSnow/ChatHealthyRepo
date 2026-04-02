@@ -1,0 +1,66 @@
+{
+  "stories": [
+    {
+      "story_id": "FEAT-3-S28",
+      "title": "ClinicalTrials.gov Query Builder and Recruiting Filter Enforcement",
+      "description": "Implement query construction logic to call ClinicalTrials.gov API with correct parameters, ensuring recruiting status filter is always enforced and condition/location inputs are properly encoded.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S23"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "FEAT-3-S29",
+      "title": "Trial Location Extraction and Normalization",
+      "description": "Extract trial site locations from ClinicalTrials.gov response and normalize into structured format (city, state, coordinates if available) for downstream distance computation.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S28"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "FEAT-3-S30",
+      "title": "Travel Distance and Duration Computation via Google Routes API",
+      "description": "Integrate Google Routes API to compute travel distance and duration from user location to each trial site, including handling missing or invalid route responses.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S29"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "FEAT-3-S31",
+      "title": "External API Error Handling and Fallback Logic",
+      "description": "Implement robust error handling for ClinicalTrials.gov and Google Routes API failures, including timeouts, partial responses, and graceful degradation (return trials without distance when necessary).",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S28",
+        "FEAT-3-S30"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "FEAT-3-S32",
+      "title": "Clinical Trials Response Formatting for Chat Consumption",
+      "description": "Format aggregated trial data (metadata, recruiting status, locations, distance, duration) into a clean, structured response suitable for LLM consumption and frontend rendering.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S29",
+        "FEAT-3-S30"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  ]
+}

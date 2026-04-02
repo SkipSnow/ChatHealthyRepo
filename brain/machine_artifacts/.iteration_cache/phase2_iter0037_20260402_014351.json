@@ -1,0 +1,62 @@
+{
+  "FEAT-1-STORY-9": {
+    "story_id": "FEAT-1-STORY-9",
+    "title": "Define Provider Search Request/Response Schema",
+    "description": "Formalize Pydantic models for provider search input (query, location, filters) and standardized response payload (provider list, scores, metadata) to ensure contract consistency across facade and domain layers.",
+    "parent_feature": "FEAT-1",
+    "sprint": 1,
+    "dependencies": [],
+    "size": "S",
+    "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+  },
+  "FEAT-1-STORY-10": {
+    "story_id": "FEAT-1-STORY-10",
+    "title": "Implement Location Filtering and FIPS Mapping Logic",
+    "description": "Enhance provider search core logic to enforce location filtering using ZIP/FIPS-to-county mapping and ensure accurate narrowing of results by state, city, and county hierarchy.",
+    "parent_feature": "FEAT-1",
+    "sprint": 1,
+    "dependencies": [
+      "FEAT-1-STORY-2"
+    ],
+    "size": "M",
+    "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+  },
+  "FEAT-1-STORY-11": {
+    "story_id": "FEAT-1-STORY-11",
+    "title": "Expose Provider Search via FindCare Facade",
+    "description": "Integrate provider search service into find_care_facade with a callable method that orchestrates specialty detection, search execution, and response formatting for tool_router consumption.",
+    "parent_feature": "FEAT-1",
+    "sprint": 1,
+    "dependencies": [
+      "FEAT-1-STORY-2",
+      "FEAT-1-STORY-9"
+    ],
+    "size": "M",
+    "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+  },
+  "FEAT-1-STORY-12": {
+    "story_id": "FEAT-1-STORY-12",
+    "title": "Add Unit and Integration Tests for Provider Search",
+    "description": "Create unit tests for provider_search_service (vector + taxonomy fallback, location filtering) and integration tests through facade/tool_router to validate end-to-end behavior.",
+    "parent_feature": "FEAT-1",
+    "sprint": 1,
+    "dependencies": [
+      "FEAT-1-STORY-10",
+      "FEAT-1-STORY-11"
+    ],
+    "size": "M",
+    "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+  },
+  "FEAT-1-STORY-13": {
+    "story_id": "FEAT-1-STORY-13",
+    "title": "Tool Router Integration for Provider Search",
+    "description": "Register provider search as an allowlisted tool in tool_router with validated input handling and proper routing to the FindCare facade, ensuring compliance with GOV-004 tool dispatch rules.",
+    "parent_feature": "FEAT-1",
+    "sprint": 1,
+    "dependencies": [
+      "FEAT-1-STORY-11"
+    ],
+    "size": "S",
+    "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+  }
+}

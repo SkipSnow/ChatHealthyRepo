@@ -1,0 +1,50 @@
+{
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-007-S1",
+      "title": "Health Endpoint Schema and Response Contract",
+      "description": "Define the /health response schema including status (ok/degraded/down), timestamp, version/build info, and optional dependency checks (e.g., MongoDB connectivity). Ensure contract is minimal, deterministic, and safe for public exposure.",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/DataPipelines/pipeline_health.py"
+    },
+    {
+      "story_id": "BL-0.1.4-007-S2",
+      "title": "Health Check Core Logic Implementation",
+      "description": "Implement backend logic to evaluate system health including application uptime, basic dependency reachability (e.g., MongoDB ping via shared utilities), and internal readiness state. Ensure logic is lightweight and non-blocking.",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [
+        "BL-0.1.4-007-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "BL-0.1.4-007-S3",
+      "title": "Expose /health FastAPI Endpoint",
+      "description": "Add a GET /health endpoint in main.py that returns the standardized health response. Ensure no authentication required, fast response time, and compatibility with Azure App Service health probes.",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [
+        "BL-0.1.4-007-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; docs/adr/ADR-0003-fastapi-azure-app-service.md"
+    },
+    {
+      "story_id": "BL-0.1.4-007-S4",
+      "title": "Health Endpoint Unit and Integration Tests",
+      "description": "Create unit and integration tests validating /health response structure, status transitions (healthy vs degraded), and dependency failure handling. Ensure endpoint responds within acceptable latency and does not trigger side effects.",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [
+        "BL-0.1.4-007-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests; Code/DataPipelines/tests/test_pipeline_worker_base.py"
+    }
+  ]
+}

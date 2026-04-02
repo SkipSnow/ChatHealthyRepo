@@ -1,0 +1,121 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-010",
+  "iteration": 14,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories created for multi-cluster routing governance with clear separation of contract, logic, integration, and testing.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-010-S1",
+      "value": "Added schema and routing contract definition story",
+      "note": "Establish contract-first design",
+      "iteration": 14
+    },
+    {
+      "path": "stories.BL-0.1.4-010-S2",
+      "value": "Added core routing logic story",
+      "note": "Implements cluster selection engine",
+      "iteration": 14
+    },
+    {
+      "path": "stories.BL-0.1.4-010-S3",
+      "value": "Added integration with Mongo utilities",
+      "note": "Ensures real usage in data layer",
+      "iteration": 14
+    },
+    {
+      "path": "stories.BL-0.1.4-010-S4",
+      "value": "Added internal API/config exposure story",
+      "note": "Supports observability and control",
+      "iteration": 14
+    },
+    {
+      "path": "stories.BL-0.1.4-010-S5",
+      "value": "Added unit and integration tests",
+      "note": "Validates routing correctness and failover",
+      "iteration": 14
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-010-S1",
+      "title": "Define Multi-Cluster Routing Schema and Contract",
+      "description": "Define configuration schema for multiple MongoDB clusters including cluster roles (primary, secondary, analytics), routing rules, environment prefixes, and failover policies. Establish a contract for how services request a cluster (by capability or dataset type).",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    {
+      "story_id": "BL-0.1.4-010-S2",
+      "title": "Implement Cluster Routing and Selection Logic",
+      "description": "Build core logic that determines which MongoDB cluster to route to based on request context (read/write, dataset type, environment). Include deterministic routing rules and fallback handling if a cluster is unavailable.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S1"
+      ],
+      "size": "L",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    {
+      "story_id": "BL-0.1.4-010-S3",
+      "title": "Integrate Routing Logic with Mongo Utilities",
+      "description": "Integrate the routing engine into shared MongoDB utilities so that all database access flows through the routing layer. Ensure compatibility with existing connection lifecycle management and context manager patterns.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    {
+      "story_id": "BL-0.1.4-010-S4",
+      "title": "Expose Routing Configuration and Health Signals",
+      "description": "Provide internal API or config access to expose active cluster routing decisions, cluster health status, and current mappings for debugging and observability. No external UI required.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S2"
+      ],
+      "size": "S",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    {
+      "story_id": "BL-0.1.4-010-S5",
+      "title": "Unit and Integration Tests for Multi-Cluster Routing",
+      "description": "Create tests validating correct cluster selection for different request types, environment routing, and failover behavior. Include integration tests simulating dual-cluster scenarios.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S3"
+      ],
+      "size": "M",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "BL-0.1.4-010",
+        "likelihood": "Moderate",
+        "impact": "High",
+        "mitigation": "Default to primary cluster and log all routing decisions for traceability"
+      }
+    ],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

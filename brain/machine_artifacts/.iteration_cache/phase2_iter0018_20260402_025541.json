@@ -1,0 +1,41 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-005",
+  "iteration": 18,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Strengthened contracts and implementation detail to include atomic writes, temp-file strategy, and corruption recovery without expanding scope.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-005-S1.description",
+      "value": "Define a standard contract for local file operations including retry policy, exponential backoff parameters, atomic write semantics (temp file + rename), fallback paths, error classification, and recovery metadata.",
+      "note": "Add atomic write and corruption-safe contract",
+      "iteration": 18
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S2.description",
+      "value": "Build core logic to handle transient failures in local disk operations including configurable retries, exponential backoff, atomic write (temp file then rename), checksum/size validation for partial writes, safe fallback locations, and idempotent recovery handling.",
+      "note": "Add atomic write + validation to core logic",
+      "iteration": 18
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S3.description",
+      "value": "Provide a shared internal interface/utility that wraps local disk operations with resilience logic (retry, atomic write, validation, fallback), exposing a consistent API for read/write/delete used across backend services.",
+      "note": "Clarify API surface and behaviors",
+      "iteration": 18
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S4.description",
+      "value": "Create tests simulating disk failures (file locks, permission errors, missing paths, partial writes, rename failures) to validate retry behavior, atomic write guarantees, fallback correctness, and recovery integrity.",
+      "note": "Expand test coverage to atomic/rename failures",
+      "iteration": 18
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S5.description",
+      "value": "Integrate the resilience layer into components relying on local file operations (debug logging, pipeline workers, temp file handling), ensuring all writes use atomic strategy and fallback paths with no direct unsafe file I/O.",
+      "note": "Enforce adoption and remove unsafe paths",
+      "iteration": 18
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "assignment_id": "FEAT-3-STORIES",
+  "iteration": 2,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added robustness coverage for external API failure and partial data handling.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-3-S6",
+      "value": "Clinical Trials External API Error Handling",
+      "note": "Add resilience for ClinicalTrials.gov and routing API failures",
+      "iteration": 2
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "FEAT-3-S6",
+      "title": "Clinical Trials External API Error Handling",
+      "description": "Implement error handling and fallback behavior for ClinicalTrials.gov and travel distance APIs, including timeouts, partial responses, and graceful degradation when distance cannot be computed.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S2",
+        "FEAT-3-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  ]
+}

@@ -1,0 +1,99 @@
+{
+  "assignment_id": "PHASE-2-EVAL-P-MEASURE-3",
+  "iteration": 9,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing stories to complete feature coverage without duplicating existing schema/core logic stories.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-P-MEASURE-3-S7",
+      "value": "Expose disciplinary signal via Evaluate Care facade",
+      "note": "Add API exposure layer",
+      "iteration": 9
+    },
+    {
+      "path": "stories.EVAL-P-MEASURE-3-S8",
+      "value": "Unit tests for disciplinary signal logic",
+      "note": "Add test coverage",
+      "iteration": 9
+    },
+    {
+      "path": "stories.EVAL-P-MEASURE-3-S9",
+      "value": "End-to-end integration test for disciplinary signal",
+      "note": "Add integration validation",
+      "iteration": 9
+    },
+    {
+      "path": "stories.EVAL-P-MEASURE-3-S10",
+      "value": "Integrate URL validation for medical board links",
+      "note": "Ensure safe links",
+      "iteration": 9
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-P-MEASURE-3-S7": {
+      "story_id": "EVAL-P-MEASURE-3-S7",
+      "title": "Expose Disciplinary Signal via Evaluate Care Facade",
+      "description": "Integrate disciplinary signal output into evaluate_care_facade so that provider detail responses include presence indicator and state medical board lookup link.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MEASURE-3-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-P-MEASURE-3-S8": {
+      "story_id": "EVAL-P-MEASURE-3-S8",
+      "title": "Unit Tests for Disciplinary Signal Logic",
+      "description": "Create unit tests validating disciplinary signal generation, including correct state link mapping, presence indicator behavior, and handling of missing or unsupported states.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MEASURE-3-S2",
+        "EVAL-P-MEASURE-3-S6"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-P-MEASURE-3-S9": {
+      "story_id": "EVAL-P-MEASURE-3-S9",
+      "title": "Integration Test for Disciplinary Signal End-to-End Flow",
+      "description": "Validate that disciplinary signals flow from provider_detail_service through evaluate_care_facade into the final API response, ensuring correct structure and no broken links.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MEASURE-3-S7"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    "EVAL-P-MEASURE-3-S10": {
+      "story_id": "EVAL-P-MEASURE-3-S10",
+      "title": "Integrate URL Validation for Medical Board Links",
+      "description": "Validate generated state medical board URLs using the existing URL guardian to ensure links are reachable and safe before inclusion in responses.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MEASURE-3-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

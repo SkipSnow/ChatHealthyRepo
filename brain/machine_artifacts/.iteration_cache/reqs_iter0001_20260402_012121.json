@@ -1,0 +1,149 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-P5-S3-REQ-001",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must return a provider reputation_score field in the Evaluate Care API response when aggregated ratings data exists.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-002",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must include source_count metadata indicating the number of rating sources contributing to the reputation score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-003",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must include last_updated timestamp metadata reflecting the most recent aggregation computation time.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-004",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must retrieve aggregated ratings data via the service implemented in EVAL-P5-S2 using provider NPI as the lookup key.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-005",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must preserve existing Evaluate Care API response structure and not remove or rename pre-existing fields.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-006",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must expose reputation_score as a normalized numeric value between 0 and 1 inclusive.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-007",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must omit or null the reputation_score field when no ratings data is available for the provider.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-008",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must return source_count as 0 when no ratings sources are available.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-009",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must ensure the API response remains valid JSON and conforms to existing response schema contracts used by tool routing.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-010",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must complete aggregation data retrieval and response construction within existing Evaluate Care API latency thresholds.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-011",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must handle service unavailability from the aggregation logic by returning the response without reputation fields and without failing the entire request.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-012",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must log an error event when aggregation data retrieval fails.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-013",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must ensure compatibility with existing tool routing by not altering routing keys or tool identifiers in the response.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-014",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must ensure that any LLM consuming the API can reliably parse reputation_score, source_count, and last_updated as distinct structured fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-015",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must provide consistent field naming conventions aligned with existing Evaluate Care response schemas to support LLM grounding.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-016",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must ensure reputation_score is deterministic for the same input data across repeated API calls.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-017",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must ensure that missing metadata fields do not cause downstream LLM tool failures or parsing errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-P5-S3-REQ-018",
+      "story_id": "EVAL-P5-S3",
+      "requirement": "The system must include aggregation metadata only when the Evaluate Care API is invoked for provider entities and not for unrelated entity types.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

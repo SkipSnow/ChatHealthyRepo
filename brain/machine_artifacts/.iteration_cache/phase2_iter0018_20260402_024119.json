@@ -1,0 +1,65 @@
+{
+  "stories": {
+    "MAINT-TIMEOUT-S1": {
+      "story_id": "MAINT-TIMEOUT-S1",
+      "title": "Define Timeout UX State Schema and Contract",
+      "description": "Define frontend state model for long-running request handling including timeout threshold, modal visibility, user decision (continue/abandon), and request lifecycle states (pending, timed_out, resumed, cancelled).",
+      "parent_feature": "MAINT-TIMEOUT",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    },
+    "MAINT-TIMEOUT-S2": {
+      "story_id": "MAINT-TIMEOUT-S2",
+      "title": "Implement Timeout Detection and Control Logic",
+      "description": "Implement core logic using timers and AbortController to detect long-running requests (~45s), trigger timeout state, pause UI updates, and support continuation or cancellation paths.",
+      "parent_feature": "MAINT-TIMEOUT",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-TIMEOUT-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    },
+    "MAINT-TIMEOUT-S3": {
+      "story_id": "MAINT-TIMEOUT-S3",
+      "title": "Render Timeout Modal with Continue/Abandon UX",
+      "description": "Build and refine modal UI that appears on timeout, providing clear options to continue waiting or abandon the request, with appropriate messaging and accessibility considerations.",
+      "parent_feature": "MAINT-TIMEOUT",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-TIMEOUT-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    },
+    "MAINT-TIMEOUT-S4": {
+      "story_id": "MAINT-TIMEOUT-S4",
+      "title": "Integrate Timeout Handling with Chat Request Flow",
+      "description": "Integrate timeout logic into end-to-end chat flow ensuring resumed requests continue correctly, cancelled requests clean up state, and no duplicate or orphaned responses occur.",
+      "parent_feature": "MAINT-TIMEOUT",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-TIMEOUT-S2",
+        "MAINT-TIMEOUT-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    },
+    "MAINT-TIMEOUT-S5": {
+      "story_id": "MAINT-TIMEOUT-S5",
+      "title": "Unit and Interaction Tests for Timeout UX",
+      "description": "Create tests covering timeout trigger timing, modal display, continue/abandon actions, AbortController behavior, and prevention of duplicate responses after resume.",
+      "parent_feature": "MAINT-TIMEOUT",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-TIMEOUT-S2",
+        "MAINT-TIMEOUT-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    }
+  },
+  "change_log": []
+}

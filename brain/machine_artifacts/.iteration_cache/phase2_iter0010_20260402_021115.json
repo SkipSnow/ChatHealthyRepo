@@ -1,0 +1,92 @@
+{
+  "assignment_id": "EVAL-F-3-STORIES",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined dependencies to ensure contract-first sequencing and eliminate orchestration/schema race conditions.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-3-S4.dependencies",
+      "value": "[\"EVAL-F-3-S1\",\"EVAL-F-3-S2\"]",
+      "note": "Error handling must align with defined schema contract",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-F-3-S2.dependencies",
+      "value": "[\"EVAL-F-001\",\"EVAL-F-002\"]",
+      "note": "Validated correct dependency IDs for domain services",
+      "iteration": 10
+    }
+  ],
+  "stories": {
+    "EVAL-F-3-S1": {
+      "story_id": "EVAL-F-3-S1",
+      "title": "Facade Request/Response Schema and Contract",
+      "description": "Define unified request and response schemas for Evaluate Care facade covering clinical trials search and provider detail lookup, including normalization of inputs (condition, location, NPI) and consistent output envelope for cross-domain extensibility.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F-3-S2": {
+      "story_id": "EVAL-F-3-S2",
+      "title": "Core Orchestration Logic Across Domain Services",
+      "description": "Implement facade orchestration logic that routes requests to clinical_trials_service and provider_detail_service, handles sequencing/parallel calls where applicable, and aggregates results into the unified contract.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001",
+        "EVAL-F-002"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F-3-S3": {
+      "story_id": "EVAL-F-3-S3",
+      "title": "Facade Exposure via Tool Router / API Layer",
+      "description": "Expose Evaluate Care facade capabilities through the tool_router with validated inputs, allowlisted operations (GOV-004), consistent interface, and standardized error propagation aligned to facade response contract for LLM/UI consumption.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-3-S1",
+        "EVAL-F-3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "EVAL-F-3-S4": {
+      "story_id": "EVAL-F-3-S4",
+      "title": "Error Handling, Fallbacks, and Partial Response Handling",
+      "description": "Implement standardized error handling within the facade including upstream API failures, timeouts, and partial data scenarios from clinical_trials_service and provider_detail_service, ensuring graceful degradation, traceable error states, and strict adherence to unified response schema.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-3-S1",
+        "EVAL-F-3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F-3-S5": {
+      "story_id": "EVAL-F-3-S5",
+      "title": "Unit and Integration Tests for Facade Orchestration",
+      "description": "Create unit tests for orchestration logic and integration tests validating end-to-end flow from tool_router through facade to clinical_trials_service and provider_detail_service, including combined scenarios, partial failures, and strict contract validation.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-3-S2",
+        "EVAL-F-3-S3",
+        "EVAL-F-3-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  },
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

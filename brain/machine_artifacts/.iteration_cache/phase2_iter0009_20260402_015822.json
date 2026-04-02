@@ -1,0 +1,53 @@
+{
+  "stories": {
+    "STORY-FEAT4-021": {
+      "story_id": "STORY-FEAT4-021",
+      "title": "Define Provider Detail Response Schema and Contract",
+      "description": "Create or formalize the response schema for provider detail lookup including NPI metadata, address, taxonomy, and external links. Ensure compatibility with evaluate_care_facade and tool_router expectations.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-017"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "STORY-FEAT4-022": {
+      "story_id": "STORY-FEAT4-022",
+      "title": "Implement Error Handling and Fallbacks for NPI Lookup",
+      "description": "Enhance provider_detail_service to gracefully handle API failures, timeouts, empty results, and malformed payloads, returning structured fallback responses.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-017"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "STORY-FEAT4-023": {
+      "story_id": "STORY-FEAT4-023",
+      "title": "Expose Provider Detail Lookup via Tool Router",
+      "description": "Integrate provider detail lookup into tool_router with proper input validation and allowlist registration, enabling LLM tool-use access.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-021",
+        "STORY-FEAT4-017"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "STORY-FEAT4-024": {
+      "story_id": "STORY-FEAT4-024",
+      "title": "Add Pydantic Input Model for Provider Detail Requests",
+      "description": "Define a Pydantic model validating inputs such as NPI number and optional context fields for provider detail lookup, ensuring strict validation before service invocation.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-021"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    }
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "assignment_id": "FEAT-2-STORIES",
+  "iteration": 42,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Previous iteration produced insufficient story count for FEAT-2 (1 < minimum 3)"
+  ],
+  "notes": "Added missing stories to meet minimum coverage across schema, core logic, API, tests, and integration.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-2-S126": {
+      "story_id": "FEAT-2-S126",
+      "title": "Define Specialty Identification Request/Response Schema",
+      "description": "Create and validate Pydantic models for specialty identification inputs and outputs, including user query, expanded query variants, NUCC code list, ranking scores, and confidence metadata.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-2-S127": {
+      "story_id": "FEAT-2-S127",
+      "title": "Implement Dual-Pipeline Specialty Mapping Logic",
+      "description": "Implement core specialty identification logic combining regex-based matching and vector similarity in parallel, including query expansion and NUCC code aggregation with deduplication.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "FEAT-2-S128": {
+      "story_id": "FEAT-2-S128",
+      "title": "Expose Specialty Identification via Tool Router",
+      "description": "Register specialty identification as an allowlisted tool in the tool_router with validated inputs and structured outputs, ensuring compatibility with the LLM tool-use flow.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S126",
+        "FEAT-2-S127"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-2-S129": {
+      "story_id": "FEAT-2-S129",
+      "title": "Unit and Integration Tests for Specialty Identification",
+      "description": "Develop tests covering regex matching, vector matching, query expansion, NUCC deduplication, and end-to-end tool invocation through the tool router.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S127",
+        "FEAT-2-S128"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    },
+    "FEAT-2-S130": {
+      "story_id": "FEAT-2-S130",
+      "title": "NUCC Taxonomy Data Integration for Specialty Mapping",
+      "description": "Integrate NUCC specialty taxonomy dataset into specialty_service, ensuring mappings are consistent with provider_search_service fallback logic and support classification aggregation.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S127"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/load_specialty_data.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

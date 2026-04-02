@@ -1,0 +1,87 @@
+{
+  "assignment_id": "FEAT-1-STORIES",
+  "iteration": 27,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added core logic, API exposure, fallback behavior, and unit test coverage for provider search.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-1-STORY-089",
+      "value": "Add core provider search execution logic",
+      "note": "Covers vector search + taxonomy fallback orchestration",
+      "iteration": 27
+    },
+    {
+      "path": "stories.FEAT-1-STORY-090",
+      "value": "Expose provider search via facade API",
+      "note": "Ensures backend capability is accessible through facade",
+      "iteration": 27
+    },
+    {
+      "path": "stories.FEAT-1-STORY-091",
+      "value": "Implement location filtering and FIPS mapping",
+      "note": "Adds geographic filtering required by feature description",
+      "iteration": 27
+    },
+    {
+      "path": "stories.FEAT-1-STORY-092",
+      "value": "Unit tests for provider search service",
+      "note": "Adds validation of core search behavior",
+      "iteration": 27
+    }
+  ],
+  "stories": {
+    "FEAT-1-STORY-089": {
+      "story_id": "FEAT-1-STORY-089",
+      "title": "Implement core provider search logic with vector and taxonomy fallback",
+      "description": "Build the provider_search_service execution flow to perform MongoDB Atlas vector search using embeddings and fall back to NUCC taxonomy-based lookup when vector results are insufficient.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-086",
+        "FEAT-1-STORY-087"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-090": {
+      "story_id": "FEAT-1-STORY-090",
+      "title": "Expose provider search through find care facade",
+      "description": "Integrate provider_search_service into find_care_facade to provide a single entry point for provider search requests, including orchestration of specialty resolution and result formatting.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-089"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    "FEAT-1-STORY-091": {
+      "story_id": "FEAT-1-STORY-091",
+      "title": "Implement location filtering with FIPS-to-county mapping",
+      "description": "Add geographic filtering logic to provider search using FIPS-to-county mapping and multi-stage location handling (state, city, county) to constrain search results.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-089"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-092": {
+      "story_id": "FEAT-1-STORY-092",
+      "title": "Unit tests for provider search service logic",
+      "description": "Create unit tests validating vector search execution, taxonomy fallback behavior, and location filtering to ensure deterministic and reliable provider search results.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-089",
+        "FEAT-1-STORY-091"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    }
+  }
+}

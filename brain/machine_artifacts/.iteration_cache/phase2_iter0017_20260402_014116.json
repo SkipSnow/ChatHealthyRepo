@@ -1,0 +1,100 @@
+{
+  "assignment_id": "FEAT-1-STORIES",
+  "iteration": 17,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added core logic, API layer, tests, and integration coverage for provider search.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-1-STORY-048",
+      "value": "Core provider_search_service vector + taxonomy fallback implementation",
+      "note": "Add missing core search logic story",
+      "iteration": 17
+    },
+    {
+      "path": "stories.FEAT-1-STORY-049",
+      "value": "Location filtering and geo enrichment (FIPS/county mapping)",
+      "note": "Add location filtering capability",
+      "iteration": 17
+    },
+    {
+      "path": "stories.FEAT-1-STORY-050",
+      "value": "Expose provider search via FastAPI endpoint",
+      "note": "Add API layer story",
+      "iteration": 17
+    },
+    {
+      "path": "stories.FEAT-1-STORY-051",
+      "value": "Provider search unit and integration tests",
+      "note": "Add test coverage story",
+      "iteration": 17
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-1-STORY-048": {
+      "story_id": "FEAT-1-STORY-048",
+      "title": "Implement vector search with taxonomy fallback in provider_search_service",
+      "description": "Build core search logic using MongoDB Atlas vector search (embeddings) with fallback to NUCC taxonomy-based lookup when vector results are insufficient, including scoring and ranking.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-044"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-049": {
+      "story_id": "FEAT-1-STORY-049",
+      "title": "Implement location filtering and geographic enrichment",
+      "description": "Apply location constraints (state, city, zip) to search results and enrich with FIPS-to-county mapping to ensure geographically relevant provider results.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-048"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-050": {
+      "story_id": "FEAT-1-STORY-050",
+      "title": "Expose provider search via FastAPI endpoint",
+      "description": "Create or validate FastAPI route in main.py to handle provider search requests, invoke find_care_facade, and return structured responses to the frontend/chat agent.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-045",
+        "FEAT-1-STORY-046"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    "FEAT-1-STORY-051": {
+      "story_id": "FEAT-1-STORY-051",
+      "title": "Develop unit and integration tests for provider search flow",
+      "description": "Create tests covering provider_search_service logic (vector + fallback), facade orchestration, and end-to-end tool_router dispatch to ensure reliability and correctness.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-048",
+        "FEAT-1-STORY-045"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

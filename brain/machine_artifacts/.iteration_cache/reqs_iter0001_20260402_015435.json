@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-STATUS-003-REQ-001",
+      "story_id": "EVAL-CT-STATUS-003",
+      "requirement": "The system must include a field named enrollment_status_score in each clinical trial object returned by the evaluate_care_facade.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-003-REQ-002",
+      "story_id": "EVAL-CT-STATUS-003",
+      "requirement": "The system must populate enrollment_status_score using the value produced by clinical_trials_service without recalculating it in the facade.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-003-REQ-003",
+      "story_id": "EVAL-CT-STATUS-003",
+      "requirement": "The system must preserve all existing fields in the clinical trial response payload unchanged when adding enrollment_status_score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-003-REQ-004",
+      "story_id": "EVAL-CT-STATUS-003",
+      "requirement": "The system must return enrollment_status_score as a numeric value conforming to the schema defined in EVAL-CT-STATUS-001.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-003-REQ-005",
+      "story_id": "EVAL-CT-STATUS-003",
+      "requirement": "The system must include enrollment_status_score for every trial in the response when the upstream service provides a valid score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-003-REQ-006",
+      "story_id": "EVAL-CT-STATUS-003",
+      "requirement": "The system must set enrollment_status_score to null when the upstream service does not provide a score for a trial.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-003-REQ-007",
+      "story_id": "EVAL-CT-STATUS-003",
+      "requirement": "The system must not throw an error if enrollment_status_score is missing from the upstream service response.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-003-REQ-008",
+      "story_id": "EVAL-CT-STATUS-003",
+      "requirement": "The system must ensure the response structure remains JSON-serializable after adding enrollment_status_score.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-003-REQ-009",
+      "story_id": "EVAL-CT-STATUS-003",
+      "requirement": "The system must expose enrollment_status_score in the same nesting level as other trial-level evaluation metrics in the payload.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-003-REQ-010",
+      "story_id": "EVAL-CT-STATUS-003",
+      "requirement": "The system must maintain backward compatibility such that clients not expecting enrollment_status_score can still parse the response without failure.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-003-REQ-011",
+      "story_id": "EVAL-CT-STATUS-003",
+      "requirement": "The system must log a warning when enrollment_status_score is null due to missing upstream data.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-003-REQ-012",
+      "story_id": "EVAL-CT-STATUS-003",
+      "requirement": "The system must ensure that adding enrollment_status_score does not increase response latency beyond existing facade performance thresholds.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,70 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 41,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing stories to complete schema, UI, and testing coverage for explainability layer.",
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "EVAL-F5-S137",
+      "title": "Define Explainability Schema Contract",
+      "description": "Design and implement a standardized explainability schema (Pydantic models) that includes source, meaning, and limitations fields for each evaluation signal, ensuring consistency across provider and clinical trial data.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models"
+    },
+    {
+      "story_id": "EVAL-F5-S138",
+      "title": "Frontend Rendering of Explainability Signals",
+      "description": "Update MessageBubble and chat rendering logic to display explainability metadata (source, meaning, limitations) in a clear, user-friendly format alongside evaluation results.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S136"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    {
+      "story_id": "EVAL-F5-S139",
+      "title": "Explainability Unit and Integration Tests",
+      "description": "Create unit tests for explainability mapping logic and integration tests validating that API responses include correct explainability fields for provider and clinical trial scenarios.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S135",
+        "EVAL-F5-S136"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "EVAL-F5",
+        "likelihood": "Moderate",
+        "impact": "Moderate",
+        "mitigation": "Enforce strict schema validation and reuse existing facade patterns to avoid inconsistent explainability outputs."
+      }
+    ],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "assignment_id": "FEAT-2-STORIES",
+  "iteration": 21,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing API exposure, integration with provider search, and test coverage for specialty identification.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-2-S60",
+      "value": "Add API endpoint for specialty identification",
+      "note": "Expose backend capability to system",
+      "iteration": 21
+    },
+    {
+      "path": "stories.FEAT-2-S61",
+      "value": "Integrate specialty identification into provider search flow",
+      "note": "Ensure feature is actually used",
+      "iteration": 21
+    },
+    {
+      "path": "stories.FEAT-2-S62",
+      "value": "Add unit and integration tests for specialty mapping",
+      "note": "Close test coverage gap",
+      "iteration": 21
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-2-S60",
+      "title": "Expose Specialty Identification via API Endpoint",
+      "description": "Create or extend a FastAPI endpoint to accept user input and return mapped NUCC specialty codes with confidence scores, ensuring compatibility with tool_router and facade orchestration.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S56",
+        "FEAT-2-S59"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "FEAT-2-S61",
+      "title": "Integrate Specialty Identification into Provider Search Flow",
+      "description": "Wire specialty identification output into provider_search_service to enable taxonomy fallback and improved provider matching using NUCC codes derived from user intent.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S59"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    {
+      "story_id": "FEAT-2-S62",
+      "title": "Implement Unit and Integration Tests for Specialty Identification",
+      "description": "Develop tests covering regex pipeline, vector pipeline, query expansion, NUCC mapping accuracy, and end-to-end flow through tool_router and provider search integration.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S57",
+        "FEAT-2-S59",
+        "FEAT-2-S61"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

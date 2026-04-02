@@ -1,0 +1,63 @@
+{
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-010-S1",
+      "title": "Define Multi-Cluster Routing Schema and Contract",
+      "description": "Define configuration schema for routing rules between MongoDB clusters including cluster identifiers, environment prefixes, collection mappings, read/write separation, and failover policy contract.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    {
+      "story_id": "BL-0.1.4-010-S2",
+      "title": "Implement Cluster Routing Decision Engine",
+      "description": "Implement deterministic routing logic that selects the correct MongoDB cluster based on environment, dataset classification (operational vs analytics), and operation type (read/write), including explicit fallback rules when routing conditions are ambiguous or unavailable.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S1"
+      ],
+      "size": "M",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    {
+      "story_id": "BL-0.1.4-010-S3",
+      "title": "Integrate Routing Engine with MongoDB Utilities",
+      "description": "Embed routing decision engine into shared MongoDB connection lifecycle (ChatHealthyMongoUtilities) so all database operations transparently resolve to the correct cluster, including connection caching, reuse, and environment prefix enforcement.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py + docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    {
+      "story_id": "BL-0.1.4-010-S4",
+      "title": "Expose Routing Decisions and Cluster Health Signals",
+      "description": "Provide internal observability hooks and debug logging that expose selected cluster per request, routing rule applied, and cluster health status (ping/availability) to support troubleshooting and validation.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S2",
+        "BL-0.1.4-010-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py + docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    {
+      "story_id": "BL-0.1.4-010-S5",
+      "title": "Unit and Integration Tests for Multi-Cluster Routing",
+      "description": "Develop comprehensive test suite validating routing correctness across environments, dataset types, and operation modes, including failover scenarios, cluster unavailability handling, and end-to-end validation through Mongo utilities.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S3"
+      ],
+      "size": "M",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md + Code/DataPipelines/tests/test_gpt_reader_integration.py"
+    }
+  ]
+}

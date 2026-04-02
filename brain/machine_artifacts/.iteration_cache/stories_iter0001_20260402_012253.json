@@ -1,0 +1,67 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-CT-STATUS-001",
+      "title": "Define enrollment status scoring schema and contract",
+      "description": "Create normalized schema for clinical trial enrollment status scoring including status categories (RECRUITING, ACTIVE_NOT_RECRUITING, COMPLETED, TERMINATED, UNKNOWN) and associated score weights. Define output contract for downstream consumers.",
+      "parent_feature": "EVAL-CT-MEASURE-STATUS",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (RECRUITING filter exists; schema extends status handling into scoring contract)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-CT-STATUS-002",
+      "title": "Implement enrollment status scoring logic",
+      "description": "Extend clinical_trials_service to compute a normalized score per trial based on recruitment status, prioritizing RECRUITING trials and downgrading inactive or closed studies. Ensure deterministic mapping from API status field to score.",
+      "parent_feature": "EVAL-CT-MEASURE-STATUS",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (existing RECRUITING filter provides source status field and logic foundation)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-CT-STATUS-003",
+      "title": "Expose status score via EvaluateCare facade",
+      "description": "Update evaluate_care_facade to include enrollment status score in clinical trial results payload returned to the chat layer, ensuring compatibility with existing response structures.",
+      "parent_feature": "EVAL-CT-MEASURE-STATUS",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-STATUS-001",
+        "EVAL-CT-STATUS-002"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (facade orchestrates clinical trial responses)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-CT-STATUS-004",
+      "title": "Add unit tests for status scoring logic",
+      "description": "Create unit tests validating correct score assignment for each recruitment status category, including edge cases for missing or unknown statuses.",
+      "parent_feature": "EVAL-CT-MEASURE-STATUS",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-STATUS-002"
+      ],
+      "size": "S",
+      "evidence": "GAP: No existing tests for clinical trial scoring logic; test suite must be extended in backend/tests",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-CT-STATUS-005",
+      "title": "Add integration test for facade response including status score",
+      "description": "Validate end-to-end flow from clinical_trials_service through evaluate_care_facade ensuring status score appears correctly in API response payload.",
+      "parent_feature": "EVAL-CT-MEASURE-STATUS",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-STATUS-003"
+      ],
+      "size": "S",
+      "evidence": "GAP: No existing integration test covers Evaluate Care clinical trial scoring output",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,104 @@
+{
+  "assignment_id": "PHASE-2-MAINT-CONSENT-STORIES",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "MAINT-CONSENT stories created covering schema, logic, API, tests, and integration.",
+  "change_log": [
+    {
+      "path": "stories.MAINT-CONSENT-S1",
+      "value": "Added schema/contract story",
+      "note": "Define consent tiers and edge case states",
+      "iteration": 10
+    },
+    {
+      "path": "stories.MAINT-CONSENT-S2",
+      "value": "Added core logic story",
+      "note": "Fix two-tier consent workflow defects",
+      "iteration": 10
+    },
+    {
+      "path": "stories.MAINT-CONSENT-S3",
+      "value": "Added API story",
+      "note": "Expose corrected consent behavior via endpoints",
+      "iteration": 10
+    },
+    {
+      "path": "stories.MAINT-CONSENT-S4",
+      "value": "Added test and integration story",
+      "note": "Validate consent flow and integrations",
+      "iteration": 10
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "MAINT-CONSENT-S1": {
+      "story_id": "MAINT-CONSENT-S1",
+      "title": "Define Consent Schema and Edge Case Contract",
+      "description": "Define and correct the data schema for two-tier HIPAA consent including Tier 1 and Tier 2 states, timestamps, revocation flags, and edge cases such as partial consent, re-consent, and expired sessions.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py; brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature"
+    },
+    "MAINT-CONSENT-S2": {
+      "story_id": "MAINT-CONSENT-S2",
+      "title": "Fix Two-Tier Consent Core Logic",
+      "description": "Correct defects in ConsentService including improper tier transitions, missing validation on Tier 2 escalation, incorrect de-identification triggers, and handling of repeated or conflicting consent inputs.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-CONSENT-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature"
+    },
+    "MAINT-CONSENT-S3": {
+      "story_id": "MAINT-CONSENT-S3",
+      "title": "Align Consent API and Tool Router Behavior",
+      "description": "Update tool_router and related API surfaces to ensure consistent enforcement of consent states, correct propagation of consent status in responses, and proper blocking or allowing of actions based on tier.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-CONSENT-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature"
+    },
+    "MAINT-CONSENT-S4": {
+      "story_id": "MAINT-CONSENT-S4",
+      "title": "Consent Flow Tests and Integration Validation",
+      "description": "Implement unit and integration tests covering full consent lifecycle including Tier 1 capture, Tier 2 escalation, revocation, edge cases, and integration with lead capture and unknown question flows.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-CONSENT-S2",
+        "MAINT-CONSENT-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py; brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "MAINT-CONSENT": {
+        "feature_id": "MAINT-CONSENT",
+        "likelihood": "Moderate",
+        "impact": "High",
+        "mitigation": "Constrain fixes to existing consent service and validate via targeted tests without expanding scope."
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

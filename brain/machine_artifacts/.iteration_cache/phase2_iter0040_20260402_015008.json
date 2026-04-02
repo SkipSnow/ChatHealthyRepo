@@ -1,0 +1,97 @@
+{
+  "assignment_id": "PHASE 2: FEAT-2 Stories",
+  "iteration": 40,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing schema/contract and robustness stories for FEAT-2.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-2-S121",
+      "value": "Add Pydantic schema for specialty identification request/response",
+      "note": "Covers schema/contract gap",
+      "iteration": 40
+    },
+    {
+      "path": "stories.FEAT-2-S122",
+      "value": "Enhance core logic with confidence scoring and ranking",
+      "note": "Improves determinism and output quality",
+      "iteration": 40
+    },
+    {
+      "path": "stories.FEAT-2-S123",
+      "value": "Add fallback handling for unmapped or low-confidence queries",
+      "note": "Handles edge cases without expanding scope",
+      "iteration": 40
+    },
+    {
+      "path": "stories.FEAT-2-S124",
+      "value": "Add contract tests for tool I/O validation",
+      "note": "Ensures schema adherence at tool boundary",
+      "iteration": 40
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-2-S121": {
+      "story_id": "FEAT-2-S121",
+      "title": "Define Specialty Identification Schema and Contract",
+      "description": "Create Pydantic models defining input (user query, optional context) and output (NUCC codes, labels, confidence scores) for specialty identification to standardize interaction across tool_router and services.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-2-S122": {
+      "story_id": "FEAT-2-S122",
+      "title": "Add Confidence Scoring and Ranking to Specialty Mapping",
+      "description": "Extend specialty_service to assign confidence scores to matched NUCC codes and rank results, combining regex and vector outputs into a deterministic ordered list.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S116"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "FEAT-2-S123": {
+      "story_id": "FEAT-2-S123",
+      "title": "Implement Low-Confidence and No-Match Fallback Handling",
+      "description": "Add logic to detect low-confidence or empty matches and trigger safe fallback behavior (e.g., broadened taxonomy classification) without breaking downstream provider search.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S122"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-2-S124": {
+      "story_id": "FEAT-2-S124",
+      "title": "Contract Tests for Specialty Identification Tool Interface",
+      "description": "Create tests validating that tool_router inputs and outputs conform strictly to the defined schema, including malformed inputs, missing fields, and multi-specialty responses.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S121",
+        "FEAT-2-S118"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

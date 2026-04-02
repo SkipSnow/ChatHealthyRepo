@@ -1,0 +1,52 @@
+{
+  "stories": [
+    {
+      "story_id": "GOV-F-003-S99",
+      "title": "Lock Schema with TTL and Ownership Fields",
+      "description": "Define and implement the Brain lock document schema including lock_id, owner_id, created_at, expires_at (TTL), and status fields. Ensure MongoDB TTL index is configured on expires_at and supports automatic expiration.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    {
+      "story_id": "GOV-F-003-S100",
+      "title": "Atomic Lock Acquisition Contract",
+      "description": "Implement atomic lock acquisition logic using MongoDB upsert or conditional write to guarantee single ownership. Must enforce that only one active lock exists per resource and reject conflicting acquisitions.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S99"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/ChatHealthyMongoUtilities.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    {
+      "story_id": "GOV-F-003-S101",
+      "title": "Lock Service API Endpoints",
+      "description": "Expose internal service APIs for lock acquire, renew (heartbeat), release, and status check. APIs must validate ownership, enforce TTL updates on renew, and return consistent lock state responses.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S100",
+        "GOV-F-003-S96"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/brain_loop.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    {
+      "story_id": "GOV-F-003-S102",
+      "title": "Integration with Brain Runner Execution Flow",
+      "description": "Integrate lock acquisition and release into Brain runner lifecycle to ensure assignments are executed under lock protection. Must prevent concurrent execution of the same assignment and ensure locks are released on completion or failure.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S101",
+        "GOV-F-003-S96"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/brain_loop.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    }
+  ]
+}

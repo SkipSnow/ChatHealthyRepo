@@ -1,0 +1,64 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-PROVIDER-QUALITY-S1",
+      "title": "Provider Quality Schema and Contract",
+      "description": "Define and validate the response schema for provider quality snapshot including credential, specialty, license state, status, enumeration date, and address fields, ensuring alignment with NPI data structure and downstream API contract expectations.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-QUALITY-S2",
+      "title": "NPI Data Extraction and Mapping Logic",
+      "description": "Implement logic to fetch NPI registry data and normalize fields into the provider quality schema, including handling of missing, inconsistent, or multi-valued attributes from CMS responses.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-QUALITY-S3",
+      "title": "Provider Quality API Exposure",
+      "description": "Expose the provider quality snapshot through the Evaluate Care facade, ensuring the structured response is accessible via tool routing and consumable by the chat application.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-QUALITY-S4",
+      "title": "Frontend Rendering of Provider Quality Snapshot",
+      "description": "Render provider quality attributes in the chat UI with clear labeling, consistent ordering, and graceful fallback behavior for missing data, ensuring readability and trust for end users.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-QUALITY-S5",
+      "title": "Provider Quality End-to-End Testing and Integration",
+      "description": "Implement unit, integration, and end-to-end tests validating schema compliance, NPI data mapping accuracy, API contract stability, and correct frontend rendering within the chat flow, including edge cases for incomplete or missing NPI data.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY-S2",
+        "EVAL-PROVIDER-QUALITY-S3",
+        "EVAL-PROVIDER-QUALITY-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests; Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    }
+  ]
+}

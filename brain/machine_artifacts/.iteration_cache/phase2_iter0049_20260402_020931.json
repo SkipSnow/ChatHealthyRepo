@@ -1,0 +1,45 @@
+{
+  "assignment_id": "FEAT-5-STORIES",
+  "iteration": 49,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added integration story to complete coverage across agent loop and FastAPI entrypoint.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-5-S194",
+      "value": "End-to-End Tool Routing Integration with Agent Loop",
+      "note": "Adds integration coverage across router, agent loop, and FastAPI entrypoint",
+      "iteration": 49
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-5-S194",
+      "title": "End-to-End Tool Routing Integration with Agent Loop",
+      "description": "Integrate the allowlist-based tool router into the Claude tool-use loop within the FastAPI application, ensuring tool calls are intercepted, validated, routed, and responses injected back into the conversation correctly.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S191",
+        "FEAT-5-S192"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

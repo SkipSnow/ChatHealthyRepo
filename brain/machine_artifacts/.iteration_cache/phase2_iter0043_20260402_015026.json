@@ -1,0 +1,52 @@
+{
+  "stories": {
+    "FEAT-2-S131": {
+      "story_id": "FEAT-2-S131",
+      "title": "Implement Confidence Scoring and Ranking Normalization",
+      "description": "Add deterministic scoring logic to normalize outputs from regex and vector pipelines into a unified confidence score, including tie-breaking, thresholding, and top-N selection for NUCC codes.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S127"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "FEAT-2-S132": {
+      "story_id": "FEAT-2-S132",
+      "title": "Add Caching for Repeated Specialty Queries",
+      "description": "Implement lightweight caching for repeated or semantically similar specialty queries to reduce redundant vector calls and improve latency, leveraging existing embedding/query patterns.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S127"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/embeddings/embedding_client.py"
+    },
+    "FEAT-2-S133": {
+      "story_id": "FEAT-2-S133",
+      "title": "Error Handling and Fallback Behavior for Specialty Mapping",
+      "description": "Implement robust error handling for cases where vector search, query expansion, or taxonomy lookup fails, ensuring graceful fallback to regex-only results or empty structured responses.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S127"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "FEAT-2-S134": {
+      "story_id": "FEAT-2-S134",
+      "title": "Instrumentation and Debug Logging for Specialty Identification",
+      "description": "Add structured debug logging for specialty identification pipeline stages (regex hits, vector matches, expansion terms, final NUCC selection) to support observability and QA analysis.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S127"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "stories": [
+    {
+      "story_id": "GOV-F-004-S1",
+      "title": "Audit Log Schema and Append-Only Contract",
+      "description": "Define canonical audit log schema including event_id, timestamp, actor (GPT/Claude/system), action, input_hash, output_hash, metadata, and immutable append-only constraints. Establish storage contract enforcing no updates/deletes.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004; docs/adr/ADR-0010-safety-incident-logging.md"
+    },
+    {
+      "story_id": "GOV-F-004-S2",
+      "title": "Append-Only Audit Logging Core Service",
+      "description": "Implement backend service to write audit events in append-only mode with hash chaining or write-once guarantees. Ensure all GPT and Claude operations emit structured audit events.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/Shared/brain_runner.py"
+    },
+    {
+      "story_id": "GOV-F-004-S3",
+      "title": "Audit Logging Integration with Tooling and Agents",
+      "description": "Integrate audit logging into GPTReader, tool_router, Brain runner, and safety services to capture all tool invocations, decisions, and safety-triggered events.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S2"
+      ],
+      "size": "L",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py"
+    },
+    {
+      "story_id": "GOV-F-004-S4",
+      "title": "Audit Log Access API (Read-Only)",
+      "description": "Expose secure, read-only API endpoints for querying audit logs with filtering (time range, actor, action). Enforce strict access control and prevent mutation operations.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py"
+    },
+    {
+      "story_id": "GOV-F-004-S5",
+      "title": "Audit Logging Test Suite and Integrity Validation",
+      "description": "Create unit and integration tests validating append-only behavior, event completeness, tamper resistance (no updates/deletes), and coverage across GPT/Claude workflows.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S2",
+        "GOV-F-004-S3",
+        "GOV-F-004-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py; Code/DataPipelines/tests/test_gpt_reader_integration.py"
+    }
+  ]
+}

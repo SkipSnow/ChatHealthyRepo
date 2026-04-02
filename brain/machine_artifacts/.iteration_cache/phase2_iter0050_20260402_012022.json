@@ -1,0 +1,117 @@
+{
+  "assignment_id": "SHARED-F-1-STORIES",
+  "iteration": 50,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing API exposure, allowlist configuration, and error handling coverage for tool router enforcement.",
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "SHARED-F-1-S191",
+      "title": "Tool Allowlist Configuration and Enforcement Layer",
+      "description": "Implement configurable allowlist definition for permitted tools and enforce strict rejection of any tool not explicitly registered, including structured error responses for disallowed tool access.",
+      "parent_feature": "SHARED-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-F-1-S182"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "SHARED-F-1-S192",
+      "title": "Tool Router Error Handling and Response Standardization",
+      "description": "Define and implement standardized error handling for tool routing failures including schema validation errors, missing parameters, and execution exceptions, ensuring consistent responses to the LLM loop.",
+      "parent_feature": "SHARED-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-F-1-S187",
+        "SHARED-F-1-S188"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "SHARED-F-1-S193",
+      "title": "Tool Router Exposure via FastAPI Endpoint",
+      "description": "Ensure the tool router is properly exposed and invoked through the FastAPI entrypoint, enabling end-to-end tool execution within the conversational loop including request/response wiring.",
+      "parent_feature": "SHARED-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-F-1-S189"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "SHARED-F-1-S194",
+      "title": "Tool Execution Logging and Audit Trail Integration",
+      "description": "Integrate tool router execution with debug logging to capture tool selection, input payloads (de-identified where required), validation outcomes, and execution results for audit and debugging.",
+      "parent_feature": "SHARED-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-F-1-S190"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "SHARED-F-1-S195",
+      "title": "Conversation Context Injection into Tool Calls",
+      "description": "Ensure chat history and relevant conversation context are correctly injected into tool calls where required, maintaining compatibility with validation schemas and preventing context leakage.",
+      "parent_feature": "SHARED-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-F-1-S188"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-1-S191",
+      "value": "Allowlist configuration and enforcement story added",
+      "note": "Covers explicit allowlist control gap",
+      "iteration": 50
+    },
+    {
+      "path": "stories.SHARED-F-1-S192",
+      "value": "Error handling standardization story added",
+      "note": "Ensures consistent failure behavior",
+      "iteration": 50
+    },
+    {
+      "path": "stories.SHARED-F-1-S193",
+      "value": "FastAPI exposure story added",
+      "note": "Closes backend integration gap",
+      "iteration": 50
+    },
+    {
+      "path": "stories.SHARED-F-1-S194",
+      "value": "Logging and audit integration story added",
+      "note": "Adds observability without expanding scope",
+      "iteration": 50
+    },
+    {
+      "path": "stories.SHARED-F-1-S195",
+      "value": "Conversation context injection story added",
+      "note": "Ensures proper tool execution context",
+      "iteration": 50
+    }
+  ],
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "stories": {
+    "STORY-FEAT4-021": {
+      "story_id": "STORY-FEAT4-021",
+      "title": "Implement External Link Construction and Validation",
+      "description": "Enhance provider detail service to construct state medical board and research URLs and validate them using the URL guardian to ensure links are safe, reachable, and properly formatted.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-017"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py; Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    },
+    "STORY-FEAT4-022": {
+      "story_id": "STORY-FEAT4-022",
+      "title": "Add Robust Error Handling and Fallbacks for NPI API",
+      "description": "Implement retry logic, timeout handling, and graceful fallbacks for NPI Registry API failures to ensure provider detail lookup remains reliable under partial outages or malformed responses.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-017"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "STORY-FEAT4-023": {
+      "story_id": "STORY-FEAT4-023",
+      "title": "Add Debug Logging and Observability for Provider Lookup",
+      "description": "Integrate debug logging for provider detail requests, including NPI queries, response status, and error conditions, leveraging existing debug_logger infrastructure for traceability and monitoring.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-017"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    }
+  }
+}

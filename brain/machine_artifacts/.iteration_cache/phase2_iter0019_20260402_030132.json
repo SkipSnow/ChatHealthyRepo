@@ -1,0 +1,79 @@
+{
+  "assignment_id": "BL-0.1.4-007",
+  "iteration": 19,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined API exposure to separate liveness and readiness endpoints for operational clarity.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-007-S3.description",
+      "value": "Expose /health, /health/live, and /health/ready endpoints with clear separation of liveness vs readiness semantics",
+      "note": "Improves operational usefulness and aligns with standard health check patterns",
+      "iteration": 19
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-007-S1",
+      "title": "Define Health Check Response Schema and Contract",
+      "description": "Define a standardized response schema for health endpoints including overall status (ok/degraded/down), timestamp, and dependency-level checks (e.g., MongoDB). Ensure consistent JSON structure for monitoring systems.",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; ASSUMPTION: No existing health schema defined; GAP required"
+    },
+    {
+      "story_id": "BL-0.1.4-007-S2",
+      "title": "Implement Core Health Evaluation Logic",
+      "description": "Implement backend logic to evaluate system health including liveness (process up) and readiness (dependency availability such as MongoDB). Include per-dependency checks with timeout safeguards to prevent blocking and return structured status aligned with schema.",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [
+        "BL-0.1.4-007-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "BL-0.1.4-007-S3",
+      "title": "Expose Health Endpoints via FastAPI",
+      "description": "Add /health (aggregate), /health/live (liveness), and /health/ready (readiness) endpoints to the FastAPI application in main.py. Each endpoint invokes appropriate health logic and returns the standardized response. Ensure low latency, no authentication, and safe timeout handling.",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [
+        "BL-0.1.4-007-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "BL-0.1.4-007-S4",
+      "title": "Health Check Unit and Integration Tests",
+      "description": "Create unit tests for health evaluation logic and integration tests for all health endpoints validating response schema, success and failure scenarios (e.g., simulated DB outage), timeout behavior, and HTTP status codes.",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [
+        "BL-0.1.4-007-S2",
+        "BL-0.1.4-007-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/; ASSUMPTION: No existing health tests; GAP required"
+    },
+    {
+      "story_id": "BL-0.1.4-007-S5",
+      "title": "Health Check Integration with Logging and Observability",
+      "description": "Integrate health endpoints with debug logging to record invocation metrics and dependency status outcomes (success/failure) for operational visibility without exposing sensitive details.",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [
+        "BL-0.1.4-007-S2",
+        "BL-0.1.4-007-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    }
+  ]
+}

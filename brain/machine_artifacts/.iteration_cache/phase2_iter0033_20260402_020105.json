@@ -1,0 +1,52 @@
+{
+  "stories": {
+    "FEAT-4-STORY-9": {
+      "story_id": "FEAT-4-STORY-9",
+      "title": "Define Provider Detail Response Schema and Contract",
+      "description": "Create a standardized response schema for provider detail lookup including demographics, taxonomy, addresses, and external links to ensure consistent consumption by facade and tool layer.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "FEAT-4-STORY-10": {
+      "story_id": "FEAT-4-STORY-10",
+      "title": "Expose Provider Detail Lookup via Evaluate Care Facade",
+      "description": "Integrate provider detail service into evaluate_care_facade to expose a callable method for tool_router and conversational agent usage.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-2",
+        "FEAT-4-STORY-9"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "FEAT-4-STORY-11": {
+      "story_id": "FEAT-4-STORY-11",
+      "title": "Register Provider Detail Tool in Tool Router",
+      "description": "Add provider detail lookup as an allowlisted tool in tool_router with Pydantic validation and proper routing to the evaluate care facade.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-10"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-4-STORY-12": {
+      "story_id": "FEAT-4-STORY-12",
+      "title": "Unit and Integration Tests for Provider Detail Service",
+      "description": "Implement unit tests for provider_detail_service and integration tests through facade and tool_router to validate end-to-end provider lookup behavior.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-10",
+        "FEAT-4-STORY-11"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    }
+  }
+}

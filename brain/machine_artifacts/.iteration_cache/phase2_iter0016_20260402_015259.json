@@ -1,0 +1,103 @@
+{
+  "assignment_id": "FIND-P-M1-STORIES",
+  "iteration": 16,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined existing stories for completeness; no new IDs created.",
+  "change_log": [
+    {
+      "path": "stories.FIND-P-M1-S1.description",
+      "value": "Expanded schema to include filters (insurance, radius), pagination, and strict response shape (scores, geo metadata, NUCC codes).",
+      "note": "Close schema gaps for API contract",
+      "iteration": 16
+    },
+    {
+      "path": "stories.FIND-P-M1-S3.description",
+      "value": "Explicit tool_router allowlist integration and FastAPI endpoint contract alignment with Pydantic models.",
+      "note": "Clarify API exposure path",
+      "iteration": 16
+    },
+    {
+      "path": "stories.FIND-P-M1-S5.description",
+      "value": "Added edge case coverage: empty results, fallback-only scenarios, and geo boundary conditions.",
+      "note": "Strengthen test completeness",
+      "iteration": 16
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FIND-P-M1-S1",
+      "title": "Define Provider Search Schema and Contract",
+      "description": "Define and validate Pydantic models for provider search inputs (query, location, specialty, filters like insurance and radius, pagination) and outputs (ranked providers, scores, geo metadata, NUCC codes) ensuring strict compatibility with tool_router and FindCareFacade.",
+      "parent_feature": "FIND-P-M1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    {
+      "story_id": "FIND-P-M1-S2",
+      "title": "Implement Vector + Taxonomy Provider Search Logic",
+      "description": "Implement MongoDB Atlas vector search with deterministic NUCC taxonomy fallback, including ranking, geo filtering (state/city/county via FIPS), and normalized result scoring.",
+      "parent_feature": "FIND-P-M1",
+      "sprint": 1,
+      "dependencies": [
+        "FIND-P-M1-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    {
+      "story_id": "FIND-P-M1-S3",
+      "title": "Expose Provider Search via FindCareFacade and API",
+      "description": "Integrate provider_search_service into FindCareFacade and expose through tool_router (allowlisted tool) and FastAPI endpoints, ensuring strict schema adherence and tool-use compatibility.",
+      "parent_feature": "FIND-P-M1",
+      "sprint": 1,
+      "dependencies": [
+        "FIND-P-M1-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    {
+      "story_id": "FIND-P-M1-S4",
+      "title": "Integrate Specialty Identification and Embedding Pipeline",
+      "description": "Integrate specialty_service (regex + vector NUCC mapping) and embedding_client to support hybrid semantic + taxonomy search with query expansion.",
+      "parent_feature": "FIND-P-M1",
+      "sprint": 1,
+      "dependencies": [
+        "FIND-P-M1-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    {
+      "story_id": "FIND-P-M1-S5",
+      "title": "Provider Search Unit and Integration Tests",
+      "description": "Implement unit tests for ranking, fallback, geo filtering, and edge cases (empty results, fallback-only scenarios, geo boundaries) plus integration tests validating full flow from tool_router → FindCareFacade → provider_search_service including hybrid search behavior.",
+      "parent_feature": "FIND-P-M1",
+      "sprint": 1,
+      "dependencies": [
+        "FIND-P-M1-S3",
+        "FIND-P-M1-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py; Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

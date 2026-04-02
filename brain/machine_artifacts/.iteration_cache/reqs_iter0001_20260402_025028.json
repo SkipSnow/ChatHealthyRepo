@@ -1,0 +1,165 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must accept a list of two or more provider identifiers and initiate a comparison operation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must retrieve provider quality scores for each input provider using the EVAL-SCORE-PROV dependency.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must aggregate all retrieved provider scores into a unified comparison data structure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must normalize provider scores onto a common scale before ranking.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must rank providers in descending order based on normalized overall quality scores.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must compute measure-level score comparisons across providers.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must identify at least one relative strength per provider based on top-performing measures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must identify at least one relative weakness per provider based on lowest-performing measures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must use the EVAL-EXPLAIN dependency to generate explanation data for strengths and weaknesses.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must return a structured output consistent with the schema defined in EVAL-COMPARE-ST-001.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must preserve deterministic ranking order for identical input data across repeated executions.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must handle tied normalized scores by applying a consistent tie-breaking rule or preserving equal rank.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must include all input providers in the output even if some have partial measure data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must flag providers with missing score components in the comparison output.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must complete comparison processing within acceptable latency for up to N providers as defined by system constraints.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-016",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must raise an error if fewer than two providers are provided in the input.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-017",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must raise an error if provider score retrieval fails for all requested providers.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-018",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must proceed with comparison if at least one provider has valid scores and at least two providers are present, even if others fail.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-019",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must ensure normalization does not distort relative ordering of original scores.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-020",
+      "story_id": "EVAL-COMPARE-ST-002",
+      "requirement": "The system must compute strengths and weaknesses relative to the comparison group rather than absolute thresholds.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

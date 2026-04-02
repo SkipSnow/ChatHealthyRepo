@@ -1,0 +1,89 @@
+{
+  "assignment_id": "GPTR-F-001-STORIES",
+  "iteration": 21,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing contract definition, core enforcement logic, API surface integration, and positive-path validation coverage.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GPTR-F-001-S79": {
+      "story_id": "GPTR-F-001-S79",
+      "title": "Allowlist Schema and Contract Definition",
+      "description": "Define a strict allowlist contract specifying permitted collections, query operators, filter fields, projection limits, and max result size. Store as a centralized schema used by the enforcement layer.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S80": {
+      "story_id": "GPTR-F-001-S80",
+      "title": "Core Allowlist Enforcement Engine",
+      "description": "Implement server-side enforcement logic that evaluates every incoming request against the allowlist contract, rejecting any request with unauthorized collections, fields, operators, or excessive limits before execution.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S79",
+        "GPTR-F-001-S76"
+      ],
+      "size": "L",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S81": {
+      "story_id": "GPTR-F-001-S81",
+      "title": "Azure Function Endpoint Enforcement Integration",
+      "description": "Integrate the enforcement engine into the Azure Function entry point to guarantee all inbound GPTReader requests are validated prior to any data access or query execution.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S80"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/function_app.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S82": {
+      "story_id": "GPTR-F-001-S82",
+      "title": "Standardized Rejection and Audit Logging",
+      "description": "Implement consistent rejection responses for blocked requests and log all enforcement failures with metadata (request type, violation reason, caller identity) for audit and security monitoring.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S80"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S83": {
+      "story_id": "GPTR-F-001-S83",
+      "title": "Positive Path Validation and Performance Tests",
+      "description": "Create test cases validating that compliant requests pass enforcement correctly and measure latency overhead introduced by enforcement to ensure it stays within acceptable bounds.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S80"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader_integration.py; Code/DataPipelines/tests/test_gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "GPTR-F-001": {
+        "likelihood": "High",
+        "impact": "Critical",
+        "mitigation": "Strict schema validation + centralized allowlist + mandatory enforcement at entry point"
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

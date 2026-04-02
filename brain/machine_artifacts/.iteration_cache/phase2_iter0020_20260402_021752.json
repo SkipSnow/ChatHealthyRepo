@@ -1,0 +1,45 @@
+{
+  "assignment_id": "PHASE-2-EVAL-P-MEASURE-1",
+  "iteration": 20,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing unit test coverage story to complete story set without duplicating existing schema/core/API stories.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-P-M1-S7",
+      "value": "Added unit test story for board certification extraction and normalization",
+      "note": "Fill gap: tests layer missing for this feature",
+      "iteration": 20
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-P-M1-S7": {
+      "story_id": "EVAL-P-M1-S7",
+      "title": "Unit Tests for Board Certification Extraction and Normalization",
+      "description": "Implement unit tests validating board certification extraction, normalization, and edge case handling (multiple taxonomies, credential inconsistencies, missing fields) using mocked NPI registry responses.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-M1-S2",
+        "EVAL-P-M1-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

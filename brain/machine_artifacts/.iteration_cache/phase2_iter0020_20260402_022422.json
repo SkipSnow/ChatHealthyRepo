@@ -1,0 +1,52 @@
+{
+  "stories": {
+    "GPTR-F-002-S67": {
+      "story_id": "GPTR-F-002-S67",
+      "title": "Token Schema and Storage Contract",
+      "description": "Define and implement the token persistence schema including fields for token_id, hashed_token, issued_at, expires_at, revoked_at, parent_token_id (for rotation chains), scopes, and actor metadata. Ensure compatibility with existing MongoDB patterns and GPTReader access constraints.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; Code/Shared/ChatHealthyMongoUtilities.py; GAP: No formal token lifecycle schema currently defined"
+    },
+    "GPTR-F-002-S68": {
+      "story_id": "GPTR-F-002-S68",
+      "title": "Token Expiration Enforcement Logic",
+      "description": "Implement expiration validation in the authentication flow ensuring tokens past expires_at are rejected. Include optional lazy cleanup or TTL index alignment to prevent use of expired tokens without requiring immediate deletion.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S67"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/auth.py; Code/DataPipelines/gpt_reader.py; GAP: Expiration not enforced beyond basic validation"
+    },
+    "GPTR-F-002-S69": {
+      "story_id": "GPTR-F-002-S69",
+      "title": "Token Rotation Chain Logic",
+      "description": "Implement secure token rotation logic that issues a new token, links it to the prior token via parent_token_id, invalidates or deprecates the old token based on policy, and ensures only the latest active token in a chain is valid.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S67",
+        "GPTR-F-002-S63"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; GAP: No rotation chaining or parent-child token tracking exists"
+    },
+    "GPTR-F-002-S70": {
+      "story_id": "GPTR-F-002-S70",
+      "title": "Auth Middleware Integration with Lifecycle Checks",
+      "description": "Integrate token lifecycle validation (expiration, revocation, rotation status) into the existing bearer token authentication flow used by GPTReader and Azure Functions, ensuring all requests enforce the full lifecycle policy consistently.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S68",
+        "GPTR-F-002-S69"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/DataPipelines/gpt_reader.py; Code/DataPipelines/function_app.py"
+    }
+  }
+}

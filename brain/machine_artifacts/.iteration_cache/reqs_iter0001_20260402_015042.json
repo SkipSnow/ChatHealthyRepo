@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-PHASE-INT-001",
+      "story_id": "EVAL-CT-PHASE-INTEGRATION-001",
+      "requirement": "The system must include a numeric phase_score field in each clinical trial object returned by evaluate_care_facade.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-INT-002",
+      "story_id": "EVAL-CT-PHASE-INTEGRATION-001",
+      "requirement": "The system must preserve the original phase value alongside the computed phase_score in the response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-INT-003",
+      "story_id": "EVAL-CT-PHASE-INTEGRATION-001",
+      "requirement": "The system must call the phase scoring logic from clinical_trials_service to compute phase_score for each trial.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-INT-004",
+      "story_id": "EVAL-CT-PHASE-INTEGRATION-001",
+      "requirement": "The system must ensure the phase_score field conforms to the schema defined in clinical_trials_models.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-INT-005",
+      "story_id": "EVAL-CT-PHASE-INTEGRATION-001",
+      "requirement": "The system must return phase_score as a normalized numeric value within the expected range defined by the mapping logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-INT-006",
+      "story_id": "EVAL-CT-PHASE-INTEGRATION-001",
+      "requirement": "The system must include phase_score in all clinical trial responses passed through evaluate_care_facade without requiring additional client requests.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-INT-007",
+      "story_id": "EVAL-CT-PHASE-INTEGRATION-001",
+      "requirement": "The system must not alter existing response fields or structure beyond adding the phase_score field.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-INT-008",
+      "story_id": "EVAL-CT-PHASE-INTEGRATION-001",
+      "requirement": "The system must correctly map and include phase_score for all valid phase values (I, II, III, IV, N/A).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-INT-009",
+      "story_id": "EVAL-CT-PHASE-INTEGRATION-001",
+      "requirement": "The system must assign a default phase_score value when the phase field is missing or null.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-INT-010",
+      "story_id": "EVAL-CT-PHASE-INTEGRATION-001",
+      "requirement": "The system must assign a fallback phase_score when the phase value is outside the expected set.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-INT-011",
+      "story_id": "EVAL-CT-PHASE-INTEGRATION-001",
+      "requirement": "The system must ensure that phase_score computation does not cause failure of the entire response if one trial has invalid phase data.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-INT-012",
+      "story_id": "EVAL-CT-PHASE-INTEGRATION-001",
+      "requirement": "The system must maintain consistent ordering of trials before and after adding phase_score.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-INT-013",
+      "story_id": "EVAL-CT-PHASE-INTEGRATION-001",
+      "requirement": "The system must ensure that downstream consumers of evaluate_care_facade can parse the response without schema validation errors after adding phase_score.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-INT-014",
+      "story_id": "EVAL-CT-PHASE-INTEGRATION-001",
+      "requirement": "The system must produce deterministic phase_score values for identical phase inputs across requests.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

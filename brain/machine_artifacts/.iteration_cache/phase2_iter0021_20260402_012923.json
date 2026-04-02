@@ -1,0 +1,104 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 21,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added API exposure, facade integration, and E2E validation coverage for explainability layer.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F5-S71",
+      "value": "New story added",
+      "note": "Expose explainability via facade/API",
+      "iteration": 21
+    },
+    {
+      "path": "stories.EVAL-F5-S72",
+      "value": "New story added",
+      "note": "Integrate explainability into evaluate_care_facade",
+      "iteration": 21
+    },
+    {
+      "path": "stories.EVAL-F5-S73",
+      "value": "New story added",
+      "note": "End-to-end test coverage for explainability in chat flow",
+      "iteration": 21
+    },
+    {
+      "path": "stories.EVAL-F5-S74",
+      "value": "New story added",
+      "note": "API contract validation tests",
+      "iteration": 21
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F5-S71",
+      "title": "Expose Explainability via Evaluate Care API",
+      "description": "Extend evaluate care API responses to include standardized explainability objects alongside evaluation signals, ensuring consistent contract delivery to frontend.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S66",
+        "EVAL-F5-S67"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F5-S72",
+      "title": "Facade Integration of Explainability Layer",
+      "description": "Integrate explainability builder into evaluate_care_facade orchestration so all provider and clinical trial responses include mapped explainability fields before returning to chat layer.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S67",
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F5-S73",
+      "title": "End-to-End Explainability in Chat Flow",
+      "description": "Validate that explainability metadata flows from backend services through facade and is rendered correctly in chat responses, including mixed provider and clinical trial scenarios.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S71",
+        "EVAL-F5-S68"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "EVAL-F5-S74",
+      "title": "Explainability API Contract Tests",
+      "description": "Implement tests to validate that API responses always include schema-compliant explainability fields (source, meaning, limitations) and adhere to Pydantic model definitions.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S66",
+        "EVAL-F5-S71"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

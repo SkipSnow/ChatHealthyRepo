@@ -1,0 +1,64 @@
+{
+  "stories": [
+    {
+      "story_id": "MAINT-MAPS-S1",
+      "title": "Define Map Marker Schema and Contract",
+      "description": "Define the frontend data contract for map markers including provider ID, name, latitude, longitude, and display metadata to ensure consistent rendering across map components.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Website/architecture.html (frontend mapping capability); Code/Schemas/ChatHealthy.Providers.json (provider data structure)"
+    },
+    {
+      "story_id": "MAINT-MAPS-S2",
+      "title": "Implement Map Rendering Component",
+      "description": "Build a reusable React map component that initializes map view, supports zoom/pan, and renders provider markers based on supplied coordinates.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx (React frontend foundation); Website/architecture.html (UI capability for provider visualization)"
+    },
+    {
+      "story_id": "MAINT-MAPS-S3",
+      "title": "Marker Interaction and Provider Preview UI",
+      "description": "Enable user interaction with map markers including click/hover behavior to display provider preview details such as name and location context.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx (UI rendering patterns); Website/architecture.html (interactive UI expectations)"
+    },
+    {
+      "story_id": "MAINT-MAPS-S4",
+      "title": "Map Component Test Suite",
+      "description": "Create unit and integration tests validating map initialization, marker rendering, and interaction behavior including empty and multi-result scenarios.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S2",
+        "MAINT-MAPS-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend (React testing patterns implied); Website/tests/test_website.py (existing test framework presence)"
+    },
+    {
+      "story_id": "MAINT-MAPS-S5",
+      "title": "Bind Map to Provider Search Results",
+      "description": "Integrate map component with provider search output so that map updates dynamically based on user queries, including handling empty states and incremental result updates.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S2",
+        "MAINT-MAPS-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py (provider search orchestration output consumed by frontend)"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "stories": {
+    "FEAT-6-S149": {
+      "story_id": "FEAT-6-S149",
+      "title": "Consent API Endpoints & Service Contracts",
+      "description": "Expose backend API endpoints for capturing, updating, and retrieving consent status, including tier escalation and enforcement hooks for downstream services.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S145",
+        "FEAT-6-S146"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    "FEAT-6-S150": {
+      "story_id": "FEAT-6-S150",
+      "title": "Consent Enforcement in Tool Router",
+      "description": "Integrate consent checks into tool_router to ensure that any tool invocation involving identifiable data is blocked or transformed unless appropriate consent tier is present.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S145",
+        "FEAT-6-S146"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-6-S151": {
+      "story_id": "FEAT-6-S151",
+      "title": "Conversation Summarization & De-identification Pipeline",
+      "description": "Implement core logic for summarizing conversations and applying HIPAA Safe Harbor de-identification prior to storage when Tier 2 consent is not granted.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S146"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "FEAT-6-S152": {
+      "story_id": "FEAT-6-S152",
+      "title": "Lead Capture Consent Tier Integration",
+      "description": "Ensure lead_capture service correctly enforces consent tiers by requiring Tier 2 consent for storing identifiable lead data and coordinating with ConsentService for validation.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S146"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py"
+    }
+  }
+}

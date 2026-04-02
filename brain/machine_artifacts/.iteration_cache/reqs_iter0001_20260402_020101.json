@@ -1,0 +1,149 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-001",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must invoke the relevance scoring logic from EVAL-CT-REL-002 for each clinical trial returned by the clinical_trials_service.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-002",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must attach a normalized relevance_score field to every trial object in the service response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-003",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must ensure the relevance_score value is within the expected normalized range defined in the schema from EVAL-CT-REL-001.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-004",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must preserve all existing clinical trial fields and structure when adding relevance scoring data.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-005",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must not break or alter existing filtering logic when relevance scoring is integrated.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-006",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must compute relevance scores using the user condition intent provided in the request context.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-007",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must pass each trial's condition data into the scoring logic without mutation or loss.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-008",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must include contributing factors or explanation metadata from the scoring logic in the enriched trial object if available.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-009",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must maintain response latency within acceptable service thresholds after adding relevance scoring.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-010",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must process relevance scoring deterministically for identical inputs within a single request lifecycle.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-011",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must handle trials with missing or empty condition data by assigning a default low or zero relevance score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-012",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must continue returning trials even if relevance scoring fails for an individual trial, without failing the entire response.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-013",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must log scoring failures with sufficient diagnostic detail for debugging without exposing errors to the end user.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-014",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must ensure compatibility with downstream facade expectations by maintaining consistent field naming and types for relevance_score.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-015",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must support scoring for multiple trials in batch within a single request without cross-trial data leakage.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-016",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must ensure that relevance scoring does not reorder trials unless explicitly designed to do so in the service.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-017",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must correctly handle synonym and partial match outputs from the scoring logic without truncation or misrepresentation.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-003-REQ-018",
+      "story_id": "EVAL-CT-REL-003",
+      "requirement": "The system must gracefully handle absence of user condition intent by assigning neutral or default relevance scores to all trials.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

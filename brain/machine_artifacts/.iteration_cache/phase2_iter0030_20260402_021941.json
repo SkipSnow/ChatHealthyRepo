@@ -1,0 +1,54 @@
+{
+  "stories": {
+    "GPTR-F-001-S111": {
+      "story_id": "GPTR-F-001-S111",
+      "title": "Core Allowlist Enforcement Engine",
+      "description": "Implement the core validation engine that evaluates incoming GPTReader requests against the defined allowlist schema and configuration, rejecting any disallowed collections, fields, operators, or query structures before execution.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S107",
+        "GPTR-F-001-S108"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S112": {
+      "story_id": "GPTR-F-001-S112",
+      "title": "Azure Function Request Interceptor Integration",
+      "description": "Integrate the allowlist enforcement engine into the Azure Function entry point for GPTReader so that all incoming requests are intercepted and validated prior to any database interaction.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S111"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/function_app.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S113": {
+      "story_id": "GPTR-F-001-S113",
+      "title": "Unit and Security Test Coverage for Allowlist Enforcement",
+      "description": "Develop comprehensive unit tests covering valid and invalid request scenarios, including injection attempts, unauthorized fields, excessive limits, and malformed queries to verify strict enforcement behavior.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S111"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S114": {
+      "story_id": "GPTR-F-001-S114",
+      "title": "End-to-End Integration Tests with Enforcement Enabled",
+      "description": "Extend existing GPTReader integration tests to validate full request lifecycle with enforcement enabled, ensuring compliant queries succeed and non-compliant queries are blocked with correct error responses.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S112",
+        "GPTR-F-001-S113"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader_integration.py; Code/DataPipelines/tests/gpt_sit_runner.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  }
+}
