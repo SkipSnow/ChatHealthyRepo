@@ -7,6 +7,7 @@
 import json
 import logging
 import os
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -87,7 +88,6 @@ PIPELINE_ROUTE = "Router"
 SYNC_TASK_HANDLERS = {
     "LoadSpecialtyData": run_load_specialty_data,
     "LoadICD10": load_icd10,
-    "CopyToFrontEnd": run_copy_to_frontend,
     "CreateFrontendVectorIndex": create_frontend_vector_index_fn,
     "CheckMongoHealth": check_mongo_health,
     "StampEmbeddingVersion": stamp_embedding_version_fn,
@@ -187,6 +187,7 @@ ASYNC_TASK_ORCHESTRATORS = {
     "CountyEnrichment": "county_enrichment_orchestrator",
     "FullProviderPipeline": "full_provider_pipeline_orchestrator",
     "SnapshotCollection": "snapshot_collection_orchestrator",
+    "CopyToFrontEnd": "copy_to_frontend_orchestrator",
 }
 
 
@@ -383,6 +384,52 @@ def provider_load_orchestrator(context: df.DurableOrchestrationContext):
 
 
 @app.orchestration_trigger(context_name="context")
+def copy_to_frontend_orchestrator(context: df.DurableOrchestrationContext):
+    """Async CopyToFrontEnd — reserve cluster, copy, release. Returns 202 immediately."""
+    config = context.get_input() or {}
+    cluster_name = config.get("cluster_name", "ChatHealthyDataPipelines")
+    job_id = config.get("job_id", f"copy_to_frontend_{int(time.time())}")
+    config["job_id"] = job_id
+
+    # Step 1: Reserve cluster
+    reservation = {
+        "job_id": job_id,
+        "requester": "CopyToFrontEnd",
+        "cluster_name": cluster_name,
+        "expected_duration_minutes": config.get("expected_duration_minutes", 120),
+    }
+    context.set_custom_status(f"Reserving cluster {cluster_name}")
+    yield context.call_activity("register_reservation_activity", reservation)
+
+    # Step 2: Wait for cluster IDLE (poll every 15s, up to 30 min)
+    import datetime as dt
+    deadline = context.current_utc_datetime + dt.timedelta(minutes=30)
+    while context.current_utc_datetime < deadline:
+        context.set_custom_status(f"Waiting for cluster IDLE")
+        status = yield context.call_activity("check_cluster_state_activity",
+                                              {"cluster_name": cluster_name})
+        if status.get("cluster_state") == "IDLE":
+            break
+        next_check = context.current_utc_datetime + dt.timedelta(seconds=15)
+        yield context.create_timer(next_check)
+
+    # Step 3: Copy
+    context.set_custom_status(f"Copying providers (excluding {config.get('states', {}).get('list', [])})")
+    try:
+        result = yield context.call_activity("copy_to_frontend_activity", config)
+    except Exception as e:
+        context.set_custom_status(f"Copy failed: {e}")
+        result = {"status": "failed", "error": str(e)}
+    finally:
+        # Step 4: Release reservation
+        context.set_custom_status("Releasing cluster reservation")
+        yield context.call_activity("release_reservation_activity", reservation)
+
+    context.set_custom_status(f"Done — {result.get('status', 'unknown')}")
+    return result
+
+
+@app.orchestration_trigger(context_name="context")
 def snapshot_collection_orchestrator(context: df.DurableOrchestrationContext):
     config = context.get_input() or {}
     src = config.get("source", "providers")
@@ -398,6 +445,18 @@ def snapshot_collection_orchestrator(context: df.DurableOrchestrationContext):
 @app.activity_trigger(input_name="config")
 def check_mongo_health_activity(config: dict) -> dict:
     return check_mongo_health(config)
+
+
+@app.activity_trigger(input_name="config")
+def copy_to_frontend_activity(config: dict) -> dict:
+    return run_copy_to_frontend(config)
+
+
+@app.activity_trigger(input_name="config")
+def check_cluster_state_activity(config: dict) -> dict:
+    """Return cluster state for orchestrator polling."""
+    mgr = _get_ops_manager()
+    return mgr.status(config.get("cluster_name", "ChatHealthyDataPipelines"))
 
 
 @app.activity_trigger(input_name="config")
