@@ -260,6 +260,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable — verify naming conventions and structure alignment with provider_search_models.py; I can inspect that file in the codebase."
+                },
+                {
+                  "req_id": "EVAL-SCORE-PROV-EVAL-SCORE-PROV-S1-FACADE-R9001",
+                  "story_id": "EVAL-SCORE-PROV-S1",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -497,6 +507,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable by verifying log output exists and score remains unchanged, supports debuggability, and structured logging is a standard implementation pattern."
+                },
+                {
+                  "req_id": "EVAL-SCORE-PROV-EVAL-SCORE-PROV-S2-FACADE-R9002",
+                  "story_id": "EVAL-SCORE-PROV-S2",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -1158,6 +1178,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable (run identical calculations repeatedly, assert bitwise-equal results), validates a real floating-point edge case relevant to deterministic scoring."
+                },
+                {
+                  "req_id": "EVAL-SCORE-PROV-EVAL-SCORE-PROV-S5-FACADE-R9003",
+                  "story_id": "EVAL-SCORE-PROV-S5",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -1600,6 +1630,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable — verify naming conventions and structure alignment with provider_search_models.py; I can inspect that file in the codebase."
+                },
+                {
+                  "req_id": "EVAL-SCORE-PROV-EVAL-SCORE-PROV-S1-FACADE-R9004",
+                  "story_id": "EVAL-SCORE-PROV-S1",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -1837,6 +1877,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable by verifying log output exists and score remains unchanged, supports debuggability, and structured logging is a standard implementation pattern."
+                },
+                {
+                  "req_id": "EVAL-SCORE-PROV-EVAL-SCORE-PROV-S2-FACADE-R9005",
+                  "story_id": "EVAL-SCORE-PROV-S2",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -2498,6 +2548,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable (run identical calculations repeatedly, assert bitwise-equal results), validates a real floating-point edge case relevant to deterministic scoring."
+                },
+                {
+                  "req_id": "EVAL-SCORE-PROV-EVAL-SCORE-PROV-S5-FACADE-R9006",
+                  "story_id": "EVAL-SCORE-PROV-S5",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -3094,6 +3154,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable (measures have a defined ordering that is stable across invocations), supports deterministic output, implementable via an ordered list or explicit index field."
+                },
+                {
+                  "req_id": "EVAL-SCORE-CT-EVAL-CT-SCORE-SCHEMA-001-FACADE-R9007",
+                  "story_id": "EVAL-CT-SCORE-SCHEMA-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -3311,6 +3381,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Testable input validation requirement to raise controlled errors on schema-nonconforming data; standard defensive coding practice."
+                },
+                {
+                  "req_id": "EVAL-SCORE-CT-EVAL-CT-SCORE-LOGIC-001-FACADE-R9008",
+                  "story_id": "EVAL-CT-SCORE-LOGIC-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -4168,6 +4248,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable (measures have a defined ordering that is stable across invocations), supports deterministic output, implementable via an ordered list or explicit index field."
+                },
+                {
+                  "req_id": "EVAL-SCORE-CT-EVAL-CT-SCORE-SCHEMA-001-FACADE-R9009",
+                  "story_id": "EVAL-CT-SCORE-SCHEMA-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -4385,6 +4475,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Testable input validation requirement to raise controlled errors on schema-nonconforming data; standard defensive coding practice."
+                },
+                {
+                  "req_id": "EVAL-SCORE-CT-EVAL-CT-SCORE-LOGIC-001-FACADE-R9010",
+                  "story_id": "EVAL-CT-SCORE-LOGIC-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -5417,6 +5517,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Buildable via external config (JSON/DB-driven formulas and weights); testable by changing config and verifying updated behavior without redeployment."
+                },
+                {
+                  "req_id": "EVAL-EXPLAIN-EVAL-EXPLAIN-ST-002-FACADE-R9011",
+                  "story_id": "EVAL-EXPLAIN-ST-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -6663,6 +6773,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Buildable via external config (JSON/DB-driven formulas and weights); testable by changing config and verifying updated behavior without redeployment."
+                },
+                {
+                  "req_id": "EVAL-EXPLAIN-EVAL-EXPLAIN-ST-002-FACADE-R9012",
+                  "story_id": "EVAL-EXPLAIN-ST-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -7624,6 +7744,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable: TypeScript interfaces are open by default and do not reject extra properties on assignment from untyped JSON payloads; verifiable with a compilation test."
+                },
+                {
+                  "req_id": "EVAL-EXPLAIN-UX-EVAL-EXPLAIN-UX-S1-FACADE-R9013",
+                  "story_id": "EVAL-EXPLAIN-UX-S1",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -7911,6 +8041,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Multiple explainability blocks in a thread is a natural consequence of per-message rendering with unique keys — buildable and testable for no collision."
+                },
+                {
+                  "req_id": "EVAL-EXPLAIN-UX-EVAL-EXPLAIN-UX-S2-FACADE-R9014",
+                  "story_id": "EVAL-EXPLAIN-UX-S2",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -8161,6 +8301,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Testable purity/determinism constraint on the mapping function; verifiable by asserting identical outputs for identical inputs."
+                },
+                {
+                  "req_id": "EVAL-EXPLAIN-UX-EVAL-EXPLAIN-UX-S4-FACADE-R9015",
+                  "story_id": "EVAL-EXPLAIN-UX-S4",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -8339,6 +8489,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable: given a malformed explainability payload, assert the remaining MessageBubble content still renders correctly."
+                },
+                {
+                  "req_id": "EVAL-EXPLAIN-UX-EVAL-EXPLAIN-UX-S5-FACADE-R9016",
+                  "story_id": "EVAL-EXPLAIN-UX-S5",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -8576,6 +8736,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable: TypeScript interfaces are open by default and do not reject extra properties on assignment from untyped JSON payloads; verifiable with a compilation test."
+                },
+                {
+                  "req_id": "EVAL-EXPLAIN-UX-EVAL-EXPLAIN-UX-S1-FACADE-R9017",
+                  "story_id": "EVAL-EXPLAIN-UX-S1",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -8863,6 +9033,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Multiple explainability blocks in a thread is a natural consequence of per-message rendering with unique keys — buildable and testable for no collision."
+                },
+                {
+                  "req_id": "EVAL-EXPLAIN-UX-EVAL-EXPLAIN-UX-S2-FACADE-R9018",
+                  "story_id": "EVAL-EXPLAIN-UX-S2",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -9113,6 +9293,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Testable purity/determinism constraint on the mapping function; verifiable by asserting identical outputs for identical inputs."
+                },
+                {
+                  "req_id": "EVAL-EXPLAIN-UX-EVAL-EXPLAIN-UX-S4-FACADE-R9019",
+                  "story_id": "EVAL-EXPLAIN-UX-S4",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -9291,6 +9481,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable: given a malformed explainability payload, assert the remaining MessageBubble content still renders correctly."
+                },
+                {
+                  "req_id": "EVAL-EXPLAIN-UX-EVAL-EXPLAIN-UX-S5-FACADE-R9020",
+                  "story_id": "EVAL-EXPLAIN-UX-S5",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             }
@@ -9562,6 +9762,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Clear typing constraint on numeric fields, directly enforceable and testable in schema validation."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-BOARD-EVAL-BOARD-ST-001-FACADE-R9021",
+                  "story_id": "EVAL-BOARD-ST-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -9797,6 +10007,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Clear immutability constraint on source NPI data; boolean-testable by comparing original data before and after processing."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-BOARD-EVAL-BOARD-ST-002-FACADE-R9022",
+                  "story_id": "EVAL-BOARD-ST-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -10488,6 +10708,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Clear typing constraint on numeric fields, directly enforceable and testable in schema validation."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-BOARD-EVAL-BOARD-ST-001-FACADE-R9023",
+                  "story_id": "EVAL-BOARD-ST-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -10723,6 +10953,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Clear immutability constraint on source NPI data; boolean-testable by comparing original data before and after processing."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-BOARD-EVAL-BOARD-ST-002-FACADE-R9024",
+                  "story_id": "EVAL-BOARD-ST-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -11440,6 +11680,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Clear, testable null-propagation rule for normalized_experience_score dependent on derived_years_in_practice."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-EXPERIENCE-EVAL-EXP-001-FACADE-R9025",
+                  "story_id": "EVAL-EXP-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -11677,6 +11927,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Defensive type-coercion requirement that accounts for real-world data variability; straightforward to implement and test."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-EXPERIENCE-EVAL-EXP-002-FACADE-R9026",
+                  "story_id": "EVAL-EXP-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -12231,6 +12491,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Clear, boolean-testable requirement for invalid-type handling on the two date/year input fields."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-EXPERIENCE-EVAL-EXP-004-FACADE-R9027",
+                  "story_id": "EVAL-EXP-004",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -12496,6 +12766,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Clear, testable null-propagation rule for normalized_experience_score dependent on derived_years_in_practice."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-EXPERIENCE-EVAL-EXP-001-FACADE-R9028",
+                  "story_id": "EVAL-EXP-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -12733,6 +13013,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Defensive type-coercion requirement that accounts for real-world data variability; straightforward to implement and test."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-EXPERIENCE-EVAL-EXP-002-FACADE-R9029",
+                  "story_id": "EVAL-EXP-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -13287,6 +13577,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Clear, boolean-testable requirement for invalid-type handling on the two date/year input fields."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-EXPERIENCE-EVAL-EXP-004-FACADE-R9030",
+                  "story_id": "EVAL-EXP-004",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             }
@@ -13528,6 +13828,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Buildable by using a Pydantic model with extra='allow' or an Optional dict field, and boolean testable by adding a field and confirming no deserialization error."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-SPECIALTY-EVAL-SPC-001-FACADE-R9031",
+                  "story_id": "EVAL-SPC-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -13843,6 +14153,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Defensive handling of malformed input with safe 0.0 default is boolean-testable and a sound robustness requirement."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-SPECIALTY-EVAL-SPC-002-FACADE-R9032",
+                  "story_id": "EVAL-SPC-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -14584,6 +14904,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Buildable by using a Pydantic model with extra='allow' or an Optional dict field, and boolean testable by adding a field and confirming no deserialization error."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-SPECIALTY-EVAL-SPC-001-FACADE-R9033",
+                  "story_id": "EVAL-SPC-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -14899,6 +15229,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Defensive handling of malformed input with safe 0.0 default is boolean-testable and a sound robustness requirement."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-SPECIALTY-EVAL-SPC-002-FACADE-R9034",
+                  "story_id": "EVAL-SPC-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -15566,6 +15906,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Testable serialization requirement ensuring JSON output includes both fields; Pydantic's model_dump_json supports this and the 'when values are available' qualifier is reasonable."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-PHASE-EVAL-CT-PHASE-SCHEMA-001-FACADE-R9035",
+                  "story_id": "EVAL-CT-PHASE-SCHEMA-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -15811,6 +16161,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable (no network calls, O(1) lookup), appropriate constraint for a pure mapping function that should be a dict lookup with no external dependencies."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-PHASE-EVAL-CT-PHASE-LOGIC-001-FACADE-R9036",
+                  "story_id": "EVAL-CT-PHASE-LOGIC-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -16266,6 +16626,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable: assert that null/undefined input returns a safe default/null without throwing."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-PHASE-EVAL-CT-PHASE-TEST-001-FACADE-R9037",
+                  "story_id": "EVAL-CT-PHASE-TEST-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -16598,6 +16968,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Testable serialization requirement ensuring JSON output includes both fields; Pydantic's model_dump_json supports this and the 'when values are available' qualifier is reasonable."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-PHASE-EVAL-CT-PHASE-SCHEMA-001-FACADE-R9038",
+                  "story_id": "EVAL-CT-PHASE-SCHEMA-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -16843,6 +17223,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable (no network calls, O(1) lookup), appropriate constraint for a pure mapping function that should be a dict lookup with no external dependencies."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-PHASE-EVAL-CT-PHASE-LOGIC-001-FACADE-R9039",
+                  "story_id": "EVAL-CT-PHASE-LOGIC-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -17298,6 +17688,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable: assert that null/undefined input returns a safe default/null without throwing."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-PHASE-EVAL-CT-PHASE-TEST-001-FACADE-R9040",
+                  "story_id": "EVAL-CT-PHASE-TEST-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -17766,6 +18166,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean-testable determinism requirement; verifiable by running the same input multiple times and asserting identical output."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-STATUS-EVAL-CT-STATUS-001-FACADE-R9041",
+                  "story_id": "EVAL-CT-STATUS-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -18031,6 +18441,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable backward-compatibility constraint that is essential for safe extension of clinical_trials_service."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-STATUS-EVAL-CT-STATUS-002-FACADE-R9042",
+                  "story_id": "EVAL-CT-STATUS-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -18426,6 +18846,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean-testable architecture constraint: tests must run without network; implementable by ensuring no external calls in test fixtures."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-STATUS-EVAL-CT-STATUS-004-FACADE-R9043",
+                  "story_id": "EVAL-CT-STATUS-004",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -18928,6 +19358,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean-testable determinism requirement; verifiable by running the same input multiple times and asserting identical output."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-STATUS-EVAL-CT-STATUS-001-FACADE-R9044",
+                  "story_id": "EVAL-CT-STATUS-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -19193,6 +19633,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable backward-compatibility constraint that is essential for safe extension of clinical_trials_service."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-STATUS-EVAL-CT-STATUS-002-FACADE-R9045",
+                  "story_id": "EVAL-CT-STATUS-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -19588,6 +20038,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean-testable architecture constraint: tests must run without network; implementable by ensuring no external calls in test fixtures."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-STATUS-EVAL-CT-STATUS-004-FACADE-R9046",
+                  "story_id": "EVAL-CT-STATUS-004",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -20146,6 +20606,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Testable by adding a max_length constraint on the factor_explanation string field; reasonable UI-readiness constraint."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-RELEVANCE-EVAL-CT-REL-001-FACADE-R9047",
+                  "story_id": "EVAL-CT-REL-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -20373,6 +20843,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Preprocessing normalization steps are enumerated (lowercase, trim, normalize) making this testable and buildable."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-RELEVANCE-EVAL-CT-REL-002-FACADE-R9048",
+                  "story_id": "EVAL-CT-REL-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -21430,6 +21910,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Testable by adding a max_length constraint on the factor_explanation string field; reasonable UI-readiness constraint."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-RELEVANCE-EVAL-CT-REL-001-FACADE-R9049",
+                  "story_id": "EVAL-CT-REL-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -21657,6 +22147,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Preprocessing normalization steps are enumerated (lowercase, trim, normalize) making this testable and buildable."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-RELEVANCE-EVAL-CT-REL-002-FACADE-R9050",
+                  "story_id": "EVAL-CT-REL-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -22867,6 +23367,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Clear monotonicity constraint that collaborator influence can only increase or maintain the base score; boolean-testable by comparing base and final scores across all collaborator scenarios."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-SPONSOR-EVAL-CT-SPONSOR-LOGIC-002-FACADE-R9051",
+                  "story_id": "EVAL-CT-SPONSOR-LOGIC-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -23391,6 +23901,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable: unit test asserts collaborator-only scenario (no lead_sponsor) still produces a valid credibility_score; distinct from -005 which tests missing lead_sponsor fallback, this specifically tests collaborator-driven scoring."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-SPONSOR-EVAL-CT-SPONSOR-TEST-004-FACADE-R9052",
+                  "story_id": "EVAL-CT-SPONSOR-TEST-004",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -23823,6 +24343,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Clear monotonicity constraint that collaborator influence can only increase or maintain the base score; boolean-testable by comparing base and final scores across all collaborator scenarios."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-SPONSOR-EVAL-CT-SPONSOR-LOGIC-002-FACADE-R9053",
+                  "story_id": "EVAL-CT-SPONSOR-LOGIC-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -24347,6 +24877,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean testable: unit test asserts collaborator-only scenario (no lead_sponsor) still produces a valid credibility_score; distinct from -005 which tests missing lead_sponsor fallback, this specifically tests collaborator-driven scoring."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-SPONSOR-EVAL-CT-SPONSOR-TEST-004-FACADE-R9054",
+                  "story_id": "EVAL-CT-SPONSOR-TEST-004",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             }
@@ -24885,6 +25425,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Clear boundary-condition test: all fields present and valid results in the maximum score."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-CREDENTIALS-EVAL-CRED-002-FACADE-R9055",
+                  "story_id": "EVAL-CRED-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -25309,6 +25859,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Running within the existing test framework and reporting pass/fail is a clear, buildable architectural constraint for test execution."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-CREDENTIALS-EVAL-CRED-004-FACADE-R9056",
+                  "story_id": "EVAL-CRED-004",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -26058,6 +26618,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Clear boundary-condition test: all fields present and valid results in the maximum score."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-CREDENTIALS-EVAL-CRED-002-FACADE-R9057",
+                  "story_id": "EVAL-CRED-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -26482,6 +27052,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Running within the existing test framework and reporting pass/fail is a clear, buildable architectural constraint for test execution."
+                },
+                {
+                  "req_id": "EVAL-P-MEASURE-CREDENTIALS-EVAL-CRED-004-FACADE-R9058",
+                  "story_id": "EVAL-CRED-004",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -26960,6 +27540,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean-testable; implementable with default_factory=datetime.utcnow in the metadata model."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-PROXIMITY-CT-PROX-001-FACADE-R9059",
+                  "story_id": "CT-PROX-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -27225,6 +27815,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Clear architectural guidance to implement as a reusable function within clinical_trials_service, directly aligned with story scope and testable."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-PROXIMITY-CT-PROX-002-FACADE-R9060",
+                  "story_id": "CT-PROX-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -27926,6 +28526,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Boolean-testable; implementable with default_factory=datetime.utcnow in the metadata model."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-PROXIMITY-CT-PROX-001-FACADE-R9061",
+                  "story_id": "CT-PROX-001",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
@@ -28191,6 +28801,16 @@
                   "status": "accepted",
                   "accepted_by": "Claude (Haiku)",
                   "acceptance_reason": "Clear architectural guidance to implement as a reusable function within clinical_trials_service, directly aligned with story scope and testable."
+                },
+                {
+                  "req_id": "EVAL-CT-MEASURE-PROXIMITY-CT-PROX-002-FACADE-R9062",
+                  "story_id": "CT-PROX-002",
+                  "requirement": "The system must access Find Care data exclusively through the FindCareFacade interface and must not directly call Find Care domain services (ProviderSearchService, SpecialtyService) from Evaluate Care code.",
+                  "source": "architecture_constraint",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Claude (architectural constraint)",
+                  "verification_method": "code_review"
                 }
               ]
             },
