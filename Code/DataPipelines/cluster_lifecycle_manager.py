@@ -89,27 +89,30 @@ class ClusterLifecycleManager:
             {"_id": self._doc_id}, state, upsert=True
         )
 
-    def register(self, reservation: ResourceReservation) -> ResourceReservation:
-        """Register a reservation. Wakes the cluster if needed.
+    def register(self, reservation: ResourceReservation, task_config: dict = None) -> ResourceReservation:
+        """Register a reservation. Wakes the cluster if needed. Non-blocking.
 
-        Called by the pipeline orchestrator before starting work.
-        Returns the reservation with start_time and expected_end_time set.
+        If task_config is provided, the task is queued and the 5-minute timer
+        will execute it when the cluster reaches IDLE. Returns immediately.
         """
         now = datetime.now(timezone.utc)
         reservation.start_time = now.isoformat()
         reservation.expected_end_time = (now + timedelta(minutes=reservation.expected_duration_minutes)).isoformat()
-        reservation.status = "active"
+        reservation.status = "pending"  # pending until cluster is IDLE
 
         state = self._get_state()
-        state["reservations"].append(reservation.to_dict())
+        entry = reservation.to_dict()
+        if task_config:
+            entry["queued_task"] = task_config  # timer will execute this
+        state["reservations"].append(entry)
         state["last_updated"] = now.isoformat()
         self._save_state(state)
 
-        _log.info("Reservation registered: %s (expected %d min)", reservation.job_id, reservation.expected_duration_minutes)
+        _log.info("Reservation registered: %s (expected %d min, queued: %s)",
+                   reservation.job_id, reservation.expected_duration_minutes, bool(task_config))
 
-        # Wake cluster if this is the first reservation
-        if len(state["reservations"]) == 1:
-            self._wake_cluster(reservation.cluster_name)
+        # Wake cluster — non-blocking
+        self._wake_cluster(reservation.cluster_name)
 
         return reservation
 
@@ -131,6 +134,72 @@ class ClusterLifecycleManager:
         # Shut down if no more reservations
         if not state["reservations"]:
             self._shutdown_cluster(reservation.cluster_name)
+
+    def process_queue(self):
+        """Called by the 5-minute timer. Check cluster state, run queued tasks.
+
+        If cluster is IDLE and there are pending reservations with queued tasks,
+        execute them. Marks reservation as active once task starts.
+        """
+        state = self._get_state()
+        pending = [r for r in state["reservations"] if r.get("status") == "pending" and r.get("queued_task")]
+        if not pending:
+            return
+
+        # Check if cluster is up
+        cluster_name = pending[0].get("cluster_name", "")
+        if not cluster_name:
+            return
+
+        try:
+            cluster_state = self._get_cluster_state(cluster_name)
+        except Exception as e:
+            _log.warning("Cannot check cluster state: %s", e)
+            return
+
+        if cluster_state != "IDLE":
+            _log.info("Cluster %s is %s — %d tasks queued, waiting", cluster_name, cluster_state, len(pending))
+            return
+
+        _log.info("Cluster %s is IDLE — executing %d queued tasks", cluster_name, len(pending))
+
+        for r in pending:
+            task_config = r.get("queued_task", {})
+            task_name = task_config.get("ChatHealthyTask", "?")
+            r["status"] = "active"
+            r.pop("queued_task", None)
+            self._save_state(state)
+
+            _log.info("Executing queued task: %s (reservation: %s)", task_name, r.get("job_id"))
+            try:
+                # Import and execute the sync task handler
+                from function_app import SYNC_TASK_HANDLERS
+                handler = SYNC_TASK_HANDLERS.get(task_name)
+                if handler:
+                    result = handler(task_config.get("payload", {}))
+                    _log.info("Queued task %s complete: %s", task_name, result)
+                else:
+                    _log.error("Unknown queued task: %s", task_name)
+            except Exception as e:
+                _log.error("Queued task %s failed: %s", task_name, e)
+                if self._push:
+                    self._push("Queued Task Failed", f"{task_name}: {e}")
+
+    def _get_cluster_state(self, cluster_name: str) -> str:
+        """Check current cluster state via Atlas API. Non-blocking."""
+        try:
+            from atlas_cluster_manager import _get_auth, _get_group_id
+            url = f"https://cloud.mongodb.com/api/atlas/v2/groups/{_get_group_id()}/clusters/{cluster_name}"
+            resp = requests.get(
+                url,
+                auth=_get_auth(),
+                headers={"Accept": "application/vnd.atlas.2023-02-01+json"},
+                timeout=15,
+            )
+            return resp.json().get("stateName", "UNKNOWN")
+        except Exception as e:
+            _log.warning("Cluster state check failed: %s", e)
+            return "UNKNOWN"
 
     def check_overdue(self):
         """Check for overdue reservations. Called by the timer trigger.
@@ -206,13 +275,26 @@ class ClusterLifecycleManager:
         _log.warning("FORCE RELEASE: cleared %d reservations, shutting down %s", released, cluster_name)
 
     def _wake_cluster(self, cluster_name: str):
-        """Start the Atlas cluster."""
+        """Send resume request to Atlas — non-blocking. Does NOT wait for IDLE.
+
+        The 5-minute timer polls cluster state. Work is queued in reservations
+        and proceeds when the timer detects IDLE.
+        """
         try:
-            from atlas_cluster_manager import resume_cluster
-            resume_cluster(cluster_name)
-            _log.info("Cluster %s woken up", cluster_name)
+            from atlas_cluster_manager import _atlas_api_patch, _get_auth, _get_group_id
+            # Just send the PATCH to unpause — don't wait
+            url = f"https://cloud.mongodb.com/api/atlas/v2/groups/{_get_group_id()}/clusters/{cluster_name}"
+            resp = requests.patch(
+                url,
+                json={"paused": False},
+                auth=_get_auth(),
+                headers={"Content-Type": "application/json", "Accept": "application/vnd.atlas.2023-02-01+json"},
+                timeout=30,
+            )
+            state = resp.json().get("stateName", "unknown")
+            _log.info("Cluster %s resume requested (non-blocking). Current state: %s", cluster_name, state)
         except Exception as e:
-            _log.error("Failed to wake cluster %s: %s", cluster_name, e)
+            _log.error("Failed to request cluster wake for %s: %s", cluster_name, e)
             if self._push:
                 self._push("Cluster Wake Failed", f"Could not start {cluster_name}: {e}")
 

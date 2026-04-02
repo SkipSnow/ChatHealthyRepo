@@ -169,7 +169,7 @@ def run_copy_to_frontend(config: dict) -> dict:
     if not frontend_conn:
         raise ValueError("MONGO_FRONTEND_connectionString not set")
 
-    # Register cluster reservation — wakes pipeline DB if paused
+    # Register cluster reservation — wakes pipeline DB if paused (non-blocking)
     env_prefix = config.get("env_prefix", "dev")
     manager = ClusterLifecycleManager(
         get_db_fn=lambda: MongoClient(frontend_conn),
@@ -181,6 +181,16 @@ def run_copy_to_frontend(config: dict) -> dict:
         cluster_name=config.get("pipeline_cluster", "ChatHealthyDataPipelines"),
         expected_duration_minutes=config.get("expected_duration_minutes", 60),
     )
+
+    # If called with queue_only=True, register and return — timer executes later
+    if config.get("queue_only"):
+        manager.register(reservation, task_config={
+            "ChatHealthyTask": "CopyToFrontEnd",
+            "payload": {k: v for k, v in config.items() if k != "queue_only"}
+        })
+        return {"status": "queued", "job_id": reservation.job_id,
+                "message": "Task queued. Lifecycle manager will execute when cluster is IDLE."}
+
     manager.register(reservation)
     logging.info("Reservation registered: %s", reservation.job_id)
 
