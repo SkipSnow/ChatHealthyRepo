@@ -159,6 +159,8 @@ def create_frontend_vector_index_fn(config: dict) -> dict:
 
 
 def run_copy_to_frontend(config: dict) -> dict:
+    from cluster_lifecycle_manager import ClusterLifecycleManager, ResourceReservation
+
     pipeline_conn  = os.environ.get("MONGO_connectionString")
     frontend_conn  = os.environ.get("MONGO_FRONTEND_connectionString")
 
@@ -166,6 +168,21 @@ def run_copy_to_frontend(config: dict) -> dict:
         raise ValueError("MONGO_connectionString not set")
     if not frontend_conn:
         raise ValueError("MONGO_FRONTEND_connectionString not set")
+
+    # Register cluster reservation — wakes pipeline DB if paused
+    env_prefix = config.get("env_prefix", "dev")
+    manager = ClusterLifecycleManager(
+        get_db_fn=lambda: MongoClient(frontend_conn),
+        env_prefix=env_prefix,
+    )
+    reservation = ResourceReservation(
+        job_id=f"copy_to_frontend_{int(time.time())}",
+        requester="CopyToFrontEnd",
+        cluster_name=config.get("pipeline_cluster", "ChatHealthyDataPipelines"),
+        expected_duration_minutes=config.get("expected_duration_minutes", 60),
+    )
+    manager.register(reservation)
+    logging.info("Reservation registered: %s", reservation.job_id)
 
     # env_prefix scopes the destination DB on the FrontEnd cluster.
     # "dev" → dev_PublicHealthData; "" or omitted → PublicHealthData (legacy)
@@ -226,6 +243,9 @@ def run_copy_to_frontend(config: dict) -> dict:
     finally:
         pipeline_client.close()
         frontend_client.close()
+        # Always release reservation — cluster shuts down if last one
+        manager.release(reservation)
+        logging.info("Reservation released: %s", reservation.job_id)
 
     logging.info("CopyToFrontEnd complete: %s", results)
     return {"status": "complete", "collections": results}
