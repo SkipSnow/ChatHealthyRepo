@@ -20000,6 +20000,35 @@
               "requirements": []
             }
           ]
+        },
+        {
+          "feature_id": "MAINT-BRAIN-VELOCITY",
+          "name": "Planning Engine at Boss Velocity",
+          "epic_id": "EPIC-2",
+          "layer": "backend",
+          "capability": "The Brain",
+          "description": "The epic planning engine must plan at Boss velocity, not human team velocity. Boss ships 24 features in one sprint. GPT planned 1 feature per sprint. The sprint map generator must use actual team velocity (1 human + 2 AI agents, 24/7 capacity) not enterprise estimation models.",
+          "evidence": "Sprint map from Build 361: Boss directed 24 features in Sprint 1. GPT had planned 1.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss (direct observation)",
+          "target_version": "v0.2.1",
+          "backend_dependencies": [],
+          "stories": [
+            {
+              "story_id": "BRAIN-VELOCITY-S1",
+              "title": "Sprint map generator uses Boss velocity model",
+              "description": "Replace GPT sprint estimation with velocity model: 1 human + Claude + GPT = full feature set per sprint. PI planning Day 1, Design Day 1-2, Implementation Day 2-4, Smoke test Day 5.",
+              "parent_feature": "MAINT-BRAIN-VELOCITY",
+              "sprint": 0,
+              "dependencies": [],
+              "size": "M",
+              "evidence": "Build 361 sprint map override.",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": []
+            }
+          ]
         }
       ]
     }
