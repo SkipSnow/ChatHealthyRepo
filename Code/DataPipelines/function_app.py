@@ -251,7 +251,7 @@ def exchange_otp_route(req: func.HttpRequest) -> func.HttpResponse:
 
 # ── Cluster Lifecycle Manager — hourly check for overdue reservations ─────────
 
-@app.timer_trigger(schedule="0 0 * * * *", arg_name="myTimer", run_on_startup=False)
+@app.timer_trigger(schedule="0 */5 * * * *", arg_name="myTimer", run_on_startup=False)
 def cluster_lifecycle_timer(myTimer: func.TimerRequest) -> None:
     """Check for overdue cluster reservations every hour. Alerts Boss via Pushover."""
     from cluster_lifecycle_manager import ClusterLifecycleManager
