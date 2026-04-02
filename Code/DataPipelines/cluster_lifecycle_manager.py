@@ -62,7 +62,7 @@ def _atlas_auth():
     )
 
 def _atlas_group_id():
-    return os.environ.get("ATLAS_GROUP_ID", "")
+    return os.environ.get("ATLAS_PROJECT_ID", os.environ.get("ATLAS_GROUP_ID", ""))
 
 def _atlas_url(cluster_name: str) -> str:
     return f"https://cloud.mongodb.com/api/atlas/v2/groups/{_atlas_group_id()}/clusters/{cluster_name}"
