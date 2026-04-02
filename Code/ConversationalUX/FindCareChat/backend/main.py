@@ -23,9 +23,8 @@ from url_guardian import URLGuardian
 
 # ARCH-001 — domain services
 from application.tool_router import ToolRouter
-from application.facades.find_care_facade import FindCareFacade
 from application.facades.evaluate_care_facade import EvaluateCareFacade
-from domain.find_care.provider_search_service import ProviderSearchService
+from domain.find_care.provider_search_service import FindCareService
 from domain.find_care.specialty_service import SpecialtyService
 from domain.evaluate_care_quality.clinical_trials_service import ClinicalTrialsService
 from domain.evaluate_care_quality.provider_detail_service import ProviderDetailService
@@ -175,17 +174,17 @@ def _system_prompt(follow_up_check: bool = False) -> str:
 # ---------------------------------------------------------------------------
 _embedding_client = EmbeddingClient()
 
-_provider_search_service = ProviderSearchService(
-    get_db_fn=_get_db, env_prefix=_ENV_PREFIX, get_embedding_fn=_embedding_client.get_query_embedding)
 _specialty_service = SpecialtyService(
     get_db_fn=_get_db, env_prefix=_ENV_PREFIX,
     expand_query_fn=_embedding_client.expand_query_terms, get_vector_fn=_embedding_client.get_specialty_vector)
-_find_care_facade = FindCareFacade(provider_search=_provider_search_service, specialty=_specialty_service)
+_find_care = FindCareService(
+    get_db_fn=_get_db, env_prefix=_ENV_PREFIX,
+    get_embedding_fn=_embedding_client.get_query_embedding, specialty_service=_specialty_service)
 
 _clinical_trials_service = ClinicalTrialsService()
 _provider_detail_service = ProviderDetailService()
 _evaluate_care_facade = EvaluateCareFacade(
-    clinical_trials=_clinical_trials_service, provider_detail=_provider_detail_service, find_care_facade=_find_care_facade)
+    clinical_trials=_clinical_trials_service, provider_detail=_provider_detail_service, find_care_facade=_find_care)
 
 _safety_service = SafetyService(get_db_fn=_get_db, env_prefix=_ENV_PREFIX, emergency_keywords=EMERGENCY_KEYWORDS)
 _consent_service = ConsentService()
@@ -198,8 +197,8 @@ _debug_logger = DebugLogger(get_db_fn=_get_db, env_prefix=_ENV_PREFIX, consent_s
 # ToolRouter — F-05 fix
 _tool_router = ToolRouter()
 _tool_router.register_with_models([
-    ("find_providers",          _find_care_facade.search_providers,            ProviderSearchInput),
-    ("find_specialty_codes",    _find_care_facade.identify_specialty,          SpecialtyInput),
+    ("find_providers",          _find_care.search_providers,            ProviderSearchInput),
+    ("find_specialty_codes",    _find_care.identify_specialty,          SpecialtyInput),
     ("search_clinical_trials",  _evaluate_care_facade.search_clinical_trials,  ClinicalTrialsInput),
     ("lookup_provider_external", _evaluate_care_facade.get_provider_details,   ProviderDetailInput),
     ("record_user_details",     _lead_service.record_user_details,             LeadInput),
