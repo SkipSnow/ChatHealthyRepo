@@ -590,7 +590,12 @@
           var org = 'skipsnow';
           var base = 'chathealthyspace';
           var spaceName = env === 'prod' ? base : env + '-' + base;
-          document.getElementById('coreChatFrame').src = 'https://' + org + '-' + spaceName + '.hf.space';
+          // Local dev override: open index.html with ?local to point iframe at localhost
+          var params = new URLSearchParams(window.location.search);
+          var src = params.get('local') !== null
+            ? 'http://localhost:5173'
+            : 'https://' + org + '-' + spaceName + '.hf.space';
+          document.getElementById('coreChatFrame').src = src;
         })();
       </script>
 

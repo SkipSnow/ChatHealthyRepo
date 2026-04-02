@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-TEST-001",
+      "story_id": "EVAL-CT-SPONSOR-TEST-001",
+      "requirement": "The system must successfully parse valid ClinicalTrials.gov sponsor fields (lead_sponsor, collaborators, funding_source) into the defined schema without validation errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-TEST-002",
+      "story_id": "EVAL-CT-SPONSOR-TEST-001",
+      "requirement": "The system must classify sponsor type correctly as university, hospital, pharma, or unknown based on input strings.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-TEST-003",
+      "story_id": "EVAL-CT-SPONSOR-TEST-001",
+      "requirement": "The system must normalize funding sources into public, industry, or undisclosed categories based on input values.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-TEST-004",
+      "story_id": "EVAL-CT-SPONSOR-TEST-001",
+      "requirement": "The system must compute a higher credibility score for public funding with a recognized institution than for industry-funded or unknown sponsors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-TEST-005",
+      "story_id": "EVAL-CT-SPONSOR-TEST-001",
+      "requirement": "The system must include collaborator influence in the credibility score when multiple collaborators are present.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-TEST-006",
+      "story_id": "EVAL-CT-SPONSOR-TEST-001",
+      "requirement": "The system must return a structured sponsor credibility object in the API response including score, classification, and explanation fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-TEST-007",
+      "story_id": "EVAL-CT-SPONSOR-TEST-001",
+      "requirement": "The system must generate explanation text that references sponsor type and funding source used in scoring.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-TEST-008",
+      "story_id": "EVAL-CT-SPONSOR-TEST-001",
+      "requirement": "The system must handle missing sponsor data by assigning sponsor_type as unknown and reducing the credibility score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-TEST-009",
+      "story_id": "EVAL-CT-SPONSOR-TEST-001",
+      "requirement": "The system must handle undisclosed or null funding_source by classifying it as undisclosed and applying a negative scoring adjustment.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-TEST-010",
+      "story_id": "EVAL-CT-SPONSOR-TEST-001",
+      "requirement": "The system must correctly process multiple collaborators without throwing errors or overwriting primary sponsor data.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-TEST-011",
+      "story_id": "EVAL-CT-SPONSOR-TEST-001",
+      "requirement": "The system must return consistent scoring outputs for identical inputs across repeated test runs.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-TEST-012",
+      "story_id": "EVAL-CT-SPONSOR-TEST-001",
+      "requirement": "The system must integrate sponsor credibility results into the EvaluateCare API response without schema mismatch or missing fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-TEST-013",
+      "story_id": "EVAL-CT-SPONSOR-TEST-001",
+      "requirement": "The system must fail validation when required schema fields are malformed (e.g., incorrect data types for sponsor fields).",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-TEST-014",
+      "story_id": "EVAL-CT-SPONSOR-TEST-001",
+      "requirement": "The system must handle empty collaborator lists without impacting sponsor classification or causing errors.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-TEST-015",
+      "story_id": "EVAL-CT-SPONSOR-TEST-001",
+      "requirement": "The system must produce a lower credibility score for unknown sponsor combined with undisclosed funding than for any other combination.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

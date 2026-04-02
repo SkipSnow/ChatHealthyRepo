@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CT-TRIAGE-001",
+      "story_id": "EVAL-CT-TRIAGE-UX-S1",
+      "requirement": "The system must define a structured triage data contract containing recruiting_status, condition_match, pass_flag, and explanation_text fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TRIAGE-002",
+      "story_id": "EVAL-CT-TRIAGE-UX-S1",
+      "requirement": "The system must enforce recruiting_status as an enumerated value consistent with backend output (e.g., recruiting, not_recruiting, unknown).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TRIAGE-003",
+      "story_id": "EVAL-CT-TRIAGE-UX-S1",
+      "requirement": "The system must represent condition_match as a boolean indicating whether the trial matches the user condition.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TRIAGE-004",
+      "story_id": "EVAL-CT-TRIAGE-UX-S1",
+      "requirement": "The system must represent pass_flag as a boolean indicating overall triage pass or fail status.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TRIAGE-005",
+      "story_id": "EVAL-CT-TRIAGE-UX-S1",
+      "requirement": "The system must include explanation_text as a human-readable string explaining the triage decision.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TRIAGE-006",
+      "story_id": "EVAL-CT-TRIAGE-UX-S1",
+      "requirement": "The system must ensure the data contract is compatible with MessageBubble rendering inputs without requiring transformation.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TRIAGE-007",
+      "story_id": "EVAL-CT-TRIAGE-UX-S1",
+      "requirement": "The system must align field names and types with backend EVAL-CT-TRIAGE output schema.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TRIAGE-008",
+      "story_id": "EVAL-CT-TRIAGE-UX-S1",
+      "requirement": "The system must support serialization of the triage contract in JSON format for frontend-backend communication.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TRIAGE-009",
+      "story_id": "EVAL-CT-TRIAGE-UX-S1",
+      "requirement": "The system must define all fields as required except explanation_text, which may be nullable.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TRIAGE-010",
+      "story_id": "EVAL-CT-TRIAGE-UX-S1",
+      "requirement": "The system must provide a default fallback value of 'unknown' for recruiting_status if missing from backend response.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TRIAGE-011",
+      "story_id": "EVAL-CT-TRIAGE-UX-S1",
+      "requirement": "The system must provide a default explanation_text of 'No explanation available' when explanation_text is null or empty.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TRIAGE-012",
+      "story_id": "EVAL-CT-TRIAGE-UX-S1",
+      "requirement": "The system must validate incoming triage data against the defined contract schema before rendering.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TRIAGE-013",
+      "story_id": "EVAL-CT-TRIAGE-UX-S1",
+      "requirement": "The system must reject and log triage data that fails schema validation.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TRIAGE-014",
+      "story_id": "EVAL-CT-TRIAGE-UX-S1",
+      "requirement": "The system must ensure the contract supports ordering of fields such that recruiting_status and condition_match can be displayed before pass_flag and explanation_text.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

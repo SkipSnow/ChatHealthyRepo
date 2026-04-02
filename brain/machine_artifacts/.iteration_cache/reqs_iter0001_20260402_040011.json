@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-TRIAGE-REQ-001",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must include a unit test that verifies recruiting status is rendered before any quality-related content in the MessageBubble component.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-TRIAGE-REQ-002",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must include a unit test that verifies condition match information is displayed before any quality metrics.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-TRIAGE-REQ-003",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must include a unit test that verifies a visible pass indicator is rendered when a trial meets triage criteria.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-TRIAGE-REQ-004",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must include a unit test that verifies a visible fail indicator is rendered when a trial does not meet triage criteria.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-TRIAGE-REQ-005",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must include a test that verifies triage explanation text is rendered when provided in the data contract.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-TRIAGE-REQ-006",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must include an integration test that verifies triage data passed through ChatWindow is rendered correctly in MessageBubble.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-TRIAGE-REQ-007",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must include a test that verifies multiple triage attributes (recruiting status, condition match, explanation) are rendered in the correct sequence.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-TRIAGE-REQ-008",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must include a test that verifies no quality score elements appear before triage elements in the rendered output.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-TRIAGE-REQ-009",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must include a test that verifies graceful fallback text is displayed when recruiting status is missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-TRIAGE-REQ-010",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must include a test that verifies graceful fallback text is displayed when condition match data is missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-TRIAGE-REQ-011",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must include a test that verifies the component does not crash when the entire triage object is null or undefined.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-TRIAGE-REQ-012",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must include a test that verifies empty or missing explanation text does not render blank UI artifacts (e.g., empty labels or spacing).",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-TRIAGE-REQ-013",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must include a test that verifies triage content is conditionally rendered only when triage data is present in the message payload.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-TRIAGE-REQ-014",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must include a test that verifies consistent rendering behavior across both pass and fail scenarios within the same component structure.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

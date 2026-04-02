@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-PIUX-001",
+      "story_id": "EVAL-CT-PI-UX-S3",
+      "requirement": "The system must render a PI credibility section within the clinical trial scorecard UI when PI data is present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PIUX-002",
+      "story_id": "EVAL-CT-PI-UX-S3",
+      "requirement": "The system must display the investigator name as a primary label within the PI credibility section.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PIUX-003",
+      "story_id": "EVAL-CT-PI-UX-S3",
+      "requirement": "The system must display the investigator institution as a secondary label beneath or alongside the investigator name.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PIUX-004",
+      "story_id": "EVAL-CT-PI-UX-S3",
+      "requirement": "The system must display prior clinical trial count using formatted numeric text consistent with existing scorecard patterns.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PIUX-005",
+      "story_id": "EVAL-CT-PI-UX-S3",
+      "requirement": "The system must display a publication indicator using a visual cue (icon, badge, or label) aligned with chat UI design standards.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PIUX-006",
+      "story_id": "EVAL-CT-PI-UX-S3",
+      "requirement": "The system must display PI score contribution as a visually distinct element consistent with other score components in the trial scorecard.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PIUX-007",
+      "story_id": "EVAL-CT-PI-UX-S3",
+      "requirement": "The system must maintain visual hierarchy such that PI credibility appears as a subordinate section within the overall trial scorecard, not as a standalone message.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PIUX-008",
+      "story_id": "EVAL-CT-PI-UX-S3",
+      "requirement": "The system must align typography, spacing, and color usage of the PI section with existing MessageBubble UI patterns.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PIUX-009",
+      "story_id": "EVAL-CT-PI-UX-S3",
+      "requirement": "The system must support rendering the PI credibility section via either extension of MessageBubble or a reusable child component without breaking existing message rendering.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PIUX-010",
+      "story_id": "EVAL-CT-PI-UX-S3",
+      "requirement": "The system must conditionally hide individual PI fields (name, institution, trial count, publication indicator, score contribution) if those values are absent in the transformed data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PIUX-011",
+      "story_id": "EVAL-CT-PI-UX-S3",
+      "requirement": "The system must render the PI section without layout breakage when one or more optional fields are missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PIUX-012",
+      "story_id": "EVAL-CT-PI-UX-S3",
+      "requirement": "The system must not render the PI credibility section at all if no PI data object is provided (exception path).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PIUX-013",
+      "story_id": "EVAL-CT-PI-UX-S3",
+      "requirement": "The system must display a neutral fallback label (e.g., \"PI data unavailable\") if a PI object exists but contains no displayable fields (exception path).",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PIUX-014",
+      "story_id": "EVAL-CT-PI-UX-S3",
+      "requirement": "The system must render the PI credibility section within the same message container as the trial scorecard rather than creating a separate message bubble.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PIUX-015",
+      "story_id": "EVAL-CT-PI-UX-S3",
+      "requirement": "The system must ensure the PI credibility component is reusable by accepting props consistent with the S1 data contract and S2 transformed output.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

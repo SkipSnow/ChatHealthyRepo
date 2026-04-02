@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-001",
+      "requirement": "The system must classify the lead sponsor into one of the following types: university, hospital, pharma, or unknown based on institution name patterns.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-001",
+      "requirement": "The system must normalize funding_source into one of: public (NIH/NCI/government), industry, or undisclosed using ClinicalTrials.gov input values.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-001",
+      "requirement": "The system must assign a positive credibility score when sponsor_type is university or hospital and funding_source is public.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-001",
+      "requirement": "The system must assign a negative credibility score when sponsor_type is unknown and funding_source is undisclosed.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-001",
+      "requirement": "The system must assign a neutral or moderately positive score when sponsor_type is pharma and funding_source is industry.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-001",
+      "requirement": "The system must incorporate collaborator institutions into scoring by increasing credibility when at least one collaborator is classified as university or hospital.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-001",
+      "requirement": "The system must not double-count credibility contributions when multiple collaborators share the same classification.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-001",
+      "requirement": "The system must produce a deterministic credibility score for the same input data across repeated executions.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-001",
+      "requirement": "The system must handle missing lead_sponsor data by assigning sponsor_type as unknown and applying fallback scoring rules.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-001",
+      "requirement": "The system must handle missing funding_source data by classifying it as undisclosed and applying corresponding scoring rules.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-001",
+      "requirement": "The system must generate a transparency_flag set to false when funding_source is undisclosed and true otherwise.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-001",
+      "requirement": "The system must output a structured explanation string describing how sponsor_type, funding_source, and collaborators contributed to the final score.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-001",
+      "requirement": "The system must cap the credibility score within a predefined bounded range (e.g., 0 to 1 or -1 to 1).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-001",
+      "requirement": "The system must default to a neutral score when both sponsor_type and funding_source cannot be determined and no collaborators are present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

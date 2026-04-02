@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-TRIAGE-001",
+      "story_id": "EVAL-P-TRIAGE-UX-S1",
+      "requirement": "The system must define a TypeScript interface representing a provider triage result with a required boolean field indicating pass or fail status.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-002",
+      "story_id": "EVAL-P-TRIAGE-UX-S1",
+      "requirement": "The system must include a structured field for specialty match explanation in the triage interface as a non-empty string.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-003",
+      "story_id": "EVAL-P-TRIAGE-UX-S1",
+      "requirement": "The system must define an ordered array field for reasoning blocks in the triage interface.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-004",
+      "story_id": "EVAL-P-TRIAGE-UX-S1",
+      "requirement": "The system must enforce that the first reasoning block represents specialty matching when reasoning blocks are present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-005",
+      "story_id": "EVAL-P-TRIAGE-UX-S1",
+      "requirement": "The system must allow subsequent reasoning blocks to represent quality-related explanations after the specialty block.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-006",
+      "story_id": "EVAL-P-TRIAGE-UX-S1",
+      "requirement": "The system must define a consistent API response contract that maps exactly to the TypeScript triage interface without additional unmapped fields.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-007",
+      "story_id": "EVAL-P-TRIAGE-UX-S1",
+      "requirement": "The system must validate that all required triage fields are present in the API response before rendering is attempted.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-008",
+      "story_id": "EVAL-P-TRIAGE-UX-S1",
+      "requirement": "The system must support an explicit enum or typed field for reasoning block type (e.g., 'specialty', 'quality') within the schema.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-009",
+      "story_id": "EVAL-P-TRIAGE-UX-S1",
+      "requirement": "The system must define a stable identifier for each reasoning block to support deterministic rendering and ordering.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-010",
+      "story_id": "EVAL-P-TRIAGE-UX-S1",
+      "requirement": "The system must ensure that the triage schema supports a fail state where reasoning blocks still explain why the provider failed.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-011",
+      "story_id": "EVAL-P-TRIAGE-UX-S1",
+      "requirement": "The system must handle the exception case where specialty match explanation is missing by providing a nullable field and preventing schema validation failure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-012",
+      "story_id": "EVAL-P-TRIAGE-UX-S1",
+      "requirement": "The system must handle the exception case where reasoning blocks are empty by allowing an empty array and still returning a valid triage response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-013",
+      "story_id": "EVAL-P-TRIAGE-UX-S1",
+      "requirement": "The system must ensure that the API contract is versionable to allow future schema changes without breaking existing frontend consumers.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-014",
+      "story_id": "EVAL-P-TRIAGE-UX-S1",
+      "requirement": "The system must ensure type safety by preventing any field in the triage interface from being typed as 'any'.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

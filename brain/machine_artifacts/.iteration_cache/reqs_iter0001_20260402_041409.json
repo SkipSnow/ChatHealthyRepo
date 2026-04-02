@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-051",
+      "story_id": "EVAL-CT-SPONSOR-ST-005",
+      "requirement": "The system must include unit tests validating that sponsor data transformation correctly maps raw sponsor name, type, funding source, collaborators, and score contribution into display-ready fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-052",
+      "story_id": "EVAL-CT-SPONSOR-ST-005",
+      "requirement": "The system must include unit tests verifying normalization of funding source values into the allowed set (public, private, undisclosed).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-053",
+      "story_id": "EVAL-CT-SPONSOR-ST-005",
+      "requirement": "The system must include unit tests validating correct formatting of multiple collaborators into a displayable list or string.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-054",
+      "story_id": "EVAL-CT-SPONSOR-ST-005",
+      "requirement": "The system must include unit tests verifying that score contribution text is correctly derived from input data.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-055",
+      "story_id": "EVAL-CT-SPONSOR-ST-005",
+      "requirement": "The system must include UI tests confirming that the sponsor name is rendered in the MessageBubble component when provided.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-056",
+      "story_id": "EVAL-CT-SPONSOR-ST-005",
+      "requirement": "The system must include UI tests confirming that sponsor type and funding source are rendered correctly in the sponsor credibility block.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-057",
+      "story_id": "EVAL-CT-SPONSOR-ST-005",
+      "requirement": "The system must include UI tests validating that multiple collaborators are displayed correctly and in the expected format.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-058",
+      "story_id": "EVAL-CT-SPONSOR-ST-005",
+      "requirement": "The system must include UI tests confirming that score contribution is visible and correctly positioned within the sponsor credibility block.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-059",
+      "story_id": "EVAL-CT-SPONSOR-ST-005",
+      "requirement": "The system must include a test case where funding source is missing and verify that a default value (e.g., 'undisclosed') is rendered.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-060",
+      "story_id": "EVAL-CT-SPONSOR-ST-005",
+      "requirement": "The system must include a test case where collaborators are absent and verify that the UI handles the absence without rendering errors or empty placeholders.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-061",
+      "story_id": "EVAL-CT-SPONSOR-ST-005",
+      "requirement": "The system must include a test ensuring that malformed or partial sponsor data does not cause runtime errors in the transformation logic.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-062",
+      "story_id": "EVAL-CT-SPONSOR-ST-005",
+      "requirement": "The system must include a UI test verifying that the sponsor credibility component does not render when no sponsor data is provided.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-063",
+      "story_id": "EVAL-CT-SPONSOR-ST-005",
+      "requirement": "The system must ensure all new unit and UI tests pass in the existing frontend test suite without regressions.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-064",
+      "story_id": "EVAL-CT-SPONSOR-ST-005",
+      "requirement": "The system must ensure test coverage includes both happy path scenarios and at least two edge cases (missing funding source and multiple collaborators).",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

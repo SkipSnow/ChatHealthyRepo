@@ -1,0 +1,181 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-PI-API-001",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must include a pi_credibility object in each clinical trial response returned by evaluate_care_facade.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-002",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must populate pi_credibility.investigator_name from upstream PI logic output.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-003",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must populate pi_credibility.affiliated_institution when available from upstream data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-004",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must include pi_credibility.prior_trials_count as an integer field in the API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-005",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must include pi_credibility.completed_trials_count as an integer field in the API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-006",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must include pi_credibility.publications_count as an integer field in the API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-007",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must include pi_credibility.fda_approval_count as an integer field in the API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-008",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must include pi_credibility.prior_trial_outcomes_summary as a string field in the API response.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-009",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must include pi_credibility.composite_credibility_score as a numeric field for each trial.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-010",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must ensure the composite_credibility_score is within a normalized range (e.g., 0 to 1 or 0 to 100).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-011",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must attach PI credibility data to the correct clinical trial using a consistent identifier mapping from upstream logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-012",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must gracefully return a null or empty pi_credibility object when no investigator data is available for a trial.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-013",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must not fail the entire clinical trials response if PI credibility data is missing for one or more trials.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-014",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must return all non-PI clinical trial data unchanged when PI credibility enrichment is applied.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-015",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must call the PI credibility logic layer exactly once per unique investigator per request to avoid redundant computation.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-016",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must handle upstream PI logic failures by returning pi_credibility with a status indicator of unavailable.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-017",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must ensure API response latency does not exceed existing evaluate_care_facade latency thresholds by more than 20% after PI enrichment.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-018",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must expose PI credibility fields in a deterministic schema consistent with the Pydantic model defined in EVAL-CT-PI-SCHEMA-001.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-019",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must ensure no personally sensitive data beyond professional credentials is included in the PI credibility object.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-020",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must generate a concise, user-facing textual summary of PI credibility for each trial when requested by downstream consumers.",
+      "source": "feature",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-021",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must ensure the textual summary of PI credibility accurately reflects the underlying structured fields without contradiction.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-API-022",
+      "story_id": "EVAL-CT-PI-API-001",
+      "requirement": "The system must avoid hallucinating PI attributes not present in upstream data when generating any LLM-based summary.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}
