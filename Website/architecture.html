@@ -236,6 +236,8 @@
             &nbsp;&middot;&nbsp;
             <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('embedding-design.html'),('Embedding Design'));return false;" style="color:var(--teal); text-decoration:none;">Embedding Design</a>
             &nbsp;&middot;&nbsp;
+            <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('ops-manager-design.html'),('Ops Manager Design'));return false;" style="color:var(--teal); text-decoration:none;">Pipeline Operations Manager</a>
+            &nbsp;&middot;&nbsp;
             <a href="#devops" style="color:var(--teal); text-decoration:none;">DevOps &amp; Build Promotion</a>
           </li>
           <li><strong>Roadmap:</strong>
@@ -1042,6 +1044,88 @@
           <tr><td><strong>ChatHealthyDataPipelines</strong></td><td>Started manually before each pipeline run, stopped when done. Batch writes only — provider load, enrichment, embeddings. Never holds admin or operational data.</td></tr>
         </table>
       </div>
+
+      <!-- ═══ FUNDAMENTAL PIPELINE PATTERN ═══ -->
+      <h3>Fundamental Pipeline Pattern — Async Durable Orchestrator</h3>
+      <p>Every pipeline task that touches the DataPipelines cluster <strong>must</strong> follow this pattern.
+      No exceptions. This is a compliance requirement, not a suggestion.</p>
+
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" font-family="'DM Sans',sans-serif" font-size="13" fill="#0d1117" style="max-width:760px;margin:16px auto;display:block;">
+        <defs>
+          <marker id="pa" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#4a5568"/>
+          </marker>
+        </defs>
+
+        <!-- Step 1: HTTP POST -->
+        <rect x="10" y="10" width="140" height="50" rx="6" fill="#0b7a75" stroke="#0b7a75"/>
+        <text x="80" y="32" text-anchor="middle" fill="white" font-weight="600" font-size="11">HTTP POST /api/Router</text>
+        <text x="80" y="48" text-anchor="middle" fill="white" font-size="10">Returns 202 immediately</text>
+        <line x1="150" y1="35" x2="180" y2="35" stroke="#4a5568" marker-end="url(#pa)"/>
+
+        <!-- Step 2: Reserve -->
+        <rect x="180" y="10" width="120" height="50" rx="6" fill="#e6f4f3" stroke="#0b7a75" stroke-width="2"/>
+        <text x="240" y="32" text-anchor="middle" font-weight="600" font-size="11">Reserve Cluster</text>
+        <text x="240" y="48" text-anchor="middle" font-size="10" fill="#4a5568">+ send wake</text>
+        <line x1="300" y1="35" x2="330" y2="35" stroke="#4a5568" marker-end="url(#pa)"/>
+
+        <!-- Step 3: Poll -->
+        <rect x="330" y="10" width="110" height="50" rx="6" fill="#f0f4ff" stroke="#3b82f6" stroke-width="2"/>
+        <text x="385" y="32" text-anchor="middle" font-weight="600" font-size="11">Poll for IDLE</text>
+        <text x="385" y="48" text-anchor="middle" font-size="10" fill="#4a5568">every 15s</text>
+        <path d="M440,25 C460,25 460,45 440,45" stroke="#3b82f6" stroke-width="1.5" fill="none" stroke-dasharray="3,2" marker-end="url(#pa)"/>
+        <line x1="385" y1="60" x2="385" y2="90" stroke="#4a5568" marker-end="url(#pa)"/>
+
+        <!-- Step 4: Do Work -->
+        <rect x="310" y="90" width="150" height="50" rx="6" fill="white" stroke="#0d1117" stroke-width="2"/>
+        <text x="385" y="112" text-anchor="middle" font-weight="600" font-size="11">Do Work</text>
+        <text x="385" y="128" text-anchor="middle" font-size="10" fill="#4a5568">Copy / Enrich / Embed / Load</text>
+        <line x1="385" y1="140" x2="385" y2="170" stroke="#4a5568" marker-end="url(#pa)"/>
+
+        <!-- Step 5: Release -->
+        <rect x="320" y="170" width="130" height="50" rx="6" fill="#e6f4f3" stroke="#0b7a75" stroke-width="2"/>
+        <text x="385" y="192" text-anchor="middle" font-weight="600" font-size="11">Release Reservation</text>
+        <text x="385" y="208" text-anchor="middle" font-size="10" fill="#4a5568">in finally block</text>
+        <line x1="385" y1="220" x2="385" y2="250" stroke="#4a5568" marker-end="url(#pa)"/>
+
+        <!-- Step 6: Pause if last -->
+        <rect x="310" y="250" width="150" height="50" rx="6" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+        <text x="385" y="272" text-anchor="middle" font-weight="600" font-size="11" fill="#16a34a">Pause if Last</text>
+        <text x="385" y="288" text-anchor="middle" font-size="10" fill="#4a5568">zero reservations → pause</text>
+
+        <!-- Timer box -->
+        <rect x="560" y="90" width="180" height="120" rx="6" fill="#fef3c7" stroke="#f0a500" stroke-width="1.5"/>
+        <text x="650" y="112" text-anchor="middle" font-weight="600" font-size="11" fill="#92400e">Ops Manager Timer</text>
+        <text x="650" y="130" text-anchor="middle" font-size="10" fill="#92400e">every 5 min</text>
+        <text x="570" y="150" font-size="10" fill="#4a5568">Overdue? → notify Boss</text>
+        <text x="570" y="166" font-size="10" fill="#4a5568">Orphan? → pause cluster</text>
+        <text x="570" y="182" font-size="10" fill="#4a5568">Stuck? → notify Boss</text>
+        <text x="570" y="198" font-size="10" fill="#4a5568">Error? → triage + repair</text>
+
+        <!-- Key -->
+        <rect x="10" y="310" width="740" height="24" rx="4" fill="#f9fafb" stroke="#d1d5db"/>
+        <text x="20" y="327" font-size="10" fill="#4a5568"><tspan font-weight="600">Pattern:</tspan> Every pipeline → 202 → reserve → poll → work → release (finally) → pause if last. Ops Manager monitors independently.</text>
+      </svg>
+
+      <div class="table-wrap">
+        <table>
+          <tr><th>Rule</th><th>Requirement</th></tr>
+          <tr><td><strong>Async only</strong></td><td>All pipeline tasks return 202 via Durable Functions orchestrator. No sync tasks that touch the DataPipelines cluster.</td></tr>
+          <tr><td><strong>Reserve before work</strong></td><td>Call <code>register_reservation_activity</code> before any database operation. Wakes cluster if paused.</td></tr>
+          <tr><td><strong>Poll before work</strong></td><td>Orchestrator polls <code>check_cluster_state_activity</code> every 15s until IDLE. Never start work on a non-IDLE cluster.</td></tr>
+          <tr><td><strong>Release in finally</strong></td><td>Call <code>release_reservation_activity</code> in finally block — success or failure. Missing releases create orphan clusters.</td></tr>
+          <tr><td><strong>Pause if last</strong></td><td>Release method pauses cluster automatically when reservation array is empty. No manual pause needed.</td></tr>
+          <tr><td><strong>Ops Manager watches</strong></td><td>5-minute timer checks overdue jobs, orphan clusters, stuck states. Notifies Boss. See <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('ops-manager-design.html'),('Ops Manager'));return false;" style="color:var(--teal);">Pipeline Operations Manager design</a>.</td></tr>
+        </table>
+      </div>
+
+      <p><strong>Reference implementations:</strong></p>
+      <ul>
+        <li><code>copy_to_frontend_orchestrator</code> — CopyToFrontEnd (reserve → poll → copy → release)</li>
+        <li><code>provider_load_orchestrator_fn</code> — FullProviderPipeline (reserve → 10 steps → release)</li>
+        <li><a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('provider-data-load.html'),('Provider Data Load'));return false;" style="color:var(--teal);">Provider Data Load design</a> — exception handling framework, class contracts</li>
+        <li><a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('ops-manager-design.html'),('Ops Manager'));return false;" style="color:var(--teal);">Pipeline Operations Manager design</a> — error triage, self-repair, audit trail</li>
+      </ul>
 
       <!-- 11 -->
       <h3 id="environment">3.8 Environment &amp; Data Model</h3>
