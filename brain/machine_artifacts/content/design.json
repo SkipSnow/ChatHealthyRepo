@@ -1,0 +1,102 @@
+{
+  "collection": "design",
+  "record_count": 1,
+  "records": [
+    {
+      "_record_id": "design_eval_p_rx_drug_mapping",
+      "title": "Prescription Behavior Measure -- Drug-to-Indication-to-ICD10 Mapping Design",
+      "feature_id": "EVAL-P-RX",
+      "epic_id": "EPIC-1",
+      "status": "stub",
+      "created": "2026-04-02",
+      "created_by": "Boss + Claude",
+      "description": "Design for mapping provider prescription data to on-label FDA indications with ICD-10 codes, tied to recognized CMS/NQF quality measures. Two implementation paths under evaluation: static reference dataset or LLM-generated mapping with cache.",
+      "data_sources": {
+        "prescriptions": "CMS Medicare Part D Public Use Files (data.cms.gov) -- provider NPI + drug + quantity",
+        "drug_indications": "TBD: DailyMed SPL, FDA Orange Book, RxNorm, or LLM-generated mapping",
+        "icd10": "ICD-10-CM code set (icd10_loader.py already in pipeline)",
+        "quality_measures": "NQF quality measures, CMS Quality IDs (e.g., NQF 0018 / CMS 236)"
+      },
+      "schema_sample": {
+        "drugName": "Prinzide (lisinopril/hydrochlorothiazide)",
+        "uses": [
+          {
+            "indication": "Treatment of hypertension (high blood pressure)",
+            "qualityMeasureContext": "Adult BP control measure (e.g., NQF 0018 / CMS Quality ID 236 -- Controlling High Blood Pressure)",
+            "icd10Codes": [
+              "I10"
+            ]
+          }
+        ]
+      },
+      "schema_definition": {
+        "type": "object",
+        "properties": {
+          "drugName": {
+            "type": "string",
+            "description": "Brand or generic name of the drug"
+          },
+          "uses": {
+            "type": "array",
+            "description": "Array of on-label FDA-approved uses, constrained to how they are recognized for this quality measure",
+            "items": {
+              "type": "object",
+              "properties": {
+                "indication": {
+                  "type": "string",
+                  "description": "Clinical description of the on-label indication as applied in this quality measure"
+                },
+                "qualityMeasureContext": {
+                  "type": "string",
+                  "description": "Name/identifier of the quality measure this mapping is intended for (e.g., NQF ID, CMS Quality ID)"
+                },
+                "icd10Codes": {
+                  "type": "array",
+                  "description": "ICD-10-CM diagnosis codes that qualify as this condition for the quality measure denominator/logic",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[A-TV-Z][0-9][0-9A-Z](\\.[0-9A-Z]{1,4})?$"
+                  }
+                }
+              },
+              "required": ["indication", "qualityMeasureContext", "icd10Codes"]
+            }
+          }
+        },
+        "required": ["drugName", "uses"],
+        "additionalProperties": false
+      },
+      "signals": {
+        "relevance": {
+          "description": "Does the provider prescribing pattern indicate they treat the patient condition?",
+          "method": "Map provider top drugs -> on-label indications -> ICD-10 -> compare to patient condition",
+          "positive": true
+        },
+        "integrity": {
+          "description": "Does the prescribing pattern show red flags for fraud or inappropriate prescribing?",
+          "method": "Controlled substance ratio vs specialty peers, prescribing outside specialty scope, anomaly detection",
+          "positive": false
+        }
+      },
+      "implementation_paths": {
+        "path_a": {
+          "name": "Static reference dataset",
+          "source": "DailyMed SPL, FDA Orange Book, or RxNorm",
+          "pro": "Cheaper to maintain, deterministic, auditable",
+          "con": "Requires finding and licensing the dataset, ETL pipeline to keep current",
+          "decision": "TBD"
+        },
+        "path_b": {
+          "name": "LLM-generated mapping with cache",
+          "source": "GPT or Haiku generates drug-indication-ICD10 mapping on demand",
+          "pro": "No dataset dependency, covers any drug immediately",
+          "con": "LLM output not verified, hallucination risk on clinical data, per-call cost",
+          "decision": "TBD -- acceptable for alpha, close in beta with verified source"
+        }
+      },
+      "alpha_gap": "Drug-to-indication mapping source not finalized. LLM fallback acceptable for alpha. Close in beta with verified mapping table.",
+      "patent_relevance": "Method of combining CMS prescriber data + ICD-10 + drug indication mapping + quality measure context + LLM synthesis for consumer provider quality signal. Data is public. Method is novel.",
+      "publish": false
+    }
+  ]
+}
