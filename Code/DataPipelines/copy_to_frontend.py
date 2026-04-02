@@ -158,12 +158,96 @@ def create_frontend_vector_index_fn(config: dict) -> dict:
         client.close()
 
 
-def copy_single_state(config: dict) -> dict:
-    """Copy providers for a single state from pipeline to frontend. Append mode — no drop.
+def drop_destination(config: dict) -> dict:
+    """Drop destination collection on frontend cluster. Called once before copy workers fan out."""
+    frontend_conn = os.environ.get("MONGO_FRONTEND_connectionString")
+    if not frontend_conn:
+        raise ValueError("MONGO_FRONTEND_connectionString not set")
+
+    env_prefix = config.get("env_prefix", "dev")
+    dst_db_name = f"{env_prefix}_PublicHealthData" if env_prefix else "PublicHealthData"
+    coll_name = config.get("collection", "providers")
+
+    client = MongoClient(frontend_conn, serverSelectionTimeoutMS=30_000)
+    try:
+        client[dst_db_name][coll_name].drop()
+        logging.info("Dropped %s.%s on frontend cluster", dst_db_name, coll_name)
+        return {"dropped": f"{dst_db_name}.{coll_name}"}
+    finally:
+        client.close()
+
+
+def partition_source(config: dict) -> dict:
+    """Count source records and compute _id boundaries for chunked copy.
+
+    Returns: total count, chunk_size, and a list of _id boundaries.
+    Each boundary pair (start, end) defines one worker's range.
 
     config:
-        env_prefix, src_db, state, drop_first (bool)
+        env_prefix, src_db, collection, chunk_size, query
     """
+    pipeline_conn = os.environ.get("MONGO_connectionString")
+    if not pipeline_conn:
+        raise ValueError("MONGO_connectionString not set")
+
+    env_prefix = config.get("env_prefix", "dev")
+    src_db_name = config.get("src_db", f"{env_prefix}_PublicHealthData" if env_prefix else "PublicHealthData")
+    coll_name = config.get("collection", "providers")
+    chunk_size = config.get("chunk_size", 50_000)
+    query = config.get("query", {})
+
+    client = MongoClient(pipeline_conn, serverSelectionTimeoutMS=30_000)
+    try:
+        coll = client[src_db_name][coll_name]
+        total = coll.count_documents(query)
+        logging.info("Partition: %s.%s — %s docs, chunk_size=%s",
+                     src_db_name, coll_name, f"{total:,}", f"{chunk_size:,}")
+
+        if total == 0:
+            return {"total": 0, "chunks": []}
+
+        # Get all _ids sorted, sample at chunk boundaries
+        # Use aggregation to get boundary _ids without pulling all docs
+        pipeline = []
+        if query:
+            pipeline.append({"$match": query})
+        pipeline.extend([
+            {"$sort": {"_id": 1}},
+            {"$project": {"_id": 1}},
+        ])
+
+        all_ids = [doc["_id"] for doc in coll.aggregate(pipeline, allowDiskUse=True)]
+
+        # Build chunks: each chunk is (start_id, end_id)
+        chunks = []
+        for i in range(0, len(all_ids), chunk_size):
+            start_id = all_ids[i]
+            end_idx = min(i + chunk_size, len(all_ids)) - 1
+            end_id = all_ids[end_idx]
+            chunk_count = min(chunk_size, len(all_ids) - i)
+            chunks.append({
+                "job_number": len(chunks),
+                "start_id": str(start_id),
+                "end_id": str(end_id),
+                "count": chunk_count,
+                "is_last": end_idx == len(all_ids) - 1,
+            })
+
+        logging.info("Partition: %d chunks of ~%s", len(chunks), f"{chunk_size:,}")
+        return {"total": total, "chunk_size": chunk_size, "chunks": chunks}
+    finally:
+        client.close()
+
+
+def copy_chunk(config: dict) -> dict:
+    """Copy a chunk of records by _id range from pipeline to frontend. Append mode.
+
+    config:
+        env_prefix, src_db, collection, job_number, start_id, end_id,
+        drop_first (only job_number 0)
+    """
+    from bson import ObjectId
+
     pipeline_conn = os.environ.get("MONGO_connectionString")
     frontend_conn = os.environ.get("MONGO_FRONTEND_connectionString")
     if not pipeline_conn:
@@ -172,44 +256,36 @@ def copy_single_state(config: dict) -> dict:
         raise ValueError("MONGO_FRONTEND_connectionString not set")
 
     env_prefix = config.get("env_prefix", "dev")
-    src_db_name = config.get("src_db", "dev_PublicHealthData")
+    src_db_name = config.get("src_db", f"{env_prefix}_PublicHealthData" if env_prefix else "PublicHealthData")
     dst_db_name = f"{env_prefix}_PublicHealthData" if env_prefix else "PublicHealthData"
-    state = config["state"]
-    drop_first = config.get("drop_first", False)
+    coll_name = config.get("collection", "providers")
+    job_number = config.get("job_number", 0)
+    start_id = ObjectId(config["start_id"])
+    end_id = ObjectId(config["end_id"])
 
     pipeline_client = MongoClient(pipeline_conn, serverSelectionTimeoutMS=30_000)
     frontend_client = MongoClient(frontend_conn, serverSelectionTimeoutMS=30_000)
 
     try:
-        src = pipeline_client[src_db_name]["providers"]
-        dst = frontend_client[dst_db_name]["providers"]
+        src = pipeline_client[src_db_name][coll_name]
+        dst = frontend_client[dst_db_name][coll_name]
 
-        if drop_first:
-            logging.info("Dropping frontend providers collection before fresh copy")
-            dst.drop()
-
-        query = {"practice_address.state": state}
-        total = src.count_documents(query)
-        logging.info("Copying state %s: %s providers", state, f"{total:,}")
-
-        if total == 0:
-            return {"state": state, "copied": 0}
+        query = {"_id": {"$gte": start_id, "$lte": end_id}}
 
         cursor = src.find(query, batch_size=BATCH_SIZE, no_cursor_timeout=True)
         batch = []
         copied = 0
-        start = time.time()
+        start_time = time.time()
 
         try:
             for doc in cursor:
-                doc.pop("_id", None)  # let destination generate new _id
                 batch.append(doc)
                 if len(batch) >= BATCH_SIZE:
                     dst.insert_many(batch, ordered=False)
                     copied += len(batch)
-                    elapsed = time.time() - start
+                    elapsed = time.time() - start_time
                     rate = copied / elapsed if elapsed > 0 else 0
-                    logging.info("%s: %s / %s (%.0f doc/s)", state, f"{copied:,}", f"{total:,}", rate)
+                    logging.info("Worker %d: %s copied (%.0f doc/s)", job_number, f"{copied:,}", rate)
                     batch = []
             if batch:
                 dst.insert_many(batch, ordered=False)
@@ -217,9 +293,9 @@ def copy_single_state(config: dict) -> dict:
         finally:
             cursor.close()
 
-        elapsed = time.time() - start
-        logging.info("%s: done — %s docs in %.1f s", state, f"{copied:,}", elapsed)
-        return {"state": state, "copied": copied, "seconds": round(elapsed, 1)}
+        elapsed = time.time() - start_time
+        logging.info("Worker %d: done — %s docs in %.1f s", job_number, f"{copied:,}", elapsed)
+        return {"job_number": job_number, "copied": copied, "seconds": round(elapsed, 1)}
     finally:
         pipeline_client.close()
         frontend_client.close()
