@@ -32,7 +32,8 @@ from otp_manager import exchange_otp
 from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
 from copy_to_frontend import (run_copy_to_frontend, snapshot_collection_fn, create_frontend_vector_index_fn,
-                              partition_source, copy_chunk, drop_destination, migrate_environment)
+                              partition_source, copy_chunk, drop_destination,
+                              migrate_small_collections, migrate_chunk)
 from promote_data_fn import run_promote_data
 from gpt_reader import handle_gpt_reader
 from pipeline_health import check_mongo_health
@@ -491,18 +492,23 @@ def copy_to_frontend_orchestrator(context: df.DurableOrchestrationContext):
 
 @app.orchestration_trigger(context_name="context")
 def migrate_environment_orchestrator(context: df.DurableOrchestrationContext):
-    """Migrate all PublicHealthData collections from one env to another. Same cluster, $out.
+    """Migrate all PublicHealthData collections from one env to another.
+
+    Small collections: $out (single activity, fast).
+    Large collections (providers): partition by _id range, one chunk per activity.
 
     payload:
-        src_env   — "dev" (default)
-        dst_env   — "staging" (required)
+        src_env      — "dev" (default)
+        dst_env      — "qa" (default)
         cluster_name — "ChatHealthyDataPipelines" (default)
+        chunk_size   — records per chunk for large collections (default: 50,000)
     """
     import datetime as dt
 
     config = context.get_input() or {}
     src_env = config.get("src_env", "dev")
-    dst_env = config.get("dst_env", "staging")
+    dst_env = config.get("dst_env", "qa")
+    chunk_size = config.get("chunk_size", 50_000)
     cluster_name = config.get("cluster_name", "ChatHealthyDataPipelines")
 
     # Reserve cluster
@@ -510,9 +516,9 @@ def migrate_environment_orchestrator(context: df.DurableOrchestrationContext):
         "job_id": f"migrate_{src_env}_to_{dst_env}_{int(time.time())}",
         "requester": "MigrateEnvironment",
         "cluster_name": cluster_name,
-        "expected_duration_minutes": config.get("expected_duration_minutes", 60),
+        "expected_duration_minutes": config.get("expected_duration_minutes", 120),
     }
-    context.set_custom_status(f"Reserving cluster")
+    context.set_custom_status("Reserving cluster")
     yield context.call_activity("register_reservation_activity", reservation)
 
     # Wait for IDLE
@@ -526,19 +532,62 @@ def migrate_environment_orchestrator(context: df.DurableOrchestrationContext):
         next_check = context.current_utc_datetime + dt.timedelta(seconds=15)
         yield context.create_timer(next_check)
 
-    # Migrate
-    context.set_custom_status(f"Migrating {src_env} → {dst_env}")
-    result = yield context.call_activity("migrate_environment_activity", {
+    # Step 1: Migrate small collections via $out
+    context.set_custom_status(f"Migrating small collections {src_env} → {dst_env}")
+    small_result = yield context.call_activity("migrate_small_collections_activity", {
         "src_env": src_env,
         "dst_env": dst_env,
     })
+
+    # Step 2: Chunked copy for providers
+    context.set_custom_status("Partitioning providers")
+    src_db_name = f"{src_env}_PublicHealthData"
+    dst_db_name = f"{dst_env}_PublicHealthData"
+
+    partition = yield context.call_activity("partition_source_activity", {
+        "env_prefix": src_env,
+        "collection": "providers",
+        "chunk_size": chunk_size,
+    })
+    chunks = partition.get("chunks", [])
+    total = partition.get("total", 0)
+
+    # Drop destination providers before copying
+    context.set_custom_status("Dropping destination providers")
+    yield context.call_activity("drop_destination_activity", {
+        "env_prefix": dst_env,
+        "collection": "providers",
+        "use_pipeline_cluster": True,
+    })
+
+    # Fan out — one chunk at a time
+    total_copied = 0
+    for chunk in chunks:
+        jn = chunk["job_number"]
+        context.set_custom_status(f"Providers {jn+1}/{len(chunks)} — {total_copied:,}/{total:,}")
+        r = yield context.call_activity("migrate_chunk_activity", {
+            "src_env": src_env,
+            "dst_env": dst_env,
+            "collection": "providers",
+            "job_number": jn,
+            "start_id": chunk["start_id"],
+            "end_id": chunk["end_id"],
+        })
+        total_copied += r.get("copied", 0)
 
     # Release
     context.set_custom_status("Releasing cluster")
     yield context.call_activity("release_reservation_activity", reservation)
 
-    context.set_custom_status(f"Done — {src_env} → {dst_env}")
-    return result
+    context.set_custom_status(f"Done — {total_copied:,} providers + small collections")
+    return {
+        "status": "complete",
+        "src": src_db_name,
+        "dst": dst_db_name,
+        "providers_copied": total_copied,
+        "chunks": len(chunks),
+        "small_collections": small_result,
+    }
 
 
 @app.orchestration_trigger(context_name="context")
@@ -565,8 +614,13 @@ def copy_to_frontend_activity(config: dict) -> dict:
 
 
 @app.activity_trigger(input_name="config")
-def migrate_environment_activity(config: dict) -> dict:
-    return migrate_environment(config)
+def migrate_small_collections_activity(config: dict) -> dict:
+    return migrate_small_collections(config)
+
+
+@app.activity_trigger(input_name="config")
+def migrate_chunk_activity(config: dict) -> dict:
+    return migrate_chunk(config)
 
 
 @app.activity_trigger(input_name="config")

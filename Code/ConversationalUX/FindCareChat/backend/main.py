@@ -227,6 +227,12 @@ class ChatRequest(BaseModel):
     message: str
     history: list[dict] = []
 
+class PaginationMeta(BaseModel):
+    has_more: bool = False
+    last_npi: Optional[str] = None
+    count: int = 0
+    search_params: Optional[dict] = None
+
 class ChatResponse(BaseModel):
     response: Optional[str] = None
     emergency: bool = False
@@ -234,6 +240,7 @@ class ChatResponse(BaseModel):
     error_type: Optional[str] = None
     tokens_in: Optional[int] = None
     tokens_out: Optional[int] = None
+    pagination: Optional[PaginationMeta] = None
 
 @app.get("/welcome")
 def welcome():
@@ -293,9 +300,20 @@ async def _chat_inner(body: ChatRequest, request: Request):
     total_out += getattr(response.usage, "output_tokens", 0)
 
     loop_iter = 0
+    last_provider_result = None  # capture pagination metadata from find_providers
+
     while response.stop_reason == "tool_use":
         tool_uses = [b for b in response.content if b.type == "tool_use"]
         tool_results = _handle_tool_calls(tool_uses, messages)
+
+        # Capture the last find_providers result for pagination
+        for i, block in enumerate(tool_uses):
+            if block.name == "find_providers":
+                try:
+                    last_provider_result = json.loads(tool_results[i]["content"])
+                except (json.JSONDecodeError, KeyError, IndexError):
+                    pass
+
         messages.append({"role": "assistant", "content": response.content})
         messages.append({"role": "user", "content": tool_results})
         loop_iter += 1
@@ -310,9 +328,21 @@ async def _chat_inner(body: ChatRequest, request: Request):
     text = re.sub(r'(?<!\[)Skip Snow on LinkedIn(?!\])',
                   '[Skip Snow on LinkedIn](https://linkedin.com/in/skipsnow)', text)
 
-    _log.info("CHAT complete tokens_in=%d tokens_out=%d", total_in, total_out)
+    # Build pagination metadata if find_providers returned results
+    pagination = None
+    if last_provider_result and isinstance(last_provider_result, dict):
+        has_more = last_provider_result.get("has_more", False)
+        if has_more or last_provider_result.get("last_npi"):
+            pagination = PaginationMeta(
+                has_more=has_more,
+                last_npi=last_provider_result.get("last_npi"),
+                count=last_provider_result.get("count", 0),
+                search_params=last_provider_result.get("search_params"),
+            )
+
+    _log.info("CHAT complete tokens_in=%d tokens_out=%d pagination=%s", total_in, total_out, bool(pagination))
     _debug_logger.log_chat(ip, body.message, len(body.history), loop_iter, total_in, total_out, text, None)
-    return ChatResponse(response=text, tokens_in=total_in, tokens_out=total_out)
+    return ChatResponse(response=text, tokens_in=total_in, tokens_out=total_out, pagination=pagination)
 
 # ---------------------------------------------------------------------------
 # Static files
