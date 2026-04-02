@@ -272,7 +272,8 @@ def cluster_lifecycle_timer(myTimer: func.TimerRequest) -> None:
             env_prefix=os.environ.get("ENV_PREFIX", "dev"),
             push_fn=push_fn,
         )
-        manager.check_overdue()
+        manager.process_queue()  # Execute queued tasks if cluster is IDLE
+        manager.check_overdue()  # Alert Boss on overdue reservations
         status = manager.get_status()
         logging.info("Cluster lifecycle check: %s, %d active reservations",
                      status["cluster_state"], status["active_reservations"])
