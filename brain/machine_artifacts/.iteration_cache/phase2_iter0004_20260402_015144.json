@@ -1,0 +1,52 @@
+{
+  "stories": [
+    {
+      "story_id": "FEAT-3-S11",
+      "title": "Trial Location Normalization and Distance Mapping",
+      "description": "Enhance clinical trials service to normalize heterogeneous location data from ClinicalTrials.gov and consistently map each site to computed travel distance and duration fields.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S8"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "FEAT-3-S12",
+      "title": "Recruiting Status Filtering Enforcement",
+      "description": "Ensure strict enforcement of recruiting-only trials by validating API query parameters and post-filtering results to exclude non-recruiting or ambiguous statuses.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S8"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "FEAT-3-S13",
+      "title": "Clinical Trials Result Formatting for Chat Response",
+      "description": "Format clinical trial results into structured, readable response payloads suitable for LLM consumption and frontend rendering, including key fields (title, phase, location, distance, link).",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S9"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "FEAT-3-S14",
+      "title": "External API Error Handling and Fallbacks",
+      "description": "Implement robust error handling for ClinicalTrials.gov and routing API failures, including partial results return, timeout handling, and safe fallback messaging.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S8"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  ]
+}

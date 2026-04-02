@@ -1,0 +1,60 @@
+{
+  "assignment_id": "FEAT-6-STORIES",
+  "iteration": 6,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema/contract and integration stories to complete FEAT-6 coverage.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-6-S19",
+      "value": "Consent Data Schema and Persistence Model",
+      "note": "Add schema layer coverage",
+      "iteration": 6
+    },
+    {
+      "path": "stories.FEAT-6-S20",
+      "value": "Consent Workflow Integration with Lead and Unknown Services",
+      "note": "Add integration coverage",
+      "iteration": 6
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-6-S19": {
+      "story_id": "FEAT-6-S19",
+      "title": "Consent Data Schema and Persistence Model",
+      "description": "Define and implement MongoDB schema and Pydantic models for consent records, including tier designation (Tier 1/Tier 2), timestamping, user/session linkage, and audit fields required for HIPAA compliance.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "FEAT-6-S20": {
+      "story_id": "FEAT-6-S20",
+      "title": "Consent Workflow Integration with Lead and Unknown Services",
+      "description": "Integrate consent enforcement with lead_capture and unknown_question services to ensure Tier 1 enforces de-identification and Tier 2 allows identifiable storage, aligning with existing service contracts.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S16"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

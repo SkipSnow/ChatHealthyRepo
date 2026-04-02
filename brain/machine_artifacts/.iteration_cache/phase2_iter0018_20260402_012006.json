@@ -1,0 +1,98 @@
+{
+  "assignment_id": "EVAL-CT-M1-STORIES",
+  "iteration": 18,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined edge-case handling complexity and sizing; no new stories created per dedup rules.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-CT-M1-S5.size",
+      "value": "M",
+      "note": "Edge case normalization more complex than initially estimated",
+      "iteration": 18
+    },
+    {
+      "path": "stories.EVAL-CT-M1-S5.description",
+      "value": "Implement normalization rules for edge cases including missing phase, combined phases (e.g., Phase I/II), inconsistent formatting, and prioritization logic (e.g., highest phase wins); ensure deterministic mapping to a single normalized phase and score with safe defaults.",
+      "note": "Clarified deterministic prioritization logic",
+      "iteration": 18
+    }
+  ],
+  "epics": [],
+  "features": [],
+  "stories": {
+    "EVAL-CT-M1-S1": {
+      "story_id": "EVAL-CT-M1-S1",
+      "title": "Define Trial Phase Schema and Scoring Contract",
+      "description": "Define normalized schema for clinical trial phase (I, II, III, IV) and scoring contract mapping each phase to a maturity score; include handling rules for combined phases and unknown values.",
+      "parent_feature": "EVAL-CT-M1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    "EVAL-CT-M1-S2": {
+      "story_id": "EVAL-CT-M1-S2",
+      "title": "Implement Trial Phase Extraction and Scoring Logic",
+      "description": "Implement logic to extract phase from ClinicalTrials.gov response, normalize to schema, and assign a deterministic maturity score based on phase hierarchy.",
+      "parent_feature": "EVAL-CT-M1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M1-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M1-S3": {
+      "story_id": "EVAL-CT-M1-S3",
+      "title": "Expose Trial Phase Score via Evaluate Care Facade",
+      "description": "Integrate phase score into clinical trial results returned by evaluate_care_facade, ensuring consistent response structure for downstream chat rendering.",
+      "parent_feature": "EVAL-CT-M1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M1-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-CT-M1-S4": {
+      "story_id": "EVAL-CT-M1-S4",
+      "title": "Unit and Integration Tests for Trial Phase Scoring",
+      "description": "Create unit tests for normalization and scoring logic and integration tests validating end-to-end flow from ClinicalTrials.gov response to facade output.",
+      "parent_feature": "EVAL-CT-M1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M1-S2",
+        "EVAL-CT-M1-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    },
+    "EVAL-CT-M1-S5": {
+      "story_id": "EVAL-CT-M1-S5",
+      "title": "Handle Missing, Multi-Phase, and Inconsistent Phase Data",
+      "description": "Implement normalization rules for edge cases including missing phase, combined phases (e.g., Phase I/II), inconsistent formatting, and prioritization logic (e.g., highest phase wins); ensure deterministic mapping to a single normalized phase and score with safe defaults.",
+      "parent_feature": "EVAL-CT-M1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M1-S1",
+        "EVAL-CT-M1-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  },
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

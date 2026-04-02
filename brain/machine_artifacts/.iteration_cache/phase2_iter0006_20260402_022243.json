@@ -1,0 +1,98 @@
+{
+  "assignment_id": "GPTR-F-002",
+  "iteration": 6,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema, rotation engine, and audit logging coverage to complete lifecycle.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-002-S21",
+      "value": "Token Metadata Schema Definition",
+      "note": "Add schema/contract layer",
+      "iteration": 6
+    },
+    {
+      "path": "stories.GPTR-F-002-S22",
+      "value": "Token Rotation Engine",
+      "note": "Add core rotation logic",
+      "iteration": 6
+    },
+    {
+      "path": "stories.GPTR-F-002-S23",
+      "value": "Token Expiration Policy Enforcement",
+      "note": "Add expiration control logic",
+      "iteration": 6
+    },
+    {
+      "path": "stories.GPTR-F-002-S24",
+      "value": "Token Lifecycle Audit Logging",
+      "note": "Add observability and compliance logging",
+      "iteration": 6
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S21",
+      "title": "Token Metadata Schema Definition",
+      "description": "Define and implement the persistent schema for bearer tokens including fields for token_id, hashed_token, issued_at, expires_at, rotation_version, revoked_flag, and audit metadata. Ensure compatibility with existing GPTReader and Brain auth flows.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S22",
+      "title": "Token Rotation Engine",
+      "description": "Implement backend logic to rotate bearer tokens based on policy (time-based or usage-based), issuing new tokens while invalidating prior versions according to rotation rules without service interruption.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S21"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/DataPipelines/gpt_reader.py; GAP: No rotation mechanism currently implemented"
+    },
+    {
+      "story_id": "GPTR-F-002-S23",
+      "title": "Token Expiration Policy Enforcement",
+      "description": "Implement configurable expiration rules for bearer tokens, enforcing TTL validation during authentication and ensuring expired tokens are rejected even if not yet rotated or revoked.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S21"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/auth.py; Code/DataPipelines/gpt_reader.py"
+    },
+    {
+      "story_id": "GPTR-F-002-S24",
+      "title": "Token Lifecycle Audit Logging",
+      "description": "Extend logging to capture token issuance, rotation, expiration, validation failures, and revocation events with traceability to request context for security auditing.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S22",
+        "GPTR-F-002-S23",
+        "GPTR-F-002-S18"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

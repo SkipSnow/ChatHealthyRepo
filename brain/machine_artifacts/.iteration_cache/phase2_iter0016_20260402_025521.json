@@ -1,0 +1,23 @@
+{
+  "assignment_id": "BL-0.1.4-005",
+  "iteration": 16,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "All required story categories already covered (schema, core logic, API/util, tests, integration). No new stories added to avoid duplication.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-005-S2.description",
+      "value": "Clarified inclusion of atomic write guarantees and explicit transient vs permanent failure handling",
+      "note": "Improve precision of core logic scope",
+      "iteration": 16
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S5.description",
+      "value": "Expanded to explicitly include URL cache and temp artifact handling as integration targets",
+      "note": "Strengthen integration coverage clarity",
+      "iteration": 16
+    }
+  ]
+}

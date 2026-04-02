@@ -1,0 +1,116 @@
+{
+  "assignment_id": "PHASE-2-EVAL-F-002-STORIES",
+  "iteration": 15,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added required stories for EVAL-F-002 with full coverage: schema, core logic, facade integration, and tests.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-002-S1",
+      "value": "Provider Detail Schema and Contract Definition",
+      "note": "Added schema story",
+      "iteration": 15
+    },
+    {
+      "path": "stories.EVAL-F-002-S2",
+      "value": "NPI Provider Detail Retrieval Logic",
+      "note": "Added core logic story",
+      "iteration": 15
+    },
+    {
+      "path": "stories.EVAL-F-002-S3",
+      "value": "Evaluate Care Facade Integration for Provider Detail",
+      "note": "Added integration story",
+      "iteration": 15
+    },
+    {
+      "path": "stories.EVAL-F-002-S4",
+      "value": "Provider Detail API Exposure",
+      "note": "Added API story",
+      "iteration": 15
+    },
+    {
+      "path": "stories.EVAL-F-002-S5",
+      "value": "Provider Detail Unit and Integration Tests",
+      "note": "Added test story",
+      "iteration": 15
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F-002-S1": {
+      "story_id": "EVAL-F-002-S1",
+      "title": "Provider Detail Schema and Contract Definition",
+      "description": "Define the response schema for provider detail lookup including NPI, name, specialty, license status, practice address, phone number, and enumeration date. Ensure alignment with downstream facade and chat response formatting.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-F-002-S2": {
+      "story_id": "EVAL-F-002-S2",
+      "title": "NPI Provider Detail Retrieval Logic",
+      "description": "Implement core service logic to call the CMS NPI Registry API, parse provider credentials, normalize fields (specialty, license, status), and handle missing or incomplete records.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-F-002-S3": {
+      "story_id": "EVAL-F-002-S3",
+      "title": "Evaluate Care Facade Integration for Provider Detail",
+      "description": "Integrate provider detail service into evaluate_care_facade to enable tool-based retrieval and ensure compatibility with existing evaluation workflows.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F-002-S4": {
+      "story_id": "EVAL-F-002-S4",
+      "title": "Provider Detail API Exposure",
+      "description": "Expose provider detail lookup through FastAPI endpoint and tool router, enabling LLM tool-use access with validated inputs and structured outputs.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    "EVAL-F-002-S5": {
+      "story_id": "EVAL-F-002-S5",
+      "title": "Provider Detail Unit and Integration Tests",
+      "description": "Create unit tests for NPI parsing and normalization, and integration tests covering end-to-end flow from API call through facade to service.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S2",
+        "EVAL-F-002-S3",
+        "EVAL-F-002-S4"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing provider detail test file found; must be implemented in backend/tests"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

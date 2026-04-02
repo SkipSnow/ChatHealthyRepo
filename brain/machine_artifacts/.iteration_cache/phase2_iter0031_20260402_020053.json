@@ -1,0 +1,114 @@
+{
+  "assignment_id": "PHASE-2-FEAT-4-STORIES",
+  "iteration": 31,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added complete story set for FEAT-4 Provider Detail Lookup.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-4-STORY-1",
+      "value": "Schema and contract for provider detail lookup",
+      "note": "Initial story creation",
+      "iteration": 31
+    },
+    {
+      "path": "stories.FEAT-4-STORY-2",
+      "value": "Core provider detail retrieval logic",
+      "note": "Initial story creation",
+      "iteration": 31
+    },
+    {
+      "path": "stories.FEAT-4-STORY-3",
+      "value": "Facade/API integration for provider detail lookup",
+      "note": "Initial story creation",
+      "iteration": 31
+    },
+    {
+      "path": "stories.FEAT-4-STORY-4",
+      "value": "External link construction and validation",
+      "note": "Initial story creation",
+      "iteration": 31
+    },
+    {
+      "path": "stories.FEAT-4-STORY-5",
+      "value": "Unit and integration tests for provider detail service",
+      "note": "Initial story creation",
+      "iteration": 31
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-4-STORY-1": {
+      "story_id": "FEAT-4-STORY-1",
+      "title": "Define Provider Detail Schema and Contract",
+      "description": "Define Pydantic models and response contract for provider detail lookup including NPI data fields and external links.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "FEAT-4-STORY-2": {
+      "story_id": "FEAT-4-STORY-2",
+      "title": "Implement NPI Registry Lookup Logic",
+      "description": "Implement core service logic to query CMS NPI Registry API and normalize provider details including name, specialty, address, and identifiers.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "FEAT-4-STORY-3": {
+      "story_id": "FEAT-4-STORY-3",
+      "title": "Expose Provider Detail via EvaluateCare Facade",
+      "description": "Integrate provider detail lookup into EvaluateCare facade and tool routing to enable agent access via tool calls.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "FEAT-4-STORY-4": {
+      "story_id": "FEAT-4-STORY-4",
+      "title": "Construct and Validate External Provider Links",
+      "description": "Generate state medical board links and research URLs based on provider data and validate URLs using existing URL validation utilities.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "FEAT-4-STORY-5": {
+      "story_id": "FEAT-4-STORY-5",
+      "title": "Test Provider Detail Lookup Service",
+      "description": "Create unit and integration tests for NPI lookup, data normalization, facade integration, and external link generation.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-2",
+        "FEAT-4-STORY-3",
+        "FEAT-4-STORY-4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "assignment_id": "FEAT-4-STORIES",
+  "iteration": 41,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing stories to meet minimum and cover contract, API, and tests.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-4-STORY-33",
+      "value": "Add provider detail schema/contract definition",
+      "note": "Cover schema/contract layer",
+      "iteration": 41
+    },
+    {
+      "path": "stories.FEAT-4-STORY-34",
+      "value": "Add facade/API integration for provider detail lookup",
+      "note": "Expose backend capability via tool/facade",
+      "iteration": 41
+    },
+    {
+      "path": "stories.FEAT-4-STORY-35",
+      "value": "Add unit and integration tests for provider detail service",
+      "note": "Ensure reliability and correctness",
+      "iteration": 41
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-4-STORY-33": {
+      "story_id": "FEAT-4-STORY-33",
+      "title": "Define Provider Detail Response Schema and Contract",
+      "description": "Create a normalized provider detail schema (demographics, taxonomy, addresses, external links) and enforce via Pydantic models for consistent downstream consumption.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-4-STORY-34": {
+      "story_id": "FEAT-4-STORY-34",
+      "title": "Expose Provider Detail Lookup via Evaluate Care Facade",
+      "description": "Integrate provider_detail_service into evaluate_care_facade and tool_router, enabling tool-based invocation with validated inputs and structured outputs.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-31"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "FEAT-4-STORY-35": {
+      "story_id": "FEAT-4-STORY-35",
+      "title": "Implement Unit and Integration Tests for Provider Detail Service",
+      "description": "Write tests for NPI lookup, parsing, link generation, and facade exposure including success, empty response, and error handling scenarios.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-31",
+        "FEAT-4-STORY-32",
+        "FEAT-4-STORY-34"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

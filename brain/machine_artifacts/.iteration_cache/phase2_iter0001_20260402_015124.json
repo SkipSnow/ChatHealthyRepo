@@ -1,0 +1,86 @@
+{
+  "assignment_id": "FEAT-3-STORIES",
+  "iteration": 1,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories defined for backend clinical trials search including schema, logic, API integration, testing, and facade orchestration.",
+  "change_log": {},
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "FEAT-3-S1",
+      "title": "Clinical Trials Search Schema and Contract",
+      "description": "Define input/output schema for clinical trials search including condition, location, recruiting status filter, and structured response fields (trial_id, title, locations, distance, travel_time). Ensure alignment with existing Pydantic models.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    {
+      "story_id": "FEAT-3-S2",
+      "title": "ClinicalTrials.gov Search Core Logic",
+      "description": "Implement core service logic to query ClinicalTrials.gov API with recruiting filter, parse results, and normalize trial data including locations and eligibility metadata.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "FEAT-3-S3",
+      "title": "Travel Distance and Duration Computation",
+      "description": "Integrate Google Routes (or equivalent) to compute travel distance and duration from user location to each trial site. Attach computed metrics to trial results.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "FEAT-3-S4",
+      "title": "Evaluate Care Facade Integration",
+      "description": "Expose clinical trials search through EvaluateCare facade and tool router, enabling conversational access and proper tool invocation with validated inputs.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S2",
+        "FEAT-3-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "FEAT-3-S5",
+      "title": "Clinical Trials Search Testing and Integration",
+      "description": "Develop unit and integration tests validating API query behavior, recruiting filter enforcement, distance calculations, and facade/tool routing integration.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S2",
+        "FEAT-3-S3",
+        "FEAT-3-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

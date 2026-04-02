@@ -1,0 +1,97 @@
+{
+  "assignment_id": "GPTR-F-001",
+  "iteration": 35,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added schema, config, and audit coverage stories to complete enforcement surface.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-001-S130",
+      "value": "Allowlist Schema & Contract Definition",
+      "note": "Adds formal schema definition for enforcement",
+      "iteration": 35
+    },
+    {
+      "path": "stories.GPTR-F-001-S131",
+      "value": "Allowlist Configuration Loader",
+      "note": "Introduces runtime config loading for allowlist",
+      "iteration": 35
+    },
+    {
+      "path": "stories.GPTR-F-001-S132",
+      "value": "Rejection Handling and Error Response Standardization",
+      "note": "Ensures consistent enforcement failure behavior",
+      "iteration": 35
+    },
+    {
+      "path": "stories.GPTR-F-001-S133",
+      "value": "Audit Logging for Scope Enforcement Decisions",
+      "note": "Adds traceability for security enforcement",
+      "iteration": 35
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GPTR-F-001-S130": {
+      "story_id": "GPTR-F-001-S130",
+      "title": "Allowlist Schema & Contract Definition",
+      "description": "Define a strict schema for GPTReader allowlist configuration including permitted collections, fields, operators, and query constraints, enforced via Pydantic or equivalent validation models.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S131": {
+      "story_id": "GPTR-F-001-S131",
+      "title": "Allowlist Configuration Loader",
+      "description": "Implement a secure configuration loader that retrieves and initializes the allowlist rules at Azure Function startup, ensuring immutability during runtime and no dynamic override from request payloads.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S130"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/function_app.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S132": {
+      "story_id": "GPTR-F-001-S132",
+      "title": "Rejection Handling and Error Response Standardization",
+      "description": "Implement standardized error handling for rejected queries, including clear denial reasons, safe messaging (no internal schema leakage), and consistent HTTP/status response structure.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S126"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S133": {
+      "story_id": "GPTR-F-001-S133",
+      "title": "Audit Logging for Scope Enforcement Decisions",
+      "description": "Extend GPTReader audit logging to capture enforcement decisions, including allowed vs rejected queries, rule triggered, and metadata for traceability without storing sensitive payload data.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S126",
+        "GPTR-F-001-S127"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

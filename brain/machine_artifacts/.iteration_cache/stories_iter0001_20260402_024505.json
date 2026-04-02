@@ -1,0 +1,58 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-P-RX-UX-S1",
+      "title": "Define prescription behavior UI schema and contract",
+      "description": "Define TypeScript interfaces and UI contract for prescription behavior data including prescribing patterns, condition mapping, and score contribution. Ensure compatibility with backend feature EVAL-P-RX and ingestion pipeline PIPE-RX-INGEST.",
+      "parent_feature": "EVAL-P-RX-UX",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-RX",
+        "PIPE-RX-INGEST"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx (existing rendering pipeline expects structured content). GAP: No prescription-specific schema defined.",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-P-RX-UX-S2",
+      "title": "Implement prescription behavior rendering logic",
+      "description": "Build core logic to transform prescription behavior data into display-ready structures including normalization of prescribing patterns, mapping conditions to labels, and calculating relative contribution to overall quality score for UI display.",
+      "parent_feature": "EVAL-P-RX-UX",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-RX-UX-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx (current markdown-based rendering requires pre-processed display data). GAP: No transformation logic exists for prescription measures.",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-P-RX-UX-S3",
+      "title": "Build prescription behavior UI component and integrate into message flow",
+      "description": "Create a reusable React component to display prescription behavior within provider quality scorecards and integrate it into the MessageBubble rendering pipeline, ensuring proper placement, styling, and fallback behavior.",
+      "parent_feature": "EVAL-P-RX-UX",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-P-RX-UX-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx (integration point for rendering structured UI in chat). GAP: No dedicated component for prescription behavior display.",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-P-RX-UX-S4",
+      "title": "Add unit and integration tests for prescription behavior UI",
+      "description": "Develop unit tests for schema validation and transformation logic, and integration tests to verify correct rendering within MessageBubble including edge cases such as missing or partial prescription data.",
+      "parent_feature": "EVAL-P-RX-UX",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-P-RX-UX-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components (existing component-based architecture supports testability). GAP: No existing tests for prescription behavior UI.",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

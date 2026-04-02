@@ -1,0 +1,54 @@
+{
+  "stories": {
+    "GPTR-F-001-S162": {
+      "story_id": "GPTR-F-001-S162",
+      "title": "Core Allowlist Enforcement Engine",
+      "description": "Implement the core enforcement engine that evaluates normalized GPTReader requests against the allowlist schema, rejecting any disallowed collections, fields, operators, or limit violations with deterministic error responses.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S159",
+        "GPTR-F-001-S160"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S163": {
+      "story_id": "GPTR-F-001-S163",
+      "title": "Secure Error and Response Contract",
+      "description": "Define and implement a secure API response contract for enforcement failures that returns consistent error codes and messages without leaking internal schema or system details.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S162"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S164": {
+      "story_id": "GPTR-F-001-S164",
+      "title": "Unit and Negative Security Test Suite",
+      "description": "Create comprehensive unit tests covering valid queries, rejected queries, boundary conditions, and adversarial inputs to verify strict allowlist enforcement and prevent bypass scenarios.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S162"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S165": {
+      "story_id": "GPTR-F-001-S165",
+      "title": "End-to-End Integration with Azure Function Endpoint",
+      "description": "Integrate the allowlist enforcement engine into the Azure Function GPTReader endpoint, ensuring all incoming requests pass through validation before MongoDB access and preserving existing auth and audit flows.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S162",
+        "GPTR-F-001-S163"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/function_app.py; Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  }
+}

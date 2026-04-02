@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-RX-S1",
+      "requirement": "The system must define a Pydantic model representing a prescription record that includes NPI, drug identifier, prescription volume, and time period.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-RX-S1",
+      "requirement": "The system must enforce validation that NPI is a 10-digit numeric identifier in the prescription model.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-RX-S1",
+      "requirement": "The system must define a normalized drug identifier field (e.g., NDC or mapped code) within the prescription schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-RX-S1",
+      "requirement": "The system must define a MongoDB collection schema for storing prescription records aligned with the Pydantic model.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-RX-S1",
+      "requirement": "The system must define a mapping structure that links each prescription record to one or more ICD-10 condition codes.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-RX-S1",
+      "requirement": "The system must support many-to-many relationships between drugs and ICD-10 condition codes in the mapping contract.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-RX-S1",
+      "requirement": "The system must define a Pydantic model for provider-level aggregated prescription data keyed by NPI.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-RX-S1",
+      "requirement": "The system must define a normalized score output contract that includes NPI, condition, score value, and score explanation fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-RX-S1",
+      "requirement": "The system must constrain normalized score values to a defined numeric range (e.g., 0 to 1 or 0 to 100).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-RX-S1",
+      "requirement": "The system must include metadata fields in the schema indicating data source (e.g., Medicare Part D) and ingestion timestamp.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-RX-S1",
+      "requirement": "The system must reject prescription records that are missing required fields (NPI, drug identifier, or volume) during model validation.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-RX-S1",
+      "requirement": "The system must handle invalid ICD-10 codes by flagging them as unmapped rather than failing schema validation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-RX-S1",
+      "requirement": "The system must support extensibility in the schema to accommodate additional prescribing attributes without breaking existing contracts.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P-RX-S1",
+      "requirement": "The system must ensure all schema definitions are serializable to JSON for storage and API compatibility.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

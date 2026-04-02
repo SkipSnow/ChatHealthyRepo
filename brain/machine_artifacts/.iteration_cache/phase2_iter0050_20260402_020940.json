@@ -1,0 +1,98 @@
+{
+  "assignment_id": "FEAT-5-STORIES",
+  "iteration": 50,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing stories for FEAT-5 covering schema, core logic, API exposure, and tests.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-5-S195",
+      "value": "Tool Input Schema Definitions with Pydantic Models",
+      "note": "Add schema layer story",
+      "iteration": 50
+    },
+    {
+      "path": "stories.FEAT-5-S196",
+      "value": "Allowlist-Based Tool Dispatch Core Logic",
+      "note": "Add core routing logic story",
+      "iteration": 50
+    },
+    {
+      "path": "stories.FEAT-5-S197",
+      "value": "Tool Router API Exposure and Error Handling",
+      "note": "Add API/adapter behavior story",
+      "iteration": 50
+    },
+    {
+      "path": "stories.FEAT-5-S198",
+      "value": "Unit and Integration Tests for Tool Router",
+      "note": "Add test coverage story",
+      "iteration": 50
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-5-S195",
+      "title": "Tool Input Schema Definitions with Pydantic Models",
+      "description": "Define and enforce strict Pydantic schemas for all allowed tools, ensuring inputs are validated before execution and aligned with tool_models modules.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py"
+    },
+    {
+      "story_id": "FEAT-5-S196",
+      "title": "Allowlist-Based Tool Dispatch Core Logic",
+      "description": "Implement the core routing logic that restricts tool execution to an explicit allowlist, validates inputs via Pydantic, and safely dispatches to domain services.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S195"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S197",
+      "title": "Tool Router API Exposure and Error Handling",
+      "description": "Expose tool routing behavior through the FastAPI layer, including structured error handling for invalid tools, schema failures, and blocked (non-allowlisted) tool calls.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S196"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S198",
+      "title": "Unit and Integration Tests for Tool Router",
+      "description": "Develop comprehensive unit and integration tests to validate allowlist enforcement, schema validation failures, successful dispatch, and interaction with the agent tool-use loop.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S196",
+        "FEAT-5-S197",
+        "FEAT-5-S194"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-CT-M2-S1",
+      "title": "Recruitment Status Schema and Scoring Contract",
+      "description": "Define canonical schema for clinical trial recruitment status (e.g., RECRUITING, COMPLETED, TERMINATED, ACTIVE_NOT_RECRUITING) and map each status to a normalized score contribution. Establish contract for downstream consumers in Evaluate Care.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-M2-S2",
+      "title": "Recruitment Status Extraction and Normalization",
+      "description": "Implement logic to extract recruitment status from ClinicalTrials.gov API responses and normalize values into the defined schema (handling casing, variants, and missing fields).",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-M2-S3",
+      "title": "Recruitment Status Scoring Logic",
+      "description": "Implement scoring algorithm that assigns higher scores to actively recruiting trials and lower scores to completed or terminated trials. Ensure deterministic output and compatibility with broader trial scoring pipeline.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-M2-S4",
+      "title": "Expose Recruitment Status Score via EvaluateCare Facade",
+      "description": "Integrate recruitment status scoring into Evaluate Care response model and expose it through the evaluate_care_facade for downstream chat/UI consumption.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-CT-M2-S5",
+      "title": "Recruitment Status Unit and Integration Tests",
+      "description": "Create unit tests for status normalization and scoring logic, and integration tests validating end-to-end flow from ClinicalTrials API ingestion through Evaluate Care facade output.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S3",
+        "EVAL-CT-M2-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ]
+}

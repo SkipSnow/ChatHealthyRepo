@@ -1,0 +1,52 @@
+{
+  "stories": {
+    "GPTR-F-001-S118": {
+      "story_id": "GPTR-F-001-S118",
+      "title": "Core Allowlist Enforcement Engine",
+      "description": "Implement the server-side enforcement engine that evaluates incoming GPTReader requests against the allowlist schema, validating collection access, field-level restrictions, query operators, and result limits before execution.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S115"
+      ],
+      "size": "L",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S119": {
+      "story_id": "GPTR-F-001-S119",
+      "title": "Request Interception and Validation Hook",
+      "description": "Integrate enforcement into the GPTReader request lifecycle by adding a pre-execution validation hook that intercepts all inbound requests and routes them through the allowlist engine before any database interaction.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S118"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S120": {
+      "story_id": "GPTR-F-001-S120",
+      "title": "Unit and Negative Test Coverage for Enforcement",
+      "description": "Develop comprehensive unit tests and negative test cases to validate allowlist enforcement behavior, including rejection of unauthorized collections, fields, malformed queries, and limit violations.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S118"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S121": {
+      "story_id": "GPTR-F-001-S121",
+      "title": "Integration with Existing Query Execution Path",
+      "description": "Ensure enforced requests seamlessly integrate with existing GPTReader query execution logic, preserving current response formats, pagination limits, and performance constraints without bypass paths.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S119"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  }
+}

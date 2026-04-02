@@ -1,0 +1,65 @@
+{
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-005-S1",
+      "title": "File Operation Resilience Contract and Error Schema",
+      "description": "Define a standard contract for local file operations including retry policy, error classification (transient vs fatal), fallback behavior, and response schema for all services performing disk I/O.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "ASSUMPTION: No standardized file I/O contract exists; GAP requires unified schema for resilience handling across services"
+    },
+    {
+      "story_id": "BL-0.1.4-005-S2",
+      "title": "Retry and Backoff Engine for File Operations",
+      "description": "Implement core logic to automatically retry failed local disk operations using configurable retry limits and exponential backoff, handling transient errors such as file locks or temporary unavailability.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/pipeline_worker_base.py; Code/Shared/ChatHealthyMongoUtilities.py"
+    },
+    {
+      "story_id": "BL-0.1.4-005-S3",
+      "title": "Fallback and Safe Recovery Mechanism",
+      "description": "Implement fallback strategies for failed file operations including temporary storage, partial write recovery, and safe rollback to last known good state to prevent data corruption.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S2"
+      ],
+      "size": "L",
+      "evidence": "ASSUMPTION: No existing fallback or recovery mechanism for local disk writes; GAP requires implementation of rollback and recovery handling"
+    },
+    {
+      "story_id": "BL-0.1.4-005-S4",
+      "title": "Resilient File Operation Integration Layer",
+      "description": "Integrate resilience logic into existing services that perform file operations (e.g., pipelines, logging, manifest generation), ensuring all disk interactions use the retry and fallback framework.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S2",
+        "BL-0.1.4-005-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/manifest_generator.py; Code/DataPipelines/blob_client.py; Code/Shared/ops/sync_to_mongo.py"
+    },
+    {
+      "story_id": "BL-0.1.4-005-S5",
+      "title": "File Operation Resilience Test Suite",
+      "description": "Develop unit and integration tests simulating disk failures, partial writes, and recovery scenarios to validate retry logic, fallback execution, and data integrity guarantees.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S2",
+        "BL-0.1.4-005-S3",
+        "BL-0.1.4-005-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_pipeline_worker_base.py; Code/DataPipelines/tests/test_gpt_reader_integration.py"
+    }
+  ]
+}

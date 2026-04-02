@@ -1,0 +1,58 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-P-MEASURE-3-S19",
+      "title": "Implement Disciplinary Presence Indicator Logic",
+      "description": "Implement logic to derive a disciplinary presence indicator based solely on availability of state medical board lookup links and known board coverage, without scraping or interpreting disciplinary records.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-M3-S2",
+        "EVAL-P-MEASURE-3-S18"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-3-S20",
+      "title": "Handle Missing or Unsupported State Board Coverage",
+      "description": "Add handling for providers in states without predefined medical board link templates, returning a null or unsupported indicator while maintaining consistent schema output.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-M3-S1",
+        "EVAL-P-MEASURE-3-S18"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-3-S21",
+      "title": "Integrate Disciplinary Signal into Provider Detail Response Model",
+      "description": "Extend provider detail response structure to include disciplinary signal fields (presence indicator and validated board link) ensuring compatibility with existing Evaluate Care facade outputs.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-M3-S1",
+        "EVAL-P-MEASURE-3-S3",
+        "EVAL-P-MEASURE-3-S16"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-3-S22",
+      "title": "Unit Tests for State Coverage and Presence Indicator Logic",
+      "description": "Create unit tests validating disciplinary signal behavior across supported states (DE, MS, VA), unsupported states, and edge cases such as missing provider state data.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-M3-S4",
+        "EVAL-P-MEASURE-3-S19",
+        "EVAL-P-MEASURE-3-S20"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 44,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing core logic and API exposure stories to complete explainability layer coverage.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F5-S148",
+      "value": "Added core explainability mapping logic story",
+      "note": "Missing core transformation layer between signals and schema",
+      "iteration": 44
+    },
+    {
+      "path": "stories.EVAL-F5-S149",
+      "value": "Added API exposure story for explainability metadata",
+      "note": "Ensure facade exposes explainability contract to frontend",
+      "iteration": 44
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F5-S148": {
+      "story_id": "EVAL-F5-S148",
+      "title": "Implement Explainability Mapping Logic for Evaluation Signals",
+      "description": "Build core backend logic that transforms raw provider credentials, external links, and clinical trial signals into standardized explainability objects including source, meaning, and limitations.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F5-S149": {
+      "story_id": "EVAL-F5-S149",
+      "title": "Expose Explainability Metadata via EvaluateCareFacade API",
+      "description": "Extend EvaluateCareFacade responses to include explainability fields alongside evaluation signals, ensuring compatibility with tool_router and frontend consumption.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S148"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

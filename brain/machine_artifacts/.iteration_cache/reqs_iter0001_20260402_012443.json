@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-DATA-PROV-S3",
+      "requirement": "The system must include provenance metadata fields in all EvaluateCare facade responses for each quality measure returned.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-DATA-PROV-S3",
+      "requirement": "The system must preserve all provenance attributes defined in the schema (source_type, source_name, api_endpoint, dataset_id, retrieval_timestamp, version) when mapping domain objects to API responses.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-DATA-PROV-S3",
+      "requirement": "The system must ensure EvaluateCare facade outputs remain backward compatible by not removing or renaming existing response fields.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-DATA-PROV-S3",
+      "requirement": "The system must serialize provenance metadata correctly in JSON responses without causing schema validation errors in existing clients.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-DATA-PROV-S3",
+      "requirement": "The system must ensure tool_router can process responses containing provenance metadata without runtime errors or dropped fields.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-DATA-PROV-S3",
+      "requirement": "The system must include provenance metadata for both provider and clinical trial evaluation responses when available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-DATA-PROV-S3",
+      "requirement": "The system must maintain consistent provenance structure across all response types to enable downstream explanation components to consume it uniformly.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-DATA-PROV-S3",
+      "requirement": "The system must not alter or overwrite provenance metadata values received from upstream services (EVAL-DATA-PROV-S2).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-DATA-PROV-S3",
+      "requirement": "The system must ensure that each measure object in the response includes a non-null provenance block when upstream data provides it.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-DATA-PROV-S3",
+      "requirement": "The system must gracefully handle missing provenance metadata by returning a structured empty or partial provenance object without breaking the response schema.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-DATA-PROV-S3",
+      "requirement": "The system must log a warning when provenance metadata is missing for any measure in the facade layer.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-DATA-PROV-S3",
+      "requirement": "The system must ensure that response serialization performance does not degrade beyond acceptable thresholds when including provenance metadata.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-DATA-PROV-S3",
+      "requirement": "The system must expose provenance metadata in a format that LLM-based explanation components can parse without additional transformation.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-DATA-PROV-S3",
+      "requirement": "The system must ensure provenance metadata fields are explicitly labeled and human-readable to support downstream explanation generation.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-DATA-PROV-S3",
+      "requirement": "The system must ensure that provenance metadata inclusion does not introduce ambiguity or duplication in measure-level data presented to LLM consumers.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

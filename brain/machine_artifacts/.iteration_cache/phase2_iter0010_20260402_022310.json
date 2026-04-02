@@ -1,0 +1,52 @@
+{
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S35",
+      "title": "Token Schema and Persistence Contract",
+      "description": "Define and implement the token storage schema including fields for token_id, hashed_token, issued_at, expires_at, rotation_version, and revoked_flag. Ensure compatibility with existing MongoDB utilities and authentication flows.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/Shared/brain_auth.py; Code/DataPipelines/auth.py; Code/Shared/ChatHealthyMongoUtilities.py; GAP: No unified lifecycle-aware token schema exists"
+    },
+    {
+      "story_id": "GPTR-F-002-S36",
+      "title": "Token Expiration Enforcement Logic",
+      "description": "Implement backend logic to validate token expiration using expires_at timestamp during authentication checks. Deny access for expired tokens and ensure consistent handling across all entry points.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S35"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/auth.py; GAP: Expiration validation not currently enforced"
+    },
+    {
+      "story_id": "GPTR-F-002-S37",
+      "title": "Token Rotation Mechanism",
+      "description": "Implement token rotation logic that issues a new token, increments rotation_version, invalidates prior active token, and ensures atomic update to prevent race conditions.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S35"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/Shared/brain_auth.py; GAP: No rotation mechanism currently implemented"
+    },
+    {
+      "story_id": "GPTR-F-002-S38",
+      "title": "Authentication Middleware Contract Update",
+      "description": "Refactor authentication middleware to enforce full lifecycle validation (expiration, revocation, rotation version) and standardize error responses for invalid tokens.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S36",
+        "GPTR-F-002-S37",
+        "GPTR-F-002-S32"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/DataPipelines/gpt_reader.py"
+    }
+  ]
+}

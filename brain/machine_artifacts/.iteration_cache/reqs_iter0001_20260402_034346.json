@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-BOARD-001",
+      "story_id": "EVAL-P-BOARD-UX-S2",
+      "requirement": "The system must map backend certification status values to a normalized boolean state (certified=true, certified=false).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-002",
+      "story_id": "EVAL-P-BOARD-UX-S2",
+      "requirement": "The system must convert backend certification status into a display label ('Board Certified' or 'Not Board Certified').",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-003",
+      "story_id": "EVAL-P-BOARD-UX-S2",
+      "requirement": "The system must normalize issuing authority names into a standardized display format (e.g., remove abbreviations or map to canonical names).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004",
+      "story_id": "EVAL-P-BOARD-UX-S2",
+      "requirement": "The system must ensure issuing authority text is human-readable and free of backend-specific codes or identifiers.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-005",
+      "story_id": "EVAL-P-BOARD-UX-S2",
+      "requirement": "The system must format the score contribution value into a user-friendly string (e.g., percentage or points) consistent with the UI schema defined in S1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-006",
+      "story_id": "EVAL-P-BOARD-UX-S2",
+      "requirement": "The system must ensure the score contribution value is rounded or truncated according to UI display rules defined in the schema.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-007",
+      "story_id": "EVAL-P-BOARD-UX-S2",
+      "requirement": "The system must output a structured object that conforms exactly to the schema defined in EVAL-P-BOARD-UX-S1.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-008",
+      "story_id": "EVAL-P-BOARD-UX-S2",
+      "requirement": "The system must handle multiple certifications by selecting the primary certification or aggregating according to schema rules.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-009",
+      "story_id": "EVAL-P-BOARD-UX-S2",
+      "requirement": "The system must preserve consistency between certification status and score contribution (e.g., non-certified providers must not display a positive contribution if prohibited by backend rules).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-010",
+      "story_id": "EVAL-P-BOARD-UX-S2",
+      "requirement": "The system must handle missing certification status by defaulting to 'Unknown' and flagging the value as non-contributory.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-011",
+      "story_id": "EVAL-P-BOARD-UX-S2",
+      "requirement": "The system must handle missing issuing authority by returning a null or placeholder value defined in the schema without breaking rendering.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-012",
+      "story_id": "EVAL-P-BOARD-UX-S2",
+      "requirement": "The system must handle malformed or unexpected backend data formats by falling back to safe default display values.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-013",
+      "story_id": "EVAL-P-BOARD-UX-S2",
+      "requirement": "The system must ensure all output fields required for rendering (status label, issuing authority, score contribution) are always present in the returned object.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-014",
+      "story_id": "EVAL-P-BOARD-UX-S2",
+      "requirement": "The system must ensure that normalized values are deterministic for identical input data.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

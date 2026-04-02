@@ -1,0 +1,66 @@
+{
+  "assignment_id": "GPTR-F-002-STORIES",
+  "iteration": 11,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added revocation API and comprehensive test coverage to complete lifecycle management.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-002-S39",
+      "value": "Revocation API and Backend Handler",
+      "note": "Adds missing revocation capability",
+      "iteration": 11
+    },
+    {
+      "path": "stories.GPTR-F-002-S40",
+      "value": "Token Lifecycle Test Suite",
+      "note": "Adds required unit and integration coverage",
+      "iteration": 11
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S39",
+      "title": "Revocation API and Backend Handler",
+      "description": "Implement backend API endpoint and service logic to revoke tokens by setting revoked_flag and recording revoked_at timestamp. Ensure revoked tokens are immediately denied in all authentication flows.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S35",
+        "GPTR-F-002-S38"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py; GAP: No token revocation mechanism currently exists"
+    },
+    {
+      "story_id": "GPTR-F-002-S40",
+      "title": "Token Lifecycle Test Suite",
+      "description": "Create unit and integration tests covering token schema validation, expiration enforcement, rotation behavior, revocation handling, and middleware enforcement paths including failure scenarios.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S36",
+        "GPTR-F-002-S37",
+        "GPTR-F-002-S38",
+        "GPTR-F-002-S39"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; GAP: No lifecycle-specific test coverage exists"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,181 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-201",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must expose a facade method in evaluate_care_facade that accepts a comparison request containing two or more provider identifiers.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-202",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must validate that the comparison request conforms to the schema defined in EVAL-COMPARE-ST-001 before processing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-203",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must invoke the provider comparison engine implemented in EVAL-COMPARE-ST-002 from the facade layer.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-204",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must return a structured comparison response matching the schema defined in EVAL-COMPARE-ST-001.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-205",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must register a tool endpoint in tool_router that maps to the comparison facade method.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-206",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must expose the comparison tool with a unique and descriptive tool name consistent with existing tool_router patterns.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-207",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must ensure the tool endpoint accepts structured arguments compatible with LLM tool invocation (JSON-serializable input).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-208",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must ensure the tool endpoint returns JSON-serializable structured output suitable for LLM consumption.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-209",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must include ranked providers in the response ordered by comparison score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-210",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must include per-provider quality scores and measure breakdowns in the response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-211",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must include relative strengths and weaknesses for each provider in the response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-212",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must return an error response when fewer than two providers are supplied in the request.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-213",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must return an error response when the input schema validation fails.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-214",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must propagate and surface comparison engine failures as structured error responses through the facade.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-215",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must ensure the tool_router exposes the comparison capability without requiring direct access to internal services.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-216",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must ensure the comparison tool description provides sufficient semantic guidance for LLM selection among tools.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-217",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must ensure the comparison tool description explicitly states that it compares multiple providers and returns ranked results.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-218",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must ensure the tool supports variable-length provider lists (two or more) without requiring fixed input size.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-219",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must ensure that identical provider IDs in the request are either deduplicated or rejected with a clear error.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-220",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must ensure the response includes provider identifiers to allow downstream systems to map results correctly.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-221",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must ensure the tool_router registration follows the same pattern as existing tools in tool_router.py.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-222",
+      "story_id": "EVAL-COMPARE-ST-003",
+      "requirement": "The system must ensure the facade method is accessible without requiring changes to unrelated facade endpoints.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

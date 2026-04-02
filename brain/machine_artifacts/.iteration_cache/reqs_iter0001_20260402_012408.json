@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-SCORE-PROV-S1",
+      "requirement": "The system must define a Pydantic model for provider scoring input that includes a list of at least three quality measures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-SCORE-PROV-S1",
+      "requirement": "The system must validate that each input quality measure contains a name, numeric value, and optional normalization metadata.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-SCORE-PROV-S1",
+      "requirement": "The system must define a Pydantic model for weight configuration where each measure has an associated fixed numeric weight.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-SCORE-PROV-S1",
+      "requirement": "The system must enforce that the sum of all weights equals 1.0 within a tolerance of 0.0001.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-SCORE-PROV-S1",
+      "requirement": "The system must define a Pydantic model for the output that includes a composite score and individual measure contributions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-SCORE-PROV-S1",
+      "requirement": "The system must ensure that the output schema is compatible with fields defined in ChatHealthy.Providers.json.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-SCORE-PROV-S1",
+      "requirement": "The system must enforce deterministic input validation such that identical inputs always produce identical validated model instances.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-SCORE-PROV-S1",
+      "requirement": "The system must reject input payloads with fewer than three quality measures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-SCORE-PROV-S1",
+      "requirement": "The system must reject input payloads where any measure value is null or non-numeric.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-SCORE-PROV-S1",
+      "requirement": "The system must reject weight configurations where any weight is negative.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-SCORE-PROV-S1",
+      "requirement": "The system must support serialization of input and output models to JSON consistent with existing provider_search_models.py patterns.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-SCORE-PROV-S1",
+      "requirement": "The system must ensure that each measure identifier is unique within a single scoring request.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-SCORE-PROV-S1",
+      "requirement": "The system must include explicit field typing and validation constraints using Pydantic BaseModel conventions.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-SCORE-PROV-S1",
+      "requirement": "The system must raise a validation error when input data contains fields not defined in the schema.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-SCORE-PROV-S1",
+      "requirement": "The system must produce a consistent output schema structure regardless of input measure ordering.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

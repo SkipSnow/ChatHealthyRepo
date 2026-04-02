@@ -1,0 +1,102 @@
+{
+  "assignment_id": "PHASE 2: GPTR-F-001 Stories",
+  "iteration": 40,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Previous iteration under-produced stories (<3); corrected in this iteration"
+  ],
+  "notes": "Added missing core logic, API enforcement layer, testing, and integration coverage to meet minimum and required breakdown.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-001-S145",
+      "value": "Core allowlist validation engine implementation",
+      "note": "Add core logic layer",
+      "iteration": 40
+    },
+    {
+      "path": "stories.GPTR-F-001-S146",
+      "value": "Azure Function API enforcement wrapper",
+      "note": "Add API enforcement layer",
+      "iteration": 40
+    },
+    {
+      "path": "stories.GPTR-F-001-S147",
+      "value": "Unit and integration test coverage for enforcement",
+      "note": "Add test coverage",
+      "iteration": 40
+    },
+    {
+      "path": "stories.GPTR-F-001-S148",
+      "value": "Integration with existing GPTReader query pipeline",
+      "note": "Add pipeline integration",
+      "iteration": 40
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GPTR-F-001-S145": {
+      "story_id": "GPTR-F-001-S145",
+      "title": "Allowlist Validation Engine Core Logic",
+      "description": "Implement the core validation engine that enforces allowlist rules on GPTReader requests, including validation of collection names, query operators, field-level restrictions, and result size limits before execution.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S143"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S146": {
+      "story_id": "GPTR-F-001-S146",
+      "title": "Azure Function Request Enforcement Layer",
+      "description": "Wrap the GPTReader Azure Function entrypoint with enforcement logic that intercepts all incoming requests, applies allowlist validation, and blocks or sanitizes invalid queries before reaching the data layer.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S145"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/function_app.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S147": {
+      "story_id": "GPTR-F-001-S147",
+      "title": "Allowlist Enforcement Test Suite",
+      "description": "Develop unit and integration tests validating allowlist enforcement including valid queries, rejected queries, boundary conditions (size limits, field violations), and regression coverage aligned with existing GPTReader tests.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S145",
+        "GPTR-F-001-S146"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S148": {
+      "story_id": "GPTR-F-001-S148",
+      "title": "GPTReader Pipeline Integration with Enforcement",
+      "description": "Integrate the allowlist enforcement engine into the existing GPTReader query pipeline ensuring compatibility with bearer token authentication, audit logging, and response size constraints without breaking current functionality.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S146",
+        "GPTR-F-001-S144"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

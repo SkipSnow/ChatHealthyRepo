@@ -1,0 +1,101 @@
+{
+  "assignment_id": "PHASE-2-EVAL-CT-M2",
+  "iteration": 19,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories refined for contract completeness, status normalization, and tighter integration with ClinicalTrials.gov response patterns.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-CT-M2-S1.description",
+      "value": "Expanded schema to include raw_status, normalized_status, score, and explanation fields for downstream explainability.",
+      "note": "Ensure contract supports normalization + UX explainability",
+      "iteration": 19
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S2.description",
+      "value": "Enhanced logic to normalize ClinicalTrials.gov statuses (e.g., RECRUITING, ACTIVE_NOT_RECRUITING, COMPLETED, TERMINATED, WITHDRAWN, UNKNOWN) and map to scores with deterministic rules.",
+      "note": "Align with real API status values from service",
+      "iteration": 19
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S3.description",
+      "value": "Clarified integration to ensure recruitment score is included in trial objects returned by evaluate_care_facade alongside existing trial metadata.",
+      "note": "Tighten facade contract expectations",
+      "iteration": 19
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S4.description",
+      "value": "Expanded tests to include parameterized cases for all known statuses and normalization edge cases.",
+      "note": "Increase coverage and robustness",
+      "iteration": 19
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S5.description",
+      "value": "Extended integration test to validate full flow from ClinicalTrials.gov fetch through normalization, scoring, and API response payload.",
+      "note": "Ensure end-to-end correctness",
+      "iteration": 19
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "EVAL-CT-M2-S1",
+      "title": "Define Recruitment Status Score Schema and Contract",
+      "description": "Define normalized schema for clinical trial recruitment status scoring including raw_status, normalized_status (RECRUITING, ACTIVE_NOT_RECRUITING, COMPLETED, TERMINATED, WITHDRAWN, UNKNOWN), numeric score, and human-readable explanation field for downstream consumers.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-M2-S2",
+      "title": "Implement Recruitment Status Scoring Logic",
+      "description": "Implement core logic to normalize ClinicalTrials.gov recruitment statuses and assign scores (e.g., RECRUITING = highest, ACTIVE_NOT_RECRUITING = medium-high, COMPLETED = medium, TERMINATED/WITHDRAWN = lowest). Include deterministic mapping and handling for null, unknown, or unexpected values.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-M2-S3",
+      "title": "Expose Recruitment Status Score via Evaluate Care Facade",
+      "description": "Integrate recruitment status scoring into clinical trial objects and expose via evaluate_care_facade so each trial response includes normalized status, score, and explanation alongside existing metadata.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-CT-M2-S4",
+      "title": "Unit Tests for Recruitment Status Scoring",
+      "description": "Create parameterized unit tests validating normalization and score assignment across all known recruitment statuses and edge cases (unknown, null, unexpected values).",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-M2-S5",
+      "title": "Integration Test for Recruitment Status in Trial Evaluation Flow",
+      "description": "Validate end-to-end flow ensuring recruitment status is fetched from ClinicalTrials.gov, normalized, scored, and correctly returned in evaluate_care_facade responses.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  ]
+}

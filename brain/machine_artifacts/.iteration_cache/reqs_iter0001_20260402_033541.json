@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must include a malpractice_measure object in the provider detail API response when evaluate_care_facade is invoked.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must populate malpractice_measure using the output from EVAL-P-MALPRACTICE-LOGIC-001 without altering its structure.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must include evidence_links within malpractice_measure and ensure each link is a valid URL string.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must include a field that explicitly distinguishes between unknown malpractice data and confirmed absence of malpractice actions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must preserve compatibility with existing tool_router response schema without breaking existing consumers.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must return malpractice_measure as null or an object with unknown flags when upstream logic returns no data instead of omitting the field.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must ensure that malpractice_measure does not introduce any positive scoring signal when no malpractice is present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must serialize malpractice_measure fields in a format consistent with existing provider detail JSON conventions.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must include action_count and severity_score fields in the malpractice_measure response when available.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must not fail the entire provider detail response if malpractice logic fails, and instead return malpractice_measure with an unknown status.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must handle malformed malpractice data from upstream logic by sanitizing or defaulting fields rather than propagating invalid structures.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must ensure that evidence_links are always returned as an array, even when empty.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must maintain backward-compatible field naming so existing clients parsing provider detail responses do not break.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must ensure that the malpractice_measure object is included in all provider responses regardless of provider state or specialty.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

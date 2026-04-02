@@ -1,0 +1,71 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-EXPLAIN-ST-001",
+      "title": "Define Explainability Response Schema",
+      "description": "Design and implement a structured response schema that includes measure_id, raw_value, normalized_score, weight, and contribution_to_final_score. Ensure compatibility with existing facade response composition patterns.",
+      "parent_feature": "EVAL-EXPLAIN",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (structured response composition exists and must be extended)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-EXPLAIN-ST-002",
+      "title": "Implement Measure Normalization and Contribution Logic",
+      "description": "Build core logic to transform raw measure values into normalized scores and compute weighted contribution to final score. Ensure deterministic calculations aligned with scoring model.",
+      "parent_feature": "EVAL-EXPLAIN",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-EXPLAIN-ST-001"
+      ],
+      "size": "L",
+      "evidence": "ASSUMPTION: Scoring model requires normalization and weighting but no explicit implementation exists in current codebase; GAP: define normalization formulas and weights per measure",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-EXPLAIN-ST-003",
+      "title": "Integrate Explainability into Evaluate Care Facade",
+      "description": "Extend evaluate_care_facade to include explainability breakdown in responses returned to the chat layer, ensuring compatibility with existing tool routing and response handling.",
+      "parent_feature": "EVAL-EXPLAIN",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-EXPLAIN-ST-001",
+        "EVAL-EXPLAIN-ST-002"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (facade orchestrates response payloads)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "title": "Expose Explainability via API Contract",
+      "description": "Update FastAPI endpoint and tool response contract to include explainability payload, ensuring frontend/chat client can render measure-level breakdown.",
+      "parent_feature": "EVAL-EXPLAIN",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-EXPLAIN-ST-003"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (FastAPI host and response handling); tool_router.py (tool response contract)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-EXPLAIN-ST-005",
+      "title": "Unit and Integration Tests for Explainability Engine",
+      "description": "Create unit tests for normalization and contribution logic and integration tests validating full explainability payload returned from facade through API.",
+      "parent_feature": "EVAL-EXPLAIN",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-EXPLAIN-ST-002",
+        "EVAL-EXPLAIN-ST-003",
+        "EVAL-EXPLAIN-ST-004"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ (existing test suite structure supports unit and integration tests)",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

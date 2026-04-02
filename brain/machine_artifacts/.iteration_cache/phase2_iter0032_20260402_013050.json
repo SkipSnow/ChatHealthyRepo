@@ -1,0 +1,67 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 32,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Dependency EVAL-F5-S107 and EVAL-F5-S108 referenced but not defined in current visible scope"
+  ],
+  "notes": "Added missing core logic and API/UI exposure stories to complete feature coverage.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F5-S113",
+      "value": "Explainability Mapping Engine Core Logic",
+      "note": "Adds core normalization logic layer missing from prior iteration",
+      "iteration": 32
+    },
+    {
+      "path": "stories.EVAL-F5-S114",
+      "value": "Explainability API and Chat Rendering Contract",
+      "note": "Adds API/UI exposure of explainability objects",
+      "iteration": 32
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F5-S113",
+      "title": "Explainability Mapping Engine Core Logic",
+      "description": "Implement core logic that maps raw evaluation signals from provider_detail_service and clinical_trials_service into standardized explainability objects (source, meaning, limitations). Include rule-based transformations for credential status, external links, and trial metadata.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3",
+        "EVAL-F5-S110"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F5-S114",
+      "title": "Explainability API and Chat Rendering Contract",
+      "description": "Extend Evaluate Care API responses and chat message formatting to include explainability objects in a consistent structure consumable by the frontend MessageBubble renderer, ensuring safe markdown rendering and clear separation of signal vs explanation.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S111"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

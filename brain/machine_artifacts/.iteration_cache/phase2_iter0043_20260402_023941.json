@@ -1,0 +1,79 @@
+{
+  "assignment_id": "PHASE 2: GOV-F-004 Stories",
+  "iteration": 43,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema, storage enforcement, and internal write interface stories to complete feature coverage.",
+  "change_log": [
+    {
+      "path": "stories.GOV-F-004-S144",
+      "value": "Audit Log Schema & Contract Definition",
+      "note": "Add schema layer story",
+      "iteration": 43
+    },
+    {
+      "path": "stories.GOV-F-004-S145",
+      "value": "Append-Only Storage Enforcement Layer",
+      "note": "Add core storage enforcement",
+      "iteration": 43
+    },
+    {
+      "path": "stories.GOV-F-004-S146",
+      "value": "Internal Audit Logging SDK / Write Interface",
+      "note": "Standardize logging writes",
+      "iteration": 43
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GOV-F-004-S144": {
+      "story_id": "GOV-F-004-S144",
+      "title": "Audit Log Schema & Contract Definition",
+      "description": "Define canonical audit log schema including trace_id, actor (GPT/Claude/system), event_type, timestamp, payload_hash, previous_hash, and metadata. Enforce schema via Pydantic models and ensure compatibility across GPT and Claude execution paths.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models (Pydantic patterns); Code/DataPipelines/gpt_reader.py (structured audit expectations); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S145": {
+      "story_id": "GOV-F-004-S145",
+      "title": "Append-Only Storage Enforcement Layer",
+      "description": "Implement persistence layer guaranteeing append-only behavior (no update/delete operations) with hash chaining enforcement at write time. Reject any mutation attempts and log violations.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S144"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py (write patterns); docs/adr/ADR-0010-safety-incident-logging.md (immutable logging precedent); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S146": {
+      "story_id": "GOV-F-004-S146",
+      "title": "Internal Audit Logging SDK / Write Interface",
+      "description": "Create a centralized logging interface used by GPT (brain_runner, gpt_reader) and Claude (FastAPI backend) to emit audit events consistently. Automatically attach trace_id, enforce schema, and route writes through append-only layer.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S144",
+        "GOV-F-004-S145"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py (GPT execution flow); Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (existing logging baseline); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

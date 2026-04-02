@@ -1,0 +1,72 @@
+{
+  "assignment_id": "PHASE 2: GOV-F-003",
+  "iteration": 50,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing stories to fully cover schema, core logic, API, and integration for Brain lock TTL and recovery.",
+  "change_log": [],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GOV-F-003-S166": {
+      "story_id": "GOV-F-003-S166",
+      "title": "Brain Lock Schema and Contract Definition",
+      "description": "Define MongoDB schema and Pydantic contract for Brain lock including lock_id, owner_id, ttl_expiry, heartbeat_timestamp, and recovery_status. Ensure compatibility with existing Mongo utilities and audit logging.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S167": {
+      "story_id": "GOV-F-003-S167",
+      "title": "Lock TTL and Ownership Core Logic",
+      "description": "Implement core lock acquisition, ownership validation, TTL expiration, and heartbeat renewal logic. Enforce single-owner constraint and automatic expiration when TTL lapses.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S166"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S168": {
+      "story_id": "GOV-F-003-S168",
+      "title": "Lock Recovery and Crash Handling",
+      "description": "Implement recovery logic to detect abandoned locks via expired TTL and safely reassign ownership. Include safeguards for partial writes and ensure idempotent recovery operations.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S167"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_loop.py; Code/Shared/machine_brain.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S169": {
+      "story_id": "GOV-F-003-S169",
+      "title": "Brain Lock API Endpoints",
+      "description": "Expose internal API endpoints for lock acquire, heartbeat, release, and recovery status. Integrate with existing FastAPI backend patterns and enforce authentication via brain_auth.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S167",
+        "GOV-F-003-S168"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

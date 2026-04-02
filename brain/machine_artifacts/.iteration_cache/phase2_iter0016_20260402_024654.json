@@ -1,0 +1,84 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-002",
+  "iteration": 16,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories validated; no duplicates introduced; aligned to required breakdown.",
+  "change_log": [],
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-002-S1",
+      "title": "Define Token Schema and Validation Contract",
+      "description": "Define bearer token structure including token_id, subject, scopes, issued_at, expires_at, rotation_version, and revocation status. Specify signing mechanism, serialization format, and strict validation contract (signature, expiry, scope match) aligned to existing auth.py implementation.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/DataPipelines/auth.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S2",
+      "title": "Implement Core Token Lifecycle Engine",
+      "description": "Implement issuance, rotation (version increment + invalidation of prior versions), expiration enforcement (TTL), and revocation checks backed by Mongo using existing ChatHealthyMongoUtilities patterns. Ensure deterministic validation order and consistent rejection behavior across all lifecycle states.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/Shared/ChatHealthyMongoUtilities.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S3",
+      "title": "Token Enforcement Middleware and Internal APIs",
+      "description": "Implement FastAPI middleware to enforce bearer token validation on all protected routes in main.py. Provide internal endpoints for token validation, rotation trigger, and revocation. Ensure consistent HTTP responses (401 unauthorized, 403 forbidden) and scope enforcement.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S4",
+      "title": "Token Lifecycle Security and Edge Case Tests",
+      "description": "Create unit and integration tests covering expired tokens, invalid signatures, replay attempts, rotated tokens with stale versions, revoked tokens, and scope violations. Validate strict enforcement and failure modes.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S2",
+        "BL-0.1.4-002-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/auth.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S5",
+      "title": "System Integration with GPTReader and Azure Functions",
+      "description": "Integrate token lifecycle enforcement into GPTReader and Azure Functions entry points. Ensure all inbound requests are authenticated and lifecycle rules (expiration, rotation, revocation) are consistently applied across data pipelines and read operations.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/function_app.py; Code/DataPipelines/auth.py"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

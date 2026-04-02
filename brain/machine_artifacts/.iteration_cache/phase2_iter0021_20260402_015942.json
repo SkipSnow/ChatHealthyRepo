@@ -1,0 +1,40 @@
+{
+  "stories": {
+    "STORY-FEAT4-013": {
+      "story_id": "STORY-FEAT4-013",
+      "title": "Construct External Links for Provider Profile",
+      "description": "Enhance provider detail service to generate external links including state medical board pages and research site URLs based on provider attributes.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-010"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "STORY-FEAT4-014": {
+      "story_id": "STORY-FEAT4-014",
+      "title": "Validate and Sanitize Provider External URLs",
+      "description": "Integrate URL validation to ensure all generated provider links are reachable, safe, and properly formatted before returning in response.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-013"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    },
+    "STORY-FEAT4-015": {
+      "story_id": "STORY-FEAT4-015",
+      "title": "Handle NPI API Errors and Fallback Behavior",
+      "description": "Implement robust error handling for NPI Registry failures including timeouts, empty results, and malformed responses, returning graceful degraded provider detail output.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-010"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    }
+  }
+}

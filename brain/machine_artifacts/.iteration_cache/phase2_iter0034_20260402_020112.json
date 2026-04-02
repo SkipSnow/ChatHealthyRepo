@@ -1,0 +1,52 @@
+{
+  "stories": {
+    "FEAT-4-STORY-13": {
+      "story_id": "FEAT-4-STORY-13",
+      "title": "Implement NPI Registry API Client and Data Mapping",
+      "description": "Build core logic to call CMS NPI Registry API and map response fields into the standardized provider detail schema including name, taxonomy, status, and practice locations.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-9"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "FEAT-4-STORY-14": {
+      "story_id": "FEAT-4-STORY-14",
+      "title": "Construct External Provider Links (State Boards and Research)",
+      "description": "Generate external URLs for provider verification including state medical board lookup links and research site URLs based on provider metadata.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-13"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "FEAT-4-STORY-15": {
+      "story_id": "FEAT-4-STORY-15",
+      "title": "Integrate URL Validation for External Links",
+      "description": "Validate constructed external links using URL guardian to ensure links are reachable, safe, and properly formatted before returning to the client.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-14"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    },
+    "FEAT-4-STORY-16": {
+      "story_id": "FEAT-4-STORY-16",
+      "title": "Error Handling and Fallback Logic for Provider Lookup",
+      "description": "Implement robust error handling for NPI API failures, missing provider data, and partial responses, returning safe fallback responses to the facade.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-13"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    }
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "assignment_id": "FEAT-6-STORIES",
+  "iteration": 8,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema/contract and downstream integration coverage for consent workflow.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-6-S24",
+      "value": "Consent Data Schema and Contracts",
+      "note": "Adds schema/contract layer for consent tiers",
+      "iteration": 8
+    },
+    {
+      "path": "stories.FEAT-6-S25",
+      "value": "Consent Integration with Lead Capture and Unknowns",
+      "note": "Ensures cross-service enforcement of consent",
+      "iteration": 8
+    },
+    {
+      "path": "stories.FEAT-6-S26",
+      "value": "Consent Audit Logging and Persistence",
+      "note": "Adds persistence and auditability for compliance",
+      "iteration": 8
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-6-S24": {
+      "story_id": "FEAT-6-S24",
+      "title": "Consent Data Schema and Contracts",
+      "description": "Define and implement Pydantic models and data contracts for consent capture, including Tier 1 vs Tier 2 flags, timestamping, user identifiers (if allowed), and storage directives for downstream services.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py"
+    },
+    "FEAT-6-S25": {
+      "story_id": "FEAT-6-S25",
+      "title": "Consent Integration with Lead Capture and Unknowns",
+      "description": "Integrate ConsentService with LeadService and UnknownQuestionService to ensure all stored data respects consent tier rules, including blocking identified storage when only Tier 1 consent is granted.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S21"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "FEAT-6-S26": {
+      "story_id": "FEAT-6-S26",
+      "title": "Consent Audit Logging and Persistence",
+      "description": "Implement persistence of consent decisions and audit logs, ensuring all consent changes, tier upgrades, and data handling actions are recorded for compliance and traceability.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S21"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/Shared/ChatHealthyMongoUtilities.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

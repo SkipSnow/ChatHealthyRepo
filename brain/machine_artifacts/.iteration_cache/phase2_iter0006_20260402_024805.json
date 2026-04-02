@@ -1,0 +1,122 @@
+{
+  "assignment_id": "PHASE 2: BL-0.1.4-003",
+  "iteration": 6,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories created for Brain Lock TTL and Deadlock Recovery with no duplication of prior BRAIN-F-003 concepts.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-003-S1",
+      "value": "Lock TTL schema and ownership contract",
+      "note": "Added schema story",
+      "iteration": 6
+    },
+    {
+      "path": "stories.BL-0.1.4-003-S2",
+      "value": "TTL enforcement and expiration handling logic",
+      "note": "Added core logic story",
+      "iteration": 6
+    },
+    {
+      "path": "stories.BL-0.1.4-003-S3",
+      "value": "Deadlock detection and recovery mechanism",
+      "note": "Added recovery logic story",
+      "iteration": 6
+    },
+    {
+      "path": "stories.BL-0.1.4-003-S4",
+      "value": "Internal lock management API",
+      "note": "Added API story",
+      "iteration": 6
+    },
+    {
+      "path": "stories.BL-0.1.4-003-S5",
+      "value": "Unit and integration tests for lock TTL and recovery",
+      "note": "Added test story",
+      "iteration": 6
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "BL-0.1.4-003-S1": {
+      "story_id": "BL-0.1.4-003-S1",
+      "title": "Lock TTL Schema and Ownership Contract",
+      "description": "Define the lock data model including TTL, owner identity, acquisition timestamp, and renewal semantics to ensure deterministic expiration and ownership validation.",
+      "parent_feature": "BL-0.1.4-003",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/Shared/brain_loop.py"
+    },
+    "BL-0.1.4-003-S2": {
+      "story_id": "BL-0.1.4-003-S2",
+      "title": "TTL Enforcement and Expiration Handling Logic",
+      "description": "Implement logic to automatically expire locks based on TTL, including safe cleanup and prevention of stale lock reuse during execution cycles.",
+      "parent_feature": "BL-0.1.4-003",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-003-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_loop.py"
+    },
+    "BL-0.1.4-003-S3": {
+      "story_id": "BL-0.1.4-003-S3",
+      "title": "Deadlock Detection and Recovery Mechanism",
+      "description": "Detect stuck execution states caused by unreleased locks and implement forced recovery logic including lock override, retry safeguards, and audit-safe recovery paths.",
+      "parent_feature": "BL-0.1.4-003",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-003-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_loop.py"
+    },
+    "BL-0.1.4-003-S4": {
+      "story_id": "BL-0.1.4-003-S4",
+      "title": "Internal Lock Management API",
+      "description": "Expose internal methods for lock acquire, renew, release, and force-release to standardize lock lifecycle handling across Brain runner workflows.",
+      "parent_feature": "BL-0.1.4-003",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-003-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/Shared/brain_loop.py"
+    },
+    "BL-0.1.4-003-S5": {
+      "story_id": "BL-0.1.4-003-S5",
+      "title": "Unit and Integration Tests for Lock TTL and Recovery",
+      "description": "Create tests covering TTL expiration, concurrent lock contention, deadlock scenarios, and recovery correctness within Brain execution loops.",
+      "parent_feature": "BL-0.1.4-003",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-003-S3",
+        "BL-0.1.4-003-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_loop.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "BL-0.1.4-003": {
+        "feature_id": "BL-0.1.4-003",
+        "likelihood": "Moderate",
+        "impact": "High",
+        "mitigation": "Use conservative TTL defaults and ensure idempotent recovery logic to avoid cascading failures."
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

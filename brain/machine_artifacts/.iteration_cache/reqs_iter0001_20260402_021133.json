@@ -1,0 +1,133 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-PROX-REQ-001",
+      "story_id": "CT-PROX-001",
+      "requirement": "The system must define a Pydantic model for clinical trial proximity that includes distance_miles as a float field.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PROX-REQ-002",
+      "story_id": "CT-PROX-001",
+      "requirement": "The system must define a Pydantic model for clinical trial proximity that includes duration_minutes as a float field.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PROX-REQ-003",
+      "story_id": "CT-PROX-001",
+      "requirement": "The system must define a normalized_score field constrained between 0 and 100 inclusive.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PROX-REQ-004",
+      "story_id": "CT-PROX-001",
+      "requirement": "The system must include a metadata object containing route_source as a string field.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PROX-REQ-005",
+      "story_id": "CT-PROX-001",
+      "requirement": "The system must include a metadata object containing timestamp as a valid datetime field.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PROX-REQ-006",
+      "story_id": "CT-PROX-001",
+      "requirement": "The system must enforce type validation using Pydantic such that invalid field types raise validation errors.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PROX-REQ-007",
+      "story_id": "CT-PROX-001",
+      "requirement": "The system must ensure the proximity schema is serializable to JSON without custom encoders.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PROX-REQ-008",
+      "story_id": "CT-PROX-001",
+      "requirement": "The system must ensure compatibility with existing clinical trial models by allowing embedding or extension without breaking existing fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PROX-REQ-009",
+      "story_id": "CT-PROX-001",
+      "requirement": "The system must accept distance_miles values greater than or equal to 0.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PROX-REQ-010",
+      "story_id": "CT-PROX-001",
+      "requirement": "The system must accept duration_minutes values greater than or equal to 0.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PROX-REQ-011",
+      "story_id": "CT-PROX-001",
+      "requirement": "The system must reject normalized_score values outside the 0 to 100 range.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PROX-REQ-012",
+      "story_id": "CT-PROX-001",
+      "requirement": "The system must raise a validation error if required fields (distance_miles, duration_minutes, normalized_score) are missing.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PROX-REQ-013",
+      "story_id": "CT-PROX-001",
+      "requirement": "The system must allow metadata fields to be optional while still validating correctly when provided.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PROX-REQ-014",
+      "story_id": "CT-PROX-001",
+      "requirement": "The system must default timestamp to the current UTC time if not explicitly provided.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PROX-REQ-015",
+      "story_id": "CT-PROX-001",
+      "requirement": "The system must raise a validation error when distance_miles or duration_minutes are negative values.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PROX-REQ-016",
+      "story_id": "CT-PROX-001",
+      "requirement": "The system must support instantiation of the proximity model from existing clinical_trials_service outputs without transformation errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

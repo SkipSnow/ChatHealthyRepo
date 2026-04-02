@@ -1,0 +1,63 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-P-MEASURE-2-S1",
+      "title": "Specialty Match Score Schema and Contract",
+      "description": "Define the output schema for specialty match scoring including fields for input condition, matched NUCC codes, match confidence score, and explanation metadata. Ensure compatibility with existing provider evaluation flows.",
+      "parent_feature": "EVAL-P-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-2-S2",
+      "title": "Core Specialty Match Accuracy Logic",
+      "description": "Implement backend logic to compute match accuracy between user condition and provider specialties using NUCC taxonomy mappings, leveraging existing specialty identification pipelines.",
+      "parent_feature": "EVAL-P-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-MEASURE-2-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-2-S3",
+      "title": "Evaluate Care Integration Endpoint",
+      "description": "Expose specialty match accuracy through the Evaluate Care facade, enabling downstream consumption in provider evaluation workflows.",
+      "parent_feature": "EVAL-P-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-MEASURE-2-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-2-S4",
+      "title": "Unit Tests for Specialty Matching Logic",
+      "description": "Develop unit tests validating specialty match scoring across common, edge, and mismatched condition scenarios using NUCC taxonomy inputs.",
+      "parent_feature": "EVAL-P-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-MEASURE-2-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-2-S5",
+      "title": "End-to-End Integration with Provider Evaluation Flow",
+      "description": "Integrate specialty match accuracy into the full provider evaluation pipeline, ensuring scores are computed and returned as part of evaluation responses.",
+      "parent_feature": "EVAL-P-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-MEASURE-2-S3",
+        "EVAL-P-MEASURE-2-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  ]
+}

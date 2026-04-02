@@ -1,0 +1,106 @@
+{
+  "assignment_id": "PHASE-2-SHARED-B-M1-STORIES",
+  "iteration": 13,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Refined evidence specificity and clarified scope boundaries; no new stories created to avoid duplication.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-B-M1-S1.evidence",
+      "value": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py",
+      "note": "Made schema evidence explicit to concrete model files",
+      "iteration": 13
+    },
+    {
+      "path": "stories.SHARED-B-M1-S3.evidence",
+      "value": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py",
+      "note": "Removed duplicate consent_service reference; router owns injection behavior",
+      "iteration": 13
+    },
+    {
+      "path": "stories.SHARED-B-M1-S4.description",
+      "value": "Integrate router into FastAPI main loop: parse Anthropic tool_use blocks, invoke routing, enforce timeouts, handle malformed payloads gracefully, and normalize outputs (including errors) into Anthropic-compatible tool_result blocks to maintain agent loop continuity. Must not introduce new API surfaces beyond existing main.py loop.",
+      "note": "Added scope guard to prevent API surface expansion",
+      "iteration": 13
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "SHARED-B-M1-S1",
+      "title": "Tool Schema and Validation Contract",
+      "description": "Define Pydantic schemas for all allowlisted tools with strict input models, required/optional fields, defaults, and standardized 422 validation errors with field-level detail. Schemas must align exactly with Anthropic tool_use structure (name + JSON input payload) and existing tool_models modules.",
+      "parent_feature": "SHARED-B-M1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py"
+    },
+    {
+      "story_id": "SHARED-B-M1-S2",
+      "title": "Allowlist-Based Tool Routing Logic",
+      "description": "Implement routing engine enforcing explicit allowlist (config-driven), strict schema-to-tool binding, input validation via Pydantic, payload normalization, and rejection of unknown tools. Emit structured debug logs (tool name, validation outcome, latency, rejection reason). Provide deterministic error taxonomy (validation_error, unknown_tool, execution_error) and normalized response envelope for all outcomes.",
+      "parent_feature": "SHARED-B-M1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-B-M1-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "SHARED-B-M1-S3",
+      "title": "Chat History Injection into Tool Context",
+      "description": "Implement controlled chat history injection with token-aware truncation (prioritize most recent messages), role filtering (user/assistant/system), and ordering guarantees prior to tool execution.",
+      "parent_feature": "SHARED-B-M1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-B-M1-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "SHARED-B-M1-S4",
+      "title": "Tool Router API Integration with Main Loop",
+      "description": "Integrate router into FastAPI main loop: parse Anthropic tool_use blocks, invoke routing, enforce timeouts, handle malformed payloads gracefully, and normalize outputs (including errors) into Anthropic-compatible tool_result blocks to maintain agent loop continuity. Must not introduce new API surfaces beyond existing main.py loop.",
+      "parent_feature": "SHARED-B-M1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-B-M1-S1",
+        "SHARED-B-M1-S2",
+        "SHARED-B-M1-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "SHARED-B-M1-S5",
+      "title": "Tool Routing and Validation Test Suite",
+      "description": "Develop unit and integration tests covering allowlist enforcement, schema validation success/failure, dispatch correctness, chat history injection, malformed tool_use blocks, unknown tools, partial inputs, and edge cases across all tool types.",
+      "parent_feature": "SHARED-B-M1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-B-M1-S2",
+        "SHARED-B-M1-S3",
+        "SHARED-B-M1-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

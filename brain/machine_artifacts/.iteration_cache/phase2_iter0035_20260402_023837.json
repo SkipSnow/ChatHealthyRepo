@@ -1,0 +1,38 @@
+{
+  "stories": {
+    "GOV-F-004-S117": {
+      "story_id": "GOV-F-004-S117",
+      "title": "Audit Event Schema & Contract Definition",
+      "description": "Define a standardized audit event schema including fields such as trace_id, actor (GPT/Claude/system), action_type, timestamp, input/output metadata, and hash chaining for integrity validation.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py (existing audit logging structure); Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (log schema patterns); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S118": {
+      "story_id": "GOV-F-004-S118",
+      "title": "Append-Only Audit Write Service",
+      "description": "Implement a dedicated audit logging service responsible for writing events in append-only mode, enforcing immutability, generating hash chains between records, and rejecting update/delete operations.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S117"
+      ],
+      "size": "L",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py (write constraints); Code/DataPipelines/gpt_reader.py (audit persistence); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S119": {
+      "story_id": "GOV-F-004-S119",
+      "title": "Audit Logging Middleware for Request Lifecycle",
+      "description": "Implement FastAPI middleware to automatically create and propagate trace_id for each request and emit entry/exit audit events covering full request lifecycle.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S118"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (FastAPI entrypoint and request flow); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    }
+  }
+}

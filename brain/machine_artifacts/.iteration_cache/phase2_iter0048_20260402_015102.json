@@ -1,0 +1,38 @@
+{
+  "stories": {
+    "FEAT-2-S150": {
+      "story_id": "FEAT-2-S150",
+      "title": "Define Specialty Identification Schema and Contracts",
+      "description": "Define Pydantic models and internal contracts for specialty identification inputs and outputs, including normalized query text, extracted specialty tokens, NUCC code list, and confidence scores.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-2-S151": {
+      "story_id": "FEAT-2-S151",
+      "title": "Unit Tests for Specialty Identification Logic",
+      "description": "Create unit tests covering regex extraction, vector matching, NUCC mapping, deduplication, and confidence scoring, including edge cases such as ambiguous or multi-specialty queries.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S148"
+      ],
+      "size": "S",
+      "evidence": "GAP: No existing specialty-specific test file; must be created under backend/tests to validate specialty_service behavior."
+    },
+    "FEAT-2-S152": {
+      "story_id": "FEAT-2-S152",
+      "title": "Integrate Specialty Identification with Provider Search",
+      "description": "Integrate specialty identification output into provider search service, ensuring NUCC codes are correctly passed into taxonomy fallback and vector search filtering.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S148"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    }
+  }
+}

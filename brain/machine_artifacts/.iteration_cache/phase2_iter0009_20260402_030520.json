@@ -1,0 +1,70 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-009",
+  "iteration": 9,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories refined and de-duplicated; aligned to schema, logic, integration, API, and testing layers.",
+  "change_log": [],
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-009-S1",
+      "title": "Define Mongo Query Size Estimation Contract",
+      "description": "Define a standard schema and contract for estimating Mongo query size including document count, projected payload size in bytes, aggregation amplification risk, and enforcement thresholds aligned with GPTReader limits (500KB response cap and 100-document limit).",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    },
+    {
+      "story_id": "BL-0.1.4-009-S2",
+      "title": "Implement Query Size Estimation Engine",
+      "description": "Implement core estimation logic using sampling and metadata (average document size × query limit), with handling for aggregation stages such as $lookup, $group, and projections that may inflate or reduce payload size.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [
+        "BL-0.1.4-009-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    },
+    {
+      "story_id": "BL-0.1.4-009-S3",
+      "title": "Enforce Query Size Guard in GPTReader Pipeline",
+      "description": "Integrate estimation engine into GPTReader execution path to enforce limits (500KB, 100 docs), rejecting or truncating queries before execution and ensuring compliance with existing response caps and audit logging behavior.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [
+        "BL-0.1.4-009-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    },
+    {
+      "story_id": "BL-0.1.4-009-S4",
+      "title": "Expose Size Estimation and Guard Decisions via API",
+      "description": "Extend GPTReader response schema to include estimated size, applied thresholds, and guard actions (allow, truncate, reject) for observability, debugging, and downstream audit logging.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [
+        "BL-0.1.4-009-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    },
+    {
+      "story_id": "BL-0.1.4-009-S5",
+      "title": "Test Suite for Query Size Estimation and Enforcement",
+      "description": "Develop unit and integration tests covering estimation accuracy, enforcement of limits, aggregation edge cases, large document handling, and validation that GPTReader never exceeds defined caps.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [
+        "BL-0.1.4-009-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py"
+    }
+  ]
+}

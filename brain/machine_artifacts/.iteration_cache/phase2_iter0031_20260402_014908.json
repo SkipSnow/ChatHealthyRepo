@@ -1,0 +1,63 @@
+{
+  "assignment_id": "PHASE-2-FEAT-2-STORIES",
+  "iteration": 31,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing test and integration coverage for FEAT-2.",
+  "epics": [],
+  "features": [],
+  "stories": {
+    "FEAT-2-S93": {
+      "story_id": "FEAT-2-S93",
+      "title": "Implement Dual-Pipeline Specialty Mapping Logic",
+      "description": "Build core specialty identification logic combining regex extraction and vector-based similarity search, including query expansion and NUCC code aggregation with deduplication.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S90",
+        "FEAT-2-S92"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "FEAT-2-S94": {
+      "story_id": "FEAT-2-S94",
+      "title": "Integrate Specialty Identification with Provider Search Flow",
+      "description": "Connect specialty identification output (NUCC codes) into provider_search_service to enable taxonomy fallback and improved provider matching when vector search is insufficient.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S93"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-2-S95": {
+      "story_id": "FEAT-2-S95",
+      "title": "Unit and Integration Tests for Specialty Identification",
+      "description": "Create test coverage for specialty_service including regex extraction, vector matching, NUCC mapping accuracy, and end-to-end validation through facade and tool_router.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S91",
+        "FEAT-2-S93",
+        "FEAT-2-S94"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  },
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-007-S1",
+      "title": "Health Endpoint Schema and Contract",
+      "description": "Define the /health response contract including status (ok/degraded/down), timestamp, service name, version, and optional dependency checks (e.g., MongoDB connectivity). Establish JSON schema and HTTP status code mapping.",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; ASSUMPTION: No existing /health contract defined"
+    },
+    {
+      "story_id": "BL-0.1.4-007-S2",
+      "title": "Core Health Check Logic",
+      "description": "Implement backend logic to evaluate system health including app liveness and optional checks (MongoDB ping via shared utilities, external API reachability if lightweight). Return aggregated health status.",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [
+        "BL-0.1.4-007-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "BL-0.1.4-007-S3",
+      "title": "Expose /health API Endpoint",
+      "description": "Add FastAPI route /health in main.py that returns the health contract response. Ensure low-latency execution and no dependency on heavy services.",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [
+        "BL-0.1.4-007-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "BL-0.1.4-007-S4",
+      "title": "Health Endpoint Tests",
+      "description": "Create unit and integration tests validating /health response schema, status codes, and behavior under normal and degraded conditions (e.g., simulated DB failure).",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [
+        "BL-0.1.4-007-S2",
+        "BL-0.1.4-007-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    },
+    {
+      "story_id": "BL-0.1.4-007-S5",
+      "title": "Integration with Deployment and Monitoring",
+      "description": "Ensure /health endpoint is compatible with CI/CD and hosting environment (Azure App Service) for uptime checks and readiness probes. Validate endpoint accessibility post-deploy.",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [
+        "BL-0.1.4-007-S3"
+      ],
+      "size": "S",
+      "evidence": ".github/workflows/deploy-findcare-backend.yml; docs/adr/ADR-0003-fastapi-azure-app-service.md"
+    }
+  ]
+}

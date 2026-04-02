@@ -1,0 +1,107 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 5,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema/contract, API exposure, testing, and integration coverage for explainability layer.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F5-S14",
+      "value": "Explainability Schema Contract Definition",
+      "note": "Add schema layer story",
+      "iteration": 5
+    },
+    {
+      "path": "stories.EVAL-F5-S15",
+      "value": "Explainability API Exposure via Facade",
+      "note": "Add API/UI story",
+      "iteration": 5
+    },
+    {
+      "path": "stories.EVAL-F5-S16",
+      "value": "Explainability Unit and Integration Tests",
+      "note": "Add testing coverage",
+      "iteration": 5
+    },
+    {
+      "path": "stories.EVAL-F5-S17",
+      "value": "End-to-End Integration with Evaluation Signals",
+      "note": "Add integration story across dependencies",
+      "iteration": 5
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F5-S14": {
+      "story_id": "EVAL-F5-S14",
+      "title": "Explainability Schema Contract Definition",
+      "description": "Define a standardized explainability schema (source, meaning, limitations, confidence if applicable) and enforce it via Pydantic models to ensure all evaluation signals produce consistent explainability objects.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F1",
+        "EVAL-F3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F5-S15": {
+      "story_id": "EVAL-F5-S15",
+      "title": "Explainability API Exposure via Facade",
+      "description": "Extend evaluate_care_facade to attach standardized explainability objects to all evaluation responses and ensure they are included in tool outputs returned to the chat layer.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S11",
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F5-S16": {
+      "story_id": "EVAL-F5-S16",
+      "title": "Explainability Unit and Integration Tests",
+      "description": "Create unit tests for explainability schema validation and normalization logic, plus integration tests ensuring explainability content is correctly generated and returned for provider and clinical trial flows.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S14",
+        "EVAL-F5-S11",
+        "EVAL-F5-S12"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py; Code/ConversationalUX/FindCareChat/backend/tests/test_unanswerable_questions.py"
+    },
+    "EVAL-F5-S17": {
+      "story_id": "EVAL-F5-S17",
+      "title": "End-to-End Integration with Evaluation Signals",
+      "description": "Integrate explainability layer across provider credentials, external links, and clinical trials so that every surfaced signal includes a complete explainability object without breaking existing response formats.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S15",
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

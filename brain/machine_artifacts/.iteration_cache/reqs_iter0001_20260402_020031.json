@@ -1,0 +1,133 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-REL-002-REQ-001",
+      "story_id": "EVAL-CT-REL-002",
+      "requirement": "The system must accept structured user condition intent and trial condition inputs conforming to the schema defined in EVAL-CT-REL-001.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-002-REQ-002",
+      "story_id": "EVAL-CT-REL-002",
+      "requirement": "The system must compute an exact match score when a user condition string exactly matches a trial condition string.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-002-REQ-003",
+      "story_id": "EVAL-CT-REL-002",
+      "requirement": "The system must compute a partial match score when a user condition partially overlaps with a trial condition string.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-002-REQ-004",
+      "story_id": "EVAL-CT-REL-002",
+      "requirement": "The system must compute a synonym-based match score using normalized or equivalent condition terms.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-002-REQ-005",
+      "story_id": "EVAL-CT-REL-002",
+      "requirement": "The system must compute embedding-based similarity using embedding_client.py when structured matching does not yield a high-confidence match.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-002-REQ-006",
+      "story_id": "EVAL-CT-REL-002",
+      "requirement": "The system must normalize the final relevance score to a value between 0.0 and 1.0.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-002-REQ-007",
+      "story_id": "EVAL-CT-REL-002",
+      "requirement": "The system must combine structured match scores and embedding similarity into a single aggregated relevance score using a deterministic weighting strategy.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-002-REQ-008",
+      "story_id": "EVAL-CT-REL-002",
+      "requirement": "The system must generate explanation factors indicating which matching strategies contributed to the final score (exact, partial, synonym, embedding).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-002-REQ-009",
+      "story_id": "EVAL-CT-REL-002",
+      "requirement": "The system must include per-condition contribution details in the explanation output for each matched trial condition.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-002-REQ-010",
+      "story_id": "EVAL-CT-REL-002",
+      "requirement": "The system must return a relevance score of 0.0 when no structured or embedding similarity exceeds a minimum threshold.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-002-REQ-011",
+      "story_id": "EVAL-CT-REL-002",
+      "requirement": "The system must handle multiple user conditions by aggregating scores across all inputs without failure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-002-REQ-012",
+      "story_id": "EVAL-CT-REL-002",
+      "requirement": "The system must handle multiple trial conditions by evaluating each condition independently before aggregation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-002-REQ-013",
+      "story_id": "EVAL-CT-REL-002",
+      "requirement": "The system must return a valid response with score 0.0 and empty explanation factors when user condition input is empty.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-002-REQ-014",
+      "story_id": "EVAL-CT-REL-002",
+      "requirement": "The system must gracefully degrade to structured matching only when the embedding_client fails or is unavailable.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-002-REQ-015",
+      "story_id": "EVAL-CT-REL-002",
+      "requirement": "The system must ensure embedding similarity scores are computed using consistent input preprocessing (e.g., lowercasing, trimming, normalization).",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-002-REQ-016",
+      "story_id": "EVAL-CT-REL-002",
+      "requirement": "The system must ensure deterministic outputs such that identical inputs produce identical relevance scores and explanations.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

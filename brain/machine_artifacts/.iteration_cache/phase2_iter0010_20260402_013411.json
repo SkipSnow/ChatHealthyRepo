@@ -1,0 +1,63 @@
+{
+  "assignment_id": "EVAL-F-03-STORIES",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added API/tool integration and error handling stories for facade completeness.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-03-S31",
+      "value": "Add tool_router integration story for EvaluateCare facade",
+      "note": "Covers API/tool exposure layer",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-F-03-S32",
+      "value": "Add error handling and fallback logic story",
+      "note": "Improves robustness without expanding scope",
+      "iteration": 10
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F-03-S31",
+      "title": "Integrate EvaluateCare Facade with Tool Router",
+      "description": "Expose EvaluateCare facade methods through the tool_router, ensuring allowlisted access, proper input validation via Pydantic models, and compatibility with the agentic tool-use loop.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S28",
+        "EVAL-F-03-S29"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-03-S32",
+      "title": "Implement Error Handling and Response Normalization",
+      "description": "Add standardized error handling, timeout safeguards, and response normalization within the EvaluateCare facade to ensure consistent outputs across clinical trials and provider detail flows, including partial failure handling.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S29"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

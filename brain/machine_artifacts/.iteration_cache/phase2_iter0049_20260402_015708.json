@@ -1,0 +1,86 @@
+{
+  "assignment_id": "FEAT-3-STORIES",
+  "iteration": 49,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema/contract, API exposure, formatting, and test coverage stories for FEAT-3.",
+  "change_log": [],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-3-S172",
+      "title": "Clinical Trials Input/Output Schema Validation",
+      "description": "Define and enforce Pydantic schemas for clinical trials search inputs (condition, location, radius) and outputs (trial metadata, locations, distance, duration) to ensure strict contract validation.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    {
+      "story_id": "FEAT-3-S173",
+      "title": "Trial Location Extraction and Normalization",
+      "description": "Extract, normalize, and structure trial location data from ClinicalTrials.gov responses, including handling multiple sites per trial and ensuring consistent geographic formatting for downstream distance calculations.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S169"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "FEAT-3-S174",
+      "title": "API Endpoint Exposure via Tool Router",
+      "description": "Expose clinical trials search capability through the tool router with allowlisted tool definition, ensuring validated inputs, safe execution, and compatibility with the agentic tool-use loop.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S171"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-3-S175",
+      "title": "Clinical Trials Result Formatting for Chat Output",
+      "description": "Format clinical trial search results into structured, user-readable responses including trial title, status, locations, and travel metrics, optimized for conversational delivery.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S171",
+        "FEAT-3-S173"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "FEAT-3-S176",
+      "title": "Unit and Integration Tests for Clinical Trials Search",
+      "description": "Implement unit tests for query construction, location extraction, and distance computation, plus integration tests covering end-to-end clinical trials search through the facade and tool router.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S169",
+        "FEAT-3-S170",
+        "FEAT-3-S174"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing clinical trials test file found; must create new tests aligned with existing backend test patterns in Code/ConversationalUX/FindCareChat/backend/tests/"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

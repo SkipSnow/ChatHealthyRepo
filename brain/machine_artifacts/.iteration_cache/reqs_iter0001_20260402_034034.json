@@ -1,0 +1,149 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-001",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must render a prescription behavior module within MessageBubble when prescription behavior data is present in the provider scorecard payload.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-002",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must display a relevance indicator derived from transformed data provided by EVAL-P-RX-UX-S2.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-003",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must visually distinguish relevance levels using consistent UI states (e.g., high, medium, low).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-004",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must render a list of top relevant drugs with names and ordering as provided by the transformation layer.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-005",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must limit displayed drugs to the top N entries as defined in the frontend data contract.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-006",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must display an integrity indicator showing either 'clean' or 'flagged' based on transformed data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-007",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must visually differentiate integrity states using distinct UI cues (e.g., icon, color, or label).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-008",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must display the prescription behavior contribution to the overall provider score as a numeric or percentage value.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-009",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must ensure the prescription behavior module is rendered in the correct position within the provider scorecard layout inside MessageBubble.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-010",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must reuse existing MessageBubble styling and layout patterns to maintain visual consistency with other scorecard modules.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-011",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must not render the prescription behavior module if the prescription data object is absent or null.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-012",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must render a fallback state (e.g., 'No prescription data available') when the data object exists but contains no usable values.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-013",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must handle malformed prescription data gracefully without breaking MessageBubble rendering.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-014",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must render all prescription behavior fields using only transformed frontend data and must not perform additional business logic inside MessageBubble.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-015",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must support conditional rendering of each subcomponent (relevance, drugs, integrity, score contribution) independently based on field availability.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-016",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must ensure the prescription behavior module renders within acceptable performance bounds (<100ms additional render time).",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-017",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must ensure accessibility by providing text labels for all visual indicators (relevance and integrity).",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-UX-S3-018",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must ensure that rendering the prescription module does not alter or regress existing MessageBubble components.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

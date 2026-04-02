@@ -1,0 +1,62 @@
+{
+  "assignment_id": "PHASE 2: FEAT-6 Stories",
+  "iteration": 36,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added core logic and persistence enforcement stories to complete coverage (schema, logic, API, tests, integration).",
+  "change_log": [
+    {
+      "path": "stories.FEAT-6-S121",
+      "value": "Consent Core Logic and Tier Enforcement",
+      "note": "Add missing core domain logic story",
+      "iteration": 36
+    },
+    {
+      "path": "stories.FEAT-6-S122",
+      "value": "Consent-Gated Persistence and De-identification Enforcement",
+      "note": "Add storage enforcement and HIPAA compliance logic",
+      "iteration": 36
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-6-S121": {
+      "story_id": "FEAT-6-S121",
+      "title": "Consent Core Logic and Tier Enforcement",
+      "description": "Implement core domain logic for two-tier consent workflow including tier transitions, validation rules, and eligibility checks for data usage. Ensure correct handling of Tier 1 (limited use) vs Tier 2 (full consent) decisions.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S118"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "FEAT-6-S122": {
+      "story_id": "FEAT-6-S122",
+      "title": "Consent-Gated Persistence and De-identification Enforcement",
+      "description": "Implement enforcement layer ensuring data is only stored when appropriate consent tier is achieved. Apply HIPAA Safe Harbor de-identification for non-consented or partially consented data before persistence.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S121"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

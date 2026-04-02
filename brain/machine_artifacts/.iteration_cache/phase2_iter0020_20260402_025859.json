@@ -1,0 +1,121 @@
+{
+  "assignment_id": "PHASE 2: BL-0.1.4-006",
+  "iteration": 20,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added complete story set for Manifest Snapshot Freshness (schema, logic, API, tests, integration).",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-006-S1",
+      "value": "Added schema/contract story",
+      "note": "Feature had zero stories",
+      "iteration": 20
+    },
+    {
+      "path": "stories.BL-0.1.4-006-S2",
+      "value": "Added core logic story",
+      "note": "Feature had zero stories",
+      "iteration": 20
+    },
+    {
+      "path": "stories.BL-0.1.4-006-S3",
+      "value": "Added API exposure story",
+      "note": "Feature had zero stories",
+      "iteration": 20
+    },
+    {
+      "path": "stories.BL-0.1.4-006-S4",
+      "value": "Added test suite story",
+      "note": "Feature had zero stories",
+      "iteration": 20
+    },
+    {
+      "path": "stories.BL-0.1.4-006-S5",
+      "value": "Added integration story",
+      "note": "Feature had zero stories",
+      "iteration": 20
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "BL-0.1.4-006-S1": {
+      "story_id": "BL-0.1.4-006-S1",
+      "title": "Define Manifest Snapshot Freshness Schema and Contract",
+      "description": "Define metadata schema for manifest snapshots including timestamp, source hash, generation version, and freshness TTL policy used to determine validity before execution.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/Shared/ops/manifest_generator.py"
+    },
+    "BL-0.1.4-006-S2": {
+      "story_id": "BL-0.1.4-006-S2",
+      "title": "Implement Manifest Freshness Evaluation Logic",
+      "description": "Build logic to evaluate whether a manifest snapshot is fresh based on TTL, file hash drift, and last generation timestamp; return pass/fail with reason.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/manifest_generator.py"
+    },
+    "BL-0.1.4-006-S3": {
+      "story_id": "BL-0.1.4-006-S3",
+      "title": "Expose Manifest Freshness Status via Internal API",
+      "description": "Provide an internal API or callable interface that returns current manifest freshness status and triggers regeneration requirement if stale.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/Shared/ops/dev_pipeline.py"
+    },
+    "BL-0.1.4-006-S4": {
+      "story_id": "BL-0.1.4-006-S4",
+      "title": "Unit and Integration Tests for Manifest Freshness",
+      "description": "Create tests covering TTL expiry, hash mismatch, valid snapshot pass, and stale snapshot detection across manifest generation and read workflows.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/manifest_generator.py"
+    },
+    "BL-0.1.4-006-S5": {
+      "story_id": "BL-0.1.4-006-S5",
+      "title": "Integrate Freshness Check into Execution Pipeline",
+      "description": "Integrate freshness validation into dev_pipeline and brain_runner execution paths to ensure stale manifests trigger regeneration before use.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/dev_pipeline.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "BL-0.1.4-006": {
+        "feature_id": "BL-0.1.4-006",
+        "likelihood": "Low",
+        "impact": "Moderate",
+        "mitigation": "Default to regeneration when freshness status is uncertain."
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

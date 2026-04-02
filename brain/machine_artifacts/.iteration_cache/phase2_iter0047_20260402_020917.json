@@ -1,0 +1,101 @@
+{
+  "assignment_id": "FEAT-5-STORIES",
+  "iteration": 47,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "",
+  "change_log": [
+    {
+      "path": "stories.FEAT-5-S186",
+      "value": "Add unit and negative tests for allowlist routing and Pydantic validation",
+      "note": "Covers test dimension missing from prior iteration",
+      "iteration": 47
+    },
+    {
+      "path": "stories.FEAT-5-S187",
+      "value": "Add Anthropic tool_use parsing and dispatch integration",
+      "note": "Covers integration with LLM tool-use loop",
+      "iteration": 47
+    },
+    {
+      "path": "stories.FEAT-5-S188",
+      "value": "Add FastAPI integration for tool router invocation path",
+      "note": "Covers API layer integration",
+      "iteration": 47
+    },
+    {
+      "path": "stories.FEAT-5-S189",
+      "value": "Add end-to-end routing validation with real tool models",
+      "note": "Ensures cross-module integration works",
+      "iteration": 47
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-5-S186",
+      "title": "Unit and Negative Tests for Allowlist Routing",
+      "description": "Implement comprehensive unit tests validating that only allowlisted tools can be executed, including negative cases for disallowed tools and invalid Pydantic inputs.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S183",
+        "FEAT-5-S184"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S187",
+      "title": "Anthropic Tool Use Parsing and Dispatch Integration",
+      "description": "Implement parsing of Anthropic tool_use blocks and connect them to the allowlist router, ensuring validated inputs are dispatched to correct handlers.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S182",
+        "FEAT-5-S183"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "FEAT-5-S188",
+      "title": "FastAPI Integration for Tool Routing Execution Path",
+      "description": "Integrate the tool router into the FastAPI request lifecycle, ensuring tool calls from chat requests are properly routed, validated, and executed within the API layer.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S187"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S189",
+      "title": "End-to-End Tool Routing Validation with Real Tool Models",
+      "description": "Validate full routing flow using real tool models (provider search, clinical trials, consent), ensuring schema validation, allowlist enforcement, and handler execution work cohesively.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S182",
+        "FEAT-5-S187"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

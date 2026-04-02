@@ -1,0 +1,122 @@
+{
+  "assignment_id": "EVAL-PROVIDER-QUALITY-STORIES",
+  "iteration": 14,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories created for Provider Quality Snapshot feature using existing NPI service.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-PROVIDER-QUALITY-S1",
+      "value": "Added schema/contract story for provider quality snapshot",
+      "note": "Feature had zero stories",
+      "iteration": 14
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-QUALITY-S2",
+      "value": "Added core logic mapping from NPI data",
+      "note": "Feature had zero stories",
+      "iteration": 14
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-QUALITY-S3",
+      "value": "Added API exposure via EvaluateCare facade",
+      "note": "Feature had zero stories",
+      "iteration": 14
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-QUALITY-S4",
+      "value": "Added frontend rendering story",
+      "note": "Feature had zero stories",
+      "iteration": 14
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-QUALITY-S5",
+      "value": "Added unit and integration tests",
+      "note": "Feature had zero stories",
+      "iteration": 14
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-PROVIDER-QUALITY-S1": {
+      "story_id": "EVAL-PROVIDER-QUALITY-S1",
+      "title": "Define Provider Quality Snapshot Schema and Contract",
+      "description": "Define a structured schema for provider quality snapshot including credential, specialty, license state, status, enumeration date, and address fields sourced from NPI data.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-PROVIDER-QUALITY-S2": {
+      "story_id": "EVAL-PROVIDER-QUALITY-S2",
+      "title": "Implement Provider Quality Mapping Logic from NPI डेटा",
+      "description": "Extract and normalize NPI registry fields from provider_detail_service into the defined snapshot schema, handling missing or inconsistent values.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-PROVIDER-QUALITY-S3": {
+      "story_id": "EVAL-PROVIDER-QUALITY-S3",
+      "title": "Expose Provider Quality Snapshot via EvaluateCare Facade",
+      "description": "Extend evaluate_care_facade to include provider quality snapshot in provider detail responses for downstream consumption.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-PROVIDER-QUALITY-S4": {
+      "story_id": "EVAL-PROVIDER-QUALITY-S4",
+      "title": "Render Provider Quality Snapshot in Chat UI",
+      "description": "Display provider quality snapshot fields in the frontend chat interface using structured formatting within MessageBubble or equivalent component.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    "EVAL-PROVIDER-QUALITY-S5": {
+      "story_id": "EVAL-PROVIDER-QUALITY-S5",
+      "title": "Unit and Integration Tests for Provider Quality Snapshot",
+      "description": "Create unit tests for mapping logic and integration tests validating end-to-end flow from NPI service through facade to API response.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY-S2",
+        "EVAL-PROVIDER-QUALITY-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "EVAL-PROVIDER-QUALITY": {
+        "feature_id": "EVAL-PROVIDER-QUALITY",
+        "likelihood": "Moderate",
+        "impact": "Moderate",
+        "mitigation": "Fallback to partial snapshot display when NPI fields are missing"
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

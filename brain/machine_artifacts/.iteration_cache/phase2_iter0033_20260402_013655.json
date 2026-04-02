@@ -1,0 +1,42 @@
+{
+  "assignment_id": "EVAL-F-03-STORIES",
+  "iteration": 33,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing schema/contract story to complete required breakdown.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-03-S96",
+      "value": "Add schema and response contract definition story for facade",
+      "note": "Complete required story coverage (schema/contract category)",
+      "iteration": 33
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F-03-S96": {
+      "story_id": "EVAL-F-03-S96",
+      "title": "Define EvaluateCare Facade Request/Response Contracts",
+      "description": "Define and standardize input/output schemas for clinical trials search and provider detail flows, ensuring consistent structures for tool_router interaction and downstream UI consumption.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "stories": {
+    "FEAT-1-STORY-017": {
+      "story_id": "FEAT-1-STORY-017",
+      "title": "Define facade-level provider search contract",
+      "description": "Establish request/response contract in find_care_facade to standardize inputs (query, location, specialty hints) and outputs (ranked providers, metadata, fallback indicators) for downstream tool_router consumption.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-013"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    "FEAT-1-STORY-018": {
+      "story_id": "FEAT-1-STORY-018",
+      "title": "Implement vector search with taxonomy fallback sequencing",
+      "description": "Enhance provider_search_service to enforce deterministic sequencing: attempt vector search first, detect low-confidence or empty results, then trigger taxonomy-based fallback using NUCC codes with merged ranking.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-014"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-019": {
+      "story_id": "FEAT-1-STORY-019",
+      "title": "Expose provider search via tool_router API",
+      "description": "Wire provider search capability into tool_router allowlist, ensuring validated inputs are routed to find_care_facade and results are returned in tool_use compatible format for LLM orchestration.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-017"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-1-STORY-020": {
+      "story_id": "FEAT-1-STORY-020",
+      "title": "Validate location filtering and geo enrichment logic",
+      "description": "Test and refine location filtering pipeline including FIPS-to-county mapping, city/state resolution, and distance constraints to ensure accurate geographic narrowing of provider results.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-018"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    }
+  }
+}

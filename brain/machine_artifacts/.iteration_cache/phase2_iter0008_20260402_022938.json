@@ -1,0 +1,103 @@
+{
+  "assignment_id": "EVAL-CT-MEASURE-3-STORIES",
+  "iteration": 8,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined existing stories to explicitly cover API/UI contract and integration boundaries without creating new IDs.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-CT-M3-S3.title",
+      "value": "Expose Proximity Metrics via Evaluate Care Facade API",
+      "note": "Clarify API/UI responsibility",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-CT-M3-S3.description",
+      "value": "Expose computed proximity metrics (distance, duration, closest site) through the Evaluate Care facade API contract, ensuring structured fields are available for frontend/chat rendering and consistent with tool response schemas.",
+      "note": "Make API contract explicit",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-CT-M3-S5.description",
+      "value": "Implement fallback behavior for missing user location, incomplete trial site coordinates, and Google Routes API failures, including graceful degradation (null metrics, partial ordering by known distance, or omission) while preserving API contract integrity.",
+      "note": "Strengthen edge-case handling and contract consistency",
+      "iteration": 8
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-CT-M3-S1": {
+      "story_id": "EVAL-CT-M3-S1",
+      "title": "Define Proximity Metric Schema and Contract",
+      "description": "Define the response schema for clinical trial proximity including distance (miles/km), travel duration (minutes), origin, destination, and calculation metadata to ensure consistent downstream consumption.",
+      "parent_feature": "EVAL-CT-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M3-S2": {
+      "story_id": "EVAL-CT-M3-S2",
+      "title": "Implement Distance and Travel Time Calculation Logic",
+      "description": "Implement backend logic to call Google Routes API to compute distance and travel time between user location and each clinical trial site, including handling multiple sites per trial and selecting the closest option.",
+      "parent_feature": "EVAL-CT-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-M3-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M3-S3": {
+      "story_id": "EVAL-CT-M3-S3",
+      "title": "Expose Proximity Metrics via Evaluate Care Facade API",
+      "description": "Expose computed proximity metrics (distance, duration, closest site) through the Evaluate Care facade API contract, ensuring structured fields are available for frontend/chat rendering and consistent with tool response schemas.",
+      "parent_feature": "EVAL-CT-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-M3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-CT-M3-S4": {
+      "story_id": "EVAL-CT-M3-S4",
+      "title": "Unit and Integration Tests for Proximity Calculation",
+      "description": "Create unit tests for distance/time calculation logic and integration tests validating end-to-end flow from trial search through proximity enrichment, including edge cases like missing location or API failure.",
+      "parent_feature": "EVAL-CT-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-M3-S2",
+        "EVAL-CT-M3-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    },
+    "EVAL-CT-M3-S5": {
+      "story_id": "EVAL-CT-M3-S5",
+      "title": "Handle Missing Location and API Failure Fallbacks",
+      "description": "Implement fallback behavior for missing user location, incomplete trial site coordinates, and Google Routes API failures, including graceful degradation (null metrics, partial ordering by known distance, or omission) while preserving API contract integrity.",
+      "parent_feature": "EVAL-CT-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-M3-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

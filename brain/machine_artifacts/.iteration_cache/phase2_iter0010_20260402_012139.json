@@ -1,0 +1,102 @@
+{
+  "assignment_id": "PHASE 2: SHARED-F-2 Stories",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Previous iteration under-produced stories (2 < minimum 3)"
+  ],
+  "notes": "Added missing core logic, testing, and integration coverage for consent framework.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-2-S27",
+      "value": "Consent Core Logic and Tier Enforcement",
+      "note": "Adds missing core logic layer",
+      "iteration": 10
+    },
+    {
+      "path": "stories.SHARED-F-2-S28",
+      "value": "Consent De-identification and Storage Decision Engine",
+      "note": "Separates de-identification logic per HIPAA Safe Harbor",
+      "iteration": 10
+    },
+    {
+      "path": "stories.SHARED-F-2-S29",
+      "value": "Consent Framework Tests",
+      "note": "Adds required test coverage",
+      "iteration": 10
+    },
+    {
+      "path": "stories.SHARED-F-2-S30",
+      "value": "Consent Integration with Lead Capture and Debug Logger",
+      "note": "Ensures cross-service integration",
+      "iteration": 10
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "SHARED-F-2-S27": {
+      "story_id": "SHARED-F-2-S27",
+      "title": "Consent Core Logic and Tier Enforcement",
+      "description": "Implement core consent workflow logic supporting two-tier HIPAA consent. Enforce tier rules (Tier 1: de-identified storage only, Tier 2: full data allowed with consent) and ensure all downstream services query consent state before persisting data.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S25"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "SHARED-F-2-S28": {
+      "story_id": "SHARED-F-2-S28",
+      "title": "Consent De-identification and Storage Decision Engine",
+      "description": "Implement decision engine that determines whether to store raw or de-identified data based on consent tier. Apply HIPAA Safe Harbor de-identification rules and integrate with conversation summarization prior to persistence.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S27"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "SHARED-F-2-S29": {
+      "story_id": "SHARED-F-2-S29",
+      "title": "Consent Framework Tests",
+      "description": "Develop unit and integration tests validating consent tier enforcement, de-identification correctness, storage decisions, and failure cases (missing consent, invalid tier transitions). Ensure coverage aligns with HIPAA handling expectations.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S27",
+        "SHARED-F-2-S28"
+      ],
+      "size": "S",
+      "evidence": "GAP: No existing consent-specific tests found; must be created following existing backend test patterns"
+    },
+    "SHARED-F-2-S30": {
+      "story_id": "SHARED-F-2-S30",
+      "title": "Consent Integration with Lead Capture and Debug Logger",
+      "description": "Integrate consent framework with lead capture and debug logging systems to ensure all persisted data respects consent tier. Enforce de-identification for logs when Tier 1 is active and allow full storage only under Tier 2.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S27",
+        "SHARED-F-2-S28"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

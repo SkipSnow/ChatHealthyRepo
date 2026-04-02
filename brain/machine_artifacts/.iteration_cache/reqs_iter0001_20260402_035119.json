@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-PHASE-UX-REQ-001",
+      "story_id": "EVAL-CT-PHASE-UX-S1",
+      "requirement": "The system must define a typed UI contract object that includes a phase_label field constrained to values I, II, III, or IV.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-UX-REQ-002",
+      "story_id": "EVAL-CT-PHASE-UX-S1",
+      "requirement": "The system must include a plain_language_explanation field in the UI contract as a non-empty string.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-UX-REQ-003",
+      "story_id": "EVAL-CT-PHASE-UX-S1",
+      "requirement": "The system must include a score_contribution field in the UI contract represented as a numeric or string value compatible with frontend display.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-UX-REQ-004",
+      "story_id": "EVAL-CT-PHASE-UX-S1",
+      "requirement": "The system must ensure the UI contract structure is serializable into markdown-compatible content for MessageBubble rendering.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-UX-REQ-005",
+      "story_id": "EVAL-CT-PHASE-UX-S1",
+      "requirement": "The system must define field names and structure that align with existing MessageBubble.tsx rendering expectations.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-UX-REQ-006",
+      "story_id": "EVAL-CT-PHASE-UX-S1",
+      "requirement": "The system must accept input from the EVAL-CT-MEASURE-PHASE backend dependency without requiring additional transformation at render time.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-UX-REQ-007",
+      "story_id": "EVAL-CT-PHASE-UX-S1",
+      "requirement": "The system must enforce that all required fields (phase_label, plain_language_explanation, score_contribution) are present in the contract before rendering.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-UX-REQ-008",
+      "story_id": "EVAL-CT-PHASE-UX-S1",
+      "requirement": "The system must reject or flag any contract instance where phase_label is outside the allowed set (I, II, III, IV).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-UX-REQ-009",
+      "story_id": "EVAL-CT-PHASE-UX-S1",
+      "requirement": "The system must handle missing plain_language_explanation by substituting a default fallback message indicating explanation unavailable.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-UX-REQ-010",
+      "story_id": "EVAL-CT-PHASE-UX-S1",
+      "requirement": "The system must handle null or undefined score_contribution by displaying a neutral or omitted contribution state without breaking rendering.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-UX-REQ-011",
+      "story_id": "EVAL-CT-PHASE-UX-S1",
+      "requirement": "The system must define the contract in a reusable typed format (e.g., TypeScript interface or equivalent) accessible to other frontend components.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-UX-REQ-012",
+      "story_id": "EVAL-CT-PHASE-UX-S1",
+      "requirement": "The system must ensure the contract supports consistent ordering of fields for deterministic rendering in the UI.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-UX-REQ-013",
+      "story_id": "EVAL-CT-PHASE-UX-S1",
+      "requirement": "The system must validate that the contract output can be rendered in MessageBubble without runtime errors.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-UX-REQ-014",
+      "story_id": "EVAL-CT-PHASE-UX-S1",
+      "requirement": "The system must support extension of the contract with additional optional fields without breaking backward compatibility.",
+      "source": "architecture_constraint",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

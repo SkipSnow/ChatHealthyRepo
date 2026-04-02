@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-EXP-002-REQ-001",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must calculate years_in_practice using enumeration_date when graduation_year is not available by subtracting enumeration year from current year.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-002",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must calculate years_in_practice using graduation_year when available by subtracting graduation_year from current year.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-003",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must prioritize graduation_year over enumeration_date when both fields are available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-004",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must ensure years_in_practice is a non-negative integer.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-005",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must compute normalized_experience_score based on predefined year ranges mapped to a 0–1 scale.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-006",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must assign the maximum normalized score when years_in_practice exceeds the highest defined range threshold.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-007",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must assign the minimum normalized score when years_in_practice is zero.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-008",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must round or floor fractional year calculations to the nearest whole integer.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-009",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must return null for years_in_practice and normalized_experience_score when both enumeration_date and graduation_year are missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-010",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must handle future-dated enumeration_date or graduation_year by returning null values for derived fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-011",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must correctly parse enumeration_date from NPI API response format into a valid date object before calculation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-012",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must produce consistent years_in_practice outputs for identical input values across repeated executions.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-013",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must ensure normalized_experience_score is always within the inclusive range of 0 to 1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-014",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must log a warning when fallback logic is used due to missing graduation_year or enumeration_date.",
+      "source": "architecture_constraint",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

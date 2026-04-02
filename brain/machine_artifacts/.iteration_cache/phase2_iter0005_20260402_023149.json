@@ -1,0 +1,95 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-001",
+  "iteration": 5,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Expanded to 5 stories covering schema, core logic, integration, tests, and observability.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-001-S1",
+      "value": "Added schema/contract story for scope enforcement",
+      "note": "Ensure explicit contract for allowed tools and scopes",
+      "iteration": 5
+    },
+    {
+      "path": "stories.BL-0.1.4-001-S2",
+      "value": "Added core logic story for enforcement engine",
+      "note": "Implement validation against allowlist and scope rules",
+      "iteration": 5
+    },
+    {
+      "path": "stories.BL-0.1.4-001-S3",
+      "value": "Added integration story with tool_router",
+      "note": "Enforce scope at dispatch point",
+      "iteration": 5
+    },
+    {
+      "path": "stories.BL-0.1.4-001-S4",
+      "value": "Added unit and integration tests",
+      "note": "Validate enforcement across valid/invalid tool calls",
+      "iteration": 5
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-001-S1",
+      "title": "Scope Enforcement Schema and Contract Definition",
+      "description": "Define a strict schema for tool scope including allowed tool names, permitted parameter shapes, and scope boundaries per conversation context. Ensure compatibility with existing Pydantic tool_models and allowlist structure.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/ (Pydantic validation models); Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (allowlist dispatch)"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S2",
+      "title": "Scope Enforcement Core Logic",
+      "description": "Implement backend logic to validate each tool call against the defined scope contract, including allowlist membership, parameter validation, and context-based restrictions before execution.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (dispatch and validation flow)"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S3",
+      "title": "Integration with Tool Router Dispatch Flow",
+      "description": "Integrate scope enforcement into the existing tool_router dispatch pipeline to intercept all tool calls prior to execution, ensuring no bypass paths exist.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (central dispatch control point)"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S4",
+      "title": "Scope Enforcement Unit and Integration Tests",
+      "description": "Create test coverage for valid and invalid tool calls, including out-of-scope tools, malformed inputs, and boundary cases. Ensure enforcement works across all registered tools.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py (existing router tests to extend)"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S5",
+      "title": "Scope Enforcement Response Handling and Observability",
+      "description": "Implement standardized error/response handling for rejected tool calls including structured error codes, safe user-facing messaging, and debug logging for auditability of scope violations.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (existing logging); Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (dispatch interception point)"
+    }
+  ]
+}

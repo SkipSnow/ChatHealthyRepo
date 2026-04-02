@@ -1,0 +1,99 @@
+{
+  "assignment_id": "FEAT-6-STORIES",
+  "iteration": 19,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema/contract, API exposure, tool routing integration, and test coverage stories for FEAT-6.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-6-S63",
+      "value": "Consent schema and contract validation",
+      "note": "Add schema layer coverage",
+      "iteration": 19
+    },
+    {
+      "path": "stories.FEAT-6-S64",
+      "value": "Consent API endpoints",
+      "note": "Expose backend capability",
+      "iteration": 19
+    },
+    {
+      "path": "stories.FEAT-6-S65",
+      "value": "Tool router consent integration",
+      "note": "Ensure orchestration enforcement",
+      "iteration": 19
+    },
+    {
+      "path": "stories.FEAT-6-S66",
+      "value": "Consent workflow test suite",
+      "note": "Add required test coverage",
+      "iteration": 19
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-6-S63",
+      "title": "Consent Schema and Contract Validation",
+      "description": "Define and enforce Pydantic schemas for consent capture, tier transitions, and storage permissions, ensuring strict validation of inputs and outputs across the consent workflow.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py"
+    },
+    {
+      "story_id": "FEAT-6-S64",
+      "title": "Consent API Endpoints",
+      "description": "Expose FastAPI endpoints for consent capture, upgrade to Tier 2, and consent status retrieval, ensuring integration with ConsentService and consistent response contracts.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S59",
+        "FEAT-6-S63"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "FEAT-6-S65",
+      "title": "Tool Router Consent Enforcement Integration",
+      "description": "Integrate consent checks into the tool_router to ensure that all tool invocations involving storage or identifiable data validate consent tier before execution.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S59"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-6-S66",
+      "title": "Consent Workflow Test Suite",
+      "description": "Implement unit and integration tests covering consent capture, tier transitions, de-identification enforcement, API responses, and failure cases (missing or insufficient consent).",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S59",
+        "FEAT-6-S61",
+        "FEAT-6-S64"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

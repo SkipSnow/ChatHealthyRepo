@@ -1,0 +1,124 @@
+{
+  "assignment_id": "BL-0.1.4-005-STORIES",
+  "iteration": 9,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Feature relies on ASSUMPTION; no existing resilience abstraction verified in manifest"
+  ],
+  "notes": "Stories created for Local Disk Resilience with clear separation of contract, logic, integration, and testing.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-005-S1",
+      "value": "Added schema/contract story for local disk resilience",
+      "note": "Feature had zero stories",
+      "iteration": 9
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S2",
+      "value": "Added core retry and fallback logic story",
+      "note": "Feature had zero stories",
+      "iteration": 9
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S3",
+      "value": "Added integration wrapper for file operations",
+      "note": "Feature had zero stories",
+      "iteration": 9
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S4",
+      "value": "Added observability and error classification story",
+      "note": "Feature had zero stories",
+      "iteration": 9
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S5",
+      "value": "Added unit and integration test suite story",
+      "note": "Feature had zero stories",
+      "iteration": 9
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "BL-0.1.4-005-S1": {
+      "story_id": "BL-0.1.4-005-S1",
+      "title": "Define Local Disk Resilience Schema and Contract",
+      "description": "Define a standardized contract for resilient file operations including retry policy, fallback behavior, error classification, and operation metadata (operation type, file path, attempt count, outcome).",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "ASSUMPTION: No existing resilience contract; GAP requires standardized interface for safe file operations"
+    },
+    "BL-0.1.4-005-S2": {
+      "story_id": "BL-0.1.4-005-S2",
+      "title": "Implement Retry and Fallback Logic for File Operations",
+      "description": "Implement core logic to handle transient file system failures using configurable retries with exponential backoff and safe fallback behaviors (e.g., temp file, alternate path, or no-op with error capture).",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S1"
+      ],
+      "size": "M",
+      "evidence": "ASSUMPTION: File operations currently lack retry/fallback handling; GAP requires resilience logic"
+    },
+    "BL-0.1.4-005-S3": {
+      "story_id": "BL-0.1.4-005-S3",
+      "title": "Integrate Resilience Wrapper into Existing File Operations",
+      "description": "Wrap existing local disk interactions (e.g., logging, manifest generation, temp artifacts) with the resilience layer to ensure all file operations use the standardized retry and fallback mechanism.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/manifest_generator.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    "BL-0.1.4-005-S4": {
+      "story_id": "BL-0.1.4-005-S4",
+      "title": "Add Error Classification and Observability for File Failures",
+      "description": "Implement structured error classification (transient vs permanent) and logging for all file operation failures, including retry attempts, fallback activation, and final outcomes for debugging and audit visibility.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    "BL-0.1.4-005-S5": {
+      "story_id": "BL-0.1.4-005-S5",
+      "title": "Unit and Integration Tests for Local Disk Resilience",
+      "description": "Create tests covering retry behavior, fallback execution, error classification, and integration with existing file operations, including simulated disk failures and edge cases.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S2",
+        "BL-0.1.4-005-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py; Code/DataPipelines/tests/test_pipeline_worker_base.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "BL-0.1.4-005": {
+        "feature_id": "BL-0.1.4-005",
+        "likelihood": "Moderate",
+        "impact": "Moderate",
+        "mitigation": "Limit retries and ensure fallback paths do not introduce data inconsistency"
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

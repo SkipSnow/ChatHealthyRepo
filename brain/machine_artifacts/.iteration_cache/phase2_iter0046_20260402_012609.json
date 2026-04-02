@@ -1,0 +1,79 @@
+{
+  "assignment_id": "SHARED-F-2-STORIES",
+  "iteration": 46,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema/contract, core logic hardening, and test coverage stories for Consent Framework.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-2-S136",
+      "value": "Consent data schema and storage contract",
+      "note": "Add schema layer story",
+      "iteration": 46
+    },
+    {
+      "path": "stories.SHARED-F-2-S137",
+      "value": "Consent tier enforcement logic",
+      "note": "Add core logic enforcement story",
+      "iteration": 46
+    },
+    {
+      "path": "stories.SHARED-F-2-S138",
+      "value": "Consent framework test suite",
+      "note": "Add testing coverage story",
+      "iteration": 46
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "SHARED-F-2-S136": {
+      "story_id": "SHARED-F-2-S136",
+      "title": "Consent Data Schema and Storage Contract",
+      "description": "Define and implement MongoDB schema and Pydantic models for consent records, including tier level, anonymization flags, timestamps, and linkage to session/lead identifiers.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; architecture/refactor_design_arch001"
+    },
+    "SHARED-F-2-S137": {
+      "story_id": "SHARED-F-2-S137",
+      "title": "Consent Tier Enforcement Logic",
+      "description": "Implement strict enforcement logic within consent_service to gate data storage and processing based on Tier 1 (de-identified) vs Tier 2 (identified) consent, including Safe Harbor de-identification validation.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S136"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; architecture/refactor_design_arch001"
+    },
+    "SHARED-F-2-S138": {
+      "story_id": "SHARED-F-2-S138",
+      "title": "Consent Framework Test Suite",
+      "description": "Create unit and integration tests validating consent capture, tier enforcement, de-identification behavior, and API responses, including negative cases (missing consent, invalid tier transitions).",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S133",
+        "SHARED-F-2-S137"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; architecture/refactor_design_arch001"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

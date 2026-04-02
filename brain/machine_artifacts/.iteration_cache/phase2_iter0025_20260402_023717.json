@@ -1,0 +1,52 @@
+{
+  "stories": {
+    "GOV-F-004-S80": {
+      "story_id": "GOV-F-004-S80",
+      "title": "Audit Log Schema Definition and Versioning",
+      "description": "Define a canonical audit log schema including actor, action, timestamp, trace_id, payload metadata, and model attribution (GPT vs Claude). Implement schema versioning to support forward-compatible changes.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S68"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models (Pydantic patterns); Code/DataPipelines/gpt_reader.py (audit fields); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S81": {
+      "story_id": "GOV-F-004-S81",
+      "title": "Trace ID Propagation Across GPT and Claude Flows",
+      "description": "Implement end-to-end trace_id generation and propagation across tool_router, facades, and domain services to ensure every audit event can be correlated to a single user interaction or system workflow.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S78"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (central orchestration); Code/Shared/brain_runner.py (request lifecycle); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S82": {
+      "story_id": "GOV-F-004-S82",
+      "title": "Idempotent Audit Write Handling",
+      "description": "Ensure audit logging is idempotent under retries by enforcing unique constraints (e.g., trace_id + event_type + sequence) and preventing duplicate or conflicting log entries during transient failures.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S76"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py (write patterns); Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (retry scenarios); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S83": {
+      "story_id": "GOV-F-004-S83",
+      "title": "Audit Log Access Control and Redaction Rules",
+      "description": "Implement strict access control for audit log retrieval, including role-based filtering and automatic redaction of sensitive fields (e.g., PHI, tokens) to ensure compliance with privacy and governance requirements.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S77"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py (controlled access + limits); Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py (de-identification patterns); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    }
+  }
+}

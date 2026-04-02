@@ -1,0 +1,98 @@
+{
+  "assignment_id": "FEAT-1-STORIES",
+  "iteration": 7,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing schema, integration, and test coverage stories for FEAT-1.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-1-STORY-013",
+      "value": "Add provider search request/response schema validation",
+      "note": "Covers schema/contract gap",
+      "iteration": 7
+    },
+    {
+      "path": "stories.FEAT-1-STORY-014",
+      "value": "Integrate specialty_service with provider_search_service",
+      "note": "Covers integration between specialty ID and search",
+      "iteration": 7
+    },
+    {
+      "path": "stories.FEAT-1-STORY-015",
+      "value": "Add unit tests for provider search service",
+      "note": "Covers core logic testing",
+      "iteration": 7
+    },
+    {
+      "path": "stories.FEAT-1-STORY-016",
+      "value": "Add integration test for end-to-end provider search flow",
+      "note": "Covers API + tool + facade integration",
+      "iteration": 7
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-1-STORY-013": {
+      "story_id": "FEAT-1-STORY-013",
+      "title": "Validate provider search request and response schemas",
+      "description": "Ensure provider search inputs and outputs conform to defined Pydantic models, including location filters, specialty inputs, and structured provider result fields.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-1-STORY-014": {
+      "story_id": "FEAT-1-STORY-014",
+      "title": "Integrate specialty identification into provider search flow",
+      "description": "Connect specialty_service to provider_search_service to translate user queries into NUCC taxonomy codes using regex + vector pipeline before executing search.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-013"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "FEAT-1-STORY-015": {
+      "story_id": "FEAT-1-STORY-015",
+      "title": "Unit test provider search service logic",
+      "description": "Create unit tests for provider_search_service covering vector search, taxonomy fallback, and location filtering behavior including edge cases.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-012"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-016": {
+      "story_id": "FEAT-1-STORY-016",
+      "title": "End-to-end integration test for provider search",
+      "description": "Implement integration test covering tool_router → facade → specialty_service → provider_search_service → API response to validate full provider search flow.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-010",
+        "FEAT-1-STORY-011",
+        "FEAT-1-STORY-014"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

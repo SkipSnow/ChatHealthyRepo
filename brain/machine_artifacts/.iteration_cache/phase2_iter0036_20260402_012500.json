@@ -1,0 +1,69 @@
+{
+  "assignment_id": "SHARED-F-2-STORIES",
+  "iteration": 36,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added remaining coverage: schema/contract validation and test layer for consent framework.",
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "SHARED-F-2-S109",
+      "title": "Consent Data Schema and Persistence Contract",
+      "description": "Define and enforce MongoDB schema and data contracts for consent records, including tier designation, timestamping, audit fields, and linkage to session or user identifiers. Ensure compatibility with existing debug logging and lead storage patterns.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S102"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; Code/Shared/ChatHealthyMongoUtilities.py; architecture/refactor_design_arch001"
+    },
+    {
+      "story_id": "SHARED-F-2-S110",
+      "title": "Consent Validation and Input Contract Enforcement",
+      "description": "Extend Pydantic models and validation rules to strictly enforce consent input contracts, including explicit Tier 2 opt-in requirements, rejection of ambiguous consent states, and normalization of consent signals before entering core logic.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S106"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "SHARED-F-2-S111",
+      "title": "Consent Framework Unit and Integration Tests",
+      "description": "Develop unit and integration tests validating consent tier enforcement, de-identification behavior, API responses, and integration with lead capture and unknown question flows. Include negative tests for improper storage without consent.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S105",
+        "SHARED-F-2-S107",
+        "SHARED-F-2-S108"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; brain/machine_artifacts/content/sprint_plan.json (uat_library)"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "SHARED-F-2",
+        "likelihood": "High",
+        "impact": "Critical",
+        "mitigation": "Enforce strict validation and de-identification at service boundary before any persistence call."
+      }
+    ],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

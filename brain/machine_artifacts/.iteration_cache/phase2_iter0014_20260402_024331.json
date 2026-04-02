@@ -1,0 +1,93 @@
+{
+  "assignment_id": "MAINT-BRAIN-STORIES",
+  "iteration": 14,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories already complete and well-structured; minor evidence alignment improvement applied.",
+  "change_log": [
+    {
+      "path": "stories.MAINT-BRAIN-S3.evidence",
+      "value": "Code/Shared/brain_runner.py; Code/DataPipelines/gpt_reader.py; Code/Shared/prompt_system_maker.py",
+      "note": "Added prompt system integration evidence for interface standardization",
+      "iteration": 14
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "MAINT-BRAIN-S1",
+      "title": "Define GPTReader Manifest-Aware Schema and Contract",
+      "description": "Define a strict request/response contract for GPTReader that includes manifest references, query constraints (doc limit, size cap), and audit metadata fields to ensure consistent and validated data access patterns.",
+      "parent_feature": "MAINT-BRAIN",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/ops/manifest_generator.py"
+    },
+    {
+      "story_id": "MAINT-BRAIN-S2",
+      "title": "Implement GPTReader Reliability and Guardrail Logic",
+      "description": "Enhance GPTReader core logic to enforce limits (100-doc, 500KB), implement retry/backoff for transient failures, ensure safe truncation behavior, and validate manifest alignment before query execution.",
+      "parent_feature": "MAINT-BRAIN",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-BRAIN-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader.py"
+    },
+    {
+      "story_id": "MAINT-BRAIN-S3",
+      "title": "Expose Manifest-Aligned GPTReader Access Interface",
+      "description": "Standardize how GPTReader is invoked by upstream systems (Brain runner, SIT, QA) by enforcing manifest-backed queries, consistent input validation, and structured response formatting for downstream consumption.",
+      "parent_feature": "MAINT-BRAIN",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-BRAIN-S1",
+        "MAINT-BRAIN-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/DataPipelines/gpt_reader.py; Code/Shared/prompt_system_maker.py"
+    },
+    {
+      "story_id": "MAINT-BRAIN-S4",
+      "title": "Build GPTReader Unit and Integration Test Suite",
+      "description": "Expand unit and integration tests to validate schema compliance, limit enforcement, truncation behavior, manifest alignment, and error handling across realistic query scenarios.",
+      "parent_feature": "MAINT-BRAIN",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-BRAIN-S2",
+        "MAINT-BRAIN-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; brain/BusinessArtifacts/gpt_sit_report.pdf"
+    },
+    {
+      "story_id": "MAINT-BRAIN-S5",
+      "title": "Standardize Audit Logging and Traceability for GPTReader",
+      "description": "Implement consistent audit logging across GPTReader operations including request metadata, manifest references, response size, truncation events, and error states to ensure full traceability and alignment with Brain audit expectations.",
+      "parent_feature": "MAINT-BRAIN",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-BRAIN-S1",
+        "MAINT-BRAIN-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; brain/BusinessArtifacts/gpt_reader_qa_report.pdf"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

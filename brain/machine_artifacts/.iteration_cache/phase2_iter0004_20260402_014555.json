@@ -1,0 +1,46 @@
+{
+  "assignment_id": "FEAT-2-STORIES",
+  "iteration": 4,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added integration story to connect specialty identification output to provider search pipeline.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-2-S12",
+      "value": "Specialty to Provider Search Integration",
+      "note": "Ensure NUCC outputs are consumable by provider search",
+      "iteration": 4
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-2-S12",
+      "title": "Specialty to Provider Search Integration",
+      "description": "Integrate specialty identification outputs (NUCC codes and classifications) with provider_search_service to ensure seamless handoff into provider retrieval, including taxonomy fallback alignment and query enrichment.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S9",
+        "FEAT-2-S10",
+        "FEAT-1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

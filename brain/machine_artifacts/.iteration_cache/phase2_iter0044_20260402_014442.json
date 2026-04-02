@@ -1,0 +1,67 @@
+{
+  "stories": {
+    "FEAT-1-STORY-19": {
+      "story_id": "FEAT-1-STORY-19",
+      "title": "Provider Search FastAPI Endpoint Exposure",
+      "description": "Expose provider search capability via FastAPI endpoint in main.py, wiring request handling to tool router and ensuring proper request/response serialization and error handling.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-17"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    "FEAT-1-STORY-20": {
+      "story_id": "FEAT-1-STORY-20",
+      "title": "Location Filtering and FIPS/County Resolution Integration",
+      "description": "Integrate FIPS-to-county mapping and multi-stage location filtering (state, city, county) within provider search flow to ensure accurate geographic scoping of results.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-16"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-21": {
+      "story_id": "FEAT-1-STORY-21",
+      "title": "Embedding and Query Expansion Integration",
+      "description": "Integrate embedding client and AI-driven query expansion into provider search flow to enhance vector search recall and improve matching quality before taxonomy fallback.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-16"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/embeddings/embedding_client.py"
+    },
+    "FEAT-1-STORY-22": {
+      "story_id": "FEAT-1-STORY-22",
+      "title": "Search Result Formatting and Ranking Output Contract",
+      "description": "Standardize provider search output formatting including ranking scores, specialty attribution, and metadata to ensure consistent downstream consumption by chat UI.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-15",
+        "FEAT-1-STORY-16"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-1-STORY-23": {
+      "story_id": "FEAT-1-STORY-23",
+      "title": "End-to-End Tool-Driven Provider Search Integration Test (LLM Loop)",
+      "description": "Validate full provider search execution through LLM tool-use loop including tool invocation, facade orchestration, service execution, and response rendering in chat context.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-17",
+        "FEAT-1-STORY-18",
+        "FEAT-1-STORY-19"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    }
+  }
+}

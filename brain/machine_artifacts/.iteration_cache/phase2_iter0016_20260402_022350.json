@@ -1,0 +1,81 @@
+{
+  "assignment_id": "GPTR-F-002-STORIES",
+  "iteration": 16,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Feature GPTR-F-002 previously under-defined at story level (only 2 stories existed)"
+  ],
+  "notes": "Added missing schema/contract and core lifecycle logic stories to complete required breakdown.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-002-S51",
+      "value": "Token Schema and Storage Contract",
+      "note": "Add schema/contract layer story",
+      "iteration": 16
+    },
+    {
+      "path": "stories.GPTR-F-002-S52",
+      "value": "Token Expiration and Rotation Core Logic",
+      "note": "Add core lifecycle logic story",
+      "iteration": 16
+    },
+    {
+      "path": "stories.GPTR-F-002-S53",
+      "value": "Token Validation Middleware Integration",
+      "note": "Add integration enforcement story",
+      "iteration": 16
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GPTR-F-002-S51": {
+      "story_id": "GPTR-F-002-S51",
+      "title": "Token Schema and Storage Contract",
+      "description": "Define the canonical schema for bearer tokens including token_id, issued_at, expires_at, status (active/revoked), and rotation lineage. Implement storage contract in MongoDB or equivalent persistence layer to support lookup and lifecycle operations.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py; GAP: No persistent token schema or lifecycle fields defined"
+    },
+    "GPTR-F-002-S52": {
+      "story_id": "GPTR-F-002-S52",
+      "title": "Token Expiration and Rotation Core Logic",
+      "description": "Implement core logic to enforce token expiration based on expires_at and support token rotation by issuing new tokens while invalidating or superseding prior tokens according to policy.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S51"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; GAP: Existing validation does not include expiration or rotation handling"
+    },
+    "GPTR-F-002-S53": {
+      "story_id": "GPTR-F-002-S53",
+      "title": "Token Validation Middleware Integration",
+      "description": "Integrate lifecycle-aware token validation into GPTReader request flow, ensuring all incoming requests enforce expiration, revocation, and rotation status before allowing access.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S52",
+        "GPTR-F-002-S49"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

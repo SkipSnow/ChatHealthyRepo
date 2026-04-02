@@ -1,0 +1,77 @@
+{
+  "assignment_id": "BRAND-001-STORIES",
+  "iteration": 17,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "All required story types already present; minor refinement applied to API/UI scope.",
+  "change_log": [
+    {
+      "path": "stories.BRAND-001-S3.description",
+      "value": "Provide an API and/or CLI output and optional lightweight UI/dev console view that returns audit results including file path, violation type, and suggested correction to 'ChatHealthy.ai'.",
+      "note": "Clarify inclusion of UI surface per API/UI requirement",
+      "iteration": 17
+    }
+  ],
+  "stories": {
+    "BRAND-001-S1": {
+      "story_id": "BRAND-001-S1",
+      "title": "Define Brand Naming Schema and Audit Contract",
+      "description": "Define the canonical naming contract enforcing 'ChatHealthy.ai' usage across all artifacts, including validation rules, allowed variants (none), and violation patterns (e.g., 'ChatHealthy' without .ai).",
+      "parent_feature": "BRAND-001",
+      "sprint": 4,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "brain/machine_artifacts/content/sprint_plan.json::backlog_brand_audit"
+    },
+    "BRAND-001-S2": {
+      "story_id": "BRAND-001-S2",
+      "title": "Implement Brand Audit Scanning Logic",
+      "description": "Build core logic to scan codebase, Brain artifacts, and website content for naming violations using the defined schema and regex/pattern matching rules.",
+      "parent_feature": "BRAND-001",
+      "sprint": 4,
+      "dependencies": [
+        "BRAND-001-S1"
+      ],
+      "size": "M",
+      "evidence": "brain/machine_artifacts/content/sprint_plan.json::backlog_brand_audit"
+    },
+    "BRAND-001-S3": {
+      "story_id": "BRAND-001-S3",
+      "title": "Expose Brand Audit Results via API and Developer Output",
+      "description": "Provide an API and/or CLI output and optional lightweight UI/dev console view that returns audit results including file path, violation type, and suggested correction to 'ChatHealthy.ai'.",
+      "parent_feature": "BRAND-001",
+      "sprint": 4,
+      "dependencies": [
+        "BRAND-001-S2"
+      ],
+      "size": "M",
+      "evidence": "brain/machine_artifacts/content/sprint_plan.json::backlog_brand_audit"
+    },
+    "BRAND-001-S4": {
+      "story_id": "BRAND-001-S4",
+      "title": "Automated Fix Suggestions and Reporting",
+      "description": "Enhance audit output to include auto-fix suggestions and summary reports (counts, severity) to support rapid remediation without modifying files automatically.",
+      "parent_feature": "BRAND-001",
+      "sprint": 4,
+      "dependencies": [
+        "BRAND-001-S3"
+      ],
+      "size": "S",
+      "evidence": "brain/machine_artifacts/content/sprint_plan.json::backlog_brand_audit"
+    },
+    "BRAND-001-S5": {
+      "story_id": "BRAND-001-S5",
+      "title": "Unit and Integration Tests for Brand Audit",
+      "description": "Create test suite validating detection of incorrect naming, correct handling of edge cases, and end-to-end scan-to-report workflow across representative artifacts.",
+      "parent_feature": "BRAND-001",
+      "sprint": 4,
+      "dependencies": [
+        "BRAND-001-S2"
+      ],
+      "size": "M",
+      "evidence": "brain/machine_artifacts/content/sprint_plan.json::backlog_brand_audit"
+    }
+  }
+}

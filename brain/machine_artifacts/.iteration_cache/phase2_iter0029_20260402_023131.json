@@ -1,0 +1,83 @@
+{
+  "assignment_id": "PHASE 2: GOV-F-003",
+  "iteration": 29,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added recovery, expiration handling, and test coverage stories to complete TTL lifecycle.",
+  "change_log": [
+    {
+      "path": "stories.GOV-F-003-S103",
+      "value": "Lock Expiration and Recovery Logic",
+      "note": "Adds TTL-based recovery handling",
+      "iteration": 29
+    },
+    {
+      "path": "stories.GOV-F-003-S104",
+      "value": "Stale Lock Detection and Forced Takeover",
+      "note": "Handles orphaned locks safely",
+      "iteration": 29
+    },
+    {
+      "path": "stories.GOV-F-003-S105",
+      "value": "Lock Lifecycle Test Coverage",
+      "note": "Adds unit and integration validation",
+      "iteration": 29
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "GOV-F-003-S103",
+      "title": "Lock Expiration and Recovery Logic",
+      "description": "Implement logic to detect expired locks using TTL (expires_at) and allow new acquisition when expired. Ensure expired locks are treated as non-existent without requiring manual cleanup.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S99",
+        "GOV-F-003-S100"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    {
+      "story_id": "GOV-F-003-S104",
+      "title": "Stale Lock Detection and Forced Takeover",
+      "description": "Implement safeguard logic to allow forced lock takeover when a lock is expired but still present due to TTL delay. Must verify expiration timestamp and safely reassign ownership without race conditions.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S103"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/ChatHealthyMongoUtilities.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    {
+      "story_id": "GOV-F-003-S105",
+      "title": "Lock Lifecycle Test Coverage",
+      "description": "Create unit and integration tests covering lock acquisition, renewal, expiration, forced takeover, and release. Include race condition scenarios and concurrent acquisition attempts.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S101",
+        "GOV-F-003-S103",
+        "GOV-F-003-S104"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader_integration.py; Code/Shared/brain_runner.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

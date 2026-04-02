@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-BOARD-004-001",
+      "story_id": "EVAL-BOARD-ST-004",
+      "requirement": "The system must validate that NPI credential data containing board certifications is correctly parsed into a structured certification list.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004-002",
+      "story_id": "EVAL-BOARD-ST-004",
+      "requirement": "The system must verify that each extracted certification includes expected fields defined in the schema (e.g., name, issuing body if available).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004-003",
+      "story_id": "EVAL-BOARD-ST-004",
+      "requirement": "The system must confirm that relevance scoring returns a non-null numeric score for providers with at least one certification.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004-004",
+      "story_id": "EVAL-BOARD-ST-004",
+      "requirement": "The system must verify that certifications matching the queried specialty produce a higher relevance score than unrelated certifications.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004-005",
+      "story_id": "EVAL-BOARD-ST-004",
+      "requirement": "The system must validate that keyword or taxonomy alignment logic produces deterministic and repeatable scores for the same input data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004-006",
+      "story_id": "EVAL-BOARD-ST-004",
+      "requirement": "The system must confirm that the board certification measure is included in the Evaluate Care facade API response payload.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004-007",
+      "story_id": "EVAL-BOARD-ST-004",
+      "requirement": "The system must validate that the API response structure for board certification matches the schema defined in EVAL-BOARD-ST-001.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004-008",
+      "story_id": "EVAL-BOARD-ST-004",
+      "requirement": "The system must return an empty certification list and a zero or null relevance score when no certifications are present in NPI data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004-009",
+      "story_id": "EVAL-BOARD-ST-004",
+      "requirement": "The system must assign a low or zero relevance score when certifications are present but unrelated to the queried specialty.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004-010",
+      "story_id": "EVAL-BOARD-ST-004",
+      "requirement": "The system must handle malformed or incomplete NPI credential data without throwing unhandled exceptions and still return a valid API response.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004-011",
+      "story_id": "EVAL-BOARD-ST-004",
+      "requirement": "The system must ensure integration tests validate end-to-end flow from NPI data input through scoring logic to API output.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004-012",
+      "story_id": "EVAL-BOARD-ST-004",
+      "requirement": "The system must verify that multiple certifications are aggregated correctly and do not overwrite each other in the output.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004-013",
+      "story_id": "EVAL-BOARD-ST-004",
+      "requirement": "The system must confirm that scoring logic behaves consistently when multiple relevant certifications are present (e.g., does not decrease score incorrectly).",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004-014",
+      "story_id": "EVAL-BOARD-ST-004",
+      "requirement": "The system must validate that unit tests follow existing backend test patterns and structure in the backend/tests directory.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

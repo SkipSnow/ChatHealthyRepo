@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P7-S3",
+      "requirement": "The system must include a new_patient_acceptance field in the provider evaluation response returned by evaluate_care_facade.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P7-S3",
+      "requirement": "The system must include a new_patient_acceptance field in the provider detail response returned by provider_detail_service.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P7-S3",
+      "requirement": "The system must ensure the new_patient_acceptance value is one of the allowed enum values: yes, no, or unknown.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P7-S3",
+      "requirement": "The system must propagate the normalized new_patient_acceptance value from backend logic (EVAL-P7-S2) without transformation or mutation.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P7-S3",
+      "requirement": "The system must include source attribution for new_patient_acceptance in the evaluation response if available.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P7-S3",
+      "requirement": "The system must include last_verified timestamp for new_patient_acceptance in the evaluation response if available.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P7-S3",
+      "requirement": "The system must return new_patient_acceptance as unknown when no acceptance data is available for a provider.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P7-S3",
+      "requirement": "The system must not omit the new_patient_acceptance field from the response even when the value is unknown.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P7-S3",
+      "requirement": "The system must ensure backward compatibility by not removing or altering existing fields in evaluate_care_facade or provider_detail_service responses.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P7-S3",
+      "requirement": "The system must return a valid response with new_patient_acceptance set to unknown if the upstream normalization logic fails or returns null.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P7-S3",
+      "requirement": "The system must handle conflicting upstream acceptance signals by returning the resolved normalized value provided by the inference logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P7-S3",
+      "requirement": "The system must ensure that inclusion of new_patient_acceptance does not increase response latency beyond acceptable service thresholds defined for evaluate_care_facade.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

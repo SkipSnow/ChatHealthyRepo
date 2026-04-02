@@ -1,0 +1,97 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-003",
+  "iteration": 9,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories defined for Brain Lock TTL and Deadlock Recovery with clear separation of concerns.",
+  "change_log": [
+    {
+      "path": "stories",
+      "value": "Added 4 stories for BL-0.1.4-003",
+      "note": "Feature previously had zero stories",
+      "iteration": 9
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-003-S1",
+      "title": "Lock Schema with TTL and Ownership Metadata",
+      "description": "Define the Brain lock data model including lock_id, owner_id, acquired_at, ttl_seconds, and status fields to support expiration and recovery logic.",
+      "parent_feature": "BL-0.1.4-003",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/Shared/brain_loop.py"
+    },
+    {
+      "story_id": "BL-0.1.4-003-S2",
+      "title": "TTL Enforcement and Expiration Logic",
+      "description": "Implement core logic to evaluate lock age against TTL and automatically mark locks as expired when ttl_seconds is exceeded.",
+      "parent_feature": "BL-0.1.4-003",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-003-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_loop.py"
+    },
+    {
+      "story_id": "BL-0.1.4-003-S3",
+      "title": "Deadlock Detection and Recovery Execution",
+      "description": "Implement detection of stuck execution states and enable forced lock release and safe reacquisition to recover Brain loop processing.",
+      "parent_feature": "BL-0.1.4-003",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-003-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_loop.py"
+    },
+    {
+      "story_id": "BL-0.1.4-003-S4",
+      "title": "Lock Lifecycle Integration with Brain Runner",
+      "description": "Integrate lock acquisition, TTL checks, and recovery logic into the Brain runner execution loop to ensure safe concurrent processing.",
+      "parent_feature": "BL-0.1.4-003",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-003-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py"
+    },
+    {
+      "story_id": "BL-0.1.4-003-S5",
+      "title": "Unit and Integration Tests for Lock TTL and Recovery",
+      "description": "Create test suite covering lock expiration, concurrent acquisition attempts, deadlock scenarios, and recovery behavior.",
+      "parent_feature": "BL-0.1.4-003",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-003-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_loop.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "BL-0.1.4-003",
+        "likelihood": "Moderate",
+        "impact": "High",
+        "mitigation": "Use conservative TTL defaults and ensure idempotent lock release logic."
+      }
+    ],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

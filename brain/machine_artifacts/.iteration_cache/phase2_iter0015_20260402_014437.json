@@ -1,0 +1,70 @@
+{
+  "assignment_id": "PHASE-2-EVAL-TRIAL-QUALITY",
+  "iteration": 15,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Refined test coverage to ensure full backend+frontend integration validation.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-TRIAL-QUALITY-S5.size",
+      "value": "L",
+      "note": "Expanded scope to include frontend rendering validation",
+      "iteration": 15
+    },
+    {
+      "path": "stories.EVAL-TRIAL-QUALITY-S5.description",
+      "value": "Create unit tests for extraction and normalization logic and integration tests validating end-to-end flow from ClinicalTrials.gov API response through service, facade, and frontend rendering layers, including edge cases for missing fields, malformed data, and invalid or unsafe URLs.",
+      "note": "Added frontend integration and stronger edge case coverage",
+      "iteration": 15
+    },
+    {
+      "path": "stories.EVAL-TRIAL-QUALITY-S4.description",
+      "value": "Render clinical trial snapshot data in chat UI using structured formatting (phase, status, summary, eligibility, locations, URL) and ensure URLs are safely rendered and validated via existing markdown rendering and backend URL guardian safeguards.",
+      "note": "Clarified backend URL validation dependency",
+      "iteration": 15
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-TRIAL-QUALITY-S5": {
+      "story_id": "EVAL-TRIAL-QUALITY-S5",
+      "title": "Unit and Integration Tests for Clinical Trial Snapshot Flow",
+      "description": "Create unit tests for extraction and normalization logic and integration tests validating end-to-end flow from ClinicalTrials.gov API response through service, facade, and frontend rendering layers, including edge cases for missing fields, malformed data, and invalid or unsafe URLs.",
+      "parent_feature": "EVAL-TRIAL-QUALITY",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRIAL-QUALITY-S2",
+        "EVAL-TRIAL-QUALITY-S3",
+        "EVAL-TRIAL-QUALITY-S4"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    "EVAL-TRIAL-QUALITY-S4": {
+      "story_id": "EVAL-TRIAL-QUALITY-S4",
+      "title": "Frontend Rendering of Clinical Trial Snapshot with Safe Links",
+      "description": "Render clinical trial snapshot data in chat UI using structured formatting (phase, status, summary, eligibility, locations, URL) and ensure URLs are safely rendered and validated via existing markdown rendering and backend URL guardian safeguards.",
+      "parent_feature": "EVAL-TRIAL-QUALITY",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRIAL-QUALITY-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-004-S1",
+      "title": "Adopt Audit Log Schema and Append-Only Contract (Align with Brain)",
+      "description": "Align FindCare audit logging with the existing Brain audit schema and append-only contract (BRAIN-F-004-S1), mapping debug_logger fields to standardized fields (timestamp, actor, action_type, tool_name, payload metadata, correlation_id, hash fields) and enforcing insert-only behavior at the repository layer.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; ASSUMPTION: Existing Brain audit schema (BRAIN-F-004-S1) is source of truth and must be reused to avoid duplication; GAP: schema mapping definition not yet implemented"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S2",
+      "title": "Append-Only Logging Engine with Hash Chaining",
+      "description": "Extend debug_logger into a reusable backend audit component that generates immutable records with deterministic hash chaining (previous_hash → current_hash), ensuring tamper-evident sequencing and atomic insert-only writes.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S3",
+      "title": "FindCare Tooling and Service Audit Instrumentation",
+      "description": "Instrument backend components (tool_router, safety_service, provider_search_service, clinical_trials_service) to emit structured audit events for tool calls, external API usage, and safety triggers, ensuring correlation_id continuity within a single request lifecycle.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S4",
+      "title": "Internal Audit Log Query Interface (Backend Only)",
+      "description": "Provide a backend-only read interface for audit logs supporting queries by correlation_id, time range, and action_type, with optional hash-chain verification for integrity validation. No external or Brain API exposure.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S2"
+      ],
+      "size": "S",
+      "evidence": "GAP: debug_logger supports writes only; no read/query interface exists"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S5",
+      "title": "Audit Logging Tests: Append-Only and Integrity Validation",
+      "description": "Expand test_debug_logger to cover append-only enforcement, hash chain continuity, event coverage across tool flows, and simulated tampering detection (e.g., missing or altered records). Include integration tests from tool_router through persistence.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S2",
+        "BL-0.1.4-004-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py"
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "assignment_id": "EVAL-F-002-STORIES",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "No new stories created. Existing set is complete and aligned to schema, logic, API, tests, and error handling. Minor dependency correction applied.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-002-S5.dependencies",
+      "value": "[\"EVAL-F-002-S1\", \"EVAL-F-002-S2\"]",
+      "note": "Ensure error handling conforms to defined schema contract",
+      "iteration": 10
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F-002-S1",
+      "title": "Define Provider Detail Schema and Contract",
+      "description": "Define a structured response schema for provider detail including specialty, license, status, address, phone, and enumeration date, and formalize as Pydantic model for tool contract validation.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S2",
+      "title": "Implement NPI Registry Lookup and Normalization Logic",
+      "description": "Implement core service logic to call CMS NPI Registry API, extract provider credentials, and normalize fields (specialty, license status, address formatting, contact info, enumeration date).",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S3",
+      "title": "Expose Provider Detail via Evaluate Care Facade",
+      "description": "Integrate provider detail service into evaluate_care_facade, define tool input/output models, and expose via tool_router for agent consumption with validated contract.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S4",
+      "title": "Provider Detail Lookup Tests (Unit + Integration)",
+      "description": "Create unit tests for normalization logic and integration tests for end-to-end NPI lookup through the facade ensuring correct field mapping and error handling.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S2",
+        "EVAL-F-002-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S5",
+      "title": "Handle NPI Lookup Errors and Incomplete Data",
+      "description": "Implement error handling and fallback behavior for NPI Registry failures, missing fields, or partial provider records, ensuring graceful degradation and consistent schema output.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S1",
+        "EVAL-F-002-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "assignment_id": "BL-0.1.4-009",
+  "iteration": 3,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Strengthened contract to include enforcement response schema (truncate/paginate metadata). No new stories created to avoid duplication.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-009-S1.description",
+      "value": "Define a standard contract for estimating Mongo query size including parameters (document_count, avg_doc_size, projected_response_size) and thresholds aligned with GPTReader limits (100-doc cap, 500KB response cap); include enforcement response schema (truncated flag, pagination token, returned_count, estimated_total_size).",
+      "note": "Added response contract to prevent duplication with integration story and clarify API behavior",
+      "iteration": 3
+    }
+  ]
+}

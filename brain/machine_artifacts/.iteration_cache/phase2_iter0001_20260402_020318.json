@@ -1,0 +1,65 @@
+{
+  "stories": [
+    {
+      "story_id": "FEAT-5-S1",
+      "title": "Tool Allowlist Schema and Validation Contract",
+      "description": "Define the allowlist structure mapping tool names to permitted handlers and associated Pydantic input models. Establish strict validation contract for tool name, arguments schema, and rejection behavior for non-allowlisted tools.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/"
+    },
+    {
+      "story_id": "FEAT-5-S2",
+      "title": "Core Allowlist Dispatch Logic",
+      "description": "Implement backend routing logic that inspects incoming tool_use blocks, enforces allowlist membership, and dispatches only to approved handlers. Reject or safely handle unknown or disallowed tools per GOV-004.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S3",
+      "title": "Pydantic Input Validation Integration",
+      "description": "Integrate Pydantic models for each allowlisted tool to validate input payloads prior to execution. Ensure validation errors are captured and returned in a controlled, non-breaking format.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py"
+    },
+    {
+      "story_id": "FEAT-5-S4",
+      "title": "Tool Router Integration with Chat Loop",
+      "description": "Integrate allowlist router into the main FastAPI chat loop, including handling of Anthropic tool_use blocks, chat history injection, and safe execution flow across domain services.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S2",
+        "FEAT-5-S3"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S5",
+      "title": "Allowlist Routing Test Suite",
+      "description": "Develop unit and integration tests covering allowlisted tool execution, rejection of unauthorized tools, Pydantic validation failures, and correct routing to domain services.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S2",
+        "FEAT-5-S3",
+        "FEAT-5-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ]
+}

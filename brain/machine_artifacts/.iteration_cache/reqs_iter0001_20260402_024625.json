@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must render a dedicated prescription behavior React component when structured prescription data is present in the message payload.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must display prescribing patterns within the component using the transformed data produced by EVAL-P-RX-UX-S2.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must display condition-to-prescription mappings as human-readable labels within the component.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must display the prescription behavior contribution to the overall provider quality score within the component.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must integrate the prescription behavior component into the MessageBubble rendering pipeline without breaking existing message types.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must render the prescription behavior component in the correct position within the message flow based on structured content ordering rules.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must apply consistent styling with existing provider quality scorecard components.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must support reuse of the prescription behavior component across multiple messages without duplicating logic.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must gracefully fallback to standard markdown rendering when prescription behavior structured data is absent.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must display a partial UI with available fields when prescription behavior data is incomplete rather than failing to render.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must not throw runtime errors when encountering malformed prescription behavior data in the message payload.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must conditionally render the prescription behavior component only when the message type indicates a provider quality scorecard context.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must ensure the component is responsive and renders correctly across supported viewport sizes.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must preserve accessibility attributes including semantic HTML and screen reader compatibility within the component.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

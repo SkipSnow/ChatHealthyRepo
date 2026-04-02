@@ -1,0 +1,62 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-CT-MEASURE-3-S1",
+      "title": "Proximity Metric Schema and Contract",
+      "description": "Define and align the proximity data contract with existing clinical trials models including distance, travel_time, origin (normalized user location), destination (trial site coordinates), units, and calculation metadata. Ensure null-safe handling, explicit unit standardization (miles, minutes), and compatibility with downstream facade formatting.",
+      "parent_feature": "EVAL-CT-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-MEASURE-3-S2",
+      "title": "Travel Distance and Time Calculation Logic",
+      "description": "Implement core proximity computation using Google Routes including user location normalization, multi-site iteration per trial, distance/time extraction, selection of primary site (nearest), and consistent unit normalization across all results.",
+      "parent_feature": "EVAL-CT-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-MEASURE-3-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-MEASURE-3-S3",
+      "title": "Proximity API Exposure via Evaluate Care Facade",
+      "description": "Integrate proximity outputs into evaluate_care_facade responses so each trial includes nearest-site distance and travel time, with optional full site list. Ensure formatting is conversationally readable and consistent with existing trial result structures.",
+      "parent_feature": "EVAL-CT-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-MEASURE-3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-CT-MEASURE-3-S4",
+      "title": "Unit and Edge Case Tests for Proximity Logic",
+      "description": "Create unit tests validating accuracy of distance/time calculations, unit consistency, nearest-site selection logic, handling of missing or invalid coordinates, and multi-site aggregation behavior.",
+      "parent_feature": "EVAL-CT-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-MEASURE-3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    },
+    {
+      "story_id": "EVAL-CT-MEASURE-3-S5",
+      "title": "Google Routes Integration, Resilience, and Fallback Handling",
+      "description": "Implement Google Routes API integration including request construction, response parsing, timeout/retry handling, basic rate-limit protection, and graceful degradation when routing data is unavailable. Ensure system returns partial proximity results without blocking trial output.",
+      "parent_feature": "EVAL-CT-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-MEASURE-3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CTM4-001",
+      "story_id": "EVAL-CT-M4-S5",
+      "requirement": "The system must correctly classify sponsor type as NIH/government, academic, pharmaceutical, or unknown given valid ClinicalTrials.gov sponsor metadata inputs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM4-002",
+      "story_id": "EVAL-CT-M4-S5",
+      "requirement": "The system must assign the correct base credibility weight corresponding to each sponsor type classification.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM4-003",
+      "story_id": "EVAL-CT-M4-S5",
+      "requirement": "The system must incorporate historical sponsor signals into the credibility score when such data is available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM4-004",
+      "story_id": "EVAL-CT-M4-S5",
+      "requirement": "The system must normalize the final sponsor credibility score to a value between 0 and 1 inclusive.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM4-005",
+      "story_id": "EVAL-CT-M4-S5",
+      "requirement": "The system must produce deterministic sponsor credibility scores for identical input data across repeated executions.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM4-006",
+      "story_id": "EVAL-CT-M4-S5",
+      "requirement": "The system must expose the sponsor credibility score through the Evaluate Care API response payload for clinical trials.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM4-007",
+      "story_id": "EVAL-CT-M4-S5",
+      "requirement": "The system must include the sponsor_type and normalized credibility score fields in the API response schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM4-008",
+      "story_id": "EVAL-CT-M4-S5",
+      "requirement": "The system must handle missing sponsor metadata by assigning a default classification of unknown and a valid normalized score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM4-009",
+      "story_id": "EVAL-CT-M4-S5",
+      "requirement": "The system must handle ambiguous or conflicting sponsor metadata without throwing runtime errors and still return a valid response.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM4-010",
+      "story_id": "EVAL-CT-M4-S5",
+      "requirement": "The system must ensure that invalid or null historical credibility inputs do not break scoring logic and default safely.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM4-011",
+      "story_id": "EVAL-CT-M4-S5",
+      "requirement": "The system must validate that all scoring components (base weight and historical signals) are included in the final score calculation when available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM4-012",
+      "story_id": "EVAL-CT-M4-S5",
+      "requirement": "The system must return a complete API response within acceptable backend test thresholds without timing out under normal conditions.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

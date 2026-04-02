@@ -1,0 +1,49 @@
+{
+  "assignment_id": "EVAL-PROVIDER-LINKS-STORIES",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined existing stories to tighten contract clarity, add URL validation integration, and enforce dependency alignment. No new story IDs created.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S1.description",
+      "value": "Define structured schema for external verification links including source, URL, label, guidance text, and validation_status field to reflect URL safety checks.",
+      "note": "Added validation field to align with URL Guardian capability",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S2.description",
+      "value": "Implement logic to construct external URLs (Healthgrades, NPI Registry, state boards), attach human-readable guidance, and pass all URLs through URL Guardian validation before inclusion.",
+      "note": "Integrated URL validation into core logic",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S2.dependencies",
+      "value": [
+        "EVAL-PROVIDER-QUALITY"
+      ],
+      "note": "Aligned with dependency on NPI/provider data",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S3.description",
+      "value": "Expose structured and validated external verification links through evaluate_care_facade and ensure frontend renders them with labels, guidance, and safe clickable links.",
+      "note": "Clarified validated link requirement and UX expectations",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S4.description",
+      "value": "Create unit tests to validate URL construction, label/guidance assignment, URL validation outcomes, and graceful handling of missing state or NPI data.",
+      "note": "Expanded test coverage to include validation outcomes",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S5.description",
+      "value": "Validate end-to-end flow ensuring provider detail responses include fully structured, validated external links rendered correctly in UI with no broken or unsafe URLs.",
+      "note": "Added validation requirement to integration test",
+      "iteration": 10
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "stories": {
+    "FEAT-5-S171": {
+      "story_id": "FEAT-5-S171",
+      "title": "Pydantic Validation Enforcement for Tool Inputs",
+      "description": "Enforce strict validation of all incoming tool arguments against their registered Pydantic models, rejecting invalid payloads before execution and returning structured validation errors to the agent loop.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S167"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-5-S172": {
+      "story_id": "FEAT-5-S172",
+      "title": "Allowlist Enforcement for Tool Name Resolution",
+      "description": "Implement strict allowlist checks during tool dispatch to ensure only registered tool names can be executed, with explicit rejection and logging of any unauthorized tool invocation attempts.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S167"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-5-S173": {
+      "story_id": "FEAT-5-S173",
+      "title": "Unit Tests for Tool Routing and Validation Paths",
+      "description": "Expand unit test coverage to include allowlist enforcement, Pydantic validation failures, successful tool execution, and error handling paths within the tool router.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S168",
+        "FEAT-5-S171",
+        "FEAT-5-S172"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    },
+    "FEAT-5-S174": {
+      "story_id": "FEAT-5-S174",
+      "title": "End-to-End Tool Use Integration with Agent Loop",
+      "description": "Validate full integration of tool routing within the Anthropic tool_use loop, ensuring tool calls are correctly parsed, dispatched, validated, and returned in the expected format for continued agent reasoning.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S170",
+        "FEAT-5-S171"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  }
+}

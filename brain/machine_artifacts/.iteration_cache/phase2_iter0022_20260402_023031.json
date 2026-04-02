@@ -1,0 +1,51 @@
+{
+  "stories": {
+    "GOV-F-003-S73": {
+      "story_id": "GOV-F-003-S73",
+      "title": "Brain Lock Schema and Contract Definition",
+      "description": "Define and implement the MongoDB schema for Brain locks including fields for lock_id, owner_id, acquired_at, expires_at (TTL), and status. Ensure TTL index is configured and contract is enforced across all lock reads/writes.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/Shared/machine_brain.py; Code/Shared/ChatHealthyMongoUtilities.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S74": {
+      "story_id": "GOV-F-003-S74",
+      "title": "Lock Acquisition and Renewal API",
+      "description": "Implement backend functions for acquiring, renewing, and releasing Brain locks with strict ownership validation and TTL extension support. Ensure atomic operations to prevent concurrent acquisition.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S73"
+      ],
+      "size": "L",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/ChatHealthyMongoUtilities.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S75": {
+      "story_id": "GOV-F-003-S75",
+      "title": "Brain Runner Integration with Lock Lifecycle",
+      "description": "Integrate lock acquisition, renewal, and release into brain_runner and brain_loop execution paths to ensure all assignments are protected by lock ownership and TTL enforcement.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S74",
+        "GOV-F-003-S70"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/brain_loop.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S76": {
+      "story_id": "GOV-F-003-S76",
+      "title": "Observability and Debug Logging for Lock State",
+      "description": "Extend debug_logger to capture lock lifecycle events (acquire, renew, expire, recover, release) with ownership and timing metadata for auditability and troubleshooting.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S74"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/Shared/brain_runner.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    }
+  }
+}

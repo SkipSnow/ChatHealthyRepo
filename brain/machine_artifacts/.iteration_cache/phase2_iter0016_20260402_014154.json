@@ -1,0 +1,65 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S1",
+      "title": "Define External Link Schema and Contract",
+      "description": "Define and standardize the external link schema to include site_name, url, label, and guidance_text. Ensure guidance text clearly explains how to interpret each source (NPI Registry = official data, Healthgrades = consumer reviews, state boards = license verification) and aligns with provider_detail_service output structure.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (research site URL construction)"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S2",
+      "title": "Implement External Link Construction Logic",
+      "description": "Implement deterministic link construction using NPI and state from provider data. Ensure correct URL patterns for NPI Registry, Healthgrades search/profile, and supported state medical boards (DE, MS, VA). Include fallback handling when state-specific board links are unavailable.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (research_sites construction, state board links)"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S5",
+      "title": "Integrate URL Validation for External Links",
+      "description": "Pass all constructed links through url_guardian for validation, sanitization, and correction (HEAD check, AI verification, fallback). Ensure invalid or unreachable links are either corrected or excluded before reaching the facade.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-LINKS-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py; provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S3",
+      "title": "Expose External Links via EvaluateCare Facade and UI Rendering",
+      "description": "Extend evaluate_care_facade to include validated external links in the provider detail response. Render links in the frontend with labels and inline guidance (tooltip or helper text) ensuring clarity and safe navigation.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-LINKS-S1",
+        "EVAL-PROVIDER-LINKS-S2",
+        "EVAL-PROVIDER-LINKS-S5",
+        "EVAL-PROVIDER-QUALITY"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S4",
+      "title": "Unit and Integration Tests for External Links",
+      "description": "Implement unit tests for schema validation and link construction, plus integration tests validating end-to-end flow from provider_detail_service through facade to frontend-ready payload. Include cases for missing NPI, unsupported states, and invalid URLs.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-LINKS-S2",
+        "EVAL-PROVIDER-LINKS-S3",
+        "EVAL-PROVIDER-LINKS-S5"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests; provider_detail_service.py"
+    }
+  ]
+}

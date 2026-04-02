@@ -1,0 +1,99 @@
+{
+  "assignment_id": "EVAL-F-2-STORIES",
+  "iteration": 16,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Edited existing stories only; no new IDs created.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-002-S2.description",
+      "value": "Implement core service logic to query CMS NPI Registry API, parse provider credentials, normalize fields, and handle missing/partial or malformed API responses with graceful fallbacks.",
+      "note": "Add robustness for real-world API variability",
+      "iteration": 16
+    },
+    {
+      "path": "stories.EVAL-F-002-S3.description",
+      "value": "Construct standardized external research URLs (NPI, Healthgrades, state boards DE/MS/VA), classify links, and validate via URL guardian with fallback handling for failed validations.",
+      "note": "Clarify validation + fallback behavior",
+      "iteration": 16
+    },
+    {
+      "path": "stories.EVAL-F-002-S4.dependencies",
+      "value": [
+        "EVAL-F-002-S2",
+        "EVAL-F-002-S3",
+        "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+      ],
+      "note": "Ensure tool routing dependency is explicit",
+      "iteration": 16
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "EVAL-F-002-S1",
+      "title": "Define Provider Detail Schema and Contract",
+      "description": "Define the response schema for provider detail including NPI credentials, demographics, and structured external research links (NPI, Healthgrades, state boards).",
+      "parent_feature": "EVAL-F-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S2",
+      "title": "Implement NPI Registry Lookup Logic",
+      "description": "Implement core service logic to query CMS NPI Registry API, parse provider credentials, normalize fields, and handle missing/partial or malformed API responses with graceful fallbacks.",
+      "parent_feature": "EVAL-F-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S3",
+      "title": "Generate and Validate External Research Links",
+      "description": "Construct standardized external research URLs (NPI, Healthgrades, state boards DE/MS/VA), classify links, and validate via URL guardian with fallback handling for failed validations.",
+      "parent_feature": "EVAL-F-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py + Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S4",
+      "title": "Expose Provider Detail via Evaluate Care Facade",
+      "description": "Integrate provider detail lookup into evaluate_care_facade and expose as a callable tool endpoint routed through the tool_router for chat system consumption.",
+      "parent_feature": "EVAL-F-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S2",
+        "EVAL-F-002-S3",
+        "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S5",
+      "title": "Unit and Integration Tests for Provider Detail Lookup",
+      "description": "Create tests covering NPI lookup, credential parsing, error handling, link generation, URL validation, and end-to-end facade integration.",
+      "parent_feature": "EVAL-F-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py + Code/ConversationalUX/FindCareChat/backend/tests/"
+    }
+  ],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-004-S1",
+      "title": "Audit Log Schema and Append-Only Contract",
+      "description": "Define the canonical audit log schema including timestamp, actor, action_type, payload_hash, previous_hash, outcome, and correlation_id. Enforce append-only behavior at the data model level (no updates/deletes) and ensure compatibility with MongoDB insert-only patterns used in debug_logger.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S2",
+      "title": "Core Append-Only Audit Logging Engine with Hash Chaining",
+      "description": "Implement backend logic to capture and persist all system actions and tool calls as immutable audit records. Include hash chaining (previous_hash → current_hash) for tamper detection, enforce write-once semantics, and automatically generate timestamps and correlation IDs.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S3",
+      "title": "Tool Router and Domain Service Audit Integration",
+      "description": "Integrate audit logging into tool_router and key domain services (safety, provider search, clinical trials) ensuring all tool invocations, safety triggers, and external API calls emit audit events with consistent correlation_id propagation across the request lifecycle.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S4",
+      "title": "Audit Log Access Interface (Internal Read-Only API)",
+      "description": "Provide an internal read-only query interface for retrieving audit logs by correlation_id, time range, or action_type. Ensure strict read-only enforcement and support debugging and compliance workflows without exposing mutation capabilities.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S2"
+      ],
+      "size": "S",
+      "evidence": "GAP: No explicit audit log query interface exists; required for operational visibility"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S5",
+      "title": "Audit Logging Test Suite with Tamper Detection Validation",
+      "description": "Develop unit and integration tests validating append-only enforcement, correct event capture across tool flows, hash chain integrity (detecting tampering or missing links), and ensuring no update/delete operations occur on audit records.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S2",
+        "BL-0.1.4-004-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py"
+    }
+  ]
+}

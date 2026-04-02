@@ -1,0 +1,51 @@
+{
+  "stories": {
+    "GOV-F-003-S156": {
+      "story_id": "GOV-F-003-S156",
+      "title": "Brain Lock Schema and TTL Contract Definition",
+      "description": "Define and persist the lock schema including owner_id, acquired_at, ttl_seconds, last_heartbeat_at, and status. Establish strict contract for TTL interpretation and expiration semantics across all Brain components.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/Shared/machine_brain.py; Code/Shared/ChatHealthyMongoUtilities.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S157": {
+      "story_id": "GOV-F-003-S157",
+      "title": "Lock Acquire/Renew API Contract",
+      "description": "Implement standardized internal APIs for acquiring, renewing (heartbeat), and releasing Brain locks with TTL enforcement. Ensure consistent responses for success, contention, and expired lock takeover.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S156"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/machine_brain.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S158": {
+      "story_id": "GOV-F-003-S158",
+      "title": "Brain Runner Integration with Lock TTL Lifecycle",
+      "description": "Integrate TTL-based lock acquisition, heartbeat renewal, and recovery into brain_runner execution flow to ensure safe single-writer behavior during assignment processing.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S157",
+        "GOV-F-003-S152"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/brain_loop.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S159": {
+      "story_id": "GOV-F-003-S159",
+      "title": "Administrative Lock Inspection and Manual Recovery Endpoint",
+      "description": "Provide a controlled administrative mechanism to inspect current lock state and trigger manual recovery/unlock in failure scenarios, aligned with existing safety/admin patterns.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S157"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py; Code/Shared/machine_brain.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    }
+  }
+}

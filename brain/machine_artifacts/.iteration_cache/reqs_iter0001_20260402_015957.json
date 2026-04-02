@@ -1,0 +1,165 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-001",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must define a Pydantic model for relevance scoring input that includes a structured user_condition_intent field aligned with clinical_trials_models.py.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-002",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must define a Pydantic model for relevance scoring input that includes a list of trial_conditions using the same structure as clinical_trials_models.py.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-003",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must define a normalized relevance_score field in the output constrained between 0.0 and 1.0.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-004",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must include a contributing_factors field in the output capturing multiple factor objects explaining the score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-005",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must include a confidence field in the output constrained between 0.0 and 1.0.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-006",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must enforce schema validation such that invalid or missing required input fields raise a validation error.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-007",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must support serialization of the relevance scoring schema to JSON for downstream service integration.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-008",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must ensure the schema is compatible with existing clinical_trials_models.py types without requiring transformation.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-009",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must allow contributing_factors entries to include factor_type, factor_score, and factor_explanation fields.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-010",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must allow the schema to be extended with additional scoring factors without breaking backward compatibility.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-011",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must handle the case where user_condition_intent is empty by returning a relevance_score of 0.0 with low confidence.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-012",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must handle the case where trial_conditions is an empty list by returning a relevance_score of 0.0 with an explanatory contributing factor.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-013",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must define field descriptions in the Pydantic schema sufficient for LLM interpretation of inputs and outputs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-014",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must ensure field names and structure are semantically clear and unambiguous for LLM consumption.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-015",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must avoid nested complexity beyond two levels deep to maintain LLM usability.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-016",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must ensure all numeric fields include explicit type constraints to prevent ambiguous LLM outputs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-017",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must include example values or schema defaults to guide LLM output formatting.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-018",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must ensure the schema supports deterministic parsing without requiring natural language interpretation.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-019",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must ensure contributing_factors explanations are short-form strings suitable for UI display.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-001-REQ-020",
+      "story_id": "EVAL-CT-REL-001",
+      "requirement": "The system must ensure the schema can be reused by downstream scoring logic without modification.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,79 @@
+{
+  "assignment_id": "EVAL-TRIAL-QUALITY-STORIES",
+  "iteration": 8,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined normalization logic to explicitly include travel distance/duration handling already present in service.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-TRIAL-QUALITY-S2.description",
+      "value": "Implement extraction and normalization including enum mapping, structured locations (city/state/site), eligibility normalization, travel distance/duration integration from Google Routes, and deterministic fallback handling for missing or partial ClinicalTrials.gov fields.",
+      "note": "Align story with existing service capability for distance calculation",
+      "iteration": 8
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "EVAL-TRIAL-QUALITY-S1",
+      "title": "Clinical Trial Snapshot Schema and Contract",
+      "description": "Define canonical trial snapshot schema with strict enums (phase/status), required vs optional fields, URL format constraints, and enforce bidirectional parity between Pydantic models and service output.",
+      "parent_feature": "EVAL-TRIAL-QUALITY",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-TRIAL-QUALITY-S2",
+      "title": "Clinical Trial Data Extraction and Normalization Logic",
+      "description": "Implement extraction and normalization including enum mapping, structured locations (city/state/site), eligibility normalization, travel distance/duration integration from Google Routes, and deterministic fallback handling for missing or partial ClinicalTrials.gov fields.",
+      "parent_feature": "EVAL-TRIAL-QUALITY",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRIAL-QUALITY-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-TRIAL-QUALITY-S3",
+      "title": "Evaluate Care Facade and API Exposure for Trial Snapshot",
+      "description": "Expose trial snapshot via evaluate_care_facade and tool_router with strict schema validation, error handling for upstream failures, and compatibility with tool-use orchestration.",
+      "parent_feature": "EVAL-TRIAL-QUALITY",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRIAL-QUALITY-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "EVAL-TRIAL-QUALITY-S4",
+      "title": "Frontend Rendering of Clinical Trial Snapshot",
+      "description": "Render structured trial snapshot in chat UI with consistent grouping (overview, eligibility, locations), stable field ordering, and enforced URL validation via URL Guardian before display.",
+      "parent_feature": "EVAL-TRIAL-QUALITY",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRIAL-QUALITY-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    },
+    {
+      "story_id": "EVAL-TRIAL-QUALITY-S5",
+      "title": "Clinical Trial Snapshot Unit, Integration, and Contract Tests",
+      "description": "Develop unit, integration, and contract tests covering schema validation, normalization correctness, facade/API response integrity, UI rendering, URL validation, and null/missing field handling across end-to-end flow.",
+      "parent_feature": "EVAL-TRIAL-QUALITY",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRIAL-QUALITY-S2",
+        "EVAL-TRIAL-QUALITY-S3",
+        "EVAL-TRIAL-QUALITY-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    }
+  ]
+}

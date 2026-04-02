@@ -1,0 +1,121 @@
+{
+  "assignment_id": "EVAL-CT-M3-STORIES",
+  "iteration": 17,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories created for EVAL-CT-M3 with full coverage: schema, logic, API, tests, integration.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-CT-M3-S1",
+      "value": "Added schema/contract story for relevance scoring",
+      "note": "Feature had zero stories",
+      "iteration": 17
+    },
+    {
+      "path": "stories.EVAL-CT-M3-S2",
+      "value": "Added core logic story for condition + eligibility matching",
+      "note": "Feature had zero stories",
+      "iteration": 17
+    },
+    {
+      "path": "stories.EVAL-CT-M3-S3",
+      "value": "Added facade/API exposure story",
+      "note": "Feature had zero stories",
+      "iteration": 17
+    },
+    {
+      "path": "stories.EVAL-CT-M3-S4",
+      "value": "Added unit and edge case testing story",
+      "note": "Feature had zero stories",
+      "iteration": 17
+    },
+    {
+      "path": "stories.EVAL-CT-M3-S5",
+      "value": "Added integration with clinical_trials_service",
+      "note": "Feature had zero stories",
+      "iteration": 17
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-CT-M3-S1": {
+      "story_id": "EVAL-CT-M3-S1",
+      "title": "Define Relevance Scoring Schema and Contract",
+      "description": "Define a structured schema for trial relevance including condition match score, eligibility match score, and overall relevance score. Extend or align with existing clinical_trials_models.py Pydantic models.",
+      "parent_feature": "EVAL-CT-M3",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    "EVAL-CT-M3-S2": {
+      "story_id": "EVAL-CT-M3-S2",
+      "title": "Implement Condition and Eligibility Matching Logic",
+      "description": "Build core logic to compare user query intent against trial condition fields and eligibility criteria text. Include normalization (synonyms, case handling) and scoring heuristics.",
+      "parent_feature": "EVAL-CT-M3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-M3-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M3-S3": {
+      "story_id": "EVAL-CT-M3-S3",
+      "title": "Expose Relevance Scores via Evaluate Care Facade",
+      "description": "Integrate relevance scoring into evaluate_care_facade so that trial results include relevance metrics for downstream UI and LLM response generation.",
+      "parent_feature": "EVAL-CT-M3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-M3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-CT-M3-S4": {
+      "story_id": "EVAL-CT-M3-S4",
+      "title": "Unit Tests for Relevance Matching and Scoring",
+      "description": "Create unit tests covering condition matching accuracy, eligibility parsing, edge cases (missing criteria, vague queries), and scoring consistency.",
+      "parent_feature": "EVAL-CT-M3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-M3-S2"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing tests for clinical trial relevance scoring; must be created in backend/tests/"
+    },
+    "EVAL-CT-M3-S5": {
+      "story_id": "EVAL-CT-M3-S5",
+      "title": "Integrate Relevance Scoring into Clinical Trials Service Pipeline",
+      "description": "Embed relevance scoring into the clinical_trials_service workflow after trial retrieval, ensuring all returned trials are annotated with relevance before formatting.",
+      "parent_feature": "EVAL-CT-M3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-M3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "EVAL-CT-M3": {
+        "feature_id": "EVAL-CT-M3",
+        "likelihood": "Moderate",
+        "impact": "Moderate",
+        "mitigation": "Use deterministic keyword and normalization heuristics to avoid reliance on external models."
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

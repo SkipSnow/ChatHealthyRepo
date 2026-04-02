@@ -1,0 +1,71 @@
+{
+  "assignment_id": "PHASE-2-EVAL-F-2-STORIES",
+  "iteration": 8,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories already defined and aligned to required breakdown (schema, logic, integration, API, tests). No new IDs created per dedup directive.",
+  "change_log": [],
+  "stories": [
+    {
+      "story_id": "EVAL-F-002-S1",
+      "title": "Define Provider Detail Schema and Contract",
+      "description": "Define Pydantic schema for provider detail response including NPI data (name, credentials, taxonomy, address) and structured external research links (NPI registry, Healthgrades, state boards).",
+      "parent_feature": "EVAL-F-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S2",
+      "title": "Implement NPI Registry Lookup Logic",
+      "description": "Implement core service logic to call CMS NPI Registry API, parse provider data, normalize fields, handle missing/partial responses, and include retry + timeout handling for external API reliability.",
+      "parent_feature": "EVAL-F-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S3",
+      "title": "Generate and Validate External Research Links",
+      "description": "Construct standardized URLs for NPI registry, Healthgrades, and supported state medical boards; validate all links through URL Guardian (HEAD check, AI verification, correction fallback) and handle invalid/failed URLs with safe fallback behavior.",
+      "parent_feature": "EVAL-F-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py + Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S4",
+      "title": "Expose Provider Detail via Evaluate Care Facade",
+      "description": "Integrate provider detail service into evaluate_care_facade and tool routing layer to enable LLM-triggered lookup by NPI or provider identifier, ensuring strict input validation via tool models and safe error propagation.",
+      "parent_feature": "EVAL-F-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S2",
+        "EVAL-F-002-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S5",
+      "title": "Unit and Integration Tests for Provider Detail Lookup",
+      "description": "Create unit tests for NPI parsing and link generation plus integration tests covering end-to-end flow through facade and tool router, including error scenarios (API failure, invalid NPI, broken URLs).",
+      "parent_feature": "EVAL-F-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  ]
+}

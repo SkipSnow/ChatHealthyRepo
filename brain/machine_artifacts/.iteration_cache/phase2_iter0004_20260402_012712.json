@@ -1,0 +1,83 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 4,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing integration and validation coverage stories for explainability layer.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F5-S11",
+      "value": "Explainability Normalization Across Signals",
+      "note": "Ensure consistent formatting across provider and trial signals",
+      "iteration": 4
+    },
+    {
+      "path": "stories.EVAL-F5-S12",
+      "value": "Explainability Fallback and Missing Data Handling",
+      "note": "Handle incomplete upstream data safely",
+      "iteration": 4
+    },
+    {
+      "path": "stories.EVAL-F5-S13",
+      "value": "Frontend Interaction Patterns for Explainability",
+      "note": "Improve usability of explanations in chat UI",
+      "iteration": 4
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F5-S11": {
+      "story_id": "EVAL-F5-S11",
+      "title": "Explainability Normalization Across Signals",
+      "description": "Implement normalization logic to ensure all explainability objects follow consistent phrasing, field structure, and ordering regardless of source (provider credentials, external links, clinical trials).",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S7",
+        "EVAL-F5-S8"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F5-S12": {
+      "story_id": "EVAL-F5-S12",
+      "title": "Explainability Fallback and Missing Data Handling",
+      "description": "Add logic to generate safe, user-understandable explanations when upstream data is incomplete, unavailable, or ambiguous, including explicit limitation messaging.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S8",
+        "EVAL-F1",
+        "EVAL-F3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-F5-S13": {
+      "story_id": "EVAL-F5-S13",
+      "title": "Frontend Interaction Patterns for Explainability",
+      "description": "Enhance chat UI to support expandable or clearly segmented explainability content so users can distinguish core signals from explanations without cluttering the conversation.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S9"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

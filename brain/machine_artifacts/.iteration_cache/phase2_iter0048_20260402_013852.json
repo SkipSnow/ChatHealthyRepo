@@ -1,0 +1,99 @@
+{
+  "assignment_id": "EVAL-F-03-STORIES",
+  "iteration": 48,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added API exposure, integration wiring, and test coverage stories for facade orchestration.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-03-S149",
+      "value": "Add API-layer integration for evaluate care facade",
+      "note": "Expose facade to FastAPI layer",
+      "iteration": 48
+    },
+    {
+      "path": "stories.EVAL-F-03-S150",
+      "value": "Wire facade into tool_router dispatch",
+      "note": "Ensure tool invocation routes correctly",
+      "iteration": 48
+    },
+    {
+      "path": "stories.EVAL-F-03-S151",
+      "value": "Create unit tests for facade orchestration",
+      "note": "Validate orchestration logic",
+      "iteration": 48
+    },
+    {
+      "path": "stories.EVAL-F-03-S152",
+      "value": "Add integration tests across facade and domain services",
+      "note": "Ensure end-to-end flow works",
+      "iteration": 48
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F-03-S149",
+      "title": "Expose EvaluateCare Facade via FastAPI Endpoint",
+      "description": "Integrate evaluate_care_facade into the FastAPI application layer, enabling API endpoints for clinical trials search and provider detail retrieval consistent with existing tool invocation patterns.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S146"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-03-S150",
+      "title": "Integrate EvaluateCare Facade with Tool Router",
+      "description": "Register evaluate care operations within tool_router to ensure validated inputs are dispatched to evaluate_care_facade and responses are returned in Anthropic tool_use format.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S146"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-03-S151",
+      "title": "Unit Test EvaluateCare Facade Orchestration Logic",
+      "description": "Develop unit tests to validate that evaluate_care_facade correctly orchestrates calls to clinical_trials_service and provider_detail_service, including success and failure paths.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S147"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-03-S152",
+      "title": "End-to-End Integration Test for EvaluateCare Flows",
+      "description": "Implement integration tests covering full evaluate care flows from tool_router through facade to domain services, validating schema compliance, orchestration, and response integrity.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S150",
+        "EVAL-F-03-S151"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

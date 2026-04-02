@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-SPONSOR-SCHEMA-REQ-001",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must define a sponsor_type enum with allowed values: NIH, Industry, Academic, Other.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-SCHEMA-REQ-002",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must include a credibility_score field as a float constrained between 0.0 and 1.0 inclusive.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-SCHEMA-REQ-003",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must include an explanation field as a non-empty string describing how the sponsor credibility was determined.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-SCHEMA-REQ-004",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must structure the schema as a Pydantic model compatible with existing clinical_trials_models.py patterns.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-SCHEMA-REQ-005",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must accept sponsor metadata inputs including lead_sponsor and collaborators from clinical_trials_service without transformation errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-SCHEMA-REQ-006",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must map agency_class input values to the sponsor_type enum without loss of information.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-SCHEMA-REQ-007",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must ensure the schema is serializable to JSON for inclusion in API responses.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-SCHEMA-REQ-008",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must ensure backward compatibility with existing facade response models by not breaking existing required fields.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-SCHEMA-REQ-009",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must validate that credibility_score is present whenever sponsor_type is present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-SCHEMA-REQ-010",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must allow explanation to include sponsor name and type context derived from input metadata.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-SCHEMA-REQ-011",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must default sponsor_type to Other when agency_class is missing or unrecognized.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-SCHEMA-REQ-012",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must default credibility_score to a valid value within range when sponsor metadata is missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-SCHEMA-REQ-013",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must not allow null values for sponsor_type, credibility_score, or explanation in the final schema output.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-SCHEMA-REQ-014",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must raise a validation error if credibility_score is outside the 0 to 1 range.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-SCHEMA-REQ-015",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must raise a validation error if sponsor_type is not one of the defined enum values.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

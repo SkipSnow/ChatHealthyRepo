@@ -1,0 +1,63 @@
+{
+  "stories": {
+    "STORY-FEAT4-016": {
+      "story_id": "STORY-FEAT4-016",
+      "title": "Define Provider Detail Response Schema",
+      "description": "Create a structured response schema for provider detail lookup including NPI data fields, specialties, practice locations, and external links to ensure consistent downstream consumption.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "STORY-FEAT4-017": {
+      "story_id": "STORY-FEAT4-017",
+      "title": "Implement Core NPI Lookup Orchestration",
+      "description": "Build core service logic to orchestrate NPI Registry API calls, parse responses, and map them into the standardized provider detail schema.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-016"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "STORY-FEAT4-018": {
+      "story_id": "STORY-FEAT4-018",
+      "title": "Expose Provider Detail via EvaluateCare Facade",
+      "description": "Integrate provider detail lookup into the EvaluateCare facade to make it accessible through the tool router and conversational interface.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-017"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "STORY-FEAT4-019": {
+      "story_id": "STORY-FEAT4-019",
+      "title": "Add Unit Tests for Provider Detail Service",
+      "description": "Develop unit tests covering NPI lookup, schema mapping, external link generation, and error handling scenarios for provider detail service.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-017",
+        "STORY-FEAT4-015"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    },
+    "STORY-FEAT4-020": {
+      "story_id": "STORY-FEAT4-020",
+      "title": "End-to-End Integration via Tool Router",
+      "description": "Ensure provider detail lookup is fully integrated through the tool router with validated inputs, correct tool invocation, and proper response formatting in chat output.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-018"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  }
+}

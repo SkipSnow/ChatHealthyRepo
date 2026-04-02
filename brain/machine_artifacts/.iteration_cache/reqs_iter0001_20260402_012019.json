@@ -1,0 +1,165 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-001",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must define a Pydantic model representing a weighting schema with measure_id and weight fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-002",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must support a default weighting configuration where all measures have predefined weights.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-003",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must allow user-provided weights to override default weights on a per-measure basis.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-004",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must validate that all weights are numeric values within an allowed range (e.g., 0 to 1 or 0 to 100).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-005",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must validate that the sum of all weights meets a normalization rule (e.g., equals 1.0 or is normalizable).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-006",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must return a normalized weighting schema when user-provided weights do not sum to the expected total but are otherwise valid.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-007",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must reject weighting inputs containing unknown or unsupported measure_id values.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-008",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must expose an input contract for weights that can be serialized to and from JSON.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-009",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must expose an output contract that includes both effective weights and metadata indicating default vs overridden values.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-010",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must provide deterministic validation results for identical weight inputs.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-011",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must fail validation when any weight value is missing for a required measure and no default exists.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-012",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must fallback to default weights when user-provided weights are null or empty.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-013",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must generate a complete weighting schema covering all required measures after applying overrides and defaults.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-014",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must ensure the weighting schema is compatible with downstream scoring engine input requirements.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-015",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must, when using an LLM to assist in weight suggestion, ensure the generated weights conform to the same validation rules as user input.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-016",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must, when using an LLM, produce weight outputs in the defined Pydantic schema format without requiring post-hoc structural correction.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-017",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must, when using an LLM, reject or reprocess outputs that contain non-numeric or malformed weight values.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-018",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must, when using an LLM, ensure that all required measures are present in the generated weighting schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-019",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must, when using an LLM, ensure consistent weight outputs for identical prompts and inputs within a defined tolerance.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-020",
+      "story_id": "EVAL-WEIGHTS-S1",
+      "requirement": "The system must, when using an LLM, provide traceable metadata indicating whether weights were user-defined, default, or LLM-generated.",
+      "source": "feature",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

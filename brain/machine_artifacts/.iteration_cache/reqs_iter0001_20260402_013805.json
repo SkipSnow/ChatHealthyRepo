@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-S5-001",
+      "story_id": "EVAL-EXPLAIN-UX-S5",
+      "requirement": "The system must render a test case validating that an overall score value is displayed when a valid explainability payload is provided.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-S5-002",
+      "story_id": "EVAL-EXPLAIN-UX-S5",
+      "requirement": "The system must render a test case validating that a list of measures is displayed when present in the payload.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-S5-003",
+      "story_id": "EVAL-EXPLAIN-UX-S5",
+      "requirement": "The system must render a test case validating that each measure displays its corresponding weight or contribution value.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-S5-004",
+      "story_id": "EVAL-EXPLAIN-UX-S5",
+      "requirement": "The system must render a test case validating that contribution breakdown elements (e.g., percentages or bars) are correctly calculated and displayed.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-S5-005",
+      "story_id": "EVAL-EXPLAIN-UX-S5",
+      "requirement": "The system must render a test case validating that the UI structure (score header, measures, contributions) matches the expected component hierarchy in MessageBubble.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-S5-006",
+      "story_id": "EVAL-EXPLAIN-UX-S5",
+      "requirement": "The system must render a test case validating that an empty measures array results in a graceful UI state without runtime errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-S5-007",
+      "story_id": "EVAL-EXPLAIN-UX-S5",
+      "requirement": "The system must render a test case validating that partial weights (missing or null values) do not break rendering and are handled with fallback display logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-S5-008",
+      "story_id": "EVAL-EXPLAIN-UX-S5",
+      "requirement": "The system must render a test case validating that malformed payload structures do not crash the component and instead trigger safe fallback rendering.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-S5-009",
+      "story_id": "EVAL-EXPLAIN-UX-S5",
+      "requirement": "The system must render a test case validating that missing overall score values result in omission or fallback display without UI failure.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-S5-010",
+      "story_id": "EVAL-EXPLAIN-UX-S5",
+      "requirement": "The system must render a test case validating that duplicate or inconsistent measure entries are still rendered deterministically without duplication errors.",
+      "source": "feature",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-S5-011",
+      "story_id": "EVAL-EXPLAIN-UX-S5",
+      "requirement": "The system must render a test case validating that the component integrates correctly with mapped API responses from EVAL-EXPLAIN-UX-S4.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-S5-012",
+      "story_id": "EVAL-EXPLAIN-UX-S5",
+      "requirement": "The system must render a test case validating that rendering performance does not degrade beyond acceptable thresholds for typical payload sizes.",
+      "source": "architecture_constraint",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

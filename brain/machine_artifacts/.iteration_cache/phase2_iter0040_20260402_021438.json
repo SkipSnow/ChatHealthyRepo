@@ -1,0 +1,80 @@
+{
+  "assignment_id": "PHASE 2: FEAT-6 STORIES",
+  "iteration": 40,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing stories to meet minimum and ensure full coverage (core logic, API/integration).",
+  "change_log": [
+    {
+      "path": "stories.FEAT-6-S132",
+      "value": "Consent Core Logic Implementation",
+      "note": "Added core logic story",
+      "iteration": 40
+    },
+    {
+      "path": "stories.FEAT-6-S133",
+      "value": "Consent API and Tool Router Integration",
+      "note": "Added API/integration story",
+      "iteration": 40
+    },
+    {
+      "path": "stories.FEAT-6-S134",
+      "value": "Consent Integration with Lead Capture and Unknowns",
+      "note": "Added cross-service integration story",
+      "iteration": 40
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-6-S132": {
+      "story_id": "FEAT-6-S132",
+      "title": "Consent Core Logic Implementation",
+      "description": "Implement ConsentService logic for two-tier HIPAA consent including tier evaluation, conversation summarization, de-identification (Safe Harbor), and enforcement of storage rules based on consent level.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S130"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "FEAT-6-S133": {
+      "story_id": "FEAT-6-S133",
+      "title": "Consent API and Tool Router Integration",
+      "description": "Expose consent workflow through tool_router with validated inputs, ensuring consent capture, tier escalation prompts, and enforcement hooks are callable within chat flows.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S130"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-6-S134": {
+      "story_id": "FEAT-6-S134",
+      "title": "Consent Integration with Lead Capture and Unknowns",
+      "description": "Integrate consent workflow with lead_service and unknown_question_service to ensure Tier 2 consent is required before identifiable data storage and that de-identified flows are enforced otherwise.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S132"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

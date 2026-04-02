@@ -1,0 +1,102 @@
+{
+  "assignment_id": "BL-0.1.4-008-STORIES",
+  "iteration": 12,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Rate limiting stories defined across contract, logic, middleware integration, and tests.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-008-S1",
+      "value": "Added schema and configuration contract story",
+      "note": "Feature had no stories",
+      "iteration": 12
+    },
+    {
+      "path": "stories.BL-0.1.4-008-S2",
+      "value": "Added core rate limiting logic story",
+      "note": "Feature had no stories",
+      "iteration": 12
+    },
+    {
+      "path": "stories.BL-0.1.4-008-S3",
+      "value": "Added FastAPI middleware integration story",
+      "note": "Feature had no stories",
+      "iteration": 12
+    },
+    {
+      "path": "stories.BL-0.1.4-008-S4",
+      "value": "Added testing and validation story",
+      "note": "Feature had no stories",
+      "iteration": 12
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "BL-0.1.4-008-S1": {
+      "story_id": "BL-0.1.4-008-S1",
+      "title": "Define Rate Limiting Policy Schema and Configuration Contract",
+      "description": "Define configurable rate limiting policies including request thresholds, time windows, and keying strategy (IP, session, or API key). Establish a schema for storing and retrieving rate limit configs.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "ASSUMPTION: No existing rate limiting configuration; GAP required for policy definition"
+    },
+    "BL-0.1.4-008-S2": {
+      "story_id": "BL-0.1.4-008-S2",
+      "title": "Implement Core Rate Limiting Logic",
+      "description": "Implement backend logic to track request counts per key (IP/session) and enforce limits using sliding window or fixed window strategy with in-memory or Mongo-backed counters.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (demonstrates request metadata capture patterns); ASSUMPTION: reuse similar tracking approach for rate counters"
+    },
+    "BL-0.1.4-008-S3": {
+      "story_id": "BL-0.1.4-008-S3",
+      "title": "Integrate Rate Limiting Middleware into FastAPI",
+      "description": "Add middleware to FastAPI entrypoint to intercept requests, apply rate limiting checks, and return 429 responses when limits are exceeded. Ensure compatibility with existing tool routing and chat endpoints.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (FastAPI host and request handling entrypoint)"
+    },
+    "BL-0.1.4-008-S4": {
+      "story_id": "BL-0.1.4-008-S4",
+      "title": "Rate Limiting Unit and Integration Tests",
+      "description": "Create tests to validate rate limiting behavior including threshold enforcement, reset windows, and correct HTTP 429 responses. Include integration tests against chat and tool endpoints.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py (pattern for endpoint-level testing); ASSUMPTION: extend test suite for middleware validation"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "BL-0.1.4-008": {
+        "likelihood": "Moderate",
+        "impact": "Moderate",
+        "mitigation": "Start with simple IP-based limits and conservative thresholds"
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

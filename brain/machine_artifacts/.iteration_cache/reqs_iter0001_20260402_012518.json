@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-301",
+      "story_id": "EVAL-FAILSAFE-S3",
+      "requirement": "The system must detect when the scoring engine returns an insufficiency response object instead of a score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-302",
+      "story_id": "EVAL-FAILSAFE-S3",
+      "requirement": "The system must propagate the insufficiency response from the scoring engine through the evaluate_care_facade without modification to its schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-303",
+      "story_id": "EVAL-FAILSAFE-S3",
+      "requirement": "The system must prevent any numeric score field from being included in the facade response when an insufficiency response is returned.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-304",
+      "story_id": "EVAL-FAILSAFE-S3",
+      "requirement": "The system must return a structured response containing valid_measure_count, required_minimum, missing_measure_types, and message fields when insufficiency is detected.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-305",
+      "story_id": "EVAL-FAILSAFE-S3",
+      "requirement": "The system must ensure downstream consumers receive a consistent response type regardless of whether scoring succeeded or failed due to insufficiency.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-306",
+      "story_id": "EVAL-FAILSAFE-S3",
+      "requirement": "The system must map both provider and clinical trial scoring outputs into the same facade-level insufficiency response contract.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-307",
+      "story_id": "EVAL-FAILSAFE-S3",
+      "requirement": "The system must not attempt to compute or infer a fallback score when fewer than 3 valid measures are present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-308",
+      "story_id": "EVAL-FAILSAFE-S3",
+      "requirement": "The system must log an insufficiency event at the facade level including valid_measure_count and missing_measure_types.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-309",
+      "story_id": "EVAL-FAILSAFE-S3",
+      "requirement": "The system must pass through a valid score response unchanged when the scoring engine returns a result with at least 3 valid measures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-310",
+      "story_id": "EVAL-FAILSAFE-S3",
+      "requirement": "The system must include a discriminator field or equivalent indicator in the facade response to distinguish between score and insufficiency outcomes.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-311",
+      "story_id": "EVAL-FAILSAFE-S3",
+      "requirement": "The system must handle null or malformed scoring engine responses by returning a structured insufficiency response instead of propagating an error.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-312",
+      "story_id": "EVAL-FAILSAFE-S3",
+      "requirement": "The system must handle unexpected exceptions from the scoring engine by returning a structured insufficiency response with a generic message.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-313",
+      "story_id": "EVAL-FAILSAFE-S3",
+      "requirement": "The system must ensure no partial measure data or intermediate scoring values are exposed in the facade response when insufficiency is triggered.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-314",
+      "story_id": "EVAL-FAILSAFE-S3",
+      "requirement": "The system must maintain backward-compatible response keys for downstream consumers when integrating insufficiency handling.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,100 @@
+{
+  "assignment_id": "FEAT-6-STORIES",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing persistence, audit, and downgrade handling stories to complete consent workflow coverage.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-6-S32",
+      "value": "Consent Persistence and Storage Policy Enforcement",
+      "note": "Adds storage-layer enforcement missing from prior iteration",
+      "iteration": 10
+    },
+    {
+      "path": "stories.FEAT-6-S33",
+      "value": "Consent Audit Logging and Traceability",
+      "note": "Adds auditability required for HIPAA compliance",
+      "iteration": 10
+    },
+    {
+      "path": "stories.FEAT-6-S34",
+      "value": "Consent Downgrade and Data Purge Handling",
+      "note": "Covers critical edge case not previously addressed",
+      "iteration": 10
+    },
+    {
+      "path": "stories.FEAT-6-S35",
+      "value": "Cross-Service Consent Enforcement Integration",
+      "note": "Ensures all services respect consent decisions",
+      "iteration": 10
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-6-S32",
+      "title": "Consent Persistence and Storage Policy Enforcement",
+      "description": "Implement persistence rules ensuring Tier 1 data is never stored in identifiable form and Tier 2 data is stored only after explicit consent, including database write guards and validation hooks.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S27"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "FEAT-6-S33",
+      "title": "Consent Audit Logging and Traceability",
+      "description": "Implement audit logs capturing consent decisions, tier transitions, timestamps, and enforcement actions to support compliance and traceability.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S32"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; docs/adr/ADR-0010-safety-incident-logging.md"
+    },
+    {
+      "story_id": "FEAT-6-S34",
+      "title": "Consent Downgrade and Data Purge Handling",
+      "description": "Implement logic to handle downgrade from Tier 2 to Tier 1, including purging or de-identifying previously stored identifiable data in compliance with HIPAA Safe Harbor.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S27",
+        "FEAT-6-S32"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    {
+      "story_id": "FEAT-6-S35",
+      "title": "Cross-Service Consent Enforcement Integration",
+      "description": "Integrate consent enforcement checks across all domain services (find care, evaluate care, unknowns, lead capture) to ensure no service bypasses consent rules.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S27",
+        "FEAT-6-S31"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/; Code/ConversationalUX/FindCareChat/backend/application/facades/"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

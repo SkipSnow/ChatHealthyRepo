@@ -1,0 +1,121 @@
+{
+  "assignment_id": "PHASE-2-MAINT-BRAIN-STORIES",
+  "iteration": 8,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "MAINT-BRAIN stories defined covering schema, logic, API, tests, and integration.",
+  "change_log": [
+    {
+      "path": "stories.MAINT-BRAIN-S1",
+      "value": "Added schema/contract story for GPTReader + manifest",
+      "note": "Feature had no stories",
+      "iteration": 8
+    },
+    {
+      "path": "stories.MAINT-BRAIN-S2",
+      "value": "Added core logic reliability improvements",
+      "note": "Feature had no stories",
+      "iteration": 8
+    },
+    {
+      "path": "stories.MAINT-BRAIN-S3",
+      "value": "Added API/usage enforcement story",
+      "note": "Feature had no stories",
+      "iteration": 8
+    },
+    {
+      "path": "stories.MAINT-BRAIN-S4",
+      "value": "Added test suite story",
+      "note": "Feature had no stories",
+      "iteration": 8
+    },
+    {
+      "path": "stories.MAINT-BRAIN-S5",
+      "value": "Added integration with manifest + audit systems",
+      "note": "Feature had no stories",
+      "iteration": 8
+    }
+  ],
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "MAINT-BRAIN-S1",
+      "title": "Define GPTReader and Manifest Schema Contracts",
+      "description": "Define and standardize request/response schema for GPTReader including query limits, pagination, and manifest reference contract to ensure consistent usage across Brain components.",
+      "parent_feature": "MAINT-BRAIN",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/ops/manifest_generator.py"
+    },
+    {
+      "story_id": "MAINT-BRAIN-S2",
+      "title": "Implement GPTReader Reliability and Guardrails",
+      "description": "Enhance GPTReader with stricter enforcement of 500KB response cap, 100-document limits, retry logic, and failure handling to prevent overload and inconsistent outputs.",
+      "parent_feature": "MAINT-BRAIN",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-BRAIN-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    },
+    {
+      "story_id": "MAINT-BRAIN-S3",
+      "title": "Expose Manifest-Aware Read Interface",
+      "description": "Add internal API interface ensuring all GPTReader queries reference manifest entries for traceability and enforce manifest-aligned access patterns.",
+      "parent_feature": "MAINT-BRAIN",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-BRAIN-S1"
+      ],
+      "size": "S",
+      "evidence": "Code/Shared/ops/manifest_generator.py; brain/manifest/project_manifest.json"
+    },
+    {
+      "story_id": "MAINT-BRAIN-S4",
+      "title": "GPTReader Unit and Integration Test Suite Expansion",
+      "description": "Expand test coverage for GPTReader including edge cases (limit breaches, malformed queries, auth failures) and manifest consistency validation.",
+      "parent_feature": "MAINT-BRAIN",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-BRAIN-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py"
+    },
+    {
+      "story_id": "MAINT-BRAIN-S5",
+      "title": "Audit Logging Consistency for GPTReader Operations",
+      "description": "Standardize audit logging for all GPTReader operations including query metadata, manifest references, and response size to ensure traceability and compliance with Brain audit patterns.",
+      "parent_feature": "MAINT-BRAIN",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-BRAIN-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; brain/BusinessArtifacts/gpt_reader_qa_report.pdf"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "MAINT-BRAIN",
+        "likelihood": "Moderate",
+        "impact": "High",
+        "mitigation": "Enforce strict limits and expand test coverage without adding new infrastructure."
+      }
+    ],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

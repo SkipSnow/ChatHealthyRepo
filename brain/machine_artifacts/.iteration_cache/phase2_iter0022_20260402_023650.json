@@ -1,0 +1,91 @@
+{
+  "assignment_id": "PHASE_2_GOV-F-004",
+  "iteration": 22,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Append-only guarantees depend on MongoDB configuration not yet verified in manifest",
+    "Cross-service trace consistency may be incomplete without standardized trace ID propagation"
+  ],
+  "notes": "Expanded GOV-F-004 into full story set covering schema, core logic, API access, tests, and integration.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GOV-F-004-S68": {
+      "story_id": "GOV-F-004-S68",
+      "title": "Audit Log Schema and Append-Only Contract Definition",
+      "description": "Define the audit log data model including fields for timestamp, actor (GPT/Claude/system), operation type, input/output metadata, trace_id, parent_trace_id, and immutability constraints. Enforce append-only semantics at schema and repository level.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py (existing audit logging); Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S69": {
+      "story_id": "GOV-F-004-S69",
+      "title": "Core Append-Only Audit Logging Service",
+      "description": "Implement centralized audit logging service responsible for writing immutable records, generating trace IDs, enforcing no-update/no-delete behavior, and handling high-throughput writes safely.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S68"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/Shared/ChatHealthyMongoUtilities.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S70": {
+      "story_id": "GOV-F-004-S70",
+      "title": "Audit Log Retrieval API for Internal Use",
+      "description": "Expose secure internal API endpoints to query audit logs by trace_id, time range, or actor for debugging, QA, and compliance verification. Ensure read-only access with no mutation capability.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S69"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (FastAPI patterns); Code/DataPipelines/gpt_reader.py (read-only access patterns); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S71": {
+      "story_id": "GOV-F-004-S71",
+      "title": "Audit Logging Test Suite and Immutability Validation",
+      "description": "Create unit and integration tests validating append-only behavior, ensuring no updates/deletes are possible, verifying trace chaining, and confirming logs are written for all critical operations.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S69"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py; Code/DataPipelines/tests/test_gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S67": {
+      "story_id": "GOV-F-004-S67",
+      "title": "Audit Logging Integration Across GPT, Claude, and Pipeline Entry Points",
+      "description": "Integrate the append-only audit logging service into all execution entry points including FastAPI main loop, tool_router, Brain runner, GPTReader, and safety_service. Ensure every model action, tool invocation, and external API call produces a compliant audit record with trace continuity.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S69"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/Shared/brain_runner.py; Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "GOV-F-004": {
+        "likelihood": "High",
+        "impact": "Critical",
+        "mitigation": "Leverage existing debug_logger patterns and enforce append-only via application-layer guards without introducing new infrastructure"
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

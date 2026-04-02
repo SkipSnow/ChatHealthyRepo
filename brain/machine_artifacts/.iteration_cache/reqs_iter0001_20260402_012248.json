@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CT-M5-S3-001",
+      "story_id": "EVAL-CT-M5-S3",
+      "requirement": "The system must include a proximity_score field (0–1 normalized float) for each clinical trial result returned by evaluate_care_facade.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S3-002",
+      "story_id": "EVAL-CT-M5-S3",
+      "requirement": "The system must include proximity metadata fields (distance_meters, duration_seconds, chosen_site_id) alongside the proximity_score for each trial.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S3-003",
+      "story_id": "EVAL-CT-M5-S3",
+      "requirement": "The system must retrieve proximity scoring outputs from clinical_trials_service and map them into the evaluate_care_facade response without loss of precision.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S3-004",
+      "story_id": "EVAL-CT-M5-S3",
+      "requirement": "The system must ensure that for trials with multiple locations, the proximity metadata corresponds to the selected best-case site used in scoring.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S3-005",
+      "story_id": "EVAL-CT-M5-S3",
+      "requirement": "The system must preserve existing response schema compatibility so that tool_router outputs remain valid without breaking changes.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S3-006",
+      "story_id": "EVAL-CT-M5-S3",
+      "requirement": "The system must include proximity_score only when scoring data is available and omit or null the field when unavailable.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S3-007",
+      "story_id": "EVAL-CT-M5-S3",
+      "requirement": "The system must ensure that all proximity-related fields conform to the schema defined in EVAL-CT-M5-S1.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S3-008",
+      "story_id": "EVAL-CT-M5-S3",
+      "requirement": "The system must return clinical trial results within existing latency thresholds after adding proximity scoring fields.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S3-009",
+      "story_id": "EVAL-CT-M5-S3",
+      "requirement": "The system must gracefully handle cases where clinical_trials_service returns no proximity data by returning trials without proximity fields and without raising errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S3-010",
+      "story_id": "EVAL-CT-M5-S3",
+      "requirement": "The system must log an error event when proximity scoring integration fails for a trial while still returning the base trial data.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S3-011",
+      "story_id": "EVAL-CT-M5-S3",
+      "requirement": "The system must ensure that proximity_score values are deterministic for the same input data across repeated API calls.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S3-012",
+      "story_id": "EVAL-CT-M5-S3",
+      "requirement": "The system must expose proximity metadata in a format consumable by downstream LLM/tool_router components without requiring additional transformation.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

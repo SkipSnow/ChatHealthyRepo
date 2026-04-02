@@ -1,0 +1,121 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 9,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Expanded EVAL-F5 with full story coverage across schema, logic, API, tests, and integration.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F5-S27",
+      "value": "Added explainability schema contract story",
+      "note": "Schema layer required for standardization",
+      "iteration": 9
+    },
+    {
+      "path": "stories.EVAL-F5-S28",
+      "value": "Added explainability core logic builder",
+      "note": "Transforms raw signals into explainable format",
+      "iteration": 9
+    },
+    {
+      "path": "stories.EVAL-F5-S29",
+      "value": "Added facade/API integration story",
+      "note": "Expose explainability via evaluate facade",
+      "iteration": 9
+    },
+    {
+      "path": "stories.EVAL-F5-S30",
+      "value": "Added integration with upstream signals",
+      "note": "Connects F1/F2/F3 outputs into explainability layer",
+      "iteration": 9
+    },
+    {
+      "path": "stories.EVAL-F5-S31",
+      "value": "Added test coverage for explainability",
+      "note": "Ensures correctness and consistency",
+      "iteration": 9
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F5-S27",
+      "title": "Explainability Schema and Contract Definition",
+      "description": "Define a standardized schema for evaluation explainability including fields for source, meaning, and limitations. Implement as Pydantic models to ensure consistent structure across provider and clinical trial signals.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    {
+      "story_id": "EVAL-F5-S28",
+      "title": "Explainability Core Logic Builder",
+      "description": "Implement backend logic to transform raw evaluation signals (credentials, links, trial data) into standardized explainability objects, enriching each signal with source attribution, user-friendly meaning, and known limitations.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F5-S29",
+      "title": "Expose Explainability via Evaluate Care Facade",
+      "description": "Extend evaluate_care_facade to include explainability fields in responses for both provider and clinical trial queries, ensuring compatibility with existing tool routing and response structures.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S28"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F5-S30",
+      "title": "Integrate Explainability with Upstream Evaluation Signals",
+      "description": "Integrate explainability generation directly into the data flow of provider and clinical trial services, ensuring every exposed evaluation signal includes an explainability payload before reaching the facade layer.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3",
+        "EVAL-F5-S28"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-F5-S31",
+      "title": "Explainability Layer Unit and Integration Tests",
+      "description": "Create unit and integration tests to validate explainability schema compliance, correctness of source attribution, and consistency of meaning/limitations across provider and clinical trial scenarios.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S27",
+        "EVAL-F5-S28",
+        "EVAL-F5-S29"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

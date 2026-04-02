@@ -1,0 +1,96 @@
+{
+  "assignment_id": "FEAT-2-STORIES",
+  "iteration": 44,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing schema/contract, API exposure, testing, and integration stories for FEAT-2.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-2-S135",
+      "value": "Schema and contract for specialty identification output",
+      "note": "Add schema layer coverage",
+      "iteration": 44
+    },
+    {
+      "path": "stories.FEAT-2-S136",
+      "value": "Expose specialty identification via facade/tool contract",
+      "note": "Add API layer coverage",
+      "iteration": 44
+    },
+    {
+      "path": "stories.FEAT-2-S137",
+      "value": "Unit and edge-case tests for specialty mapping",
+      "note": "Add test coverage",
+      "iteration": 44
+    },
+    {
+      "path": "stories.FEAT-2-S138",
+      "value": "Integration with provider search pipeline",
+      "note": "Ensure downstream usage",
+      "iteration": 44
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-2-S135": {
+      "story_id": "FEAT-2-S135",
+      "title": "Define Specialty Identification Schema and Contract",
+      "description": "Define and standardize the input/output schema for specialty identification, including normalized NUCC codes, labels, confidence scores, and aggregation structure, aligned with existing Pydantic tool models.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-2-S136": {
+      "story_id": "FEAT-2-S136",
+      "title": "Expose Specialty Identification via FindCare Facade",
+      "description": "Integrate specialty identification into the FindCare facade and tool routing layer, ensuring user queries trigger NUCC mapping and return structured outputs consumable by downstream provider search.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S135"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    "FEAT-2-S137": {
+      "story_id": "FEAT-2-S137",
+      "title": "Unit Tests for Specialty Identification Logic",
+      "description": "Create unit tests covering regex matching, vector similarity mapping, NUCC deduplication, confidence scoring, and edge cases such as ambiguous or empty inputs.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S131"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "FEAT-2-S138": {
+      "story_id": "FEAT-2-S138",
+      "title": "Integrate Specialty Mapping with Provider Search Pipeline",
+      "description": "Wire specialty identification outputs into provider_search_service to ensure NUCC codes are used in taxonomy fallback and filtering logic for provider retrieval.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S136"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

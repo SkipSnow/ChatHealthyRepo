@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-301",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must write normalized prescription records to the MongoDB collection PublicHealthData.prescriptions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-302",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must batch write operations with a configurable batch size greater than 1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-303",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must successfully insert all valid records in a batch when no errors occur.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-304",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must enforce idempotency such that re-processing the same input does not create duplicate records.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-305",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must generate a deterministic unique key per prescription record based on defined schema fields.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-306",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must perform upsert operations (insert or update) using the deterministic unique key.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-307",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must use MongoDB utilities defined in ChatHealthyMongoUtilities.py for all database interactions.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-308",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must log the number of records processed, inserted, updated, and failed per batch.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-309",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must continue processing remaining batches after a successful batch write.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-310",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must validate that each record conforms to the schema defined in PIPE-RX-INGEST-S1 before writing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-311",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must skip and log records that fail schema validation without halting the pipeline.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-312",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must retry a failed batch write at least once when a transient database error occurs.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-313",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must stop processing and surface an error when a non-recoverable database error occurs.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-314",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must ensure consistency with pipeline_worker_base.py patterns for execution flow and error handling.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

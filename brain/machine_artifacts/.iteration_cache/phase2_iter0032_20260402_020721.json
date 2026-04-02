@@ -1,0 +1,81 @@
+{
+  "assignment_id": "FEAT-5-STORIES",
+  "iteration": 32,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing stories for allowlist enforcement hardening, error handling, and observability.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-5-S125",
+      "value": "Allowlist Enforcement and Rejection Handling",
+      "note": "Add explicit security enforcement story",
+      "iteration": 32
+    },
+    {
+      "path": "stories.FEAT-5-S126",
+      "value": "Structured Error Handling and Fallback Responses",
+      "note": "Add robustness for validation and execution failures",
+      "iteration": 32
+    },
+    {
+      "path": "stories.FEAT-5-S127",
+      "value": "Tool Routing Observability and Debug Logging",
+      "note": "Add logging and traceability for tool execution",
+      "iteration": 32
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-5-S125": {
+      "story_id": "FEAT-5-S125",
+      "title": "Allowlist Enforcement and Rejection Handling",
+      "description": "Implement strict allowlist enforcement to reject any tool calls not explicitly registered, returning safe structured responses and preventing execution of unauthorized tools.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S120",
+        "FEAT-5-S121"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-5-S126": {
+      "story_id": "FEAT-5-S126",
+      "title": "Structured Error Handling and Fallback Responses",
+      "description": "Implement standardized error handling for schema validation failures, tool execution exceptions, and malformed tool_use blocks, ensuring safe fallback responses are returned to the chat loop.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S121"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/"
+    },
+    "FEAT-5-S127": {
+      "story_id": "FEAT-5-S127",
+      "title": "Tool Routing Observability and Debug Logging",
+      "description": "Integrate debug logging for tool routing events including tool selection, validation outcomes, execution timing, and errors, aligned with existing debug_logger infrastructure.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S121"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

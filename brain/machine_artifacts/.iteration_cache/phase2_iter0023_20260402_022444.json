@@ -1,0 +1,82 @@
+{
+  "assignment_id": "GPTR-F-002-STORIES",
+  "iteration": 23,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added remaining lifecycle coverage: revocation API, integration into GPTReader auth path, and test coverage.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-002-S78",
+      "value": "Token Revocation API and Enforcement",
+      "note": "Adds revocation capability missing from lifecycle",
+      "iteration": 23
+    },
+    {
+      "path": "stories.GPTR-F-002-S79",
+      "value": "GPTReader Integration with Lifecycle Validation",
+      "note": "Ensures lifecycle logic is actually enforced in production path",
+      "iteration": 23
+    },
+    {
+      "path": "stories.GPTR-F-002-S80",
+      "value": "Lifecycle Test Suite (Unit + Integration)",
+      "note": "Adds required validation coverage for security feature",
+      "iteration": 23
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GPTR-F-002-S78": {
+      "story_id": "GPTR-F-002-S78",
+      "title": "Token Revocation API and Enforcement",
+      "description": "Implement revocation capability including endpoint or internal function to mark tokens as revoked (revoked_at). Update authentication logic to deny any revoked token regardless of expiration or rotation state.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S75"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/DataPipelines/gpt_reader.py; GAP: No revocation mechanism currently implemented"
+    },
+    "GPTR-F-002-S79": {
+      "story_id": "GPTR-F-002-S79",
+      "title": "GPTReader Integration with Lifecycle Validation",
+      "description": "Integrate expiration, rotation, and revocation checks into GPTReader request handling path to ensure all inbound requests enforce full token lifecycle validation before data access.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S76",
+        "GPTR-F-002-S77",
+        "GPTR-F-002-S78"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py"
+    },
+    "GPTR-F-002-S80": {
+      "story_id": "GPTR-F-002-S80",
+      "title": "Lifecycle Test Suite (Unit + Integration)",
+      "description": "Create comprehensive tests covering token expiration, rotation chain validity, and revocation behavior. Include integration tests for GPTReader endpoints to verify rejected and accepted token scenarios.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S79"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; GAP: No lifecycle-specific test coverage exists"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

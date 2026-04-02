@@ -1,0 +1,97 @@
+{
+  "assignment_id": "EVAL-CT-M3-STORIES",
+  "iteration": 2,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Refined aggregation vs API responsibility and strengthened evidence specificity.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-CT-M3-S4.description",
+      "value": "Separate aggregation logic from transport concerns; compute overall_relevance_score and prepare structured payload for facade exposure without coupling to UI formatting.",
+      "note": "Clarify separation of concerns",
+      "iteration": 2
+    },
+    {
+      "path": "stories.EVAL-CT-M3-S5.evidence",
+      "value": "Code/ConversationalUX/FindCareChat/backend/tests; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py",
+      "note": "Expand evidence to include facade integration",
+      "iteration": 2
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-CT-M3-S1",
+      "title": "Relevance Measure Schema and Contract",
+      "description": "Define Pydantic schema for trial relevance scoring including fields for condition_match_score, eligibility_match_score, overall_relevance_score, and supporting metadata. Ensure compatibility with existing clinical_trials_models input/output contracts.",
+      "parent_feature": "EVAL-CT-M3",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    {
+      "story_id": "EVAL-CT-M3-S2",
+      "title": "Condition Matching Logic",
+      "description": "Implement logic to compare user query condition (normalized text or ICD context if available) against trial condition fields from ClinicalTrials.gov results. Produce a normalized condition_match_score based on exact, partial, and semantic matches.",
+      "parent_feature": "EVAL-CT-M3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-M3-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-M3-S3",
+      "title": "Eligibility Criteria Parsing and Matching",
+      "description": "Extract and parse eligibility criteria from trial data and evaluate alignment with inferred user attributes (age, gender, condition context). Generate eligibility_match_score with rule-based parsing and fallback heuristics.",
+      "parent_feature": "EVAL-CT-M3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-M3-S2"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-M3-S4",
+      "title": "Relevance Score Aggregation",
+      "description": "Combine condition and eligibility scores into a single overall_relevance_score with deterministic weighting. Produce a structured relevance payload ready for downstream consumption without coupling to presentation logic.",
+      "parent_feature": "EVAL-CT-M3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-M3-S2",
+        "EVAL-CT-M3-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-M3-S5",
+      "title": "Relevance Scoring Tests and Integration Validation",
+      "description": "Create unit and integration tests validating condition matching, eligibility parsing, aggregation, and facade exposure. Ensure no regression in clinical trial search flows and correct propagation through EvaluateCare facade.",
+      "parent_feature": "EVAL-CT-M3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-M3-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

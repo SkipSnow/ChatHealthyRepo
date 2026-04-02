@@ -1,0 +1,46 @@
+{
+  "assignment_id": "SHARED-F-2-STORIES",
+  "iteration": 49,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added API/integration story to complete feature coverage across contract, logic, pipeline, tests, and system integration.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-2-S147",
+      "value": "Consent API and Cross-Service Integration Endpoints",
+      "note": "Add missing API/integration layer for consent framework",
+      "iteration": 49
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "SHARED-F-2-S147": {
+      "story_id": "SHARED-F-2-S147",
+      "title": "Consent API and Cross-Service Integration Endpoints",
+      "description": "Expose consent framework capabilities via internal service interfaces and FastAPI endpoints, enabling other services (lead capture, unknown question handling, debug logging) to check consent status, enforce storage rules, and trigger consent upgrades. Ensure consistent contract usage and safe defaults when consent is missing.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S143",
+        "SHARED-F-2-S144",
+        "SHARED-F-2-S145"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py; architecture/refactor_design_arch001"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

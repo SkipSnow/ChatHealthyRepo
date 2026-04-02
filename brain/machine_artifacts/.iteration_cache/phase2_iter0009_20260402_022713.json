@@ -1,0 +1,16 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-CT-M2-S6",
+      "title": "Add Debug Logging for Enrollment Status Normalization",
+      "description": "Instrument enrollment status extraction and normalization with debug logging to capture raw ClinicalTrials.gov status values and their mapped normalized categories, enabling traceability and rapid diagnosis of mapping issues without exposing sensitive data.",
+      "parent_feature": "EVAL-CT-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    }
+  ]
+}

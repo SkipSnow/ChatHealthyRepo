@@ -1,0 +1,78 @@
+{
+  "assignment_id": "SPRINT-CAPABILITY-MAP",
+  "iteration": 1,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "escalate",
+  "issues": [
+    "Only one accepted feature exists; requirement 'Every sprint delivers at least one complete feature' cannot be satisfied without additional features or scope change.",
+    "All stories belong to a single feature assigned to sprint 1, leaving sprints 2–4 without shippable features."
+  ],
+  "notes": "Plan is capacity-valid but structurally cannot meet per-sprint feature delivery constraint.",
+  "epics": [],
+  "features": [],
+  "stories": [],
+  "requirements": [],
+  "sprint_capability_map": [
+    {
+      "sprint": 1,
+      "sprint_goal": "Deliver provider scoring schema and contract",
+      "capacity_split": "100% EPIC-1",
+      "max_capacity": "1 story (1 M)",
+      "features_shipped": [
+        "EVAL-SCORE-PROV"
+      ],
+      "stories": [
+        "EVAL-SCORE-PROV-S1"
+      ]
+    },
+    {
+      "sprint": 2,
+      "sprint_goal": "No scoped feature available",
+      "capacity_split": "100% EPIC-1",
+      "max_capacity": "1 story (1 M)",
+      "features_shipped": [],
+      "stories": []
+    },
+    {
+      "sprint": 3,
+      "sprint_goal": "No scoped feature available",
+      "capacity_split": "100% EPIC-1",
+      "max_capacity": "1 story (1 M)",
+      "features_shipped": [],
+      "stories": []
+    },
+    {
+      "sprint": 4,
+      "sprint_goal": "No scoped feature available",
+      "capacity_split": "100% EPIC-1",
+      "max_capacity": "1 story (1 M)",
+      "features_shipped": [],
+      "stories": []
+    },
+    {
+      "sprint": 5,
+      "sprint_goal": "UAT and release",
+      "capacity_split": "100% EPIC-1",
+      "max_capacity": "1 story (1 M)",
+      "features_shipped": [],
+      "stories": []
+    }
+  ],
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "EVAL-SCORE-PROV",
+        "likelihood": "Low",
+        "impact": "High",
+        "mitigation": "Keep implementation strictly within schema definition and validation scope already defined."
+      }
+    ],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

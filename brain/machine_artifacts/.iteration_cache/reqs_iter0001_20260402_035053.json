@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-UX-001",
+      "story_id": "EVAL-CT-PHASE-UX-S4",
+      "requirement": "The system must render the clinical trial phase label (I/II/III/IV) correctly in the MessageBubble UI when valid phase data is provided.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-UX-002",
+      "story_id": "EVAL-CT-PHASE-UX-S4",
+      "requirement": "The system must display a plain-language explanation corresponding to the rendered phase that matches the mapping defined in EVAL-CT-PHASE-UX-S2.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-UX-003",
+      "story_id": "EVAL-CT-PHASE-UX-S4",
+      "requirement": "The system must display the score contribution value for the phase within the same scorecard UI component.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-UX-004",
+      "story_id": "EVAL-CT-PHASE-UX-S4",
+      "requirement": "The system must render phase label, explanation, and score contribution together within a single MessageBubble instance.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-UX-005",
+      "story_id": "EVAL-CT-PHASE-UX-S4",
+      "requirement": "The system must ensure the explanation text is human-readable and contains no raw codes or backend identifiers.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-UX-006",
+      "story_id": "EVAL-CT-PHASE-UX-S4",
+      "requirement": "The system must validate that each phase value (I, II, III, IV) maps to a distinct explanation string.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-UX-007",
+      "story_id": "EVAL-CT-PHASE-UX-S4",
+      "requirement": "The system must render identical phase inputs consistently across multiple messages within the same ChatWindow session.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-UX-008",
+      "story_id": "EVAL-CT-PHASE-UX-S4",
+      "requirement": "The system must ensure that the phase display does not break existing MessageBubble layout or overflow UI boundaries.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-UX-009",
+      "story_id": "EVAL-CT-PHASE-UX-S4",
+      "requirement": "The system must validate that score contribution is numerically formatted and visible without truncation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-UX-010",
+      "story_id": "EVAL-CT-PHASE-UX-S4",
+      "requirement": "The system must confirm that the phase explanation semantically aligns with the phase label (e.g., Phase I reflects early safety testing).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-UX-011",
+      "story_id": "EVAL-CT-PHASE-UX-S4",
+      "requirement": "The system must verify that no phase-related UI elements are rendered when phase data is absent.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-UX-012",
+      "story_id": "EVAL-CT-PHASE-UX-S4",
+      "requirement": "The system must display a fallback message indicating 'Phase information unavailable' when phase data is null or undefined.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-UX-013",
+      "story_id": "EVAL-CT-PHASE-UX-S4",
+      "requirement": "The system must handle invalid phase values (outside I–IV) by suppressing the phase label and showing a safe fallback explanation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-UX-014",
+      "story_id": "EVAL-CT-PHASE-UX-S4",
+      "requirement": "The system must ensure that rendering of phase data does not introduce runtime errors in ChatWindow or MessageBubble components.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-UX-015",
+      "story_id": "EVAL-CT-PHASE-UX-S4",
+      "requirement": "The system must validate that phase-related UI content is included in automated UI test coverage and passes without manual intervention.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

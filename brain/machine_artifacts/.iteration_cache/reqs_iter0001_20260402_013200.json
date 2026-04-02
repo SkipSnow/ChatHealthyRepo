@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-SCORE-TEST-REQ-001",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must produce identical composite scores for the same clinical trial input across multiple executions (determinism test).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SCORE-TEST-REQ-002",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must verify that all configured scoring weights are applied exactly as defined in the scoring schema during score computation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SCORE-TEST-REQ-003",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must validate that the composite score equals the weighted aggregation of all normalized measure inputs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SCORE-TEST-REQ-004",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must confirm that normalization functions produce values within the expected bounded range for each measure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SCORE-TEST-REQ-005",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must successfully compute scores for clinical trials containing all required measures (happy path validation).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SCORE-TEST-REQ-006",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must correctly compute scores when clinical_trials_service returns multiple trials with varying attributes (happy path batch validation).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SCORE-TEST-REQ-007",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must validate that each scored trial includes a composite score and a breakdown of contributing measures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SCORE-TEST-REQ-008",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must handle missing optional measures by applying defined fallback or default logic without failing (exception path 1).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SCORE-TEST-REQ-009",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must fail gracefully or skip scoring when required minimum measures (<3) are not present, in accordance with schema rules (exception path 2).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SCORE-TEST-REQ-010",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must correctly integrate with clinical_trials_service outputs and accept its data structure without transformation errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SCORE-TEST-REQ-011",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must ensure that scoring logic does not mutate the original clinical trial input data during processing.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SCORE-TEST-REQ-012",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must validate that score outputs remain consistent regardless of input ordering of clinical trials.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SCORE-TEST-REQ-013",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must verify that extreme input values (e.g., highest phase, closest proximity) produce appropriately scaled high scores.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SCORE-TEST-REQ-014",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must verify that low-quality or unfavorable inputs (e.g., terminated status, distant location) produce appropriately reduced scores.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SCORE-TEST-REQ-015",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must ensure that floating point precision does not introduce material variance in composite scores across repeated runs.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

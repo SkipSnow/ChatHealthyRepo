@@ -1,0 +1,64 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-SPECIALTY-CREDIBILITY-S1",
+      "title": "Specialty Match Transparency Schema and Contract",
+      "description": "Define response schema to expose matched_classifications and pipeline origin metadata (regex, vector, or both). Include fields for classification label, optional confidence score, and source_pipeline.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py (matched_classifications, pipelines)"
+    },
+    {
+      "story_id": "EVAL-SPECIALTY-CREDIBILITY-S2",
+      "title": "Pipeline Attribution Logic",
+      "description": "Enhance specialty_service to tag each matched classification with its originating pipeline (regex, vector, or merged) and ensure deduplicated classifications retain provenance metadata across both pipelines.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SPECIALTY-CREDIBILITY-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    {
+      "story_id": "EVAL-SPECIALTY-CREDIBILITY-S3",
+      "title": "API Exposure of Specialty Transparency",
+      "description": "Update find_care_facade, tool_router, and provider_search_models to include matched classifications with pipeline attribution in API responses for downstream chat consumption.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SPECIALTY-CREDIBILITY-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    {
+      "story_id": "EVAL-SPECIALTY-CREDIBILITY-S4",
+      "title": "Frontend Rendering of Match Transparency",
+      "description": "Update MessageBubble rendering logic to optionally display specialty match explanations, including classification labels and pipeline origin indicators, in a concise and user-readable format.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SPECIALTY-CREDIBILITY-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    {
+      "story_id": "EVAL-SPECIALTY-CREDIBILITY-S5",
+      "title": "Specialty Transparency Tests and Integration",
+      "description": "Create unit and integration tests validating pipeline attribution correctness, schema compliance in API responses, tool_router propagation, and frontend rendering behavior for transparency metadata.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SPECIALTY-CREDIBILITY-S2",
+        "EVAL-SPECIALTY-CREDIBILITY-S3",
+        "EVAL-SPECIALTY-CREDIBILITY-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    }
+  ]
+}

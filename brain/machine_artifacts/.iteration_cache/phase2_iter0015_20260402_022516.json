@@ -1,0 +1,29 @@
+{
+  "assignment_id": "EVAL-CT-MEASURE-1-STORIES",
+  "iteration": 15,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined dependencies and completeness; no new stories created per dedup rule.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-CT-M1-S2.dependencies",
+      "value": "[EVAL-CT-M1-S1, EVAL-CT-M1-S5]",
+      "note": "Scoring depends on normalized phase input",
+      "iteration": 15
+    },
+    {
+      "path": "stories.EVAL-CT-M1-S3.description",
+      "value": "Integrate trial phase quality score into clinical trial results returned by evaluate_care_facade, including raw phase, normalized phase, score, and explainability text describing why the score was assigned.",
+      "note": "Added explainability requirement for consumer transparency",
+      "iteration": 15
+    },
+    {
+      "path": "stories.EVAL-CT-M1-S4.description",
+      "value": "Create unit tests for normalization and phase-to-score mapping (including multi-phase and malformed values) and integration tests validating presence of raw phase, normalized phase, score, and explainability in end-to-end clinical trial responses.",
+      "note": "Expanded test coverage to include normalization and explainability",
+      "iteration": 15
+    }
+  ]
+}

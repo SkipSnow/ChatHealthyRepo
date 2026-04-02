@@ -1,0 +1,72 @@
+{
+  "assignment_id": "FEAT-1-STORIES",
+  "iteration": 23,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added incremental stories to strengthen API contract enforcement, core ranking logic, and integration coverage.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-1-STORY-075": {
+      "story_id": "FEAT-1-STORY-075",
+      "title": "Enforce location normalization and validation in provider search schema",
+      "description": "Enhance provider search request models to normalize and validate location inputs (ZIP, city, state) and ensure compatibility with FIPS/county mapping used downstream.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-070"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-1-STORY-076": {
+      "story_id": "FEAT-1-STORY-076",
+      "title": "Implement ranking and fallback blending logic",
+      "description": "Refine provider_search_service to blend vector search scores with taxonomy fallback results, ensuring deterministic ranking and graceful degradation when embeddings underperform.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-065"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-077": {
+      "story_id": "FEAT-1-STORY-077",
+      "title": "Expose provider search via FastAPI endpoint",
+      "description": "Ensure provider search is accessible through the FastAPI entrypoint, correctly wired through tool_router and returning structured responses for frontend consumption.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-072"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    "FEAT-1-STORY-078": {
+      "story_id": "FEAT-1-STORY-078",
+      "title": "Add edge case and failure mode tests for provider search",
+      "description": "Expand test coverage to include empty results, invalid inputs, embedding failures, and fallback-only scenarios to ensure system resilience.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-073"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_embedding_client.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

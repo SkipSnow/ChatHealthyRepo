@@ -1,0 +1,165 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-001",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must normalize user condition input by converting all text to lowercase before processing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-002",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must tokenize user condition input into discrete terms using whitespace and punctuation delimiters.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-003",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must map known condition synonyms to a canonical normalized term using a predefined synonym dictionary.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-004",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must normalize trial condition strings using the same normalization pipeline applied to user input.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-005",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must identify an exact match when a normalized user condition term exactly equals a normalized trial condition term.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-006",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must assign the highest relevance score when an exact match is detected.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-007",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must detect partial matches when user condition tokens overlap with any subset of trial condition tokens.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-008",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must assign a relevance score for partial matches that is strictly lower than the score for exact matches.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-009",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must invoke a semantic similarity method when neither exact nor partial matches are found.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-010",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must compute a semantic similarity score between normalized user condition input and trial conditions using an embedding or equivalent method.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-011",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must ensure the final relevance score is normalized to a numeric value between 0 and 1 inclusive.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-012",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must select the highest scoring match across all trial conditions as the final relevance score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-013",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must return the match_type value consistent with the scoring path (exact, partial, or semantic).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-014",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must include matched_terms in the output when an exact or partial match is identified.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-015",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must return a relevance score of 0 when no match is found and semantic similarity falls below a defined threshold.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-016",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must handle multiple user condition inputs by evaluating each condition independently and selecting the maximum relevance score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-017",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must ignore null or empty user condition inputs and return a relevance score of 0 with match_type set to none.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-018",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must handle missing or empty trial condition lists by returning a relevance score of 0 without error.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-019",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must ensure deterministic outputs for identical inputs across repeated executions.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M3-S2-020",
+      "story_id": "EVAL-CT-M3-S2",
+      "requirement": "The system must complete condition normalization and scoring within a bounded execution time suitable for synchronous API use.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

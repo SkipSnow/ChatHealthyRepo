@@ -1,0 +1,67 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-CT-PHASE-SCHEMA-001",
+      "title": "Define clinical trial phase score schema",
+      "description": "Create data contract for representing clinical trial phase and its derived numeric score, including allowed phase values (I, II, III, IV, N/A) and normalized score field.",
+      "parent_feature": "EVAL-CT-MEASURE-PHASE",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py (existing Pydantic models for trials; extend to include phase score field)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-CT-PHASE-LOGIC-001",
+      "title": "Implement phase-to-score mapping logic",
+      "description": "Add deterministic function in clinical_trials_service to map ClinicalTrials.gov phase values to normalized numeric scores reflecting evidence maturity (e.g., Phase I lowest, Phase IV highest).",
+      "parent_feature": "EVAL-CT-MEASURE-PHASE",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (phase data available from API response)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-CT-PHASE-INTEGRATION-001",
+      "title": "Integrate phase score into clinical trial response",
+      "description": "Augment clinical trials service response to include computed phase score alongside raw phase, ensuring compatibility with evaluate_care_facade output.",
+      "parent_feature": "EVAL-CT-MEASURE-PHASE",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-PHASE-LOGIC-001",
+        "EVAL-CT-PHASE-SCHEMA-001"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (orchestrates clinical trial outputs)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-CT-PHASE-TEST-001",
+      "title": "Unit tests for phase scoring logic",
+      "description": "Create unit tests validating correct score assignment for each phase value and handling of missing or unexpected phase inputs.",
+      "parent_feature": "EVAL-CT-MEASURE-PHASE",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-PHASE-LOGIC-001"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ (existing test patterns for domain services)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "title": "Integration test for phase score in API response",
+      "description": "Validate that clinical trial search responses include phase and computed score fields end-to-end through the facade layer.",
+      "parent_feature": "EVAL-CT-MEASURE-PHASE",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-PHASE-INTEGRATION-001"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (integration point for responses)",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

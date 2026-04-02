@@ -1,0 +1,82 @@
+{
+  "assignment_id": "GPTR-F-001-STORIES",
+  "iteration": 36,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Adds core enforcement logic, API integration, and test coverage to complete feature viability.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-001-S134",
+      "value": "Core enforcement engine validates all incoming GPTReader queries against allowlist rules before execution",
+      "note": "Implements central logic missing from prior iteration",
+      "iteration": 36
+    },
+    {
+      "path": "stories.GPTR-F-001-S135",
+      "value": "Azure Function endpoint integration ensures all requests pass through enforcement layer",
+      "note": "Connects enforcement to runtime entrypoint",
+      "iteration": 36
+    },
+    {
+      "path": "stories.GPTR-F-001-S136",
+      "value": "Unit and integration test suite for scope enforcement including attack scenarios",
+      "note": "Adds required validation coverage for high-risk feature",
+      "iteration": 36
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GPTR-F-001-S134": {
+      "story_id": "GPTR-F-001-S134",
+      "title": "Scope Enforcement Core Logic Engine",
+      "description": "Implement the core validation engine that inspects every GPTReader request (collection, filters, fields, limits) against the allowlist schema and blocks any disallowed access before query execution.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S130",
+        "GPTR-F-001-S131"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S135": {
+      "story_id": "GPTR-F-001-S135",
+      "title": "Azure Function Request Pipeline Enforcement Hook",
+      "description": "Integrate the enforcement engine into the Azure Function request pipeline so that all inbound GPTReader API calls are validated prior to authentication, execution, and data access.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S134"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/function_app.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S136": {
+      "story_id": "GPTR-F-001-S136",
+      "title": "Scope Enforcement Test Suite (Unit + Integration + Adversarial)",
+      "description": "Develop comprehensive tests validating allowlist enforcement including valid queries, rejected queries, boundary conditions, and adversarial attempts (e.g., unauthorized collections, field injection, operator abuse).",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S134",
+        "GPTR-F-001-S132"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

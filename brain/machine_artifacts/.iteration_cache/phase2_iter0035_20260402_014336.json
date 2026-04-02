@@ -1,0 +1,84 @@
+{
+  "assignment_id": "PHASE-2-FEAT-1-STORIES",
+  "iteration": 35,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Previous iteration missing required stories for FEAT-1"
+  ],
+  "notes": "Added complete story set for Provider Search feature (schema, core logic, API integration, tests).",
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "FEAT-1-STORY-1",
+      "title": "Define Provider Search Input/Output Schema",
+      "description": "Implement and validate Pydantic models for provider search inputs (query, location, specialty) and structured outputs including provider metadata, distance, and taxonomy classification.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    {
+      "story_id": "FEAT-1-STORY-2",
+      "title": "Implement Vector Search with Taxonomy Fallback",
+      "description": "Build core provider search logic using MongoDB Atlas vector search with embedding similarity and implement fallback to NUCC taxonomy-based filtering when vector results are insufficient.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    {
+      "story_id": "FEAT-1-STORY-3",
+      "title": "Integrate Location Filtering and County Mapping",
+      "description": "Enhance provider search with geographic filtering including state, city, and county resolution using FIPS-to-county mapping and multi-stage narrowing.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    {
+      "story_id": "FEAT-1-STORY-4",
+      "title": "Expose Provider Search via FindCare Facade and Tool Router",
+      "description": "Integrate provider search service into FindCare facade and expose as a callable tool through the tool router with validated inputs and structured response formatting.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-1",
+        "FEAT-1-STORY-2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    {
+      "story_id": "FEAT-1-STORY-5",
+      "title": "Unit and Integration Tests for Provider Search",
+      "description": "Develop unit tests for schema validation and search logic plus integration tests covering vector search, taxonomy fallback, and location filtering through the tool router.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-2",
+        "FEAT-1-STORY-4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

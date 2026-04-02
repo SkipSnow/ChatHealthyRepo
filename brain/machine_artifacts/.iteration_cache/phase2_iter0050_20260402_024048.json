@@ -1,0 +1,117 @@
+{
+  "assignment_id": "GOV-F-004-STORIES",
+  "iteration": 50,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema/contract, ingestion API, integration hooks, and test coverage stories for append-only audit logging.",
+  "change_log": [
+    {
+      "path": "stories.GOV-F-004-S173",
+      "value": "Audit Log Schema and Contract Definition",
+      "note": "Add schema layer story",
+      "iteration": 50
+    },
+    {
+      "path": "stories.GOV-F-004-S174",
+      "value": "Audit Logging Core Service",
+      "note": "Add core logic story",
+      "iteration": 50
+    },
+    {
+      "path": "stories.GOV-F-004-S175",
+      "value": "Audit Logging API Endpoints",
+      "note": "Add API exposure story",
+      "iteration": 50
+    },
+    {
+      "path": "stories.GOV-F-004-S176",
+      "value": "System-Wide Audit Integration Hooks",
+      "note": "Add integration coverage story",
+      "iteration": 50
+    },
+    {
+      "path": "stories.GOV-F-004-S177",
+      "value": "Audit Logging Test Suite",
+      "note": "Add test coverage story",
+      "iteration": 50
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GOV-F-004-S173": {
+      "story_id": "GOV-F-004-S173",
+      "title": "Audit Log Schema and Contract Definition",
+      "description": "Define canonical audit log schema including event_id, timestamp, actor (GPT/Claude/system), action_type, input/output hashes, metadata, and hash-chain linkage. Implement Pydantic models and enforce validation contract for all audit writes.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models (Pydantic patterns); Code/DataPipelines/gpt_reader.py (audit logging precedent); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S174": {
+      "story_id": "GOV-F-004-S174",
+      "title": "Audit Logging Core Service",
+      "description": "Implement centralized audit logging service responsible for constructing events, chaining hashes, enforcing append-only semantics, and writing to storage. Service must be model-agnostic and support both GPT and Claude operations.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S173",
+        "GOV-F-004-S170"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (existing logging baseline); Code/Shared/machine_brain.py (event persistence patterns); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S175": {
+      "story_id": "GOV-F-004-S175",
+      "title": "Audit Logging API Endpoints",
+      "description": "Expose internal API endpoints for audit event ingestion and controlled retrieval (admin/QA use only). Includes filtering by event type, actor, and time window, without violating append-only guarantees.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S174"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (FastAPI patterns); Code/DataPipelines/gpt_reader.py (controlled read access patterns); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S176": {
+      "story_id": "GOV-F-004-S176",
+      "title": "System-Wide Audit Integration Hooks",
+      "description": "Integrate audit logging into key execution points including tool_router, safety_service, consent_service, and GPT/Claude orchestration loop to ensure all critical operations emit audit events.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S174"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (governed execution); Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py (incident logging precedent); Code/Shared/brain_runner.py (model orchestration); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S177": {
+      "story_id": "GOV-F-004-S177",
+      "title": "Audit Logging Test Suite",
+      "description": "Develop unit and integration tests validating append-only enforcement, schema validation, hash-chain integrity, redaction compliance, and end-to-end event capture across GPT and Claude flows.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S174",
+        "GOV-F-004-S171",
+        "GOV-F-004-S172"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py (logging tests); Code/DataPipelines/tests/test_gpt_reader_integration.py (integration validation); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S9",
+      "title": "Token Schema and Contract Definition",
+      "description": "Define MongoDB token schema including fields for token hash, issued_at, expires_at, revoked_at, rotation_parent_id, and scope. Document validation rules and hashing requirements.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; GAP: No formal token lifecycle schema currently defined"
+    },
+    {
+      "story_id": "GPTR-F-002-S10",
+      "title": "Token Rotation Service Logic",
+      "description": "Implement backend service to rotate active tokens by issuing a new token, linking to prior token, and invalidating the old token based on policy.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S9"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; GAP: Rotation logic not present in current bearer token validation"
+    },
+    {
+      "story_id": "GPTR-F-002-S11",
+      "title": "Token Revocation API Endpoint",
+      "description": "Expose secure API endpoint to revoke tokens manually (admin/system use), updating revocation state and enforcing immediate invalidation in validation flow.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S9",
+        "GPTR-F-002-S10"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/function_app.py; Code/Shared/brain_auth.py; GAP: No revocation endpoint exists for GPTReader tokens"
+    },
+    {
+      "story_id": "GPTR-F-002-S12",
+      "title": "End-to-End Token Validation Integration",
+      "description": "Integrate lifecycle-aware token validation into GPTReader request flow, enforcing expiration, revocation, and rotation chain checks during each request.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S2",
+        "GPTR-F-002-S7",
+        "GPTR-F-002-S10",
+        "GPTR-F-002-S11"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py"
+    },
+    {
+      "story_id": "GPTR-F-002-S13",
+      "title": "Token Lifecycle Unit and Integration Tests",
+      "description": "Create comprehensive tests covering token issuance, expiration, rotation, revocation, TTL expiry behavior, and validation edge cases.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S9",
+        "GPTR-F-002-S10",
+        "GPTR-F-002-S11",
+        "GPTR-F-002-S12"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; brain/machine_artifacts/content/ai_operations.json:gpt_reader_qa_report"
+    }
+  ]
+}

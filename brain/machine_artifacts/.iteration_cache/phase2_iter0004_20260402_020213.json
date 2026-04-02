@@ -1,0 +1,97 @@
+{
+  "assignment_id": "FIND-F-001-STORIES",
+  "iteration": 4,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined core logic and test coverage to explicitly include fallback thresholds and separation of unit vs integration validation.",
+  "change_log": [
+    {
+      "path": "stories.FIND-F-001-S2.description",
+      "value": "Implement provider search orchestration using MongoDB Atlas vector search with embedding generation, including explicit fallback trigger thresholds to taxonomy-based search via NUCC codes when vector relevance is below defined cutoff or result set is sparse. Include ranking, deduplication, and multi-stage geographic filtering (FIPS/county resolution).",
+      "note": "Clarify fallback trigger logic",
+      "iteration": 4
+    },
+    {
+      "path": "stories.FIND-F-001-S5.description",
+      "value": "Implement unit tests (schema validation, embedding generation, fallback threshold logic, ranking/deduplication) and integration tests (end-to-end vector search, taxonomy fallback activation, specialty integration, API/tool_router flow). Validate behavior under sparse data, ambiguous queries, and degraded embedding responses.",
+      "note": "Separate unit vs integration coverage and expand edge cases",
+      "iteration": 4
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FIND-F-001-S1",
+      "title": "Provider Search Input/Output Schema and Contract",
+      "description": "Define and validate request/response schema for provider search including free-text query, normalized location inputs (state/city/zip → county), specialty filters (NUCC codes), and structured result payload (provider identity, location, specialty match, relevance score). Ensure strict Pydantic validation and compatibility with facade contract.",
+      "parent_feature": "FIND-F-001",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py; Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    {
+      "story_id": "FIND-F-001-S2",
+      "title": "Core Provider Search Logic (Vector + Taxonomy Fallback)",
+      "description": "Implement provider search orchestration using MongoDB Atlas vector search with embedding generation, including explicit fallback trigger thresholds to taxonomy-based search via NUCC codes when vector relevance is below defined cutoff or result set is sparse. Include ranking, deduplication, and multi-stage geographic filtering (FIPS/county resolution).",
+      "parent_feature": "FIND-F-001",
+      "sprint": 2,
+      "dependencies": [
+        "FIND-F-001-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/embeddings/embedding_client.py"
+    },
+    {
+      "story_id": "FIND-F-001-S3",
+      "title": "Find Care Facade Integration with Specialty Resolution",
+      "description": "Integrate provider search into FindCare facade, including coordination with specialty_service for dual-pipeline specialty identification (regex + vector) and passing resolved NUCC codes into search. Ensure orchestration aligns with tool_router expectations and chat-driven workflows.",
+      "parent_feature": "FIND-F-001",
+      "sprint": 2,
+      "dependencies": [
+        "FIND-F-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py; Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    {
+      "story_id": "FIND-F-001-S4",
+      "title": "Provider Search API and Tool Exposure",
+      "description": "Expose provider search via FastAPI and tool_router as an allowlisted tool, ensuring validated inputs, structured outputs, error handling, and compatibility with Anthropic tool-use flow. Include logging hooks for debug_logger.",
+      "parent_feature": "FIND-F-001",
+      "sprint": 2,
+      "dependencies": [
+        "FIND-F-001-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "FIND-F-001-S5",
+      "title": "Provider Search Tests and End-to-End Validation",
+      "description": "Implement unit tests (schema validation, embedding generation, fallback threshold logic, ranking/deduplication) and integration tests (end-to-end vector search, taxonomy fallback activation, specialty integration, API/tool_router flow). Validate behavior under sparse data, ambiguous queries, and degraded embedding responses.",
+      "parent_feature": "FIND-F-001",
+      "sprint": 2,
+      "dependencies": [
+        "FIND-F-001-S2",
+        "FIND-F-001-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests; Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

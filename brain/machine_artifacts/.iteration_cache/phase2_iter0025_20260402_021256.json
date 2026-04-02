@@ -1,0 +1,98 @@
+{
+  "assignment_id": "FEAT-6-STORIES",
+  "iteration": 25,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema/contract, API enforcement, and test coverage stories for Consent Workflow.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-6-S88",
+      "value": "Consent Schema and Data Contract Definition",
+      "note": "Add schema layer story for consent tiers and audit records",
+      "iteration": 25
+    },
+    {
+      "path": "stories.FEAT-6-S89",
+      "value": "Consent Enforcement Middleware in Tool Router",
+      "note": "Add integration enforcement at tool dispatch layer",
+      "iteration": 25
+    },
+    {
+      "path": "stories.FEAT-6-S90",
+      "value": "Consent API Write Endpoints",
+      "note": "Add API layer for capturing/updating consent decisions",
+      "iteration": 25
+    },
+    {
+      "path": "stories.FEAT-6-S91",
+      "value": "Consent Workflow Unit and Integration Tests",
+      "note": "Add test coverage across consent flows",
+      "iteration": 25
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-6-S88",
+      "title": "Consent Schema and Data Contract Definition",
+      "description": "Define MongoDB schema and Pydantic contracts for consent tiers, consent state transitions, audit records, and storage decisions (store vs de-identify vs reject). Ensure compatibility with existing consent_models and debug_logger persistence.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py"
+    },
+    {
+      "story_id": "FEAT-6-S89",
+      "title": "Consent Enforcement Middleware in Tool Router",
+      "description": "Integrate consent checks into tool_router to enforce consent tier before any tool execution that may persist or expose identifiable data. Block or transform requests based on tier (e.g., enforce de-identification for Tier 1).",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S85"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-6-S90",
+      "title": "Consent API Write Endpoints",
+      "description": "Implement FastAPI endpoints to capture initial consent, update consent tier, and record explicit user consent actions. Ensure idempotency and audit logging integration.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S88"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "FEAT-6-S91",
+      "title": "Consent Workflow Unit and Integration Tests",
+      "description": "Create unit tests for consent_service logic (tier transitions, de-identification enforcement) and integration tests covering API, tool_router enforcement, and lead capture interactions.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S85",
+        "FEAT-6-S89",
+        "FEAT-6-S90"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

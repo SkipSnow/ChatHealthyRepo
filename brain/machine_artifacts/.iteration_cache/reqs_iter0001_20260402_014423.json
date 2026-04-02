@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-EXP-004-001",
+      "story_id": "EVAL-EXP-004",
+      "requirement": "The system must include unit tests that validate correct years_in_practice calculation when only enumeration_date is provided.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXP-004-002",
+      "story_id": "EVAL-EXP-004",
+      "requirement": "The system must include unit tests that validate correct years_in_practice calculation when only graduation_year is provided.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXP-004-003",
+      "story_id": "EVAL-EXP-004",
+      "requirement": "The system must include unit tests that validate fallback logic prioritization when both enumeration_date and graduation_year are present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXP-004-004",
+      "story_id": "EVAL-EXP-004",
+      "requirement": "The system must include unit tests that validate behavior when enumeration_date is missing and graduation_year is null.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXP-004-005",
+      "story_id": "EVAL-EXP-004",
+      "requirement": "The system must include unit tests that validate handling of future enumeration_date values by preventing negative years_in_practice.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXP-004-006",
+      "story_id": "EVAL-EXP-004",
+      "requirement": "The system must include unit tests that validate handling of extreme past dates (e.g., >70 years) without overflow or incorrect normalization.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXP-004-007",
+      "story_id": "EVAL-EXP-004",
+      "requirement": "The system must include unit tests that validate normalized_experience_score is computed within defined bounds (e.g., 0 to 1 or equivalent scale).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXP-004-008",
+      "story_id": "EVAL-EXP-004",
+      "requirement": "The system must include integration tests that confirm the experience measure is present in provider detail API responses.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXP-004-009",
+      "story_id": "EVAL-EXP-004",
+      "requirement": "The system must include integration tests that validate response schema includes graduation_year, enumeration_date, derived_years_in_practice, and normalized_experience_score fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXP-004-010",
+      "story_id": "EVAL-EXP-004",
+      "requirement": "The system must include integration tests that validate correct serialization of null or missing fields in the API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXP-004-011",
+      "story_id": "EVAL-EXP-004",
+      "requirement": "The system must include tests that simulate upstream NPI data absence and verify graceful fallback without runtime errors.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXP-004-012",
+      "story_id": "EVAL-EXP-004",
+      "requirement": "The system must include tests that validate consistent calculation results across multiple runs with identical input data.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

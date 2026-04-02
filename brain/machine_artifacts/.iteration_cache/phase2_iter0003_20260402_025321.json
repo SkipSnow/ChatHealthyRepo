@@ -1,0 +1,80 @@
+{
+  "assignment_id": "BL-0.1.4-005",
+  "iteration": 3,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "API exposure incorporated into integration story to avoid duplication and scope expansion.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-005-S4.description",
+      "value": "Refactor existing file I/O touchpoints (manifest generation, pipeline artifacts, local caching utilities) to use the resilience contract, retry engine, and recovery mechanisms. Additionally expose resilience status and error metadata through internal service interfaces (e.g., manifest generator, pipeline workers) to enable observability and downstream handling.",
+      "note": "Add API/interface exposure without creating new story",
+      "iteration": 3
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-005-S1",
+      "title": "File Operation Resilience Contract and Error Schema",
+      "description": "Define a standard contract for local file operations including retry policy, error classification (transient vs fatal), fallback behavior, and a unified response schema. Ensure compatibility with existing logging and pipeline patterns.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/DataPipelines/data_fetcher_base.py; Code/Shared/ops/manifest_generator.py"
+    },
+    {
+      "story_id": "BL-0.1.4-005-S2",
+      "title": "Retry and Backoff Engine for File Operations",
+      "description": "Implement core retry logic with exponential backoff and max retry thresholds for local disk operations. Handle transient errors such as file locks, partial availability, and intermittent I/O failures.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/pipeline_worker_base.py; Code/DataPipelines/embedding_worker.py"
+    },
+    {
+      "story_id": "BL-0.1.4-005-S3",
+      "title": "Fallback and Atomic Write Recovery Mechanism",
+      "description": "Implement safe file write patterns including temp-file writes, atomic renames, and rollback to last known good state. Ensure corrupted or partial writes do not propagate to downstream consumers.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S2"
+      ],
+      "size": "L",
+      "evidence": "ASSUMPTION: No atomic write or rollback safeguards exist; GAP requires temp-file + rename pattern and recovery handling"
+    },
+    {
+      "story_id": "BL-0.1.4-005-S4",
+      "title": "Integration of Resilience Layer into File-Dependent Services",
+      "description": "Refactor existing file I/O touchpoints (manifest generation, pipeline artifacts, local caching utilities) to use the resilience contract, retry engine, and recovery mechanisms. Additionally expose resilience status and error metadata through internal service interfaces (e.g., manifest generator, pipeline workers) to enable observability and downstream handling.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S2",
+        "BL-0.1.4-005-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/manifest_generator.py; Code/DataPipelines/blob_client.py; Code/DataPipelines/copy_to_frontend.py"
+    },
+    {
+      "story_id": "BL-0.1.4-005-S5",
+      "title": "File Operation Resilience Test Suite",
+      "description": "Develop unit and integration tests simulating disk failures, interrupted writes, and recovery scenarios. Validate retry behavior, atomicity guarantees, and data integrity across all integrated services.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S2",
+        "BL-0.1.4-005-S3",
+        "BL-0.1.4-005-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_pipeline_worker_base.py; Code/DataPipelines/tests/test_provider_embedding.py"
+    }
+  ]
+}

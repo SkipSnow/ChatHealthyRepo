@@ -1,0 +1,88 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 24,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema standardization, frontend rendering, and fallback handling stories for explainability completeness.",
+  "change_log": [],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F5-S81",
+      "title": "Explainability Schema Definition (Pydantic Models)",
+      "description": "Define standardized Pydantic models for explainability objects (source, meaning, limitations, confidence optional) to enforce consistent structure across provider and clinical trial evaluation signals.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S78"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models"
+    },
+    {
+      "story_id": "EVAL-F5-S82",
+      "title": "Explainability Builder Core Logic",
+      "description": "Implement centralized builder/helper logic that constructs explainability objects from raw evaluation signals, including mapping data sources (NPI, ClinicalTrials.gov) and generating human-readable meaning and limitations.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S81",
+        "EVAL-F1",
+        "EVAL-F3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality"
+    },
+    {
+      "story_id": "EVAL-F5-S83",
+      "title": "Frontend Rendering of Explainability Metadata",
+      "description": "Extend MessageBubble rendering to display explainability details (source links, interpretation text, and limitations) in a readable format within chat responses, preserving markdown safety and link validation.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S78"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    {
+      "story_id": "EVAL-F5-S84",
+      "title": "Explainability Fallback and Missing Data Handling",
+      "description": "Implement fallback logic for cases where source or limitations are unavailable, ensuring the system provides safe default messaging and avoids blank or misleading explainability fields.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S82"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F5-S85",
+      "title": "End-to-End Explainability Integration Validation",
+      "description": "Validate that explainability metadata flows end-to-end from domain services through facade to frontend rendering, including tool_router interactions and chat response formatting.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S78",
+        "EVAL-F5-S83"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "assignment_id": "EVAL-PROVIDER-QUALITY-STORIES",
+  "iteration": 20,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories already cover required breakdown (schema, logic, API/UI, tests, integration). Minor refinement applied to API exposure clarity.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-PROVIDER-QUALITY-S3.description",
+      "value": "Extend evaluate_care_facade to include provider quality snapshot in provider detail responses and expose via a stable API contract used by tool_router, ensuring schema consistency and downstream compatibility.",
+      "note": "Clarified API contract responsibility",
+      "iteration": 20
+    }
+  ]
+}

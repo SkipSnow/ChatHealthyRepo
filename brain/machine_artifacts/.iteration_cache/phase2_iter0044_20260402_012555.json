@@ -1,0 +1,80 @@
+{
+  "assignment_id": "SHARED-F-2-STORIES",
+  "iteration": 44,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing foundational and validation stories to meet minimum and complete feature coverage.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-2-S130",
+      "value": "Consent schema and persistence model",
+      "note": "Add schema/contract layer story",
+      "iteration": 44
+    },
+    {
+      "path": "stories.SHARED-F-2-S131",
+      "value": "Consent core logic enforcement",
+      "note": "Add core logic story for tier enforcement",
+      "iteration": 44
+    },
+    {
+      "path": "stories.SHARED-F-2-S132",
+      "value": "Consent testing and validation",
+      "note": "Add testing story for HIPAA compliance validation",
+      "iteration": 44
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "SHARED-F-2-S130": {
+      "story_id": "SHARED-F-2-S130",
+      "title": "Consent Schema & Persistence Model",
+      "description": "Define and implement MongoDB schema and Pydantic contracts for two-tier consent (Tier 1 anonymous, Tier 2 identifiable), including timestamps, versioning, and audit fields to support HIPAA-compliant storage decisions.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py; Code/Shared/ChatHealthyMongoUtilities.py; architecture/refactor_design_arch001"
+    },
+    "SHARED-F-2-S131": {
+      "story_id": "SHARED-F-2-S131",
+      "title": "Consent Core Logic Enforcement",
+      "description": "Implement enforcement logic within consent_service to evaluate consent tier at runtime and gate data storage, triggering de-identification for Tier 1 and allowing identifiable persistence only under Tier 2.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S130"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; architecture/refactor_design_arch001"
+    },
+    "SHARED-F-2-S132": {
+      "story_id": "SHARED-F-2-S132",
+      "title": "Consent Testing & HIPAA Validation",
+      "description": "Develop unit and integration tests validating consent tier behavior, including correct de-identification under Tier 1, proper data persistence under Tier 2, and prevention of unauthorized identifiable storage.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S131",
+        "SHARED-F-2-S128",
+        "SHARED-F-2-S129"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; architecture/refactor_design_arch001"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

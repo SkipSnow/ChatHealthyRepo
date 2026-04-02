@@ -1,0 +1,84 @@
+{
+  "assignment_id": "FEAT-1-STORIES",
+  "iteration": 21,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added next set of stories for FEAT-1 focusing on core search logic, API exposure, and Mongo/vector integration completeness.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-1-STORY-065": {
+      "story_id": "FEAT-1-STORY-065",
+      "title": "Implement vector search with taxonomy fallback logic",
+      "description": "Build core provider search execution path that first performs MongoDB Atlas vector search and falls back to NUCC taxonomy-based search when vector results are insufficient or empty.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-061"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-066": {
+      "story_id": "FEAT-1-STORY-066",
+      "title": "Implement location filtering and FIPS-to-county resolution",
+      "description": "Add location filtering logic to provider search, including ZIP/state/city handling and FIPS-to-county mapping to ensure geographically relevant results.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-065"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-067": {
+      "story_id": "FEAT-1-STORY-067",
+      "title": "Expose provider search via FastAPI endpoint",
+      "description": "Create or validate FastAPI route that exposes provider search through the application, wiring request through tool_router and find_care_facade to return structured results.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-062"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    "FEAT-1-STORY-068": {
+      "story_id": "FEAT-1-STORY-068",
+      "title": "Integrate embedding client into provider search pipeline",
+      "description": "Ensure provider search uses embedding_client for query embedding generation and supports dual-model strategy for semantic retrieval.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-065"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/embeddings/embedding_client.py"
+    },
+    "FEAT-1-STORY-069": {
+      "story_id": "FEAT-1-STORY-069",
+      "title": "Validate MongoDB Atlas vector index integration",
+      "description": "Verify and configure MongoDB Atlas vector search index usage within provider_search_service, ensuring correct collection, index name, and query structure are used.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-065"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

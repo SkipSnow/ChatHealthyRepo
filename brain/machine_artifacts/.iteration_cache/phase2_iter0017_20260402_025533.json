@@ -1,0 +1,121 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-005",
+  "iteration": 17,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories created for Local Disk Resilience feature.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-005-S1",
+      "value": "Added schema/contract story",
+      "note": "Feature had zero stories",
+      "iteration": 17
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S2",
+      "value": "Added core logic story",
+      "note": "Feature had zero stories",
+      "iteration": 17
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S3",
+      "value": "Added API integration story",
+      "note": "Feature had zero stories",
+      "iteration": 17
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S4",
+      "value": "Added test suite story",
+      "note": "Feature had zero stories",
+      "iteration": 17
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S5",
+      "value": "Added system integration story",
+      "note": "Feature had zero stories",
+      "iteration": 17
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "BL-0.1.4-005-S1": {
+      "story_id": "BL-0.1.4-005-S1",
+      "title": "Define Local Disk Operation Resilience Schema and Contract",
+      "description": "Define a standard contract for local file operations including retry policy, fallback paths, error classification, and recovery metadata to ensure consistent resilience behavior across services.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "ASSUMPTION: No standardized resilience contract exists; GAP requires defining retry/fallback schema for file operations"
+    },
+    "BL-0.1.4-005-S2": {
+      "story_id": "BL-0.1.4-005-S2",
+      "title": "Implement Retry and Fallback Logic for Local File Operations",
+      "description": "Build core logic to handle transient failures in local disk operations including configurable retries, exponential backoff, safe fallback locations, and idempotent recovery handling.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S1"
+      ],
+      "size": "M",
+      "evidence": "ASSUMPTION: Existing services perform direct file I/O without resilience; GAP requires retry and fallback implementation"
+    },
+    "BL-0.1.4-005-S3": {
+      "story_id": "BL-0.1.4-005-S3",
+      "title": "Expose Resilient File Operations via Internal Service Layer",
+      "description": "Provide a shared internal interface or utility layer that wraps local disk operations with resilience logic, enabling consistent adoption across backend services.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py: Demonstrates shared utility pattern for infrastructure concerns; GAP: no equivalent for disk resilience"
+    },
+    "BL-0.1.4-005-S4": {
+      "story_id": "BL-0.1.4-005-S4",
+      "title": "Unit and Integration Tests for Disk Resilience Logic",
+      "description": "Create tests simulating disk failures (e.g., file locks, missing paths, partial writes) to validate retry behavior, fallback correctness, and recovery guarantees.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/: Existing test structure for backend services; GAP: no resilience-specific tests"
+    },
+    "BL-0.1.4-005-S5": {
+      "story_id": "BL-0.1.4-005-S5",
+      "title": "Integrate Disk Resilience into Existing Logging and Pipeline Components",
+      "description": "Integrate the resilience layer into components that rely on local file operations such as debug logging, pipeline workers, and temporary file handling to ensure consistent fault tolerance.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S3"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py: Uses persistence mechanisms; Code/DataPipelines/: multiple file-based operations; GAP: no resilience wrapper applied"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "BL-0.1.4-005": {
+        "feature_id": "BL-0.1.4-005",
+        "likelihood": "Moderate",
+        "impact": "High",
+        "mitigation": "Limit retries and enforce bounded backoff to avoid resource exhaustion"
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

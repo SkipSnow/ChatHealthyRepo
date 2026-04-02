@@ -1,0 +1,97 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-008",
+  "iteration": 20,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories refined for clarity and evidence strength; no new IDs created.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-008-S2.evidence",
+      "value": "Code/DataPipelines/embedding_worker.py (rate limit backoff pattern); Code/Shared/ChatHealthyMongoUtilities.py",
+      "note": "Strengthened evidence using explicit backoff implementation reference",
+      "iteration": 20
+    },
+    {
+      "path": "stories.BL-0.1.4-008-S3.description",
+      "value": "Add middleware in FastAPI main entrypoint to enforce rate limits, resolve client identity (IP/session), and return standardized HTTP 429 responses with consistent error payload.",
+      "note": "Clarified identity resolution and response contract",
+      "iteration": 20
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-008-S1",
+      "title": "Define Rate Limit Policy Schema and Contract",
+      "description": "Define configuration schema for rate limits including per-IP, per-session, and per-endpoint thresholds, time windows, burst limits, and override rules for internal services.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "ASSUMPTION: No existing rate limit config; GAP requires schema definition aligned with FastAPI config patterns"
+    },
+    {
+      "story_id": "BL-0.1.4-008-S2",
+      "title": "Implement Rate Limiting Core Logic",
+      "description": "Build backend logic to track request counts and enforce limits using IP and session identifiers, with TTL-based rolling windows and burst handling.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/embedding_worker.py (rate limit backoff pattern); Code/Shared/ChatHealthyMongoUtilities.py"
+    },
+    {
+      "story_id": "BL-0.1.4-008-S3",
+      "title": "Integrate Rate Limiting via FastAPI Middleware",
+      "description": "Add middleware in FastAPI main entrypoint to enforce rate limits, resolve client identity (IP/session), and return standardized HTTP 429 responses with consistent error payload.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; docs/adr/ADR-0003-fastapi-azure-app-service.md"
+    },
+    {
+      "story_id": "BL-0.1.4-008-S4",
+      "title": "Rate Limiting Test Suite",
+      "description": "Create unit and integration tests validating throttling behavior across IP/session scopes, burst handling, TTL reset behavior, and correct HTTP 429 responses.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py; ASSUMPTION: no current rate limit tests"
+    },
+    {
+      "story_id": "BL-0.1.4-008-S5",
+      "title": "Integrate Rate Limiting with Logging and Headers",
+      "description": "Log rate limit violations with request metadata and expose standard rate limit headers (X-RateLimit-Limit, Remaining, Reset) for observability and client awareness.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S2",
+        "BL-0.1.4-008-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; docs/adr/ADR-0010-safety-incident-logging.md"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

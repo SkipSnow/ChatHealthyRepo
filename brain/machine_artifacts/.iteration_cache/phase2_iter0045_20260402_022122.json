@@ -1,0 +1,58 @@
+{
+  "assignment_id": "GPTR-F-001-STORIES",
+  "iteration": 45,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema/contract and audit/logging coverage to complete enforcement surface.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GPTR-F-001-S159": {
+      "story_id": "GPTR-F-001-S159",
+      "title": "Allowlist Schema and Contract Definition",
+      "description": "Define the formal allowlist schema for GPTReader requests including permitted collections, fields, operators, and limits, implemented as a strict validation contract (e.g., Pydantic model) to standardize enforcement inputs.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S160": {
+      "story_id": "GPTR-F-001-S160",
+      "title": "Request Normalization and Pre-Validation Layer",
+      "description": "Implement a preprocessing layer that normalizes incoming GPTReader queries (field casing, operator standardization, default limits) before allowlist enforcement to eliminate bypass via malformed inputs.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S159"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S161": {
+      "story_id": "GPTR-F-001-S161",
+      "title": "Enforcement Audit Logging",
+      "description": "Extend GPTReader audit logging to capture enforcement decisions including rejected queries, violation types, and metadata for traceability and security review without exposing sensitive data.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S156"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; brain/BusinessArtifacts/gpt_reader_qa_report.pdf; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

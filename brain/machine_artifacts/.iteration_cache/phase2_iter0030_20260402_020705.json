@@ -1,0 +1,43 @@
+{
+  "stories": {
+    "FEAT-5-S117": {
+      "story_id": "FEAT-5-S117",
+      "title": "Validation Error Handling and User-Safe Responses",
+      "description": "Implement standardized handling for Pydantic validation failures and malformed tool inputs, ensuring errors are captured, sanitized, and returned as safe, user-readable responses without exposing internal schemas.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S112",
+        "FEAT-5-S113"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/"
+    },
+    "FEAT-5-S118": {
+      "story_id": "FEAT-5-S118",
+      "title": "Allowlist Enforcement and Unknown Tool Rejection",
+      "description": "Ensure strict allowlist enforcement by rejecting any tool calls not explicitly registered, including logging of rejected attempts and preventing execution of non-allowlisted tools.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S112",
+        "FEAT-5-S113"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-5-S119": {
+      "story_id": "FEAT-5-S119",
+      "title": "Tool Execution Logging and Debug Trace Integration",
+      "description": "Integrate tool routing with debug logging to capture tool selection, input payloads (de-identified where required), execution timing, and outcomes for traceability and QA analysis.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S113",
+        "FEAT-5-S114"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  }
+}

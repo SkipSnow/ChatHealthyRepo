@@ -1,0 +1,85 @@
+{
+  "assignment_id": "PHASE 2: BL-0.1.4-010",
+  "iteration": 2,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Adjusted stories to explicitly cover API exposure without creating duplicates.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-010-S3.title",
+      "value": "Connection Governance Enforcement and Access Interface",
+      "note": "Expanded to include API/interface responsibility",
+      "iteration": 2
+    },
+    {
+      "path": "stories.BL-0.1.4-010-S3.description",
+      "value": "Add enforcement layer to validate that all MongoDB access requests go through the routing logic and reject direct or misrouted connections. Provide a controlled internal access interface for services to obtain governed connections.",
+      "note": "Clarified API/interface role",
+      "iteration": 2
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-010-S1",
+      "title": "Cluster Routing Configuration Schema",
+      "description": "Define configuration schema for multi-cluster MongoDB routing including cluster identifiers, environment mapping (dev/qa/prod), read/write roles, and routing rules. Establish validation contract for all services accessing MongoDB.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    {
+      "story_id": "BL-0.1.4-010-S2",
+      "title": "Core Cluster Routing Logic",
+      "description": "Implement backend logic to resolve and route MongoDB connections to the correct cluster based on operation type (read/write), environment, and service context. Ensure no cross-cluster contamination.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    {
+      "story_id": "BL-0.1.4-010-S3",
+      "title": "Connection Governance Enforcement and Access Interface",
+      "description": "Add enforcement layer to validate that all MongoDB access requests go through the routing logic and reject direct or misrouted connections. Provide a controlled internal access interface for services to obtain governed connections.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py"
+    },
+    {
+      "story_id": "BL-0.1.4-010-S4",
+      "title": "Integration with Existing Services",
+      "description": "Integrate multi-cluster routing into existing services (provider search, embeddings, debug logger, pipelines) ensuring all MongoDB calls use the governed connection path.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S3"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/DataPipelines/ChatHealthyMongoUtilities.py"
+    },
+    {
+      "story_id": "BL-0.1.4-010-S5",
+      "title": "Routing Validation and Integration Tests",
+      "description": "Develop unit and integration tests to verify correct cluster routing, prevention of cross-cluster access, environment isolation, and failure handling when clusters are unavailable.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S2",
+        "BL-0.1.4-010-S3",
+        "BL-0.1.4-010-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader_integration.py; docs/adr/ADR-0006-two-mongodb-clusters.md"
+    }
+  ]
+}

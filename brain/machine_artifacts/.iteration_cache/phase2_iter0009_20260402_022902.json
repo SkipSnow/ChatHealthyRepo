@@ -1,0 +1,64 @@
+{
+  "assignment_id": "PHASE-2-GOV-F-003",
+  "iteration": 9,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added recovery and test coverage stories to complete feature scope.",
+  "change_log": [
+    {
+      "path": "stories.GOV-F-003-S31",
+      "value": "Add stale lock recovery and forced takeover logic",
+      "note": "Recovery path required by feature definition (TTL + recovery)",
+      "iteration": 9
+    },
+    {
+      "path": "stories.GOV-F-003-S32",
+      "value": "Add unit and integration tests for lock lifecycle",
+      "note": "Ensure correctness under race, expiry, and failure scenarios",
+      "iteration": 9
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GOV-F-003-S31": {
+      "story_id": "GOV-F-003-S31",
+      "title": "Stale Lock Detection and Recovery Mechanism",
+      "description": "Implement logic to detect expired locks (TTL breach) and allow safe takeover by a new owner. Include safeguards to prevent split-brain scenarios and ensure only one valid owner post-recovery.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S28"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/ChatHealthyMongoUtilities.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S32": {
+      "story_id": "GOV-F-003-S32",
+      "title": "Lock Lifecycle Test Suite (TTL, Concurrency, Recovery)",
+      "description": "Create unit and integration tests covering lock acquisition, renewal, expiration, forced recovery, and concurrent access attempts. Validate atomicity and ownership guarantees under simulated race conditions.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S28",
+        "GOV-F-003-S29",
+        "GOV-F-003-S31"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader_integration.py; Code/Shared/brain_loop.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

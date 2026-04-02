@@ -1,0 +1,60 @@
+{
+  "assignment_id": "EVAL-F-03-STORIES",
+  "iteration": 21,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing schema/contract and error-handling stories to meet minimum and category coverage.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-03-S59",
+      "value": "Added schema/contract standardization story",
+      "note": "Ensure facade input/output consistency",
+      "iteration": 21
+    },
+    {
+      "path": "stories.EVAL-F-03-S60",
+      "value": "Added error handling and normalization story",
+      "note": "Ensure stable orchestration behavior",
+      "iteration": 21
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F-03-S59": {
+      "story_id": "EVAL-F-03-S59",
+      "title": "Define EvaluateCare Facade Request/Response Contracts",
+      "description": "Standardize input and output schemas for clinical trial search and provider detail orchestration, aligning with existing Pydantic tool models and ensuring consistent contract boundaries across facade methods.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    "EVAL-F-03-S60": {
+      "story_id": "EVAL-F-03-S60",
+      "title": "Implement Facade Error Handling and Response Normalization",
+      "description": "Implement consistent error handling, fallback behavior, and response normalization within the EvaluateCare facade to ensure predictable outputs across domain service failures and partial data scenarios.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S56"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

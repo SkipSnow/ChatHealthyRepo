@@ -1,0 +1,78 @@
+{
+  "assignment_id": "FEAT-2-STORIES",
+  "iteration": 16,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing schema/contract, data normalization, and edge-case handling stories for FEAT-2.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-2-S44",
+      "value": "Add specialty query schema and validation models",
+      "note": "Schema/contract layer missing",
+      "iteration": 16
+    },
+    {
+      "path": "stories.FEAT-2-S45",
+      "value": "Implement NUCC data normalization and loading alignment",
+      "note": "Ensure mapping consistency with pipeline data",
+      "iteration": 16
+    },
+    {
+      "path": "stories.FEAT-2-S46",
+      "value": "Handle ambiguity and edge cases in specialty identification",
+      "note": "Improve robustness of mapping logic",
+      "iteration": 16
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-2-S44",
+      "title": "Define Specialty Query Schema and Validation",
+      "description": "Create and enforce Pydantic models for specialty identification inputs and outputs, including normalized query structure, candidate specialties, confidence scores, and NUCC code list.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    {
+      "story_id": "FEAT-2-S45",
+      "title": "Align NUCC Taxonomy Data with Mapping Logic",
+      "description": "Ensure NUCC specialty taxonomy data loaded via pipeline is normalized and consistent with specialty_service expectations, including code formatting, grouping, and deduplication rules.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S40"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/load_specialty_data.py"
+    },
+    {
+      "story_id": "FEAT-2-S46",
+      "title": "Implement Ambiguity Resolution and Edge Case Handling",
+      "description": "Enhance specialty identification to handle ambiguous queries (e.g., multi-specialty terms, layman phrasing, overlapping specialties) using confidence thresholds, ranking, and fallback strategies.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S40"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

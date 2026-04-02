@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must map backend malpractice data to a UI status of 'clean' when case_count is 0 or explicitly marked as no incidents.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must map backend malpractice data to a UI status of 'flagged' when case_count is greater than 0 or an incident exists.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must map backend malpractice data to a UI status of 'unknown' when malpractice data is null, missing, or incomplete.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must display only neutral signal language when presenting malpractice status, avoiding any implication of intent or wrongdoing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must not render prohibited terms including 'fraud', 'misconduct', or synonyms in any malpractice-related UI text.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must calculate score_contribution for malpractice using the backend-provided weight or value without modification.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must format score_contribution into a human-readable string consistent with other provider score components.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must ensure that malpractice status labels are deterministic and produce the same output for identical backend inputs.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must gracefully fallback to 'unknown' status when backend data contains invalid values (e.g., negative case_count).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must omit optional fields such as case_count and last_incident_date from display logic when they are null without causing rendering errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must ensure that all generated malpractice display text is compatible with the MessageBubble.tsx markdown-safe rendering pipeline.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must enforce a consistent mapping between status values and display labels (e.g., 'clean' -> 'No reported malpractice signals').",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must ensure that no backend raw text fields are directly rendered without passing through the neutral-language transformation layer.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must log a non-blocking warning when malpractice data is missing or malformed while still rendering a valid UI state.",
+      "source": "architecture_constraint",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

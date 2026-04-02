@@ -1,0 +1,116 @@
+{
+  "assignment_id": "BL-0.1.4-010",
+  "iteration": 11,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Existing stories cover required breakdown (schema, core logic, integration, API/observability, tests). Minor dependency and clarity refinements applied. No new stories created to avoid duplication.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-010-S4.dependencies",
+      "value": "[\"BL-0.1.4-010-S2\",\"BL-0.1.4-010-S3\"]",
+      "note": "Expose API depends on both decision engine and integration layer",
+      "iteration": 11
+    },
+    {
+      "path": "stories.BL-0.1.4-010-S3.description",
+      "value": "Integrate routing logic into shared MongoDB connection utilities so all read/write operations automatically resolve to the correct cluster without caller awareness, including environment prefix handling and connection reuse.",
+      "note": "Clarified scope to include env-prefix routing from ADR",
+      "iteration": 11
+    },
+    {
+      "path": "stories.BL-0.1.4-010-S2.description",
+      "value": "Implement core logic that determines which MongoDB cluster to route to based on request context (environment, dataset type, operation type) using the defined routing contract, including deterministic rule evaluation and fallback behavior.",
+      "note": "Added deterministic and fallback behavior expectations",
+      "iteration": 11
+    },
+    {
+      "path": "stories.BL-0.1.4-010-S5.description",
+      "value": "Create tests validating correct routing decisions, failover handling, environment prefix routing, and end-to-end integration with Mongo utilities across both clusters.",
+      "note": "Expanded test coverage to include env-prefix routing",
+      "iteration": 11
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "BL-0.1.4-010-S1": {
+      "story_id": "BL-0.1.4-010-S1",
+      "title": "Define Multi-Cluster Routing Schema and Contract",
+      "description": "Define configuration schema for routing rules between MongoDB clusters including cluster identifiers, environment prefixes, collection mappings, and failover behavior.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    "BL-0.1.4-010-S2": {
+      "story_id": "BL-0.1.4-010-S2",
+      "title": "Implement Cluster Routing Decision Engine",
+      "description": "Implement core logic that determines which MongoDB cluster to route to based on request context (environment, dataset type, operation type) using the defined routing contract, including deterministic rule evaluation and fallback behavior.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S1"
+      ],
+      "size": "M",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    "BL-0.1.4-010-S3": {
+      "story_id": "BL-0.1.4-010-S3",
+      "title": "Integrate Routing Engine with MongoDB Utilities",
+      "description": "Integrate routing logic into shared MongoDB connection utilities so all read/write operations automatically resolve to the correct cluster without caller awareness, including environment prefix handling and connection reuse.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py + docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    "BL-0.1.4-010-S4": {
+      "story_id": "BL-0.1.4-010-S4",
+      "title": "Expose Routing Configuration and Health Signals",
+      "description": "Provide internal API or debug hooks to expose active cluster routing decisions, selected cluster per request, and health status for observability and troubleshooting.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S2",
+        "BL-0.1.4-010-S3"
+      ],
+      "size": "S",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    "BL-0.1.4-010-S5": {
+      "story_id": "BL-0.1.4-010-S5",
+      "title": "Unit and Integration Tests for Multi-Cluster Routing",
+      "description": "Create tests validating correct routing decisions, failover handling, environment prefix routing, and end-to-end integration with Mongo utilities across both clusters.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S3"
+      ],
+      "size": "M",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "BL-0.1.4-010": {
+        "feature_id": "BL-0.1.4-010",
+        "likelihood": "Moderate",
+        "impact": "High",
+        "mitigation": "Use deterministic routing rules and enforce via shared Mongo utility to prevent caller-level inconsistency."
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

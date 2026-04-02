@@ -1,0 +1,103 @@
+{
+  "assignment_id": "EVAL-F-002-STORIES",
+  "iteration": 17,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined existing stories for clarity, sizing accuracy, and stricter contract alignment. No new IDs created.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-002-S1.description",
+      "value": "Clarified schema fields and explicit alignment with LLM tool response contract and facade output.",
+      "note": "Tighten contract definition",
+      "iteration": 17
+    },
+    {
+      "path": "stories.EVAL-F-002-S2.description",
+      "value": "Expanded normalization scope to include taxonomy consistency and null-safe transformations.",
+      "note": "Strengthen core logic definition",
+      "iteration": 17
+    },
+    {
+      "path": "stories.EVAL-F-002-S3.description",
+      "value": "Clarified orchestration role of facade and requirement for consistent downstream structure.",
+      "note": "Improve integration clarity",
+      "iteration": 17
+    },
+    {
+      "path": "stories.EVAL-F-002-S4.size",
+      "value": "S",
+      "note": "Adjusted size; endpoint exposure is lightweight given existing patterns",
+      "iteration": 17
+    },
+    {
+      "path": "stories.EVAL-F-002-S5.description",
+      "value": "Expanded to explicitly include edge-case validation for malformed NPI and empty CMS responses.",
+      "note": "Improve test coverage definition",
+      "iteration": 17
+    }
+  ],
+  "stories": {
+    "EVAL-F-002-S1": {
+      "story_id": "EVAL-F-002-S1",
+      "title": "Provider Detail Schema and Contract Definition",
+      "description": "Define and standardize the provider detail response schema including NPI, full name, specialty taxonomy, license status, practice address, phone, enumeration date, and external reference links. Ensure strict compatibility with evaluate_care_facade outputs and LLM tool response contract.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-F-002-S2": {
+      "story_id": "EVAL-F-002-S2",
+      "title": "NPI Provider Detail Retrieval and Normalization Logic",
+      "description": "Implement service logic to call CMS NPI Registry API, extract provider credentials, normalize taxonomy, license status, and address fields, enrich with state board links, and handle null, missing, or inconsistent data with deterministic outputs.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-F-002-S3": {
+      "story_id": "EVAL-F-002-S3",
+      "title": "Evaluate Care Facade Integration for Provider Detail",
+      "description": "Integrate provider detail service into evaluate_care_facade, ensuring consistent orchestration, structured output alignment, and compatibility with evaluation workflows and downstream quality signal generation.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F-002-S4": {
+      "story_id": "EVAL-F-002-S4",
+      "title": "Provider Detail API and Tool Exposure",
+      "description": "Expose provider detail lookup via FastAPI and register with tool_router, including input validation, error handling, and structured JSON output compliant with the defined schema.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    "EVAL-F-002-S5": {
+      "story_id": "EVAL-F-002-S5",
+      "title": "Provider Detail Unit and End-to-End Integration Tests",
+      "description": "Implement unit tests for NPI parsing, normalization, and enrichment plus integration tests validating full flow (API → tool_router → facade → service), including malformed NPI, missing fields, and empty CMS responses.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S2",
+        "EVAL-F-002-S3",
+        "EVAL-F-002-S4"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing provider detail test file found; must be implemented in backend/tests"
+    }
+  }
+}

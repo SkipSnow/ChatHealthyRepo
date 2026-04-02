@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-WEIGHTS-S3",
+      "requirement": "The system must expose an API endpoint that accepts evaluation requests with optional user-defined weights payload.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-WEIGHTS-S3",
+      "requirement": "The system must validate incoming weight payloads against the schema defined in EVAL-WEIGHTS-S1 before processing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-WEIGHTS-S3",
+      "requirement": "The system must pass validated weight parameters into the scoring engine implemented in EVAL-WEIGHTS-S2.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-WEIGHTS-S3",
+      "requirement": "The system must return recomputed provider or clinical trial scores based on supplied weights.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-WEIGHTS-S3",
+      "requirement": "The system must include metadata in the API response indicating whether custom weights or default weights were used.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-WEIGHTS-S3",
+      "requirement": "The system must preserve existing evaluation behavior when no weights payload is provided.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-WEIGHTS-S3",
+      "requirement": "The system must integrate weight handling into evaluate_care_facade without breaking existing orchestration flows.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-WEIGHTS-S3",
+      "requirement": "The system must return a structured response containing scores, applied weights, and normalization details.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-WEIGHTS-S3",
+      "requirement": "The system must reject requests with invalid weight formats and return a deterministic error response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-WEIGHTS-S3",
+      "requirement": "The system must fallback to default weights when partial weight inputs are provided and fill missing values.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-WEIGHTS-S3",
+      "requirement": "The system must log incoming weight configurations and scoring outcomes for traceability.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-WEIGHTS-S3",
+      "requirement": "The system must ensure API response latency remains within acceptable bounds when weights are applied.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-WEIGHTS-S3",
+      "requirement": "The system must ensure idempotent behavior for identical requests with identical weight inputs.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-WEIGHTS-S3",
+      "requirement": "The system must handle missing or null weight payloads without raising exceptions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-WEIGHTS-S3",
+      "requirement": "The system must return an explicit error when weight values fall outside allowed ranges defined in the schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

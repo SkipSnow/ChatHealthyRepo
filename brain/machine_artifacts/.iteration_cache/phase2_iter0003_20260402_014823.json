@@ -1,0 +1,41 @@
+{
+  "assignment_id": "EVAL-SPECIALTY-CREDIBILITY-STORIES",
+  "iteration": 3,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories refined for clarity, dependency correctness, and tighter contract definition. No new IDs created.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-SPECIALTY-CREDIBILITY-S1.description",
+      "value": "Define response schema to expose matched_classifications including: classification_label, source_pipeline (regex|vector|both), and optional confidence_score. Ensure compatibility with existing provider_search_models.",
+      "note": "Clarified contract fields and alignment with existing models",
+      "iteration": 3
+    },
+    {
+      "path": "stories.EVAL-SPECIALTY-CREDIBILITY-S2.description",
+      "value": "Enhance specialty_service to tag each matched classification with originating pipeline (regex, vector, or both) and preserve provenance through deduplication and aggregation logic.",
+      "note": "Clarified provenance preservation requirement",
+      "iteration": 3
+    },
+    {
+      "path": "stories.EVAL-SPECIALTY-CREDIBILITY-S3.description",
+      "value": "Update find_care_facade, tool_router, and provider_search_models to propagate matched classifications with pipeline attribution through API responses without breaking existing contracts.",
+      "note": "Added backward compatibility constraint",
+      "iteration": 3
+    },
+    {
+      "path": "stories.EVAL-SPECIALTY-CREDIBILITY-S4.description",
+      "value": "Update MessageBubble to render specialty match explanations with classification labels and pipeline origin indicators in a concise, non-intrusive format.",
+      "note": "Tightened UX expectation",
+      "iteration": 3
+    },
+    {
+      "path": "stories.EVAL-SPECIALTY-CREDIBILITY-S5.description",
+      "value": "Create unit and integration tests validating: correct pipeline attribution, schema compliance, API propagation through tool_router, and frontend rendering of transparency metadata.",
+      "note": "Explicitly enumerated validation scope",
+      "iteration": 3
+    }
+  ]
+}

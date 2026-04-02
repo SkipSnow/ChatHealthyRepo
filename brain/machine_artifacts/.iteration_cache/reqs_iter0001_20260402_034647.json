@@ -1,0 +1,165 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must render a 'clean' malpractice state when backend status=clean in end-to-end tests.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must render a 'flagged' malpractice state when backend status=flagged in end-to-end tests.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must render an 'unknown' malpractice state when backend status is null or missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must display a valid state_board_url link when provided by backend data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must not render a clickable link when state_board_url is null or invalid.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must render score_contribution exactly as provided by backend without alteration in value.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must display score_contribution in a human-readable formatted form (e.g. percentage or points) consistent with UI standards.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must include the malpractice section in the provider scorecard UI when malpractice data is present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must omit or gracefully collapse the malpractice section when all malpractice fields are missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must match UI snapshot tests for clean state rendering without visual regression.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must match UI snapshot tests for flagged state rendering without visual regression.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must not render any prohibited terms including 'fraud' in any malpractice UI state.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must not render any prohibited terms including 'misconduct' in any malpractice UI state.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must enforce neutral language phrasing in malpractice descriptions in all rendered outputs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must ensure LLM-generated or templated text describing malpractice uses signal-based wording (e.g. 'history indicates') rather than accusatory language.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-016",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must reject or sanitize any LLM-generated text containing banned terms before rendering.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-017",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must produce consistent wording for identical malpractice inputs across multiple test runs.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-018",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must ensure LLM or templated outputs do not imply legal judgment or guilt.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-019",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must validate that rendering pipeline (MessageBubble.tsx) safely displays malpractice content without markdown injection.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-020",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "requirement": "The system must handle malformed backend malpractice payloads without UI crash and render fallback state.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

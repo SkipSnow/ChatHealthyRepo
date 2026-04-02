@@ -1,0 +1,81 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 12,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added UI rendering and edge-case handling stories to complete explainability layer coverage.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F5-S40",
+      "value": "Frontend rendering of explainability metadata",
+      "note": "Adds UI layer for feature completeness",
+      "iteration": 12
+    },
+    {
+      "path": "stories.EVAL-F5-S41",
+      "value": "Explainability fallback and null handling",
+      "note": "Ensures robustness for missing data",
+      "iteration": 12
+    },
+    {
+      "path": "stories.EVAL-F5-S42",
+      "value": "Consistency enforcement across signals",
+      "note": "Prevents schema drift across pipelines",
+      "iteration": 12
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F5-S40",
+      "title": "Frontend Rendering of Explainability Metadata",
+      "description": "Update Chat UI message rendering to display explainability fields (source, meaning, limitations) in a clear, structured format alongside evaluation results.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S37"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    {
+      "story_id": "EVAL-F5-S41",
+      "title": "Explainability Fallback and Null Handling",
+      "description": "Implement logic to handle missing or incomplete explainability fields by providing safe defaults or omission rules to prevent malformed responses.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S36"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F5-S42",
+      "title": "Explainability Consistency Enforcement",
+      "description": "Add validation layer ensuring all evaluation signals (provider and clinical trials) conform to the standardized explainability schema before being returned by the facade.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S35",
+        "EVAL-F5-S38"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

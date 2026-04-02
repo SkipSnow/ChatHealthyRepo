@@ -1,0 +1,52 @@
+{
+  "stories": {
+    "GOV-F-003-S148": {
+      "story_id": "GOV-F-003-S148",
+      "title": "Brain Lock Schema and TTL Contract Definition",
+      "description": "Define and implement MongoDB schema for Brain locks including lock_id, owner_id, TTL timestamp, heartbeat timestamp, and status. Enforce TTL index and validation rules for expiration and ownership fields.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/Shared/machine_brain.py; Code/Shared/ChatHealthyMongoUtilities.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S149": {
+      "story_id": "GOV-F-003-S149",
+      "title": "Lock Acquire/Release API Endpoints",
+      "description": "Implement internal API methods for acquiring, renewing (heartbeat), and releasing Brain locks with strict ownership validation and TTL enforcement. Ensure safe concurrent access handling.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S148",
+        "GOV-F-003-S145"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/machine_brain.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S150": {
+      "story_id": "GOV-F-003-S150",
+      "title": "Brain Runner Integration with Lock Lifecycle",
+      "description": "Integrate lock acquisition, heartbeat refresh, and release into brain_runner execution flow to ensure single-agent execution and prevent concurrent assignment processing conflicts.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S149",
+        "GOV-F-003-S146"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/brain_loop.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S151": {
+      "story_id": "GOV-F-003-S151",
+      "title": "Lock Observability and Audit Logging",
+      "description": "Add structured logging for lock lifecycle events including acquisition, renewal, expiration, recovery, and conflicts. Persist audit records for debugging and operational monitoring.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S149"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/Shared/machine_brain.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    }
+  }
+}

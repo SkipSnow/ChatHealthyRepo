@@ -1,0 +1,84 @@
+{
+  "assignment_id": "PHASE 2: GPTR-F-002 Stories",
+  "iteration": 31,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing stories to meet minimum and cover API, revocation, and testing.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-002-S103",
+      "value": "Token Revocation Logic",
+      "note": "Add revocation capability",
+      "iteration": 31
+    },
+    {
+      "path": "stories.GPTR-F-002-S104",
+      "value": "Token Management API Endpoints",
+      "note": "Expose lifecycle via API",
+      "iteration": 31
+    },
+    {
+      "path": "stories.GPTR-F-002-S105",
+      "value": "Token Lifecycle Tests and Integration",
+      "note": "Ensure coverage and SIT alignment",
+      "iteration": 31
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S103",
+      "title": "Token Revocation Logic",
+      "description": "Implement backend logic to revoke bearer tokens, including immediate invalidation, propagation to rotated descendants (if applicable), and enforcement during authentication checks in GPTReader and Brain auth flows.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S101",
+        "GPTR-F-002-S102"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S104",
+      "title": "Token Management API Endpoints",
+      "description": "Create secure internal API endpoints for token lifecycle operations including issue, rotate, revoke, and validate. Ensure alignment with existing Azure Function auth patterns and restrict access via service-level authorization.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S102",
+        "GPTR-F-002-S103"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S105",
+      "title": "Token Lifecycle Tests and Integration",
+      "description": "Develop unit and integration tests validating token expiration, rotation, and revocation behavior, including negative cases (expired/revoked tokens) and integration with GPTReader endpoints and SIT runner.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S102",
+        "GPTR-F-002-S103",
+        "GPTR-F-002-S104"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; Code/DataPipelines/tests/gpt_sit_runner.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-BOARD-001",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must define a typed UI schema object for board certification containing fields: certification_status, issuing_body, and score_contribution.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-002",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must constrain certification_status to a finite enum (e.g., certified, not_certified, unknown) within the UI contract.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-003",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must define issuing_body as a string field suitable for direct display in MessageBubble without additional transformation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must define score_contribution as a numeric field representing the measure’s contribution to overall provider score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-005",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must ensure the schema is serializable to JSON and compatible with the existing MessageBubble.tsx rendering pipeline.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-006",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must align field names and types with backend output from EVAL-P-MEASURE-BOARD or explicitly define a mapping layer.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-007",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must include optionality rules indicating which fields are required vs optional in the UI contract.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-008",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must define a fallback representation for missing issuing_body values (e.g., null or empty string handled explicitly in schema).",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-009",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must define behavior for unknown or unsupported certification_status values by mapping them to 'unknown' in the schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-010",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must ensure the schema supports rendering as a single measure block within a provider scorecard context.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-011",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must define type validation rules that reject malformed score_contribution values (e.g., non-numeric inputs).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-012",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must allow the schema to be extended with additional metadata fields without breaking existing MessageBubble rendering.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

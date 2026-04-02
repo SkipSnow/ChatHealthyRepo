@@ -1,0 +1,131 @@
+{
+  "assignment_id": "PHASE-2-EVAL-CT-M2-STORIES",
+  "iteration": 8,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories created for Recruitment Status measure with full vertical slice.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-CT-M2-S1",
+      "value": "Added schema/contract story",
+      "note": "Phase 2 requirement",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S2",
+      "value": "Added core logic story",
+      "note": "Phase 2 requirement",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S3",
+      "value": "Added facade/API exposure story",
+      "note": "Phase 2 requirement",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S4",
+      "value": "Added integration story with clinical trials service",
+      "note": "Phase 2 requirement",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S5",
+      "value": "Added test coverage story",
+      "note": "Phase 2 requirement",
+      "iteration": 8
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-CT-M2-S1": {
+      "story_id": "EVAL-CT-M2-S1",
+      "title": "Define Recruitment Status Measure Schema and Contract",
+      "description": "Define normalized schema for clinical trial recruitment status including categories (RECRUITING, ACTIVE_NOT_RECRUITING, COMPLETED, TERMINATED, WITHDRAWN) and mapped scoring output.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M2-S2": {
+      "story_id": "EVAL-CT-M2-S2",
+      "title": "Implement Recruitment Status Scoring Logic",
+      "description": "Implement logic to assign score based on recruitment status (e.g., RECRUITING=high, ACTIVE_NOT_RECRUITING=medium, COMPLETED/TERMINATED=low) with deterministic mapping.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M2-S3": {
+      "story_id": "EVAL-CT-M2-S3",
+      "title": "Expose Recruitment Status Measure via Evaluate Care Facade",
+      "description": "Integrate recruitment status score into evaluate_care_facade response so downstream consumers receive structured measure output.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-CT-M2-S4": {
+      "story_id": "EVAL-CT-M2-S4",
+      "title": "Integrate Recruitment Status Extraction from ClinicalTrials Service",
+      "description": "Extract recruitment status from ClinicalTrials.gov API response and normalize into schema for scoring.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M2-S5": {
+      "story_id": "EVAL-CT-M2-S5",
+      "title": "Unit and Integration Tests for Recruitment Status Measure",
+      "description": "Create unit tests for status normalization and scoring logic and integration tests validating end-to-end flow from API response to facade output.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S2",
+        "EVAL-CT-M2-S3",
+        "EVAL-CT-M2-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "EVAL-CT-M2": {
+        "feature_id": "EVAL-CT-M2",
+        "likelihood": "Low",
+        "impact": "Moderate",
+        "mitigation": "Use deterministic mapping of known ClinicalTrials.gov status values only"
+      }
+    },
+    "per_measure": {
+      "EVAL-CT-M2": {
+        "feature_id": "EVAL-CT-M2",
+        "data_source_availability": "High",
+        "data_quality": "High",
+        "credibility": "High",
+        "mitigation": "Display raw status alongside score to preserve transparency"
+      }
+    }
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

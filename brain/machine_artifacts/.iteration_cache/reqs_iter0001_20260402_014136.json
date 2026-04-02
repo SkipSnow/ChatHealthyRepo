@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-BOARD-001",
+      "story_id": "EVAL-BOARD-ST-001",
+      "requirement": "The system must define a board_certifications array in the schema containing zero or more certification objects.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-002",
+      "story_id": "EVAL-BOARD-ST-001",
+      "requirement": "The system must define each certification object with fields: certification_name, issuing_body, specialty, and source_raw_text.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-003",
+      "story_id": "EVAL-BOARD-ST-001",
+      "requirement": "The system must include a normalized_specialty field for each certification to enable comparison with queried specialty.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004",
+      "story_id": "EVAL-BOARD-ST-001",
+      "requirement": "The system must define a relevance_score field as a numeric value between 0 and 1 representing alignment with the queried specialty.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-005",
+      "story_id": "EVAL-BOARD-ST-001",
+      "requirement": "The system must define a confidence field as a numeric value between 0 and 1 representing confidence in extracted certification data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-006",
+      "story_id": "EVAL-BOARD-ST-001",
+      "requirement": "The system must define an overall_board_certification_score field aggregating relevance scores across certifications.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-007",
+      "story_id": "EVAL-BOARD-ST-001",
+      "requirement": "The system must define scoring contract inputs including queried_specialty and provider credential data derived from NPI registry.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-008",
+      "story_id": "EVAL-BOARD-ST-001",
+      "requirement": "The system must define scoring contract outputs including overall_board_certification_score, relevance_score per certification, and confidence.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-009",
+      "story_id": "EVAL-BOARD-ST-001",
+      "requirement": "The system must ensure the schema is compatible with the existing provider detail response structure without breaking existing fields.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-010",
+      "story_id": "EVAL-BOARD-ST-001",
+      "requirement": "The system must allow the board certification measure to be optional in the response when no credential data is available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-011",
+      "story_id": "EVAL-BOARD-ST-001",
+      "requirement": "The system must return an empty board_certifications array and a score of 0 when no certifications are present in the input data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-012",
+      "story_id": "EVAL-BOARD-ST-001",
+      "requirement": "The system must handle malformed or incomplete credential data by setting confidence to a value less than 0.5 and not failing the response.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-013",
+      "story_id": "EVAL-BOARD-ST-001",
+      "requirement": "The system must ensure all numeric scoring fields are consistently typed as floats and not strings in the schema.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-014",
+      "story_id": "EVAL-BOARD-ST-001",
+      "requirement": "The system must ensure the schema supports multiple certifications with independent relevance scores per certification.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

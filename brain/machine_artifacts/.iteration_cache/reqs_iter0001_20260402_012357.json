@@ -1,0 +1,133 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-NORM-REQ-001",
+      "story_id": "EVAL-NORM-LOGIC-001",
+      "requirement": "The system must normalize binary measures by mapping true/positive values to 1 and false/negative values to 0.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-REQ-002",
+      "story_id": "EVAL-NORM-LOGIC-001",
+      "requirement": "The system must normalize categorical measures using a configuration-defined mapping from category values to numeric scores.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-REQ-003",
+      "story_id": "EVAL-NORM-LOGIC-001",
+      "requirement": "The system must normalize continuous measures using min-max scaling when specified in configuration.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-REQ-004",
+      "story_id": "EVAL-NORM-LOGIC-001",
+      "requirement": "The system must normalize continuous measures using z-score normalization when specified in configuration.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-REQ-005",
+      "story_id": "EVAL-NORM-LOGIC-001",
+      "requirement": "The system must output normalized values on a standardized 0 to 1 scale unless אחרת specified in configuration.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-REQ-006",
+      "story_id": "EVAL-NORM-LOGIC-001",
+      "requirement": "The system must apply measure-specific normalization logic based on the measure type defined in the input schema.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-REQ-007",
+      "story_id": "EVAL-NORM-LOGIC-001",
+      "requirement": "The system must read normalization parameters (e.g., min, max, mean, std, category mappings) from configuration inputs rather than hardcoding values.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-REQ-008",
+      "story_id": "EVAL-NORM-LOGIC-001",
+      "requirement": "The system must return both the normalized value and metadata indicating the normalization method applied.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-REQ-009",
+      "story_id": "EVAL-NORM-LOGIC-001",
+      "requirement": "The system must preserve input measure identifiers in the output to maintain traceability.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-REQ-010",
+      "story_id": "EVAL-NORM-LOGIC-001",
+      "requirement": "The system must support batch normalization of multiple measures in a single request.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-REQ-011",
+      "story_id": "EVAL-NORM-LOGIC-001",
+      "requirement": "The system must handle missing or null input values by returning a null normalized value and a status flag indicating missing data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-REQ-012",
+      "story_id": "EVAL-NORM-LOGIC-001",
+      "requirement": "The system must raise a validation error when a categorical value is not present in the provided mapping configuration.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-REQ-013",
+      "story_id": "EVAL-NORM-LOGIC-001",
+      "requirement": "The system must raise a validation error when required normalization parameters (e.g., min/max for min-max scaling) are missing.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-REQ-014",
+      "story_id": "EVAL-NORM-LOGIC-001",
+      "requirement": "The system must ensure normalized outputs are bounded within the expected scale (e.g., 0 to 1) after transformation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-REQ-015",
+      "story_id": "EVAL-NORM-LOGIC-001",
+      "requirement": "The system must support extensibility to add new normalization methods without modifying existing method logic.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-REQ-016",
+      "story_id": "EVAL-NORM-LOGIC-001",
+      "requirement": "The system must log normalization operations with input type, method used, and success or failure status for observability.",
+      "source": "architecture_constraint",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

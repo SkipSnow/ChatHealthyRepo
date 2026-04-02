@@ -1,0 +1,129 @@
+{
+  "assignment_id": "PHASE-2-EVAL-P-MEASURE-1",
+  "iteration": 6,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added required stories for Board Certification Verification feature.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-P-MEASURE-1-S1",
+      "value": "Added schema/contract story for board certification signal",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    },
+    {
+      "path": "stories.EVAL-P-MEASURE-1-S2",
+      "value": "Added core logic for certification extraction and verification",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    },
+    {
+      "path": "stories.EVAL-P-MEASURE-1-S3",
+      "value": "Added integration into provider_detail_service",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    },
+    {
+      "path": "stories.EVAL-P-MEASURE-1-S4",
+      "value": "Added API exposure via evaluate_care_facade",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    },
+    {
+      "path": "stories.EVAL-P-MEASURE-1-S5",
+      "value": "Added unit and integration tests",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-P-MEASURE-1-S1": {
+      "story_id": "EVAL-P-MEASURE-1-S1",
+      "title": "Define Board Certification Schema and Contract",
+      "description": "Define a structured schema for board certification signals including certification status, board name, specialty alignment, and verification source from NPI registry.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-P-MEASURE-1-S2": {
+      "story_id": "EVAL-P-MEASURE-1-S2",
+      "title": "Implement Board Certification Extraction and Verification Logic",
+      "description": "Parse NPI registry response to extract board certification indicators, normalize certification data, and determine verification status.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-MEASURE-1-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-P-MEASURE-1-S3": {
+      "story_id": "EVAL-P-MEASURE-1-S3",
+      "title": "Integrate Certification Logic into Provider Detail Service",
+      "description": "Embed board certification verification logic into provider_detail_service so certification signals are included in provider detail responses.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-MEASURE-1-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-P-MEASURE-1-S4": {
+      "story_id": "EVAL-P-MEASURE-1-S4",
+      "title": "Expose Board Certification via Evaluate Care Facade",
+      "description": "Extend evaluate_care_facade to include board certification signals in provider detail responses for downstream consumption.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-MEASURE-1-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-P-MEASURE-1-S5": {
+      "story_id": "EVAL-P-MEASURE-1-S5",
+      "title": "Unit and Integration Tests for Board Certification Verification",
+      "description": "Create unit tests for extraction and normalization logic and integration tests validating end-to-end flow from NPI lookup to facade response.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-MEASURE-1-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "EVAL-P-MEASURE-1": {
+        "feature_id": "EVAL-P-MEASURE-1",
+        "likelihood": "Low",
+        "impact": "Moderate",
+        "mitigation": "Fallback to 'unknown certification status' when NPI data is incomplete."
+      }
+    },
+    "per_measure": {
+      "EVAL-P-MEASURE-1": {
+        "feature_id": "EVAL-P-MEASURE-1",
+        "data_source_availability": "High",
+        "data_quality": "Moderate",
+        "credibility": "High",
+        "mitigation": "Clearly label certification source as NPI registry and avoid overclaiming verification."
+      }
+    }
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CT-M5-S4-001",
+      "story_id": "EVAL-CT-M5-S4",
+      "requirement": "The system must execute unit tests that validate distance-to-score mapping produces a normalized value between 0 and 1 for valid distance and duration inputs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S4-002",
+      "story_id": "EVAL-CT-M5-S4",
+      "requirement": "The system must verify via unit tests that shorter distances result in equal or higher proximity scores than longer distances, holding duration constant.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S4-003",
+      "story_id": "EVAL-CT-M5-S4",
+      "requirement": "The system must verify via unit tests that shorter travel durations result in equal or higher proximity scores than longer durations, holding distance constant.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S4-004",
+      "story_id": "EVAL-CT-M5-S4",
+      "requirement": "The system must execute unit tests confirming that when multiple trial locations are provided, the scoring logic selects the location with the best (highest) proximity score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S4-005",
+      "story_id": "EVAL-CT-M5-S4",
+      "requirement": "The system must execute unit tests confirming that the selected best location metadata (distance, duration, site identifier) matches the location used to compute the final score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S4-006",
+      "story_id": "EVAL-CT-M5-S4",
+      "requirement": "The system must execute unit tests validating fallback behavior when routing distance data is missing, producing a deterministic default proximity score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S4-007",
+      "story_id": "EVAL-CT-M5-S4",
+      "requirement": "The system must execute unit tests validating fallback behavior when routing duration data is missing, producing a deterministic default proximity score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S4-008",
+      "story_id": "EVAL-CT-M5-S4",
+      "requirement": "The system must execute unit tests confirming that when both distance and duration are missing, the proximity score falls back to a defined default without raising an exception.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S4-009",
+      "story_id": "EVAL-CT-M5-S4",
+      "requirement": "The system must execute integration tests validating that clinical_trials_service returns proximity scoring outputs conforming to the defined schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S4-010",
+      "story_id": "EVAL-CT-M5-S4",
+      "requirement": "The system must execute integration tests validating that evaluate_care_facade includes proximity score and metadata in each clinical trial result.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S4-011",
+      "story_id": "EVAL-CT-M5-S4",
+      "requirement": "The system must execute integration tests confirming end-to-end flow from clinical_trials_service through evaluate_care_facade returns consistent proximity scores for identical inputs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S4-012",
+      "story_id": "EVAL-CT-M5-S4",
+      "requirement": "The system must execute integration tests confirming that multiple trial results are each independently scored and returned with their own proximity metadata.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S4-013",
+      "story_id": "EVAL-CT-M5-S4",
+      "requirement": "The system must execute tests ensuring that invalid input types (e.g., non-numeric distance or duration) are handled gracefully without crashing and result in fallback scoring.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S4-014",
+      "story_id": "EVAL-CT-M5-S4",
+      "requirement": "The system must execute tests ensuring that empty trial location lists result in a valid response with a default proximity score and no unhandled exceptions.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M5-S4-015",
+      "story_id": "EVAL-CT-M5-S4",
+      "requirement": "The system must achieve passing status for all defined unit and integration tests in the backend/tests suite before feature acceptance.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

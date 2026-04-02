@@ -1,0 +1,52 @@
+{
+  "stories": [
+    {
+      "story_id": "GPTR-F-001-S12",
+      "title": "Define Allowlist Configuration Source and Loader",
+      "description": "Implement a centralized allowlist configuration (collections, fields, operators, limits) with a loader that initializes at function startup and supports environment-specific overrides.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S7"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/ops/manifest_generator.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    {
+      "story_id": "GPTR-F-001-S13",
+      "title": "Standardize Enforcement Error Handling and Response Contract",
+      "description": "Define and implement consistent error responses for allowlist violations (e.g., unauthorized collection, invalid operator, limit exceeded) including HTTP status codes and audit-safe messages.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S8"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/main.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    {
+      "story_id": "GPTR-F-001-S14",
+      "title": "Add Pre-Execution Query Sanitization Layer",
+      "description": "Implement sanitization to strip or reject disallowed query fields, nested operators, or injection patterns before allowlist validation executes.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S8"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    {
+      "story_id": "GPTR-F-001-S15",
+      "title": "Validate Enforcement via End-to-End SIT Scenarios",
+      "description": "Extend SIT coverage to include adversarial and edge-case scenarios ensuring scope enforcement blocks all out-of-policy access while allowing valid queries.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S10"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/gpt_sit_with_gpt.py; brain/machine_artifacts/content/ai_operations.json:gpt_sit_report; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  ]
+}

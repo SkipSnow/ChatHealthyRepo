@@ -1,0 +1,85 @@
+{
+  "assignment_id": "PHASE-2-MAINT-MAPS-STORIES",
+  "iteration": 12,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "MAINT-MAPS stories created with full coverage (schema, logic, UI, tests, integration).",
+  "change_log": [
+    {
+      "path": "stories",
+      "value": "Added 4 stories for MAINT-MAPS",
+      "note": "Feature previously had zero stories",
+      "iteration": 12
+    }
+  ],
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "MAINT-MAPS-S1",
+      "title": "Map Marker Data Schema and Contract",
+      "description": "Define frontend data contract for rendering providers on map including coordinates, provider metadata, and clustering attributes.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Website/architecture.html (frontend mapping capability referenced in manifest)"
+    },
+    {
+      "story_id": "MAINT-MAPS-S2",
+      "title": "Map Rendering Core Logic",
+      "description": "Implement core logic to transform provider search results into map markers, including coordinate normalization and clustering preparation.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py (provider location data available)"
+    },
+    {
+      "story_id": "MAINT-MAPS-S3",
+      "title": "Interactive Map UI Component",
+      "description": "Build frontend map component to display provider markers with hover/click interactions, popups, and basic navigation (zoom/pan).",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S1",
+        "MAINT-MAPS-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx (frontend rendering framework)"
+    },
+    {
+      "story_id": "MAINT-MAPS-S4",
+      "title": "Map Integration and Test Suite",
+      "description": "Validate end-to-end integration of provider data to map rendering including unit tests for transformation logic and UI rendering validation.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S2",
+        "MAINT-MAPS-S3"
+      ],
+      "size": "S",
+      "evidence": "Website/tests/test_website.py (existing frontend test patterns)"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "MAINT-MAPS",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "Use existing provider location fields and proven frontend rendering patterns"
+      }
+    ],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

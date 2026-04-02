@@ -1,0 +1,34 @@
+{
+  "assignment_id": "EVAL-F-03-STORIES",
+  "iteration": 27,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing schema/contract story for EvaluateCare facade inputs/outputs.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F-03-S78": {
+      "story_id": "EVAL-F-03-S78",
+      "title": "Define EvaluateCare Facade Input/Output Contracts",
+      "description": "Define and enforce Pydantic schemas for EvaluateCare facade operations covering clinical trials search inputs, provider detail lookup inputs, and unified response structures returned to the tool router.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

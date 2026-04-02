@@ -1,0 +1,109 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define a TypeScript interface for prescription behavior data including prescribing patterns, condition mappings, and score contribution fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure the schema supports multiple prescribing pattern entries per provider.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define condition mapping fields that associate prescription data with human-readable condition labels.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must include a field representing the prescription behavior score contribution to the overall provider quality score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure the schema is compatible with structured content rendering expectations of MessageBubble.tsx.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define all required and optional fields explicitly in the TypeScript interface.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must allow partial data objects where some prescription fields are missing without breaking the schema contract.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define data types that align with backend outputs from EVAL-P-RX and PIPE-RX-INGEST.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must include a version or schema identifier to support future backward-compatible changes.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must validate that numeric fields such as score contribution are typed as numbers and not strings.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define a fallback-safe structure that allows rendering logic to skip invalid or empty prescription data objects.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must handle the exception where backend data does not match the schema by enforcing type guards or validation checks.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must handle the exception where condition mappings are missing by allowing an empty or default condition label field.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

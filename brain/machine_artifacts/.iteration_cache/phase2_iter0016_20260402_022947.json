@@ -1,0 +1,40 @@
+{
+  "stories": {
+    "GOV-F-003-S50": {
+      "story_id": "GOV-F-003-S50",
+      "title": "Brain Lock Schema and Contract Definition",
+      "description": "Define and implement the lock schema including fields for lock_id, owner_id, TTL, created_at, expires_at, and status. Establish contract for lock acquisition, renewal, and release to ensure consistent usage across Brain components.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/Shared/machine_brain.py; Code/Shared/brain_runner.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S51": {
+      "story_id": "GOV-F-003-S51",
+      "title": "Brain Lock API and Access Layer",
+      "description": "Implement internal APIs/utilities for lock acquisition, renewal, release, and status checks. Ensure standardized access patterns for Brain runner and loop components with clear error handling for contention and expired locks.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S50",
+        "GOV-F-003-S47"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/brain_loop.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S52": {
+      "story_id": "GOV-F-003-S52",
+      "title": "Brain Lock Integration with Runner and Loop",
+      "description": "Integrate lock lifecycle management into brain_runner and brain_loop execution flows to ensure single-agent execution, proper lock release on completion, and recovery on failure or interruption.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S51",
+        "GOV-F-003-S48"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/brain_loop.py; Code/Shared/ops/dev_pipeline.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    }
+  }
+}

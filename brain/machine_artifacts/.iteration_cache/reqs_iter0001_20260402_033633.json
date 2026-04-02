@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+      "requirement": "The system must generate at least one state_board_url based on the provider's primary practice state using existing logic in provider_detail_service.py.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+      "requirement": "The system must include all generated state_board_urls in the malpractice evidence_links field of the output object.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+      "requirement": "The system must detect a negative malpractice indicator when provider NPI status is deactivated or flagged as inactive.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+      "requirement": "The system must set npdb_flag to true, false, or unknown based on availability of proxy data and must not default unknown to false.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+      "requirement": "The system must compute action_count as the total number of detected negative indicators from all available sources.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+      "requirement": "The system must assign a severity_score that decreases as action_count increases.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+      "requirement": "The system must not increase or positively adjust severity_score when no negative indicators are present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+      "requirement": "The system must return a malpractice object conforming to the schema defined in EVAL-P-MALPRACTICE-SCHEMA-001.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+      "requirement": "The system must set severity_score to a neutral baseline value when action_count equals zero.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+      "requirement": "The system must include an empty list for state_board_actions when no actions are detected rather than null.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+      "requirement": "The system must handle missing provider state by returning an empty state_board_urls list and marking data as unknown.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+      "requirement": "The system must handle unavailable NPI or sanctions data by setting npdb_flag to unknown and not affecting severity_score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+      "requirement": "The system must ensure severity_score is always within a predefined bounded range (e.g., 0 to 1 or 0 to 100).",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+      "requirement": "The system must treat multiple negative indicators as additive in impact rather than overriding previous signals.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+      "requirement": "The system must not fabricate or infer state_board_actions in the absence of verified or proxy data sources.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

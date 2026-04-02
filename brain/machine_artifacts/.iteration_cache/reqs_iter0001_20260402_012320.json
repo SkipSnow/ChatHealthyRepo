@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CT-M6-S2-001",
+      "story_id": "EVAL-CT-M6-S2",
+      "requirement": "The system must parse a valid last_update_date string into a standardized date format.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S2-002",
+      "story_id": "EVAL-CT-M6-S2",
+      "requirement": "The system must calculate days_since_update as the difference in days between the current system date and the parsed last_update_date.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S2-003",
+      "story_id": "EVAL-CT-M6-S2",
+      "requirement": "The system must assign a higher normalized_recency_score to trials with fewer days_since_update compared to those with more days_since_update.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S2-004",
+      "story_id": "EVAL-CT-M6-S2",
+      "requirement": "The system must map days_since_update to a normalized_recency_score using predefined threshold ranges.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S2-005",
+      "story_id": "EVAL-CT-M6-S2",
+      "requirement": "The system must ensure normalized_recency_score is bounded between 0 and 1 inclusive.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S2-006",
+      "story_id": "EVAL-CT-M6-S2",
+      "requirement": "The system must compute normalized_recency_score deterministically such that identical inputs always produce the same score.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S2-007",
+      "story_id": "EVAL-CT-M6-S2",
+      "requirement": "The system must set missing_data_flag to true when last_update_date is null or not provided.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S2-008",
+      "story_id": "EVAL-CT-M6-S2",
+      "requirement": "The system must assign a default normalized_recency_score when last_update_date is missing.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S2-009",
+      "story_id": "EVAL-CT-M6-S2",
+      "requirement": "The system must detect malformed last_update_date values and treat them as invalid inputs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S2-010",
+      "story_id": "EVAL-CT-M6-S2",
+      "requirement": "The system must set missing_data_flag to true and assign a default normalized_recency_score when last_update_date is malformed.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S2-011",
+      "story_id": "EVAL-CT-M6-S2",
+      "requirement": "The system must handle future-dated last_update_date values by treating days_since_update as zero.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S2-012",
+      "story_id": "EVAL-CT-M6-S2",
+      "requirement": "The system must produce days_since_update as a non-negative integer.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S2-013",
+      "story_id": "EVAL-CT-M6-S2",
+      "requirement": "The system must return all computed fields (last_update_date, days_since_update, normalized_recency_score, missing_data_flag) in the output structure defined by the schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S2-014",
+      "story_id": "EVAL-CT-M6-S2",
+      "requirement": "The system must execute recency scoring logic for each clinical trial record independently without cross-record interference.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

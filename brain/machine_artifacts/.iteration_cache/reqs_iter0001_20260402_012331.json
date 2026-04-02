@@ -1,0 +1,165 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-001",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must include a normalized_recency_score field for each clinical trial in the evaluation API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-002",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must include last_update_date in the clinical trial response payload when available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-003",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must include days_since_update in the clinical trial response payload when calculable.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-004",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must include a missing_data_flag field indicating absence or invalidity of update data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-005",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must ensure recency fields are present for every trial object returned, even if values are null.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-006",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must preserve existing clinical trial response structure and append recency fields without breaking backward compatibility.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-007",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must source recency scoring values from the recency scoring logic implemented in EVAL-CT-M6-S2.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-008",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must include recency metadata in a consistent schema aligned with the contract defined in EVAL-CT-M6-S1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-009",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must return recency scores for all trials in a single API response without requiring additional downstream calls.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-010",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must ensure recency scores are numeric and normalized within the defined range (e.g., 0 to 1).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-011",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must handle missing last_update_date by setting normalized_recency_score to null and missing_data_flag to true.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-012",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must handle malformed last_update_date values without failing the API response and must set missing_data_flag to true.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-013",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must ensure the evaluate care facade aggregates recency data for each trial before returning the final response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-014",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must expose recency fields in a way that downstream scoring components can consume without transformation.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-015",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must ensure API response latency does not increase beyond acceptable thresholds due to recency enrichment.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-016",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must ensure LLM consumers receive explicit recency fields rather than requiring inference from raw dates.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-017",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must ensure LLM-readable field names are semantically clear (e.g., normalized_recency_score, days_since_update).",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-018",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must ensure recency metadata is consistently ordered and structured across all trial objects for predictable LLM parsing.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-019",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must ensure no ambiguous or duplicate recency-related fields are present in the API response.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S3-020",
+      "story_id": "EVAL-CT-M6-S3",
+      "requirement": "The system must ensure recency scores are interpretable by LLMs without requiring additional context or lookup tables.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

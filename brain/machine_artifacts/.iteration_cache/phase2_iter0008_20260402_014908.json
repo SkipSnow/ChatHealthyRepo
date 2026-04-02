@@ -1,0 +1,115 @@
+{
+  "assignment_id": "EVAL-SPECIALTY-CREDIBILITY-STORIES",
+  "iteration": 8,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added 5 stories covering schema, logic, API, UI, tests, and integration for specialty match transparency.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-SC-S1",
+      "value": "Added schema/contract story for specialty match transparency",
+      "note": "Feature had zero stories",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-SC-S2",
+      "value": "Added core logic story for dual-pipeline attribution",
+      "note": "Feature had zero stories",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-SC-S3",
+      "value": "Added API exposure via facade",
+      "note": "Feature had zero stories",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-SC-S4",
+      "value": "Added frontend rendering story",
+      "note": "Feature had zero stories",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-SC-S5",
+      "value": "Added unit and integration tests",
+      "note": "Feature had zero stories",
+      "iteration": 8
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-SC-S1": {
+      "story_id": "EVAL-SC-S1",
+      "title": "Define Specialty Match Transparency Schema and Contract",
+      "description": "Define response schema to expose matched_classifications including specialty label, NUCC code, confidence (if available), and pipeline origin (regex, vector, or both). Ensure contract supports multiple matches and deduplicated aggregation.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py (matched_classifications, pipelines)"
+    },
+    "EVAL-SC-S2": {
+      "story_id": "EVAL-SC-S2",
+      "title": "Implement Dual-Pipeline Attribution Logic",
+      "description": "Extend specialty_service to tag each matched classification with its originating pipeline (regex, vector, or both), ensuring deduplication preserves provenance and aggregated classifications reflect combined signals.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SC-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py (dual-pipeline specialty ID, aggregation)"
+    },
+    "EVAL-SC-S3": {
+      "story_id": "EVAL-SC-S3",
+      "title": "Expose Specialty Match Transparency via EvaluateCare Facade",
+      "description": "Update evaluate_care_facade (and/or find_care_facade where applicable) to include matched_classifications with pipeline attribution in API responses without breaking existing consumers.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SC-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/.../specialty_service.py"
+    },
+    "EVAL-SC-S4": {
+      "story_id": "EVAL-SC-S4",
+      "title": "Render Specialty Match Transparency in UI",
+      "description": "Update frontend message rendering to display matched specialties and clearly indicate pipeline origin (e.g., 'Matched via exact term' vs 'Matched via semantic similarity'), ensuring readability within chat responses.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SC-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; specialty_service.py output contract"
+    },
+    "EVAL-SC-S5": {
+      "story_id": "EVAL-SC-S5",
+      "title": "Unit and Integration Tests for Specialty Match Transparency",
+      "description": "Add unit tests for pipeline attribution and deduplication logic and integration tests validating end-to-end flow from specialty_service through facade to API response including correct pipeline labels.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SC-S2",
+        "EVAL-SC-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/.../specialty_service.py; backend/tests; existing test patterns (test_tool_router, test_embedding_client)"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

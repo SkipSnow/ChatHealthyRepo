@@ -1,0 +1,40 @@
+{
+  "stories": {
+    "FEAT-4-STORY-6": {
+      "story_id": "FEAT-4-STORY-6",
+      "title": "Handle NPI Lookup Errors and Empty Results",
+      "description": "Implement error handling for NPI Registry failures, timeouts, and no-result scenarios with standardized response structure for downstream consumers.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "FEAT-4-STORY-7": {
+      "story_id": "FEAT-4-STORY-7",
+      "title": "Normalize and Enrich Provider Address and Taxonomy Data",
+      "description": "Enhance provider detail normalization to standardize address formatting and taxonomy/specialty mapping for consistent downstream usage.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "FEAT-4-STORY-8": {
+      "story_id": "FEAT-4-STORY-8",
+      "title": "Integrate URL Guardian for External Link Safety",
+      "description": "Pass all generated external provider links through URL Guardian validation pipeline to ensure safety, correctness, and availability.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-4"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    }
+  }
+}

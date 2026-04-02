@@ -1,0 +1,121 @@
+{
+  "assignment_id": "PHASE-2-EVAL-CT-MEASURE-3",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Created initial story set for Proximity to User (distance + travel time).",
+  "change_log": [
+    {
+      "path": "stories.EVAL-CT-M3-S1",
+      "value": "Added schema/contract story",
+      "note": "Define proximity data structure",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-CT-M3-S2",
+      "value": "Added core logic story",
+      "note": "Distance and duration calculation",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-CT-M3-S3",
+      "value": "Added Google Routes integration story",
+      "note": "External API integration",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-CT-M3-S4",
+      "value": "Added facade exposure story",
+      "note": "Expose via Evaluate Care facade",
+      "iteration": 10
+    },
+    {
+      "path": "stories.EVAL-CT-M3-S5",
+      "value": "Added test suite story",
+      "note": "Validation and edge cases",
+      "iteration": 10
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-CT-M3-S1": {
+      "story_id": "EVAL-CT-M3-S1",
+      "title": "Define Proximity Schema and Contract",
+      "description": "Define structured schema for trial site proximity including distance (miles/km), travel duration (minutes), and origin/destination metadata.",
+      "parent_feature": "EVAL-CT-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M3-S2": {
+      "story_id": "EVAL-CT-M3-S2",
+      "title": "Implement Distance and Travel Time Calculation Logic",
+      "description": "Implement logic to compute distance and estimated travel time between user location and each clinical trial site using normalized inputs.",
+      "parent_feature": "EVAL-CT-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-M3-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M3-S3": {
+      "story_id": "EVAL-CT-M3-S3",
+      "title": "Integrate Google Routes API for Travel Metrics",
+      "description": "Integrate Google Routes API to fetch real-world travel distance and duration, including handling API errors, rate limits, and missing location data.",
+      "parent_feature": "EVAL-CT-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-M3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M3-S4": {
+      "story_id": "EVAL-CT-M3-S4",
+      "title": "Expose Proximity Data via Evaluate Care Facade",
+      "description": "Extend evaluate_care_facade to include proximity metrics in clinical trial results returned to the chat experience.",
+      "parent_feature": "EVAL-CT-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-M3-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-CT-M3-S5": {
+      "story_id": "EVAL-CT-M3-S5",
+      "title": "Unit and Integration Tests for Proximity Calculation",
+      "description": "Create tests validating distance and duration accuracy, handling of missing or invalid locations, and end-to-end integration with clinical trial search results.",
+      "parent_feature": "EVAL-CT-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-M3-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "EVAL-CT-MEASURE-3": {
+        "feature_id": "EVAL-CT-MEASURE-3",
+        "likelihood": "Low",
+        "impact": "Moderate",
+        "mitigation": "Fallback to straight-line distance if Google Routes API fails."
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

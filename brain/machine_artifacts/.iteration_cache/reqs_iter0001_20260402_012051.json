@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-001",
+      "story_id": "EVAL-WEIGHTS-S5",
+      "requirement": "The system must validate that the weighting schema accepts valid default and user-defined weights without errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-002",
+      "story_id": "EVAL-WEIGHTS-S5",
+      "requirement": "The system must reject weighting inputs that violate schema constraints (e.g., missing required fields or invalid data types).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-003",
+      "story_id": "EVAL-WEIGHTS-S5",
+      "requirement": "The system must compute identical scores when default weights are applied compared to baseline scoring logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-004",
+      "story_id": "EVAL-WEIGHTS-S5",
+      "requirement": "The system must recompute scores correctly when valid custom weights are applied across multiple measures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-005",
+      "story_id": "EVAL-WEIGHTS-S5",
+      "requirement": "The system must normalize weights appropriately when partial weight sets are provided.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-006",
+      "story_id": "EVAL-WEIGHTS-S5",
+      "requirement": "The system must fall back to default weights when invalid or incomplete weight configurations are provided.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-007",
+      "story_id": "EVAL-WEIGHTS-S5",
+      "requirement": "The system must expose an API endpoint that accepts weight parameters and returns recomputed scores matching the defined contract.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-008",
+      "story_id": "EVAL-WEIGHTS-S5",
+      "requirement": "The system must return an error response when the weights API receives malformed or invalid payloads.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-009",
+      "story_id": "EVAL-WEIGHTS-S5",
+      "requirement": "The system must ensure API responses include metadata indicating whether default or custom weights were used.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-010",
+      "story_id": "EVAL-WEIGHTS-S5",
+      "requirement": "The system must update displayed scores in the UI when a user adjusts weights via frontend controls.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-011",
+      "story_id": "EVAL-WEIGHTS-S5",
+      "requirement": "The system must preserve UI stability and not crash when extreme but valid weight values are applied.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-WEIGHTS-REQ-012",
+      "story_id": "EVAL-WEIGHTS-S5",
+      "requirement": "The system must maintain consistent scoring outputs between backend unit tests and end-to-end integration tests.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

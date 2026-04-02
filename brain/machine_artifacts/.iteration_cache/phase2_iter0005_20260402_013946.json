@@ -1,0 +1,97 @@
+{
+  "assignment_id": "FEAT-1-STORIES",
+  "iteration": 5,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing stories for FEAT-1 to meet minimum coverage across schema, core logic, API, tests, and integration.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-1-STORY-006",
+      "value": "Added schema/contract story for provider search inputs and outputs",
+      "note": "Ensure validated interface exists",
+      "iteration": 5
+    },
+    {
+      "path": "stories.FEAT-1-STORY-007",
+      "value": "Added core logic orchestration story for vector + taxonomy fallback",
+      "note": "Implements primary backend behavior",
+      "iteration": 5
+    },
+    {
+      "path": "stories.FEAT-1-STORY-008",
+      "value": "Added API/facade integration story",
+      "note": "Connects facade to domain services",
+      "iteration": 5
+    },
+    {
+      "path": "stories.FEAT-1-STORY-009",
+      "value": "Added test coverage story",
+      "note": "Validates search correctness and fallback behavior",
+      "iteration": 5
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-1-STORY-006": {
+      "story_id": "FEAT-1-STORY-006",
+      "title": "Define provider search schema and validation models",
+      "description": "Implement and validate Pydantic models for provider search inputs (query, specialty, location filters) and structured outputs to ensure consistent contract between tool router, facade, and domain services.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-1-STORY-007": {
+      "story_id": "FEAT-1-STORY-007",
+      "title": "Implement provider search core logic with fallback",
+      "description": "Build core provider search logic using vector search (MongoDB Atlas embeddings) with taxonomy fallback via NUCC codes, including location filtering and multi-stage narrowing (state, city, county).",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-008": {
+      "story_id": "FEAT-1-STORY-008",
+      "title": "Integrate facade orchestration for provider search",
+      "description": "Wire provider search flow through find_care_facade to orchestrate specialty identification, query expansion, and provider search service calls, returning normalized results.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-006",
+        "FEAT-1-STORY-007"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    "FEAT-1-STORY-009": {
+      "story_id": "FEAT-1-STORY-009",
+      "title": "Add unit and integration tests for provider search",
+      "description": "Create tests to validate vector search results, taxonomy fallback behavior, location filtering accuracy, and end-to-end tool invocation through tool_router.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-007",
+        "FEAT-1-STORY-008",
+        "FEAT-1-STORY-005"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing provider search test file; must be created under backend/tests/"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

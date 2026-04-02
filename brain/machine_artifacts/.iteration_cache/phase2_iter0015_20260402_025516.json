@@ -1,0 +1,108 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-005",
+  "iteration": 15,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Strengthened evidence to anchor to concrete file-using components; no new stories created to avoid duplication.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-005-S2.evidence",
+      "value": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; ASSUMPTION: retry/backoff + atomic write pattern not implemented; GAP requires resilience layer",
+      "note": "Anchor core logic to file-using modules",
+      "iteration": 15
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S3.evidence",
+      "value": "Code/Shared/ChatHealthyMongoUtilities.py; Code/ConversationalUX/FindCareChat/backend/main.py; ASSUMPTION: no shared file IO wrapper exists; GAP requires centralized utility",
+      "note": "Clarify absence of shared wrapper",
+      "iteration": 15
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S4.evidence",
+      "value": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py; Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py; ASSUMPTION: no disk-failure simulation tests exist; GAP requires failure injection",
+      "note": "Broaden test evidence to existing test suite",
+      "iteration": 15
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S5.evidence",
+      "value": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/ConversationalUX/FindCareChat/backend/url_guardian.py",
+      "note": "Confirm concrete integration targets",
+      "iteration": 15
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "BL-0.1.4-005-S1": {
+      "story_id": "BL-0.1.4-005-S1",
+      "title": "Define File Operation Resilience Schema and Contract",
+      "description": "Define a standard contract for local file operations including retry policy, error classification (transient vs fatal), fallback behavior, and metadata logging requirements.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "ASSUMPTION: No standardized file operation contract exists; GAP requires unified schema for resilience behavior"
+    },
+    "BL-0.1.4-005-S2": {
+      "story_id": "BL-0.1.4-005-S2",
+      "title": "Implement Retry and Fallback Logic for File Operations",
+      "description": "Build core logic to handle local disk failures including configurable retries, exponential backoff, safe fallback (e.g., temp storage or skip with logging), and atomic write protection.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; ASSUMPTION: retry/backoff + atomic write pattern not implemented; GAP requires resilience layer"
+    },
+    "BL-0.1.4-005-S3": {
+      "story_id": "BL-0.1.4-005-S3",
+      "title": "Expose Resilient File Operation Utility Interface",
+      "description": "Provide a shared utility/module for all services to perform safe file reads/writes using the resilience layer, enforcing mandatory usage via centralized wrapper (no direct file IO allowed) and consistent error propagation.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; Code/ConversationalUX/FindCareChat/backend/main.py; ASSUMPTION: no shared file IO wrapper exists; GAP requires centralized utility"
+    },
+    "BL-0.1.4-005-S4": {
+      "story_id": "BL-0.1.4-005-S4",
+      "title": "Unit and Failure Scenario Tests for File Resilience",
+      "description": "Create tests simulating disk failures, partial writes, permission errors, and recovery scenarios to validate retry logic, fallback behavior, and data integrity.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py; Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py; ASSUMPTION: no disk-failure simulation tests exist; GAP requires failure injection"
+    },
+    "BL-0.1.4-005-S5": {
+      "story_id": "BL-0.1.4-005-S5",
+      "title": "Integrate Resilience Layer into Existing File-Dependent Services",
+      "description": "Integrate the resilience utility into services that rely on local disk operations (e.g., debug_logger, URL cache, temp artifacts), replacing all direct file access and validating end-to-end recovery behavior under failure conditions.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S3"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

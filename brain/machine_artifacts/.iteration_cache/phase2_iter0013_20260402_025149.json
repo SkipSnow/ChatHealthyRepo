@@ -1,0 +1,62 @@
+{
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-004-S1",
+      "title": "Audit Log Schema and Contract Definition",
+      "description": "Define immutable audit log schema including event_type, actor, timestamp, payload, hash, previous_hash, and correlation_id. Align with existing debug_logger fields (chat metadata, token usage, error flags) and enforce write-once document structure in MongoDB.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S2",
+      "title": "Append-Only Write Enforcement Logic",
+      "description": "Implement core audit logging pipeline enforcing strict append-only writes with no update/delete operations. Add hash chaining (previous_hash → hash) and deterministic hashing of payload to enable tamper detection. Ensure compatibility with existing debug_logger write patterns.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S3",
+      "title": "Audit Log Read API (Controlled Access)",
+      "description": "Expose read-only API for audit logs with filtering by event_type, time range, actor, and correlation_id. Include optional hash chain verification on read. Ensure no mutation endpoints exist and restrict access to internal/admin contexts only.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S2"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing audit read API; must be built on top of debug_logger persistence"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S4",
+      "title": "System-Wide Audit Logging Integration",
+      "description": "Integrate append-only audit logging across tool_router, safety_service, and key domain services. Capture tool invocations, safety triggers, consent flows, and error events. Ensure sensitive data follows existing de-identification patterns before logging.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S2"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S5",
+      "title": "Audit Logging Test Suite and Tamper Detection Validation",
+      "description": "Create unit and integration tests validating append-only guarantees, hash chain integrity, deterministic hashing, and prevention of updates/deletes. Include tamper simulation (record mutation, chain break) and verify detection via read API.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py"
+    }
+  ]
+}

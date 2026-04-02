@@ -1,0 +1,62 @@
+{
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-010-S1",
+      "title": "Define Multi-Cluster Routing Schema and Contract",
+      "description": "Define configuration schema for multiple MongoDB clusters including cluster roles (primary, secondary, analytics), dataset mappings (e.g., providers, embeddings, logs), routing rules, environment prefixes, and failover policies. Establish a strict contract for how services request a cluster (by capability or dataset type).",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    {
+      "story_id": "BL-0.1.4-010-S2",
+      "title": "Implement Cluster Routing and Selection Logic",
+      "description": "Build core routing engine that selects the correct MongoDB cluster based on request context (read/write, dataset type, environment). Include deterministic routing rules, cluster role awareness, and fallback handling for unavailable clusters.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S1"
+      ],
+      "size": "L",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    {
+      "story_id": "BL-0.1.4-010-S3",
+      "title": "Integrate Routing Logic with Mongo Utilities",
+      "description": "Embed routing engine into shared MongoDB utilities so all database access flows through cluster selection. Ensure compatibility with existing connection lifecycle management, ping validation, and context manager patterns.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    {
+      "story_id": "BL-0.1.4-010-S4",
+      "title": "Expose Routing Configuration and Health Signals",
+      "description": "Provide internal API/config access to expose active routing decisions, cluster mappings by dataset, and cluster health status for debugging and observability. Ensure read-only access and no external UI exposure.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S2"
+      ],
+      "size": "S",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    {
+      "story_id": "BL-0.1.4-010-S5",
+      "title": "Unit and Integration Tests for Multi-Cluster Routing",
+      "description": "Create tests validating correct cluster selection across dataset types, read/write paths, and environments. Include failover scenarios and dual-cluster simulation to verify routing correctness and resilience.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S3"
+      ],
+      "size": "M",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "stories": {
+    "BL-0.1.4-004-S10": {
+      "story_id": "BL-0.1.4-004-S10",
+      "title": "Internal Audit Query Interface",
+      "description": "Implement internal-only query utilities for retrieving audit records by correlation_id, actor, and time range, including verification of hash chain integrity during read operations without exposing public API endpoints.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S7"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    "BL-0.1.4-004-S11": {
+      "story_id": "BL-0.1.4-004-S11",
+      "title": "Audit Log Storage Structure and Indexing",
+      "description": "Define MongoDB collection structure, indexing strategy (timestamp, correlation_id, actor), and write patterns to support efficient append-only storage and retrieval aligned with debug_logger persistence.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S6"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    "BL-0.1.4-004-S12": {
+      "story_id": "BL-0.1.4-004-S12",
+      "title": "De-identification and Sensitive Data Handling in Audit Logs",
+      "description": "Extend audit logging to enforce de-identification rules and sensitive data filtering consistent with existing debug_logger behavior, ensuring no PHI leakage while preserving forensic usefulness.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S6",
+        "BL-0.1.4-004-S8"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    }
+  }
+}

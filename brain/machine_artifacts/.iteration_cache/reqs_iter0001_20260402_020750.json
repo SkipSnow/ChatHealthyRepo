@@ -1,0 +1,149 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CRED-REQ-001",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must define a credential completeness schema that includes fields for degrees, licenses, taxonomy codes, and a computed completeness score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-002",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must represent completeness score as a normalized numeric value within a fixed range (either 0–1 or 0–100) defined in the contract.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-003",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must define explicit weights for degrees, licenses, and taxonomy codes that sum to 1.0 (or 100%).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-004",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must map NPI response fields from provider_detail_service.py to the schema fields without loss of required credential information.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-005",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must define normalization rules that treat fully populated fields as complete and assign maximum weight contribution.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-006",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must define normalization rules that assign partial credit when credential fields are present but incomplete (e.g., partial taxonomy entries).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-007",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must define normalization rules that assign zero contribution when credential fields are missing or null.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-008",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must support multiple entries for taxonomy codes and aggregate them into a single completeness contribution.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-009",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must support multiple licenses and treat presence of at least one valid license as contributing positively to completeness.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-010",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must define a deterministic scoring contract such that identical input data always yields the same completeness score.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-011",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must output a structured scoring contract that includes total score and per-component contributions (degrees, licenses, taxonomy).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-012",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must define handling logic for empty taxonomy arrays in NPI responses and treat them as missing data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-013",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must define handling logic for missing credential (degree) fields in NPI responses without causing schema validation failure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-014",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must ensure the schema is serializable to JSON for downstream consumption by scoring logic and APIs.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-015",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must validate that all required schema fields are present before scoring contract execution.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-016",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must define an exception rule for malformed NPI input where credential fields are not in expected structure and default score to 0.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-017",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must define an exception rule for entirely missing NPI data where no credential fields are available and return a completeness score of 0 with empty components.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-018",
+      "story_id": "EVAL-CRED-001",
+      "requirement": "The system must ensure that weighting and normalization rules are explicitly documented in the scoring contract output.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

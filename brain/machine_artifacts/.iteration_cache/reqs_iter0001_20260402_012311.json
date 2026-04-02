@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-CT-M6-S1",
+      "requirement": "The system must define a clinical trial recency schema that includes the field last_update_date as a date type.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-CT-M6-S1",
+      "requirement": "The system must define the field days_since_update as a non-negative integer derived from last_update_date.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-CT-M6-S1",
+      "requirement": "The system must define the field normalized_recency_score as a numeric value bounded between 0 and 1 inclusive.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-CT-M6-S1",
+      "requirement": "The system must define the field missing_data_flag as a boolean indicating absence or invalidity of recency data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-CT-M6-S1",
+      "requirement": "The system must ensure the schema is serializable to JSON and compatible with existing evaluation pipeline response structures.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-CT-M6-S1",
+      "requirement": "The system must map last_update_date directly from ClinicalTrials.gov API response fields without transformation of semantic meaning.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-CT-M6-S1",
+      "requirement": "The system must define a scoring contract that specifies normalized_recency_score is computed solely from days_since_update.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-CT-M6-S1",
+      "requirement": "The system must include explicit documentation in the schema contract describing each field and its purpose.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-CT-M6-S1",
+      "requirement": "The system must support null or missing last_update_date values without breaking schema validation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-CT-M6-S1",
+      "requirement": "The system must set missing_data_flag to true when last_update_date is null, missing, or malformed.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-CT-M6-S1",
+      "requirement": "The system must define that normalized_recency_score defaults to 0 when missing_data_flag is true.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-CT-M6-S1",
+      "requirement": "The system must ensure the schema aligns with existing naming conventions used in other clinical trial measure schemas.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-CT-M6-S1",
+      "requirement": "The system must validate that days_since_update cannot be negative and reject or correct invalid values.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-CT-M6-S1",
+      "requirement": "The system must define the scoring contract such that more recent updates correspond to higher normalized_recency_score values.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-CT-M6-S1",
+      "requirement": "The system must ensure the schema can be extended in future without breaking backward compatibility of existing fields.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

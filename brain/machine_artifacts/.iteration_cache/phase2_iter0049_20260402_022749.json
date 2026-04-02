@@ -1,0 +1,84 @@
+{
+  "assignment_id": "GPTR-F-002-STORIES",
+  "iteration": 49,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added API/revocation, validation integration, and test coverage stories to complete lifecycle.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-002-S162",
+      "value": "Token Revocation API and Admin Controls",
+      "note": "Add revocation interface layer",
+      "iteration": 49
+    },
+    {
+      "path": "stories.GPTR-F-002-S163",
+      "value": "Token Validation Middleware Integration",
+      "note": "Ensure lifecycle enforced in request path",
+      "iteration": 49
+    },
+    {
+      "path": "stories.GPTR-F-002-S164",
+      "value": "Token Lifecycle Test Suite",
+      "note": "Add unit and integration validation",
+      "iteration": 49
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S162",
+      "title": "Token Revocation API and Admin Controls",
+      "description": "Implement backend API endpoints and internal admin controls to revoke active tokens. Revocation must immediately invalidate the token, update status to revoked, and log audit metadata including actor and timestamp.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S159"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S163",
+      "title": "Token Validation Middleware Integration",
+      "description": "Integrate token lifecycle checks (active, not expired, not revoked) into the GPTReader request handling path. Ensure all inbound requests enforce validation consistently using shared auth utilities.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S160",
+        "GPTR-F-002-S161"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S164",
+      "title": "Token Lifecycle Test Suite",
+      "description": "Develop comprehensive unit and integration tests covering token creation, rotation, expiration, revocation, and invalid access attempts. Validate enforcement within GPTReader endpoints and ensure audit logging is triggered correctly.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S160",
+        "GPTR-F-002-S161",
+        "GPTR-F-002-S162",
+        "GPTR-F-002-S163"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 35,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema contract and test coverage stories for explainability layer.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F5-S120",
+      "value": "Explainability Schema and Contract Definition",
+      "note": "Add schema layer for explainability standardization",
+      "iteration": 35
+    },
+    {
+      "path": "stories.EVAL-F5-S121",
+      "value": "Explainability Unit and Integration Tests",
+      "note": "Add test coverage for explainability logic and API",
+      "iteration": 35
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F5-S120": {
+      "story_id": "EVAL-F5-S120",
+      "title": "Explainability Schema and Contract Definition",
+      "description": "Define a standardized Pydantic schema for explainability objects including fields for source, meaning, limitations, confidence, and verification_links. Ensure compatibility with existing tool_models and facade outputs.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    "EVAL-F5-S121": {
+      "story_id": "EVAL-F5-S121",
+      "title": "Explainability Unit and Integration Tests",
+      "description": "Create unit tests for explainability mapping logic and integration tests validating end-to-end inclusion of explainability data in evaluate_care_facade responses and tool_router outputs.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S117",
+        "EVAL-F5-S118"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

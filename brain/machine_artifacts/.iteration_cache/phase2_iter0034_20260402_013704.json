@@ -1,0 +1,100 @@
+{
+  "assignment_id": "EVAL-F-03-STORIES",
+  "iteration": 34,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing stories to meet minimum coverage across logic, API integration, testing, and domain orchestration.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-03-S97",
+      "value": "Add core orchestration logic story for clinical trials and provider detail flows",
+      "note": "Expand beyond schema into execution layer",
+      "iteration": 34
+    },
+    {
+      "path": "stories.EVAL-F-03-S98",
+      "value": "Add tool_router/API integration story",
+      "note": "Ensure facade is callable via agent tool flow",
+      "iteration": 34
+    },
+    {
+      "path": "stories.EVAL-F-03-S99",
+      "value": "Add integration with domain services story",
+      "note": "Connect facade to clinical_trials_service and provider_detail_service",
+      "iteration": 34
+    },
+    {
+      "path": "stories.EVAL-F-03-S100",
+      "value": "Add tests for facade orchestration",
+      "note": "Ensure reliability and regression coverage",
+      "iteration": 34
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F-03-S97": {
+      "story_id": "EVAL-F-03-S97",
+      "title": "Implement EvaluateCare Facade Core Orchestration Logic",
+      "description": "Implement orchestration methods within evaluate_care_facade to coordinate clinical trials search and provider detail retrieval, including input validation, service calls, and response aggregation.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S96"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F-03-S98": {
+      "story_id": "EVAL-F-03-S98",
+      "title": "Expose EvaluateCare Facade via Tool Router",
+      "description": "Integrate EvaluateCare facade methods into tool_router with proper allowlisting, ensuring validated inputs are routed and responses are returned in agent-compatible format.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S96"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F-03-S99": {
+      "story_id": "EVAL-F-03-S99",
+      "title": "Integrate Facade with Clinical Trials and Provider Detail Services",
+      "description": "Wire evaluate_care_facade to domain services for clinical trials search and provider detail lookup, ensuring correct parameter mapping, error handling, and response normalization.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S97"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-F-03-S100": {
+      "story_id": "EVAL-F-03-S100",
+      "title": "Create Unit and Integration Tests for EvaluateCare Facade",
+      "description": "Develop tests validating facade orchestration, including successful flows, error conditions, and tool_router integration paths for both clinical trials and provider detail scenarios.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S97",
+        "EVAL-F-03-S98",
+        "EVAL-F-03-S99"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

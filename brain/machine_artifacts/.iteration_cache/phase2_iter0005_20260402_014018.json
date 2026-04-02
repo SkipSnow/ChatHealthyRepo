@@ -1,0 +1,35 @@
+{
+  "assignment_id": "EVAL-PROVIDER-LINKS-STORIES",
+  "iteration": 5,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories refined for clearer separation of schema, normalization logic, UI, safety, and testing. No new IDs created per feature lock and dedup rules.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S2.description",
+      "value": "Clarified as core normalization layer: maps provider_detail_service research_links into strict contract, enforces deterministic ordering (NPI Registry → State Board → Healthgrades), applies label standardization, and handles null/missing links before API exposure.",
+      "note": "Strengthen core logic scope separation",
+      "iteration": 5
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S3.description",
+      "value": "Enhanced to include visual hierarchy (official vs third-party), outbound indicators, and inline guidance explaining trust level of each source.",
+      "note": "Improve UX clarity and trust signaling",
+      "iteration": 5
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S4.description",
+      "value": "Clarified integration with url_guardian as pre-render validation step including HEAD check, AI verification, and safe rendering attributes (target=_blank, rel=noopener).",
+      "note": "Align explicitly with backend validation pipeline",
+      "iteration": 5
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S5.description",
+      "value": "Expanded to explicitly validate end-to-end flow: provider_detail_service → facade normalization → URL validation → frontend rendering, including ordering, fallback handling, and safety enforcement.",
+      "note": "Ensure full integration coverage",
+      "iteration": 5
+    }
+  ]
+}

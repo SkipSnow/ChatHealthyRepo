@@ -1,0 +1,72 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 18,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing API/UI and resilience coverage for explainability layer.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F5-S59",
+      "value": "Explainability API Response Contract Exposure",
+      "note": "Add explicit API contract story",
+      "iteration": 18
+    },
+    {
+      "path": "stories.EVAL-F5-S60",
+      "value": "Frontend Rendering of Explainability Metadata",
+      "note": "Add UI consumption layer",
+      "iteration": 18
+    },
+    {
+      "path": "stories.EVAL-F5-S61",
+      "value": "Explainability Fallback and Missing Data Handling",
+      "note": "Add resilience handling for incomplete signals",
+      "iteration": 18
+    }
+  ],
+  "stories": {
+    "EVAL-F5-S59": {
+      "story_id": "EVAL-F5-S59",
+      "title": "Explainability API Response Contract Exposure",
+      "description": "Define and expose the explainability schema in FastAPI response models to ensure all evaluation endpoints consistently return source, meaning, and limitations fields in a machine-readable format.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S55",
+        "EVAL-F5-S57"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    "EVAL-F5-S60": {
+      "story_id": "EVAL-F5-S60",
+      "title": "Frontend Rendering of Explainability Metadata",
+      "description": "Update MessageBubble and ChatWindow components to render explainability metadata (source, meaning, limitations) alongside evaluation results in a user-friendly format with clear attribution and readability.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S57"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    "EVAL-F5-S61": {
+      "story_id": "EVAL-F5-S61",
+      "title": "Explainability Fallback and Missing Data Handling",
+      "description": "Implement logic to handle missing or partial explainability fields by providing default messaging (e.g., 'Source not available') and ensuring no evaluation response is returned without a complete explainability structure.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S56"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  },
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

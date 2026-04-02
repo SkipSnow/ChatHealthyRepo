@@ -1,0 +1,97 @@
+{
+  "assignment_id": "PHASE2-GPTR-F-002",
+  "iteration": 38,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema, rotation core logic, and expiration enforcement stories to complete lifecycle coverage.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-002-S126",
+      "value": "Token Lifecycle Schema & Storage Model",
+      "note": "Adds schema definition for lifecycle tracking",
+      "iteration": 38
+    },
+    {
+      "path": "stories.GPTR-F-002-S127",
+      "value": "Token Rotation Core Logic",
+      "note": "Adds rotation implementation missing from prior set",
+      "iteration": 38
+    },
+    {
+      "path": "stories.GPTR-F-002-S128",
+      "value": "Token Expiration Enforcement & Cleanup",
+      "note": "Adds expiration handling and cleanup mechanism",
+      "iteration": 38
+    },
+    {
+      "path": "stories.GPTR-F-002-S129",
+      "value": "Token Issuance Contract & Validation Rules",
+      "note": "Defines issuance contract and validation constraints",
+      "iteration": 38
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S126",
+      "title": "Token Lifecycle Schema & Storage Model",
+      "description": "Design and implement the persistent schema for bearer tokens including fields for token_id, hashed_token, issued_at, expires_at, rotated_from, revoked_at, and status flags to support lifecycle tracking.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S127",
+      "title": "Token Rotation Core Logic",
+      "description": "Implement secure token rotation logic that issues a new token, links it to the prior token via rotated_from, and invalidates the previous token while preventing reuse.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S126"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S128",
+      "title": "Token Expiration Enforcement & Cleanup",
+      "description": "Implement expiration checks based on expires_at during validation and introduce a lightweight cleanup mechanism to mark or purge expired tokens without impacting request latency.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S126",
+        "GPTR-F-002-S123"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/auth.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S129",
+      "title": "Token Issuance Contract & Validation Rules",
+      "description": "Define and enforce the contract for token issuance including TTL configuration, hashing requirements, uniqueness constraints, and validation rules to ensure tokens meet security standards at creation time.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S126"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/auth.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

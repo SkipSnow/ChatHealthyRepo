@@ -1,0 +1,80 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 15,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Previous iteration under-produced stories (2 < minimum 3)"
+  ],
+  "notes": "Completing story set for EVAL-F5 with schema, core logic, API integration, and testing coverage.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F5-S50": {
+      "story_id": "EVAL-F5-S50",
+      "title": "Explainability Schema Definition",
+      "description": "Define a standardized explainability schema (source, meaning, limitations) for all evaluation signals, ensuring consistent structure across provider credentials, external links, and clinical trial signals.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F5-S51": {
+      "story_id": "EVAL-F5-S51",
+      "title": "Explainability Enrichment Logic",
+      "description": "Implement backend logic to attach explainability metadata to evaluation signals returned from provider and clinical trial services, including mapping raw data fields to human-readable meaning and limitations.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S50",
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F5-S52": {
+      "story_id": "EVAL-F5-S52",
+      "title": "Explainability API Contract Integration",
+      "description": "Extend evaluate_care_facade responses to include explainability schema in API outputs, ensuring compatibility with existing tool_router and frontend consumption patterns.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S51"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "EVAL-F5-S53": {
+      "story_id": "EVAL-F5-S53",
+      "title": "Explainability Unit and Integration Tests",
+      "description": "Create unit and integration tests validating that explainability metadata is consistently generated, correctly structured, and safely handled across provider and clinical trial evaluation flows.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S51",
+        "EVAL-F5-S52"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

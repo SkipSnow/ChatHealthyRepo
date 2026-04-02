@@ -1,0 +1,103 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-001",
+  "iteration": 3,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories created for server-side scope enforcement aligned to existing tool_router allowlist behavior.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-001-S1",
+      "value": "Added schema/contract story for scope enforcement",
+      "note": "Define enforceable scope model",
+      "iteration": 3
+    },
+    {
+      "path": "stories.BL-0.1.4-001-S2",
+      "value": "Added core logic story for scope validation",
+      "note": "Implement enforcement in router",
+      "iteration": 3
+    },
+    {
+      "path": "stories.BL-0.1.4-001-S3",
+      "value": "Added integration story with tool_router",
+      "note": "Wire enforcement into dispatch flow",
+      "iteration": 3
+    },
+    {
+      "path": "stories.BL-0.1.4-001-S4",
+      "value": "Added test suite story",
+      "note": "Validate enforcement and edge cases",
+      "iteration": 3
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "BL-0.1.4-001-S1": {
+      "story_id": "BL-0.1.4-001-S1",
+      "title": "Define Tool Scope Enforcement Schema and Contract",
+      "description": "Define a strict schema for tool scope including allowed tools per context, request metadata requirements, and enforcement rules to be applied server-side before dispatch.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (allowlist dispatch present)"
+    },
+    "BL-0.1.4-001-S2": {
+      "story_id": "BL-0.1.4-001-S2",
+      "title": "Implement Core Scope Validation Logic",
+      "description": "Build validation logic that checks each tool call against the defined scope contract, rejecting or sanitizing calls that fall outside the allowlist or permitted context.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (tool dispatch + validation flow)"
+    },
+    "BL-0.1.4-001-S3": {
+      "story_id": "BL-0.1.4-001-S3",
+      "title": "Integrate Scope Enforcement into Tool Router Dispatch",
+      "description": "Integrate scope validation into the existing tool_router dispatch pipeline so that all tool calls are intercepted and validated before execution.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (central dispatch point)"
+    },
+    "BL-0.1.4-001-S4": {
+      "story_id": "BL-0.1.4-001-S4",
+      "title": "Unit and Integration Tests for Scope Enforcement",
+      "description": "Create tests validating allowed vs blocked tool calls, malformed inputs, and edge cases ensuring no out-of-scope execution paths bypass enforcement.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py (existing router tests)"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "BL-0.1.4-001": {
+        "feature_id": "BL-0.1.4-001",
+        "likelihood": "Low",
+        "impact": "Moderate",
+        "mitigation": "Leverage existing allowlist mechanism and extend with minimal validation layer."
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

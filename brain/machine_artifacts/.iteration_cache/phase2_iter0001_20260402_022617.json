@@ -1,0 +1,64 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-CT-MEASURE-2-S1",
+      "title": "Enrollment Status Schema and Contract",
+      "description": "Define canonical schema for clinical trial enrollment status including normalized values (RECRUITING, ACTIVE, COMPLETED, UNKNOWN), raw source field mapping from ClinicalTrials.gov, and validation contract for downstream consumers.",
+      "parent_feature": "EVAL-CT-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-MEASURE-2-S2",
+      "title": "Enrollment Status Extraction and Normalization Logic",
+      "description": "Implement core logic to extract enrollment status from ClinicalTrials.gov API response and normalize into defined categories (recruiting, active, completed). Handle missing or ambiguous statuses with fallback to UNKNOWN.",
+      "parent_feature": "EVAL-CT-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-MEASURE-2-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-MEASURE-2-S3",
+      "title": "Enrollment Status Integration in EvaluateCare Facade",
+      "description": "Integrate normalized enrollment status into Evaluate Care response payload so that clinical trial results include status alongside trial metadata for downstream rendering.",
+      "parent_feature": "EVAL-CT-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-MEASURE-2-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-CT-MEASURE-2-S4",
+      "title": "Enrollment Status API Contract Exposure",
+      "description": "Ensure enrollment status field is exposed through FastAPI response models and tool responses, maintaining compatibility with existing tool_router and chat response structure.",
+      "parent_feature": "EVAL-CT-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-MEASURE-2-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "EVAL-CT-MEASURE-2-S5",
+      "title": "Enrollment Status Unit and Integration Tests",
+      "description": "Create unit tests for status normalization logic and integration tests validating presence and correctness of enrollment status in clinical trial responses returned through Evaluate Care flows.",
+      "parent_feature": "EVAL-CT-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-MEASURE-2-S2",
+        "EVAL-CT-MEASURE-2-S3",
+        "EVAL-CT-MEASURE-2-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  ]
+}

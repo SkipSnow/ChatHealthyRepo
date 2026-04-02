@@ -1,0 +1,99 @@
+{
+  "assignment_id": "EVAL-PROVIDER-LINKS-STORIES",
+  "iteration": 9,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added 5 stories for EVAL-PROVIDER-LINKS covering schema, logic, API/UI, tests, and integration.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S1",
+      "value": "Added schema/contract story for external verification links",
+      "note": "Feature had zero stories",
+      "iteration": 9
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S2",
+      "value": "Added core logic story for link construction and labeling",
+      "note": "Feature had zero stories",
+      "iteration": 9
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S3",
+      "value": "Added API/UI exposure story via facade",
+      "note": "Feature had zero stories",
+      "iteration": 9
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S4",
+      "value": "Added unit tests for link generation and fallback handling",
+      "note": "Feature had zero stories",
+      "iteration": 9
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S5",
+      "value": "Added integration test for end-to-end delivery",
+      "note": "Feature had zero stories",
+      "iteration": 9
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S1",
+      "title": "Define External Verification Link Schema",
+      "description": "Define structured schema for external verification links including source (Healthgrades, NPI Registry, State Board), URL, label, and guidance text for user interpretation.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (research site URL construction)"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S2",
+      "title": "Implement Link Construction and Guidance Logic",
+      "description": "Implement logic to construct external URLs (Healthgrades, NPI Registry, state boards) and attach human-readable guidance explaining what each source represents and how to interpret it.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (research_sites կառուց)"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S3",
+      "title": "Expose External Links via EvaluateCare Facade and UI",
+      "description": "Expose structured external verification links through evaluate_care_facade and ensure frontend renders them with clear labels and safe clickable links.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; provider_detail_service.py (link outputs)"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S4",
+      "title": "Unit Tests for Link Generation and Fallback Handling",
+      "description": "Create unit tests to validate correct URL construction, label assignment, and graceful handling of missing state or NPI data.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-LINKS-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (link logic paths)"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S5",
+      "title": "Integration Test for End-to-End External Link Delivery",
+      "description": "Validate that provider detail requests return fully structured external links from backend through facade to frontend rendering with no broken or missing links.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-LINKS-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (service wiring) + evaluate_care_facade.py"
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "assignment_id": "PHASE-2-MAINT-MAPS-STORIES",
+  "iteration": 18,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "MAINT-MAPS stories created per requirement.",
+  "change_log": [
+    {
+      "path": "stories.MAINT-MAPS-S1",
+      "value": "Added schema/contract story for map provider data",
+      "note": "Initial story creation",
+      "iteration": 18
+    },
+    {
+      "path": "stories.MAINT-MAPS-S2",
+      "value": "Added core logic for map marker rendering",
+      "note": "Initial story creation",
+      "iteration": 18
+    },
+    {
+      "path": "stories.MAINT-MAPS-S3",
+      "value": "Added UI integration for interactive map",
+      "note": "Initial story creation",
+      "iteration": 18
+    },
+    {
+      "path": "stories.MAINT-MAPS-S4",
+      "value": "Added test suite for map behavior",
+      "note": "Initial story creation",
+      "iteration": 18
+    },
+    {
+      "path": "stories.MAINT-MAPS-S5",
+      "value": "Added integration with provider search results",
+      "note": "Initial story creation",
+      "iteration": 18
+    }
+  ],
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "MAINT-MAPS-S1",
+      "title": "Define Map Provider Data Schema and Contract",
+      "description": "Define the frontend data contract for rendering providers on a map, including latitude, longitude, provider name, specialty, and identifier. Ensure compatibility with existing provider search outputs.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Website/architecture.html"
+    },
+    {
+      "story_id": "MAINT-MAPS-S2",
+      "title": "Implement Map Marker Rendering Logic",
+      "description": "Implement core frontend logic to transform provider data into map markers, including clustering support and handling missing or invalid coordinates.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S1"
+      ],
+      "size": "M",
+      "evidence": "Website/architecture.html"
+    },
+    {
+      "story_id": "MAINT-MAPS-S3",
+      "title": "Build Interactive Map UI Component",
+      "description": "Develop a reusable map component that renders provider markers, supports zoom/pan interactions, and displays provider summary on marker click.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S2"
+      ],
+      "size": "M",
+      "evidence": "Website/architecture.html"
+    },
+    {
+      "story_id": "MAINT-MAPS-S4",
+      "title": "Map Rendering Test Suite",
+      "description": "Create unit and integration tests validating marker rendering, clustering behavior, and UI interactions such as click and zoom.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S2",
+        "MAINT-MAPS-S3"
+      ],
+      "size": "S",
+      "evidence": "Website/architecture.html"
+    },
+    {
+      "story_id": "MAINT-MAPS-S5",
+      "title": "Integrate Map with Provider Search Results",
+      "description": "Connect the map component to provider search outputs so that search results dynamically populate map markers and update on new queries.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S1",
+        "FIND-P-M1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

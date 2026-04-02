@@ -1,0 +1,97 @@
+{
+  "assignment_id": "FEAT-5-STORIES",
+  "iteration": 33,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing schema/contract, API integration, and test coverage stories for FEAT-5.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-5-S128",
+      "value": "Added schema contract story for tool definitions",
+      "note": "Covers missing schema/contract layer",
+      "iteration": 33
+    },
+    {
+      "path": "stories.FEAT-5-S129",
+      "value": "Added tool router integration with FastAPI endpoint",
+      "note": "Covers API integration gap",
+      "iteration": 33
+    },
+    {
+      "path": "stories.FEAT-5-S130",
+      "value": "Added unit tests for allowlist and validation",
+      "note": "Ensures correctness of core routing logic",
+      "iteration": 33
+    },
+    {
+      "path": "stories.FEAT-5-S131",
+      "value": "Added integration tests for end-to-end tool routing",
+      "note": "Validates Anthropic tool_use loop behavior",
+      "iteration": 33
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-5-S128": {
+      "story_id": "FEAT-5-S128",
+      "title": "Tool Schema and Contract Definition",
+      "description": "Define and standardize tool schemas using Pydantic models, including input/output contracts for all allowlisted tools to ensure consistent validation and dispatch behavior.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    "FEAT-5-S129": {
+      "story_id": "FEAT-5-S129",
+      "title": "Tool Router Integration with Chat API",
+      "description": "Integrate the tool_router into the FastAPI main chat loop, ensuring tool_use blocks from the LLM are correctly intercepted, routed through the allowlist, and responses injected back into the conversation.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S125"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-5-S130": {
+      "story_id": "FEAT-5-S130",
+      "title": "Unit Tests for Allowlist and Validation Logic",
+      "description": "Create unit tests validating allowlist enforcement, correct Pydantic validation behavior, and rejection of malformed or unauthorized tool calls.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S125",
+        "FEAT-5-S126"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    },
+    "FEAT-5-S131": {
+      "story_id": "FEAT-5-S131",
+      "title": "End-to-End Tool Routing Integration Tests",
+      "description": "Implement integration tests simulating LLM tool_use responses to verify full routing flow, including validation, dispatch, execution, and response reinjection into chat history.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S129"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py; Code/ConversationalUX/FindCareChat/backend/main.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

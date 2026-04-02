@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-002-001",
+      "story_id": "EVAL-EXPLAIN-ST-002",
+      "requirement": "The system must transform each raw measure value into a normalized_score using a defined deterministic formula per measure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-002-002",
+      "story_id": "EVAL-EXPLAIN-ST-002",
+      "requirement": "The system must apply a predefined weight to each normalized_score to compute contribution_to_final_score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-002-003",
+      "story_id": "EVAL-EXPLAIN-ST-002",
+      "requirement": "The system must ensure that the same input raw_value always produces the same normalized_score (deterministic behavior).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-002-004",
+      "story_id": "EVAL-EXPLAIN-ST-002",
+      "requirement": "The system must support multiple normalization strategies (e.g., min-max, z-score) selectable per measure.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-002-005",
+      "story_id": "EVAL-EXPLAIN-ST-002",
+      "requirement": "The system must constrain normalized_score values within a defined range (e.g., 0 to 1 or 0 to 100) per measure specification.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-002-006",
+      "story_id": "EVAL-EXPLAIN-ST-002",
+      "requirement": "The system must calculate contribution_to_final_score as normalized_score multiplied by weight.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-002-007",
+      "story_id": "EVAL-EXPLAIN-ST-002",
+      "requirement": "The system must ensure that the sum of all contribution_to_final_score values equals the final composite score within a defined tolerance.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-002-008",
+      "story_id": "EVAL-EXPLAIN-ST-002",
+      "requirement": "The system must handle missing raw_value inputs by assigning a default normalized_score or excluding the measure based on configuration.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-002-009",
+      "story_id": "EVAL-EXPLAIN-ST-002",
+      "requirement": "The system must raise a controlled error when a normalization formula is undefined for a given measure_id.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-002-010",
+      "story_id": "EVAL-EXPLAIN-ST-002",
+      "requirement": "The system must raise a controlled error when weight configuration is missing or invalid for a measure.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-002-011",
+      "story_id": "EVAL-EXPLAIN-ST-002",
+      "requirement": "The system must log intermediate calculation steps (raw_value, normalized_score, weight, contribution) for each measure for auditability.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-002-012",
+      "story_id": "EVAL-EXPLAIN-ST-002",
+      "requirement": "The system must process a batch of measures in a single request and return computed normalized_score and contribution for each.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-002-013",
+      "story_id": "EVAL-EXPLAIN-ST-002",
+      "requirement": "The system must ensure floating point precision is consistent and rounded to a defined number of decimal places.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-002-014",
+      "story_id": "EVAL-EXPLAIN-ST-002",
+      "requirement": "The system must prevent negative or out-of-range weights from being applied in contribution calculations.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-002-015",
+      "story_id": "EVAL-EXPLAIN-ST-002",
+      "requirement": "The system must allow configuration-driven updates to normalization formulas and weights without code changes.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

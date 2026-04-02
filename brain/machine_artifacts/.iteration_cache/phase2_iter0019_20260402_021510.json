@@ -1,0 +1,84 @@
+{
+  "assignment_id": "EVAL-F-003-STORIES",
+  "iteration": 19,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Strengthened core logic to include URL validation pipeline.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-003-S2.description",
+      "value": "Generate provider-specific links for Healthgrades, NPI Registry, and supported state medical boards using NPI and provider metadata, enrich with human-readable guidance text, and validate all URLs via url_guardian (HEAD check, AI verification, correction, cache).",
+      "note": "Added required URL validation integration based on existing infrastructure",
+      "iteration": 19
+    },
+    {
+      "path": "stories.EVAL-F-003-S5.description",
+      "value": "Create tests validating link generation accuracy, schema compliance, state board resolution behavior, URL validation outcomes (valid, corrected, rejected), and end-to-end delivery through the evaluate care facade.",
+      "note": "Expanded test coverage to include validation pipeline",
+      "iteration": 19
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "EVAL-F-003-S1",
+      "title": "Define External Research Link Schema and Contract",
+      "description": "Define a structured schema for external provider research links including source (Healthgrades, NPI Registry, State Board), URL, label, and guidance text to support user interpretation.",
+      "parent_feature": "EVAL-F-003",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-003-S2",
+      "title": "Implement External Research Link Generation Logic",
+      "description": "Generate provider-specific links for Healthgrades, NPI Registry, and supported state medical boards using NPI and provider metadata, enrich with human-readable guidance text, and validate all URLs via url_guardian (HEAD check, AI verification, correction, cache).",
+      "parent_feature": "EVAL-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-F-003-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-003-S3",
+      "title": "Resolve State Medical Board Links by Provider State",
+      "description": "Determine correct state medical board link based on provider state and map to supported boards (DE, MS, VA), with fallback behavior for unsupported states.",
+      "parent_feature": "EVAL-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-F-003-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-003-S4",
+      "title": "Expose External Research Links via Evaluate Care Facade",
+      "description": "Integrate structured and validated research links into the provider detail response returned by evaluate_care_facade for downstream UI rendering.",
+      "parent_feature": "EVAL-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-F-003-S2",
+        "EVAL-F-003-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-003-S5",
+      "title": "Unit and Integration Tests for External Research Links",
+      "description": "Create tests validating link generation accuracy, schema compliance, state board resolution behavior, URL validation outcomes (valid, corrected, rejected), and end-to-end delivery through the evaluate care facade.",
+      "parent_feature": "EVAL-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-F-003-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  ]
+}

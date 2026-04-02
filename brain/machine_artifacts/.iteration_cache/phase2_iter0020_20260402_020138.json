@@ -1,0 +1,64 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-F-002-S1",
+      "title": "Provider Detail Schema and Contract Definition",
+      "description": "Define strict, null-safe response schema for provider detail including NPI, name, taxonomy (primary + secondary), license status, practice address, phone, enumeration date, and constructed external links. Enforce deterministic field presence and consistent naming aligned with evaluate_care_facade contract.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S2",
+      "title": "NPI Provider Detail Retrieval and Normalization Logic",
+      "description": "Implement CMS NPI Registry API integration with robust parsing and normalization of credentials, taxonomy, license status, address, and contact fields. Include deterministic handling for missing fields, API timeouts, retries, and empty responses. Enrich output with state medical board links and research site URLs.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S3",
+      "title": "Evaluate Care Facade Integration for Provider Detail",
+      "description": "Integrate provider_detail_service into evaluate_care_facade with consistent orchestration, ensuring schema alignment and compatibility with downstream evaluation workflows and quality signal features.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S4",
+      "title": "Provider Detail API and Tool Router Exposure",
+      "description": "Expose provider detail lookup via FastAPI endpoint and register with tool_router using allowlisted tool definitions. Implement Pydantic validation for NPI input, structured JSON output, and standardized error handling for invalid, malformed, or unavailable provider records.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S5",
+      "title": "Provider Detail Unit and End-to-End Integration Tests",
+      "description": "Implement unit tests for NPI parsing and normalization logic and integration tests covering full flow (API → tool_router → facade → service). Validate edge cases including malformed NPI, partial CMS data, API failure, and empty results.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S2",
+        "EVAL-F-002-S3",
+        "EVAL-F-002-S4"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing provider detail test file found; must be implemented in Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  ]
+}

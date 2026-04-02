@@ -1,0 +1,66 @@
+{
+  "stories": {
+    "GOV-F-004-S165": {
+      "story_id": "GOV-F-004-S165",
+      "title": "Audit Log Schema and Event Contract Definition",
+      "description": "Define canonical audit event schema including actor (GPT/Claude/system), operation type, input/output metadata, timestamps, hash pointers, and redaction flags. Publish as shared contract for all services emitting audit events.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (existing log structure); Code/DataPipelines/gpt_reader.py (audit expectations); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S166": {
+      "story_id": "GOV-F-004-S166",
+      "title": "Audit Logging Core Service",
+      "description": "Implement centralized audit logging service responsible for event creation, hash chaining, timestamping, and routing to append-only storage. Service must be callable from all backend components including tool_router and domain services.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S165",
+        "GOV-F-004-S160"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (central orchestration point); Code/Shared/ChatHealthyMongoUtilities.py (shared persistence); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S167": {
+      "story_id": "GOV-F-004-S167",
+      "title": "API Endpoint for Audit Log Query (Read-Only)",
+      "description": "Expose secure read-only API endpoint for querying audit logs with filters (time range, actor, operation type) and built-in integrity verification checks before returning results.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S161",
+        "GOV-F-004-S166"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py (read-only access pattern, auth model); Code/ConversationalUX/FindCareChat/backend/main.py (FastAPI routing patterns); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S168": {
+      "story_id": "GOV-F-004-S168",
+      "title": "Unit and Integration Tests for Audit Logging Pipeline",
+      "description": "Create comprehensive test suite covering schema validation, append-only enforcement, hash chain integrity, redaction rules, and end-to-end logging across GPT and Claude operations.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S166",
+        "GOV-F-004-S162",
+        "GOV-F-004-S161"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py (logging tests baseline); Code/DataPipelines/tests/test_gpt_reader_integration.py (integration patterns); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S169": {
+      "story_id": "GOV-F-004-S169",
+      "title": "Integration with Tool Router and Domain Services",
+      "description": "Integrate audit logging calls into tool_router and key domain services (safety, consent, provider search) to ensure all GPT/Claude actions and tool invocations are captured in the audit trail.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S166"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (tool invocation flow); Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py (critical events); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    }
+  }
+}

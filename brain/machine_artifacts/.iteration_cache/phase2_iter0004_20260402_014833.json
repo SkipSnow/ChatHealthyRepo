@@ -1,0 +1,85 @@
+{
+  "assignment_id": "PHASE-2-EVAL-SPECIALTY-CREDIBILITY",
+  "iteration": 4,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories created for Specialty Match Transparency feature with full layer coverage (schema, logic, API, tests, integration).",
+  "change_log": [
+    {
+      "path": "stories.EVAL-SPECIALTY-CREDIBILITY-*",
+      "value": "Added 4 new stories",
+      "note": "Feature previously had zero stories",
+      "iteration": 4
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-SPECIALTY-CREDIBILITY-S1",
+      "title": "Define Specialty Match Transparency Schema and Contract",
+      "description": "Define response schema exposing matched_classifications, including classification labels, confidence (if available), and pipeline origin flags (regex, vector, or both). Ensure compatibility with existing specialty_service outputs.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py (matched_classifications, pipelines)"
+    },
+    {
+      "story_id": "EVAL-SPECIALTY-CREDIBILITY-S2",
+      "title": "Implement Dual-Pipeline Attribution Logic",
+      "description": "Extend specialty_service to explicitly tag each matched classification with its originating pipeline (regex, vector, or both), preserving existing deduplication and aggregation behavior.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SPECIALTY-CREDIBILITY-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py (dual-pipeline specialty ID: regex + vector)"
+    },
+    {
+      "story_id": "EVAL-SPECIALTY-CREDIBILITY-S3",
+      "title": "Expose Specialty Transparency via Facade/API",
+      "description": "Update find_care_facade and/or evaluate_care_facade to include specialty transparency fields in responses so frontend and chat agent can display how specialties were matched.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SPECIALTY-CREDIBILITY-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py; Code/.../evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-SPECIALTY-CREDIBILITY-S4",
+      "title": "Unit and Integration Tests for Specialty Transparency",
+      "description": "Create tests validating that classifications include correct pipeline attribution, handle dual matches, and maintain stability with query expansion and dedup logic.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SPECIALTY-CREDIBILITY-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py; Code/.../tests/"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "EVAL-SPECIALTY-CREDIBILITY",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "Reuse existing matched_classifications structure and only add non-breaking metadata fields"
+      }
+    ],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "assignment_id": "GPTR-F-002-STORIES",
+  "iteration": 43,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Completes feature coverage with revocation API, audit logging, and lifecycle tests.",
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S142",
+      "title": "Token Revocation API and Admin Control",
+      "description": "Implement an internal API and admin control path to revoke active bearer tokens by token_id or agent scope. Revocation must immediately invalidate tokens and persist revocation_status with timestamp for audit and enforcement in validation flow.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S139",
+        "GPTR-F-002-S141"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S143",
+      "title": "Token Lifecycle Audit Logging",
+      "description": "Extend existing audit logging to capture token lifecycle events including issuance, rotation, expiration enforcement, and revocation. Ensure logs include token_id, agent identity, timestamp, and action type without exposing raw token values.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S139",
+        "GPTR-F-002-S140"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S144",
+      "title": "End-to-End Token Lifecycle Tests",
+      "description": "Create unit and integration tests validating full token lifecycle: creation, validation, expiration rejection, rotation correctness, and revocation enforcement. Include edge cases such as concurrent rotation and expired token reuse.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S140",
+        "GPTR-F-002-S141",
+        "GPTR-F-002-S142"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

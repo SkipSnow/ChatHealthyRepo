@@ -1,0 +1,65 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-F5-S66",
+      "title": "Explainability Schema Definition (Pydantic Models)",
+      "description": "Define a standardized explainability schema using Pydantic models including fields for source, meaning, and limitations, ensuring compatibility across provider and clinical trial signals.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    {
+      "story_id": "EVAL-F5-S67",
+      "title": "Explainability Builder Logic",
+      "description": "Implement core backend logic to construct explainability objects from raw signals (NPI data, external links, clinical trial attributes), mapping each signal to source, meaning, and limitations.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F5-S68",
+      "title": "Frontend Rendering of Explainability Metadata",
+      "description": "Extend MessageBubble component to display explainability metadata (source, meaning, limitations) in a structured and readable format within chat responses.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S63"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    {
+      "story_id": "EVAL-F5-S69",
+      "title": "Explainability Fallback Handling",
+      "description": "Implement fallback logic to handle missing or incomplete explainability fields, ensuring the system always returns safe, user-understandable defaults without breaking schema contract.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S66",
+        "EVAL-F5-S67"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py"
+    },
+    {
+      "story_id": "EVAL-F5-S70",
+      "title": "Unit Tests for Explainability Builder Logic",
+      "description": "Create unit tests validating that explainability builder correctly maps raw evaluation signals into schema-compliant explainability objects across providers and clinical trials.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S67"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ]
+}

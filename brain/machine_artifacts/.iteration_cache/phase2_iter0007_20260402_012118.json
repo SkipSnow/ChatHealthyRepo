@@ -1,0 +1,80 @@
+{
+  "assignment_id": "SHARED-F-2-STORIES",
+  "iteration": 7,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Adds schema/contract and API exposure stories to complete feature coverage.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-2-S20",
+      "value": "Consent data schema and persistence model",
+      "note": "Add schema layer story",
+      "iteration": 7
+    },
+    {
+      "path": "stories.SHARED-F-2-S21",
+      "value": "Consent API endpoints and tool exposure",
+      "note": "Add API layer story",
+      "iteration": 7
+    },
+    {
+      "path": "stories.SHARED-F-2-S22",
+      "value": "Consent enforcement integration with tool router",
+      "note": "Close integration gap with orchestration layer",
+      "iteration": 7
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "SHARED-F-2-S20": {
+      "story_id": "SHARED-F-2-S20",
+      "title": "Consent Data Schema and Persistence Model",
+      "description": "Define and implement MongoDB schema and Pydantic models for consent records, including tier designation, timestamp, session linkage, and audit metadata. Ensure compatibility with existing consent_models and debug logging.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    "SHARED-F-2-S21": {
+      "story_id": "SHARED-F-2-S21",
+      "title": "Consent API Endpoints and Tool Exposure",
+      "description": "Expose consent capture and retrieval via FastAPI endpoints and tool_router integration. Ensure inputs are validated via Pydantic models and routed through allowlisted tools per GOV-004.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S20",
+        "SHARED-F-2-S17"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "SHARED-F-2-S22": {
+      "story_id": "SHARED-F-2-S22",
+      "title": "Consent Enforcement Integration with Tool Router",
+      "description": "Integrate consent checks into tool_router execution path to ensure all tool invocations respect consent tier before processing or persistence. Block or transform requests when consent requirements are not met.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S17",
+        "SHARED-F-2-S21"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

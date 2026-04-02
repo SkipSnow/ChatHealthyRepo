@@ -1,0 +1,99 @@
+{
+  "assignment_id": "PHASE-2-FEAT-6-STORIES",
+  "iteration": 20,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing integration and persistence coverage for consent workflow.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-6-S67",
+      "value": "ConsentService Core Logic Hardening",
+      "note": "Adds explicit core logic story for tier transitions and enforcement",
+      "iteration": 20
+    },
+    {
+      "path": "stories.FEAT-6-S68",
+      "value": "Consent Persistence and Audit Logging",
+      "note": "Covers storage and audit requirements not previously explicit",
+      "iteration": 20
+    },
+    {
+      "path": "stories.FEAT-6-S69",
+      "value": "Lead Capture and Consent Integration",
+      "note": "Ensures alignment with lead_service dependency",
+      "iteration": 20
+    },
+    {
+      "path": "stories.FEAT-6-S70",
+      "value": "De-identification and Summarization Pipeline Enforcement",
+      "note": "Explicitly enforces HIPAA Safe Harbor flow in workflow",
+      "iteration": 20
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-6-S67",
+      "title": "ConsentService Core Logic Hardening",
+      "description": "Implement and validate core ConsentService logic for Tier 1 vs Tier 2 consent, including upgrade paths, rejection handling, and enforcement of storage permissions at decision points.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S63"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    {
+      "story_id": "FEAT-6-S68",
+      "title": "Consent Persistence and Audit Logging",
+      "description": "Persist consent decisions, tier status, and timestamps to MongoDB and integrate with debug_logger to ensure auditability of consent actions and compliance tracking.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S67"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "FEAT-6-S69",
+      "title": "Lead Capture and Consent Integration",
+      "description": "Integrate consent workflow with lead_service to ensure Tier 2 consent is required and validated before storing identifiable lead data, including duplicate detection scenarios.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S67"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py"
+    },
+    {
+      "story_id": "FEAT-6-S70",
+      "title": "De-identification and Summarization Pipeline Enforcement",
+      "description": "Enforce HIPAA Safe Harbor de-identification and conversation summarization before any storage under Tier 1 consent, ensuring no identifiable data persists without Tier 2 approval.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S67",
+        "FEAT-6-S65"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

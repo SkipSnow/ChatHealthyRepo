@@ -1,0 +1,71 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-P-RX-S1",
+      "title": "Define prescription data schema and provider-condition mapping contract",
+      "description": "Design Pydantic models and MongoDB schema for ingesting prescribing datasets (e.g., Medicare Part D), including provider identifiers (NPI), drug codes, volumes, and mapping to condition taxonomy (ICD-10). Define normalized score contract output structure.",
+      "parent_feature": "EVAL-P-RX",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "ASSUMPTION: Requires new schema for prescription + condition mapping. GAP: No existing prescribing data schema or ICD-10 mapping contract defined in current codebase.",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-P-RX-S2",
+      "title": "Implement prescription ingestion and normalization pipeline",
+      "description": "Build backend pipeline to ingest raw prescribing data, normalize drug identifiers, aggregate by provider, and map prescriptions to conditions using ICD-10 loader and/or LLM-assisted mapping.",
+      "parent_feature": "EVAL-P-RX",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-RX-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/DataPipelines/icd10_loader.py supports condition taxonomy; ASSUMPTION: No existing prescription ingestion pipeline. GAP: Must build new ingestion + normalization flow.",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-P-RX-S3",
+      "title": "Develop prescribing appropriateness scoring algorithm",
+      "description": "Create core logic that evaluates provider prescribing patterns against expected condition-treatment mappings and produces a normalized appropriateness score. Incorporate AI/LLM synthesis for ambiguous mappings.",
+      "parent_feature": "EVAL-P-RX",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-RX-S2"
+      ],
+      "size": "L",
+      "evidence": "ASSUMPTION: No existing scoring logic for prescription appropriateness. GAP: Must define scoring methodology combining data + LLM synthesis.",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-P-RX-S4",
+      "title": "Expose prescription behavior analysis via Evaluate Care API",
+      "description": "Add endpoint and service integration to expose prescribing scores and summaries through evaluate_care_facade, enabling downstream UI/chat consumption.",
+      "parent_feature": "EVAL-P-RX",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-P-RX-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py shows pattern for exposing evaluation services; GAP: No prescription analysis endpoint exists.",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-P-RX-S5",
+      "title": "Add unit and integration tests for prescription analysis pipeline",
+      "description": "Implement tests covering schema validation, ingestion pipeline, scoring logic, and API endpoint. Include edge cases for missing or sparse prescribing data.",
+      "parent_feature": "EVAL-P-RX",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-P-RX-S1",
+        "EVAL-P-RX-S2",
+        "EVAL-P-RX-S3",
+        "EVAL-P-RX-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py and other tests demonstrate existing testing patterns; GAP: No tests exist for prescription analysis.",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

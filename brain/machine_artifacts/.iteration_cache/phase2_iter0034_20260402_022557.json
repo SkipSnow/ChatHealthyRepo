@@ -1,0 +1,51 @@
+{
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S111",
+      "title": "Token Schema and Storage Contract",
+      "description": "Define persistent schema for bearer tokens including token_id, hashed_token, issued_at, expires_at, revoked_at, parent_token_id (for rotation lineage), and scopes. Implement MongoDB collection and access patterns consistent with existing GPTReader data access.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S112",
+      "title": "Token Issuance and Rotation Core Logic",
+      "description": "Implement secure token issuance and rotation logic including cryptographic token generation, hashing before storage, parent-child linkage for rotated tokens, and automatic invalidation of prior tokens upon rotation.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S111"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S113",
+      "title": "Token Expiration Enforcement Logic",
+      "description": "Implement expiration handling including TTL calculation, validation checks against expires_at, and optional background cleanup of expired tokens. Ensure expired tokens are consistently rejected during authentication.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S111"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/auth.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S114",
+      "title": "Token Management API Endpoints",
+      "description": "Expose internal/admin API endpoints for token issuance, rotation, and revocation. Ensure endpoints follow existing FastAPI patterns and integrate with auth layer while restricting access via scoped permissions.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S112",
+        "GPTR-F-002-S108"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/function_app.py; Code/DataPipelines/auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    }
+  ]
+}

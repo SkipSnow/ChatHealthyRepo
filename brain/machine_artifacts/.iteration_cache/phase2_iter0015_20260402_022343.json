@@ -1,0 +1,31 @@
+{
+  "stories": {
+    "GPTR-F-002-S49": {
+      "story_id": "GPTR-F-002-S49",
+      "title": "Token Revocation API and Enforcement",
+      "description": "Implement an API endpoint to revoke active bearer tokens by token_id and enforce revocation at validation time. Ensure revoked tokens are immediately rejected across all GPTReader access paths.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S46",
+        "GPTR-F-002-S47"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py; GAP: No revocation endpoint or enforcement exists"
+    },
+    "GPTR-F-002-S50": {
+      "story_id": "GPTR-F-002-S50",
+      "title": "Token Lifecycle Test Coverage and Integration Validation",
+      "description": "Create unit and integration tests covering token issuance, expiration, rotation, and revocation. Extend existing GPT Reader integration tests to validate lifecycle enforcement under real request conditions.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S47",
+        "GPTR-F-002-S48",
+        "GPTR-F-002-S49"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; GAP: No lifecycle-specific test coverage exists"
+    }
+  }
+}

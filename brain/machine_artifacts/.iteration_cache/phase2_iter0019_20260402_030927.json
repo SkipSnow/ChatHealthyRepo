@@ -1,0 +1,90 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-010",
+  "iteration": 19,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories defined for multi-cluster routing governance per ADR-0006.",
+  "change_log": [],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "BL-0.1.4-010-S1": {
+      "story_id": "BL-0.1.4-010-S1",
+      "title": "Define Multi-Cluster Routing Schema and Configuration Contract",
+      "description": "Define configuration schema for Mongo cluster routing including cluster identifiers, environment mapping, read/write roles, and failover rules. Ensure compatibility with existing Mongo utilities and environment prefix routing.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    "BL-0.1.4-010-S2": {
+      "story_id": "BL-0.1.4-010-S2",
+      "title": "Implement Cluster Routing Decision Engine",
+      "description": "Build core logic to select the correct MongoDB cluster at runtime based on request context (environment, data domain, operation type). Ensure deterministic routing and enforce separation between clusters.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S1"
+      ],
+      "size": "M",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    "BL-0.1.4-010-S3": {
+      "story_id": "BL-0.1.4-010-S3",
+      "title": "Integrate Routing Logic into Mongo Utilities Layer",
+      "description": "Integrate cluster routing engine into shared Mongo utilities so all database access paths automatically resolve to the correct cluster without requiring changes in domain services.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py + docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    "BL-0.1.4-010-S4": {
+      "story_id": "BL-0.1.4-010-S4",
+      "title": "Add Observability and Safeguards for Cluster Routing",
+      "description": "Implement logging and validation to detect misrouting, cross-cluster access violations, and fallback conditions. Include debug logs aligned with existing debug_logger patterns.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py + docs/adr/ADR-0006-two-mongodb-clusters.md"
+    },
+    "BL-0.1.4-010-S5": {
+      "story_id": "BL-0.1.4-010-S5",
+      "title": "Unit and Integration Tests for Multi-Cluster Routing",
+      "description": "Create tests validating correct cluster selection, isolation between clusters, and failure scenarios (misconfiguration, unavailable cluster). Include integration tests with Mongo utilities.",
+      "parent_feature": "BL-0.1.4-010",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-010-S3"
+      ],
+      "size": "M",
+      "evidence": "docs/adr/ADR-0006-two-mongodb-clusters.md"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "BL-0.1.4-010": {
+        "feature_id": "BL-0.1.4-010",
+        "likelihood": "Moderate",
+        "impact": "High",
+        "mitigation": "Enforce deterministic routing rules and add logging to detect cross-cluster access early."
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

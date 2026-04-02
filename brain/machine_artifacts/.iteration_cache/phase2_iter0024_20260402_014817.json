@@ -1,0 +1,94 @@
+{
+  "assignment_id": "FEAT-2-STORIES",
+  "iteration": 24,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing schema, data loading, core enhancement, and integration validation stories for FEAT-2.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-2-S70",
+      "value": "Add Pydantic schema for specialty input/output contract",
+      "note": "Covers schema/contract gap",
+      "iteration": 24
+    },
+    {
+      "path": "stories.FEAT-2-S71",
+      "value": "Implement NUCC taxonomy data loading and normalization",
+      "note": "Ensures code mapping source is structured",
+      "iteration": 24
+    },
+    {
+      "path": "stories.FEAT-2-S72",
+      "value": "Enhance core specialty matching with confidence scoring and ranking",
+      "note": "Improves core logic robustness",
+      "iteration": 24
+    },
+    {
+      "path": "stories.FEAT-2-S73",
+      "value": "End-to-end integration validation with provider search fallback",
+      "note": "Closes integration coverage gap",
+      "iteration": 24
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-2-S70",
+      "title": "Define Specialty Identification Schema and Contracts",
+      "description": "Create Pydantic models for specialty identification input (user query, context) and output (NUCC codes, confidence scores, labels) to standardize contracts across services and tool router.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    {
+      "story_id": "FEAT-2-S71",
+      "title": "Load and Normalize NUCC Specialty Taxonomy Data",
+      "description": "Implement ingestion and normalization of NUCC taxonomy codes into a structured format usable by specialty_service, ensuring deduplicated mappings and consistent labeling.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/load_specialty_data.py"
+    },
+    {
+      "story_id": "FEAT-2-S72",
+      "title": "Implement Confidence Scoring and Ranking Logic",
+      "description": "Enhance specialty_service to assign confidence scores to matched specialties, rank results, and enforce thresholds for downstream provider search usage.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S64"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    {
+      "story_id": "FEAT-2-S73",
+      "title": "Validate Integration with Provider Search Taxonomy Fallback",
+      "description": "Ensure specialty identification outputs correctly drive taxonomy fallback in provider_search_service, validating end-to-end flow from query to filtered provider results.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S68"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

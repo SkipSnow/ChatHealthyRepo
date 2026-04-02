@@ -1,0 +1,78 @@
+{
+  "assignment_id": "EVAL-F-03-STORIES",
+  "iteration": 11,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Previous iteration under-produced stories (<3). Now corrected."
+  ],
+  "notes": "Added missing schema/contract and core orchestration stories to complete feature coverage.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-03-S33",
+      "value": "Added schema/contract story for facade inputs/outputs",
+      "note": "Cover missing contract layer",
+      "iteration": 11
+    },
+    {
+      "path": "stories.EVAL-F-03-S34",
+      "value": "Added core orchestration logic story",
+      "note": "Ensure orchestration behavior explicitly defined",
+      "iteration": 11
+    },
+    {
+      "path": "stories.EVAL-F-03-S35",
+      "value": "Added integration tests for facade orchestration",
+      "note": "Complete test coverage requirement",
+      "iteration": 11
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F-03-S33",
+      "title": "Define EvaluateCare Facade Input/Output Contracts",
+      "description": "Establish explicit request/response schemas for clinical trials search and provider detail flows within the EvaluateCare facade, aligning with existing Pydantic tool models and ensuring consistent structure for downstream consumers.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-03-S34",
+      "title": "Implement Core Facade Orchestration Logic",
+      "description": "Implement orchestration logic in evaluate_care_facade to coordinate clinical_trials_service and provider_detail_service, including sequencing, data transformation, and aggregation of results into unified responses.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-03-S35",
+      "title": "Integration Tests for EvaluateCare Facade Orchestration",
+      "description": "Create integration tests validating end-to-end orchestration of clinical trials and provider detail flows via the facade, including success paths, partial failures, and dependency interaction validation.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S34"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

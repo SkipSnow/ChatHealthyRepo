@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CTPROX-001",
+      "story_id": "CT-PROX-003",
+      "requirement": "The system must include a proximity object in each clinical trial response returned by evaluate_care_facade when proximity data is available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTPROX-002",
+      "story_id": "CT-PROX-003",
+      "requirement": "The system must populate proximity.distance_miles, proximity.duration_minutes, and proximity.normalized_score fields exactly as produced by clinical_trials_service.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTPROX-003",
+      "story_id": "CT-PROX-003",
+      "requirement": "The system must preserve the original clinical trial fields and append proximity data without removing or renaming existing attributes.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTPROX-004",
+      "story_id": "CT-PROX-003",
+      "requirement": "The system must ensure the proximity.normalized_score value is returned as a numeric value between 0 and 100 inclusive.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTPROX-005",
+      "story_id": "CT-PROX-003",
+      "requirement": "The system must route enriched clinical trial objects through tool_router without schema validation errors.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTPROX-006",
+      "story_id": "CT-PROX-003",
+      "requirement": "The system must return a list of clinical trials where each item consistently includes the proximity field when at least one trial has computed proximity.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTPROX-007",
+      "story_id": "CT-PROX-003",
+      "requirement": "The system must serialize proximity metadata (including route_source and timestamp) in the response when present in the underlying schema.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTPROX-008",
+      "story_id": "CT-PROX-003",
+      "requirement": "The system must not recompute proximity scores within evaluate_care_facade and must only pass through values from clinical_trials_service.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTPROX-009",
+      "story_id": "CT-PROX-003",
+      "requirement": "The system must return proximity as null or omit the proximity field when upstream proximity data is unavailable for a trial.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTPROX-010",
+      "story_id": "CT-PROX-003",
+      "requirement": "The system must successfully return clinical trial results even if proximity data is missing for all trials.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTPROX-011",
+      "story_id": "CT-PROX-003",
+      "requirement": "The system must handle partial proximity data (e.g., missing duration_minutes) by returning null for missing fields without failing the entire response.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTPROX-012",
+      "story_id": "CT-PROX-003",
+      "requirement": "The system must ensure that tool_router returns enriched trial objects containing proximity data in the same response structure expected by the frontend.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTPROX-013",
+      "story_id": "CT-PROX-003",
+      "requirement": "The system must maintain response latency within existing facade performance thresholds after adding proximity data.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTPROX-014",
+      "story_id": "CT-PROX-003",
+      "requirement": "The system must log an error event when proximity data fails to attach due to schema mismatch or serialization issues.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must compute an appropriateness score per provider based on alignment between prescribed drugs and mapped conditions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must normalize appropriateness scores to a consistent scale (0–100).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must weight prescription volume when calculating appropriateness scores.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must compare prescribed drugs against expected condition-treatment mappings derived from ICD-10 associations.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must flag prescriptions that do not match any known condition-treatment mapping.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must invoke an LLM to infer condition-treatment relationships when deterministic mappings are missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must ensure LLM outputs are structured into a standardized mapping format before use in scoring.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must incorporate LLM-inferred mappings into the scoring calculation only when confidence exceeds a defined threshold.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must log LLM-derived mappings and associated confidence scores for auditability.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must produce consistent scores for identical input datasets across repeated runs.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must handle cases where a provider has no prescribing data by returning a null or explicitly defined default score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must handle cases where condition mappings are incomplete by still producing a partial score using available data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must ensure that ambiguous drug-condition relationships are resolved via LLM synthesis rather than discarded.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must cap the influence of any single drug or condition on the final appropriateness score.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

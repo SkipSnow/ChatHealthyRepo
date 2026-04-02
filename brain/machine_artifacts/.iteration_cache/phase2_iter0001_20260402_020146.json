@@ -1,0 +1,63 @@
+{
+  "stories": [
+    {
+      "story_id": "FIND-F-001-S1",
+      "title": "Provider Search Input/Output Schema and Contract",
+      "description": "Define and validate the request/response schema for provider search including query text, location (state/city/zip), specialty filters (NUCC codes), and result structure (provider details, scores, distance). Ensure alignment with existing Pydantic models and facade contract.",
+      "parent_feature": "FIND-F-001",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py; Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    {
+      "story_id": "FIND-F-001-S2",
+      "title": "Core Provider Search Logic (Vector + Taxonomy Fallback)",
+      "description": "Implement core search orchestration combining MongoDB Atlas vector search with taxonomy-based fallback using NUCC codes. Include query embedding, ranking, fallback trigger conditions, and result merging.",
+      "parent_feature": "FIND-F-001",
+      "sprint": 2,
+      "dependencies": [
+        "FIND-F-001-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py; Code/DataPipelines/provider_embedding.py"
+    },
+    {
+      "story_id": "FIND-F-001-S3",
+      "title": "Find Care Facade Integration",
+      "description": "Integrate provider search service into the FindCare facade, ensuring proper orchestration with specialty identification, location handling, and tool routing compatibility for chat-driven execution.",
+      "parent_feature": "FIND-F-001",
+      "sprint": 2,
+      "dependencies": [
+        "FIND-F-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FIND-F-001-S4",
+      "title": "Provider Search API Exposure",
+      "description": "Expose provider search capability through FastAPI endpoint(s) or tool interface, ensuring request validation, error handling, and compatibility with chat-based tool invocation.",
+      "parent_feature": "FIND-F-001",
+      "sprint": 2,
+      "dependencies": [
+        "FIND-F-001-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FIND-F-001-S5",
+      "title": "Provider Search Testing and Integration Validation",
+      "description": "Develop unit and integration tests covering schema validation, vector search execution, taxonomy fallback behavior, and end-to-end facade/API flows for provider search.",
+      "parent_feature": "FIND-F-001",
+      "sprint": 2,
+      "dependencies": [
+        "FIND-F-001-S2",
+        "FIND-F-001-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests; Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    }
+  ]
+}

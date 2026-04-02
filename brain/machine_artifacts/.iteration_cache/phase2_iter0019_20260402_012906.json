@@ -1,0 +1,76 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 19,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing test coverage and integration stories for explainability layer.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F5-S62": {
+      "story_id": "EVAL-F5-S62",
+      "title": "Explainability Schema Validation Tests",
+      "description": "Create unit tests to validate that all explainability objects conform to the required schema (source, meaning, limitations) across provider and clinical trial responses.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S55"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    },
+    "EVAL-F5-S63": {
+      "story_id": "EVAL-F5-S63",
+      "title": "Integration with EvaluateCareFacade Outputs",
+      "description": "Integrate explainability layer into evaluate_care_facade to ensure all provider and clinical trial responses are wrapped with standardized explainability metadata before returning to the API layer.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3",
+        "EVAL-F5-S57"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F5-S64": {
+      "story_id": "EVAL-F5-S64",
+      "title": "Tool Router Explainability Enforcement",
+      "description": "Update tool_router to enforce that any evaluation-related tool response includes explainability metadata, rejecting or flagging responses that do not meet the contract.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S59"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "EVAL-F5-S65": {
+      "story_id": "EVAL-F5-S65",
+      "title": "End-to-End Explainability Rendering Test",
+      "description": "Implement end-to-end tests validating that explainability metadata flows from backend services through API responses and is correctly rendered in the frontend chat UI.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S60",
+        "EVAL-F5-S63"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_human_testing_mode.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

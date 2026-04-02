@@ -1,0 +1,82 @@
+{
+  "assignment_id": "EVAL-TRAVEL-BURDEN-STORIES",
+  "iteration": 6,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories created for EVAL-TRAVEL-BURDEN with clear separation of contract, logic, integration, and testing.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-TRAVEL-BURDEN-S1",
+      "value": "Added schema/contract story",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    },
+    {
+      "path": "stories.EVAL-TRAVEL-BURDEN-S2",
+      "value": "Added core logic story",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    },
+    {
+      "path": "stories.EVAL-TRAVEL-BURDEN-S3",
+      "value": "Added facade integration story",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    },
+    {
+      "path": "stories.EVAL-TRAVEL-BURDEN-S4",
+      "value": "Added test suite story",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "EVAL-TRAVEL-BURDEN-S1",
+      "title": "Define Travel Burden Schema and Contract",
+      "description": "Define structured response schema for travel distance and duration including fields for origin, destination, distance_miles, duration_minutes, and error handling for missing route data.",
+      "parent_feature": "EVAL-TRAVEL-BURDEN",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (_get_travel_info)"
+    },
+    {
+      "story_id": "EVAL-TRAVEL-BURDEN-S2",
+      "title": "Implement Travel Distance and Time Computation Logic",
+      "description": "Implement backend logic using Google Routes API to compute travel distance and duration between user location and each clinical trial site, including normalization and fallback handling for failed API responses.",
+      "parent_feature": "EVAL-TRAVEL-BURDEN",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (_get_travel_info)"
+    },
+    {
+      "story_id": "EVAL-TRAVEL-BURDEN-S3",
+      "title": "Integrate Travel Burden into Evaluate Care Facade",
+      "description": "Expose computed travel distance and duration through evaluate_care_facade as part of clinical trial results so downstream consumers (chat/UI) receive enriched trial data.",
+      "parent_feature": "EVAL-TRAVEL-BURDEN",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRAVEL-BURDEN-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-TRAVEL-BURDEN-S4",
+      "title": "Unit and Integration Tests for Travel Burden Computation",
+      "description": "Create unit tests for travel computation logic including edge cases (invalid locations, API failures) and integration tests validating end-to-end flow from facade to service with mocked Google Routes responses.",
+      "parent_feature": "EVAL-TRAVEL-BURDEN",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRAVEL-BURDEN-S2",
+        "EVAL-TRAVEL-BURDEN-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ (existing test patterns); clinical_trials_service.py"
+    }
+  ]
+}

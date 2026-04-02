@@ -1,0 +1,76 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-WEIGHTS-S1",
+      "title": "Define Weighting Schema and Persistence Contract",
+      "description": "Define data model for user-adjustable weights across quality measures, including defaults, bounds, normalization rules (sum=1), and persistence format for reuse across sessions; include versioning for future measure changes.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "GAP: No existing weighting schema; persistence to be implemented using Mongo utilities (Code/Shared/ChatHealthyMongoUtilities.py)"
+    },
+    {
+      "story_id": "EVAL-WEIGHTS-S2",
+      "title": "Implement Weighted Scoring Logic",
+      "description": "Extend provider and clinical trial scoring engines to apply user-defined weights, enforce normalization (sum=1), handle missing measures deterministically, and ensure consistent recomputation across both domains.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-SCORE-PROV",
+        "EVAL-SCORE-CT",
+        "EVAL-WEIGHTS-S1"
+      ],
+      "size": "L",
+      "evidence": "GAP: Existing scoring engines (evaluate_care_facade.py, clinical_trials_service.py) do not support dynamic weighting"
+    },
+    {
+      "story_id": "EVAL-WEIGHTS-S3",
+      "title": "Expose Weight Adjustment API and UI Controls",
+      "description": "Create backend endpoints for setting/getting weights and integrate frontend controls (e.g., sliders) within the chat UI to adjust weights, persist preferences, retrieve saved weights on session load, and trigger real-time score recalculation with visible feedback.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S1",
+        "EVAL-WEIGHTS-S2"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx; Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "EVAL-WEIGHTS-S4",
+      "title": "Integrate Weighting into Evaluate Care Facade",
+      "description": "Integrate weighting inputs into evaluate_care_facade, ensuring request contract supports optional weights, applies defaults when absent, and routes weights consistently to both provider and clinical trial scoring paths.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S2",
+        "EVAL-SCORE-PROV",
+        "EVAL-SCORE-CT"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-WEIGHTS-S5",
+      "title": "Weighting Logic Unit and Integration Tests",
+      "description": "Create unit tests for weighting calculations (normalization, bounds, missing measures) and integration tests validating end-to-end score changes when weights are adjusted across provider and clinical trial flows.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S2",
+        "EVAL-WEIGHTS-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    }
+  ],
+  "change_log": [
+    {
+      "path": "stories.EVAL-WEIGHTS-S3.description",
+      "value": "Clarified separation of backend endpoints (set/get weights) and frontend chat UI controls with real-time recomputation",
+      "note": "Ensure API/UI responsibility is explicit and testable",
+      "iteration": 18
+    }
+  ]
+}

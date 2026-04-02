@@ -1,0 +1,97 @@
+{
+  "assignment_id": "PHASE-2-EVAL-CT-MEASURE-2",
+  "iteration": 13,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added required stories for Enrollment Status feature.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-CT-M2-S1",
+      "value": "Added schema/contract story",
+      "note": "Establish normalized enrollment status model",
+      "iteration": 13
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S2",
+      "value": "Added core logic story",
+      "note": "Implement normalization and mapping logic",
+      "iteration": 13
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S3",
+      "value": "Added API integration story",
+      "note": "Expose enrollment status via service/facade",
+      "iteration": 13
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S4",
+      "value": "Added test story",
+      "note": "Ensure correctness and edge case coverage",
+      "iteration": 13
+    }
+  ],
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "EVAL-CT-M2-S1",
+      "title": "Define Enrollment Status Schema and Normalization Contract",
+      "description": "Define a normalized schema for clinical trial enrollment status including allowed values (RECRUITING, ACTIVE, COMPLETED, UNKNOWN) and mapping rules from raw ClinicalTrials.gov statuses to internal representation.",
+      "parent_feature": "EVAL-CT-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-M2-S2",
+      "title": "Implement Enrollment Status Normalization Logic",
+      "description": "Implement logic to extract enrollment status from ClinicalTrials.gov API responses and map raw values (e.g., RECRUITING, NOT_YET_RECRUITING, ACTIVE_NOT_RECRUITING, COMPLETED) into the normalized schema defined in the contract.",
+      "parent_feature": "EVAL-CT-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-M2-S3",
+      "title": "Integrate Enrollment Status into Clinical Trials Service Output",
+      "description": "Extend the clinical trials service response model to include normalized enrollment status for each trial and ensure it is propagated through the evaluate care facade for downstream consumption.",
+      "parent_feature": "EVAL-CT-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-CT-M2-S4",
+      "title": "Unit and Integration Tests for Enrollment Status Mapping",
+      "description": "Create unit tests for enrollment status normalization logic and integration tests to verify correct propagation from ClinicalTrials.gov API responses through the service and facade layers.",
+      "parent_feature": "EVAL-CT-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S2",
+        "EVAL-CT-M2-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

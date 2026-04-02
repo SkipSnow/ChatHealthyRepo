@@ -1,0 +1,17 @@
+{
+  "stories": {
+    "EVAL-CT-M1-S5": {
+      "story_id": "EVAL-CT-M1-S5",
+      "title": "Handle Missing, Multi-Phase, and Inconsistent Phase Data",
+      "description": "Implement normalization rules for edge cases including missing phase, combined phases (e.g., Phase I/II), and inconsistent formatting from ClinicalTrials.gov; ensure deterministic mapping to a single normalized phase and score with safe defaults.",
+      "parent_feature": "EVAL-CT-M1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M1-S1",
+        "EVAL-CT-M1-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-001-S1",
+      "title": "Scope Enforcement Contract Definition",
+      "description": "Define the contract for tool scope enforcement including allowed tool sets per capability (Find Care, Evaluate Care, Shared), request metadata requirements, and validation rules for scope mismatches.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S2",
+      "title": "Core Scope Validation Logic in Tool Router",
+      "description": "Extend tool_router to enforce scope boundaries by validating each tool call against an explicit allowlist mapped to the active conversation context and capability. Reject out-of-scope tool calls before execution.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S3",
+      "title": "Scope Violation Handling and Error Response",
+      "description": "Implement standardized error handling for scope violations including safe rejection messages, logging, and prevention of downstream execution. Ensure no sensitive system details are exposed.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S4",
+      "title": "Integration with Facades and Capability Routing",
+      "description": "Integrate scope enforcement with existing facades (find_care_facade, evaluate_care_facade) ensuring that only tools relevant to the invoked facade can be executed within a request lifecycle.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S5",
+      "title": "Scope Enforcement Test Suite",
+      "description": "Create unit and integration tests validating that out-of-scope tool calls are rejected, valid calls succeed, and edge cases (mixed intents, malformed requests) are handled correctly.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S2",
+        "BL-0.1.4-001-S3",
+        "BL-0.1.4-001-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ]
+}

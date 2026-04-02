@@ -1,0 +1,79 @@
+{
+  "assignment_id": "GPTR-F-001-STORIES",
+  "iteration": 20,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Adds schema validation hardening, negative test coverage, and integration boundary enforcement.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-001-S76",
+      "value": "Request Schema Validation Layer",
+      "note": "Adds strict input contract validation before allowlist enforcement",
+      "iteration": 20
+    },
+    {
+      "path": "stories.GPTR-F-001-S77",
+      "value": "Negative Security Test Suite for Scope Enforcement",
+      "note": "Expands test coverage for malicious and malformed inputs",
+      "iteration": 20
+    },
+    {
+      "path": "stories.GPTR-F-001-S78",
+      "value": "Cross-Service Enforcement Boundary Validation",
+      "note": "Ensures enforcement cannot be bypassed via internal service calls",
+      "iteration": 20
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GPTR-F-001-S76": {
+      "story_id": "GPTR-F-001-S76",
+      "title": "Request Schema Validation Layer",
+      "description": "Implement strict request schema validation (query shape, collection name, filters, limits) using Pydantic or equivalent to ensure all incoming GPTReader requests conform to a predefined contract before allowlist enforcement is applied.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S77": {
+      "story_id": "GPTR-F-001-S77",
+      "title": "Negative Security Test Suite for Scope Enforcement",
+      "description": "Develop comprehensive negative test cases including injection attempts, unauthorized collections, malformed queries, and boundary violations to validate that the allowlist enforcement consistently rejects invalid or unsafe requests.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S73",
+        "GPTR-F-001-S74"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S78": {
+      "story_id": "GPTR-F-001-S78",
+      "title": "Cross-Service Enforcement Boundary Validation",
+      "description": "Validate that all internal invocation paths (including Brain runner, pipelines, and any direct function calls) pass through the enforcement layer, preventing bypass via internal service integration or alternate entry points.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S73"
+      ],
+      "size": "L",
+      "evidence": "Code/Shared/brain_runner.py; Code/DataPipelines/gpt_reader.py; Code/DataPipelines/function_app.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

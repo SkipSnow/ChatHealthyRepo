@@ -1,0 +1,103 @@
+{
+  "assignment_id": "BL-0.1.4-002-STORIES",
+  "iteration": 3,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories refined for clarity, dedup alignment, and stricter contract boundaries. No new IDs created.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-002-S1.description",
+      "value": "Define canonical bearer token schema (hashed_token_id, issued_at, expires_at, scope, status, rotation_parent_id) and strict validation contract reused across GPTReader and Azure Functions.",
+      "note": "Added rotation linkage and tightened contract scope",
+      "iteration": 3
+    },
+    {
+      "path": "stories.BL-0.1.4-002-S2.description",
+      "value": "Implement lifecycle engine covering issuance, expiration enforcement, rotation with atomic invalidation of prior tokens, and revocation persistence with lookup efficiency guarantees.",
+      "note": "Clarified atomic rotation and performance expectation",
+      "iteration": 3
+    },
+    {
+      "path": "stories.BL-0.1.4-002-S3.description",
+      "value": "Expose internal service interfaces (not public endpoints) for token issuance, validation, rotation, and revocation to support GPTReader and pipeline services.",
+      "note": "Avoids duplication with API endpoint concepts elsewhere",
+      "iteration": 3
+    },
+    {
+      "path": "stories.BL-0.1.4-002-S4.description",
+      "value": "Integrate lifecycle validation into GPTReader request flow enforcing expiration, revocation via lookup store, and scope checks per request with fail-fast rejection.",
+      "note": "Strengthened enforcement semantics",
+      "iteration": 3
+    },
+    {
+      "path": "stories.BL-0.1.4-002-S5.description",
+      "value": "Develop unit and integration tests covering issuance, expiration, rotation, revocation, replay attack rejection, and invalid token handling across GPTReader and pipeline flows.",
+      "note": "Expanded coverage to include replay scenarios",
+      "iteration": 3
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-002-S1",
+      "title": "Token Schema and Validation Contract",
+      "description": "Define canonical bearer token schema (hashed_token_id, issued_at, expires_at, scope, status, rotation_parent_id) and strict validation contract reused across GPTReader and Azure Functions.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/DataPipelines/auth.py; Code/Shared/brain_auth.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S2",
+      "title": "Core Token Lifecycle Engine",
+      "description": "Implement lifecycle engine covering issuance, expiration enforcement, rotation with atomic invalidation of prior tokens, and revocation persistence with lookup efficiency guarantees.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/DataPipelines/auth.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S3",
+      "title": "Token Management Interfaces",
+      "description": "Expose internal service interfaces (not public endpoints) for token issuance, validation, rotation, and revocation to support GPTReader and pipeline services.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/function_app.py; Code/DataPipelines/auth.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S4",
+      "title": "Lifecycle Enforcement Integration",
+      "description": "Integrate lifecycle validation into GPTReader request flow enforcing expiration, revocation via lookup store, and scope checks per request with fail-fast rejection.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S2",
+        "BL-0.1.4-002-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S5",
+      "title": "Token Lifecycle Test Suite",
+      "description": "Develop unit and integration tests covering issuance, expiration, rotation, revocation, replay attack rejection, and invalid token handling across GPTReader and pipeline flows.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S2",
+        "BL-0.1.4-002-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py"
+    }
+  ]
+}

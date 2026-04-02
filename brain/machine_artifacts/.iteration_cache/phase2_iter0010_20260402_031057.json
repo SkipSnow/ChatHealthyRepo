@@ -1,0 +1,91 @@
+{
+  "assignment_id": "BRAND-001-STORIES",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories refined for pipeline integration specificity; no new IDs created.",
+  "change_log": [
+    {
+      "path": "stories.BRAND-001-S5.description",
+      "value": "Integrate the brand audit into the dev pipeline using existing DevOps tooling (dev_pipeline, manifest_generator, and promote_build) so audits run automatically and block or flag violations prior to build promotion across dev→qa→prod.",
+      "note": "Clarified integration points with existing DevOps flow",
+      "iteration": 10
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "BRAND-001-S1",
+      "title": "Define Brand Audit Schema and Contract",
+      "description": "Define a structured schema for brand audit results including artifact path, artifact type (code, UI, document), detected name variants, compliance status, and normalized replacement value enforcing 'ChatHealthy.ai'. Ensure compatibility with manifest_generator outputs and GPTReader file access patterns.",
+      "parent_feature": "BRAND-001",
+      "sprint": 4,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "brain/machine_artifacts/content/sprint_plan.json::backlog_brand_audit"
+    },
+    {
+      "story_id": "BRAND-001-S2",
+      "title": "Implement Brand Name Detection and Audit Logic",
+      "description": "Implement scanning logic leveraging the project manifest to iterate all artifacts and detect non-compliant variants (e.g., 'ChatHealthy', casing issues, spacing). Include regex + rule-based normalization aligned to required canonical name 'ChatHealthy.ai' and support batch processing across manifest entries.",
+      "parent_feature": "BRAND-001",
+      "sprint": 4,
+      "dependencies": [
+        "BRAND-001-S1"
+      ],
+      "size": "M",
+      "evidence": "brain/machine_artifacts/content/sprint_plan.json::backlog_brand_audit"
+    },
+    {
+      "story_id": "BRAND-001-S3",
+      "title": "Expose Brand Audit Results via API and Report UI",
+      "description": "Expose audit results via a FastAPI endpoint and render a simple admin-facing report (or JSON output) showing violations, file locations, and suggested corrections. Align output with existing debug_logger and reporting patterns used in backend services.",
+      "parent_feature": "BRAND-001",
+      "sprint": 4,
+      "dependencies": [
+        "BRAND-001-S2"
+      ],
+      "size": "M",
+      "evidence": "brain/machine_artifacts/content/sprint_plan.json::backlog_brand_audit"
+    },
+    {
+      "story_id": "BRAND-001-S4",
+      "title": "Brand Audit Test Suite (Unit + Integration)",
+      "description": "Create unit tests for detection rules and integration tests that run against a subset of real project artifacts (frontend, backend, Website) using manifest-driven inputs to validate end-to-end audit accuracy and minimize false positives.",
+      "parent_feature": "BRAND-001",
+      "sprint": 4,
+      "dependencies": [
+        "BRAND-001-S2"
+      ],
+      "size": "S",
+      "evidence": "brain/machine_artifacts/content/sprint_plan.json::backlog_brand_audit"
+    },
+    {
+      "story_id": "BRAND-001-S5",
+      "title": "Integrate Brand Audit into Dev Pipeline",
+      "description": "Integrate the brand audit into the dev pipeline using existing DevOps tooling (dev_pipeline, manifest_generator, and promote_build) so audits run automatically and block or flag violations prior to build promotion across dev→qa→prod.",
+      "parent_feature": "BRAND-001",
+      "sprint": 4,
+      "dependencies": [
+        "BRAND-001-S2",
+        "BRAND-001-S3"
+      ],
+      "size": "M",
+      "evidence": "brain/machine_artifacts/content/sprint_plan.json::backlog_brand_audit"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

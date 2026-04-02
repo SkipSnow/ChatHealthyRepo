@@ -1,0 +1,108 @@
+{
+  "assignment_id": "EVAL-CT-MEASURE-1-STORIES",
+  "iteration": 8,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Completed story set for Trial Phase Quality without duplicating prior IDs.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-CT-MEASURE-1-S1",
+      "value": "added",
+      "note": "schema/contract story added",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-CT-MEASURE-1-S3",
+      "value": "added",
+      "note": "core scoring logic story added",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-CT-MEASURE-1-S4",
+      "value": "added",
+      "note": "facade/API exposure story added",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-CT-MEASURE-1-S6",
+      "value": "added",
+      "note": "tests story added",
+      "iteration": 8
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-CT-MEASURE-1-S1": {
+      "story_id": "EVAL-CT-MEASURE-1-S1",
+      "title": "Define Trial Phase Quality Schema and Scoring Contract",
+      "description": "Define backend schema for trial phase quality including normalized phase enum (I, II, III, IV, UNKNOWN), numeric score mapping, and explanation metadata for downstream consumption.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-MEASURE-1-S3": {
+      "story_id": "EVAL-CT-MEASURE-1-S3",
+      "title": "Implement Trial Phase Quality Scoring Logic",
+      "description": "Implement scoring logic mapping normalized trial phases to quality scores (e.g., Phase IV highest, Phase I lowest) with handling for mixed phases (I/II) and UNKNOWN values.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-MEASURE-1-S5",
+        "EVAL-CT-MEASURE-1-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-MEASURE-1-S4": {
+      "story_id": "EVAL-CT-MEASURE-1-S4",
+      "title": "Expose Trial Phase Quality via Evaluate Care Facade",
+      "description": "Integrate trial phase quality score and explanation into EvaluateCare facade response so it is available alongside clinical trial results for UI rendering.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-MEASURE-1-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-CT-MEASURE-1-S5": {
+      "story_id": "EVAL-CT-MEASURE-1-S5",
+      "title": "Extract and Normalize Trial Phase from ClinicalTrials.gov Data",
+      "description": "Implement extraction of trial phase from ClinicalTrials.gov API response and normalize values into enum (I, II, III, IV, UNKNOWN), handling inconsistent formats (e.g., 'Phase 2', 'Phase I/II').",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-MEASURE-1-S6": {
+      "story_id": "EVAL-CT-MEASURE-1-S6",
+      "title": "Unit and Integration Tests for Trial Phase Quality",
+      "description": "Create unit tests for phase normalization and scoring logic, plus integration tests validating end-to-end flow from ClinicalTrials.gov response through facade output.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-MEASURE-1-S3",
+        "EVAL-CT-MEASURE-1-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "assignment_id": "FEAT-1-STORIES",
+  "iteration": 45,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added robustness, fallback correctness, and unit test coverage stories for provider search.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-1-STORY-24": {
+      "story_id": "FEAT-1-STORY-24",
+      "title": "Provider Search Request/Response Schema Validation Hardening",
+      "description": "Enhance Pydantic models to enforce strict validation of provider search inputs (specialty, location, radius) and outputs, including edge cases such as missing location, malformed queries, and empty results.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-1-STORY-25": {
+      "story_id": "FEAT-1-STORY-25",
+      "title": "Vector-to-Taxonomy Fallback Decision Logic",
+      "description": "Implement and validate decision thresholds for triggering taxonomy fallback when vector search confidence is low, ensuring deterministic and explainable fallback behavior.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-21"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-26": {
+      "story_id": "FEAT-1-STORY-26",
+      "title": "Provider Search Unit Tests for Core Service Logic",
+      "description": "Create unit tests covering provider_search_service including vector search execution, taxonomy fallback, and location filtering branches with mocked MongoDB and embedding client.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-20",
+        "FEAT-1-STORY-21"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-27": {
+      "story_id": "FEAT-1-STORY-27",
+      "title": "Specialty Identification Integration with Provider Search",
+      "description": "Integrate specialty_service dual-pipeline (regex + vector) into provider search flow to ensure accurate NUCC code mapping and improved query interpretation before search execution.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-21"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

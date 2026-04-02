@@ -1,0 +1,53 @@
+{
+  "stories": {
+    "BL-0.1.4-004-S17": {
+      "story_id": "BL-0.1.4-004-S17",
+      "title": "Audit Log Hash Chain Integrity Implementation",
+      "description": "Implement hash chaining across audit log entries so each record includes a hash of the previous record, enabling tamper-evident verification of append-only integrity.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S11"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    "BL-0.1.4-004-S18": {
+      "story_id": "BL-0.1.4-004-S18",
+      "title": "Audit Log Write Pipeline Optimization (Batching and Async)",
+      "description": "Enhance audit logging with asynchronous and batched write capabilities to MongoDB to reduce latency impact on request handling while preserving strict append-only guarantees.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S12",
+        "BL-0.1.4-004-S13"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    "BL-0.1.4-004-S19": {
+      "story_id": "BL-0.1.4-004-S19",
+      "title": "Audit Log Query and Filtering Interface (Internal)",
+      "description": "Implement internal query utilities for audit logs supporting filtering by correlation_id, tool_name, event_type, and time range to enable debugging, QA, and operational analysis without violating immutability.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S11"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/DataPipelines/gpt_reader.py"
+    },
+    "BL-0.1.4-004-S20": {
+      "story_id": "BL-0.1.4-004-S20",
+      "title": "Audit Log Access Control and Redaction Enforcement",
+      "description": "Implement access control rules and automatic redaction for sensitive fields (e.g., PHI) when audit logs are read, ensuring compliance with HIPAA Safe Harbor and existing de-identification patterns.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S14"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    }
+  }
+}

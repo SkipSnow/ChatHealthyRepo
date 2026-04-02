@@ -1,0 +1,74 @@
+{
+  "assignment_id": "PHASE 2: GOV-F-004 Stories",
+  "iteration": 45,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing storage enforcement, redaction, retention, and monitoring stories to complete audit logging feature.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GOV-F-004-S151": {
+      "story_id": "GOV-F-004-S151",
+      "title": "Append-Only Storage Enforcement (WORM Semantics)",
+      "description": "Implement persistence layer guarantees that audit records are append-only with no update/delete operations. Enforce via MongoDB schema rules, write-only interface, and repository abstraction that rejects mutations.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S145"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py (write patterns); Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (current logging persistence); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S152": {
+      "story_id": "GOV-F-004-S152",
+      "title": "Audit Event Redaction & PII Guard",
+      "description": "Implement pre-write redaction pipeline to remove or mask sensitive data (PII/PHI) from audit payloads while preserving traceability. Integrate with existing de-identification logic where applicable.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S145",
+        "GOV-F-004-S146"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py (de-identification); Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py (pre-record sanitization); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S153": {
+      "story_id": "GOV-F-004-S153",
+      "title": "Audit Log Retention & TTL Policy",
+      "description": "Define and implement retention rules for audit logs including TTL indexes for non-critical logs and indefinite retention for compliance-critical events. Ensure no violation of append-only guarantees.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S151"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py (data limits/retention patterns); Code/Shared/cost_guard.py (usage tracking lifecycle); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S154": {
+      "story_id": "GOV-F-004-S154",
+      "title": "Audit Logging Monitoring & Alerting Hooks",
+      "description": "Implement metrics and alert hooks for audit pipeline failures, hash validation failures, and logging drop rates. Expose counters for ops visibility without modifying core logging flow.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S148",
+        "GOV-F-004-S149"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/pipeline_health.py (monitoring patterns); Code/Shared/ops/dev_pipeline.py (operational hooks); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

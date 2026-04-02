@@ -1,0 +1,64 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-TRIAL-QUALITY-S1",
+      "title": "Clinical Trial Snapshot Schema and Contract",
+      "description": "Define and validate the canonical trial snapshot schema (phase, status, summary, eligibility, locations, URL) and enforce contract alignment between Pydantic models and domain service output, including strict field typing and optionality handling.",
+      "parent_feature": "EVAL-TRIAL-QUALITY",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-TRIAL-QUALITY-S2",
+      "title": "Clinical Trial Data Extraction and Normalization Logic",
+      "description": "Implement extraction and normalization of trial attributes from ClinicalTrials.gov API responses, including phase/status mapping, eligibility text cleanup, location structuring, and fallback handling for missing or inconsistent data.",
+      "parent_feature": "EVAL-TRIAL-QUALITY",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRIAL-QUALITY-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-TRIAL-QUALITY-S3",
+      "title": "Evaluate Care Facade and API Exposure for Trial Snapshot",
+      "description": "Expose structured clinical trial snapshot through evaluate_care_facade and tool_router, ensuring consistent API response shape, compatibility with chat orchestration, and proper inclusion in tool responses.",
+      "parent_feature": "EVAL-TRIAL-QUALITY",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRIAL-QUALITY-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "EVAL-TRIAL-QUALITY-S4",
+      "title": "Frontend Rendering of Clinical Trial Snapshot",
+      "description": "Render clinical trial snapshot in chat UI with structured formatting for phase, status, summary, eligibility, locations, and validated URLs, leveraging existing markdown rendering and URL guardian safeguards.",
+      "parent_feature": "EVAL-TRIAL-QUALITY",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRIAL-QUALITY-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    },
+    {
+      "story_id": "EVAL-TRIAL-QUALITY-S5",
+      "title": "Clinical Trial Snapshot Unit, Integration, and Contract Tests",
+      "description": "Develop unit and integration tests validating schema contract enforcement, extraction accuracy, facade/API output consistency, and end-to-end rendering behavior including URL validation and missing data scenarios.",
+      "parent_feature": "EVAL-TRIAL-QUALITY",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRIAL-QUALITY-S2",
+        "EVAL-TRIAL-QUALITY-S3",
+        "EVAL-TRIAL-QUALITY-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CT-M4-S4-001",
+      "story_id": "EVAL-CT-M4-S4",
+      "requirement": "The system must include the sponsor_credibility_score field in the clinical trial evaluation response payload.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M4-S4-002",
+      "story_id": "EVAL-CT-M4-S4",
+      "requirement": "The system must ensure the sponsor_credibility_score value is sourced from the output of the sponsor credibility scoring logic defined in EVAL-CT-M4-S3.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M4-S4-003",
+      "story_id": "EVAL-CT-M4-S4",
+      "requirement": "The system must expose sponsor_credibility_score through the Evaluate Care facade API endpoint for clinical trials.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M4-S4-004",
+      "story_id": "EVAL-CT-M4-S4",
+      "requirement": "The system must return sponsor_credibility_score as a normalized numeric value between 0 and 1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M4-S4-005",
+      "story_id": "EVAL-CT-M4-S4",
+      "requirement": "The system must include sponsor_credibility_score in the same response structure as other clinical trial evaluation measures.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M4-S4-006",
+      "story_id": "EVAL-CT-M4-S4",
+      "requirement": "The system must ensure that the API response schema remains backward compatible with existing consumers when adding sponsor_credibility_score.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M4-S4-007",
+      "story_id": "EVAL-CT-M4-S4",
+      "requirement": "The system must include a null or default value for sponsor_credibility_score when the upstream scoring logic does not produce a value.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M4-S4-008",
+      "story_id": "EVAL-CT-M4-S4",
+      "requirement": "The system must not fail the entire evaluation response if sponsor_credibility_score computation is unavailable.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M4-S4-009",
+      "story_id": "EVAL-CT-M4-S4",
+      "requirement": "The system must log an error or warning when sponsor_credibility_score is missing due to upstream dependency failure.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M4-S4-010",
+      "story_id": "EVAL-CT-M4-S4",
+      "requirement": "The system must ensure that sponsor_credibility_score is included in the evaluation pipeline only after successful execution of dependency EVAL-CT-M4-S3.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M4-S4-011",
+      "story_id": "EVAL-CT-M4-S4",
+      "requirement": "The system must serialize sponsor_credibility_score in a format consistent with existing numeric evaluation fields in the API.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M4-S4-012",
+      "story_id": "EVAL-CT-M4-S4",
+      "requirement": "The system must handle missing sponsor metadata by returning sponsor_credibility_score as null or a defined fallback value without raising an exception.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M4-S4-013",
+      "story_id": "EVAL-CT-M4-S4",
+      "requirement": "The system must ensure that downstream consumers can access sponsor_credibility_score without requiring additional API calls.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M4-S4-014",
+      "story_id": "EVAL-CT-M4-S4",
+      "requirement": "The system must include sponsor_credibility_score in all clinical trial evaluation responses where evaluation is requested.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,97 @@
+{
+  "assignment_id": "GPTR-F-001-STORIES",
+  "iteration": 18,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Adds missing schema/contract, core enforcement logic, API boundary, and unit test coverage stories.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-001-S69",
+      "value": "Allowlist Request Schema Contract",
+      "note": "Adds explicit schema/contract story",
+      "iteration": 18
+    },
+    {
+      "path": "stories.GPTR-F-001-S70",
+      "value": "Core Allowlist Enforcement Engine",
+      "note": "Adds core validation logic story",
+      "iteration": 18
+    },
+    {
+      "path": "stories.GPTR-F-001-S71",
+      "value": "Azure Function Request Interceptor",
+      "note": "Adds API boundary enforcement story",
+      "iteration": 18
+    },
+    {
+      "path": "stories.GPTR-F-001-S72",
+      "value": "Unit Test Suite for Enforcement Rules",
+      "note": "Adds unit testing coverage story",
+      "iteration": 18
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GPTR-F-001-S69": {
+      "story_id": "GPTR-F-001-S69",
+      "title": "Allowlist Request Schema Contract",
+      "description": "Define strict Pydantic (or equivalent) schema for GPTReader requests including allowed collections, fields, operators, and limits to ensure all incoming payloads are structurally validated before enforcement.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S70": {
+      "story_id": "GPTR-F-001-S70",
+      "title": "Core Allowlist Enforcement Engine",
+      "description": "Implement core validation engine that evaluates incoming requests against allowlist rules (collections, fields, operators, query depth, limits) and deterministically accepts or rejects requests.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S69",
+        "GPTR-F-001-S67"
+      ],
+      "size": "L",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S71": {
+      "story_id": "GPTR-F-001-S71",
+      "title": "Azure Function Request Interceptor",
+      "description": "Integrate enforcement engine into Azure Function entrypoint to intercept all GPTReader requests, apply validation before execution, and short-circuit unauthorized queries.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S70"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/function_app.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S72": {
+      "story_id": "GPTR-F-001-S72",
+      "title": "Unit Test Suite for Enforcement Rules",
+      "description": "Create comprehensive unit tests covering valid requests, rejected requests, edge cases (nested queries, invalid operators, excessive limits), and regression scenarios for allowlist enforcement.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S70"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

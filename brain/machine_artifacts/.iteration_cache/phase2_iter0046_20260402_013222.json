@@ -1,0 +1,90 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 46,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Adds missing backend generation, API contract propagation, and cross-signal integration coverage for explainability layer.",
+  "epics": [],
+  "features": [],
+  "stories": {
+    "EVAL-F5-S153": {
+      "story_id": "EVAL-F5-S153",
+      "title": "Generate Explainability Objects for Provider Signals",
+      "description": "Implement backend logic to attach explainability metadata (source, meaning, limitations) to provider credential and verification link signals sourced from provider_detail_service, ensuring each field is mapped to human-readable explanations.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F1",
+        "EVAL-F2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-F5-S154": {
+      "story_id": "EVAL-F5-S154",
+      "title": "Generate Explainability Objects for Clinical Trial Signals",
+      "description": "Extend clinical_trials_service outputs to include standardized explainability metadata for trial phase, status, and eligibility, translating raw API fields into user-understandable meanings and clearly stated limitations.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-F5-S155": {
+      "story_id": "EVAL-F5-S155",
+      "title": "Integrate Explainability into EvaluateCareFacade Responses",
+      "description": "Update EvaluateCareFacade to aggregate explainability objects alongside evaluation signals and ensure they are consistently included in tool responses returned through the tool_router without breaking existing response structure.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S150",
+        "EVAL-F5-S153",
+        "EVAL-F5-S154"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F5-S156": {
+      "story_id": "EVAL-F5-S156",
+      "title": "API Contract Validation for Explainability Fields",
+      "description": "Define and enforce Pydantic validation (or equivalent) for explainability fields in tool response models to ensure schema compliance and prevent malformed or missing explanation data from reaching the frontend.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S150",
+        "EVAL-F5-S155"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models"
+    },
+    "EVAL-F5-S157": {
+      "story_id": "EVAL-F5-S157",
+      "title": "End-to-End Integration of Explainability Across Signals",
+      "description": "Validate that explainability metadata flows end-to-end across provider and clinical trial evaluations, including combined responses, ensuring no signal is returned without its corresponding explanation payload.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S151",
+        "EVAL-F5-S152",
+        "EVAL-F5-S155"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  },
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CRED-002-REQ-001",
+      "story_id": "EVAL-CRED-002",
+      "requirement": "The system must ingest credential, license, and taxonomy fields from the NPI data payload provided by provider_detail_service.py.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-002-REQ-002",
+      "story_id": "EVAL-CRED-002",
+      "requirement": "The system must compute a completeness score using the weighting logic defined in EVAL-CRED-001.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-002-REQ-003",
+      "story_id": "EVAL-CRED-002",
+      "requirement": "The system must normalize the final completeness score to the defined range (0–1 or 0–100) per the scoring contract.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-002-REQ-004",
+      "story_id": "EVAL-CRED-002",
+      "requirement": "The system must generate a component-level breakdown showing individual scores for credentials, licenses, and taxonomy fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-002-REQ-005",
+      "story_id": "EVAL-CRED-002",
+      "requirement": "The system must treat null or missing credential fields as zero contribution to the completeness score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-002-REQ-006",
+      "story_id": "EVAL-CRED-002",
+      "requirement": "The system must handle multiple taxonomy entries by evaluating presence and counting at least one valid taxonomy as contributing positively to completeness.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-002-REQ-007",
+      "story_id": "EVAL-CRED-002",
+      "requirement": "The system must handle empty taxonomy arrays without throwing errors and assign zero contribution for taxonomy completeness.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-002-REQ-008",
+      "story_id": "EVAL-CRED-002",
+      "requirement": "The system must treat multiple credential or license entries as valid and not double-count beyond the defined weighting cap.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-002-REQ-009",
+      "story_id": "EVAL-CRED-002",
+      "requirement": "The system must produce deterministic scoring results for identical input payloads.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-002-REQ-010",
+      "story_id": "EVAL-CRED-002",
+      "requirement": "The system must return the completeness score and breakdown in a structured, serializable response object.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-002-REQ-011",
+      "story_id": "EVAL-CRED-002",
+      "requirement": "The system must handle malformed or unexpected NPI field structures gracefully without runtime failure.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-002-REQ-012",
+      "story_id": "EVAL-CRED-002",
+      "requirement": "The system must assign a completeness score of zero when all credential, license, and taxonomy fields are missing or null.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-002-REQ-013",
+      "story_id": "EVAL-CRED-002",
+      "requirement": "The system must assign a maximum completeness score when all required credential, license, and taxonomy fields are present and valid.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-002-REQ-014",
+      "story_id": "EVAL-CRED-002",
+      "requirement": "The system must ensure that partial data (e.g., only credential present) results in a proportional score based on defined weights.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,14 @@
+{
+  "BL-0.1.4-008-S5": {
+    "story_id": "BL-0.1.4-008-S5",
+    "title": "Rate Limiting Observability and Debug Logging",
+    "description": "Add logging and monitoring for rate limiting events including request key, threshold breaches, and enforcement actions. Integrate with existing debug logger to support auditability and troubleshooting of throttling behavior.",
+    "parent_feature": "BL-0.1.4-008",
+    "sprint": 2,
+    "dependencies": [
+      "BL-0.1.4-008-S3"
+    ],
+    "size": "S",
+    "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (existing logging patterns for request metadata and errors); ASSUMPTION: extend logger to capture rate limit events"
+  }
+}

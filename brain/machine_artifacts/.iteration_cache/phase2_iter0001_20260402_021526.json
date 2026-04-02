@@ -1,0 +1,100 @@
+{
+  "assignment_id": "EVAL-P-MEASURE-1-STORIES",
+  "iteration": 1,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories defined for Board Certification Verification feature using NPI registry data.",
+  "change_log": {},
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-P-MEASURE-1-S1",
+      "title": "Board Certification Schema and Contract",
+      "description": "Define internal data schema for board certification including fields for certification_status, board_name, specialty, certification_date, and verification_source derived from NPI registry response.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-1-S2",
+      "title": "Board Certification Extraction Logic",
+      "description": "Implement logic to parse NPI registry API response and extract board certification indicators, mapping taxonomy and credential fields into normalized certification status.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-MEASURE-1-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-1-S3",
+      "title": "Certification Scoring and Classification",
+      "description": "Implement evaluation logic to classify providers as board certified, not certified, or unknown based on extracted NPI data and defined rules.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-MEASURE-1-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-1-S4",
+      "title": "Evaluation API Integration",
+      "description": "Integrate board certification results into EvaluateCare facade response so certification status is included in provider evaluation outputs.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-MEASURE-1-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-1-S5",
+      "title": "Board Certification Tests and Validation",
+      "description": "Create unit tests for extraction and classification logic and integration tests validating certification status appears correctly in EvaluateCare responses.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-MEASURE-1-S2",
+        "EVAL-P-MEASURE-1-S3",
+        "EVAL-P-MEASURE-1-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "EVAL-P-MEASURE-1",
+        "likelihood": "Low",
+        "impact": "Moderate",
+        "mitigation": "Fallback to 'unknown' classification when NPI data is incomplete or ambiguous."
+      }
+    ],
+    "per_measure": [
+      {
+        "feature_id": "EVAL-P-MEASURE-1",
+        "data_source_availability": "High",
+        "data_quality": "Moderate",
+        "credibility": "High",
+        "mitigation": "Surface verification source (NPI registry) explicitly in response to reinforce trust."
+      }
+    ]
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

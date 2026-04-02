@@ -1,0 +1,41 @@
+{
+  "assignment_id": "FIND-F-001-STORIES",
+  "iteration": 8,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories refined for clearer contract boundaries, fallback determinism, and explicit integration behavior. No new stories added to avoid duplication.",
+  "change_log": [
+    {
+      "path": "stories.FIND-F-001-S1.description",
+      "value": "Clarified deterministic response contract including relevance score normalization, attribution fields (vector vs taxonomy), and strict pagination invariants.",
+      "note": "Remove ambiguity in output contract",
+      "iteration": 8
+    },
+    {
+      "path": "stories.FIND-F-001-S2.description",
+      "value": "Explicit fallback triggers defined (score threshold + result count) and enforced deterministic ranking order across vector and taxonomy paths.",
+      "note": "Ensure reproducible search behavior",
+      "iteration": 8
+    },
+    {
+      "path": "stories.FIND-F-001-S3.description",
+      "value": "Added requirement that specialty resolution outputs must be traceable and passed as explicit NUCC inputs into provider search with no hidden inference.",
+      "note": "Strengthen integration contract clarity",
+      "iteration": 8
+    },
+    {
+      "path": "stories.FIND-F-001-S4.description",
+      "value": "Clarified tool_router allowlist enforcement and added requirement for structured error taxonomy (validation vs search vs system errors).",
+      "note": "Improve API/tool reliability and observability",
+      "iteration": 8
+    },
+    {
+      "path": "stories.FIND-F-001-S5.description",
+      "value": "Expanded test scope to include deterministic replay tests and fallback path verification under controlled embedding degradation scenarios.",
+      "note": "Close gap in test determinism and resilience validation",
+      "iteration": 8
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "assignment_id": "EVAL-CT-MEASURE-2-STORIES",
+  "iteration": 18,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Strengthened core logic story to explicitly cover status edge cases and ClinicalTrials.gov field variability without adding new stories.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-CT-M2-S2.description",
+      "value": "Extract enrollment status from ClinicalTrials.gov API response and normalize to defined schema, including handling inconsistent, deprecated, or missing status values (e.g., withdrawn, suspended, unknown) and mapping all API variants to a stable internal enum.",
+      "note": "Expanded to cover real-world API edge cases and ensure robustness",
+      "iteration": 18
+    }
+  ]
+}

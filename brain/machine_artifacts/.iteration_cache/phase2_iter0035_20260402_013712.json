@@ -1,0 +1,50 @@
+{
+  "stories": {
+    "EVAL-F-03-S101": {
+      "story_id": "EVAL-F-03-S101",
+      "title": "Define EvaluateCare Facade Request/Response Contracts",
+      "description": "Establish explicit request and response schemas for evaluate care facade methods, aligning with existing Pydantic tool models for clinical trials and ensuring consistent, structured outputs for downstream consumption.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F-03-S102": {
+      "story_id": "EVAL-F-03-S102",
+      "title": "Normalize Facade Response Formatting for Chat Output",
+      "description": "Implement standardized formatting of facade outputs (clinical trials and provider details) to ensure consistent structure, link handling, and downstream rendering compatibility in chat responses.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S97"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-F-03-S103": {
+      "story_id": "EVAL-F-03-S103",
+      "title": "Implement Error Handling and Fallback Logic in Facade",
+      "description": "Add structured error handling within evaluate_care_facade to manage API failures, empty results, and partial data scenarios, ensuring safe fallback responses and no unhandled exceptions reach the tool layer.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S97"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-F-03-S104": {
+      "story_id": "EVAL-F-03-S104",
+      "title": "Integrate Debug Logging and Traceability in Facade",
+      "description": "Instrument evaluate_care_facade with debug logging for request inputs, service calls, and outputs using existing debug_logger to support traceability, auditing, and troubleshooting.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S97"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  }
+}

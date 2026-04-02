@@ -1,0 +1,51 @@
+{
+  "stories": {
+    "FEAT-3-S123": {
+      "story_id": "FEAT-3-S123",
+      "title": "ClinicalTrials.gov Query Construction and Recruiting Filter Enforcement",
+      "description": "Implement query construction logic to call ClinicalTrials.gov API with condition keywords and enforce RECRUITING status filter, including parameter normalization and pagination handling.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "FEAT-3-S124": {
+      "story_id": "FEAT-3-S124",
+      "title": "Trial Location Extraction and Normalization",
+      "description": "Extract trial site locations from API responses and normalize into structured geographic data (city, state, coordinates where available) for downstream distance computation.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S123"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "FEAT-3-S125": {
+      "story_id": "FEAT-3-S125",
+      "title": "Travel Distance and Duration Computation via Google Routes",
+      "description": "Integrate Google Routes API to compute travel distance and duration between user location and each trial site, including batching and fallback handling for missing coordinates.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S124"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "FEAT-3-S126": {
+      "story_id": "FEAT-3-S126",
+      "title": "Clinical Trial Result Formatting for Chat Consumption",
+      "description": "Format enriched trial data (metadata, recruiting status, locations, travel distance/duration) into structured, LLM-friendly response objects for downstream rendering in chat.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S125",
+        "FEAT-3-S120"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  }
+}

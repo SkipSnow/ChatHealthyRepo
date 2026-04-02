@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-SPC-001-REQ-001",
+      "story_id": "EVAL-SPC-001",
+      "requirement": "The system must define a Pydantic model named SpecialtyMatchScore following existing patterns in provider_search_models.py.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-001-REQ-002",
+      "story_id": "EVAL-SPC-001",
+      "requirement": "The system must include a field 'requested_specialty' of type string representing the original user input.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-001-REQ-003",
+      "story_id": "EVAL-SPC-001",
+      "requirement": "The system must include a field 'matched_nucc_codes' as a non-empty list of strings when matches are found.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-001-REQ-004",
+      "story_id": "EVAL-SPC-001",
+      "requirement": "The system must include a field 'match_confidence' as a float constrained between 0.0 and 1.0 inclusive.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-001-REQ-005",
+      "story_id": "EVAL-SPC-001",
+      "requirement": "The system must reject any instance where 'match_confidence' is less than 0.0 or greater than 1.0.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-001-REQ-006",
+      "story_id": "EVAL-SPC-001",
+      "requirement": "The system must include an 'explanation_metadata' field as a dictionary containing supporting details for the score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-001-REQ-007",
+      "story_id": "EVAL-SPC-001",
+      "requirement": "The system must allow 'matched_nucc_codes' to be an empty list when no match is found.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-001-REQ-008",
+      "story_id": "EVAL-SPC-001",
+      "requirement": "The system must set 'match_confidence' to 0.0 when 'matched_nucc_codes' is empty.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-001-REQ-009",
+      "story_id": "EVAL-SPC-001",
+      "requirement": "The system must ensure the schema is serializable to JSON without custom encoders.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-001-REQ-010",
+      "story_id": "EVAL-SPC-001",
+      "requirement": "The system must align field naming and typing conventions with existing models in provider_search_models.py.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-001-REQ-011",
+      "story_id": "EVAL-SPC-001",
+      "requirement": "The system must support inclusion of multiple NUCC codes in 'matched_nucc_codes' without duplication.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-001-REQ-012",
+      "story_id": "EVAL-SPC-001",
+      "requirement": "The system must validate that all entries in 'matched_nucc_codes' are strings conforming to NUCC taxonomy code format.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-001-REQ-013",
+      "story_id": "EVAL-SPC-001",
+      "requirement": "The system must raise a validation error if 'requested_specialty' is null or empty.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-001-REQ-014",
+      "story_id": "EVAL-SPC-001",
+      "requirement": "The system must allow 'explanation_metadata' to include keys for match_type, matched_terms, and scoring_breakdown.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-001-REQ-015",
+      "story_id": "EVAL-SPC-001",
+      "requirement": "The system must default 'explanation_metadata' to an empty dictionary when no metadata is provided.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,87 @@
+{
+  "assignment_id": "GPTR-F-001-STORIES",
+  "iteration": 17,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added API contract, audit logging, config externalization, and SIT coverage stories for enforcement completeness.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-001-S65",
+      "value": "Error Response Contract for Enforcement Failures",
+      "note": "Add API contract for deterministic failure handling",
+      "iteration": 17
+    },
+    {
+      "path": "stories.GPTR-F-001-S66",
+      "value": "Audit Logging for Allowlist Decisions",
+      "note": "Add traceability for security enforcement",
+      "iteration": 17
+    },
+    {
+      "path": "stories.GPTR-F-001-S67",
+      "value": "Config-Driven Allowlist Definition",
+      "note": "Decouple rules from code for maintainability",
+      "iteration": 17
+    },
+    {
+      "path": "stories.GPTR-F-001-S68",
+      "value": "SIT Scenario Integration for Scope Enforcement",
+      "note": "Ensure coverage in system integration testing",
+      "iteration": 17
+    }
+  ],
+  "stories": {
+    "GPTR-F-001-S65": {
+      "story_id": "GPTR-F-001-S65",
+      "title": "Error Response Contract for Enforcement Failures",
+      "description": "Define standardized API error responses for allowlist and schema violations including error codes, messages, and rejection reasons to ensure deterministic handling by clients and tests.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S61",
+        "GPTR-F-001-S62"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S66": {
+      "story_id": "GPTR-F-001-S66",
+      "title": "Audit Logging for Allowlist Decisions",
+      "description": "Implement structured audit logs capturing request metadata, enforcement decisions (pass/fail), violated rules, and caller identity for all GPTReader requests.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S62",
+        "GPTR-F-001-S63"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S67": {
+      "story_id": "GPTR-F-001-S67",
+      "title": "Config-Driven Allowlist Definition",
+      "description": "Externalize allowlist rules (collections, fields, operators, limits) into configuration to enable controlled updates without code changes while preserving strict validation behavior.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S62"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/ops/manifest_generator.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S68": {
+      "story_id": "GPTR-F-001-S68",
+      "title": "SIT Scenario Integration for Scope Enforcement",
+      "description": "Extend GPT SIT and integration test runners to include adversarial and boundary scenarios validating that scope enforcement blocks unauthorized queries and allows valid ones.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S64"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/gpt_sit_runner.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; brain/machine_artifacts/content/ai_operations.json:gpt_sit_report; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  }
+}

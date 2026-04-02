@@ -1,0 +1,16 @@
+{
+  "stories": {
+    "EVAL-P-MEASURE-3-S6": {
+      "story_id": "EVAL-P-MEASURE-3-S6",
+      "title": "Handle Unsupported States and Missing Data for Disciplinary Signal",
+      "description": "Implement fallback behavior for providers in states without predefined medical board links and for incomplete provider location data, ensuring the system returns a safe null/unknown signal with no broken URLs.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MEASURE-3-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    }
+  }
+}

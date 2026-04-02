@@ -1,0 +1,100 @@
+{
+  "assignment_id": "SHARED-F-2-STORIES",
+  "iteration": 5,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema, API, and audit integration stories to complete Consent Framework coverage.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-2-S13",
+      "value": "Consent persistence schema and storage",
+      "note": "Add data layer story",
+      "iteration": 5
+    },
+    {
+      "path": "stories.SHARED-F-2-S14",
+      "value": "Consent API endpoints and enforcement hooks",
+      "note": "Add API exposure story",
+      "iteration": 5
+    },
+    {
+      "path": "stories.SHARED-F-2-S15",
+      "value": "Consent audit logging and traceability",
+      "note": "Add compliance logging",
+      "iteration": 5
+    },
+    {
+      "path": "stories.SHARED-F-2-S16",
+      "value": "Pydantic consent models and validation contracts",
+      "note": "Add schema/contract layer",
+      "iteration": 5
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "SHARED-F-2-S13": {
+      "story_id": "SHARED-F-2-S13",
+      "title": "Consent Persistence Schema and Storage",
+      "description": "Design and implement MongoDB schema for storing consent tiers, timestamps, user identifiers (when permitted), and audit fields. Ensure compatibility with de-identified storage when Tier 2 is not granted.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S10"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "SHARED-F-2-S14": {
+      "story_id": "SHARED-F-2-S14",
+      "title": "Consent API Endpoints and Enforcement Hooks",
+      "description": "Expose consent capture, upgrade, and status-check endpoints via FastAPI. Integrate enforcement hooks into tool_router and application facades to block or modify data handling based on consent tier.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S10",
+        "SHARED-F-2-S13"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "SHARED-F-2-S15": {
+      "story_id": "SHARED-F-2-S15",
+      "title": "Consent Audit Logging and Traceability",
+      "description": "Implement audit logging for all consent events including capture, upgrade, denial, and enforcement actions. Ensure logs are de-identified where required and aligned with HIPAA traceability expectations.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S13",
+        "SHARED-F-2-S14"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    "SHARED-F-2-S16": {
+      "story_id": "SHARED-F-2-S16",
+      "title": "Pydantic Consent Models and Validation Contracts",
+      "description": "Define and validate Pydantic models for consent inputs, tier transitions, and API contracts. Ensure strict validation and alignment with existing consent_models patterns.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S13"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

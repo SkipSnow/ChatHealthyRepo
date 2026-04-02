@@ -1,0 +1,63 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-P-M1-S1",
+      "title": "Define Board Certification Schema and Contract",
+      "description": "Define a structured schema for board certification data including certification name, issuing board, status (verified/unverified/unknown), source (NPI), and normalization rules. Ensure compatibility with provider_detail_service output.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-P-M1-S2",
+      "title": "Implement Board Certification Extraction and Verification Logic",
+      "description": "Extract credential fields from NPI registry response and map them to known board certifications using normalization rules. Implement verification classification logic (e.g., recognized board vs free-text credential).",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-M1-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-P-M1-S3",
+      "title": "Expose Board Certification Data via Evaluate Care Facade",
+      "description": "Integrate board certification signals into provider detail response and expose through evaluate_care_facade for downstream consumption by chat UI and evaluation flows.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-M1-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-P-M1-S4",
+      "title": "Unit and Integration Tests for Board Certification Verification",
+      "description": "Create unit tests for extraction and normalization logic and integration tests validating end-to-end flow from NPI lookup through facade response, including verified/unverified/unknown scenarios.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-M1-S2",
+        "EVAL-P-M1-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    },
+    {
+      "story_id": "EVAL-P-M1-S5",
+      "title": "Handle Missing, Ambiguous, and Non-Standard Credential Data",
+      "description": "Implement explicit handling for edge cases in NPI credential data including missing credentials, ambiguous abbreviations, and non-standard free-text entries. Add flags for unverifiable certifications and ensure downstream consumers receive clear status indicators (e.g., verified, unverified, unknown).",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-M1-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    }
+  ]
+}

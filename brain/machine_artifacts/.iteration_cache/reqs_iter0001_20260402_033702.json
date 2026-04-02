@@ -1,0 +1,149 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-MLAPI-001",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must include a malpractice object in the provider detail API response payload.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-002",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must populate the malpractice object using the output from EVAL-P-MALPRACTICE-LOGIC-001 without transformation loss.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-003",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must include evidence_links in the malpractice object as an array of valid URLs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-004",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must expose a field that explicitly distinguishes between unknown data and confirmed absence of malpractice actions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-005",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must preserve null values for unknown malpractice fields rather than coercing them to false or zero.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-006",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must ensure the malpractice object is included in all evaluate_care_facade provider evaluation responses.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-007",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must maintain backward compatibility such that existing API consumers do not break when the malpractice object is added.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-008",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must ensure the malpractice object conforms to the schema defined in EVAL-P-MALPRACTICE-SCHEMA-001.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-009",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must return an empty malpractice object with unknown flags when no data is available instead of omitting the field.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-010",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must integrate the malpractice object into the tool_router response format without breaking routing or parsing.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-011",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must ensure LLM-consumable responses include the malpractice object in a deterministic and stable field location.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-012",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must ensure LLM responses do not infer positive quality from absence of malpractice data.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-013",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must ensure LLM responses correctly interpret unknown malpractice data as uncertainty rather than cleanliness.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-014",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must ensure LLM responses reference evidence_links when explaining malpractice signals.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-015",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must ensure LLM responses degrade provider evaluation when malpractice signals are present.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-016",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must ensure LLM responses do not hallucinate malpractice data when the malpractice object is empty or unknown.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-017",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must return a valid API response even if malpractice logic fails, with malpractice marked as unknown.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-MLAPI-018",
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "requirement": "The system must log an error when malpractice data retrieval or transformation fails without blocking the full provider response.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

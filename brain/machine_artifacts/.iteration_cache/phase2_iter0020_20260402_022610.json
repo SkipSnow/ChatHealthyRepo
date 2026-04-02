@@ -1,0 +1,113 @@
+{
+  "assignment_id": "EVAL-CT-MEASURE-1-STORIES",
+  "iteration": 20,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "All required story categories already covered (schema, logic, API, tests, integration). No new stories created to avoid duplication; refinement applied.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-CT-M1-S1.description",
+      "value": "Expanded to explicitly define scoring mapping table (Phase I=low, II=mid, III=high, IV=highest) and hybrid weighting rules (e.g., I/II midpoint).",
+      "note": "Clarify deterministic scoring contract",
+      "iteration": 20
+    },
+    {
+      "path": "stories.EVAL-CT-M1-S2.description",
+      "value": "Added requirement to normalize multiple source fields (phase, study_phase, text variants) and enforce strict enum output.",
+      "note": "Improve robustness of extraction logic",
+      "iteration": 20
+    },
+    {
+      "path": "stories.EVAL-CT-M1-S4.dependencies",
+      "value": [
+        "EVAL-CT-M1-S1",
+        "EVAL-CT-M1-S2"
+      ],
+      "note": "Tests depend on schema and logic",
+      "iteration": 20
+    },
+    {
+      "path": "stories.EVAL-CT-M1-S5.description",
+      "value": "Expanded to validate explainability text consistency with score and phase normalization in final payload.",
+      "note": "Ensure explainability integrity in integration",
+      "iteration": 20
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-CT-M1-S1": {
+      "story_id": "EVAL-CT-M1-S1",
+      "title": "Define Trial Phase Quality Schema and Scoring Contract",
+      "description": "Define normalized schema: {phase_raw, phase_normalized (I–IV), score (0–1), label, explanation} and deterministic mapping rules including handling for Phase I/II and II/III hybrids. Include explicit scoring table (Phase I=lowest, Phase IV=highest) and midpoint rules for hybrids.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M1-S2": {
+      "story_id": "EVAL-CT-M1-S2",
+      "title": "Implement Trial Phase Extraction and Scoring Logic",
+      "description": "Implement extraction from ClinicalTrials.gov fields, normalize variants (e.g., 'Phase 1', 'Phase I/II'), map to score, and default handling for missing/unknown with explicit 'unknown' label and neutral score. Normalize across multiple possible source fields and enforce strict enum output.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M1-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M1-S3": {
+      "story_id": "EVAL-CT-M1-S3",
+      "title": "Expose Trial Phase Quality via Evaluate Care Facade",
+      "description": "Augment EvaluateCare facade response with {phase_normalized, score, label, explanation} per trial, ensuring backward-compatible payload structure.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M1-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-CT-M1-S4": {
+      "story_id": "EVAL-CT-M1-S4",
+      "title": "Unit Tests for Trial Phase Quality Logic",
+      "description": "Unit tests for mapping table, hybrid phases, unknown/missing values, and deterministic scoring outputs.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M1-S1",
+        "EVAL-CT-M1-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M1-S5": {
+      "story_id": "EVAL-CT-M1-S5",
+      "title": "End-to-End Integration Test for Trial Phase Quality",
+      "description": "Validate that trial phase quality flows from ClinicalTrials.gov API through domain service, scoring logic, and EvaluateCare facade into final response payload, including consistency between score, normalized phase, and explanation text.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M1-S3",
+        "EVAL-CT-M1-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "assignment_id": "EVAL-F-03-STORIES",
+  "iteration": 24,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added orchestration, tool router integration, and testing coverage stories.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-03-S68",
+      "value": "Add core orchestration logic story",
+      "note": "Facade missing explicit orchestration story",
+      "iteration": 24
+    },
+    {
+      "path": "stories.EVAL-F-03-S69",
+      "value": "Add tool router integration story",
+      "note": "Ensure compatibility with tool dispatch layer",
+      "iteration": 24
+    },
+    {
+      "path": "stories.EVAL-F-03-S70",
+      "value": "Add integration and unit testing story",
+      "note": "Ensure facade reliability and regression safety",
+      "iteration": 24
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F-03-S68": {
+      "story_id": "EVAL-F-03-S68",
+      "title": "Implement EvaluateCare Facade Orchestration Logic",
+      "description": "Build the core orchestration within the EvaluateCare facade to coordinate clinical trials search and provider detail retrieval, including sequencing, parameter passing, and aggregation of results into a unified response.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S65"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-F-03-S69": {
+      "story_id": "EVAL-F-03-S69",
+      "title": "Integrate EvaluateCare Facade with Tool Router",
+      "description": "Expose EvaluateCare facade methods through the tool_router with proper allowlisting, input validation, and tool_use handling to enable LLM-driven invocation for clinical trials and provider evaluation flows.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S65",
+        "EVAL-F-03-S68"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F-03-S70": {
+      "story_id": "EVAL-F-03-S70",
+      "title": "Develop Unit and Integration Tests for EvaluateCare Facade",
+      "description": "Create unit tests for facade methods and integration tests covering end-to-end flows from tool_router through facade to domain services, including success, partial failure, and error scenarios.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S66",
+        "EVAL-F-03-S67",
+        "EVAL-F-03-S69"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

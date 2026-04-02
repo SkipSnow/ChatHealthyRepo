@@ -1,0 +1,60 @@
+{
+  "assignment_id": "PHASE 2: GPTR-F-002 Stories",
+  "iteration": 46,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema and expiration/rotation orchestration stories to complete lifecycle coverage.",
+  "change_log": [],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S152",
+      "title": "Token Schema and Storage Contract Definition",
+      "description": "Define and implement the token persistence schema including fields for token_id, hashed_token, issued_at, expires_at, rotation_parent_id, revocation_status, and audit metadata. Ensure compatibility with MongoDB patterns used in GPTReader and Shared utilities.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/ChatHealthyMongoUtilities.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S153",
+      "title": "Token Expiration Enforcement Logic",
+      "description": "Implement expiration validation logic to reject tokens past expires_at, including configurable TTL and clock-skew tolerance. Expired tokens must be logged and denied at authentication time.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S152"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/auth.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S154",
+      "title": "Token Rotation Logic and Lineage Tracking",
+      "description": "Implement secure token rotation including generation of new tokens, invalidation or sunset of prior tokens, and linkage via rotation_parent_id for audit traceability. Ensure no reuse of prior tokens and enforce single active token policy if configured.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S152",
+        "GPTR-F-002-S153"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

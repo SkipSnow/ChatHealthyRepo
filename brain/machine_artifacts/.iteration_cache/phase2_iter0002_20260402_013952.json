@@ -1,0 +1,110 @@
+{
+  "assignment_id": "EVAL-PROVIDER-LINKS-STORIES",
+  "iteration": 2,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories refined for clearer contract alignment, dependency correctness, and explicit backend linkage.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S1.description",
+      "value": "Clarified schema fields (site_name, url, link_type, guidance_text) and explicit contract alignment with provider_detail_service output",
+      "note": "Tighten contract definition",
+      "iteration": 2
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S2.description",
+      "value": "Added explicit normalization rules (ordering: NPI → State Board → Healthgrades) and null-safe handling",
+      "note": "Improve deterministic UI behavior",
+      "iteration": 2
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S3.dependencies",
+      "value": [
+        "EVAL-PROVIDER-LINKS-S1",
+        "EVAL-PROVIDER-LINKS-S2"
+      ],
+      "note": "UI depends on schema and mapping",
+      "iteration": 2
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S4.description",
+      "value": "Expanded to include integration expectation with backend url_guardian validation pipeline",
+      "note": "Align with existing infra capability",
+      "iteration": 2
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S5.description",
+      "value": "Expanded to include end-to-end validation from provider_detail_service → facade → frontend rendering",
+      "note": "Ensure integration completeness",
+      "iteration": 2
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S1",
+      "title": "External Links Schema and Contract",
+      "description": "Define the frontend data contract for external verification links including site_name, url, link_type (registry, review, licensing), and guidance_text. Ensure strict compatibility with provider_detail_service research site outputs.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (research site URL construction)"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S2",
+      "title": "External Link Mapping and Normalization Logic",
+      "description": "Implement frontend logic to map backend-provided research_links into standardized UI elements, including normalization of labels, deterministic ordering (NPI Registry → State Board → Healthgrades), and null-safe fallback handling.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-LINKS-S1",
+        "EVAL-PROVIDER-QUALITY"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (research_sites կառուց)"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S3",
+      "title": "UI Component for External Verification Links",
+      "description": "Build a frontend component to display external verification links with labels, outbound indicators, and guidance text explaining each source (official registry, licensing authority, reviews).",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-LINKS-S1",
+        "EVAL-PROVIDER-LINKS-S2"
+      ],
+      "size": "M",
+      "evidence": "GAP: No dedicated UI component for external provider verification links currently exists in frontend"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S4",
+      "title": "Safe Link Handling and Validation Integration",
+      "description": "Integrate URL validation and safe rendering (target=_blank, rel=noopener) using backend url_guardian validation pipeline to ensure all external links are safe and reachable before rendering.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-LINKS-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S5",
+      "title": "External Links Rendering Tests and Integration",
+      "description": "Create unit and integration tests validating end-to-end flow from provider_detail_service through evaluate_care_facade to frontend rendering, including ordering, fallback behavior, and safe link enforcement.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-LINKS-S2",
+        "EVAL-PROVIDER-LINKS-S3",
+        "EVAL-PROVIDER-LINKS-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    }
+  ]
+}

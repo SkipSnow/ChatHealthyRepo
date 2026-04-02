@@ -1,0 +1,80 @@
+{
+  "assignment_id": "PHASE 2: FEAT-2 Stories",
+  "iteration": 37,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "FEAT-2 had insufficient story coverage; expanded to full backend slice"
+  ],
+  "notes": "Added core logic, API exposure, testing, and integration coverage for specialty identification.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-2-S111",
+      "value": "Core specialty identification logic orchestration",
+      "note": "Add core logic layer story",
+      "iteration": 37
+    },
+    {
+      "path": "stories.FEAT-2-S112",
+      "value": "API/tool router exposure for specialty identification",
+      "note": "Add API access story",
+      "iteration": 37
+    },
+    {
+      "path": "stories.FEAT-2-S113",
+      "value": "Unit and integration tests for specialty identification",
+      "note": "Add testing coverage",
+      "iteration": 37
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-2-S111": {
+      "story_id": "FEAT-2-S111",
+      "title": "Implement Core Specialty Identification Logic",
+      "description": "Implement orchestration of regex matching, vector similarity, and query expansion within specialty_service to map user input to NUCC codes with deduplication and confidence scoring.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "FEAT-2-S112": {
+      "story_id": "FEAT-2-S112",
+      "title": "Expose Specialty Identification via Tool Router",
+      "description": "Register specialty identification as an allowed tool in the tool_router, ensuring validated inputs are routed and outputs returned in tool_use format for LLM orchestration.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S109"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-2-S113": {
+      "story_id": "FEAT-2-S113",
+      "title": "Test Specialty Identification Accuracy and Fallbacks",
+      "description": "Create unit and integration tests validating regex matches, vector fallback behavior, NUCC code mapping accuracy, and deduplication across ambiguous user inputs.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S111"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

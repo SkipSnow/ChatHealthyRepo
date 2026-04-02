@@ -1,0 +1,59 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 37,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing stories to meet minimum and complete coverage across schema, API/UI, testing, and integration.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F5-S124": {
+      "story_id": "EVAL-F5-S124",
+      "title": "Explainability Schema Definition",
+      "description": "Define a standardized explainability schema (source, meaning, limitations, confidence, links) for evaluation signals and implement as Pydantic models for consistent backend contract enforcement.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models"
+    },
+    "EVAL-F5-S125": {
+      "story_id": "EVAL-F5-S125",
+      "title": "Frontend Rendering of Explainability",
+      "description": "Update chat UI message rendering to display explainability fields (source attribution, meaning, and limitations) in a structured and readable format within MessageBubble components.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S123"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    "EVAL-F5-S126": {
+      "story_id": "EVAL-F5-S126",
+      "title": "Explainability Unit and Integration Tests",
+      "description": "Create unit tests for explainability mapping logic and integration tests validating end-to-end propagation from domain services through facade to API responses, including edge cases for missing or partial data.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S122",
+        "EVAL-F5-S123"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

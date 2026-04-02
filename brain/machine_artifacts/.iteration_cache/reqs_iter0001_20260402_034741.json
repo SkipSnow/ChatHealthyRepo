@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must map backend malpractice measure data to one of three UI states: clean, flagged, or unknown.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must assign state 'clean' when backend indicates zero malpractice incidents within the defined evaluation window.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must assign state 'flagged' when backend indicates one or more malpractice incidents within the defined evaluation window.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must assign state 'unknown' when backend malpractice data is null, missing, or explicitly marked unavailable.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must not display the terms 'fraud', 'misconduct', or any legally accusatory language in malpractice-related UI text.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must generate neutral signal-based language describing malpractice status (e.g., 'no recent malpractice signals' or 'malpractice signals present').",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must format score_contribution as a numeric value with consistent precision (e.g., one decimal place) suitable for display.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must calculate score_contribution based on the backend malpractice measure input without modifying backend-provided weights.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must default score_contribution to 0 when malpractice data is unknown or unavailable.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must ensure all generated malpractice display text is compatible with markdown-safe rendering in MessageBubble.tsx.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must ensure LLM-generated or templated text does not infer intent, blame, or legal judgment about the provider.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must ensure LLM-generated or templated text remains consistent for identical input data (deterministic output).",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must handle exception case where backend returns malformed malpractice data by falling back to 'unknown' state without UI failure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must handle exception case where score_contribution is missing or non-numeric by defaulting to 0 and logging the anomaly.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "requirement": "The system must ensure all malpractice-related display strings are derived from controlled templates or validated LLM outputs before rendering.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,62 @@
+{
+  "assignment_id": "GOV-F-003-STORIES",
+  "iteration": 38,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Prior iteration under-produced stories (2 < minimum 3)"
+  ],
+  "notes": "Added missing stories to complete required breakdown: schema/contract and API layer.",
+  "change_log": [
+    {
+      "path": "stories.GOV-F-003-S129",
+      "value": "Added schema/contract story for Brain lock TTL and ownership model",
+      "note": "Ensure contract defined before logic",
+      "iteration": 38
+    },
+    {
+      "path": "stories.GOV-F-003-S130",
+      "value": "Added API layer for lock acquisition, heartbeat, and release",
+      "note": "Expose functionality for system coordination",
+      "iteration": 38
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GOV-F-003-S129": {
+      "story_id": "GOV-F-003-S129",
+      "title": "Brain Lock Schema and Ownership Contract Definition",
+      "description": "Define the Brain lock data schema including lock_id, owner_id, TTL, heartbeat timestamp, and status fields. Establish contract rules for ownership, expiration, and renewal semantics to ensure consistent enforcement across services.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/Shared/machine_brain.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S130": {
+      "story_id": "GOV-F-003-S130",
+      "title": "Brain Lock API for Acquire, Heartbeat, and Release",
+      "description": "Implement backend API endpoints or service methods for acquiring a lock, renewing via heartbeat, releasing ownership, and querying lock state. Ensure APIs enforce TTL rules and ownership validation.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S129"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/machine_brain.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

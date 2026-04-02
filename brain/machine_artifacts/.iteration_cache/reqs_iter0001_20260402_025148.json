@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-001",
+      "story_id": "PIPE-RX-INGEST-S5",
+      "requirement": "The system must execute unit tests that validate prescription schema compliance against defined MongoDB contract for valid sample records.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-002",
+      "story_id": "PIPE-RX-INGEST-S5",
+      "requirement": "The system must fail unit tests when required schema fields (e.g., NPI, drug identifier, claim count) are missing or incorrectly typed.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-003",
+      "story_id": "PIPE-RX-INGEST-S5",
+      "requirement": "The system must execute ingestion pipeline tests that confirm raw CMS data is successfully fetched and parsed into intermediate structures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-004",
+      "story_id": "PIPE-RX-INGEST-S5",
+      "requirement": "The system must validate that transformation logic correctly maps prescriber records to valid NPI values using test fixtures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-005",
+      "story_id": "PIPE-RX-INGEST-S5",
+      "requirement": "The system must validate that drug-to-condition mappings produced by ICD10 loader are accurate for known test cases.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-006",
+      "story_id": "PIPE-RX-INGEST-S5",
+      "requirement": "The system must execute integration tests that confirm transformed prescription records are persisted to MongoDB PublicHealthData.prescriptions collection.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-007",
+      "story_id": "PIPE-RX-INGEST-S5",
+      "requirement": "The system must validate that MongoDB persistence maintains idempotency by ensuring duplicate ingestion runs do not create duplicate records.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-008",
+      "story_id": "PIPE-RX-INGEST-S5",
+      "requirement": "The system must validate batching behavior by confirming multiple records are written in expected batch sizes during persistence tests.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-009",
+      "story_id": "PIPE-RX-INGEST-S5",
+      "requirement": "The system must integrate with existing SIT runner (gpt_sit_runner.py) to execute end-to-end ingestion test scenarios.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-010",
+      "story_id": "PIPE-RX-INGEST-S5",
+      "requirement": "The system must produce deterministic test results given the same input dataset across multiple test runs.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-011",
+      "story_id": "PIPE-RX-INGEST-S5",
+      "requirement": "The system must fail integration tests when MongoDB connection is unavailable or write operations throw exceptions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-012",
+      "story_id": "PIPE-RX-INGEST-S5",
+      "requirement": "The system must fail ingestion tests when upstream data fetch returns empty or malformed datasets.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-013",
+      "story_id": "PIPE-RX-INGEST-S5",
+      "requirement": "The system must log test execution results, including pass/fail status and error messages, consistent with existing pipeline test patterns.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-014",
+      "story_id": "PIPE-RX-INGEST-S5",
+      "requirement": "The system must ensure test coverage includes schema validation, ingestion logic, transformation accuracy, and persistence layers.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

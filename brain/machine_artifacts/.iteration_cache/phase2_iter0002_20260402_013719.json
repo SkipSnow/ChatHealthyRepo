@@ -1,0 +1,84 @@
+{
+  "assignment_id": "EVAL-PROVIDER-QUALITY-STORIES",
+  "iteration": 2,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories refined for clearer UI contract and end-to-end validation coverage.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-PROVIDER-QUALITY-S4.description",
+      "value": "Render provider quality attributes in structured, consistently ordered sections (credential, specialty, license status, enumeration date, address) within chat UI for readability and downstream reuse.",
+      "note": "Clarified structured rendering expectations",
+      "iteration": 2
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-QUALITY-S5.evidence",
+      "value": "Code/ConversationalUX/FindCareChat/backend/tests; Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py",
+      "note": "Expanded evidence to include frontend validation",
+      "iteration": 2
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "EVAL-PROVIDER-QUALITY-S1",
+      "title": "Provider Quality Schema and Contract",
+      "description": "Define the response schema for provider quality snapshot including credential, specialty, license state, status, enumeration date, and address fields sourced from NPI data.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-QUALITY-S2",
+      "title": "NPI Data Extraction and Mapping Logic",
+      "description": "Implement core logic to fetch NPI registry data and map raw fields into the normalized provider quality schema for downstream use.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-QUALITY-S3",
+      "title": "Provider Quality API Exposure",
+      "description": "Expose provider quality snapshot via Evaluate Care facade and API endpoint for frontend and chat consumption.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-QUALITY-S4",
+      "title": "Frontend Rendering of Provider Quality Snapshot",
+      "description": "Render provider quality attributes in structured, consistently ordered sections (credential, specialty, license status, enumeration date, address) within chat UI for readability and downstream reuse.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-QUALITY-S5",
+      "title": "Provider Quality Testing and Integration",
+      "description": "Create unit and integration tests validating NPI data retrieval, schema mapping, API response correctness, and end-to-end rendering in chat flow.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY-S2",
+        "EVAL-PROVIDER-QUALITY-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests; Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    }
+  ]
+}

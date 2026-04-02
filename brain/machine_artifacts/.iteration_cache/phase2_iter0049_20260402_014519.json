@@ -1,0 +1,96 @@
+{
+  "assignment_id": "FEAT-1-STORIES",
+  "iteration": 49,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing schema/contract and deeper domain validation coverage for Provider Search.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-1-STORY-39",
+      "value": "Provider Search Request/Response Schema Validation",
+      "note": "Add explicit schema/contract layer story",
+      "iteration": 49
+    },
+    {
+      "path": "stories.FEAT-1-STORY-40",
+      "value": "Vector Search and Taxonomy Fallback Orchestration Logic Hardening",
+      "note": "Strengthen core logic coverage",
+      "iteration": 49
+    },
+    {
+      "path": "stories.FEAT-1-STORY-41",
+      "value": "Location Filtering and FIPS/County Resolution Validation",
+      "note": "Add location-specific logic validation",
+      "iteration": 49
+    },
+    {
+      "path": "stories.FEAT-1-STORY-42",
+      "value": "Provider Search Observability and Debug Logging",
+      "note": "Add production diagnostics without expanding scope",
+      "iteration": 49
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-1-STORY-39": {
+      "story_id": "FEAT-1-STORY-39",
+      "title": "Provider Search Request/Response Schema Validation",
+      "description": "Define and enforce strict Pydantic schemas for provider search inputs and outputs, including specialty queries, location filters, and structured provider result payloads to ensure contract consistency across tool_router and facade layers.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-1-STORY-40": {
+      "story_id": "FEAT-1-STORY-40",
+      "title": "Vector Search and Taxonomy Fallback Orchestration Logic Hardening",
+      "description": "Enhance provider_search_service to robustly execute vector search with deterministic fallback to NUCC taxonomy-based search when embeddings fail or return low-confidence results, ensuring stable ranking and deduplication.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-39"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-41": {
+      "story_id": "FEAT-1-STORY-41",
+      "title": "Location Filtering and FIPS/County Resolution Validation",
+      "description": "Validate and enforce multi-stage location filtering logic including state, city, and county resolution using FIPS mapping, ensuring accurate geographic narrowing of provider results.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-40"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-42": {
+      "story_id": "FEAT-1-STORY-42",
+      "title": "Provider Search Observability and Debug Logging",
+      "description": "Instrument provider search flow with debug_logger to capture query inputs, embedding usage, fallback triggers, and result counts for traceability and production diagnostics.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-40"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-SPONSOR-API-003-REQ-001",
+      "story_id": "EVAL-CT-SPONSOR-API-003",
+      "requirement": "The system must include a sponsor_credibility object in the clinical trial evaluation response payload returned by evaluate_care_facade.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-API-003-REQ-002",
+      "story_id": "EVAL-CT-SPONSOR-API-003",
+      "requirement": "The system must populate sponsor_credibility.credibility_score with a numeric value between 0 and 1 inclusive from EVAL-CT-SPONSOR-LOGIC-002.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-API-003-REQ-003",
+      "story_id": "EVAL-CT-SPONSOR-API-003",
+      "requirement": "The system must include sponsor_credibility.sponsor_type in the response matching the schema defined in EVAL-CT-SPONSOR-SCHEMA-001.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-API-003-REQ-004",
+      "story_id": "EVAL-CT-SPONSOR-API-003",
+      "requirement": "The system must include sponsor_credibility.explanation as a non-empty string explaining the score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-API-003-REQ-005",
+      "story_id": "EVAL-CT-SPONSOR-API-003",
+      "requirement": "The system must ensure the sponsor_credibility object is present for every clinical trial in the response, even if fallback logic is used.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-API-003-REQ-006",
+      "story_id": "EVAL-CT-SPONSOR-API-003",
+      "requirement": "The system must call the sponsor credibility scoring logic exactly once per clinical trial evaluation request.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-API-003-REQ-007",
+      "story_id": "EVAL-CT-SPONSOR-API-003",
+      "requirement": "The system must not alter existing response fields or break backward compatibility of the evaluation API schema.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-API-003-REQ-008",
+      "story_id": "EVAL-CT-SPONSOR-API-003",
+      "requirement": "The system must serialize sponsor_credibility fields according to existing Pydantic models in clinical_trials_models.py.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-API-003-REQ-009",
+      "story_id": "EVAL-CT-SPONSOR-API-003",
+      "requirement": "The system must ensure the response payload remains valid JSON and passes schema validation after adding sponsor_credibility.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-API-003-REQ-010",
+      "story_id": "EVAL-CT-SPONSOR-API-003",
+      "requirement": "The system must include sponsor_credibility in the same structural level as other clinical trial evaluation measures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-API-003-REQ-011",
+      "story_id": "EVAL-CT-SPONSOR-API-003",
+      "requirement": "The system must return a default sponsor_credibility with sponsor_type='Unknown', credibility_score=0, and a fallback explanation when sponsor metadata is missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-API-003-REQ-012",
+      "story_id": "EVAL-CT-SPONSOR-API-003",
+      "requirement": "The system must return a default sponsor_credibility with an error-safe explanation when the scoring logic dependency fails or throws an exception.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-API-003-REQ-013",
+      "story_id": "EVAL-CT-SPONSOR-API-003",
+      "requirement": "The system must ensure the explanation text is concise and does not exceed a predefined character limit suitable for chat display.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-API-003-REQ-014",
+      "story_id": "EVAL-CT-SPONSOR-API-003",
+      "requirement": "The system must ensure the explanation text references sponsor type or source (e.g., NIH, Industry) when available.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-API-003-REQ-015",
+      "story_id": "EVAL-CT-SPONSOR-API-003",
+      "requirement": "The system must ensure no null values are returned within sponsor_credibility fields; all fields must be populated with valid defaults if necessary.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

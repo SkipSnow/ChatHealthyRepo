@@ -1,0 +1,124 @@
+{
+  "assignment_id": "PHASE-2-MAINT-ARCH-STORIES",
+  "iteration": 14,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "MAINT-ARCH stories defined per ARCH-001 refactor phases and existing code structure.",
+  "change_log": [
+    {
+      "path": "stories.MAINT-ARCH-S1",
+      "value": "Created",
+      "note": "Add schema/contract story for service boundaries",
+      "iteration": 14
+    },
+    {
+      "path": "stories.MAINT-ARCH-S2",
+      "value": "Created",
+      "note": "Add core logic refactor story",
+      "iteration": 14
+    },
+    {
+      "path": "stories.MAINT-ARCH-S3",
+      "value": "Created",
+      "note": "Add API/facade alignment story",
+      "iteration": 14
+    },
+    {
+      "path": "stories.MAINT-ARCH-S4",
+      "value": "Created",
+      "note": "Add integration wiring story",
+      "iteration": 14
+    },
+    {
+      "path": "stories.MAINT-ARCH-S5",
+      "value": "Created",
+      "note": "Add test coverage story",
+      "iteration": 14
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "MAINT-ARCH-S1": {
+      "story_id": "MAINT-ARCH-S1",
+      "title": "Define Service Boundaries and Contracts",
+      "description": "Define explicit service interfaces and data contracts for the 4-layer modular monolith (domain, application, infrastructure, facade), including request/response schemas and dependency rules between services.",
+      "parent_feature": "MAINT-ARCH",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "brain/machine_artifacts/content/architecture.json::refactor_design_arch001"
+    },
+    "MAINT-ARCH-S2": {
+      "story_id": "MAINT-ARCH-S2",
+      "title": "Refactor Domain Logic into Modular Services",
+      "description": "Extract and reorganize existing domain logic (find_care, evaluate_care_quality, shared services) into clearly isolated service modules aligned to ARCH-001, removing cross-layer coupling and enforcing service ownership.",
+      "parent_feature": "MAINT-ARCH",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-ARCH-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/; brain/machine_artifacts/content/architecture.json::refactor_design_arch001"
+    },
+    "MAINT-ARCH-S3": {
+      "story_id": "MAINT-ARCH-S3",
+      "title": "Align Application Facades to New Service Contracts",
+      "description": "Update find_care_facade and evaluate_care_facade to consume the refactored services via defined interfaces, ensuring consistent orchestration patterns and removal of direct domain coupling.",
+      "parent_feature": "MAINT-ARCH",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-ARCH-S1",
+        "MAINT-ARCH-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/; brain/machine_artifacts/content/architecture.json::refactor_design_arch001"
+    },
+    "MAINT-ARCH-S4": {
+      "story_id": "MAINT-ARCH-S4",
+      "title": "Rewire FastAPI Entrypoint and Dependency Injection",
+      "description": "Update main.py wiring to instantiate and inject refactored services and facades according to ARCH-001 layering, ensuring clean initialization and removal of legacy direct imports.",
+      "parent_feature": "MAINT-ARCH",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-ARCH-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; brain/machine_artifacts/content/architecture.json::refactor_design_arch001"
+    },
+    "MAINT-ARCH-S5": {
+      "story_id": "MAINT-ARCH-S5",
+      "title": "Validate Refactor with Unit and Integration Tests",
+      "description": "Update and expand unit and integration tests to validate service isolation, facade orchestration, and end-to-end behavior parity with pre-refactor baseline.",
+      "parent_feature": "MAINT-ARCH",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-ARCH-S2",
+        "MAINT-ARCH-S3",
+        "MAINT-ARCH-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/; brain/machine_artifacts/content/qa_reports.json::test_plan_results"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "MAINT-ARCH": {
+        "feature_id": "MAINT-ARCH",
+        "likelihood": "Moderate",
+        "impact": "High",
+        "mitigation": "Enforce parity testing against existing QA baselines before enabling refactored paths."
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

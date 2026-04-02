@@ -1,0 +1,103 @@
+{
+  "assignment_id": "PHASE 2: EVAL-F-1 Stories",
+  "iteration": 6,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Resolved duplicate ID alignment with EVAL-F-001. No new stories created.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-1-S1.story_id",
+      "value": "EVAL-F-001-S1",
+      "note": "Align with canonical feature ID to remove duplication",
+      "iteration": 6
+    },
+    {
+      "path": "stories.EVAL-F-1-S2.story_id",
+      "value": "EVAL-F-001-S2",
+      "note": "Align with canonical feature ID to remove duplication",
+      "iteration": 6
+    },
+    {
+      "path": "stories.EVAL-F-1-S3.story_id",
+      "value": "EVAL-F-001-S3",
+      "note": "Align with canonical feature ID to remove duplication",
+      "iteration": 6
+    },
+    {
+      "path": "stories.EVAL-F-1-S4.story_id",
+      "value": "EVAL-F-001-S4",
+      "note": "Align with canonical feature ID to remove duplication",
+      "iteration": 6
+    },
+    {
+      "path": "stories.EVAL-F-1-S5.story_id",
+      "value": "EVAL-F-001-S5",
+      "note": "Align with canonical feature ID to remove duplication",
+      "iteration": 6
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "EVAL-F-001-S1",
+      "title": "Define Clinical Trials Search Schema and Contract",
+      "description": "Define request and response schema for clinical trial search including condition, location, recruiting status, trial metadata, eligibility summary, and optional travel enrichment fields aligned with existing Pydantic models.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    {
+      "story_id": "EVAL-F-001-S2",
+      "title": "Implement ClinicalTrials.gov Search Logic",
+      "description": "Implement core logic to query ClinicalTrials.gov API with recruiting filter, parse results, normalize trial data, and extract structured fields including trial title, phase, status, locations, and eligibility summary.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-F-001-S3",
+      "title": "Add Travel Distance and Time Enrichment",
+      "description": "Integrate Google Routes API to compute travel distance and duration from user location to trial sites, and append structured travel burden data to each trial result.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-F-001-S4",
+      "title": "Expose Clinical Trials Search via Evaluate Care Facade",
+      "description": "Expose clinical trial search capability through EvaluateCare facade and tool router, enabling LLM tool-use invocation with validated inputs and structured outputs.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-001-S5",
+      "title": "Unit and Integration Tests for Clinical Trials Search",
+      "description": "Create unit tests for API parsing, normalization, and travel enrichment logic, plus integration tests validating end-to-end flow from facade to external APIs with mocked responses.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S2",
+        "EVAL-F-001-S3",
+        "EVAL-F-001-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  ]
+}

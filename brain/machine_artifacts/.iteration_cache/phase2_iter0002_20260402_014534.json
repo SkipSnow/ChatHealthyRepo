@@ -1,0 +1,64 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-TRAVEL-BURDEN-S1",
+      "title": "Travel Info Schema and Contract",
+      "description": "Define and validate response schema for travel burden including distance, duration, origin, destination, units, and error states. Ensure compatibility with clinical trial location structures and Pydantic models.",
+      "parent_feature": "EVAL-TRAVEL-BURDEN",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-TRAVEL-BURDEN-S2",
+      "title": "Core Travel Computation Logic",
+      "description": "Implement and harden _get_travel_info to call Google Routes API, compute distance and duration from user origin to each trial location, and support multiple locations per trial with aggregation or selection logic.",
+      "parent_feature": "EVAL-TRAVEL-BURDEN",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRAVEL-BURDEN-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (_get_travel_info)"
+    },
+    {
+      "story_id": "EVAL-TRAVEL-BURDEN-S3",
+      "title": "Evaluate Care Facade Integration",
+      "description": "Integrate travel burden outputs into evaluate_care_facade so each clinical trial result includes computed travel distance and duration fields in the response payload.",
+      "parent_feature": "EVAL-TRAVEL-BURDEN",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRAVEL-BURDEN-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-TRAVEL-BURDEN-S4",
+      "title": "Error Handling and Fallback Logic",
+      "description": "Implement resilient handling for Google Routes failures including timeouts, invalid/missing coordinates, and API errors. Ensure graceful degradation (omit or partially populate travel data without breaking trial results).",
+      "parent_feature": "EVAL-TRAVEL-BURDEN",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRAVEL-BURDEN-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-TRAVEL-BURDEN-S5",
+      "title": "Unit and Integration Tests for Travel Burden",
+      "description": "Develop unit tests for travel computation logic (distance, duration, multi-location handling) and integration tests validating end-to-end flow through evaluate_care_facade with mocked Google Routes responses.",
+      "parent_feature": "EVAL-TRAVEL-BURDEN",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRAVEL-BURDEN-S2",
+        "EVAL-TRAVEL-BURDEN-S3",
+        "EVAL-TRAVEL-BURDEN-S4"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing tests for travel computation; must be added under Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  ]
+}

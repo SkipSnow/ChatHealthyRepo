@@ -1,0 +1,80 @@
+{
+  "assignment_id": "GPTR-F-001-STORIES",
+  "iteration": 19,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing integration, error handling, and audit coverage for server-side enforcement.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-001-S73",
+      "value": "Integration with GPTReader execution pipeline",
+      "note": "Ensure enforcement is applied before any Mongo query execution",
+      "iteration": 19
+    },
+    {
+      "path": "stories.GPTR-F-001-S74",
+      "value": "Standardized rejection and error response contract",
+      "note": "Ensure consistent and safe failure handling",
+      "iteration": 19
+    },
+    {
+      "path": "stories.GPTR-F-001-S75",
+      "value": "Audit logging for allowlist enforcement decisions",
+      "note": "Add traceability for security and QA validation",
+      "iteration": 19
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GPTR-F-001-S73": {
+      "story_id": "GPTR-F-001-S73",
+      "title": "Execution Pipeline Integration Enforcement Gate",
+      "description": "Integrate allowlist enforcement into GPTReader execution flow to guarantee validation occurs before any MongoDB query or data access is performed, preventing bypass paths.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S71"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S74": {
+      "story_id": "GPTR-F-001-S74",
+      "title": "Standardized Enforcement Error Response Contract",
+      "description": "Define and implement a consistent error response schema for rejected requests including reason codes, safe messaging, and no data leakage to ensure predictable client handling and security compliance.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S70"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S75": {
+      "story_id": "GPTR-F-001-S75",
+      "title": "Allowlist Enforcement Audit Logging",
+      "description": "Log all enforcement decisions (accepted/rejected requests, rule violations, request metadata) to support auditability, SIT validation, and security review without exposing sensitive payload data.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S70"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

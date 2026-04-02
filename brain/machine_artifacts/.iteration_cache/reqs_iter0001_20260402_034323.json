@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-BOARD-001",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must define a typed UI contract object for board certification containing fields: certification_status, issuing_body, and score_contribution.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-002",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must constrain certification_status to a predefined enum set (e.g., certified, not_certified, unknown).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-003",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must define issuing_body as a string field with support for normalized display values.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-004",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must define score_contribution as a numeric field representing the contribution to overall provider score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-005",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must ensure the UI contract is compatible with the data structure returned by backend feature EVAL-P-MEASURE-BOARD.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-006",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must ensure the UI contract can be consumed by MessageBubble.tsx without requiring structural transformation outside the component.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-007",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must define optional/null handling for issuing_body when backend data is missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-008",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must define a default fallback value for certification_status when backend data is absent or undefined.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-009",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must ensure score_contribution is bounded within an expected range (e.g., 0 to 1 or 0 to 100) consistent with scoring standards.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-010",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must define the contract in a reusable type/interface that can be imported across frontend components.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-011",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must ensure the contract supports serialization/deserialization from JSON without loss of required fields.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-012",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must validate that all required fields (certification_status and score_contribution) are present before rendering.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-013",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must gracefully handle invalid certification_status values by mapping them to 'unknown'.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-014",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must handle exception where backend payload omits the entire certification object by providing a safe default contract.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-015",
+      "story_id": "EVAL-P-BOARD-UX-S1",
+      "requirement": "The system must handle exception where score_contribution is non-numeric by coercing or rejecting the value according to contract validation rules.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

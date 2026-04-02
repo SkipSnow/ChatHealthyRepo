@@ -1,0 +1,41 @@
+{
+  "assignment_id": "EVAL-PROVIDER-LINKS-STORIES",
+  "iteration": 8,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined existing stories to strengthen guidance clarity, edge-case handling, and alignment with URL validation + provider data dependencies. No new story IDs created.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S1.description",
+      "value": "Define a structured schema for external verification links including source (Healthgrades, NPI Registry, State Board), URL, label, guidance text, and a 'why this matters' field to help users interpret credibility and limitations of each source.",
+      "note": "Added explainability field for consumer trust",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S2.description",
+      "value": "Implement logic to construct external verification links from provider data (NPI, state), classify them by type with labels and guidance text, handle missing or unsupported state board mappings gracefully, and validate URLs using the URL guardian pipeline.",
+      "note": "Added edge-case handling for missing state mappings",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S3.description",
+      "value": "Integrate structured and validated external links into the provider detail response, ensuring alignment with provider quality data (NPI fields), and expose them through the EvaluateCare facade for frontend consumption.",
+      "note": "Tightened dependency alignment with provider quality data",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S4.description",
+      "value": "Render external verification links in the UI with clear labels, guidance text, and 'why this matters' explanations, ensuring safe link handling, sanitized rendering, and consistent UX for multiple link types.",
+      "note": "Added explainability and consistency requirement to UI",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-S5.description",
+      "value": "Create unit tests for link construction, classification, edge-case handling, and URL validation logic, plus integration tests validating end-to-end delivery and rendering of external links in provider detail responses.",
+      "note": "Expanded test coverage to include edge cases and rendering validation",
+      "iteration": 8
+    }
+  ]
+}

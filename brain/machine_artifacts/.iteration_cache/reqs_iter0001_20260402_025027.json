@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "PIPE-RX-REQ-001",
+      "story_id": "PIPE-RX-INGEST-S1",
+      "requirement": "The system must define a MongoDB collection named PublicHealthData.prescriptions with a formally declared schema object.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-REQ-002",
+      "story_id": "PIPE-RX-INGEST-S1",
+      "requirement": "The system must include a required NPI field in the schema and enforce it as a non-null string matching 10-digit format.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-REQ-003",
+      "story_id": "PIPE-RX-INGEST-S1",
+      "requirement": "The system must include drug identifier fields (at minimum drug_name or NDC) and enforce at least one identifier is present per document.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-REQ-004",
+      "story_id": "PIPE-RX-INGEST-S1",
+      "requirement": "The system must include numeric claim count fields and enforce they are integers greater than or equal to zero.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-REQ-005",
+      "story_id": "PIPE-RX-INGEST-S1",
+      "requirement": "The system must include a condition_taxonomy field derived from drug mapping and enforce it as a non-empty array of strings.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-REQ-006",
+      "story_id": "PIPE-RX-INGEST-S1",
+      "requirement": "The system must define validation rules compatible with ChatHealthyMongoUtilities.py and successfully register the schema through those utilities.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-REQ-007",
+      "story_id": "PIPE-RX-INGEST-S1",
+      "requirement": "The system must reject any document missing required fields (NPI, drug identifier, claim counts) during validation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-REQ-008",
+      "story_id": "PIPE-RX-INGEST-S1",
+      "requirement": "The system must reject any document where claim count fields contain non-numeric or negative values.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-REQ-009",
+      "story_id": "PIPE-RX-INGEST-S1",
+      "requirement": "The system must accept a valid sample prescription document that conforms to the schema without validation errors.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-REQ-010",
+      "story_id": "PIPE-RX-INGEST-S1",
+      "requirement": "The system must produce a schema definition file consistent in structure with Code/Schemas/ChatHealthy.Providers.json.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-REQ-011",
+      "story_id": "PIPE-RX-INGEST-S1",
+      "requirement": "The system must define an ingestion contract specifying required fields, optional fields, and field data types for incoming pipeline data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-REQ-012",
+      "story_id": "PIPE-RX-INGEST-S1",
+      "requirement": "The system must ensure the schema supports idempotent writes by allowing a deterministic compound key (e.g., NPI + drug identifier + reporting period).",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

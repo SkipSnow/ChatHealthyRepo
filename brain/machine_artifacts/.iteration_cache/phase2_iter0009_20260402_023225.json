@@ -1,0 +1,63 @@
+{
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-001-S1",
+      "title": "Define Tool Scope Enforcement Schema and Contract",
+      "description": "Define the contract for tool scope enforcement including allowed tool registry, scope boundaries per request, and validation rules for tool invocation. Ensure compatibility with existing Pydantic tool_models and allowlist dispatch patterns.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (allowlist dispatch present)"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S2",
+      "title": "Implement Server-Side Scope Enforcement in Tool Router",
+      "description": "Extend tool_router to enforce scope boundaries at runtime by validating each tool call against the allowlist and request-specific scope. Reject or block any tool invocation outside permitted scope before execution.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (allowlist dispatch present)"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S3",
+      "title": "Integrate Scope Enforcement with FastAPI Tool Execution Loop",
+      "description": "Ensure scope enforcement is applied consistently within the FastAPI request lifecycle and Claude tool-use loop in main.py, including proper error handling and user-safe responses when violations occur.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (agentic tool-use loop) + tool_router.py"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S4",
+      "title": "Unit and Integration Tests for Scope Enforcement",
+      "description": "Create tests validating that allowed tools execute successfully and out-of-scope tools are rejected. Include edge cases such as malformed tool calls and bypass attempts. Extend existing test_tool_router coverage.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S5",
+      "title": "Standardize Scope Violation Error Contract and Logging",
+      "description": "Define and implement a consistent error response contract for scope violations, including error codes, messages, and safe user-facing text. Integrate with debug_logger to record violations with metadata (tool name, request scope, rejection reason) for audit and debugging.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S2",
+        "BL-0.1.4-001-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py + tool_router.py"
+    }
+  ]
+}

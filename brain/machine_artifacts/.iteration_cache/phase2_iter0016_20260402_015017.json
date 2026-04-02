@@ -1,0 +1,102 @@
+{
+  "assignment_id": "EVAL-SPECIALTY-CREDIBILITY-STORIES",
+  "iteration": 16,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added required stories using existing IDs to avoid duplicates.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-SPECIALTY-CREDIBILITY-S1",
+      "value": "defined",
+      "note": "schema/contract story added",
+      "iteration": 16
+    },
+    {
+      "path": "stories.EVAL-SPECIALTY-CREDIBILITY-S2",
+      "value": "defined",
+      "note": "core logic story added",
+      "iteration": 16
+    },
+    {
+      "path": "stories.EVAL-SPECIALTY-CREDIBILITY-S3",
+      "value": "defined",
+      "note": "API exposure story added",
+      "iteration": 16
+    },
+    {
+      "path": "stories.EVAL-SPECIALTY-CREDIBILITY-S4",
+      "value": "defined",
+      "note": "UI rendering story added",
+      "iteration": 16
+    },
+    {
+      "path": "stories.EVAL-SPECIALTY-CREDIBILITY-S5",
+      "value": "defined",
+      "note": "tests and integration story added",
+      "iteration": 16
+    }
+  ],
+  "stories": {
+    "EVAL-SPECIALTY-CREDIBILITY-S1": {
+      "story_id": "EVAL-SPECIALTY-CREDIBILITY-S1",
+      "title": "Define Specialty Match Transparency Schema and Contract",
+      "description": "Define response schema exposing matched_classifications, source pipelines (regex, vector), and attribution flags for each classification.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py (matched_classifications, pipelines)"
+    },
+    "EVAL-SPECIALTY-CREDIBILITY-S2": {
+      "story_id": "EVAL-SPECIALTY-CREDIBILITY-S2",
+      "title": "Implement Dual-Pipeline Attribution Logic",
+      "description": "Extend specialty_service to tag each matched classification with originating pipeline(s) (regex, vector) and handle deduplication with combined attribution.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SPECIALTY-CREDIBILITY-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "EVAL-SPECIALTY-CREDIBILITY-S3": {
+      "story_id": "EVAL-SPECIALTY-CREDIBILITY-S3",
+      "title": "Expose Specialty Transparency via Facade/API",
+      "description": "Update find_care_facade and/or evaluate_care_facade to include specialty transparency fields in provider search responses without breaking existing contracts.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SPECIALTY-CREDIBILITY-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    "EVAL-SPECIALTY-CREDIBILITY-S4": {
+      "story_id": "EVAL-SPECIALTY-CREDIBILITY-S4",
+      "title": "Render Specialty Match Transparency in Chat UI",
+      "description": "Display matched specialties with indicators of how they were identified (regex, vector, or both) in MessageBubble or ChatWindow without cluttering UX.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SPECIALTY-CREDIBILITY-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    "EVAL-SPECIALTY-CREDIBILITY-S5": {
+      "story_id": "EVAL-SPECIALTY-CREDIBILITY-S5",
+      "title": "Unit and Integration Tests for Specialty Transparency",
+      "description": "Add tests validating pipeline attribution accuracy, schema contract compliance, and end-to-end propagation from specialty_service through API to UI.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SPECIALTY-CREDIBILITY-S2",
+        "EVAL-SPECIALTY-CREDIBILITY-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests + specialty_service.py"
+    }
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "assignment_id": "EVAL-F-03-STORIES",
+  "iteration": 28,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Expanded story set for facade orchestration to cover core logic, API integration, testing, and service integration.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-03-S79",
+      "value": "Add core orchestration logic story",
+      "note": "Minimum story count not met",
+      "iteration": 28
+    },
+    {
+      "path": "stories.EVAL-F-03-S80",
+      "value": "Add API/tool router integration story",
+      "note": "Ensure facade is callable from system",
+      "iteration": 28
+    },
+    {
+      "path": "stories.EVAL-F-03-S81",
+      "value": "Add integration with domain services story",
+      "note": "Explicit wiring to services required",
+      "iteration": 28
+    },
+    {
+      "path": "stories.EVAL-F-03-S82",
+      "value": "Add facade test coverage story",
+      "note": "Testing category required",
+      "iteration": 28
+    }
+  ],
+  "stories": {
+    "EVAL-F-03-S79": {
+      "story_id": "EVAL-F-03-S79",
+      "title": "Implement EvaluateCare Facade Orchestration Logic",
+      "description": "Implement orchestration logic within evaluate_care_facade to coordinate clinical trials search and provider detail lookup flows, including input validation, service invocation sequencing, and response shaping.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S78"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F-03-S80": {
+      "story_id": "EVAL-F-03-S80",
+      "title": "Integrate EvaluateCare Facade with Tool Router",
+      "description": "Expose EvaluateCare facade methods through the tool_router to enable agent tool-use flows for clinical trials search and provider evaluation, ensuring allowlist compliance and correct routing.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S79"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F-03-S81": {
+      "story_id": "EVAL-F-03-S81",
+      "title": "Wire Facade to Clinical Trials and Provider Services",
+      "description": "Connect EvaluateCare facade to clinical_trials_service and provider_detail_service, ensuring correct parameter mapping, error handling, and normalization of downstream responses.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S79"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-F-03-S82": {
+      "story_id": "EVAL-F-03-S82",
+      "title": "Add Unit and Integration Tests for EvaluateCare Facade",
+      "description": "Create unit and integration tests validating facade orchestration, including clinical trials queries, provider lookup, error paths, and tool router invocation behavior.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S80",
+        "EVAL-F-03-S81"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  },
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

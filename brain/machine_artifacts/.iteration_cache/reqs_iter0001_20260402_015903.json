@@ -1,0 +1,133 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-REL-004-REQ-001",
+      "story_id": "EVAL-CT-REL-004",
+      "requirement": "The system must include a relevance_score field in each clinical trial object returned by evaluate_care_facade.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-004-REQ-002",
+      "story_id": "EVAL-CT-REL-004",
+      "requirement": "The system must preserve the original response structure from evaluate_care_facade while adding the relevance_score field without removing existing fields.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-004-REQ-003",
+      "story_id": "EVAL-CT-REL-004",
+      "requirement": "The system must map the relevance_score from clinical_trials_service output directly to the facade response without transformation that alters its numeric value.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-004-REQ-004",
+      "story_id": "EVAL-CT-REL-004",
+      "requirement": "The system must ensure relevance_score is a normalized numeric value between 0 and 1 in the facade response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-004-REQ-005",
+      "story_id": "EVAL-CT-REL-004",
+      "requirement": "The system must include relevance_score for all trials when clinical_trials_service provides the value (happy path full propagation).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-004-REQ-006",
+      "story_id": "EVAL-CT-REL-004",
+      "requirement": "The system must omit or set relevance_score to null when the upstream service does not provide a score (exception path: missing score).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-004-REQ-007",
+      "story_id": "EVAL-CT-REL-004",
+      "requirement": "The system must not fail the entire facade response if relevance_score is missing for one or more trials.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-004-REQ-008",
+      "story_id": "EVAL-CT-REL-004",
+      "requirement": "The system must maintain consistent field naming (relevance_score) across all clinical trial responses returned to the chat layer.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-004-REQ-009",
+      "story_id": "EVAL-CT-REL-004",
+      "requirement": "The system must ensure the relevance_score field is serializable in JSON without causing schema validation errors.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-004-REQ-010",
+      "story_id": "EVAL-CT-REL-004",
+      "requirement": "The system must include relevance_score in responses consumed by the chat layer such that downstream LLM prompts can access it.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-004-REQ-011",
+      "story_id": "EVAL-CT-REL-004",
+      "requirement": "The system must present relevance_score as a machine-readable numeric field rather than embedded text to support LLM reasoning.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-004-REQ-012",
+      "story_id": "EVAL-CT-REL-004",
+      "requirement": "The system must ensure relevance_score is consistently included in all trials within the same response to avoid LLM inconsistency during comparison.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-004-REQ-013",
+      "story_id": "EVAL-CT-REL-004",
+      "requirement": "The system must not round or truncate relevance_score in a way that materially reduces precision needed for LLM ranking decisions.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-004-REQ-014",
+      "story_id": "EVAL-CT-REL-004",
+      "requirement": "The system must ensure relevance_score is aligned with the schema defined in EVAL-CT-REL-001 (contract consistency).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-004-REQ-015",
+      "story_id": "EVAL-CT-REL-004",
+      "requirement": "The system must handle invalid relevance_score values from upstream (e.g., <0 or >1) by setting the field to null and not propagating invalid data (exception path: invalid score).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-REL-004-REQ-016",
+      "story_id": "EVAL-CT-REL-004",
+      "requirement": "The system must allow the chat layer to sort or rank trials using relevance_score without additional transformation.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,149 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-RX-001",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define a typed frontend data contract object for prescription behavior with fields: relevance_indicator, top_drugs, integrity_flag, and score_contribution.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-002",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure the relevance_indicator field supports a finite enum set (e.g., high, medium, low, none).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-003",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define top_drugs as an ordered array of drug objects with fields: name, relevance_score, and optional metadata.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-004",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure the top_drugs array supports a maximum length constraint aligned with design_eval_p_rx_drug_mapping.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-005",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define integrity_flag as a strict enum with values clean or flagged.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-006",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define score_contribution as a numeric field representing contribution to overall provider score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-007",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure the data contract is compatible with backend payload structure from EVAL-P-RX without requiring additional transformation at render time.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-008",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define optional fields to handle missing backend data without breaking MessageBubble rendering.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-009",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must include a version or schema identifier in the contract to support future backward compatibility.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-010",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must validate that incoming backend data can be mapped 1:1 into the defined contract fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-011",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must handle the exception case where top_drugs is empty by allowing an empty array and still producing a valid contract object.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-012",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must handle the exception case where integrity_flag is missing by defaulting to flagged.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-013",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure the contract structure is serializable to JSON for transport in chat response payloads.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-014",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure field names and structure align with MessageBubble.tsx consumption patterns.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-015",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define clear nullability rules for each field in the contract.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-016",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure the contract supports deterministic rendering (same input produces same structured output).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-017",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure no extraneous fields outside the defined schema are required for rendering prescription behavior.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-018",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure the contract can be extended without breaking existing consumers.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

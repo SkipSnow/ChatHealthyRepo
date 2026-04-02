@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-001",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must render a board certification section within the provider scorecard inside MessageBubble when certification data is present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-002",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must display a certification status badge (e.g., Certified, Not Certified) derived from the normalized logic output.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-003",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must visually differentiate certification status using distinct styles for positive vs negative states (e.g., color or icon).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-004",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must render the issuing body text exactly as provided by the normalized logic layer.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-005",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must display the certification’s contribution to the overall score in a human-readable format (e.g., +X points or included in score).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-006",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must position the board certification section consistently within the provider scorecard layout without breaking existing MessageBubble rendering.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-007",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must not render the board certification section if certification data is absent or null.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-008",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must render a fallback label (e.g., \"Certification data unavailable\") if certification status is missing but the section is invoked.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-009",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must handle long issuing body text without UI overflow by wrapping or truncating according to MessageBubble constraints.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-010",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must render the certification section within the existing MessageBubble component without introducing rendering errors or crashes.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-011",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must ensure the certification section is readable on all supported screen sizes (responsive within MessageBubble constraints).",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-UX-012",
+      "story_id": "EVAL-P-BOARD-UX-S3",
+      "requirement": "The system must render the certification section within 100ms of MessageBubble render time budget under normal conditions.",
+      "source": "architecture_constraint",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

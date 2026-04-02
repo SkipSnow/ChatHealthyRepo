@@ -1,0 +1,64 @@
+{
+  "stories": [
+    {
+      "story_id": "MAINT-TIMEOUT-S1",
+      "title": "Timeout UX Contract and State Schema",
+      "description": "Define and normalize frontend state schema for timeout handling including states (pending, timed_out, continued, abandoned), timer threshold (45s), retry intent flag, and modal visibility. Ensure compatibility with existing ChatWindow state and AbortController lifecycle.",
+      "parent_feature": "MAINT-TIMEOUT",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    },
+    {
+      "story_id": "MAINT-TIMEOUT-S2",
+      "title": "Core Timeout Detection and Control Logic",
+      "description": "Implement 45-second timeout detection with safe cleanup, ensuring timers are cleared on response, cancel, or retry. Prevent duplicate in-flight requests and enforce single active request using AbortController.",
+      "parent_feature": "MAINT-TIMEOUT",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-TIMEOUT-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    },
+    {
+      "story_id": "MAINT-TIMEOUT-S3",
+      "title": "Timeout Modal UI (Continue / Abandon)",
+      "description": "Render timeout modal with clear user actions: continue waiting (no new request) or abandon (cancel request). Ensure consistent messaging and seamless UX transitions without breaking chat flow.",
+      "parent_feature": "MAINT-TIMEOUT",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-TIMEOUT-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    },
+    {
+      "story_id": "MAINT-TIMEOUT-S4",
+      "title": "Timeout Handling Test Coverage",
+      "description": "Add unit and component tests validating timeout trigger, modal rendering, continue (no duplicate request), and abandon (AbortController invoked). Include edge cases for rapid responses and repeated retries.",
+      "parent_feature": "MAINT-TIMEOUT",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-TIMEOUT-S2",
+        "MAINT-TIMEOUT-S3"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing frontend test coverage for ChatWindow timeout behavior; requires new tests"
+    },
+    {
+      "story_id": "MAINT-TIMEOUT-S5",
+      "title": "End-to-End Integration with Chat Request Lifecycle",
+      "description": "Integrate timeout handling across full chat lifecycle: message send, streaming/response wait, timeout, user decision, and final resolution. Ensure idempotency, no duplicated backend calls, and correct state recovery after continue/abandon.",
+      "parent_feature": "MAINT-TIMEOUT",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-TIMEOUT-S2",
+        "MAINT-TIMEOUT-S3"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    }
+  ]
+}

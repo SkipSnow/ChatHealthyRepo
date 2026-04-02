@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CONF-REQ-001",
+      "story_id": "EVAL-CONF-ST-002",
+      "requirement": "The system must compute a completeness score based on the proportion of required data fields that are present versus missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-002",
+      "story_id": "EVAL-CONF-ST-002",
+      "requirement": "The system must normalize the completeness score to a 0–1 scale.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-003",
+      "story_id": "EVAL-CONF-ST-002",
+      "requirement": "The system must compute a recency score based on the age of the underlying data relative to a defined freshness threshold.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-004",
+      "story_id": "EVAL-CONF-ST-002",
+      "requirement": "The system must normalize the recency score to a 0–1 scale where more recent data yields higher values.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-005",
+      "story_id": "EVAL-CONF-ST-002",
+      "requirement": "The system must compute an agreement score based on variance or dispersion across contributing quality measures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-006",
+      "story_id": "EVAL-CONF-ST-002",
+      "requirement": "The system must normalize the agreement score to a 0–1 scale where lower variance yields higher agreement.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-007",
+      "story_id": "EVAL-CONF-ST-002",
+      "requirement": "The system must combine completeness, recency, and agreement scores into a single confidence score using a deterministic formula.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-008",
+      "story_id": "EVAL-CONF-ST-002",
+      "requirement": "The system must ensure the final confidence score is normalized to a 0–1 scale.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-009",
+      "story_id": "EVAL-CONF-ST-002",
+      "requirement": "The system must produce identical confidence scores when given identical input data (deterministic behavior).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-010",
+      "story_id": "EVAL-CONF-ST-002",
+      "requirement": "The system must handle missing optional data fields without failing and adjust the completeness score accordingly.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-011",
+      "story_id": "EVAL-CONF-ST-002",
+      "requirement": "The system must return a confidence score of 0 when all required data fields are missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-012",
+      "story_id": "EVAL-CONF-ST-002",
+      "requirement": "The system must degrade the recency score when data age exceeds the defined freshness threshold.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-013",
+      "story_id": "EVAL-CONF-ST-002",
+      "requirement": "The system must handle invalid or non-numeric measure inputs by excluding them from agreement calculation and logging the event.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-014",
+      "story_id": "EVAL-CONF-ST-002",
+      "requirement": "The system must return a valid confidence score even when only one component (completeness, recency, or agreement) is available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-015",
+      "story_id": "EVAL-CONF-ST-002",
+      "requirement": "The system must ensure the confidence calculation executes within acceptable performance bounds for synchronous API usage.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

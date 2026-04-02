@@ -1,0 +1,133 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-SPC-002-REQ-001",
+      "story_id": "EVAL-SPC-002",
+      "requirement": "The system must compute a specialty match score between 0.0 and 1.0 for each provider based on user-requested specialty input.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-002-REQ-002",
+      "story_id": "EVAL-SPC-002",
+      "requirement": "The system must assign the highest weight to exact matches between user-requested specialty terms and provider NUCC taxonomy descriptions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-002-REQ-003",
+      "story_id": "EVAL-SPC-002",
+      "requirement": "The system must assign a lower weight to partial matches where user terms partially overlap with NUCC taxonomy descriptions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-002-REQ-004",
+      "story_id": "EVAL-SPC-002",
+      "requirement": "The system must assign the lowest non-zero weight to inferred matches derived from vector-based semantic similarity.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-002-REQ-005",
+      "story_id": "EVAL-SPC-002",
+      "requirement": "The system must integrate both regex-based and vector-based matching outputs into a unified scoring calculation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-002-REQ-006",
+      "story_id": "EVAL-SPC-002",
+      "requirement": "The system must normalize all computed scores to ensure the final score does not exceed 1.0.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-002-REQ-007",
+      "story_id": "EVAL-SPC-002",
+      "requirement": "The system must return a score of 0.0 when no regex or vector matches are found.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-002-REQ-008",
+      "story_id": "EVAL-SPC-002",
+      "requirement": "The system must support multiple NUCC taxonomy codes per provider and aggregate their contributions into a single score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-002-REQ-009",
+      "story_id": "EVAL-SPC-002",
+      "requirement": "The system must prioritize the highest scoring NUCC match when multiple matches exist for a provider.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-002-REQ-010",
+      "story_id": "EVAL-SPC-002",
+      "requirement": "The system must produce intermediate scoring components (exact, partial, inferred) to support downstream explanation generation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-002-REQ-011",
+      "story_id": "EVAL-SPC-002",
+      "requirement": "The system must handle user input containing multiple specialties or conditions and compute a composite score.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-002-REQ-012",
+      "story_id": "EVAL-SPC-002",
+      "requirement": "The system must use the existing specialty_service dual-pipeline (regex + vector) without removing or bypassing either method.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-002-REQ-013",
+      "story_id": "EVAL-SPC-002",
+      "requirement": "The system must return consistent scores for identical inputs across repeated executions.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-002-REQ-014",
+      "story_id": "EVAL-SPC-002",
+      "requirement": "The system must handle empty or null user specialty input by returning a score of 0.0 and no matches.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-002-REQ-015",
+      "story_id": "EVAL-SPC-002",
+      "requirement": "The system must handle malformed or non-string user input by safely defaulting to a score of 0.0 without throwing an unhandled exception.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-002-REQ-016",
+      "story_id": "EVAL-SPC-002",
+      "requirement": "The system must ensure scoring execution completes within acceptable latency for synchronous evaluation workflows.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

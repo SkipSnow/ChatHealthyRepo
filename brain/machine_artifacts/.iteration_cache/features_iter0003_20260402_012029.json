@@ -1,0 +1,53 @@
+{
+  "features": [
+    {
+      "feature_id": "EVAL-P-MEASURE-CREDENTIALS",
+      "name": "Provider Credential Completeness Measure",
+      "epic_id": "EPIC-1",
+      "layer": "backend",
+      "capability": "Providers",
+      "description": "Scores provider based on completeness and presence of credential fields (degrees, licenses, taxonomy codes) from NPI data as a proxy for profile reliability and legitimacy.",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (NPI Registry CMS API lookup returns credential and taxonomy data)",
+      "backend_dependencies": [],
+      "priority": "HIGH",
+      "status": "proposed"
+    },
+    {
+      "feature_id": "EVAL-P-MEASURE-FRESHNESS",
+      "name": "Provider Data Freshness Measure",
+      "epic_id": "EPIC-1",
+      "layer": "backend",
+      "capability": "Providers",
+      "description": "Scores provider based on recency of NPI record updates (e.g., last updated timestamp) to prioritize actively maintained records.",
+      "evidence": "ASSUMPTION: NPI Registry API includes last updated date field; required to verify in provider_detail_service response schema. GAP: confirm field availability and mapping.",
+      "backend_dependencies": [],
+      "priority": "MEDIUM",
+      "status": "proposed"
+    },
+    {
+      "feature_id": "EVAL-CT-MEASURE-PROXIMITY",
+      "name": "Clinical Trial Proximity Measure",
+      "epic_id": "EPIC-1",
+      "layer": "backend",
+      "capability": "Clinical Trials",
+      "description": "Scores trials based on travel distance and duration from user location using Google Routes integration.",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (Google Routes travel distance+duration)",
+      "backend_dependencies": [],
+      "priority": "HIGH",
+      "status": "proposed"
+    },
+    {
+      "feature_id": "EVAL-CT-MEASURE-RECENCY",
+      "name": "Clinical Trial Recency Measure",
+      "epic_id": "EPIC-1",
+      "layer": "backend",
+      "capability": "Clinical Trials",
+      "description": "Scores trials based on how recently results were posted or last updated, favoring current and actively maintained studies.",
+      "evidence": "ASSUMPTION: ClinicalTrials.gov API returns last update or results posting date. GAP: confirm field availability in clinical_trials_models or API response.",
+      "backend_dependencies": [],
+      "priority": "MEDIUM",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

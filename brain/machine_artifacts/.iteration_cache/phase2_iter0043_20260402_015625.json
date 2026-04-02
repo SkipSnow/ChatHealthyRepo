@@ -1,0 +1,54 @@
+{
+  "stories": [
+    {
+      "story_id": "FEAT-3-S153",
+      "title": "Clinical Trials Input/Output Schema Validation",
+      "description": "Define and enforce Pydantic models for clinical trial search inputs and normalized outputs, including condition, location, recruiting flag, and enriched distance fields.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S149"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    {
+      "story_id": "FEAT-3-S154",
+      "title": "Evaluate Care Facade Integration for Clinical Trials",
+      "description": "Integrate clinical trials search service into EvaluateCare facade, enabling orchestrated calls from the application layer and standardized response formatting for downstream tool usage.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S151"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "FEAT-3-S155",
+      "title": "Tool Router Exposure for Clinical Trials Search",
+      "description": "Expose clinical trials search as an allowlisted tool via the tool router with validated inputs, enabling LLM-driven invocation within the chat workflow.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S153",
+        "FEAT-3-S154"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-3-S156",
+      "title": "Unit and Integration Tests for Clinical Trials Search",
+      "description": "Create unit tests for query building, parsing, and distance computation, plus integration tests covering facade orchestration and tool invocation paths with mocked external APIs.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S152",
+        "FEAT-3-S155"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing clinical trials test file; must create backend/tests/test_clinical_trials_service.py and integration coverage"
+    }
+  ]
+}

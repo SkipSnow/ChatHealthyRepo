@@ -1,0 +1,80 @@
+{
+  "assignment_id": "MAINT-TIMEOUT-STORIES",
+  "iteration": 12,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined core logic to explicitly include request correlation for idempotent resume.",
+  "change_log": [
+    {
+      "path": "stories.MAINT-TIMEOUT-S2.description",
+      "value": "Adds request correlation (requestId) to ensure idempotent resume and prevent duplicate responses across retries/continues.",
+      "note": "Eliminates ambiguity in duplicate response prevention",
+      "iteration": 12
+    }
+  ],
+  "stories": {
+    "MAINT-TIMEOUT-S1": {
+      "story_id": "MAINT-TIMEOUT-S1",
+      "title": "Define Timeout State Schema and UX Contract",
+      "description": "Define frontend state model for long-running requests including timeout threshold, modal visibility, retry state, aborted request flags, and idempotent resume behavior. Establish contract for continue vs abandon behavior including state persistence across re-renders.",
+      "parent_feature": "MAINT-TIMEOUT",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    },
+    "MAINT-TIMEOUT-S2": {
+      "story_id": "MAINT-TIMEOUT-S2",
+      "title": "Implement Timeout Detection and Retry Logic",
+      "description": "Implement core logic using timers and AbortController to detect long-running requests (~45s), trigger timeout state, and manage request lifecycle with a unique requestId for idempotent resume. Ensure continue action does not duplicate backend calls or UI messages, and abandon safely cancels and cleans up pending promises and state.",
+      "parent_feature": "MAINT-TIMEOUT",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-TIMEOUT-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    },
+    "MAINT-TIMEOUT-S3": {
+      "story_id": "MAINT-TIMEOUT-S3",
+      "title": "Build Timeout Modal UI and User Actions",
+      "description": "Implement timeout modal with clear messaging and actions: Continue waiting or Abandon request. Ensure proper UX state transitions, accessibility (focus trap, keyboard actions), and message continuity without disrupting chat history.",
+      "parent_feature": "MAINT-TIMEOUT",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-TIMEOUT-S1",
+        "MAINT-TIMEOUT-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    },
+    "MAINT-TIMEOUT-S4": {
+      "story_id": "MAINT-TIMEOUT-S4",
+      "title": "Unit Tests for Timeout and Abort Scenarios",
+      "description": "Create unit tests for timeout trigger timing, AbortController cancellation, retry/continue flows, requestId correlation, and state transitions including edge cases (rapid user actions, duplicate prevention, unmounted component cleanup).",
+      "parent_feature": "MAINT-TIMEOUT",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-TIMEOUT-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    },
+    "MAINT-TIMEOUT-S5": {
+      "story_id": "MAINT-TIMEOUT-S5",
+      "title": "End-to-End Integration of Timeout UX Flow",
+      "description": "Validate full flow from user message submission through long-running backend response, timeout modal display, user decision (continue/abandon), and final UI state consistency ensuring no duplicate responses, no orphaned requests, and correct reconciliation of late-arriving responses.",
+      "parent_feature": "MAINT-TIMEOUT",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-TIMEOUT-S2",
+        "MAINT-TIMEOUT-S3",
+        "MAINT-TIMEOUT-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    }
+  }
+}

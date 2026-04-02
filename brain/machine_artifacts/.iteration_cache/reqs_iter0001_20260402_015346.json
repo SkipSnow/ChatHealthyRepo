@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-001",
+      "story_id": "EVAL-CT-STATUS-001",
+      "requirement": "The system must define a fixed enumeration of clinical trial statuses including RECRUITING, ACTIVE_NOT_RECRUITING, COMPLETED, TERMINATED, and UNKNOWN.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-002",
+      "story_id": "EVAL-CT-STATUS-001",
+      "requirement": "The system must assign a numeric score weight to each status category in the schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-003",
+      "story_id": "EVAL-CT-STATUS-001",
+      "requirement": "The system must ensure score weights are normalized to a consistent range (e.g., 0.0 to 1.0).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-004",
+      "story_id": "EVAL-CT-STATUS-001",
+      "requirement": "The system must define RECRUITING as the highest-weighted status in the schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-005",
+      "story_id": "EVAL-CT-STATUS-001",
+      "requirement": "The system must define TERMINATED as lower-weighted than COMPLETED in the schema.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-006",
+      "story_id": "EVAL-CT-STATUS-001",
+      "requirement": "The system must include an explicit mapping field in the schema linking raw API status values to normalized status categories.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-007",
+      "story_id": "EVAL-CT-STATUS-001",
+      "requirement": "The system must define an output contract that includes at minimum: normalized_status, score, and original_status.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-008",
+      "story_id": "EVAL-CT-STATUS-001",
+      "requirement": "The system must ensure the output contract is serializable as JSON for downstream consumers.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-009",
+      "story_id": "EVAL-CT-STATUS-001",
+      "requirement": "The system must document the schema structure and field definitions within the codebase for developer reference.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-010",
+      "story_id": "EVAL-CT-STATUS-001",
+      "requirement": "The system must default to UNKNOWN status when an input status value does not match any defined category.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-011",
+      "story_id": "EVAL-CT-STATUS-001",
+      "requirement": "The system must assign a valid score weight to UNKNOWN status within the normalized range.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-012",
+      "story_id": "EVAL-CT-STATUS-001",
+      "requirement": "The system must ensure that the schema supports deterministic lookup of score weight by normalized status.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-013",
+      "story_id": "EVAL-CT-STATUS-001",
+      "requirement": "The system must handle null or missing status inputs by mapping them to UNKNOWN without throwing an error.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-014",
+      "story_id": "EVAL-CT-STATUS-001",
+      "requirement": "The system must prevent undefined or extra status categories from being included in the schema at runtime.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,62 @@
+{
+  "assignment_id": "SHARED-F-2-STORIES",
+  "iteration": 9,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Previous iteration under-delivered story count (2 < minimum 3)"
+  ],
+  "notes": "Added missing stories to complete schema/contract and API/integration coverage.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-2-S25",
+      "value": "Consent Schema and Storage Contract",
+      "note": "Add schema layer story",
+      "iteration": 9
+    },
+    {
+      "path": "stories.SHARED-F-2-S26",
+      "value": "Consent API and Tool Router Integration",
+      "note": "Add API/integration story",
+      "iteration": 9
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "SHARED-F-2-S25": {
+      "story_id": "SHARED-F-2-S25",
+      "title": "Consent Schema and Storage Contract",
+      "description": "Define and implement the data schema and storage contract for consent records, including tier designation, timestamping, user/session linkage, and flags for de-identified vs full data storage. Ensure compatibility with MongoDB persistence patterns and downstream services (lead capture, debug logging).",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; Code/Shared/ChatHealthyMongoUtilities.py"
+    },
+    "SHARED-F-2-S26": {
+      "story_id": "SHARED-F-2-S26",
+      "title": "Consent API and Tool Router Integration",
+      "description": "Expose consent framework via backend API endpoints and integrate enforcement into tool_router to ensure all tool executions respect consent tier. Include request validation, consent gating before tool execution, and propagation of consent state through chat sessions.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S23"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/main.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

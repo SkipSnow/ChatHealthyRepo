@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CRED-REQ-001",
+      "story_id": "EVAL-CRED-004",
+      "requirement": "The system must include a unit test that returns a maximum completeness score when all credential fields (degrees, licenses, taxonomy codes) are fully populated.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-002",
+      "story_id": "EVAL-CRED-004",
+      "requirement": "The system must include a unit test that returns a partial completeness score when at least one credential field is missing but others are present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-003",
+      "story_id": "EVAL-CRED-004",
+      "requirement": "The system must include a unit test that returns a minimum or zero completeness score when all credential fields are missing or null.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-004",
+      "story_id": "EVAL-CRED-004",
+      "requirement": "The system must include a unit test verifying that the scoring output is deterministic given identical input data across multiple executions.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-005",
+      "story_id": "EVAL-CRED-004",
+      "requirement": "The system must include a unit test validating correct handling of empty arrays for taxonomy codes without causing errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-006",
+      "story_id": "EVAL-CRED-004",
+      "requirement": "The system must include a unit test validating correct handling of multiple entries in credential fields (e.g., multiple licenses) without double-counting beyond defined weights.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-007",
+      "story_id": "EVAL-CRED-004",
+      "requirement": "The system must include a unit test confirming that null or missing fields do not cause runtime exceptions in the scoring logic.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-008",
+      "story_id": "EVAL-CRED-004",
+      "requirement": "The system must include a unit test verifying that the output score is normalized within the defined range (0–1 or 0–100) for all input scenarios.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-009",
+      "story_id": "EVAL-CRED-004",
+      "requirement": "The system must include a unit test validating that the component breakdown (degrees, licenses, taxonomy) sums correctly to the final completeness score.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-010",
+      "story_id": "EVAL-CRED-004",
+      "requirement": "The system must include a unit test ensuring that invalid data types (e.g., string instead of array for taxonomy) are handled gracefully or rejected according to contract.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-011",
+      "story_id": "EVAL-CRED-004",
+      "requirement": "The system must include a unit test verifying consistent scoring when input field order varies (e.g., reordered taxonomy entries).",
+      "source": "feature",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CRED-REQ-012",
+      "story_id": "EVAL-CRED-004",
+      "requirement": "The system must include a unit test confirming that partial data with only one populated field produces a score proportional to the defined weighting logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

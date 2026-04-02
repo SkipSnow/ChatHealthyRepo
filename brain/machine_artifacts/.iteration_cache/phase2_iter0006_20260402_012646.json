@@ -1,0 +1,107 @@
+{
+  "assignment_id": "EVAL-WEIGHTS-STORIES",
+  "iteration": 6,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories created for EVAL-WEIGHTS with full coverage: schema, logic, API/UI, integration, tests.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-WEIGHTS-S1",
+      "value": "Added schema/contract story",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    },
+    {
+      "path": "stories.EVAL-WEIGHTS-S2",
+      "value": "Added core logic story",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    },
+    {
+      "path": "stories.EVAL-WEIGHTS-S3",
+      "value": "Added API/UI story",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    },
+    {
+      "path": "stories.EVAL-WEIGHTS-S4",
+      "value": "Added integration story",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    },
+    {
+      "path": "stories.EVAL-WEIGHTS-S5",
+      "value": "Added test suite story",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "EVAL-WEIGHTS-S1",
+      "title": "Define Weighting Schema and Persistence Contract",
+      "description": "Define data model for user-specific measure weights including defaults, normalization rules, and storage schema. Establish contract for how weights map to scoring inputs for both provider and clinical trial scoring engines.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "GAP: No weighting or preference persistence system exists; schema must be created for user-defined weights and mapping to scoring inputs"
+    },
+    {
+      "story_id": "EVAL-WEIGHTS-S2",
+      "title": "Implement Weighted Scoring Adjustment Logic",
+      "description": "Build core logic to apply user-defined weights to underlying quality measures and recalculate composite scores deterministically for providers and clinical trials.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-SCORE-PROV",
+        "EVAL-SCORE-CT"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (existing scoring flow to extend) + GAP: no weighting logic currently applied"
+    },
+    {
+      "story_id": "EVAL-WEIGHTS-S3",
+      "title": "Expose Weight Configuration API and UI Controls",
+      "description": "Create backend endpoints to save/retrieve user weights and frontend controls (sliders or inputs) to adjust measure importance. Ensure immediate feedback loop triggers score recalculation.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S1",
+        "EVAL-WEIGHTS-S2"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx (UI extension point) + GAP: no existing preference UI or API endpoints"
+    },
+    {
+      "story_id": "EVAL-WEIGHTS-S4",
+      "title": "Integrate Weighting into Evaluate Care Facade Flow",
+      "description": "Modify evaluate_care_facade to incorporate user weights into scoring requests and ensure consistent behavior across provider and clinical trial evaluation paths.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S2",
+        "EVAL-SCORE-PROV",
+        "EVAL-SCORE-CT"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-WEIGHTS-S5",
+      "title": "Weighting Logic Unit and Integration Test Suite",
+      "description": "Develop tests validating weight normalization, score recalculation accuracy, persistence, and end-to-end flow from UI input to updated scores.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S2",
+        "EVAL-WEIGHTS-S3",
+        "EVAL-WEIGHTS-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ (existing testing patterns) + GAP: no tests for weighting behavior"
+    }
+  ]
+}

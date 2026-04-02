@@ -1,0 +1,75 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 42,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Adds core logic, facade integration, API exposure, and limitations handling for explainability.",
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F5-S140",
+      "title": "Implement Explainability Mapping Logic",
+      "description": "Build backend logic to map raw evaluation signals from provider and clinical trial services into the standardized explainability schema, including population of source, meaning, and limitations fields.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S137",
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F5-S141",
+      "title": "Integrate Explainability into EvaluateCareFacade",
+      "description": "Extend EvaluateCareFacade to attach explainability metadata to all outbound evaluation responses for providers and clinical trials, ensuring consistent orchestration across signals.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S140"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F5-S142",
+      "title": "Expose Explainability in API Responses",
+      "description": "Update API response contracts and tool outputs to include explainability fields, ensuring compatibility with tool_router and downstream chat rendering.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S141"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "EVAL-F5-S143",
+      "title": "Standardize Limitations and Disclaimers",
+      "description": "Define and implement consistent limitations/disclaimer text for each evaluation signal type (e.g., NPI data freshness, external link reliability, trial eligibility variability) within the explainability layer.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S140"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

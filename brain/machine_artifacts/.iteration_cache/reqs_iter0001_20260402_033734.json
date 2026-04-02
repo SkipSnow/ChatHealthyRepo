@@ -1,0 +1,213 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define a typed frontend data contract object for prescription behavior with fields: relevance_indicator, top_drugs, integrity_flag, and score_contribution.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure the relevance_indicator field supports discrete UI states (e.g., high, medium, low) as defined in design/design_eval_p_rx_drug_mapping.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define top_drugs as an ordered array of drug objects including at minimum name and relevance_score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must constrain the top_drugs array to a maximum length consistent with UI display limits (<=5).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define integrity_flag as an enum with allowed values: clean and flagged.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define score_contribution as a numeric field normalized to the provider score scale used in MessageBubble rendering.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure the contract is compatible with backend payload structure from EVAL-P-RX without requiring additional transformation for field presence.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must validate that all required fields (relevance_indicator, integrity_flag, score_contribution) are non-null in the happy path.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must allow top_drugs to be an empty array when no relevant drugs are identified without breaking the contract.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define a fallback default for integrity_flag as flagged when backend data is missing or invalid.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define a fallback default for relevance_indicator as low when backend data is missing or invalid.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must support serialization of the contract into JSON compatible with MessageBubble.tsx input schema.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure the contract structure is extensible to include additional fields without breaking existing consumers.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must include explicit field-level documentation for each contract property to support frontend and backend alignment.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must reject contract objects that contain unknown enum values for integrity_flag.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-016",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must define deterministic mapping rules for converting backend drug relevance scores into frontend relevance_indicator categories.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-017",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure that score_contribution values are bounded within an expected numeric range (e.g., 0 to 1 or 0 to 100).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-018",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure the contract can be consumed by an LLM without ambiguity in field naming or meaning.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-019",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must use semantically explicit field names that minimize LLM misinterpretation (e.g., avoid overloaded or vague terms).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-020",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must structure top_drugs entries so that each drug is independently interpretable by an LLM without reliance on positional context.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-021",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must avoid nested or deeply hierarchical structures that reduce LLM parsing reliability.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-022",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure that all enum values are human-readable and LLM-friendly (no abbreviations or codes).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-023",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure that missing optional fields do not change the semantic meaning of remaining fields for LLM interpretation.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-024",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must include explicit boolean or categorical indicators rather than requiring LLM inference from numeric values alone.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-025",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure consistent ordering of fields in the contract to support deterministic LLM outputs.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-026",
+      "story_id": "EVAL-P-RX-UX-S1",
+      "requirement": "The system must ensure that each field in the contract has a single, unambiguous meaning to prevent LLM hallucination.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

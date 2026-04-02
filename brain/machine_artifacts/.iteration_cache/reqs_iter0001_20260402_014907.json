@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-SPC-003-REQ-001",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must invoke the specialty match scoring logic during evaluate_care_facade execution for each provider in the evaluation request.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-002",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must include a specialty_match object in the provider evaluation response payload.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-003",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must populate specialty_match.score with a numeric value between 0 and 1 inclusive.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-004",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must include requested_specialty in the specialty_match metadata as provided in the evaluation input.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-005",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must include matched_nucc_codes in the specialty_match metadata when matches are found.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-006",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must preserve existing evaluate_care_facade response structure and fields without breaking backward compatibility.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-007",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must attach specialty_match results to each provider independently when multiple providers are evaluated in a single request.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-008",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must not block or fail the overall evaluation response if specialty scoring computation fails for a single provider.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-009",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must return specialty_match.score = 0 when no specialty match is identified for a provider.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-010",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must include explanation metadata in specialty_match describing whether the match was exact, partial, or inferred.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-011",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must handle missing or null requested specialty input by returning specialty_match as null without raising an exception.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-012",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must log an error event when specialty scoring logic fails but continue processing remaining providers.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-013",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must ensure specialty_match schema conforms to the contract defined in EVAL-SPC-001.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-014",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must integrate specialty scoring without increasing evaluate_care_facade response latency beyond acceptable thresholds defined for provider evaluation.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}
