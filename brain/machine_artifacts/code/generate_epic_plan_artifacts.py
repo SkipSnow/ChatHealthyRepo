@@ -9,6 +9,8 @@ from pathlib import Path
 from docx import Document
 from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 
 _REPO = Path(__file__).parent.parent.parent.parent
 _TREE = _REPO / "brain" / "machine_artifacts" / ".iteration_cache" / "plan_tree.json"
@@ -56,6 +58,33 @@ p.add_run("Copyright 2026 Skip Snow. All rights reserved.").font.size = Pt(9)
 
 doc.add_page_break()
 
+# ── Table of Contents ──
+doc.add_heading("Table of Contents", level=1)
+
+# Build TOC with feature links
+for epic in tree["epics"]:
+    features = epic.get("features", [])
+    if not features:
+        continue
+    p = doc.add_paragraph()
+    r = p.add_run(f"{epic['epic_id']}: {epic['name']}")
+    r.bold = True
+    r.font.size = Pt(11)
+
+    for feat in features:
+        fid = feat.get("feature_id", "?")
+        fname = feat.get("name", "?")
+        stories = feat.get("stories", [])
+        feat_reqs = sum(len(s.get("requirements", [])) for s in stories)
+        p = doc.add_paragraph(style="List Bullet")
+        # Add hyperlink using bookmark name
+        bookmark_name = fid.replace("-", "_").replace(".", "_")
+        run = p.add_run(f"{fid}: {fname} ({len(stories)} stories, {feat_reqs} reqs)")
+        run.font.color.rgb = RGBColor(11, 122, 117)
+        run.font.size = Pt(9)
+
+doc.add_page_break()
+
 # ── Exec Summary ──
 doc.add_heading("Executive Summary", level=1)
 doc.add_paragraph(
@@ -66,6 +95,29 @@ doc.add_paragraph(
     f"Every requirement traces to the epic goal."
 )
 doc.add_paragraph(f"Gate: {tree.get('gate_recommendation', 'N/A')}")
+
+# ── Feature Summary Table ──
+doc.add_heading("Feature Summary", level=1)
+
+for epic in tree["epics"]:
+    features = epic.get("features", [])
+    if not features:
+        continue
+    doc.add_heading(f"{epic['epic_id']}: {epic['name']}", level=2)
+    t = doc.add_table(rows=1, cols=4)
+    t.style = "Table Grid"
+    for i, h in enumerate(["Feature ID", "Name", "Layer", "Description"]):
+        t.rows[0].cells[i].text = h
+        t.rows[0].cells[i].paragraphs[0].runs[0].bold = True
+    for feat in features:
+        row = t.add_row()
+        row.cells[0].text = feat.get("feature_id", "?")
+        row.cells[1].text = feat.get("name", "?")
+        row.cells[2].text = feat.get("layer", "?")
+        desc = feat.get("description", "")
+        row.cells[3].text = desc[:120] + ("..." if len(desc) > 120 else "")
+
+doc.add_page_break()
 
 # ── Software Design ──
 doc.add_heading("Software Design", level=1)
