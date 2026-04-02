@@ -83,7 +83,24 @@ def _call_gpt(system_prompt: str, user_message: str, model: str) -> tuple[str, i
         response_format={"type": "json_object"},
     )
     text = response.choices[0].message.content
-    return text, response.usage.prompt_tokens, response.usage.completion_tokens
+    tokens_in = response.usage.prompt_tokens
+    tokens_out = response.usage.completion_tokens
+
+    # Log to Brain pseudo collection via cost_guard
+    try:
+        from cost_guard import log_usage
+        log_usage(
+            agent="GPT",
+            model=model,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
+            assignment_id="epic_planning_v014",
+            call_type="epic_planning",
+        )
+    except Exception:
+        pass  # Don't block planning on logging failure
+
+    return text, tokens_in, tokens_out
 
 
 # ── Content Fulfillment ──────────────────────────────────────
@@ -258,8 +275,23 @@ def _ai_dedup(collection_name: str, items: list[dict]) -> dict:
             temperature=0,
         )
         result = json.loads(response.choices[0].message.content)
-        tokens = response.usage.prompt_tokens + response.usage.completion_tokens
-        print(f"[Dedup] AI dedup for {collection_name}: {tokens} tokens, {len(result)} merge groups")
+        tok_in = response.usage.prompt_tokens
+        tok_out = response.usage.completion_tokens
+        print(f"[Dedup] AI dedup for {collection_name}: {tok_in + tok_out} tokens, {len(result)} merge groups")
+
+        # Log dedup cost
+        try:
+            from cost_guard import log_usage
+            log_usage(
+                agent="GPT",
+                model="gpt-4o-mini",
+                tokens_in=tok_in,
+                tokens_out=tok_out,
+                assignment_id="epic_planning_v014",
+                call_type="dedup",
+            )
+        except Exception:
+            pass
         return result if isinstance(result, dict) else {}
     except Exception as e:
         print(f"[Dedup] AI dedup failed for {collection_name}: {e} — skipping")
