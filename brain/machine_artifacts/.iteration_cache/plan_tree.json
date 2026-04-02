@@ -14009,6 +14009,19 @@
               "status": "accepted",
               "accepted_by": "Boss",
               "requirements": []
+            },
+            {
+              "story_id": "EVAL-CT-TRIAGE-S3",
+              "title": "Geographic Proximity Triage",
+              "description": "Filter out trials that are geographically infeasible. Uses travel calculation from clinical_trials_service.",
+              "parent_feature": "EVAL-CT-TRIAGE",
+              "sprint": 1,
+              "dependencies": [],
+              "size": "S",
+              "evidence": "clinical_trials_service.py has _get_travel_info.",
+              "status": "accepted",
+              "accepted_by": "Claude (moved from dropped measure)",
+              "requirements": []
             }
           ]
         },
@@ -14025,6 +14038,110 @@
           "accepted_by": "Boss",
           "backend_dependencies": [
             "EVAL-CT-TRIAGE"
+          ],
+          "stories": []
+        },
+        {
+          "feature_id": "EVAL-CT-MEASURE-PI",
+          "name": "Principal Investigator Credibility Measure",
+          "epic_id": "EPIC-1",
+          "layer": "backend",
+          "capability": "Clinical Trials",
+          "description": "Credibility of the trial lead investigator. Attributes: number of prior trials completed, publications, institutional affiliation, prior trial outcomes, and FDA approval track record (have this PIs prior trials resulted in FDA-approved treatments -- the ultimate credibility signal). A PI with completed trials that led to FDA approvals at a major research hospital is a stronger signal than a first-time PI at an unknown site.",
+          "evidence": "ClinicalTrials.gov API returns investigator name and facility. ASSUMPTION: Can cross-reference investigator against PubMed for publications and against ClinicalTrials.gov history for prior trials. GAP: No PI credibility pipeline exists.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss (direct mandate)",
+          "backend_dependencies": [],
+          "stories": []
+        },
+        {
+          "feature_id": "EVAL-CT-PI-UX",
+          "name": "PI Credibility Display",
+          "epic_id": "EPIC-1",
+          "layer": "frontend",
+          "capability": "Clinical Trials",
+          "description": "Display PI credibility in trial score card. Shows investigator name, institution, prior trial count, publication indicator, contribution to score.",
+          "evidence": "GAP: No PI display component. MessageBubble.tsx rendering pipeline.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "backend_dependencies": [
+            "EVAL-CT-MEASURE-PI"
+          ],
+          "stories": []
+        },
+        {
+          "feature_id": "EVAL-CT-MEASURE-SPONSOR",
+          "name": "Sponsoring Institution and Funding Credibility Measure",
+          "epic_id": "EPIC-1",
+          "layer": "backend",
+          "capability": "Clinical Trials",
+          "description": "Credibility of the sponsoring institution and transparency of funding. Attributes: sponsor type (university, hospital, pharma, unknown), funding source (NIH/NCI = public, Industry, Other/undisclosed), institutional reputation, collaborating organizations. Public funding from a credible institution is a strong positive signal. Unknown sponsor with undisclosed funding is a negative signal.",
+          "evidence": "ClinicalTrials.gov API returns lead_sponsor, collaborator, and funding_source fields. Data is public.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss (direct mandate)",
+          "backend_dependencies": [],
+          "stories": []
+        },
+        {
+          "feature_id": "EVAL-CT-SPONSOR-UX",
+          "name": "Sponsor Credibility Display",
+          "epic_id": "EPIC-1",
+          "layer": "frontend",
+          "capability": "Clinical Trials",
+          "description": "Display sponsor credibility in trial score card. Shows sponsor name, type, funding source (public/private/undisclosed), collaborators, contribution to score.",
+          "evidence": "GAP: No sponsor display component. MessageBubble.tsx rendering pipeline.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "backend_dependencies": [
+            "EVAL-CT-MEASURE-SPONSOR"
+          ],
+          "stories": []
+        },
+        {
+          "feature_id": "EVAL-P-TRIAGE",
+          "name": "Provider Triage -- Right Specialty For You",
+          "epic_id": "EPIC-1",
+          "layer": "backend",
+          "capability": "Providers",
+          "description": "Pre-qualification: is this provider the right specialty? Uses NUCC taxonomy from SpecialtyService. Unmatched providers excluded from quality scoring.",
+          "evidence": "specialty_service.py has dual-pipeline NUCC matching.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Claude (moved from dropped measure)",
+          "backend_dependencies": [],
+          "stories": [
+            {
+              "story_id": "EVAL-P-TRIAGE-S1",
+              "title": "Specialty Match Triage",
+              "description": "Filter providers whose specialty does not match user condition.",
+              "parent_feature": "EVAL-P-TRIAGE",
+              "sprint": 1,
+              "dependencies": [],
+              "size": "M",
+              "evidence": "specialty_service.py",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": []
+            }
+          ]
+        },
+        {
+          "feature_id": "EVAL-P-TRIAGE-UX",
+          "name": "Provider Triage Display",
+          "epic_id": "EPIC-1",
+          "layer": "frontend",
+          "capability": "Providers",
+          "description": "Show consumer why provider passed/failed triage. Specialty match before quality scores.",
+          "evidence": "GAP: No provider triage UI.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "backend_dependencies": [
+            "EVAL-P-TRIAGE"
           ],
           "stories": []
         }
@@ -18360,5 +18477,79 @@
       }
     ]
   },
-  "gate_recommendation": "proceed_with_warning"
+  "gate_recommendation": "proceed_with_warning",
+  "rejected_measure_candidates": [
+    {
+      "id": "EVAL-P-MEASURE-EXPERIENCE",
+      "name": "Provider Years in Practice",
+      "description": "Years since enumeration or graduation from NPI data",
+      "reason_dropped": "Boss reduced to 3 provider measures. Experience is a proxy, not a direct quality signal.",
+      "disposition": "rejected",
+      "rejected_by": "Boss",
+      "date": "2026-04-02"
+    },
+    {
+      "id": "EVAL-P-MEASURE-SPECIALTY",
+      "name": "Provider Specialty Match Accuracy",
+      "description": "Score how well provider specialty matches user condition using NUCC taxonomy",
+      "reason_dropped": "Not a quality measure -- moved to provider triage (EVAL-P-TRIAGE).",
+      "disposition": "moved_to_triage",
+      "rejected_by": "Boss",
+      "date": "2026-04-02"
+    },
+    {
+      "id": "EVAL-P-MEASURE-CREDENTIALS",
+      "name": "Provider Credential Completeness",
+      "description": "NPI credential completeness -- how many fields populated, license status",
+      "reason_dropped": "Overlaps with Board Certification measure. Subsumed by EVAL-P-MEASURE-BOARD.",
+      "disposition": "subsumed",
+      "rejected_by": "Boss",
+      "date": "2026-04-02"
+    },
+    {
+      "id": "EVAL-CT-MEASURE-STATUS",
+      "name": "Clinical Trial Enrollment Status",
+      "description": "Is the trial actively recruiting",
+      "reason_dropped": "Not quality -- moved to triage (EVAL-CT-TRIAGE-S1).",
+      "disposition": "moved_to_triage",
+      "rejected_by": "Boss",
+      "date": "2026-04-02"
+    },
+    {
+      "id": "EVAL-CT-MEASURE-RELEVANCE",
+      "name": "Clinical Trial Condition Relevance",
+      "description": "Does the trial condition match the user query",
+      "reason_dropped": "Not quality -- moved to triage (EVAL-CT-TRIAGE-S2).",
+      "disposition": "moved_to_triage",
+      "rejected_by": "Boss",
+      "date": "2026-04-02"
+    },
+    {
+      "id": "EVAL-CT-MEASURE-PROXIMITY",
+      "name": "Clinical Trial Proximity",
+      "description": "Distance from user to trial site",
+      "reason_dropped": "Logistics not quality -- moved to triage (EVAL-CT-TRIAGE-S3).",
+      "disposition": "moved_to_triage",
+      "rejected_by": "Boss",
+      "date": "2026-04-02"
+    },
+    {
+      "id": "EVAL-CT-MEASURE-APPROVAL",
+      "name": "FDA Approval Track Record",
+      "description": "Have this sponsors prior trials resulted in FDA approvals",
+      "reason_dropped": "Attribute of PI Credibility, not standalone. Folded into EVAL-CT-MEASURE-PI.",
+      "disposition": "folded_into_parent",
+      "rejected_by": "Boss",
+      "date": "2026-04-02"
+    },
+    {
+      "id": "EVAL-P-MEASURE-RATINGS",
+      "name": "Provider Patient Ratings Aggregation",
+      "description": "Aggregate patient ratings from external sources",
+      "reason_dropped": "No reliable public data source. External ratings are biased and gameable.",
+      "disposition": "rejected",
+      "rejected_by": "GPT (proposed), Boss (rejected)",
+      "date": "2026-04-02"
+    }
+  ]
 }
