@@ -66348,6 +66348,107 @@
           "stories": []
         }
       ]
+    },
+    {
+      "epic_id": "EPIC-3",
+      "name": "Pipeline Operations Manager",
+      "capacity": "New business component",
+      "goal": "Build an infrastructure operations manager for the data pipelines that manages cluster lifecycle without knowledge of pipeline business logic.",
+      "business_context": "This is the operational manager of our data pipelines. Eventually this is the backend to an actual AI agent. When in real life the Ops Manager sees failure, they are not in the weeds understanding the data structures in the pipeline. They must understand how to read an error report from the failure. And ask the dev manager from the ETL job to do something if the fault is the pipeline code. But if the failure is in their management of the database they must understand how to fix it without bothering the dev manager for the actual content.",
+      "separation_of_concerns": {
+        "ops_manager": {
+          "owns": "Cluster state (up/down/scaling), reservations, cost, uptime",
+          "reads": "Cluster health, reservation status, error codes",
+          "acts": "Wake, sleep, scale, alert Boss",
+          "escalates_to": "Dev Manager (Claude) if error is pipeline code, not infrastructure",
+          "never_touches": "Pipeline data, task logic, collection schemas"
+        },
+        "dev_manager": {
+          "owns": "What the pipeline does -- load, enrich, embed, copy",
+          "reads": "Data, discrepancy reports, reconciliation results",
+          "acts": "Run tasks, fix code, retry failed steps",
+          "calls_ops_manager": "reserve(cluster, duration) / release(reservation_id)",
+          "never_touches": "Cluster scaling, Atlas API, cost management"
+        }
+      },
+      "v01_api": {
+        "WakeCluster": "POST -- returns reservation_id immediately, non-blocking",
+        "ClusterStatus": "GET -- returns cluster state + reservation list",
+        "Release": "POST -- release reservation, shut down if last one"
+      },
+      "v01_timer": "Every 5 minutes: check overdue reservations, shut down idle clusters, alert Boss. NO task execution.",
+      "features": [
+        {
+          "feature_id": "OPS-WAKE",
+          "name": "WakeCluster Endpoint",
+          "epic_id": "EPIC-3",
+          "layer": "backend",
+          "capability": "Infrastructure",
+          "description": "Non-blocking cluster wake. Sends Atlas resume request, registers reservation, returns reservation_id immediately. Caller polls ClusterStatus.",
+          "evidence": "Code/DataPipelines/cluster_lifecycle_manager.py (exists, needs refactor to remove pipeline knowledge).",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss (direct mandate)",
+          "backend_dependencies": [],
+          "stories": []
+        },
+        {
+          "feature_id": "OPS-STATUS",
+          "name": "ClusterStatus Endpoint",
+          "epic_id": "EPIC-3",
+          "layer": "backend",
+          "capability": "Infrastructure",
+          "description": "Returns current cluster state (IDLE/UPDATING/PAUSED), active reservations, overdue flags. Caller polls this after WakeCluster.",
+          "evidence": "Code/DataPipelines/atlas_cluster_manager.py (get_cluster_state exists).",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss (direct mandate)",
+          "backend_dependencies": [],
+          "stories": []
+        },
+        {
+          "feature_id": "OPS-RELEASE",
+          "name": "Release Endpoint",
+          "epic_id": "EPIC-3",
+          "layer": "backend",
+          "capability": "Infrastructure",
+          "description": "Release a reservation by ID. If last reservation, shut down cluster. Always called in pipeline finally block.",
+          "evidence": "Code/DataPipelines/cluster_lifecycle_manager.py (release method exists).",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss (direct mandate)",
+          "backend_dependencies": [],
+          "stories": []
+        },
+        {
+          "feature_id": "OPS-TIMER",
+          "name": "Ops Timer -- Infrastructure Only",
+          "epic_id": "EPIC-3",
+          "layer": "backend",
+          "capability": "Infrastructure",
+          "description": "5-minute timer. Checks overdue reservations (alerts Boss via Pushover). Shuts down clusters with zero reservations. NO task execution, NO pipeline imports.",
+          "evidence": "Code/DataPipelines/function_app.py (cluster_lifecycle_timer exists, needs refactor to remove task execution).",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss (direct mandate)",
+          "backend_dependencies": [],
+          "stories": []
+        },
+        {
+          "feature_id": "OPS-RESERVATION",
+          "name": "ResourceReservation Model",
+          "epic_id": "EPIC-3",
+          "layer": "backend",
+          "capability": "Infrastructure",
+          "description": "Reservation dataclass: job_id, requester, cluster_name, expected_duration, start_time, status. Stored in MongoDB. The interface between Ops Manager and Dev Manager.",
+          "evidence": "Code/DataPipelines/cluster_lifecycle_manager.py (ResourceReservation class exists).",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss (direct mandate)",
+          "backend_dependencies": [],
+          "stories": []
+        }
+      ]
     }
   ],
   "metadata": {
