@@ -727,37 +727,26 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
 
 def register_reservation_fn(reservation_config: dict) -> dict:
     """Register a cluster reservation. Wakes the cluster if needed."""
-    from cluster_lifecycle_manager import ClusterLifecycleManager, ResourceReservation
-
-    reservation = ResourceReservation(
-        job_id=reservation_config["job_id"],
-        requester=reservation_config["requester"],
-        cluster_name=reservation_config["cluster_name"],
-        expected_duration_minutes=reservation_config["expected_duration_minutes"],
-    )
+    from cluster_lifecycle_manager import ClusterLifecycleManager
 
     manager = ClusterLifecycleManager(
         get_db_fn=lambda: _get_mongo_client(),
         env_prefix=os.environ.get("ENV_PREFIX", "dev"),
     )
-    result = manager.register(reservation)
-    return result.to_dict()
+    return manager.reserve(
+        cluster_name=reservation_config["cluster_name"],
+        job_id=reservation_config["job_id"],
+        requester=reservation_config["requester"],
+        expected_duration_minutes=reservation_config["expected_duration_minutes"],
+    )
 
 
 def release_reservation_fn(reservation_config: dict) -> dict:
     """Release a cluster reservation. Shuts down cluster if last one."""
-    from cluster_lifecycle_manager import ClusterLifecycleManager, ResourceReservation
-
-    reservation = ResourceReservation(
-        job_id=reservation_config["job_id"],
-        requester=reservation_config["requester"],
-        cluster_name=reservation_config["cluster_name"],
-        expected_duration_minutes=reservation_config.get("expected_duration_minutes", 0),
-    )
+    from cluster_lifecycle_manager import ClusterLifecycleManager
 
     manager = ClusterLifecycleManager(
         get_db_fn=lambda: _get_mongo_client(),
         env_prefix=os.environ.get("ENV_PREFIX", "dev"),
     )
-    manager.release(reservation)
-    return {"released": reservation_config["job_id"]}
+    return manager.release(reservation_config["job_id"])

@@ -66426,8 +66426,8 @@
           "epic_id": "EPIC-3",
           "layer": "backend",
           "capability": "Infrastructure",
-          "description": "5-minute timer. Checks overdue reservations (alerts Boss via Pushover). Shuts down clusters with zero reservations. NO task execution, NO pipeline imports.",
-          "evidence": "Code/DataPipelines/function_app.py (cluster_lifecycle_timer exists, needs refactor to remove task execution).",
+          "description": "5-minute timer. Checks overdue reservations (alerts Boss via Pushover). Shuts down clusters with zero reservations. NO task execution, NO pipeline imports. Per-pipeline overdue thresholds deferred to v0.2 (Audit Finding F5).",
+          "evidence": "Code/DataPipelines/function_app.py (cluster_lifecycle_timer exists, needs refactor to remove task execution). Audit Finding F5 (deferred).",
           "priority": "HIGH",
           "status": "accepted",
           "accepted_by": "Boss (direct mandate)",
@@ -66447,6 +66447,354 @@
           "accepted_by": "Boss (direct mandate)",
           "backend_dependencies": [],
           "stories": []
+        },
+        {
+          "feature_id": "OPS-EVIDENCE",
+          "name": "EvidencePackage Schema",
+          "epic_id": "EPIC-3",
+          "layer": "backend",
+          "capability": "Infrastructure",
+          "description": "Formal JSON schema for the EvidencePackage — the only handoff between Ops Manager and Dev Manager. Includes error_code, error_message, classification, confidence, reasoning, cluster_state, recent_events (capped at 10 entries), job_id, requester, first_seen_at, occurrence_count.",
+          "evidence": "Website/ops-manager-design.html (Evidence Package table). Audit Finding F2.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "backend_dependencies": [],
+          "stories": [
+            {
+              "story_id": "OPS-EVIDENCE-S1",
+              "title": "Define and validate EvidencePackage JSON schema",
+              "description": "Create a versioned JSON schema for EvidencePackage. Include first_seen_at and occurrence_count fields. Cap recent_events at 10 entries. Validate all packages against schema before handoff to Dev Manager.",
+              "parent_feature": "OPS-EVIDENCE",
+              "sprint": null,
+              "dependencies": [],
+              "size": "M",
+              "evidence": "Website/ops-manager-design.html",
+              "status": "accepted",
+              "requirements": [
+                {
+                  "req_id": "OPS-EVIDENCE-OPS-EVIDENCE-S1-R0001",
+                  "story_id": "OPS-EVIDENCE-S1",
+                  "requirement": "EvidencePackage must include: error_code, error_message, classification, confidence, reasoning, cluster_state, recent_events, job_id, requester, first_seen_at, occurrence_count.",
+                  "source": "audit_finding_F2",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                },
+                {
+                  "req_id": "OPS-EVIDENCE-OPS-EVIDENCE-S1-R0002",
+                  "story_id": "OPS-EVIDENCE-S1",
+                  "requirement": "recent_events field must use a stable JSON schema and be capped at 10 entries maximum.",
+                  "source": "audit_finding_F2",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                },
+                {
+                  "req_id": "OPS-EVIDENCE-OPS-EVIDENCE-S1-R0003",
+                  "story_id": "OPS-EVIDENCE-S1",
+                  "requirement": "All EvidencePackages must be validated against the schema before handoff to Dev Manager. Invalid packages must not be sent.",
+                  "source": "audit_finding_F2",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "feature_id": "OPS-TRIAGE",
+          "name": "Error Classification — Rule-Based Precheck + LLM Triage",
+          "epic_id": "EPIC-3",
+          "layer": "backend",
+          "capability": "Infrastructure",
+          "description": "Two-tier error classification: deterministic rules first (connection errors → INFRA, schema errors → PIPELINE), then GPT-4.1-mini for ambiguous cases only. LLM selects repair actions from a config-driven allowlist only.",
+          "evidence": "Website/ops-manager-design.html (Rule-Based Precheck table, LLM Triage section). Audit Finding F3.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "backend_dependencies": [],
+          "stories": [
+            {
+              "story_id": "OPS-TRIAGE-S1",
+              "title": "Implement rule-based precheck and LLM triage with allowlisted repair actions",
+              "description": "Apply deterministic rules for known error patterns before invoking GPT-4.1-mini. ConnectionFailure, ServerSelectionTimeoutError, AuthenticationFailed → INFRASTRUCTURE. KeyError, TypeError, ValidationError in pipeline code → PIPELINE. Ambiguous → LLM triage. Repair actions restricted to config-driven allowlist.",
+              "parent_feature": "OPS-TRIAGE",
+              "sprint": null,
+              "dependencies": ["OPS-EVIDENCE-S1"],
+              "size": "L",
+              "evidence": "Website/ops-manager-design.html",
+              "status": "accepted",
+              "requirements": [
+                {
+                  "req_id": "OPS-TRIAGE-OPS-TRIAGE-S1-R0001",
+                  "story_id": "OPS-TRIAGE-S1",
+                  "requirement": "ConnectionFailure, ServerSelectionTimeoutError, AuthenticationFailed, TLS errors, and cluster state PAUSED/REPAIRING must be classified as INFRASTRUCTURE without invoking the LLM.",
+                  "source": "audit_finding_F3",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                },
+                {
+                  "req_id": "OPS-TRIAGE-OPS-TRIAGE-S1-R0002",
+                  "story_id": "OPS-TRIAGE-S1",
+                  "requirement": "KeyError, TypeError, ValidationError, IndexError, ValueError with traceback in Code/DataPipelines/ must be classified as PIPELINE without invoking the LLM.",
+                  "source": "audit_finding_F3",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                },
+                {
+                  "req_id": "OPS-TRIAGE-OPS-TRIAGE-S1-R0003",
+                  "story_id": "OPS-TRIAGE-S1",
+                  "requirement": "GPT-4.1-mini must only be invoked when rule-based precheck cannot classify the error.",
+                  "source": "audit_finding_F3",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                },
+                {
+                  "req_id": "OPS-TRIAGE-OPS-TRIAGE-S1-R0004",
+                  "story_id": "OPS-TRIAGE-S1",
+                  "requirement": "GPT-4.1-mini may only select repair_action values from a config-driven allowlist (restart_cluster, reconnect, scale_up, flush_connection_pool). It must not invent actions.",
+                  "source": "audit_finding_F3",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                },
+                {
+                  "req_id": "OPS-TRIAGE-OPS-TRIAGE-S1-R0005",
+                  "story_id": "OPS-TRIAGE-S1",
+                  "requirement": "All triage outputs (rule-based and LLM) must be logged for periodic review and tuning.",
+                  "source": "audit_finding_F3",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "feature_id": "OPS-REPAIR",
+          "name": "Self-Repair Loop with Safety Limits",
+          "epic_id": "EPIC-3",
+          "layer": "backend",
+          "capability": "Infrastructure",
+          "description": "Infrastructure repair loop: GPT-4.1-mini picks repair action → execute → read logs to verify → retry up to M times. Evidence-must-change guardrail: if cluster state and error signature are unchanged after a repair attempt, skip remaining retries and escalate immediately.",
+          "evidence": "Website/ops-manager-design.html (Infra Repair Loop, Repair Loop Guardrail). Audit Finding F4.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "backend_dependencies": ["OPS-TRIAGE"],
+          "stories": [
+            {
+              "story_id": "OPS-REPAIR-S1",
+              "title": "Implement infra repair loop with evidence-must-change guardrail",
+              "description": "After each repair attempt, compare new evidence (cluster state + error signature) to previous attempt. If unchanged, skip remaining retries and escalate to Boss. Configurable M per environment.",
+              "parent_feature": "OPS-REPAIR",
+              "sprint": null,
+              "dependencies": ["OPS-TRIAGE-S1"],
+              "size": "M",
+              "evidence": "Website/ops-manager-design.html",
+              "status": "accepted",
+              "requirements": [
+                {
+                  "req_id": "OPS-REPAIR-OPS-REPAIR-S1-R0001",
+                  "story_id": "OPS-REPAIR-S1",
+                  "requirement": "Repair loop must retry up to M times (configurable per environment, stored in Brain config).",
+                  "source": "audit_finding_F4",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                },
+                {
+                  "req_id": "OPS-REPAIR-OPS-REPAIR-S1-R0002",
+                  "story_id": "OPS-REPAIR-S1",
+                  "requirement": "After each repair attempt, the system must compare cluster_state and error_signature to the previous attempt. If both are unchanged, remaining retries must be skipped and Boss must be escalated immediately.",
+                  "source": "audit_finding_F4",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                },
+                {
+                  "req_id": "OPS-REPAIR-OPS-REPAIR-S1-R0003",
+                  "story_id": "OPS-REPAIR-S1",
+                  "requirement": "Each repair attempt must read logs and check cluster status to verify the repair before deciding to retry or escalate.",
+                  "source": "audit_finding_F4",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "feature_id": "OPS-NOTIFY",
+          "name": "Notification Cooldowns",
+          "epic_id": "EPIC-3",
+          "layer": "backend",
+          "capability": "Infrastructure",
+          "description": "Explicit cooldown windows per notification event type to prevent alert fatigue. Job overdue: 60 min/job. Cluster stuck: 30 min/cluster. Error detected, repairs, escalations: immediate (no cooldown).",
+          "evidence": "Website/ops-manager-design.html (Notification Cooldowns table). Audit Finding F6.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "backend_dependencies": [],
+          "stories": [
+            {
+              "story_id": "OPS-NOTIFY-S1",
+              "title": "Implement notification cooldowns per event type",
+              "description": "Track last-notified timestamp per event type per subject (job or cluster). Enforce cooldown windows from Brain config. Error detected, self-repaired, dev resolved, and escalation events always send immediately.",
+              "parent_feature": "OPS-NOTIFY",
+              "sprint": null,
+              "dependencies": [],
+              "size": "S",
+              "evidence": "Website/ops-manager-design.html",
+              "status": "accepted",
+              "requirements": [
+                {
+                  "req_id": "OPS-NOTIFY-OPS-NOTIFY-S1-R0001",
+                  "story_id": "OPS-NOTIFY-S1",
+                  "requirement": "Job overdue notifications must be suppressed for 60 minutes per job after the first notification.",
+                  "source": "audit_finding_F6",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                },
+                {
+                  "req_id": "OPS-NOTIFY-OPS-NOTIFY-S1-R0002",
+                  "story_id": "OPS-NOTIFY-S1",
+                  "requirement": "Cluster stuck notifications must be suppressed for 30 minutes per cluster after the first notification.",
+                  "source": "audit_finding_F6",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                },
+                {
+                  "req_id": "OPS-NOTIFY-OPS-NOTIFY-S1-R0003",
+                  "story_id": "OPS-NOTIFY-S1",
+                  "requirement": "Error detected, self-repaired, dev resolved, and escalation events must always send immediately with no cooldown.",
+                  "source": "audit_finding_F6",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "feature_id": "OPS-BOUNDARY",
+          "name": "Boundary Enforcement in CI",
+          "epic_id": "EPIC-3",
+          "layer": "backend",
+          "capability": "Infrastructure",
+          "description": "CI tests that fail if Ops Manager imports Dev Manager tools (Git, Test, Deploy) or Dev Manager imports Ops tools (Cluster, Alert, Triage). No cross-package imports enforced via static analysis.",
+          "evidence": "Audit Finding F1. Deferred to v0.2.",
+          "priority": "MEDIUM",
+          "status": "deferred",
+          "accepted_by": "Boss",
+          "backend_dependencies": [],
+          "stories": []
+        },
+        {
+          "feature_id": "OPS-FLAGS",
+          "name": "Feature Flags Per Environment",
+          "epic_id": "EPIC-3",
+          "layer": "backend",
+          "capability": "Infrastructure",
+          "description": "LLM triage and self-repair can be feature-flagged per environment (dev/stage/prod) so they can be disabled independently without reverting the entire Ops Manager.",
+          "evidence": "Audit Finding F7. Deferred to v0.2.",
+          "priority": "MEDIUM",
+          "status": "deferred",
+          "accepted_by": "Boss",
+          "backend_dependencies": [],
+          "stories": []
+        },
+        {
+          "feature_id": "OPS-AUDIT",
+          "name": "Immutable Audit Trail",
+          "epic_id": "EPIC-3",
+          "layer": "backend",
+          "capability": "Infrastructure",
+          "description": "Minimal append-only audit logging of triage decisions, repair actions, EvidencePackages, and escalations in V1. Expand structure and analytics in v0.2. Supports incident review and external regulatory audits.",
+          "evidence": "Audit Finding F8. Upgraded to V1 must-have per auditor + Boss agreement.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "backend_dependencies": ["OPS-TRIAGE", "OPS-REPAIR"],
+          "stories": [
+            {
+              "story_id": "OPS-AUDIT-S1",
+              "title": "Implement minimal append-only audit logging",
+              "description": "Log every triage decision, repair action, and escalation as an append-only record in MongoDB. Records must be immutable (no updates, no deletes). Minimal schema in V1; expand structure and analytics in v0.2.",
+              "parent_feature": "OPS-AUDIT",
+              "sprint": null,
+              "dependencies": ["OPS-TRIAGE-S1", "OPS-REPAIR-S1"],
+              "size": "M",
+              "evidence": "Website/ops-manager-design.html, Audit Finding F8",
+              "status": "accepted",
+              "requirements": [
+                {
+                  "req_id": "OPS-AUDIT-OPS-AUDIT-S1-R0001",
+                  "story_id": "OPS-AUDIT-S1",
+                  "requirement": "Every triage decision (rule-based or LLM) must be logged with timestamp, error_code, classification, confidence, and source (rule or LLM).",
+                  "source": "audit_finding_F8",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                },
+                {
+                  "req_id": "OPS-AUDIT-OPS-AUDIT-S1-R0002",
+                  "story_id": "OPS-AUDIT-S1",
+                  "requirement": "Every repair action must be logged with timestamp, action taken, attempt number, and outcome (success/failure/unchanged).",
+                  "source": "audit_finding_F8",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                },
+                {
+                  "req_id": "OPS-AUDIT-OPS-AUDIT-S1-R0003",
+                  "story_id": "OPS-AUDIT-S1",
+                  "requirement": "Every escalation must be logged with timestamp, recipient, reason, and the full EvidencePackage.",
+                  "source": "audit_finding_F8",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                },
+                {
+                  "req_id": "OPS-AUDIT-OPS-AUDIT-S1-R0004",
+                  "story_id": "OPS-AUDIT-S1",
+                  "requirement": "Audit records must be append-only. No updates or deletes permitted on audit records.",
+                  "source": "audit_finding_F8",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "accepted_by": "Boss",
+                  "label": "Y"
+                }
+              ]
+            }
+          ]
         }
       ]
     }
