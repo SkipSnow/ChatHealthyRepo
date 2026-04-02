@@ -1,6 +1,6 @@
 {
   "collection": "design",
-  "record_count": 1,
+  "record_count": 2,
   "records": [
     {
       "_record_id": "design_eval_p_rx_drug_mapping",
@@ -59,11 +59,18 @@
                   }
                 }
               },
-              "required": ["indication", "qualityMeasureContext", "icd10Codes"]
+              "required": [
+                "indication",
+                "qualityMeasureContext",
+                "icd10Codes"
+              ]
             }
           }
         },
-        "required": ["drugName", "uses"],
+        "required": [
+          "drugName",
+          "uses"
+        ],
         "additionalProperties": false
       },
       "signals": {
@@ -96,6 +103,36 @@
       },
       "alpha_gap": "Drug-to-indication mapping source not finalized. LLM fallback acceptable for alpha. Close in beta with verified mapping table.",
       "patent_relevance": "Method of combining CMS prescriber data + ICD-10 + drug indication mapping + quality measure context + LLM synthesis for consumer provider quality signal. Data is public. Method is novel.",
+      "publish": false
+    },
+    {
+      "_record_id": "design_county_economic_enrichment",
+      "title": "County Economic Enrichment Design",
+      "feature_id": "MAINT-COUNTY-ENRICH",
+      "epic_id": "EPIC-2",
+      "status": "designed",
+      "created": "2026-04-02",
+      "created_by": "Claude",
+      "description": "Enrich provider county attribute with GDP, income, rural/urban classification from public federal data sources.",
+      "data_sources": {
+        "census_acs": "api.census.gov ACS 5-year: B19013 (median income), B19025 (mean income). By county FIPS.",
+        "bea_gdp": "apps.bea.gov CAGDP2: county GDP by industry. By county FIPS.",
+        "usda_rucc": "ers.usda.gov Rural-Urban Continuum Codes 2023. CSV, maps FIPS to 1-9 metro/rural scale."
+      },
+      "schema": {
+        "county.gdp_millions": "float -- county GDP in millions USD",
+        "county.median_income": "int -- median household income",
+        "county.mean_income": "int -- mean household income",
+        "county.rural_urban_code": "int 1-9 -- USDA RUCC",
+        "county.rural_urban_label": "string -- human readable classification",
+        "county.is_rural": "bool -- code >= 7",
+        "county.is_metro": "bool -- code <= 3"
+      },
+      "implementation": "Code/DataPipelines/county_economic_enrichment.py",
+      "requires_env": [
+        "CENSUS_API_KEY",
+        "BEA_API_KEY"
+      ],
       "publish": false
     }
   ]
