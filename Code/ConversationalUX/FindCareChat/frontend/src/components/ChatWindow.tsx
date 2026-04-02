@@ -1,8 +1,9 @@
 // Copyright (c) 2026 Skip Snow. All rights reserved.
 // Licensed under the FindCare Evaluation License (FEL-1.0).
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import MessageBubble from './MessageBubble'
+import { PaginationBar, useGUIManager } from './GUIManager'
 
 export interface Message {
   role: 'user' | 'assistant'
@@ -35,6 +36,9 @@ export default function ChatWindow() {
   const [timeoutMultiplier, setTimeoutMultiplier] = useState(1)
   const [abandonCount, setAbandonCount] = useState(0)
   const [continueCount, setContinueCount] = useState(0)
+
+  // GUI Manager — non-chat controls (pagination, future widgets)
+  const gui = useGUIManager()
 
   // Refs — avoid stale closures in async callbacks
   const messagesRef = useRef<Message[]>([LOADING_MESSAGE])
@@ -212,6 +216,9 @@ export default function ChatWindow() {
     const text = input.trim()
     if (!text || !canSubmit) return
 
+    // Hide pagination when user sends a new message
+    gui.hidePagination()
+
     const historyForBackend = messagesRef.current
       .filter(m => (m.role === 'user' || m.role === 'assistant')
         && m.content !== 'Session unlocked.'
@@ -332,6 +339,23 @@ export default function ChatWindow() {
           </div>
         </div>
       )}
+
+      <PaginationBar
+        state={gui.pagination}
+        onPageForward={() => {
+          gui.pageForward()
+          // TODO: trigger search with gui.getAfterNpi() and current searchParams
+        }}
+        onPageBack={() => {
+          gui.pageBack()
+          // TODO: trigger search with gui.getAfterNpi() for the previous page
+        }}
+        onPageSizeChange={(size) => {
+          gui.setPageSize(size)
+          // TODO: re-trigger search with new page size from page 1
+        }}
+        onClose={() => gui.hidePagination()}
+      />
 
       <form onSubmit={handleSend} style={{ padding: '16px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: 8 }}>
         <input
