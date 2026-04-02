@@ -177,15 +177,16 @@ def _refresh_manifest():
 
 # ── Deduplication ────────────────────────────────────────────
 
-def dedup_plan(plan: dict = None) -> dict:
+def dedup_plan(plan: dict = None) -> tuple[dict, list[str]]:
     """AI-assisted deduplication of the cumulative plan.
 
     Uses gpt-4o-mini to semantically identify duplicates that string
     matching would miss. Cheap, fast, accurate enough for dedup.
-    Falls back to string-based dedup if API call fails.
+    Returns (plan, warnings) — warnings are fed back to GPT as discipline.
     """
     if plan is None:
         plan = _load_plan()
+    warnings = []
 
     for collection_key, id_key, name_key in [
         ("features", "feature_id", "name"),
@@ -238,13 +239,20 @@ def dedup_plan(plan: dict = None) -> dict:
 
             if to_remove:
                 before = len(items)
+                removed_names = [items_by_id[rid].get(name_key, rid) for rid in to_remove if rid in items_by_id]
                 items = [i for i in items if isinstance(i, dict) and i.get(id_key, "") not in to_remove]
+                msg = (f"DUPLICATE WARNING: You created {len(to_remove)} duplicate {collection_key} that were merged: "
+                       f"{', '.join(removed_names[:10])}. Do not create new IDs for existing concepts. "
+                       f"Edit the existing entry instead.")
+                warnings.append(msg)
                 print(f"[Dedup] {collection_key}: {before} -> {len(items)} (merged {len(to_remove)} duplicates)")
 
         plan[collection_key] = items
 
     _save_plan(plan)
-    return plan
+    if warnings:
+        print(f"[Dedup] {len(warnings)} warnings to feed back to GPT")
+    return plan, warnings
 
 
 def _ai_dedup(collection_name: str, items: list[dict]) -> dict:
@@ -532,7 +540,7 @@ def run_phase1(system_prompt: str, model: str, max_iter: int = 50) -> dict:
 
 # ── Phase 2: Stories per Feature ─────────────────────────────
 
-def run_phase2(system_prompt: str, model: str, max_iter: int = 20) -> dict:
+def run_phase2(system_prompt: str, model: str, max_iter: int = 20, dedup_warnings: list[str] = None) -> dict:
     plan = _load_plan()
     features = plan.get("features", [])
     if isinstance(features, dict):
@@ -549,7 +557,7 @@ def run_phase2(system_prompt: str, model: str, max_iter: int = 20) -> dict:
         deps = feat.get("backend_dependencies", [])
         dep_features = [f for f in features if isinstance(f, dict) and f.get("feature_id") in deps]
 
-        def build_prompt(iteration, last_result, fulfilled, _feat=feat, _deps=dep_features):
+        def build_prompt(iteration, last_result, fulfilled, _feat=feat, _deps=dep_features, _dw=dedup_warnings):
             feedback = last_result.get("_claude_feedback", []) if isinstance(last_result, dict) else []
             msg = (
                 f"PHASE 2: Write stories for feature {_feat.get('feature_id')}.\n"
@@ -558,6 +566,9 @@ def run_phase2(system_prompt: str, model: str, max_iter: int = 20) -> dict:
                 f"Each story: story_id, title, description, parent_feature, sprint, dependencies, size, evidence.\n"
                 f"Minimum 3 stories. Break into: schema/contract, core logic, API/UI, tests, integration.\n\n"
             )
+            if _dw:
+                msg += "DEDUP WARNINGS FROM PRIOR PHASE (do not repeat these mistakes):\n"
+                msg += "\n".join(f"- {w}" for w in _dw) + "\n\n"
             if _deps:
                 msg += f"DEPENDENCIES:\n{json.dumps(_deps, indent=2, ensure_ascii=False)[:5000]}\n\n"
             msg += f"BRAIN MANIFEST:\n{manifest}\n"
@@ -605,7 +616,7 @@ def run_phase2(system_prompt: str, model: str, max_iter: int = 20) -> dict:
 
 # ── Phase 3: Requirements per Story ──────────────────────────
 
-def run_phase3(system_prompt: str, model: str, max_iter: int = 10) -> dict:
+def run_phase3(system_prompt: str, model: str, max_iter: int = 10, dedup_warnings: list[str] = None) -> dict:
     plan = _load_plan()
     stories = plan.get("stories", [])
     if isinstance(stories, dict):
@@ -628,7 +639,7 @@ def run_phase3(system_prompt: str, model: str, max_iter: int = 10) -> dict:
                 epic_goal = e.get("goal", "")
                 break
 
-        def build_prompt(iteration, last_result, fulfilled, _story=story, _feat=parent_feat, _goal=epic_goal):
+        def build_prompt(iteration, last_result, fulfilled, _story=story, _feat=parent_feat, _goal=epic_goal, _dw=dedup_warnings):
             feedback = last_result.get("_claude_feedback", []) if isinstance(last_result, dict) else []
             msg = (
                 f"PHASE 3: Write boolean requirements for story {_story.get('story_id')}.\n"
@@ -641,6 +652,9 @@ def run_phase3(system_prompt: str, model: str, max_iter: int = 10) -> dict:
                 f"Procedural stories: all happy paths + 2 exception paths minimum.\n"
                 f"LLM behavior stories: minimum 10 semantically different requirements.\n\n"
             )
+            if _dw:
+                msg += "DEDUP WARNINGS FROM PRIOR PHASE (do not repeat these mistakes):\n"
+                msg += "\n".join(f"- {w}" for w in _dw) + "\n\n"
             msg += f"BRAIN MANIFEST:\n{manifest}\n"
             if fulfilled:
                 msg += f"\nREQUESTED CONTENT:\n{fulfilled}\n"
@@ -799,18 +813,23 @@ def run(max_iterations: int = 50, start_phase: int = 1):
     print(f"[Planner] Max iterations per phase: {max_iterations}")
     print(f"[Planner] Starting from phase: {start_phase}")
 
+    dedup_warnings = []
+
     if start_phase <= 1:
         run_phase1(system_prompt, model, max_iterations)
         print("[Planner] Dedup after Phase 1...")
-        dedup_plan()
+        _, warnings = dedup_plan()
+        dedup_warnings.extend(warnings)
     if start_phase <= 2:
-        run_phase2(system_prompt, model, max_iterations)
+        run_phase2(system_prompt, model, max_iterations, dedup_warnings)
         print("[Planner] Dedup after Phase 2...")
-        dedup_plan()
+        _, warnings = dedup_plan()
+        dedup_warnings = warnings  # reset — only carry forward latest warnings
     if start_phase <= 3:
-        run_phase3(system_prompt, model, max_iterations)
+        run_phase3(system_prompt, model, max_iterations, dedup_warnings)
         print("[Planner] Dedup after Phase 3...")
-        dedup_plan()
+        _, warnings = dedup_plan()
+        dedup_warnings = warnings
     if start_phase <= 4:
         run_phase4(system_prompt, model, max_iterations)
     if start_phase <= 5:
