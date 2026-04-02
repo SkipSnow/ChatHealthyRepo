@@ -159,8 +159,6 @@ def create_frontend_vector_index_fn(config: dict) -> dict:
 
 
 def run_copy_to_frontend(config: dict) -> dict:
-    from cluster_lifecycle_manager import ClusterLifecycleManager
-
     pipeline_conn  = os.environ.get("MONGO_connectionString")
     frontend_conn  = os.environ.get("MONGO_FRONTEND_connectionString")
 
@@ -169,37 +167,11 @@ def run_copy_to_frontend(config: dict) -> dict:
     if not frontend_conn:
         raise ValueError("MONGO_FRONTEND_connectionString not set")
 
-    # Reserve cluster via Ops Manager — non-blocking wake
+    # Caller is responsible for ensuring cluster is IDLE before calling.
+    # Use WakeCluster + ClusterStatus via Router to reserve and poll.
+    # CopyToFrontEnd assumes cluster is up and does the work.
     env_prefix = config.get("env_prefix", "dev")
-    cluster_name = config.get("pipeline_cluster", "ChatHealthyDataPipelines")
-    job_id = f"copy_to_frontend_{int(time.time())}"
-
-    manager = ClusterLifecycleManager(
-        get_db_fn=lambda: MongoClient(frontend_conn),
-        env_prefix=env_prefix,
-    )
-    manager.reserve(
-        cluster_name=cluster_name,
-        job_id=job_id,
-        requester="CopyToFrontEnd",
-        expected_duration_minutes=config.get("expected_duration_minutes", 60),
-    )
-
-    # Poll until cluster is IDLE — max 20 minutes
-    max_wait = 1200  # seconds
-    waited = 0
-    poll_interval = 15
-    while waited < max_wait:
-        status = manager.status(cluster_name)
-        if status["cluster_state"] == "IDLE":
-            logging.info("Cluster %s is IDLE — proceeding with copy", cluster_name)
-            break
-        logging.info("Cluster %s is %s — waiting (%ds)", cluster_name, status["cluster_state"], waited)
-        time.sleep(poll_interval)
-        waited += poll_interval
-    else:
-        manager.release(job_id)
-        raise TimeoutError(f"Cluster {cluster_name} did not reach IDLE within {max_wait}s")
+    job_id = config.get("job_id", f"copy_to_frontend_{int(time.time())}")
 
     # env_prefix scopes the destination DB on the FrontEnd cluster.
     # "dev" → dev_PublicHealthData; "" or omitted → PublicHealthData (legacy)
@@ -260,9 +232,7 @@ def run_copy_to_frontend(config: dict) -> dict:
     finally:
         pipeline_client.close()
         frontend_client.close()
-        # Always release — Ops Manager shuts down cluster if last reservation
-        manager.release(job_id)
-        logging.info("Reservation released: %s", job_id)
+        # Caller releases reservation via Router Release endpoint
 
     logging.info("CopyToFrontEnd complete: %s", results)
     return {"status": "complete", "collections": results}
