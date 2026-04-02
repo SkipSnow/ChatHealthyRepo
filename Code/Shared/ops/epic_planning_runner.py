@@ -334,31 +334,13 @@ def _load_claude_system_prompt() -> str:
 
 
 def _claude_model() -> str:
-    """Detect the Claude model — must match what Claude Code uses.
-
-    Detection order:
-    1. CLAUDE_MODEL env var (if Claude Code ever exposes it)
-    2. ai_operations.json active_models.claude.model (Brain source of truth)
-    3. Fallback to claude-opus-4-6
-    """
-    # 1. Environment
-    env_model = os.getenv("CLAUDE_MODEL")
-    if env_model:
-        return env_model
-
-    # 2. Brain — ai_operations.json has the active model record
+    """Read Claude model from Brain acceptance system prompt config."""
     try:
-        ai_ops = _BRAIN_DIR / "machine_artifacts" / "content" / "ai_operations.json"
-        with open(ai_ops, encoding="utf-8") as f:
+        with open(_CLAUDE_ACCEPT_PROMPT, encoding="utf-8") as f:
             data = json.load(f)
-        for r in data.get("records", []):
-            if r.get("_record_id") == "ai_model_decisions":
-                return r.get("active_models", {}).get("claude", {}).get("model", "claude-opus-4-6")
+        return data.get("model", "claude-opus-4-6")
     except Exception:
-        pass
-
-    # 3. Fallback
-    return "claude-opus-4-6"
+        return "claude-opus-4-6"
 
 
 def _claude_evaluate(items: list[dict], item_type: str, context: str) -> list[dict]:
@@ -431,39 +413,39 @@ def _claude_evaluate(items: list[dict], item_type: str, context: str) -> list[di
             if decision:
                 if decision.get("accept"):
                     item["status"] = "accepted"
-                    item["accepted_by"] = "Claude (Haiku)"
+                    item["accepted_by"] = "Claude (Opus)"
                     item["acceptance_reason"] = decision.get("reason", "")
                 else:
                     item["status"] = "rejected"
                     item["rejection_reason"] = decision.get("reason", "")
             else:
-                # No decision from Haiku — fall back to structural check
+                # No decision from Opus — fall back to structural check
                 item["status"] = "accepted"
-                item["accepted_by"] = "Claude (auto — no Haiku decision)"
+                item["accepted_by"] = "Claude (auto — no Opus decision)"
 
-        print(f"[Accept] Haiku reviewed {len(compact)} {item_type}: "
+        print(f"[Accept] Opus reviewed {len(compact)} {item_type}: "
               f"{sum(1 for i in items if i.get('status') == 'accepted')} accepted, "
               f"{sum(1 for i in items if i.get('status') == 'rejected')} rejected")
 
     except Exception as e:
-        print(f"[Accept] Haiku call failed: {e} — falling back to structural acceptance")
+        print(f"[Accept] Opus call failed: {e} — falling back to structural acceptance")
         # Fallback: structural checks only
         for item in items:
             if isinstance(item, dict) and item.get("status") == "proposed":
                 item["status"] = "accepted"
-                item["accepted_by"] = "Claude (fallback — Haiku unavailable)"
+                item["accepted_by"] = "Claude (fallback — Opus unavailable)"
 
     return items
 
 
 def _claude_accept_features(features: list[dict], epic_goal: str = "") -> list[dict]:
-    """Claude evaluates proposed features via Haiku."""
+    """Claude evaluates proposed features via Opus."""
     context = f"Epic goal: {epic_goal}\nEvaluating features for credibility and scope."
     return _claude_evaluate(features, "features", context)
 
 
 def _claude_accept_stories(stories: list[dict], accepted_feature_ids: set, feature_desc: str = "") -> list[dict]:
-    """Claude evaluates proposed stories via Haiku."""
+    """Claude evaluates proposed stories via Opus."""
     # Pre-filter: reject stories with wrong parent
     for s in stories:
         if isinstance(s, dict) and s.get("status") == "proposed":
@@ -479,7 +461,7 @@ def _claude_accept_stories(stories: list[dict], accepted_feature_ids: set, featu
 
 
 def _claude_accept_requirements(requirements: list[dict], accepted_story_ids: set, story_desc: str = "") -> list[dict]:
-    """Claude evaluates proposed requirements via Haiku."""
+    """Claude evaluates proposed requirements via Opus."""
     # Pre-filter: reject reqs with wrong story
     for r in requirements:
         if isinstance(r, dict) and r.get("status") == "proposed":
