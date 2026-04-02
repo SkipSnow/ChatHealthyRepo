@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must define a Pydantic model named SponsorCredibility with fields sponsor_type, funding_source, institution_name, collaborators, reputation_score, and transparency_flag.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must include raw ClinicalTrials.gov fields lead_sponsor, collaborators, and funding_source in the schema for mapping purposes.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must enforce sponsor_type as an enum with allowed values: university, hospital, pharma, and unknown.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must enforce funding_source as an enum with allowed values: public, industry, other, and undisclosed.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must define collaborators as a list of strings representing collaborating institutions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must define institution_name as a non-empty string when lead_sponsor data is present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must allow reputation_score to be nullable to support cases where scoring is not yet computed.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must define transparency_flag as a boolean indicating whether funding_source is disclosed.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must correctly map lead_sponsor.name from ClinicalTrials.gov data into institution_name.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must map collaborator entries from ClinicalTrials.gov into the collaborators list without data loss.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must default sponsor_type to unknown when lead_sponsor data is missing or null.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must default funding_source to undisclosed when funding_source data is missing or null.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must raise a validation error if collaborators is provided but is not a list type.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "requirement": "The system must raise a validation error if sponsor_type or funding_source contains a value outside the allowed enums.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

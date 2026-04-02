@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-CT-SPONSOR-ST-004",
+      "requirement": "The system must accept sponsor credibility data fields in the API response payload without causing parsing errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-CT-SPONSOR-ST-004",
+      "requirement": "The system must map sponsor credibility data from the API response to the frontend data contract defined in EVAL-CT-SPONSOR-ST-001.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-CT-SPONSOR-ST-004",
+      "requirement": "The system must pass sponsor credibility data through App.tsx into the MessageBubble rendering pipeline unchanged.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-CT-SPONSOR-ST-004",
+      "requirement": "The system must preserve existing clinical trial response fields while adding sponsor credibility data.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-CT-SPONSOR-ST-004",
+      "requirement": "The system must ensure that existing trial display flows render successfully when sponsor data is present.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-CT-SPONSOR-ST-004",
+      "requirement": "The system must ensure that existing trial display flows render successfully when sponsor data is absent.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-CT-SPONSOR-ST-004",
+      "requirement": "The system must handle null or missing sponsor fields in the API response without throwing runtime errors.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-CT-SPONSOR-ST-004",
+      "requirement": "The system must ignore unknown or extra sponsor-related fields in the API response without breaking the rendering pipeline.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-CT-SPONSOR-ST-004",
+      "requirement": "The system must correctly associate sponsor credibility data with the corresponding clinical trial record in the response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-CT-SPONSOR-ST-004",
+      "requirement": "The system must ensure that sponsor data is available to downstream rendering logic (EVAL-CT-SPONSOR-ST-002 and ST-003) in the expected structure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-CT-SPONSOR-ST-004",
+      "requirement": "The system must not introduce additional API calls to retrieve sponsor data beyond the existing response payload.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-CT-SPONSOR-ST-004",
+      "requirement": "The system must maintain response handling performance within existing acceptable thresholds after adding sponsor data.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-CT-SPONSOR-ST-004",
+      "requirement": "The system must log a recoverable error when sponsor data is malformed and continue rendering other trial data.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-CT-SPONSOR-ST-004",
+      "requirement": "The system must ensure type safety when integrating sponsor data into the frontend state or props structures.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

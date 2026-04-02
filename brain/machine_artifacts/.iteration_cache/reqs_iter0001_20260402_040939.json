@@ -1,0 +1,133 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-CT-SPONSOR-API-001",
+      "requirement": "The system must include a sponsor_credibility object in the clinical trial evaluation API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-CT-SPONSOR-API-001",
+      "requirement": "The system must populate sponsor_credibility.score using the output from EVAL-CT-SPONSOR-LOGIC-001.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-CT-SPONSOR-API-001",
+      "requirement": "The system must populate sponsor_credibility.classification as a discrete label derived from the credibility score (e.g., high, medium, low).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-CT-SPONSOR-API-001",
+      "requirement": "The system must include sponsor_credibility.explanation as a human-readable text explaining the score rationale.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-CT-SPONSOR-API-001",
+      "requirement": "The system must integrate sponsor credibility into the EvaluateCare facade response structure without breaking existing response fields.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-CT-SPONSOR-API-001",
+      "requirement": "The system must ensure the sponsor_credibility object is returned for every clinical trial evaluation request when sponsor data is available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-CT-SPONSOR-API-001",
+      "requirement": "The system must return a null or explicitly marked unavailable sponsor_credibility object when sponsor data is missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-CT-SPONSOR-API-001",
+      "requirement": "The system must handle multiple collaborators by reflecting their influence within the explanation text.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-CT-SPONSOR-API-001",
+      "requirement": "The system must ensure the explanation text is consistent with the computed score and classification.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-CT-SPONSOR-API-001",
+      "requirement": "The system must generate explanation text that explicitly references sponsor type and funding source when available.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-CT-SPONSOR-API-001",
+      "requirement": "The system must ensure the explanation text is concise and does not exceed a predefined character limit suitable for UI display.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-CT-SPONSOR-API-001",
+      "requirement": "The system must ensure explanation text contains no fabricated data beyond what is derived from sponsor logic outputs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-CT-SPONSOR-API-001",
+      "requirement": "The system must return a valid API response even if sponsor credibility logic fails, with sponsor_credibility marked as unavailable.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-CT-SPONSOR-API-001",
+      "requirement": "The system must log an error when sponsor credibility logic fails to produce a score.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-CT-SPONSOR-API-001",
+      "requirement": "The system must ensure the sponsor_credibility object conforms to the schema defined in EVAL-CT-SPONSOR-SCHEMA-001.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-016",
+      "story_id": "EVAL-CT-SPONSOR-API-001",
+      "requirement": "The system must ensure API response latency is not increased beyond acceptable thresholds due to sponsor credibility integration.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

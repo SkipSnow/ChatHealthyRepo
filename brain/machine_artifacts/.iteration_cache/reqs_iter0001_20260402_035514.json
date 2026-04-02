@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-COMPARE-REQ-001",
+      "story_id": "EVAL-COMPARE-UX-S1",
+      "requirement": "The system must define a comparison schema that includes a unique provider identifier for each provider.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-COMPARE-REQ-002",
+      "story_id": "EVAL-COMPARE-UX-S1",
+      "requirement": "The system must include provider display attributes in the schema (name, specialty, location) for each provider.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-COMPARE-REQ-003",
+      "story_id": "EVAL-COMPARE-UX-S1",
+      "requirement": "The system must include an overall evaluation score field for each provider in the comparison schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-COMPARE-REQ-004",
+      "story_id": "EVAL-COMPARE-UX-S1",
+      "requirement": "The system must include a list of individual evaluation measures per provider, each with a name, value, and score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-COMPARE-REQ-005",
+      "story_id": "EVAL-COMPARE-UX-S1",
+      "requirement": "The system must define a normalized structure for measures so that the same measure keys are present across all compared providers.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-COMPARE-REQ-006",
+      "story_id": "EVAL-COMPARE-UX-S1",
+      "requirement": "The system must include a relative ranking indicator per measure for each provider (e.g., higher, lower, equal).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-COMPARE-REQ-007",
+      "story_id": "EVAL-COMPARE-UX-S1",
+      "requirement": "The system must support comparison of two or more providers within a single schema payload.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-COMPARE-REQ-008",
+      "story_id": "EVAL-COMPARE-UX-S1",
+      "requirement": "The system must define the schema in a way that is directly mappable from the backend EVAL-COMPARE API response without requiring structural transformation beyond field mapping.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-COMPARE-REQ-009",
+      "story_id": "EVAL-COMPARE-UX-S1",
+      "requirement": "The system must include explicit ordering metadata for providers to support consistent side-by-side rendering.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-COMPARE-REQ-010",
+      "story_id": "EVAL-COMPARE-UX-S1",
+      "requirement": "The system must include a flag or field indicating missing or unavailable measure data for a provider.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-COMPARE-REQ-011",
+      "story_id": "EVAL-COMPARE-UX-S1",
+      "requirement": "The system must handle the case where a provider lacks one or more measures by representing those measures as null or explicitly marked missing without breaking the schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-COMPARE-REQ-012",
+      "story_id": "EVAL-COMPARE-UX-S1",
+      "requirement": "The system must handle the case where fewer than two providers are returned by the backend by returning a valid schema with an error or warning indicator.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-COMPARE-REQ-013",
+      "story_id": "EVAL-COMPARE-UX-S1",
+      "requirement": "The system must include a schema version identifier to support backward compatibility and future evolution.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-COMPARE-REQ-014",
+      "story_id": "EVAL-COMPARE-UX-S1",
+      "requirement": "The system must ensure all numeric score fields are typed consistently (e.g., number) across providers and measures.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-COMPARE-REQ-015",
+      "story_id": "EVAL-COMPARE-UX-S1",
+      "requirement": "The system must define a UI contract that guarantees deterministic rendering given the same schema input.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

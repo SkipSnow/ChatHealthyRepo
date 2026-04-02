@@ -1040,8 +1040,8 @@
   },
   {
     "project_path": "Code/Shared/brain_runner.py",
-    "size": 14278,
-    "content_hash": "076c92d98c38659a",
+    "size": 14188,
+    "content_hash": "d9ebfaf4a1f8d038",
     "entity_type": "file",
     "capabilities": [
       "GPT assignment orchestration",
@@ -1053,8 +1053,8 @@
   },
   {
     "project_path": "Code/Shared/cost_guard.py",
-    "size": 9504,
-    "content_hash": "8cd47452678a5633",
+    "size": 11597,
+    "content_hash": "35303150b559ece7",
     "entity_type": "file",
     "capabilities": [
       "Token usage tracking per call",
@@ -1135,8 +1135,8 @@
   },
   {
     "project_path": "Code/Shared/ops/epic_planning_runner.py",
-    "size": 18684,
-    "content_hash": "2221e9dfe7e00c24",
+    "size": 35517,
+    "content_hash": "f7c8fa4a36c302c1",
     "entity_type": "file",
     "description": "Python module: epic_planning_runner"
   },
@@ -1583,11 +1583,32 @@
     "description": "Business artifact: value_chain (.png)"
   },
   {
+    "project_path": "brain/BusinessArtifacts/epic_plan_evaluate_care_v014.docx",
+    "size": 152643,
+    "content_hash": "8104afa332365b69",
+    "entity_type": "file",
+    "description": "Business artifact: epic_plan_evaluate_care_v014 (.docx)"
+  },
+  {
     "project_path": "brain/BusinessArtifacts/epic_planning_prompt_v014.docx",
     "size": 42200,
     "content_hash": "7bcf17c73fd0e706",
     "entity_type": "file",
     "description": "Business artifact: epic_planning_prompt_v014 (.docx)"
+  },
+  {
+    "project_path": "brain/BusinessArtifacts/externalAudits/ExtrnalAuditepic_planning_prompt_v014 (4).pdf",
+    "size": 164492,
+    "content_hash": "9dfb6ee44a336bef",
+    "entity_type": "file",
+    "description": "Business artifact: ExtrnalAuditepic_planning_prompt_v014 (4) (.pdf)"
+  },
+  {
+    "project_path": "brain/BusinessArtifacts/externalAudits/evaluate_care_epic_plan_external_audit.docx",
+    "size": 41606,
+    "content_hash": "dc61011854ecd4aa",
+    "entity_type": "file",
+    "description": "Business artifact: evaluate_care_epic_plan_external_audit (.docx)"
   },
   {
     "project_path": "brain/BusinessArtifacts/external_audit_v1.docx",
@@ -1681,6 +1702,20 @@
     "description": "Business artifact: uat_v013 (.pdf)"
   },
   {
+    "project_path": "brain/machine_artifacts/.iteration_cache/epic_plan_v014_final.json",
+    "size": 1960319,
+    "content_hash": "2768f75d349b9fb1",
+    "entity_type": "file",
+    "description": ".json in brain\\machine_artifacts\\.iteration_cache"
+  },
+  {
+    "project_path": "brain/machine_artifacts/.iteration_cache/plan_tree.json",
+    "size": 1249554,
+    "content_hash": "a358666324ad3d75",
+    "entity_type": "file",
+    "description": ".json in brain\\machine_artifacts\\.iteration_cache"
+  },
+  {
     "project_path": "brain/machine_artifacts/code/generate_arch001_pdf.py",
     "size": 18242,
     "content_hash": "896eb79e69907841",
@@ -1688,11 +1723,39 @@
     "description": "Brain tool: generate_arch001_pdf"
   },
   {
+    "project_path": "brain/machine_artifacts/code/generate_audit_report_doc.py",
+    "size": 16121,
+    "content_hash": "b458cdde447735c4",
+    "entity_type": "file",
+    "description": "Brain tool: generate_audit_report_doc"
+  },
+  {
+    "project_path": "brain/machine_artifacts/code/generate_epic_plan_artifacts.py",
+    "size": 10845,
+    "content_hash": "dea0778964655765",
+    "entity_type": "file",
+    "description": "Brain tool: generate_epic_plan_artifacts"
+  },
+  {
     "project_path": "brain/machine_artifacts/code/generate_epic_planning_doc.py",
     "size": 18570,
     "content_hash": "e271c1bf3f3511f9",
     "entity_type": "file",
     "description": "Brain tool: generate_epic_planning_doc"
+  },
+  {
+    "project_path": "brain/machine_artifacts/code/update_triage_and_rejected.py",
+    "size": 7041,
+    "content_hash": "f71596efa77ad07e",
+    "entity_type": "file",
+    "description": "Brain tool: update_triage_and_rejected"
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/agile_backlog.json",
+    "size": 768707,
+    "content_hash": "f1b8dd82a0d7a28c",
+    "entity_type": "collection",
+    "description": "Brain collection 'agile_backlog' (0 records): "
   },
   {
     "project_path": "brain/machine_artifacts/content/ai_operations.json",
@@ -1709,11 +1772,39 @@
     "description": "Brain collection 'architecture' (9 records): component_discuss_care, portability_refactoring_report, refactor_design_arch001, refactor_design_final, refactor_proposal_iteration1"
   },
   {
+    "project_path": "brain/machine_artifacts/content/audit_response_user_prompt_template.txt",
+    "size": 1178,
+    "content_hash": "44e7380cc393007e",
+    "entity_type": "file",
+    "description": ".txt in brain\\machine_artifacts\\content"
+  },
+  {
     "project_path": "brain/machine_artifacts/content/business_plan.json",
     "size": 68635,
     "content_hash": "137658115cfa1d25",
     "entity_type": "collection",
     "description": "Brain collection 'business_plan' (6 records): biz_arch_draft_v1, biz_arch_investor, biz_arch_investor_v2, bizplan_cost_analysis_results, business_model"
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/claude_acceptance_system_prompt.json",
+    "size": 1931,
+    "content_hash": "8bb9202e4d009239",
+    "entity_type": "collection",
+    "description": "Brain collection '' (0 records): "
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/claude_audit_response_system_prompt.json",
+    "size": 3191,
+    "content_hash": "b0ad722c83f00f21",
+    "entity_type": "collection",
+    "description": "Brain collection '' (0 records): "
+  },
+  {
+    "project_path": "brain/machine_artifacts/content/design.json",
+    "size": 4803,
+    "content_hash": "af70574e9f0d0a48",
+    "entity_type": "collection",
+    "description": "Brain collection 'design' (1 records): design_eval_p_rx_drug_mapping"
   },
   {
     "project_path": "brain/machine_artifacts/content/devops.json",
@@ -1731,15 +1822,15 @@
   },
   {
     "project_path": "brain/machine_artifacts/content/epic_planning_system_prompt.json",
-    "size": 8894,
-    "content_hash": "e894da70b271c288",
+    "size": 11255,
+    "content_hash": "c0fedb8b83979b7f",
     "entity_type": "collection",
     "description": "Brain collection '' (0 records): "
   },
   {
     "project_path": "brain/machine_artifacts/content/epic_planning_user_prompt_v014.txt",
-    "size": 9351,
-    "content_hash": "c33766c09c459951",
+    "size": 9781,
+    "content_hash": "44d2a021a1abde16",
     "entity_type": "file",
     "description": ".txt in brain\\machine_artifacts\\content"
   },
@@ -1786,6 +1877,13 @@
     "description": "Brain collection 'sprint_plan' (7 records): backlog_0_1_4_perplexity, backlog_brand_audit, consent_framework_feature, qa_report_feature, sprint_plan_v013"
   },
   {
+    "project_path": "brain/machine_artifacts/content/token_usage.json",
+    "size": 550984,
+    "content_hash": "8aa6f3d1833ef066",
+    "entity_type": "collection",
+    "description": "Brain collection 'token_usage' (2 records): budget_config, usage_log"
+  },
+  {
     "project_path": "brain/machine_artifacts/content/work_log.json",
     "size": 211725,
     "content_hash": "ccae828e6a8ab718",
@@ -1794,8 +1892,8 @@
   },
   {
     "project_path": "brain/manifest/project_manifest.json",
-    "size": 67281,
-    "content_hash": "c1835990a9abfc18",
+    "size": 76371,
+    "content_hash": "1a444243826d3248",
     "entity_type": "file",
     "description": "Project manifest \u2014 file catalog with capabilities"
   },

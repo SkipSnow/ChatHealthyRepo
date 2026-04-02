@@ -1,0 +1,165 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-PI-UX-001",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must define a typed frontend data schema for PI credibility including fields: investigator_name, institution, prior_trial_count, publication_indicator, and score_contribution.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-002",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must ensure investigator_name is a non-empty string when provided in the schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-003",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must define institution as a nullable string field in the schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-004",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must define prior_trial_count as a non-negative integer.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-005",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must define publication_indicator as a boolean field representing presence of publications.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-006",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must define score_contribution as a numeric field representing PI contribution to overall trial score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-007",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must ensure the schema is compatible with MessageBubble.tsx rendering input format.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-008",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must accept partial PI data objects where one or more optional fields are null without schema validation failure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-009",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must reject PI data objects missing required fields investigator_name or score_contribution.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-010",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must align field names and types with the backend contract provided by EVAL-CT-MEASURE-PI.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-011",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must define a consistent JSON serialization format for PI credibility data used in chat responses.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-012",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must ensure the schema supports rendering multiple PI entries in a list structure.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-013",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must ensure numeric fields are safely parseable by the frontend without runtime type coercion errors.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-014",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must ensure the schema can be extended with additional PI attributes without breaking backward compatibility.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-015",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must ensure LLM-generated responses include PI credibility data structured exactly according to the defined schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-016",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must ensure the LLM does not hallucinate fields outside the defined PI schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-017",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must ensure the LLM populates publication_indicator strictly as true or false, not string equivalents.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-018",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must ensure the LLM outputs prior_trial_count as an integer value.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-019",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must ensure the LLM includes score_contribution when PI data is present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-UX-020",
+      "story_id": "EVAL-CT-PI-UX-S1",
+      "requirement": "The system must ensure the LLM omits PI credibility block entirely when no PI data is available.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}
