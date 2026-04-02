@@ -66332,6 +66332,20 @@
           "accepted_by": "Boss (direct mandate)",
           "backend_dependencies": [],
           "stories": []
+        },
+        {
+          "feature_id": "MAINT-MONGO-SHUTDOWN",
+          "name": "Manage Mongo Shutdown in Pipeline",
+          "epic_id": "EPIC-2",
+          "layer": "backend",
+          "capability": "DataPipelines",
+          "description": "Pipeline manages MongoDB Atlas cluster shutdown. Scale down or pause the DataPipelines cluster after pipeline completion. No manual shutdown by Boss. Part of cost reduction KPI.",
+          "evidence": "Code/DataPipelines/atlas_cluster_manager.py (cluster scaling exists). GAP: No automatic shutdown on pipeline completion.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss (direct mandate)",
+          "backend_dependencies": [],
+          "stories": []
         }
       ]
     }
@@ -66352,7 +66366,8 @@
         "MAINT-E2E-PIPELINE",
         "MAINT-INCREMENTAL-LOAD",
         "MAINT-SPECIALTY-FILTER",
-        "PIPE-RX-INGEST"
+        "PIPE-RX-INGEST",
+        "MAINT-MONGO-SHUTDOWN"
       ],
       "stories": [
         "EVAL-SCORE-PROV-S1"
