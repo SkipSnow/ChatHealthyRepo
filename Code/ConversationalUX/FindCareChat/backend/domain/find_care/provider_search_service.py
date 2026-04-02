@@ -143,11 +143,26 @@ class FindCareService:
             _log.warning("Vector search failed: %s", e)
             return []
 
-    def search(self, specialty_query: str = "", state: str = "", city: str = "",
-               county: str = "", limit: int = 25, npi: str = "", name: str = "",
-               fuzzy_specialty: str = "", specialty_codes: list[str] = None,
-               fetch_all: bool = False, after_npi: str = "",
-               find_specialty_fn=None) -> dict:
+    def _paginated_result(self, providers: list, search_mode: str, safe_limit: int, **extra) -> dict:
+        """Build a result dict with pagination metadata."""
+        last_npi = providers[-1]["npi"] if providers else ""
+        has_more = len(providers) == safe_limit and safe_limit > 0
+        result = {
+            "supported": True,
+            "search_mode": search_mode,
+            "count": len(providers),
+            "providers": providers,
+            "last_npi": last_npi,
+            "has_more": has_more,
+        }
+        result.update(extra)
+        return result
+
+    def search_providers(self, specialty_query: str = "", state: str = "", city: str = "",
+                         county: str = "", limit: int = 25, npi: str = "", name: str = "",
+                         fuzzy_specialty: str = "", specialty_codes: list[str] = None,
+                         fetch_all: bool = False, after_npi: str = "",
+                         find_specialty_fn=None) -> dict:
         """Search for providers. Main entry point.
 
         Facade pattern (GoF) — routes to the right search strategy based on args.
@@ -215,7 +230,7 @@ class FindCareService:
                 cursor = cursor.limit(safe_limit)
             raw = list(cursor)
             providers = [self._format_provider(p) for p in raw]
-            return {"supported": True, "search_mode": "name", "count": len(providers), "providers": providers}
+            return self._paginated_result(providers, "name", safe_limit)
 
         # ── Route 3: Specialty codes direct filter ──
         if specialty_codes:
@@ -236,8 +251,8 @@ class FindCareService:
             providers = [self._format_provider(p) for p in raw]
             _log.info("search: specialty_codes returned %d for %d codes in %s",
                        len(providers), len(specialty_codes), state_upper or "all")
-            return {"supported": True, "state": state_upper, "search_mode": "specialty_codes",
-                    "codes_searched": len(specialty_codes), "count": len(providers), "providers": providers}
+            return self._paginated_result(providers, "specialty_codes", safe_limit,
+                                          state=state_upper, codes_searched=len(specialty_codes))
 
         # ── Route 4: Vector search (natural language) ──
         if specialty_query:
@@ -279,8 +294,8 @@ class FindCareService:
                 raw = list(cursor)
                 providers = [self._format_provider(p) for p in raw]
                 _log.info("search: taxonomy returned %d for '%s' in %s", len(providers), specialty_query, state_upper)
-                return {"supported": True, "state": state_upper, "specialty_searched": specialty_query,
-                        "search_mode": "taxonomy", "count": len(providers), "providers": providers}
+                return self._paginated_result(providers, "taxonomy", safe_limit,
+                                              state=state_upper, specialty_searched=specialty_query)
 
         # ── Route 5: County fallback ──
         if county and state_upper:
@@ -298,8 +313,8 @@ class FindCareService:
             raw = list(cursor)
             providers = [self._format_provider(p) for p in raw]
             _log.info("search: county fallback returned %d for '%s' in %s", len(providers), county, state_upper)
-            return {"supported": True, "state": state_upper, "county_searched": county,
-                    "search_mode": "county_physicians", "count": len(providers), "providers": providers}
+            return self._paginated_result(providers, "county_physicians", safe_limit,
+                                          state=state_upper, county_searched=county)
 
         return {"supported": True, "providers": [],
                 "message": f"No providers found matching the search criteria."}
