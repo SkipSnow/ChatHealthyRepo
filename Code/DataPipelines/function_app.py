@@ -32,7 +32,7 @@ from otp_manager import exchange_otp
 from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
 from copy_to_frontend import (run_copy_to_frontend, snapshot_collection_fn, create_frontend_vector_index_fn,
-                              partition_source, copy_chunk, drop_destination)
+                              partition_source, copy_chunk, drop_destination, migrate_environment)
 from promote_data_fn import run_promote_data
 from gpt_reader import handle_gpt_reader
 from pipeline_health import check_mongo_health
@@ -189,6 +189,7 @@ ASYNC_TASK_ORCHESTRATORS = {
     "FullProviderPipeline": "full_provider_pipeline_orchestrator",
     "SnapshotCollection": "snapshot_collection_orchestrator",
     "CopyToFrontEnd": "copy_to_frontend_orchestrator",
+    "MigrateEnvironment": "migrate_environment_orchestrator",
 }
 
 
@@ -489,6 +490,58 @@ def copy_to_frontend_orchestrator(context: df.DurableOrchestrationContext):
 
 
 @app.orchestration_trigger(context_name="context")
+def migrate_environment_orchestrator(context: df.DurableOrchestrationContext):
+    """Migrate all PublicHealthData collections from one env to another. Same cluster, $out.
+
+    payload:
+        src_env   — "dev" (default)
+        dst_env   — "staging" (required)
+        cluster_name — "ChatHealthyDataPipelines" (default)
+    """
+    import datetime as dt
+
+    config = context.get_input() or {}
+    src_env = config.get("src_env", "dev")
+    dst_env = config.get("dst_env", "staging")
+    cluster_name = config.get("cluster_name", "ChatHealthyDataPipelines")
+
+    # Reserve cluster
+    reservation = {
+        "job_id": f"migrate_{src_env}_to_{dst_env}_{int(time.time())}",
+        "requester": "MigrateEnvironment",
+        "cluster_name": cluster_name,
+        "expected_duration_minutes": config.get("expected_duration_minutes", 60),
+    }
+    context.set_custom_status(f"Reserving cluster")
+    yield context.call_activity("register_reservation_activity", reservation)
+
+    # Wait for IDLE
+    deadline = context.current_utc_datetime + dt.timedelta(minutes=30)
+    while context.current_utc_datetime < deadline:
+        context.set_custom_status("Waiting for cluster IDLE")
+        status = yield context.call_activity("check_cluster_state_activity",
+                                              {"cluster_name": cluster_name})
+        if status.get("cluster_state") == "IDLE":
+            break
+        next_check = context.current_utc_datetime + dt.timedelta(seconds=15)
+        yield context.create_timer(next_check)
+
+    # Migrate
+    context.set_custom_status(f"Migrating {src_env} → {dst_env}")
+    result = yield context.call_activity("migrate_environment_activity", {
+        "src_env": src_env,
+        "dst_env": dst_env,
+    })
+
+    # Release
+    context.set_custom_status("Releasing cluster")
+    yield context.call_activity("release_reservation_activity", reservation)
+
+    context.set_custom_status(f"Done — {src_env} → {dst_env}")
+    return result
+
+
+@app.orchestration_trigger(context_name="context")
 def snapshot_collection_orchestrator(context: df.DurableOrchestrationContext):
     config = context.get_input() or {}
     src = config.get("source", "providers")
@@ -509,6 +562,11 @@ def check_mongo_health_activity(config: dict) -> dict:
 @app.activity_trigger(input_name="config")
 def copy_to_frontend_activity(config: dict) -> dict:
     return run_copy_to_frontend(config)
+
+
+@app.activity_trigger(input_name="config")
+def migrate_environment_activity(config: dict) -> dict:
+    return migrate_environment(config)
 
 
 @app.activity_trigger(input_name="config")
