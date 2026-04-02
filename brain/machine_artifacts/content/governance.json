@@ -198,11 +198,18 @@
           "policy": "The AI turns what the user says into a clear question. The system answers using real data, not guesses. The AI's role is translation (natural language to structured intent). The system's role is resolution (query real data, apply rules, return bounded results). The AI must never generate answers from its own knowledge when system data exists to answer the question.",
           "rationale": "This is the operational restatement of GOV-001's core principle ('The model may suggest. The system must decide.') applied specifically to the user-facing chat. Users trust that answers come from verified provider data, not LLM confabulation. Every answer must trace back to the data layer.",
           "status": "permanent"
+        },
+        {
+          "id": "GOV-012",
+          "name": "Environment Isolation — No Cross-Environment Data Movement",
+          "policy": "Data may only move within its environment chain: dev pipeline → dev frontend, staging pipeline → staging frontend, prod pipeline → prod frontend. No cross-environment copies (e.g., dev → prod, staging → dev). Within the pipeline cluster, data promotes forward only: dev → staging → prod via MigrateEnvironment. No backward migration. No shortcuts. Only Boss can authorize a deviation from this policy — not GPT, not Claude, not any automated process.",
+          "rationale": "Environment isolation is a healthcare compliance requirement. Cross-environment data movement creates audit gaps, breaks reproducibility, and risks exposing test data in production or production data in dev. The forward-only promotion chain ensures every dataset in staging was proven in dev, and every dataset in prod was proven in staging.",
+          "status": "permanent"
         }
       ],
       "_record_id": "corporate_governance",
       "_source_file": "corporate_governance.json",
-      "description": "GOV-001 through GOV-011. Provider neutrality, single-tenant, public-by-default, Boss sign-off, role-in-system-prompt, zero user data exposure, AI translates / system answers.",
+      "description": "GOV-001 through GOV-012. Provider neutrality, single-tenant, public-by-default, Boss sign-off, role-in-system-prompt, zero user data exposure, AI translates / system answers, environment isolation.",
       "publish": false
     },
     {
