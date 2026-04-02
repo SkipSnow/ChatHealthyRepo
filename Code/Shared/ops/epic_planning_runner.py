@@ -559,11 +559,13 @@ def run_phase2(system_prompt: str, model: str, max_iter: int = 20, dedup_warning
 
         def build_prompt(iteration, last_result, fulfilled, _feat=feat, _deps=dep_features, _dw=dedup_warnings):
             feedback = last_result.get("_claude_feedback", []) if isinstance(last_result, dict) else []
+            fid = _feat.get('feature_id')
             msg = (
-                f"PHASE 2: Write stories for feature {_feat.get('feature_id')}.\n"
+                f"PHASE 2: Write stories for feature {fid}.\n"
                 f"Feature: {json.dumps(_feat, indent=2, ensure_ascii=False)}\n"
                 f"Iteration {iteration}. Write 3-5 stories for this feature.\n"
                 f"Each story: story_id, title, description, parent_feature, sprint, dependencies, size, evidence.\n"
+                f"CRITICAL: parent_feature MUST be exactly '{fid}'. Do not invent a different ID.\n"
                 f"Minimum 3 stories. Break into: schema/contract, core logic, API/UI, tests, integration.\n\n"
             )
             if _dw:
@@ -585,6 +587,14 @@ def run_phase2(system_prompt: str, model: str, max_iter: int = 20, dedup_warning
             stories = result.get("stories", [])
             if isinstance(stories, dict):
                 stories = list(stories.values())
+            # Reject stories with wrong parent_feature
+            wrong_parent = [s for s in stories if isinstance(s, dict) and s.get("parent_feature") != _fid]
+            if wrong_parent:
+                bad_ids = [s.get("story_id", "?") for s in wrong_parent[:5]]
+                objections.append(
+                    f"WRONG PARENT: {len(wrong_parent)} stories have parent_feature != '{_fid}': "
+                    f"{', '.join(bad_ids)}. parent_feature MUST be exactly '{_fid}'."
+                )
             mine = [s for s in stories if isinstance(s, dict) and s.get("parent_feature") == _fid]
             if len(mine) < 3:
                 objections.append(f"Only {len(mine)} stories for {_fid}. Minimum 3.")
