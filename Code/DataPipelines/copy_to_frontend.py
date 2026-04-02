@@ -159,7 +159,7 @@ def create_frontend_vector_index_fn(config: dict) -> dict:
 
 
 def run_copy_to_frontend(config: dict) -> dict:
-    from cluster_lifecycle_manager import ClusterLifecycleManager, ResourceReservation
+    from cluster_lifecycle_manager import ClusterLifecycleManager
 
     pipeline_conn  = os.environ.get("MONGO_connectionString")
     frontend_conn  = os.environ.get("MONGO_FRONTEND_connectionString")
@@ -169,30 +169,37 @@ def run_copy_to_frontend(config: dict) -> dict:
     if not frontend_conn:
         raise ValueError("MONGO_FRONTEND_connectionString not set")
 
-    # Register cluster reservation — wakes pipeline DB if paused (non-blocking)
+    # Reserve cluster via Ops Manager — non-blocking wake
     env_prefix = config.get("env_prefix", "dev")
+    cluster_name = config.get("pipeline_cluster", "ChatHealthyDataPipelines")
+    job_id = f"copy_to_frontend_{int(time.time())}"
+
     manager = ClusterLifecycleManager(
         get_db_fn=lambda: MongoClient(frontend_conn),
         env_prefix=env_prefix,
     )
-    reservation = ResourceReservation(
-        job_id=f"copy_to_frontend_{int(time.time())}",
+    manager.reserve(
+        cluster_name=cluster_name,
+        job_id=job_id,
         requester="CopyToFrontEnd",
-        cluster_name=config.get("pipeline_cluster", "ChatHealthyDataPipelines"),
         expected_duration_minutes=config.get("expected_duration_minutes", 60),
     )
 
-    # If called with queue_only=True, register and return — timer executes later
-    if config.get("queue_only"):
-        manager.register(reservation, task_config={
-            "ChatHealthyTask": "CopyToFrontEnd",
-            "payload": {k: v for k, v in config.items() if k != "queue_only"}
-        })
-        return {"status": "queued", "job_id": reservation.job_id,
-                "message": "Task queued. Lifecycle manager will execute when cluster is IDLE."}
-
-    manager.register(reservation)
-    logging.info("Reservation registered: %s", reservation.job_id)
+    # Poll until cluster is IDLE — max 20 minutes
+    max_wait = 1200  # seconds
+    waited = 0
+    poll_interval = 15
+    while waited < max_wait:
+        status = manager.status(cluster_name)
+        if status["cluster_state"] == "IDLE":
+            logging.info("Cluster %s is IDLE — proceeding with copy", cluster_name)
+            break
+        logging.info("Cluster %s is %s — waiting (%ds)", cluster_name, status["cluster_state"], waited)
+        time.sleep(poll_interval)
+        waited += poll_interval
+    else:
+        manager.release(job_id)
+        raise TimeoutError(f"Cluster {cluster_name} did not reach IDLE within {max_wait}s")
 
     # env_prefix scopes the destination DB on the FrontEnd cluster.
     # "dev" → dev_PublicHealthData; "" or omitted → PublicHealthData (legacy)
@@ -253,9 +260,9 @@ def run_copy_to_frontend(config: dict) -> dict:
     finally:
         pipeline_client.close()
         frontend_client.close()
-        # Always release reservation — cluster shuts down if last one
-        manager.release(reservation)
-        logging.info("Reservation released: %s", reservation.job_id)
+        # Always release — Ops Manager shuts down cluster if last reservation
+        manager.release(job_id)
+        logging.info("Reservation released: %s", job_id)
 
     logging.info("CopyToFrontEnd complete: %s", results)
     return {"status": "complete", "collections": results}
