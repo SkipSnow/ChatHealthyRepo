@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pipeline Operations Manager — ChatHealthy.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #0d1117;
+      --ink-soft: #4a5568;
+      --surface: #ffffff;
+      --teal: #0b7a75;
+      --teal-light: #e6f4f3;
+      --accent: #f0a500;
+      --warn: #c0392b;
+      --border: #d8e2e1;
+      --radius: 6px;
+      --max-w: 1100px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+    main { max-width: var(--max-w); width: 100%; margin: 0 auto; padding: 40px 24px; }
+    h1 { font-family: 'DM Serif Display', serif; font-size: 2rem; margin-bottom: 8px; }
+    h2 { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--teal); margin: 32px 0 12px; }
+    h3 { font-size: 1rem; margin: 20px 0 8px; }
+    p { line-height: 1.6; margin-bottom: 12px; color: var(--ink-soft); }
+    .subtitle { color: var(--ink-soft); font-size: 0.95rem; margin-bottom: 24px; }
+
+    /* Flow diagram */
+    .flow { display: flex; flex-direction: column; align-items: center; gap: 0; margin: 32px 0; }
+    .flow-node {
+      border: 2px solid var(--ink); border-radius: var(--radius);
+      padding: 12px 20px; text-align: center; font-weight: 500;
+      font-size: 0.9rem; min-width: 200px; background: var(--surface);
+      position: relative;
+    }
+    .flow-node.start { background: var(--teal); color: white; border-color: var(--teal); }
+    .flow-node.llm { background: #f0f4ff; border-color: #3b82f6; }
+    .flow-node.notify { background: #fef3c7; border-color: var(--accent); }
+    .flow-node.repair { background: var(--teal-light); border-color: var(--teal); }
+    .flow-node.escalate { background: #fef2f2; border-color: var(--warn); }
+    .flow-node.end { background: #f0fdf4; border-color: #16a34a; }
+    .flow-node.dev { background: #f5f3ff; border-color: #7c3aed; }
+    .flow-node small { display: block; font-weight: 300; font-size: 0.8rem; margin-top: 4px; }
+
+    .flow-arrow { font-size: 1.2rem; color: var(--ink-soft); line-height: 1; padding: 4px 0; }
+    .flow-branch { display: flex; gap: 24px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+    .flow-branch-col { display: flex; flex-direction: column; align-items: center; gap: 0; min-width: 220px; }
+    .flow-label {
+      font-size: 0.75rem; font-weight: 500; text-transform: uppercase;
+      letter-spacing: 0.05em; padding: 2px 8px; border-radius: 3px;
+      margin-bottom: 4px;
+    }
+    .flow-label.infra { background: var(--teal-light); color: var(--teal); }
+    .flow-label.pipeline { background: #f5f3ff; color: #7c3aed; }
+    .flow-label.unknown { background: #fef3c7; color: #92400e; }
+
+    .flow-decision { display: flex; gap: 16px; justify-content: center; margin: 4px 0; }
+    .flow-decision-branch { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .flow-decision-label { font-size: 0.75rem; color: var(--ink-soft); font-weight: 500; }
+
+    /* Tables */
+    table { border-collapse: collapse; width: 100%; margin: 12px 0 20px; font-size: 0.88rem; }
+    th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+    th { background: #f9fafb; font-weight: 600; }
+
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 16px 0; font-size: 0.82rem; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-swatch { width: 16px; height: 16px; border-radius: 3px; border: 1px solid #ccc; }
+
+    .copyright { font-size: 0.8rem; color: var(--ink-soft); margin-top: 40px; text-align: center; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Pipeline Operations Manager</h1>
+  <p class="subtitle">EPIC-3 — Infrastructure Lifecycle Management<br>
+  Design Document | April 2, 2026 | Build 388</p>
+
+  <!-- ═══ OVERVIEW ═══ -->
+  <h2>Overview</h2>
+  <p>The Pipeline Operations Manager is an AI agent that manages infrastructure lifecycle for ChatHealthy.ai data pipelines. It manages clusters, not data. It reads errors, not records. It escalates to the right person, not fixes code.</p>
+  <p>The agent uses tools. Tools don't think. The agent thinks.</p>
+
+  <!-- ═══ AGENT ARCHITECTURE ═══ -->
+  <h2>Agent Architecture</h2>
+
+  <div class="flow">
+    <div class="flow-node" style="background:#f9fafb; border-style:dashed; min-width:500px;">
+      <strong>BaseAgent</strong> (shared framework)
+      <small>ToolRegistry (GOV-004 allowlist) · handle_event() · self_repair() · escalate()</small>
+    </div>
+    <div class="flow-arrow">▼ extends</div>
+    <div class="flow-branch">
+      <div class="flow-node repair" style="min-width:180px;">
+        <strong>Ops Manager</strong>
+        <small>ClusterTool · CostTool<br>AlertTool · TriageTool</small>
+      </div>
+      <div class="flow-node dev" style="min-width:180px;">
+        <strong>Research Agent</strong>
+        <small>WebTool · PubMedTool<br>CTGovTool · FDATool</small>
+      </div>
+      <div class="flow-node llm" style="min-width:180px;">
+        <strong>DB Agent</strong>
+        <small>QueryTool · IndexTool<br>BackupTool · MigrateTool</small>
+      </div>
+    </div>
+    <div class="flow-arrow">▼ implements</div>
+    <div class="flow-node" style="background:#f9fafb; border-style:dashed; min-width:500px;">
+      <strong>BaseTool</strong> (interface)
+      <small>execute() → ToolResult · can_handle_error() · repair()</small>
+    </div>
+  </div>
+
+  <!-- ═══ NORMAL FLOW ═══ -->
+  <h2>Normal Flow — Reservation Lifecycle</h2>
+
+  <div class="flow">
+    <div class="flow-node start">Pipeline Task Starts</div>
+    <div class="flow-arrow">▼</div>
+    <div class="flow-node repair">
+      <strong>WakeCluster</strong>
+      <small>Add to reservation array · Send Atlas resume · Return immediately</small>
+    </div>
+    <div class="flow-arrow">▼</div>
+    <div class="flow-node llm">
+      <strong>ClusterStatus</strong> (poll every 15s)
+      <small>Check Atlas API · Return state</small>
+    </div>
+    <div class="flow-arrow">▼ cluster IDLE</div>
+    <div class="flow-node" style="min-width:300px;">
+      <strong>Do Work</strong>
+      <small>Copy · Enrich · Embed · Load — whatever the pipeline does</small>
+    </div>
+    <div class="flow-arrow">▼</div>
+    <div class="flow-node repair">
+      <strong>Release</strong>
+      <small>Remove from array · Array empty? → Pause cluster</small>
+    </div>
+    <div class="flow-arrow">▼</div>
+    <div class="flow-node end">Done</div>
+  </div>
+
+  <h3>Concurrent Reservations</h3>
+  <table>
+    <tr><th>Reservation</th><th>Requester</th><th>Duration</th><th>Status</th></tr>
+    <tr><td>copy_47_states</td><td>CopyToFrontEnd</td><td>120 min</td><td>active</td></tr>
+    <tr><td>county_enrich</td><td>CountyEnrichment</td><td>60 min</td><td>active</td></tr>
+    <tr><td>embed_va</td><td>EmbeddingWorker</td><td>30 min</td><td>active</td></tr>
+  </table>
+  <p>Three concurrent jobs. Cluster stays up while array is non-empty. Last release pauses cluster.</p>
+
+  <!-- ═══ ERROR FLOW ═══ -->
+  <h2>Error Flow — Diagnose Loop with Tool Calls</h2>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--teal);"></div> Start / Repair</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#3b82f6;"></div> GPT-4.1-mini (AI decision)</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#f0a500;"></div> Notify (information)</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#7c3aed;"></div> Dev Manager</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#ef4444;"></div> Escalate (action required)</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#16a34a;"></div> End</div>
+  </div>
+
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 920" font-family="'DM Sans',sans-serif" font-size="13" fill="#0d1117" style="max-width:800px;margin:24px auto;display:block;">
+    <!-- Defs -->
+    <defs>
+      <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#4a5568"/>
+      </marker>
+    </defs>
+
+    <!-- 1. ERROR EVENT -->
+    <rect x="300" y="10" width="200" height="44" rx="6" fill="#0b7a75" stroke="#0b7a75"/>
+    <text x="400" y="36" text-anchor="middle" fill="white" font-weight="600">Error Event</text>
+
+    <!-- Arrow -->
+    <line x1="400" y1="54" x2="400" y2="80" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+
+    <!-- 2. NOTIFY BOSS (always) -->
+    <rect x="280" y="80" width="240" height="50" rx="6" fill="#fef3c7" stroke="#f0a500" stroke-width="2"/>
+    <text x="400" y="100" text-anchor="middle" font-weight="600">NOTIFY Boss</text>
+    <text x="400" y="118" text-anchor="middle" font-size="11" fill="#92400e">Email: error detected, investigating</text>
+
+    <!-- Arrow -->
+    <line x1="400" y1="130" x2="400" y2="160" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+
+    <!-- 3. GPT-4.1-mini DIAGNOSE (the loop) -->
+    <rect x="240" y="160" width="320" height="70" rx="6" fill="#f0f4ff" stroke="#3b82f6" stroke-width="2"/>
+    <text x="400" y="183" text-anchor="middle" font-weight="600">GPT-4.1-mini: DIAGNOSE</text>
+    <text x="400" y="200" text-anchor="middle" font-size="11" fill="#4a5568">Call tools to gather evidence.</text>
+    <text x="400" y="215" text-anchor="middle" font-size="11" fill="#4a5568">Classify: infrastructure or pipeline logic?</text>
+
+    <!-- Loop arrow back to DIAGNOSE -->
+    <path d="M560,195 C620,195 620,155 560,155" stroke="#3b82f6" stroke-width="1.5" fill="none" stroke-dasharray="4,3" marker-end="url(#arrowhead)"/>
+    <text x="635" y="178" font-size="10" fill="#3b82f6" font-weight="500">iterate</text>
+    <text x="635" y="192" font-size="10" fill="#3b82f6">(max N)</text>
+
+    <!-- Tool calls box -->
+    <rect x="60" y="168" width="160" height="55" rx="4" fill="#f9fafb" stroke="#d1d5db" stroke-dasharray="4,3"/>
+    <text x="140" y="186" text-anchor="middle" font-size="11" font-weight="500">Tool Calls:</text>
+    <text x="140" y="200" text-anchor="middle" font-size="10" fill="#4a5568">ClusterTool.status()</text>
+    <text x="140" y="213" text-anchor="middle" font-size="10" fill="#4a5568">AlertTool.read_logs()</text>
+    <line x1="220" y1="195" x2="240" y2="195" stroke="#d1d5db" stroke-dasharray="3,3"/>
+
+    <!-- Arrow down from DIAGNOSE -->
+    <line x1="400" y1="230" x2="400" y2="265" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+    <text x="410" y="252" font-size="10" fill="#4a5568">verdict</text>
+
+    <!-- 4. DIAMOND: Infrastructure or Pipeline? -->
+    <polygon points="400,265 470,305 400,345 330,305" fill="white" stroke="#0d1117" stroke-width="2"/>
+    <text x="400" y="302" text-anchor="middle" font-size="11" font-weight="600">Infra?</text>
+    <text x="400" y="316" text-anchor="middle" font-size="11" font-weight="600">Logic?</text>
+
+    <!-- LEFT: Infrastructure -->
+    <line x1="330" y1="305" x2="180" y2="305" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+    <text x="255" y="297" font-size="11" fill="#0b7a75" font-weight="500">infrastructure</text>
+
+    <!-- RIGHT: Pipeline Logic (evidence required) -->
+    <line x1="470" y1="305" x2="620" y2="305" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+    <text x="535" y="297" font-size="11" fill="#7c3aed" font-weight="500">logic (with evidence)</text>
+
+    <!-- DOWN: Can't determine (max iterations) -->
+    <line x1="400" y1="345" x2="400" y2="700" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+    <text x="415" y="365" font-size="10" fill="#4a5568">can't determine</text>
+
+    <!-- ═══ LEFT BRANCH: INFRASTRUCTURE ═══ -->
+
+    <!-- 5L. REPAIR -->
+    <rect x="60" y="280" width="200" height="50" rx="6" fill="#e6f4f3" stroke="#0b7a75" stroke-width="2"/>
+    <text x="160" y="302" text-anchor="middle" font-weight="600">SELF REPAIR</text>
+    <text x="160" y="318" text-anchor="middle" font-size="11" fill="#4a5568">Execute repair tool</text>
+
+    <!-- Arrow down -->
+    <line x1="160" y1="330" x2="160" y2="365" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+
+    <!-- 6L. Diamond: repaired? -->
+    <polygon points="160,365 210,395 160,425 110,395" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+    <text x="160" y="400" text-anchor="middle" font-size="11" font-weight="500">fixed?</text>
+
+    <!-- YES -->
+    <line x1="110" y1="395" x2="30" y2="395" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+    <text x="70" y="387" font-size="10" fill="#16a34a">yes</text>
+
+    <rect x="-30" y="375" width="130" height="44" rx="6" fill="#fef3c7" stroke="#f0a500"/>
+    <text x="35" y="395" text-anchor="middle" font-size="11" font-weight="500">NOTIFY Boss</text>
+    <text x="35" y="409" text-anchor="middle" font-size="10" fill="#92400e">self-repaired</text>
+    <line x1="35" y1="419" x2="35" y2="450" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+    <rect x="-10" y="450" width="90" height="30" rx="6" fill="#f0fdf4" stroke="#16a34a"/>
+    <text x="35" y="470" text-anchor="middle" font-weight="500" fill="#16a34a">END</text>
+
+    <!-- NO -->
+    <line x1="160" y1="425" x2="160" y2="460" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+    <text x="175" y="448" font-size="10" fill="#ef4444">no</text>
+
+    <!-- 7L. ESCALATE BOSS -->
+    <rect x="80" y="460" width="160" height="50" rx="6" fill="#fef2f2" stroke="#ef4444" stroke-width="2"/>
+    <text x="160" y="482" text-anchor="middle" font-weight="600" fill="#ef4444">ESCALATE Boss</text>
+    <text x="160" y="498" text-anchor="middle" font-size="10" fill="#ef4444">action required</text>
+    <line x1="160" y1="510" x2="160" y2="540" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+    <rect x="115" y="540" width="90" height="30" rx="6" fill="#f0fdf4" stroke="#16a34a"/>
+    <text x="160" y="560" text-anchor="middle" font-weight="500" fill="#16a34a">END</text>
+
+    <!-- ═══ RIGHT BRANCH: PIPELINE LOGIC ═══ -->
+
+    <!-- 5R. DEV MANAGER -->
+    <rect x="540" y="280" width="200" height="50" rx="6" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+    <text x="640" y="302" text-anchor="middle" font-weight="600" fill="#7c3aed">DEV MANAGER</text>
+    <text x="640" y="318" text-anchor="middle" font-size="11" fill="#4a5568">Claude investigates</text>
+
+    <!-- Arrow down -->
+    <line x1="640" y1="330" x2="640" y2="365" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+
+    <!-- 6R. Diamond: resolved? -->
+    <polygon points="640,365 690,395 640,425 590,395" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+    <text x="640" y="400" text-anchor="middle" font-size="11" font-weight="500">fixed?</text>
+
+    <!-- YES -->
+    <line x1="690" y1="395" x2="760" y2="395" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+    <text x="725" y="387" font-size="10" fill="#16a34a">yes</text>
+
+    <rect x="700" y="375" width="130" height="44" rx="6" fill="#fef3c7" stroke="#f0a500"/>
+    <text x="765" y="395" text-anchor="middle" font-size="11" font-weight="500">NOTIFY Boss</text>
+    <text x="765" y="409" text-anchor="middle" font-size="10" fill="#92400e">Dev resolved</text>
+    <line x1="765" y1="419" x2="765" y2="450" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+    <rect x="720" y="450" width="90" height="30" rx="6" fill="#f0fdf4" stroke="#16a34a"/>
+    <text x="765" y="470" text-anchor="middle" font-weight="500" fill="#16a34a">END</text>
+
+    <!-- NO -->
+    <line x1="640" y1="425" x2="640" y2="460" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+    <text x="655" y="448" font-size="10" fill="#ef4444">no</text>
+
+    <!-- 7R. ESCALATE BOSS -->
+    <rect x="560" y="460" width="160" height="50" rx="6" fill="#fef2f2" stroke="#ef4444" stroke-width="2"/>
+    <text x="640" y="482" text-anchor="middle" font-weight="600" fill="#ef4444">ESCALATE Boss</text>
+    <text x="640" y="498" text-anchor="middle" font-size="10" fill="#ef4444">action required</text>
+    <line x1="640" y1="510" x2="640" y2="540" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+    <rect x="595" y="540" width="90" height="30" rx="6" fill="#f0fdf4" stroke="#16a34a"/>
+    <text x="640" y="560" text-anchor="middle" font-weight="500" fill="#16a34a">END</text>
+
+    <!-- ═══ BOTTOM: CAN'T DETERMINE ═══ -->
+    <rect x="310" y="700" width="180" height="50" rx="6" fill="#fef2f2" stroke="#ef4444" stroke-width="2"/>
+    <text x="400" y="722" text-anchor="middle" font-weight="600" fill="#ef4444">ESCALATE Boss</text>
+    <text x="400" y="738" text-anchor="middle" font-size="10" fill="#ef4444">can't classify after N tries</text>
+    <line x1="400" y1="750" x2="400" y2="780" stroke="#4a5568" marker-end="url(#arrowhead)"/>
+    <rect x="355" y="780" width="90" height="30" rx="6" fill="#f0fdf4" stroke="#16a34a"/>
+    <text x="400" y="800" text-anchor="middle" font-weight="500" fill="#16a34a">END</text>
+
+    <!-- ═══ KEY ═══ -->
+    <rect x="20" y="840" width="760" height="70" rx="6" fill="#f9fafb" stroke="#d1d5db"/>
+    <text x="40" y="862" font-size="12" font-weight="600">Key:</text>
+    <text x="40" y="880" font-size="11" fill="#4a5568">GPT-4.1-mini drives the DIAGNOSE loop. It calls tools (ClusterTool, AlertTool) to gather evidence.</text>
+    <text x="40" y="896" font-size="11" fill="#4a5568">Only sends to Dev Manager with evidence of a logic error. Otherwise escalates to Boss directly.</text>
+  </svg>
+
+  <h3>Diagnose Loop Detail</h3>
+  <p>GPT-4.1-mini iterates up to <strong>N times</strong> (configurable, default 3). Each iteration it can call tools to gather evidence:</p>
+  <table>
+    <tr><th>Tool Call</th><th>What It Returns</th><th>Why</th></tr>
+    <tr><td>ClusterTool.status()</td><td>Cluster state, connection health</td><td>Is the DB even reachable?</td></tr>
+    <tr><td>AlertTool.read_recent()</td><td>Last N log entries</td><td>What happened before the error?</td></tr>
+    <tr><td>ClusterTool.check_connection()</td><td>Connection test result</td><td>Network or auth problem?</td></tr>
+  </table>
+  <p>After gathering evidence, GPT-4.1-mini classifies:</p>
+  <table>
+    <tr><th>Verdict</th><th>Evidence Required</th><th>Next Step</th></tr>
+    <tr><td><strong>Infrastructure</strong></td><td>Cluster down, connection failed, timeout</td><td>Self-repair → if fails → Escalate Boss</td></tr>
+    <tr><td><strong>Pipeline Logic</strong></td><td>Schema mismatch, data format error, business rule violation</td><td>Send to Dev Manager with evidence</td></tr>
+    <tr><td><strong>Can't Determine</strong></td><td>Max iterations reached</td><td>Escalate Boss directly</td></tr>
+  </table>
+
+  <!-- ═══ LLM TRIAGE ═══ -->
+  <h2>Error Classification — LLM Triage</h2>
+  <p>No regex. The Ops Manager calls GPT-4.1-mini to classify errors using the full error context.</p>
+
+  <h3>System Prompt (cached, from Brain)</h3>
+  <table>
+    <tr><th>Field</th><th>Value</th></tr>
+    <tr><td>Model</td><td>gpt-4.1-mini (cost-optimized, proven on safety classifier)</td></tr>
+    <tr><td>Role</td><td>Error triage agent for pipeline infrastructure</td></tr>
+    <tr><td>Output</td><td>JSON: category, confidence, reasoning, self_repair_possible, repair_action</td></tr>
+    <tr><td>Categories</td><td>INFRASTRUCTURE · PIPELINE · UNKNOWN</td></tr>
+  </table>
+
+  <h3>User Prompt (per error)</h3>
+  <table>
+    <tr><th>Context Field</th><th>Source</th></tr>
+    <tr><td>error_code</td><td>From the failing tool's ToolResult</td></tr>
+    <tr><td>error_message</td><td>Full error text</td></tr>
+    <tr><td>cluster_state</td><td>Atlas API (via ClusterTool)</td></tr>
+    <tr><td>job_id, requester</td><td>From the active reservation</td></tr>
+    <tr><td>reservation_status</td><td>active / overdue</td></tr>
+    <tr><td>recent_events</td><td>Last 3 log entries from Brain</td></tr>
+  </table>
+
+  <!-- ═══ NOTIFICATION ═══ -->
+  <h2>Notification Model</h2>
+  <p>Notify ≠ Escalate. Notify is information. Escalate is "I need your help."</p>
+
+  <table>
+    <tr><th>Event</th><th>Recipient</th><th>Type</th><th>Content</th></tr>
+    <tr><td>Error detected</td><td>Boss (configurable)</td><td>Notify</td><td>What happened, what we're doing</td></tr>
+    <tr><td>Self-repaired</td><td>Boss</td><td>Notify</td><td>What broke, what fixed it</td></tr>
+    <tr><td>Sent to Dev Manager</td><td>Dev Manager</td><td>Action</td><td>Error details, please resolve</td></tr>
+    <tr><td>Dev resolved</td><td>Boss</td><td>Notify</td><td>Dev fixed it, here's what they did</td></tr>
+    <tr><td>Nobody can fix</td><td>Boss</td><td><strong>Escalate</strong></td><td>We need your help</td></tr>
+    <tr><td>Job overdue</td><td>Boss</td><td>Notify</td><td>Job X running longer than expected</td></tr>
+  </table>
+
+  <h3>Configurable Recipients</h3>
+  <table>
+    <tr><th>Role</th><th>Current</th><th>Future</th></tr>
+    <tr><td>Boss (notifications + escalations)</td><td>skip.snow@gmail.com</td><td>Same until COO hired</td></tr>
+    <tr><td>Ops escalation</td><td>skip.snow@gmail.com</td><td>COO when hired</td></tr>
+    <tr><td>Dev escalation</td><td>Claude (via Brain)</td><td>Dev lead when hired</td></tr>
+  </table>
+
+  <!-- ═══ TIMER ═══ -->
+  <h2>Timer — Infrastructure Only (every 5 min)</h2>
+  <table>
+    <tr><th>Check</th><th>Action</th></tr>
+    <tr><td>Reservation overdue?</td><td>Notify Boss (first occurrence only, don't spam)</td></tr>
+    <tr><td>Cluster running, zero reservations?</td><td>Pause cluster</td></tr>
+    <tr><td>Cluster stuck (non-IDLE > 30 min)?</td><td>Notify Boss</td></tr>
+    <tr><td colspan="2" style="color:var(--warn);font-weight:600;">NO task execution. NO pipeline imports. NO data access.</td></tr>
+  </table>
+
+  <!-- ═══ COMPONENTS ═══ -->
+  <h2>Components</h2>
+  <table>
+    <tr><th>Component</th><th>Location</th><th>Responsibility</th></tr>
+    <tr><td>BaseAgent</td><td>Code/Shared/agent_framework/</td><td>Abstract agent with tool registry</td></tr>
+    <tr><td>BaseTool</td><td>Code/Shared/agent_framework/</td><td>Tool interface: execute, repair</td></tr>
+    <tr><td>ToolRegistry</td><td>Code/Shared/agent_framework/</td><td>Allowlist enforcement (GOV-004)</td></tr>
+    <tr><td>OpsManagerAgent</td><td>Code/DataPipelines/ops_manager/</td><td>Pipeline infrastructure agent</td></tr>
+    <tr><td>ClusterTool</td><td>Code/DataPipelines/ops_manager/</td><td>Wake, pause, status, reserve, release</td></tr>
+    <tr><td>AlertTool</td><td>Code/DataPipelines/ops_manager/</td><td>Email (SparkPost) + Pushover</td></tr>
+    <tr><td>TriageTool</td><td>Code/DataPipelines/ops_manager/</td><td>LLM error classification (GPT-4.1-mini)</td></tr>
+    <tr><td>Config</td><td>Brain pseudo-collection</td><td>Recipients, thresholds, channels</td></tr>
+  </table>
+
+  <!-- ═══ VERSIONING ═══ -->
+  <h2>Versioning</h2>
+  <table>
+    <tr><th>Version</th><th>Capability</th></tr>
+    <tr><td>v0.1</td><td>Rule-based. ClusterTool + AlertTool only. Reservation array. Timer.</td></tr>
+    <tr><td>v0.2</td><td>AI triage. GPT-4.1-mini classifies errors. Self-repair. Notification emails.</td></tr>
+    <tr><td>v0.3</td><td>Multi-agent. Ops Manager + Research Agent + DB Agent coordinating.</td></tr>
+  </table>
+
+  <p class="copyright">Copyright 2026 Skip Snow. All rights reserved.</p>
+</main>
+</body>
+</html>
