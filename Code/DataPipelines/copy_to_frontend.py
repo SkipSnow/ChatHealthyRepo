@@ -182,14 +182,14 @@ def migrate_environment(config: dict) -> dict:
 
     config:
         src_env    — source environment prefix, e.g. "dev"
-        dst_env    — destination environment prefix, e.g. "staging"
+        dst_env    — destination environment prefix, e.g. "qa"
     """
     conn = os.environ.get("MONGO_connectionString")
     if not conn:
         raise ValueError("MONGO_connectionString not set")
 
     src_env = config.get("src_env", "dev")
-    dst_env = config.get("dst_env", "staging")
+    dst_env = config.get("dst_env", "qa")
     src_db_name = f"{src_env}_PublicHealthData"
     dst_db_name = f"{dst_env}_PublicHealthData"
 
