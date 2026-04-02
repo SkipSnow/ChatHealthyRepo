@@ -66348,11 +66348,11 @@
       "max_capacity": "1 story (1 M)",
       "features_shipped": [
         "EVAL-SCORE-PROV",
-        "MAINT-COST-SCALE",
         "MAINT-COUNTY-ENRICH",
         "MAINT-E2E-PIPELINE",
         "MAINT-INCREMENTAL-LOAD",
-        "MAINT-SPECIALTY-FILTER"
+        "MAINT-SPECIALTY-FILTER",
+        "PIPE-RX-INGEST"
       ],
       "stories": [
         "EVAL-SCORE-PROV-S1"
@@ -66483,6 +66483,38 @@
       "disposition": "rejected",
       "rejected_by": "GPT (proposed), Boss (rejected)",
       "date": "2026-04-02"
+    }
+  ],
+  "sprint_constraints": {
+    "cost_reduction": {
+      "source": "WO-COST-SCALE-001 (GPT work order)",
+      "kpi": "Next month total Mongo + pipeline cost must be lower than this month at 3x data volume",
+      "applies_to": "All pipeline features",
+      "practices": [
+        "Delta processing: skip unchanged records",
+        "Auto-termination: pipelines shut down on completion",
+        "Batch writes: no chatty per-record Mongo writes",
+        "Hot/cold separation: separate access patterns",
+        "Default state OFF for non-running pipelines",
+        "Max runtime threshold per pipeline"
+      ]
+    }
+  },
+  "deferred_to_post_alpha": [
+    {
+      "id": "MAINT-BRAIN-DESIGN",
+      "reason": "Brain ships as-is for alpha",
+      "target": "v0.2.1"
+    },
+    {
+      "id": "MAINT-BRAIN-VELOCITY",
+      "reason": "Brain ships as-is for alpha",
+      "target": "v0.2.1"
+    },
+    {
+      "id": "MAINT-COST-SCALE",
+      "reason": "KPI/constraint, not a deliverable feature",
+      "target": "sprint constraint"
     }
   ]
 }
