@@ -13888,7 +13888,94 @@
           "status": "accepted",
           "accepted_by": "Boss (direct mandate)",
           "backend_dependencies": [],
-          "stories": []
+          "stories": [
+            {
+              "story_id": "EVAL-P-MALPRACTICE-SCHEMA-001",
+              "title": "Define malpractice and disciplinary action schema",
+              "description": "Create Pydantic models and internal data contract for malpractice signals including fields for state_board_actions (list), npdb_flag (boolean/unknown), action_count, severity_score (derived), and evidence_links (URLs). Ensure schema supports null/unknown states and negative-only scoring semantics (no positive boost for absence).",
+              "parent_feature": "EVAL-P-MEASURE-MALPRACTICE",
+              "sprint": 1,
+              "dependencies": [],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (existing provider detail patterns, state board URL construction). ASSUMPTION: No existing malpractice schema; must be introduced in evaluate_care domain.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear implementation path — define Pydantic models in the evaluate_care_quality domain with null/unknown semantics and negative-only scoring contract; existing provider_detail_service.py confirms the domain location and patterns."
+            },
+            {
+              "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+              "title": "Implement malpractice signal aggregation logic",
+              "description": "Build backend service logic to construct malpractice signal: (1) generate state board URLs per provider state, (2) detect known negative indicators from available data (e.g., NPI deactivation or sanctions proxy), (3) compute severity_score based on presence/count of actions, (4) enforce rule: presence reduces score, absence is neutral. Return structured malpractice object.",
+              "parent_feature": "EVAL-P-MEASURE-MALPRACTICE",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-P-MALPRACTICE-SCHEMA-001"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (state board URL logic exists). GAP: No automated ingestion of board actions; logic must rely on constructed links and proxy indicators.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Buildable against the existing state board URL construction in provider_detail_service.py, with honest acknowledgment of the gap that automated board-action ingestion doesn't exist and logic will rely on proxy indicators and constructed links."
+            },
+            {
+              "story_id": "EVAL-P-MALPRACTICE-API-001",
+              "title": "Expose malpractice measure in provider evaluation API",
+              "description": "Extend evaluate_care_facade and provider detail response to include malpractice measure object. Ensure compatibility with existing tool_router and response formats. Include evidence_links for UI rendering and clear flag when data is unknown vs confirmed clean.",
+              "parent_feature": "EVAL-P-MEASURE-MALPRACTICE",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-P-MALPRACTICE-LOGIC-001"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (provider evaluation orchestration).",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Straightforward extension of the existing evaluate_care_facade.py orchestration layer to surface the new malpractice measure object in the provider detail response."
+            },
+            {
+              "story_id": "EVAL-P-MALPRACTICE-SCHEMA-001",
+              "title": "Define malpractice and disciplinary action schema",
+              "description": "Create Pydantic models and internal data contract for malpractice signals including fields for state_board_actions (list), npdb_flag (boolean/unknown), action_count, severity_score (derived), and evidence_links (URLs). Ensure schema supports null/unknown states and negative-only scoring semantics (no positive boost for absence).",
+              "parent_feature": "EVAL-P-MEASURE-MALPRACTICE",
+              "sprint": 1,
+              "dependencies": [],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (existing provider detail patterns, state board URL construction). ASSUMPTION: No existing malpractice schema; must be introduced in evaluate_care domain.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear implementation path — define Pydantic models in the evaluate_care_quality domain with null/unknown semantics and negative-only scoring contract; existing provider_detail_service.py confirms the domain location and patterns."
+            },
+            {
+              "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+              "title": "Implement malpractice signal aggregation logic",
+              "description": "Build backend service logic to construct malpractice signal: (1) generate state board URLs per provider state, (2) detect known negative indicators from available data (e.g., NPI deactivation or sanctions proxy), (3) compute severity_score based on presence/count of actions, (4) enforce rule: presence reduces score, absence is neutral. Return structured malpractice object.",
+              "parent_feature": "EVAL-P-MEASURE-MALPRACTICE",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-P-MALPRACTICE-SCHEMA-001"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (state board URL logic exists). GAP: No automated ingestion of board actions; logic must rely on constructed links and proxy indicators.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Buildable against the existing state board URL construction in provider_detail_service.py, with honest acknowledgment of the gap that automated board-action ingestion doesn't exist and logic will rely on proxy indicators and constructed links."
+            },
+            {
+              "story_id": "EVAL-P-MALPRACTICE-API-001",
+              "title": "Expose malpractice measure in provider evaluation API",
+              "description": "Extend evaluate_care_facade and provider detail response to include malpractice measure object. Ensure compatibility with existing tool_router and response formats. Include evidence_links for UI rendering and clear flag when data is unknown vs confirmed clean.",
+              "parent_feature": "EVAL-P-MEASURE-MALPRACTICE",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-P-MALPRACTICE-LOGIC-001"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (provider evaluation orchestration).",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Straightforward extension of the existing evaluate_care_facade.py orchestration layer to surface the new malpractice measure object in the provider detail response."
+            }
+          ]
         },
         {
           "feature_id": "EVAL-P-RX-UX",
@@ -13905,7 +13992,166 @@
             "EVAL-P-RX",
             "PIPE-RX-INGEST"
           ],
-          "stories": []
+          "stories": [
+            {
+              "story_id": "EVAL-P-RX-UX-S1",
+              "title": "Define prescription behavior UI data contract",
+              "description": "Define the frontend data schema for prescription behavior display including relevance indicator, top drugs list, integrity flag (clean/flagged), and score contribution. Ensure compatibility with backend outputs from EVAL-P-RX and ingestion pipeline.",
+              "parent_feature": "EVAL-P-RX-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-P-RX",
+                "PIPE-RX-INGEST"
+              ],
+              "size": "S",
+              "evidence": "design/design_eval_p_rx_drug_mapping + GAP: frontend contract not yet defined for MessageBubble rendering",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear deliverable — a typed frontend data contract aligned with the design doc and backend outputs, necessary before any rendering work begins."
+            },
+            {
+              "story_id": "EVAL-P-RX-UX-S2",
+              "title": "Implement prescription behavior transformation logic",
+              "description": "Build frontend logic to transform raw prescription behavior data into display-ready structures including ranking top relevant drugs, computing relevance indicator, and mapping integrity flags to UI states.",
+              "parent_feature": "EVAL-P-RX-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-P-RX-UX-S1",
+                "EVAL-P-RX"
+              ],
+              "size": "M",
+              "evidence": "design/design_eval_p_rx_drug_mapping supports drug relevance logic; GAP: no existing transformation layer in frontend",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Well-scoped transformation layer with clear inputs (raw backend data) and outputs (display-ready structures), and design_eval_p_rx_drug_mapping provides the drug relevance logic to code against."
+            },
+            {
+              "story_id": "EVAL-P-RX-UX-S3",
+              "title": "Render prescription behavior in MessageBubble UI",
+              "description": "Extend MessageBubble.tsx to render prescription behavior module inside provider scorecard including visual indicators for relevance, integrity (clean/flagged), top drugs, and contribution to overall score.",
+              "parent_feature": "EVAL-P-RX-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-P-RX-UX-S2"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx is the rendering pipeline; GAP: no prescription UI component exists",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "MessageBubble.tsx is the known rendering entry point for scorecard modules, and extending it for a new prescription behavior component is a clear, buildable task."
+            },
+            {
+              "story_id": "EVAL-P-RX-UX-S4",
+              "title": "Integrate prescription behavior API response into chat flow",
+              "description": "Wire backend prescription behavior data into the chat response payload and ensure frontend correctly detects and renders the module within provider evaluation responses.",
+              "parent_feature": "EVAL-P-RX-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-P-RX",
+                "EVAL-P-RX-UX-S1"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py orchestrates provider evaluation responses; GAP: no RX-specific payload integration",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "evaluate_care_facade.py is the correct orchestration layer for provider evaluation responses, and wiring RX payload through it is a well-defined integration task."
+            },
+            {
+              "story_id": "EVAL-P-RX-UX-S5",
+              "title": "End-to-end and component tests for prescription behavior display",
+              "description": "Create unit tests for transformation logic and component rendering, plus end-to-end test validating that prescription behavior appears correctly in chat with real pipeline data.",
+              "parent_feature": "EVAL-P-RX-UX",
+              "sprint": 4,
+              "dependencies": [
+                "EVAL-P-RX-UX-S3",
+                "EVAL-P-RX-UX-S4"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend and backend test structure + Code/DataPipelines/tests for pipeline validation; GAP: no RX UI test coverage exists",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Testing story correctly depends on both rendering and integration stories, covers unit/component/e2e levels, and the existing test structures in frontend, backend, and DataPipelines provide clear patterns to follow."
+            },
+            {
+              "story_id": "EVAL-P-RX-UX-S1",
+              "title": "Define prescription behavior UI data contract",
+              "description": "Define the frontend data schema for prescription behavior display including relevance indicator, top drugs list, integrity flag (clean/flagged), and score contribution. Ensure compatibility with backend outputs from EVAL-P-RX and ingestion pipeline.",
+              "parent_feature": "EVAL-P-RX-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-P-RX",
+                "PIPE-RX-INGEST"
+              ],
+              "size": "S",
+              "evidence": "design/design_eval_p_rx_drug_mapping + GAP: frontend contract not yet defined for MessageBubble rendering",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear deliverable — a typed frontend data contract aligned with the design doc and backend outputs, necessary before any rendering work begins."
+            },
+            {
+              "story_id": "EVAL-P-RX-UX-S2",
+              "title": "Implement prescription behavior transformation logic",
+              "description": "Build frontend logic to transform raw prescription behavior data into display-ready structures including ranking top relevant drugs, computing relevance indicator, and mapping integrity flags to UI states.",
+              "parent_feature": "EVAL-P-RX-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-P-RX-UX-S1",
+                "EVAL-P-RX"
+              ],
+              "size": "M",
+              "evidence": "design/design_eval_p_rx_drug_mapping supports drug relevance logic; GAP: no existing transformation layer in frontend",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Well-scoped transformation layer with clear inputs (raw backend data) and outputs (display-ready structures), and design_eval_p_rx_drug_mapping provides the drug relevance logic to code against."
+            },
+            {
+              "story_id": "EVAL-P-RX-UX-S3",
+              "title": "Render prescription behavior in MessageBubble UI",
+              "description": "Extend MessageBubble.tsx to render prescription behavior module inside provider scorecard including visual indicators for relevance, integrity (clean/flagged), top drugs, and contribution to overall score.",
+              "parent_feature": "EVAL-P-RX-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-P-RX-UX-S2"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx is the rendering pipeline; GAP: no prescription UI component exists",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "MessageBubble.tsx is the known rendering entry point for scorecard modules, and extending it for a new prescription behavior component is a clear, buildable task."
+            },
+            {
+              "story_id": "EVAL-P-RX-UX-S4",
+              "title": "Integrate prescription behavior API response into chat flow",
+              "description": "Wire backend prescription behavior data into the chat response payload and ensure frontend correctly detects and renders the module within provider evaluation responses.",
+              "parent_feature": "EVAL-P-RX-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-P-RX",
+                "EVAL-P-RX-UX-S1"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py orchestrates provider evaluation responses; GAP: no RX-specific payload integration",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "evaluate_care_facade.py is the correct orchestration layer for provider evaluation responses, and wiring RX payload through it is a well-defined integration task."
+            },
+            {
+              "story_id": "EVAL-P-RX-UX-S5",
+              "title": "End-to-end and component tests for prescription behavior display",
+              "description": "Create unit tests for transformation logic and component rendering, plus end-to-end test validating that prescription behavior appears correctly in chat with real pipeline data.",
+              "parent_feature": "EVAL-P-RX-UX",
+              "sprint": 4,
+              "dependencies": [
+                "EVAL-P-RX-UX-S3",
+                "EVAL-P-RX-UX-S4"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend and backend test structure + Code/DataPipelines/tests for pipeline validation; GAP: no RX UI test coverage exists",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Testing story correctly depends on both rendering and integration stories, covers unit/component/e2e levels, and the existing test structures in frontend, backend, and DataPipelines provide clear patterns to follow."
+            }
+          ]
         },
         {
           "feature_id": "EVAL-P-BOARD-UX",
@@ -13921,7 +14167,130 @@
           "backend_dependencies": [
             "EVAL-P-MEASURE-BOARD"
           ],
-          "stories": []
+          "stories": [
+            {
+              "story_id": "EVAL-P-BOARD-UX-S1",
+              "title": "Define board certification UI schema/contract",
+              "description": "Define frontend data contract for board certification display including certification status, issuing body, and score contribution fields. Ensure compatibility with backend feature EVAL-P-MEASURE-BOARD and MessageBubble rendering constraints.",
+              "parent_feature": "EVAL-P-BOARD-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-P-MEASURE-BOARD"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx (rendering pipeline constraint); GAP: No certification-specific UI contract exists",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear deliverable — define a typed UI contract for certification status, issuing body, and score contribution, scoped to MessageBubble rendering and dependent on the backend measure feature."
+            },
+            {
+              "story_id": "EVAL-P-BOARD-UX-S2",
+              "title": "Implement board certification display logic",
+              "description": "Implement logic to interpret certification data (e.g., certified vs not certified, issuing authority normalization, score contribution calculation display formatting) for rendering within provider score card.",
+              "parent_feature": "EVAL-P-BOARD-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-P-BOARD-UX-S1",
+                "EVAL-P-MEASURE-BOARD"
+              ],
+              "size": "M",
+              "evidence": "GAP: No certification-specific UI logic exists; backend dependency EVAL-P-MEASURE-BOARD provides measure data",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Well-scoped logic layer (normalization, formatting) with clear dependencies on the schema (S1) and backend measure data, and an identifiable gap to fill."
+            },
+            {
+              "story_id": "EVAL-P-BOARD-UX-S3",
+              "title": "Render board certification in MessageBubble UI",
+              "description": "Extend MessageBubble rendering to display board certification section within provider scorecard, including status badge, issuing body text, and contribution to overall score in a readable format.",
+              "parent_feature": "EVAL-P-BOARD-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-P-BOARD-UX-S2"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx (existing rendering pipeline); GAP: No certification UI component exists",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Concrete rendering task extending the known MessageBubble.tsx component with certification-specific UI elements, properly sequenced after the logic story."
+            },
+            {
+              "story_id": "EVAL-P-BOARD-UX-S4",
+              "title": "Test board certification display end-to-end",
+              "description": "Create unit and integration tests validating schema adherence, logic correctness, and correct rendering of certification status, issuing body, and score contribution in the UI.",
+              "parent_feature": "EVAL-P-BOARD-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-P-BOARD-UX-S3"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/tests (existing testing patterns); GAP: No tests for certification UI",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Testing story follows existing patterns in the test directory, covers schema/logic/rendering layers, and is properly sequenced as the final story in the feature."
+            },
+            {
+              "story_id": "EVAL-P-BOARD-UX-S1",
+              "title": "Define board certification UI schema/contract",
+              "description": "Define frontend data contract for board certification display including certification status, issuing body, and score contribution fields. Ensure compatibility with backend feature EVAL-P-MEASURE-BOARD and MessageBubble rendering constraints.",
+              "parent_feature": "EVAL-P-BOARD-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-P-MEASURE-BOARD"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx (rendering pipeline constraint); GAP: No certification-specific UI contract exists",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear deliverable — define a typed UI contract for certification status, issuing body, and score contribution, scoped to MessageBubble rendering and dependent on the backend measure feature."
+            },
+            {
+              "story_id": "EVAL-P-BOARD-UX-S2",
+              "title": "Implement board certification display logic",
+              "description": "Implement logic to interpret certification data (e.g., certified vs not certified, issuing authority normalization, score contribution calculation display formatting) for rendering within provider score card.",
+              "parent_feature": "EVAL-P-BOARD-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-P-BOARD-UX-S1",
+                "EVAL-P-MEASURE-BOARD"
+              ],
+              "size": "M",
+              "evidence": "GAP: No certification-specific UI logic exists; backend dependency EVAL-P-MEASURE-BOARD provides measure data",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Well-scoped logic layer (normalization, formatting) with clear dependencies on the schema (S1) and backend measure data, and an identifiable gap to fill."
+            },
+            {
+              "story_id": "EVAL-P-BOARD-UX-S3",
+              "title": "Render board certification in MessageBubble UI",
+              "description": "Extend MessageBubble rendering to display board certification section within provider scorecard, including status badge, issuing body text, and contribution to overall score in a readable format.",
+              "parent_feature": "EVAL-P-BOARD-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-P-BOARD-UX-S2"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx (existing rendering pipeline); GAP: No certification UI component exists",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Concrete rendering task extending the known MessageBubble.tsx component with certification-specific UI elements, properly sequenced after the logic story."
+            },
+            {
+              "story_id": "EVAL-P-BOARD-UX-S4",
+              "title": "Test board certification display end-to-end",
+              "description": "Create unit and integration tests validating schema adherence, logic correctness, and correct rendering of certification status, issuing body, and score contribution in the UI.",
+              "parent_feature": "EVAL-P-BOARD-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-P-BOARD-UX-S3"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/tests (existing testing patterns); GAP: No tests for certification UI",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Testing story follows existing patterns in the test directory, covers schema/logic/rendering layers, and is properly sequenced as the final story in the feature."
+            }
+          ]
         },
         {
           "feature_id": "EVAL-P-MALPRACTICE-UX",
@@ -13937,7 +14306,164 @@
           "backend_dependencies": [
             "EVAL-P-MEASURE-MALPRACTICE"
           ],
-          "stories": []
+          "stories": [
+            {
+              "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+              "title": "Define malpractice UI schema and rendering contract",
+              "description": "Define frontend data contract for malpractice measure display including fields: status (clean/flagged/unknown), case_count (optional), last_incident_date (optional), state_board_url, and score_contribution. Ensure compatibility with MessageBubble.tsx rendering pipeline and markdown-safe output.",
+              "parent_feature": "EVAL-P-MALPRACTICE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-P-MEASURE-MALPRACTICE"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx (rendering pipeline); GAP: no malpractice UI schema exists",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear deliverable — define a typed UI schema for malpractice display compatible with MessageBubble.tsx; implementation path is straightforward and the GAP is acknowledged."
+            },
+            {
+              "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+              "title": "Implement malpractice display logic and labeling rules",
+              "description": "Implement logic to map backend malpractice measure to UI display states: clean vs flagged vs unknown. Enforce wording rules: never use terms like fraud or misconduct; display neutral signal language. Calculate and format contribution to overall provider score.",
+              "parent_feature": "EVAL-P-MALPRACTICE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-P-MALPRACTICE-UX-S1",
+                "EVAL-P-MEASURE-MALPRACTICE"
+              ],
+              "size": "M",
+              "evidence": "Feature requirement: neutral signal-only display; GAP: no existing malpractice interpretation logic",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Well-scoped mapping logic with explicit prohibited-term rules and score-contribution formatting; depends correctly on S1 and the backend measure."
+            },
+            {
+              "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+              "title": "Render malpractice section in provider scorecard UI",
+              "description": "Create UI component within provider scorecard to display malpractice status, icon (clean/flagged), link to state medical board, and score contribution. Ensure links are validated and rendered safely via markdown pipeline.",
+              "parent_feature": "EVAL-P-MALPRACTICE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-P-MALPRACTICE-UX-S2",
+                "EVAL-P-MEASURE-MALPRACTICE"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (state board links); MessageBubble.tsx rendering pipeline",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Concrete UI component work within the scorecard, with credible evidence citing provider_detail_service.py for state board links and MessageBubble.tsx for rendering."
+            },
+            {
+              "story_id": "EVAL-P-MALPRACTICE-UX-S4",
+              "title": "Integrate malpractice data into API response and UI binding",
+              "description": "Bind malpractice measure data from backend response into frontend component, ensuring correct parsing, null handling, and graceful fallback when data is missing. Validate end-to-end flow from facade to UI.",
+              "parent_feature": "EVAL-P-MALPRACTICE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-P-MALPRACTICE-UX-S3",
+                "EVAL-P-MEASURE-MALPRACTICE"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (provider detail orchestration); GAP: malpractice field not yet exposed",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Necessary integration story binding facade output to the new component with null handling; evaluate_care_facade.py is the correct orchestration point."
+            },
+            {
+              "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+              "title": "End-to-end tests for malpractice display and wording compliance",
+              "description": "Create tests validating: correct display states (clean/flagged), presence of state board link, accurate score contribution rendering, and strict enforcement of neutral language (no prohibited terms like fraud). Include UI snapshot or rendering tests.",
+              "parent_feature": "EVAL-P-MALPRACTICE-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-P-MALPRACTICE-UX-S4"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/tests (existing test patterns); sprint_plan/uat_library (UAT scenarios); GAP: no malpractice UX tests exist",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Validates all UX acceptance criteria including prohibited-term enforcement and display states; follows existing test patterns in the codebase."
+            },
+            {
+              "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+              "title": "Define malpractice UI schema and rendering contract",
+              "description": "Define frontend data contract for malpractice measure display including fields: status (clean/flagged/unknown), case_count (optional), last_incident_date (optional), state_board_url, and score_contribution. Ensure compatibility with MessageBubble.tsx rendering pipeline and markdown-safe output.",
+              "parent_feature": "EVAL-P-MALPRACTICE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-P-MEASURE-MALPRACTICE"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx (rendering pipeline); GAP: no malpractice UI schema exists",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear deliverable — define a typed UI schema for malpractice display compatible with MessageBubble.tsx; implementation path is straightforward and the GAP is acknowledged."
+            },
+            {
+              "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+              "title": "Implement malpractice display logic and labeling rules",
+              "description": "Implement logic to map backend malpractice measure to UI display states: clean vs flagged vs unknown. Enforce wording rules: never use terms like fraud or misconduct; display neutral signal language. Calculate and format contribution to overall provider score.",
+              "parent_feature": "EVAL-P-MALPRACTICE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-P-MALPRACTICE-UX-S1",
+                "EVAL-P-MEASURE-MALPRACTICE"
+              ],
+              "size": "M",
+              "evidence": "Feature requirement: neutral signal-only display; GAP: no existing malpractice interpretation logic",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Well-scoped mapping logic with explicit prohibited-term rules and score-contribution formatting; depends correctly on S1 and the backend measure."
+            },
+            {
+              "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+              "title": "Render malpractice section in provider scorecard UI",
+              "description": "Create UI component within provider scorecard to display malpractice status, icon (clean/flagged), link to state medical board, and score contribution. Ensure links are validated and rendered safely via markdown pipeline.",
+              "parent_feature": "EVAL-P-MALPRACTICE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-P-MALPRACTICE-UX-S2",
+                "EVAL-P-MEASURE-MALPRACTICE"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (state board links); MessageBubble.tsx rendering pipeline",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Concrete UI component work within the scorecard, with credible evidence citing provider_detail_service.py for state board links and MessageBubble.tsx for rendering."
+            },
+            {
+              "story_id": "EVAL-P-MALPRACTICE-UX-S4",
+              "title": "Integrate malpractice data into API response and UI binding",
+              "description": "Bind malpractice measure data from backend response into frontend component, ensuring correct parsing, null handling, and graceful fallback when data is missing. Validate end-to-end flow from facade to UI.",
+              "parent_feature": "EVAL-P-MALPRACTICE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-P-MALPRACTICE-UX-S3",
+                "EVAL-P-MEASURE-MALPRACTICE"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (provider detail orchestration); GAP: malpractice field not yet exposed",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Necessary integration story binding facade output to the new component with null handling; evaluate_care_facade.py is the correct orchestration point."
+            },
+            {
+              "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+              "title": "End-to-end tests for malpractice display and wording compliance",
+              "description": "Create tests validating: correct display states (clean/flagged), presence of state board link, accurate score contribution rendering, and strict enforcement of neutral language (no prohibited terms like fraud). Include UI snapshot or rendering tests.",
+              "parent_feature": "EVAL-P-MALPRACTICE-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-P-MALPRACTICE-UX-S4"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/tests (existing test patterns); sprint_plan/uat_library (UAT scenarios); GAP: no malpractice UX tests exist",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Validates all UX acceptance criteria including prohibited-term enforcement and display states; follows existing test patterns in the codebase."
+            }
+          ]
         },
         {
           "feature_id": "EVAL-CT-PHASE-UX",
@@ -13953,7 +14479,130 @@
           "backend_dependencies": [
             "EVAL-CT-MEASURE-PHASE"
           ],
-          "stories": []
+          "stories": [
+            {
+              "story_id": "EVAL-CT-PHASE-UX-S1",
+              "title": "Define trial phase UI contract",
+              "description": "Define frontend data contract for trial phase display including phase label (I/II/III/IV), plain-language explanation, and score contribution field. Ensure compatibility with MessageBubble rendering pipeline.",
+              "parent_feature": "EVAL-CT-PHASE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-CT-MEASURE-PHASE"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx: rendering pipeline requires structured markdown-compatible content. Backend dependency defined in feature.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear deliverable — a typed data contract for phase display fields compatible with the MessageBubble rendering pipeline, with a known backend dependency (EVAL-CT-MEASURE-PHASE) and a real file (MessageBubble.tsx) to integrate against."
+            },
+            {
+              "story_id": "EVAL-CT-PHASE-UX-S2",
+              "title": "Implement phase interpretation logic",
+              "description": "Implement frontend logic to map raw phase values (I/II/III/IV) into consumer-friendly explanations and normalized score contribution display.",
+              "parent_feature": "EVAL-CT-PHASE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-CT-MEASURE-PHASE",
+                "EVAL-CT-PHASE-UX-S1"
+              ],
+              "size": "M",
+              "evidence": "GAP: No existing phase interpretation logic in frontend; required to translate backend phase into user-understandable format per feature description.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Well-scoped frontend mapping logic from raw phase values to consumer-friendly text and normalized score contribution; the GAP is credible since no such logic exists today, and it correctly depends on S1 and the backend measure."
+            },
+            {
+              "story_id": "EVAL-CT-PHASE-UX-S3",
+              "title": "Render phase in clinical trial scorecard UI",
+              "description": "Integrate phase display into MessageBubble-based scorecard UI including formatted phase label, explanation text, and contribution to overall score.",
+              "parent_feature": "EVAL-CT-PHASE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-PHASE-UX-S2"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx: primary UI rendering component for chat responses; feature explicitly states this is the rendering pipeline.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Integrates the interpreted phase data into the existing MessageBubble scorecard UI — implementation path is clear given S2 output and the known MessageBubble.tsx component."
+            },
+            {
+              "story_id": "EVAL-CT-PHASE-UX-S4",
+              "title": "End-to-end validation and UI tests for phase display",
+              "description": "Create tests validating correct rendering of trial phase, explanation accuracy, and score contribution visibility within chat UI.",
+              "parent_feature": "EVAL-CT-PHASE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-PHASE-UX-S3"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx and MessageBubble.tsx: existing UI components require validation; GAP: no current tests for clinical trial phase display.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Testing story with clear scope — validates rendering correctness, explanation accuracy, and score contribution visibility against known components (ChatWindow.tsx, MessageBubble.tsx); fills a real gap."
+            },
+            {
+              "story_id": "EVAL-CT-PHASE-UX-S1",
+              "title": "Define trial phase UI contract",
+              "description": "Define frontend data contract for trial phase display including phase label (I/II/III/IV), plain-language explanation, and score contribution field. Ensure compatibility with MessageBubble rendering pipeline.",
+              "parent_feature": "EVAL-CT-PHASE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-CT-MEASURE-PHASE"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx: rendering pipeline requires structured markdown-compatible content. Backend dependency defined in feature.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear deliverable — a typed data contract for phase display fields compatible with the MessageBubble rendering pipeline, with a known backend dependency (EVAL-CT-MEASURE-PHASE) and a real file (MessageBubble.tsx) to integrate against."
+            },
+            {
+              "story_id": "EVAL-CT-PHASE-UX-S2",
+              "title": "Implement phase interpretation logic",
+              "description": "Implement frontend logic to map raw phase values (I/II/III/IV) into consumer-friendly explanations and normalized score contribution display.",
+              "parent_feature": "EVAL-CT-PHASE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-CT-MEASURE-PHASE",
+                "EVAL-CT-PHASE-UX-S1"
+              ],
+              "size": "M",
+              "evidence": "GAP: No existing phase interpretation logic in frontend; required to translate backend phase into user-understandable format per feature description.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Well-scoped frontend mapping logic from raw phase values to consumer-friendly text and normalized score contribution; the GAP is credible since no such logic exists today, and it correctly depends on S1 and the backend measure."
+            },
+            {
+              "story_id": "EVAL-CT-PHASE-UX-S3",
+              "title": "Render phase in clinical trial scorecard UI",
+              "description": "Integrate phase display into MessageBubble-based scorecard UI including formatted phase label, explanation text, and contribution to overall score.",
+              "parent_feature": "EVAL-CT-PHASE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-PHASE-UX-S2"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx: primary UI rendering component for chat responses; feature explicitly states this is the rendering pipeline.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Integrates the interpreted phase data into the existing MessageBubble scorecard UI — implementation path is clear given S2 output and the known MessageBubble.tsx component."
+            },
+            {
+              "story_id": "EVAL-CT-PHASE-UX-S4",
+              "title": "End-to-end validation and UI tests for phase display",
+              "description": "Create tests validating correct rendering of trial phase, explanation accuracy, and score contribution visibility within chat UI.",
+              "parent_feature": "EVAL-CT-PHASE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-PHASE-UX-S3"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx and MessageBubble.tsx: existing UI components require validation; GAP: no current tests for clinical trial phase display.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Testing story with clear scope — validates rendering correctness, explanation accuracy, and score contribution visibility against known components (ChatWindow.tsx, MessageBubble.tsx); fills a real gap."
+            }
+          ]
         },
         {
           "feature_id": "EVAL-COMPARE-UX",
@@ -13969,7 +14618,166 @@
           "backend_dependencies": [
             "EVAL-COMPARE"
           ],
-          "stories": []
+          "stories": [
+            {
+              "story_id": "EVAL-COMPARE-UX-S1",
+              "title": "Define comparison view schema and UI contract",
+              "description": "Define the frontend data contract for side-by-side provider comparison, including provider identity, overall score, individual measures, and relative ranking indicators. Ensure compatibility with backend EVAL-COMPARE response.",
+              "parent_feature": "EVAL-COMPARE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-COMPARE"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (provider detail and evaluation orchestration patterns); GAP: No comparison schema exists; must define contract aligned to backend output.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Defining the frontend data contract is a necessary first step, the evidence correctly identifies evaluate_care_facade.py as the relevant orchestration pattern, and the GAP is honest — no comparison schema exists yet."
+            },
+            {
+              "story_id": "EVAL-COMPARE-UX-S2",
+              "title": "Implement comparison normalization and ranking logic",
+              "description": "Build frontend logic to normalize provider scores, compute relative strengths/weaknesses, and highlight deltas between providers across measures.",
+              "parent_feature": "EVAL-COMPARE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-COMPARE-UX-S1"
+              ],
+              "size": "M",
+              "evidence": "GAP: No comparison logic implemented; required to transform backend scores into user-understandable comparisons.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Frontend normalization and relative-strength logic is a distinct, buildable unit with a clear dependency on S1's schema contract and a well-scoped responsibility."
+            },
+            {
+              "story_id": "EVAL-COMPARE-UX-S3",
+              "title": "Build side-by-side comparison UI component",
+              "description": "Develop a reusable React component that renders two or more providers side-by-side with scores, measure breakdowns, and visual indicators for strengths and weaknesses.",
+              "parent_feature": "EVAL-COMPARE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-COMPARE-UX-S1",
+                "EVAL-COMPARE-UX-S2"
+              ],
+              "size": "L",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components (existing React component patterns like ChatWindow and MessageBubble); GAP: No comparison UI exists.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "A reusable side-by-side React component is the core deliverable of this feature, the existing component patterns in the frontend are correctly cited, and dependencies on S1/S2 are appropriate."
+            },
+            {
+              "story_id": "EVAL-COMPARE-UX-S4",
+              "title": "Integrate comparison UI with API and state management",
+              "description": "Connect the comparison component to backend EVAL-COMPARE API, handle loading, error states, and dynamic provider selection.",
+              "parent_feature": "EVAL-COMPARE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-COMPARE",
+                "EVAL-COMPARE-UX-S3"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx (API integration patterns); GAP: No comparison API integration exists.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "API integration, loading/error states, and dynamic provider selection are clearly scoped, App.tsx integration patterns are correctly referenced, and the dependency on the backend EVAL-COMPARE API is explicitly declared."
+            },
+            {
+              "story_id": "EVAL-COMPARE-UX-S5",
+              "title": "Add unit and UI tests for comparison feature",
+              "description": "Create tests validating schema mapping, comparison logic, rendering correctness, and edge cases (missing data, unequal measures, multiple providers).",
+              "parent_feature": "EVAL-COMPARE-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-COMPARE-UX-S2",
+                "EVAL-COMPARE-UX-S3",
+                "EVAL-COMPARE-UX-S4"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/tests and frontend test patterns; GAP: No tests for comparison feature exist.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Testing story is appropriately scoped to cover schema mapping, logic, rendering, and edge cases, with correct dependencies on the stories it validates and honest evidence about the existing test infrastructure."
+            },
+            {
+              "story_id": "EVAL-COMPARE-UX-S1",
+              "title": "Define comparison view schema and UI contract",
+              "description": "Define the frontend data contract for side-by-side provider comparison, including provider identity, overall score, individual measures, and relative ranking indicators. Ensure compatibility with backend EVAL-COMPARE response.",
+              "parent_feature": "EVAL-COMPARE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-COMPARE"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (provider detail and evaluation orchestration patterns); GAP: No comparison schema exists; must define contract aligned to backend output.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Defining the frontend data contract is a necessary first step, the evidence correctly identifies evaluate_care_facade.py as the relevant orchestration pattern, and the GAP is honest — no comparison schema exists yet."
+            },
+            {
+              "story_id": "EVAL-COMPARE-UX-S2",
+              "title": "Implement comparison normalization and ranking logic",
+              "description": "Build frontend logic to normalize provider scores, compute relative strengths/weaknesses, and highlight deltas between providers across measures.",
+              "parent_feature": "EVAL-COMPARE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-COMPARE-UX-S1"
+              ],
+              "size": "M",
+              "evidence": "GAP: No comparison logic implemented; required to transform backend scores into user-understandable comparisons.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Frontend normalization and relative-strength logic is a distinct, buildable unit with a clear dependency on S1's schema contract and a well-scoped responsibility."
+            },
+            {
+              "story_id": "EVAL-COMPARE-UX-S3",
+              "title": "Build side-by-side comparison UI component",
+              "description": "Develop a reusable React component that renders two or more providers side-by-side with scores, measure breakdowns, and visual indicators for strengths and weaknesses.",
+              "parent_feature": "EVAL-COMPARE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-COMPARE-UX-S1",
+                "EVAL-COMPARE-UX-S2"
+              ],
+              "size": "L",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components (existing React component patterns like ChatWindow and MessageBubble); GAP: No comparison UI exists.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "A reusable side-by-side React component is the core deliverable of this feature, the existing component patterns in the frontend are correctly cited, and dependencies on S1/S2 are appropriate."
+            },
+            {
+              "story_id": "EVAL-COMPARE-UX-S4",
+              "title": "Integrate comparison UI with API and state management",
+              "description": "Connect the comparison component to backend EVAL-COMPARE API, handle loading, error states, and dynamic provider selection.",
+              "parent_feature": "EVAL-COMPARE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-COMPARE",
+                "EVAL-COMPARE-UX-S3"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx (API integration patterns); GAP: No comparison API integration exists.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "API integration, loading/error states, and dynamic provider selection are clearly scoped, App.tsx integration patterns are correctly referenced, and the dependency on the backend EVAL-COMPARE API is explicitly declared."
+            },
+            {
+              "story_id": "EVAL-COMPARE-UX-S5",
+              "title": "Add unit and UI tests for comparison feature",
+              "description": "Create tests validating schema mapping, comparison logic, rendering correctness, and edge cases (missing data, unequal measures, multiple providers).",
+              "parent_feature": "EVAL-COMPARE-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-COMPARE-UX-S2",
+                "EVAL-COMPARE-UX-S3",
+                "EVAL-COMPARE-UX-S4"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/tests and frontend test patterns; GAP: No tests for comparison feature exist.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Testing story is appropriately scoped to cover schema mapping, logic, rendering, and edge cases, with correct dependencies on the stories it validates and honest evidence about the existing test infrastructure."
+            }
+          ]
         },
         {
           "feature_id": "EVAL-CT-TRIAGE",
@@ -14039,7 +14847,130 @@
           "backend_dependencies": [
             "EVAL-CT-TRIAGE"
           ],
-          "stories": []
+          "stories": [
+            {
+              "story_id": "EVAL-CT-TRIAGE-UX-S1",
+              "title": "Define triage display contract for frontend",
+              "description": "Define the UI data contract for trial triage results including recruiting status, condition match, pass/fail flag, and explanation text. Align with backend EVAL-CT-TRIAGE output and ensure compatibility with MessageBubble rendering.",
+              "parent_feature": "EVAL-CT-TRIAGE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-CT-TRIAGE"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; GAP: No existing triage schema defined.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear deliverable — define a TypeScript/Pydantic data contract for triage display aligned with the existing MessageBubble component and clinical_trials_service backend, with an acknowledged gap that no schema exists yet."
+            },
+            {
+              "story_id": "EVAL-CT-TRIAGE-UX-S2",
+              "title": "Implement triage explanation rendering logic",
+              "description": "Build frontend logic to prioritize and render recruiting status and condition match before any quality metrics, including clear pass/fail indicators and human-readable explanations.",
+              "parent_feature": "EVAL-CT-TRIAGE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-TRIAGE-UX-S1"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; GAP: No triage rendering logic exists.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Well-scoped rendering logic story with a clear dependency on S1's contract, targeting the known MessageBubble component, and the ordering rule (recruiting status and condition match before quality scores) is directly traceable to the feature spec."
+            },
+            {
+              "story_id": "EVAL-CT-TRIAGE-UX-S3",
+              "title": "Integrate triage data into chat response UI",
+              "description": "Wire triage results into the chat pipeline so that trial triage explanations are displayed within MessageBubble components, preserving ordering and formatting rules.",
+              "parent_feature": "EVAL-CT-TRIAGE-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-CT-TRIAGE",
+                "EVAL-CT-TRIAGE-UX-S2"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx; Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; GAP: No triage UI integration currently exists.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Integration wiring into ChatWindow and MessageBubble is a clear implementation path with correct dependencies on both the backend triage feature (EVAL-CT-TRIAGE) and the rendering logic (S2)."
+            },
+            {
+              "story_id": "EVAL-CT-TRIAGE-UX-S4",
+              "title": "Add triage UI test coverage",
+              "description": "Create unit and integration tests validating that triage explanations render correctly, including ordering (triage before quality), pass/fail visibility, and fallback behavior when fields are missing.",
+              "parent_feature": "EVAL-CT-TRIAGE-UX",
+              "sprint": 4,
+              "dependencies": [
+                "EVAL-CT-TRIAGE-UX-S3"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; Code/ConversationalUX/FindCareChat/backend/tests; GAP: No existing triage UI tests.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Test story is appropriately scoped with specific assertions (ordering, pass/fail visibility, missing-field fallback) and correctly depends on the completed integration in S3."
+            },
+            {
+              "story_id": "EVAL-CT-TRIAGE-UX-S1",
+              "title": "Define triage display contract for frontend",
+              "description": "Define the UI data contract for trial triage results including recruiting status, condition match, pass/fail flag, and explanation text. Align with backend EVAL-CT-TRIAGE output and ensure compatibility with MessageBubble rendering.",
+              "parent_feature": "EVAL-CT-TRIAGE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-CT-TRIAGE"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; GAP: No existing triage schema defined.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear deliverable — define a TypeScript/Pydantic data contract for triage display aligned with the existing MessageBubble component and clinical_trials_service backend, with an acknowledged gap that no schema exists yet."
+            },
+            {
+              "story_id": "EVAL-CT-TRIAGE-UX-S2",
+              "title": "Implement triage explanation rendering logic",
+              "description": "Build frontend logic to prioritize and render recruiting status and condition match before any quality metrics, including clear pass/fail indicators and human-readable explanations.",
+              "parent_feature": "EVAL-CT-TRIAGE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-TRIAGE-UX-S1"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; GAP: No triage rendering logic exists.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Well-scoped rendering logic story with a clear dependency on S1's contract, targeting the known MessageBubble component, and the ordering rule (recruiting status and condition match before quality scores) is directly traceable to the feature spec."
+            },
+            {
+              "story_id": "EVAL-CT-TRIAGE-UX-S3",
+              "title": "Integrate triage data into chat response UI",
+              "description": "Wire triage results into the chat pipeline so that trial triage explanations are displayed within MessageBubble components, preserving ordering and formatting rules.",
+              "parent_feature": "EVAL-CT-TRIAGE-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-CT-TRIAGE",
+                "EVAL-CT-TRIAGE-UX-S2"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx; Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; GAP: No triage UI integration currently exists.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Integration wiring into ChatWindow and MessageBubble is a clear implementation path with correct dependencies on both the backend triage feature (EVAL-CT-TRIAGE) and the rendering logic (S2)."
+            },
+            {
+              "story_id": "EVAL-CT-TRIAGE-UX-S4",
+              "title": "Add triage UI test coverage",
+              "description": "Create unit and integration tests validating that triage explanations render correctly, including ordering (triage before quality), pass/fail visibility, and fallback behavior when fields are missing.",
+              "parent_feature": "EVAL-CT-TRIAGE-UX",
+              "sprint": 4,
+              "dependencies": [
+                "EVAL-CT-TRIAGE-UX-S3"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx; Code/ConversationalUX/FindCareChat/backend/tests; GAP: No existing triage UI tests.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Test story is appropriately scoped with specific assertions (ordering, pass/fail visibility, missing-field fallback) and correctly depends on the completed integration in S3."
+            }
+          ]
         },
         {
           "feature_id": "EVAL-CT-MEASURE-PI",
@@ -14053,7 +14984,94 @@
           "status": "accepted",
           "accepted_by": "Boss (direct mandate)",
           "backend_dependencies": [],
-          "stories": []
+          "stories": [
+            {
+              "story_id": "EVAL-CT-PI-SCHEMA-001",
+              "title": "Define PI credibility schema and data contract",
+              "description": "Create a normalized schema for Principal Investigator credibility including fields: investigator_name, affiliated_institution, prior_trials_count, completed_trials_count, publications_count, fda_approval_count, prior_trial_outcomes_summary, and composite_credibility_score. Define Pydantic models and internal data contracts for downstream services.",
+              "parent_feature": "EVAL-CT-MEASURE-PI",
+              "sprint": 1,
+              "dependencies": [],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py (existing Pydantic modeling patterns); GAP: No PI credibility schema exists.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear implementation path using existing Pydantic modeling patterns in clinical_trials_models.py, well-scoped schema definition with specific fields, and a genuine gap that needs filling for the accepted feature."
+            },
+            {
+              "story_id": "EVAL-CT-PI-API-001",
+              "title": "Expose PI credibility via Evaluate Care API",
+              "description": "Extend evaluate_care_facade to include PI credibility measure in clinical trial responses. Ensure output includes structured fields and composite score for each trial’s principal investigator.",
+              "parent_feature": "EVAL-CT-MEASURE-PI",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-CT-PI-LOGIC-001"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (existing orchestration layer for clinical trials); GAP: No PI credibility exposure exists.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "The evaluate_care_facade.py exists as an orchestration layer and extending it to expose PI credibility data is a clear, buildable task regardless of which upstream logic story ultimately feeds it."
+            },
+            {
+              "story_id": "EVAL-CT-PI-TEST-001",
+              "title": "Unit and integration tests for PI credibility measure",
+              "description": "Develop unit tests for scoring logic and integration tests validating end-to-end PI credibility enrichment within clinical trial results. Include edge cases: missing investigator data, no prior trials, and inconsistent naming across sources.",
+              "parent_feature": "EVAL-CT-MEASURE-PI",
+              "sprint": 4,
+              "dependencies": [
+                "EVAL-CT-PI-API-001"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ (existing test structure and patterns); GAP: No tests for PI credibility pipeline.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Existing test structure and patterns are confirmed, the edge cases are specific and testable, and this is a necessary story for any PI credibility pipeline we ship."
+            },
+            {
+              "story_id": "EVAL-CT-PI-SCHEMA-001",
+              "title": "Define PI credibility schema and data contract",
+              "description": "Create a normalized schema for Principal Investigator credibility including fields: investigator_name, affiliated_institution, prior_trials_count, completed_trials_count, publications_count, fda_approval_count, prior_trial_outcomes_summary, and composite_credibility_score. Define Pydantic models and internal data contracts for downstream services.",
+              "parent_feature": "EVAL-CT-MEASURE-PI",
+              "sprint": 1,
+              "dependencies": [],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py (existing Pydantic modeling patterns); GAP: No PI credibility schema exists.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear implementation path using existing Pydantic modeling patterns in clinical_trials_models.py, well-scoped schema definition with specific fields, and a genuine gap that needs filling for the accepted feature."
+            },
+            {
+              "story_id": "EVAL-CT-PI-API-001",
+              "title": "Expose PI credibility via Evaluate Care API",
+              "description": "Extend evaluate_care_facade to include PI credibility measure in clinical trial responses. Ensure output includes structured fields and composite score for each trial’s principal investigator.",
+              "parent_feature": "EVAL-CT-MEASURE-PI",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-CT-PI-LOGIC-001"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (existing orchestration layer for clinical trials); GAP: No PI credibility exposure exists.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "The evaluate_care_facade.py exists as an orchestration layer and extending it to expose PI credibility data is a clear, buildable task regardless of which upstream logic story ultimately feeds it."
+            },
+            {
+              "story_id": "EVAL-CT-PI-TEST-001",
+              "title": "Unit and integration tests for PI credibility measure",
+              "description": "Develop unit tests for scoring logic and integration tests validating end-to-end PI credibility enrichment within clinical trial results. Include edge cases: missing investigator data, no prior trials, and inconsistent naming across sources.",
+              "parent_feature": "EVAL-CT-MEASURE-PI",
+              "sprint": 4,
+              "dependencies": [
+                "EVAL-CT-PI-API-001"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ (existing test structure and patterns); GAP: No tests for PI credibility pipeline.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Existing test structure and patterns are confirmed, the edge cases are specific and testable, and this is a necessary story for any PI credibility pipeline we ship."
+            }
+          ]
         },
         {
           "feature_id": "EVAL-CT-PI-UX",
@@ -14069,7 +15087,162 @@
           "backend_dependencies": [
             "EVAL-CT-MEASURE-PI"
           ],
-          "stories": []
+          "stories": [
+            {
+              "story_id": "EVAL-CT-PI-UX-S1",
+              "title": "Define PI credibility UI data contract",
+              "description": "Define the frontend data schema for PI credibility display including investigator name, institution, prior trial count, publication indicator, and score contribution. Ensure compatibility with backend feature EVAL-CT-MEASURE-PI and MessageBubble rendering pipeline.",
+              "parent_feature": "EVAL-CT-PI-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-MEASURE-PI"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx rendering pipeline; backend dependency EVAL-CT-MEASURE-PI provides PI metrics.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Defining the frontend data contract is the correct first step; MessageBubble.tsx exists as the rendering surface, the dependency on EVAL-CT-MEASURE-PI is legitimate, and the deliverable (a typed schema) is concrete and buildable."
+            },
+            {
+              "story_id": "EVAL-CT-PI-UX-S2",
+              "title": "Implement PI credibility rendering logic",
+              "description": "Build frontend logic to transform PI credibility data into display-ready format including conditional rendering for missing fields, formatting trial counts, and computing visual score contribution indicators.",
+              "parent_feature": "EVAL-CT-PI-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-PI-UX-S1"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx supports structured markdown rendering; GAP: no existing PI-specific transformation logic.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Transformation logic for PI data into display-ready format is a clear, buildable unit that correctly depends on the S1 schema, and the evidence honestly notes the gap in existing PI-specific logic."
+            },
+            {
+              "story_id": "EVAL-CT-PI-UX-S3",
+              "title": "Integrate PI credibility into trial scorecard UI",
+              "description": "Extend MessageBubble or introduce a reusable component to display PI credibility within the clinical trial scorecard, including layout, labeling, and visual hierarchy aligned with existing chat UI patterns.",
+              "parent_feature": "EVAL-CT-PI-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-CT-PI-UX-S2"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx is current rendering surface; GAP: no PI display component exists.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Extending or creating a reusable PI credibility component within the scorecard is the core UX deliverable of this feature, the rendering surface exists, and it correctly chains after S2."
+            },
+            {
+              "story_id": "EVAL-CT-PI-UX-S4",
+              "title": "Add API binding and error handling for PI data",
+              "description": "Bind frontend UI to backend PI credibility data payload, including handling null/partial responses, fallback messaging, and safe rendering when PI data is unavailable.",
+              "parent_feature": "EVAL-CT-PI-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-CT-MEASURE-PI",
+                "EVAL-CT-PI-UX-S1"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py orchestrates clinical trial responses; GAP: no PI-specific API contract currently exposed.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "API binding with error/null handling is a necessary and distinct concern from rendering logic; evaluate_care_facade.py exists as the backend orchestration layer, and the gap is honestly declared."
+            },
+            {
+              "story_id": "EVAL-CT-PI-UX-S5",
+              "title": "Test PI credibility display and edge cases",
+              "description": "Create unit and integration tests validating PI credibility rendering, including missing data scenarios, formatting correctness, and consistency with score contribution display.",
+              "parent_feature": "EVAL-CT-PI-UX",
+              "sprint": 4,
+              "dependencies": [
+                "EVAL-CT-PI-UX-S3",
+                "EVAL-CT-PI-UX-S4"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend has existing test structure; GAP: no tests for PI display component.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Testing story correctly depends on both the UI component (S3) and the API binding (S4), targets documented edge cases, and the frontend test structure exists to scaffold against."
+            },
+            {
+              "story_id": "EVAL-CT-PI-UX-S1",
+              "title": "Define PI credibility UI data contract",
+              "description": "Define the frontend data schema for PI credibility display including investigator name, institution, prior trial count, publication indicator, and score contribution. Ensure compatibility with backend feature EVAL-CT-MEASURE-PI and MessageBubble rendering pipeline.",
+              "parent_feature": "EVAL-CT-PI-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-MEASURE-PI"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx rendering pipeline; backend dependency EVAL-CT-MEASURE-PI provides PI metrics.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Defining the frontend data contract is the correct first step; MessageBubble.tsx exists as the rendering surface, the dependency on EVAL-CT-MEASURE-PI is legitimate, and the deliverable (a typed schema) is concrete and buildable."
+            },
+            {
+              "story_id": "EVAL-CT-PI-UX-S2",
+              "title": "Implement PI credibility rendering logic",
+              "description": "Build frontend logic to transform PI credibility data into display-ready format including conditional rendering for missing fields, formatting trial counts, and computing visual score contribution indicators.",
+              "parent_feature": "EVAL-CT-PI-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-PI-UX-S1"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx supports structured markdown rendering; GAP: no existing PI-specific transformation logic.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Transformation logic for PI data into display-ready format is a clear, buildable unit that correctly depends on the S1 schema, and the evidence honestly notes the gap in existing PI-specific logic."
+            },
+            {
+              "story_id": "EVAL-CT-PI-UX-S3",
+              "title": "Integrate PI credibility into trial scorecard UI",
+              "description": "Extend MessageBubble or introduce a reusable component to display PI credibility within the clinical trial scorecard, including layout, labeling, and visual hierarchy aligned with existing chat UI patterns.",
+              "parent_feature": "EVAL-CT-PI-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-CT-PI-UX-S2"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx is current rendering surface; GAP: no PI display component exists.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Extending or creating a reusable PI credibility component within the scorecard is the core UX deliverable of this feature, the rendering surface exists, and it correctly chains after S2."
+            },
+            {
+              "story_id": "EVAL-CT-PI-UX-S4",
+              "title": "Add API binding and error handling for PI data",
+              "description": "Bind frontend UI to backend PI credibility data payload, including handling null/partial responses, fallback messaging, and safe rendering when PI data is unavailable.",
+              "parent_feature": "EVAL-CT-PI-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-CT-MEASURE-PI",
+                "EVAL-CT-PI-UX-S1"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py orchestrates clinical trial responses; GAP: no PI-specific API contract currently exposed.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "API binding with error/null handling is a necessary and distinct concern from rendering logic; evaluate_care_facade.py exists as the backend orchestration layer, and the gap is honestly declared."
+            },
+            {
+              "story_id": "EVAL-CT-PI-UX-S5",
+              "title": "Test PI credibility display and edge cases",
+              "description": "Create unit and integration tests validating PI credibility rendering, including missing data scenarios, formatting correctness, and consistency with score contribution display.",
+              "parent_feature": "EVAL-CT-PI-UX",
+              "sprint": 4,
+              "dependencies": [
+                "EVAL-CT-PI-UX-S3",
+                "EVAL-CT-PI-UX-S4"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend has existing test structure; GAP: no tests for PI display component.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Testing story correctly depends on both the UI component (S3) and the API binding (S4), targets documented edge cases, and the frontend test structure exists to scaffold against."
+            }
+          ]
         },
         {
           "feature_id": "EVAL-CT-MEASURE-SPONSOR",
@@ -14083,7 +15256,124 @@
           "status": "accepted",
           "accepted_by": "Boss (direct mandate)",
           "backend_dependencies": [],
-          "stories": []
+          "stories": [
+            {
+              "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+              "title": "Define sponsor credibility schema and data contract",
+              "description": "Create Pydantic models and internal schema for sponsor credibility including fields: sponsor_type, funding_source, institution_name, collaborators, reputation_score, transparency_flag, and raw ClinicalTrials.gov fields mapping (lead_sponsor, collaborators, funding_source).",
+              "parent_feature": "EVAL-CT-MEASURE-SPONSOR",
+              "sprint": 1,
+              "dependencies": [],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py (existing Pydantic pattern); ClinicalTrials.gov fields (lead_sponsor, collaborator, funding_source) referenced in feature definition.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear implementation path using existing Pydantic patterns in clinical_trials_models.py, fields map directly to ClinicalTrials.gov API data, and scope is appropriately bounded to schema definition."
+            },
+            {
+              "story_id": "EVAL-CT-SPONSOR-LOGIC-001",
+              "title": "Implement sponsor credibility scoring logic",
+              "description": "Build backend logic to classify sponsor type (university, hospital, pharma, unknown), normalize funding source (NIH/NCI/public vs industry vs undisclosed), and compute credibility score based on rules (public + reputable institution = positive, unknown + undisclosed = negative). Include collaborator influence and fallback handling for missing data.",
+              "parent_feature": "EVAL-CT-MEASURE-SPONSOR",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-CT-SPONSOR-SCHEMA-001"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (existing ClinicalTrials.gov ingestion and transformation patterns).",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Scoring rules are well-defined by the feature attributes (sponsor type and funding source classification), the cited service file provides a proven transformation pattern, and the description is specific enough to code against."
+            },
+            {
+              "story_id": "EVAL-CT-SPONSOR-API-001",
+              "title": "Expose sponsor credibility via evaluation API",
+              "description": "Extend clinical trials evaluation response to include sponsor credibility object with score, classification, and explanation text. Integrate into EvaluateCare facade for downstream UI consumption.",
+              "parent_feature": "EVAL-CT-MEASURE-SPONSOR",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-SPONSOR-LOGIC-001"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (central orchestration layer for evaluation outputs).",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "The evaluate_care_facade.py is the established orchestration layer for evaluation outputs, extending it with the sponsor credibility object is a clear integration path with well-scoped deliverables."
+            },
+            {
+              "story_id": "EVAL-CT-SPONSOR-TEST-001",
+              "title": "Unit and integration tests for sponsor credibility measure",
+              "description": "Create tests validating schema parsing, sponsor classification, funding normalization, scoring rules, and API response integration. Include edge cases: missing sponsor, multiple collaborators, undisclosed funding.",
+              "parent_feature": "EVAL-CT-MEASURE-SPONSOR",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-SPONSOR-API-001"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ (existing pytest framework and patterns for service and tool validation).",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Existing pytest infrastructure supports this, the edge cases listed are specific and derived from the feature definition, and testing is a necessary complement to the prior three stories."
+            },
+            {
+              "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+              "title": "Define sponsor credibility schema and data contract",
+              "description": "Create Pydantic models and internal schema for sponsor credibility including fields: sponsor_type, funding_source, institution_name, collaborators, reputation_score, transparency_flag, and raw ClinicalTrials.gov fields mapping (lead_sponsor, collaborators, funding_source).",
+              "parent_feature": "EVAL-CT-MEASURE-SPONSOR",
+              "sprint": 1,
+              "dependencies": [],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py (existing Pydantic pattern); ClinicalTrials.gov fields (lead_sponsor, collaborator, funding_source) referenced in feature definition.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear implementation path using existing Pydantic patterns in clinical_trials_models.py, fields map directly to ClinicalTrials.gov API data, and scope is appropriately bounded to schema definition."
+            },
+            {
+              "story_id": "EVAL-CT-SPONSOR-LOGIC-001",
+              "title": "Implement sponsor credibility scoring logic",
+              "description": "Build backend logic to classify sponsor type (university, hospital, pharma, unknown), normalize funding source (NIH/NCI/public vs industry vs undisclosed), and compute credibility score based on rules (public + reputable institution = positive, unknown + undisclosed = negative). Include collaborator influence and fallback handling for missing data.",
+              "parent_feature": "EVAL-CT-MEASURE-SPONSOR",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-CT-SPONSOR-SCHEMA-001"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (existing ClinicalTrials.gov ingestion and transformation patterns).",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Scoring rules are well-defined by the feature attributes (sponsor type and funding source classification), the cited service file provides a proven transformation pattern, and the description is specific enough to code against."
+            },
+            {
+              "story_id": "EVAL-CT-SPONSOR-API-001",
+              "title": "Expose sponsor credibility via evaluation API",
+              "description": "Extend clinical trials evaluation response to include sponsor credibility object with score, classification, and explanation text. Integrate into EvaluateCare facade for downstream UI consumption.",
+              "parent_feature": "EVAL-CT-MEASURE-SPONSOR",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-SPONSOR-LOGIC-001"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (central orchestration layer for evaluation outputs).",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "The evaluate_care_facade.py is the established orchestration layer for evaluation outputs, extending it with the sponsor credibility object is a clear integration path with well-scoped deliverables."
+            },
+            {
+              "story_id": "EVAL-CT-SPONSOR-TEST-001",
+              "title": "Unit and integration tests for sponsor credibility measure",
+              "description": "Create tests validating schema parsing, sponsor classification, funding normalization, scoring rules, and API response integration. Include edge cases: missing sponsor, multiple collaborators, undisclosed funding.",
+              "parent_feature": "EVAL-CT-MEASURE-SPONSOR",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-SPONSOR-API-001"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ (existing pytest framework and patterns for service and tool validation).",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Existing pytest infrastructure supports this, the edge cases listed are specific and derived from the feature definition, and testing is a necessary complement to the prior three stories."
+            }
+          ]
         },
         {
           "feature_id": "EVAL-CT-SPONSOR-UX",
@@ -14099,7 +15389,160 @@
           "backend_dependencies": [
             "EVAL-CT-MEASURE-SPONSOR"
           ],
-          "stories": []
+          "stories": [
+            {
+              "story_id": "EVAL-CT-SPONSOR-ST-001",
+              "title": "Define Sponsor Display Schema Contract",
+              "description": "Define frontend data contract for sponsor credibility including sponsor name, type, funding source (public/private/undisclosed), collaborators, and score contribution. Ensure compatibility with backend feature EVAL-CT-MEASURE-SPONSOR.",
+              "parent_feature": "EVAL-CT-SPONSOR-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-CT-MEASURE-SPONSOR"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx — rendering pipeline requires structured payload for display.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Defining a frontend data contract for sponsor credibility fields is a clear, small, buildable task that aligns with the feature scope and correctly depends on the backend EVAL-CT-MEASURE-SPONSOR feature for schema alignment."
+            },
+            {
+              "story_id": "EVAL-CT-SPONSOR-ST-002",
+              "title": "Implement Sponsor Credibility Rendering Logic",
+              "description": "Implement logic to parse sponsor data and compute display-ready fields (e.g., normalized funding labels, collaborator formatting, score contribution text) for use in UI components.",
+              "parent_feature": "EVAL-CT-SPONSOR-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-CT-SPONSOR-ST-001"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx — existing message rendering requires transformation layer before display.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "A transformation/parsing layer between raw sponsor data and display-ready fields is a well-scoped, buildable story with a clear dependency chain and credible evidence in the existing MessageBubble rendering pipeline."
+            },
+            {
+              "story_id": "EVAL-CT-SPONSOR-ST-003",
+              "title": "Build Sponsor Credibility UI Component",
+              "description": "Create UI component within MessageBubble rendering flow to display sponsor credibility block in trial scorecard, including sponsor name, type, funding source, collaborators, and contribution to score.",
+              "parent_feature": "EVAL-CT-SPONSOR-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-SPONSOR-ST-002"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx — primary UI surface for structured clinical trial outputs.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Building the actual UI component within the MessageBubble rendering flow is the core deliverable of this feature, has clear scope, and correctly depends on the rendering logic from ST-002."
+            },
+            {
+              "story_id": "EVAL-CT-SPONSOR-ST-004",
+              "title": "Integrate Sponsor Data into API Response Handling",
+              "description": "Extend frontend API response handling to accept and pass through sponsor credibility data from backend into rendering pipeline without breaking existing trial display flows.",
+              "parent_feature": "EVAL-CT-SPONSOR-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-MEASURE-SPONSOR",
+                "EVAL-CT-SPONSOR-ST-001"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx and MessageBubble.tsx — API response ingestion and rendering pipeline integration.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Extending API response handling in App.tsx to pass sponsor data through to the rendering pipeline is a necessary integration story with credible evidence and clear dependencies."
+            },
+            {
+              "story_id": "EVAL-CT-SPONSOR-ST-005",
+              "title": "Add Unit and UI Tests for Sponsor Display",
+              "description": "Create unit tests for sponsor data transformation logic and UI tests validating correct rendering of sponsor credibility fields including edge cases (missing funding source, multiple collaborators).",
+              "parent_feature": "EVAL-CT-SPONSOR-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-CT-SPONSOR-ST-003"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx — component behavior requires validation; existing test patterns in frontend and backend tests directories.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Unit and UI tests for the sponsor display logic and component are buildable, appropriately scoped to sprint 3 after implementation, and correctly cover edge cases like missing funding source."
+            },
+            {
+              "story_id": "EVAL-CT-SPONSOR-ST-001",
+              "title": "Define Sponsor Display Schema Contract",
+              "description": "Define frontend data contract for sponsor credibility including sponsor name, type, funding source (public/private/undisclosed), collaborators, and score contribution. Ensure compatibility with backend feature EVAL-CT-MEASURE-SPONSOR.",
+              "parent_feature": "EVAL-CT-SPONSOR-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-CT-MEASURE-SPONSOR"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx — rendering pipeline requires structured payload for display.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Defining a frontend data contract for sponsor credibility fields is a clear, small, buildable task that aligns with the feature scope and correctly depends on the backend EVAL-CT-MEASURE-SPONSOR feature for schema alignment."
+            },
+            {
+              "story_id": "EVAL-CT-SPONSOR-ST-002",
+              "title": "Implement Sponsor Credibility Rendering Logic",
+              "description": "Implement logic to parse sponsor data and compute display-ready fields (e.g., normalized funding labels, collaborator formatting, score contribution text) for use in UI components.",
+              "parent_feature": "EVAL-CT-SPONSOR-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-CT-SPONSOR-ST-001"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx — existing message rendering requires transformation layer before display.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "A transformation/parsing layer between raw sponsor data and display-ready fields is a well-scoped, buildable story with a clear dependency chain and credible evidence in the existing MessageBubble rendering pipeline."
+            },
+            {
+              "story_id": "EVAL-CT-SPONSOR-ST-003",
+              "title": "Build Sponsor Credibility UI Component",
+              "description": "Create UI component within MessageBubble rendering flow to display sponsor credibility block in trial scorecard, including sponsor name, type, funding source, collaborators, and contribution to score.",
+              "parent_feature": "EVAL-CT-SPONSOR-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-SPONSOR-ST-002"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx — primary UI surface for structured clinical trial outputs.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Building the actual UI component within the MessageBubble rendering flow is the core deliverable of this feature, has clear scope, and correctly depends on the rendering logic from ST-002."
+            },
+            {
+              "story_id": "EVAL-CT-SPONSOR-ST-004",
+              "title": "Integrate Sponsor Data into API Response Handling",
+              "description": "Extend frontend API response handling to accept and pass through sponsor credibility data from backend into rendering pipeline without breaking existing trial display flows.",
+              "parent_feature": "EVAL-CT-SPONSOR-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-CT-MEASURE-SPONSOR",
+                "EVAL-CT-SPONSOR-ST-001"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx and MessageBubble.tsx — API response ingestion and rendering pipeline integration.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Extending API response handling in App.tsx to pass sponsor data through to the rendering pipeline is a necessary integration story with credible evidence and clear dependencies."
+            },
+            {
+              "story_id": "EVAL-CT-SPONSOR-ST-005",
+              "title": "Add Unit and UI Tests for Sponsor Display",
+              "description": "Create unit tests for sponsor data transformation logic and UI tests validating correct rendering of sponsor credibility fields including edge cases (missing funding source, multiple collaborators).",
+              "parent_feature": "EVAL-CT-SPONSOR-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-CT-SPONSOR-ST-003"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx — component behavior requires validation; existing test patterns in frontend and backend tests directories.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Unit and UI tests for the sponsor display logic and component are buildable, appropriately scoped to sprint 3 after implementation, and correctly cover edge cases like missing funding source."
+            }
+          ]
         },
         {
           "feature_id": "EVAL-P-TRIAGE",
@@ -14143,7 +15586,160 @@
           "backend_dependencies": [
             "EVAL-P-TRIAGE"
           ],
-          "stories": []
+          "stories": [
+            {
+              "story_id": "EVAL-P-TRIAGE-UX-S1",
+              "title": "Define triage display schema and frontend contract",
+              "description": "Define TypeScript interfaces and API response contract for provider triage results including pass/fail status, specialty match explanation, and ordered reasoning blocks (specialty first, then quality). Ensure alignment with backend EVAL-P-TRIAGE output.",
+              "parent_feature": "EVAL-P-TRIAGE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-P-TRIAGE"
+              ],
+              "size": "S",
+              "evidence": "GAP: No provider triage UI or contract exists; schema must be defined to render triage reasoning.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear deliverable — TypeScript interfaces and API contract for triage display — with a valid gap citation and a well-scoped dependency on the backend EVAL-P-TRIAGE feature."
+            },
+            {
+              "story_id": "EVAL-P-TRIAGE-UX-S2",
+              "title": "Implement triage reasoning prioritization logic (frontend)",
+              "description": "Implement frontend logic to order and render triage explanations with specialty match shown before any quality scores, and clear pass/fail indicators. Handle edge cases (missing specialty, partial matches, fail states).",
+              "parent_feature": "EVAL-P-TRIAGE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-P-TRIAGE-UX-S1"
+              ],
+              "size": "M",
+              "evidence": "GAP: No provider triage UI; ordering logic required to meet requirement 'specialty match before quality scores'.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Well-scoped frontend ordering logic directly serving the feature's 'specialty match before quality scores' requirement, with clear edge-case handling and correct dependency on S1."
+            },
+            {
+              "story_id": "EVAL-P-TRIAGE-UX-S3",
+              "title": "Build triage display UI components",
+              "description": "Create reusable React components to display provider triage results including pass/fail badge, specialty match explanation, and expandable reasoning sections. Integrate into existing chat/provider result view.",
+              "parent_feature": "EVAL-P-TRIAGE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-P-TRIAGE-UX-S2"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx (existing rendering patterns); GAP: no dedicated triage UI components.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Credible evidence citing MessageBubble.tsx for existing rendering patterns, clear component deliverables (badge, explanation, expandable sections), and correct dependency chain."
+            },
+            {
+              "story_id": "EVAL-P-TRIAGE-UX-S4",
+              "title": "Frontend integration and API binding for triage display",
+              "description": "Connect UI components to backend triage API response, map fields to display schema, and ensure graceful handling of loading, errors, and empty states within the chat flow.",
+              "parent_feature": "EVAL-P-TRIAGE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-P-TRIAGE",
+                "EVAL-P-TRIAGE-UX-S3"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx (API interaction patterns); GAP: no triage-specific binding exists.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Credible evidence citing ChatWindow.tsx for API interaction patterns, well-defined scope covering binding, loading, error, and empty states, with correct dual dependency on backend and S3."
+            },
+            {
+              "story_id": "EVAL-P-TRIAGE-UX-S5",
+              "title": "Triage display tests (unit + UI states)",
+              "description": "Create unit tests for ordering logic and component rendering plus UI state tests (pass, fail, partial, missing data). Validate specialty-first rule and correct explanation visibility.",
+              "parent_feature": "EVAL-P-TRIAGE-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-P-TRIAGE-UX-S4"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ (testing patterns exist); GAP: no frontend triage tests currently defined.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Appropriately scoped test story covering unit and UI state tests for the specialty-first rule and all display states, with correct dependency on S4 ensuring all code is complete before testing."
+            },
+            {
+              "story_id": "EVAL-P-TRIAGE-UX-S1",
+              "title": "Define triage display schema and frontend contract",
+              "description": "Define TypeScript interfaces and API response contract for provider triage results including pass/fail status, specialty match explanation, and ordered reasoning blocks (specialty first, then quality). Ensure alignment with backend EVAL-P-TRIAGE output.",
+              "parent_feature": "EVAL-P-TRIAGE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-P-TRIAGE"
+              ],
+              "size": "S",
+              "evidence": "GAP: No provider triage UI or contract exists; schema must be defined to render triage reasoning.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Clear deliverable — TypeScript interfaces and API contract for triage display — with a valid gap citation and a well-scoped dependency on the backend EVAL-P-TRIAGE feature."
+            },
+            {
+              "story_id": "EVAL-P-TRIAGE-UX-S2",
+              "title": "Implement triage reasoning prioritization logic (frontend)",
+              "description": "Implement frontend logic to order and render triage explanations with specialty match shown before any quality scores, and clear pass/fail indicators. Handle edge cases (missing specialty, partial matches, fail states).",
+              "parent_feature": "EVAL-P-TRIAGE-UX",
+              "sprint": 1,
+              "dependencies": [
+                "EVAL-P-TRIAGE-UX-S1"
+              ],
+              "size": "M",
+              "evidence": "GAP: No provider triage UI; ordering logic required to meet requirement 'specialty match before quality scores'.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Well-scoped frontend ordering logic directly serving the feature's 'specialty match before quality scores' requirement, with clear edge-case handling and correct dependency on S1."
+            },
+            {
+              "story_id": "EVAL-P-TRIAGE-UX-S3",
+              "title": "Build triage display UI components",
+              "description": "Create reusable React components to display provider triage results including pass/fail badge, specialty match explanation, and expandable reasoning sections. Integrate into existing chat/provider result view.",
+              "parent_feature": "EVAL-P-TRIAGE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-P-TRIAGE-UX-S2"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx (existing rendering patterns); GAP: no dedicated triage UI components.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Credible evidence citing MessageBubble.tsx for existing rendering patterns, clear component deliverables (badge, explanation, expandable sections), and correct dependency chain."
+            },
+            {
+              "story_id": "EVAL-P-TRIAGE-UX-S4",
+              "title": "Frontend integration and API binding for triage display",
+              "description": "Connect UI components to backend triage API response, map fields to display schema, and ensure graceful handling of loading, errors, and empty states within the chat flow.",
+              "parent_feature": "EVAL-P-TRIAGE-UX",
+              "sprint": 2,
+              "dependencies": [
+                "EVAL-P-TRIAGE",
+                "EVAL-P-TRIAGE-UX-S3"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx (API interaction patterns); GAP: no triage-specific binding exists.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Credible evidence citing ChatWindow.tsx for API interaction patterns, well-defined scope covering binding, loading, error, and empty states, with correct dual dependency on backend and S3."
+            },
+            {
+              "story_id": "EVAL-P-TRIAGE-UX-S5",
+              "title": "Triage display tests (unit + UI states)",
+              "description": "Create unit tests for ordering logic and component rendering plus UI state tests (pass, fail, partial, missing data). Validate specialty-first rule and correct explanation visibility.",
+              "parent_feature": "EVAL-P-TRIAGE-UX",
+              "sprint": 3,
+              "dependencies": [
+                "EVAL-P-TRIAGE-UX-S4"
+              ],
+              "size": "S",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ (testing patterns exist); GAP: no frontend triage tests currently defined.",
+              "status": "accepted",
+              "accepted_by": "Claude (Opus)",
+              "acceptance_reason": "Appropriately scoped test story covering unit and UI state tests for the specialty-first rule and all display states, with correct dependency on S4 ensuring all code is complete before testing."
+            }
+          ]
         }
       ]
     },
@@ -18410,7 +20006,7 @@
   ],
   "metadata": {
     "phase": "complete",
-    "last_saved": "2026-04-02T02:52:03.718475+00:00"
+    "last_saved": "2026-04-02T03:34:41.231242+00:00"
   },
   "sprint_map": [
     {
