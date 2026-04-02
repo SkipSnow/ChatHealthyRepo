@@ -2,15 +2,13 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
 # generate_epic_plan_artifacts.py - Produces Word doc and JSON from plan_tree.json
-# Hierarchy: Epic (flush left) -> Feature (0.25in) -> Story (0.5in) -> Requirement (0.75in)
-# Tables have repeating headers. Every level is labeled.
+# Layout: Front matter -> Feature bullet list -> Tree (Feature/Story/Req) -> Back matter (design)
 
 import json
 from pathlib import Path
 from docx import Document
-from docx.shared import Pt, RGBColor, Inches, Cm
+from docx.shared import Pt, RGBColor, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
 _REPO = Path(__file__).parent.parent.parent.parent
@@ -31,57 +29,45 @@ total_s = sum(len(f.get("stories", [])) for e in tree["epics"] for f in e.get("f
 total_r = sum(len(s.get("requirements", [])) for e in tree["epics"] for f in e.get("features", []) for s in f.get("stories", []))
 
 
-def set_repeat_header(table):
-    """Make the first row of a table repeat on every page."""
+def repeat_header(table):
     try:
-        row = table.rows[0]
-        tr = row._tr
+        tr = table.rows[0]._tr
         trPr = tr.get_or_add_trPr()
-        tblHeader = OxmlElement("w:tblHeader")
-        trPr.append(tblHeader)
+        trPr.append(OxmlElement("w:tblHeader"))
     except Exception:
         pass
 
 
-def add_indented_heading(text, level, indent_inches=0):
-    """Add a heading with left indent."""
-    p = doc.add_heading(text, level=level)
-    if indent_inches > 0:
-        p.paragraph_format.left_indent = Inches(indent_inches)
-    return p
-
-
-def add_indented_para(text, indent_inches=0, bold=False, size=None, color=None):
-    """Add a paragraph with left indent."""
+def indented(text, inches, bold=False, size=10, color=None):
     p = doc.add_paragraph()
-    if indent_inches > 0:
-        p.paragraph_format.left_indent = Inches(indent_inches)
+    p.paragraph_format.left_indent = Inches(inches)
     r = p.add_run(text)
+    r.font.size = Pt(size)
     if bold:
         r.bold = True
-    if size:
-        r.font.size = Pt(size)
     if color:
         r.font.color.rgb = RGBColor(*color)
     return p
 
 
-# ── Title ──
+# ════════════════════════════════════════════════════════════
+# FRONT MATTER
+# ════════════════════════════════════════════════════════════
+
+# Title
 doc.add_paragraph("")
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-r = p.add_run("ChatHealthy.ai")
-r.font.size = Pt(28)
-r.bold = True
+p.add_run("ChatHealthy.ai").font.size = Pt(28)
+p.runs[0].bold = True
 
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-r = p.add_run("Epic Plan: Evaluate Care v0.1.4")
-r.font.size = Pt(18)
+p.add_run("Epic Plan: Evaluate Care v0.1.4").font.size = Pt(18)
 
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-p.add_run("April 2, 2026 | Build 362").font.size = Pt(11)
+p.add_run("April 2, 2026 | Build 363").font.size = Pt(11)
 
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -95,106 +81,159 @@ p.add_run("Copyright 2026 Skip Snow. All rights reserved.").font.size = Pt(9)
 
 doc.add_page_break()
 
-# ── Table of Contents ──
-doc.add_heading("Table of Contents", level=1)
+# How to Use
+doc.add_heading("How to Use This Document", level=1)
+doc.add_paragraph(
+    "This document is organized in three sections:"
+)
+doc.add_paragraph("1. Feature List -- a scannable bullet list of every feature by name", style="List Number")
+doc.add_paragraph("2. Plan Tree -- the full hierarchy: Feature -> Story -> Requirement -> Test Case", style="List Number")
+doc.add_paragraph("3. Appendices -- software design, sprint map, risk matrix, rejected candidates", style="List Number")
+doc.add_paragraph("")
+doc.add_paragraph("The Plan Tree follows a strict indentation convention:")
+doc.add_paragraph("Feature (flush left)", style="List Bullet")
+doc.add_paragraph("Story (indented 0.25 inch)", style="List Bullet")
+doc.add_paragraph("Requirement table (indented 0.5 inch)", style="List Bullet")
+doc.add_paragraph("")
+doc.add_paragraph(
+    "All tables have headers that repeat at the top of every page. "
+    "Requirement labels: Y (Passed), DEF (Deferred), FAIL (Failed). Blank until UAT."
+)
+
+doc.add_page_break()
+
+# Executive Summary
+doc.add_heading("Executive Summary", level=1)
+doc.add_paragraph(
+    f"This plan defines Evaluate Care v0.1.4 -- the second business component of ChatHealthy.ai. "
+    f"It contains {total_f} features, {total_s} stories, and {total_r} boolean testable requirements. "
+    f"Every feature was proposed by GPT (Enterprise Architect, gpt-5.3) and accepted by Claude "
+    f"(Accountable Dev Manager, claude-opus-4-6). Every requirement traces to the epic goal."
+)
+doc.add_paragraph(f"Gate recommendation: {tree.get('gate_recommendation', 'N/A')}")
+
+doc.add_page_break()
+
+# ════════════════════════════════════════════════════════════
+# FEATURE LIST (bullet list, names only)
+# ════════════════════════════════════════════════════════════
+
+doc.add_heading("Feature List", level=1)
 
 for epic in tree["epics"]:
     features = epic.get("features", [])
     if not features:
         continue
     p = doc.add_paragraph()
-    r = p.add_run(f"Epic: {epic['epic_id']}: {epic['name']}")
+    r = p.add_run(f"{epic['epic_id']}: {epic['name']}")
     r.bold = True
-    r.font.size = Pt(11)
+    r.font.size = Pt(12)
 
     for feat in features:
-        fid = feat.get("feature_id", "?")
-        fname = feat.get("name", "?")
-        stories = feat.get("stories", [])
-        feat_reqs = sum(len(s.get("requirements", [])) for s in stories)
-        p = doc.add_paragraph()
-        p.paragraph_format.left_indent = Inches(0.25)
-        run = p.add_run(f"Feature: {fid}: {fname} ({len(stories)} stories, {feat_reqs} reqs)")
-        run.font.color.rgb = RGBColor(11, 122, 117)
-        run.font.size = Pt(9)
+        doc.add_paragraph(
+            f"{feat.get('feature_id', '?')}: {feat.get('name', '?')}",
+            style="List Bullet"
+        )
 
 doc.add_page_break()
 
-# ── How to Use This Document ──
-doc.add_heading("How to Use This Document", level=1)
-doc.add_paragraph(
-    "This document follows a strict hierarchy. Each level is labeled and indented:"
-)
-doc.add_paragraph("Epic (flush left) -- the strategic capability stream", style="List Bullet")
-doc.add_paragraph("Feature (indented 0.25in) -- a deliverable within an epic", style="List Bullet")
-doc.add_paragraph("Story (indented 0.5in) -- a sprint-sized unit of work within a feature", style="List Bullet")
-doc.add_paragraph("Requirement (indented 0.75in, in tables) -- a boolean testable statement", style="List Bullet")
+# ════════════════════════════════════════════════════════════
+# PLAN TREE (Feature -> Story -> Requirement)
+# ════════════════════════════════════════════════════════════
 
-doc.add_paragraph(
-    "Every header is prefixed with its level: 'Epic:', 'Feature:', 'Story:', 'Requirement:'. "
-    "Tables have headers that repeat at the top of every page. "
-    "To find a specific feature, use the Table of Contents. "
-    "To review test cases for a story, find the story heading and read the requirement table below it."
-)
-doc.add_paragraph(
-    "Requirement labels: Y (Passed), DEF (Deferred), FAIL (Failed). "
-    "Labels are blank until UAT. Every requirement must carry exactly one label at release."
-)
-
-doc.add_page_break()
-
-# ── Exec Summary ──
-doc.add_heading("Executive Summary", level=1)
-doc.add_paragraph(
-    f"This document defines the epic plan for Evaluate Care v0.1.4. "
-    f"The plan contains {total_f} features, {total_s} stories, and {total_r} boolean "
-    f"testable requirements. Every feature was proposed by GPT (Enterprise Architect, gpt-5.3) "
-    f"and accepted by Claude (Accountable Dev Manager, claude-opus-4-6). "
-    f"Every requirement traces to the epic goal."
-)
-doc.add_paragraph(f"Gate: {tree.get('gate_recommendation', 'N/A')}")
-
-# ── Feature Summary Table ──
-doc.add_heading("Feature Summary", level=1)
+doc.add_heading("Plan Tree", level=1)
 
 for epic in tree["epics"]:
     features = epic.get("features", [])
     if not features:
         continue
-    doc.add_heading(f"Epic: {epic['epic_id']}: {epic['name']}", level=2)
-    t = doc.add_table(rows=1, cols=4)
-    t.style = "Table Grid"
-    for i, h in enumerate(["Feature ID", "Name", "Layer", "Description"]):
-        t.rows[0].cells[i].text = h
-        t.rows[0].cells[i].paragraphs[0].runs[0].bold = True
-    set_repeat_header(t)
+
+    doc.add_heading(f"{epic['epic_id']}: {epic['name']}", level=1)
+
     for feat in features:
-        row = t.add_row()
-        row.cells[0].text = feat.get("feature_id", "?")
-        row.cells[1].text = feat.get("name", "?")
-        row.cells[2].text = feat.get("layer", "?")
-        desc = feat.get("description", "")
-        row.cells[3].text = desc[:120] + ("..." if len(desc) > 120 else "")
+        stories = feat.get("stories", [])
+        feat_reqs = sum(len(s.get("requirements", [])) for s in stories)
 
-doc.add_page_break()
+        # ── Feature (flush left) ──
+        p = doc.add_paragraph()
+        r = p.add_run(f"Feature: {feat['feature_id']}: {feat['name']}")
+        r.bold = True
+        r.font.size = Pt(12)
+        r.font.color.rgb = RGBColor(11, 122, 117)
 
-# ── Software Design ──
-doc.add_heading("Software Design", level=1)
+        # Feature metadata as compact line
+        layer = feat.get("layer", "?")
+        priority = feat.get("priority", "?")
+        accepted = feat.get("accepted_by", "?")
+        doc.add_paragraph(
+            f"Layer: {layer} | Priority: {priority} | Stories: {len(stories)} | "
+            f"Requirements: {feat_reqs} | Accepted by: {accepted}"
+        )
+        evidence = feat.get("evidence", "")
+        if evidence:
+            p = doc.add_paragraph()
+            r = p.add_run("Evidence: ")
+            r.bold = True
+            r.font.size = Pt(9)
+            p.add_run(evidence[:200]).font.size = Pt(9)
+
+        for story in stories:
+            reqs = story.get("requirements", [])
+
+            # ── Story (0.25in indent) ──
+            indented(
+                f"Story: {story['story_id']}: {story['title']}",
+                0.25, bold=True, size=11
+            )
+            indented(story.get("description", ""), 0.25, size=9)
+            indented(
+                f"Size: {story.get('size', '?')} | Sprint: {story.get('sprint', '?')} | "
+                f"Reqs: {len(reqs)}",
+                0.25, size=9
+            )
+            if story.get("evidence"):
+                indented(f"Evidence: {story['evidence'][:150]}", 0.25, size=8)
+            if story.get("dependencies"):
+                indented(f"Dependencies: {', '.join(story['dependencies'])}", 0.25, size=8)
+
+            # ── Requirements table (0.5in indent via label) ──
+            if reqs:
+                indented("Requirements:", 0.5, bold=True, size=9)
+                rt = doc.add_table(rows=1, cols=4)
+                rt.style = "Table Grid"
+                for i, h in enumerate(["Requirement ID", "Requirement", "Priority", "Label"]):
+                    rt.rows[0].cells[i].text = h
+                    rt.rows[0].cells[i].paragraphs[0].runs[0].bold = True
+                    rt.rows[0].cells[i].paragraphs[0].runs[0].font.size = Pt(8)
+                repeat_header(rt)
+                for req in reqs:
+                    row = rt.add_row()
+                    row.cells[0].text = req.get("req_id", "?")
+                    row.cells[1].text = req.get("requirement", "?")[:150]
+                    row.cells[2].text = req.get("priority", "?")
+                    row.cells[3].text = req.get("label", "")  # blank until UAT
+                    for cell in row.cells:
+                        cell.paragraphs[0].runs[0].font.size = Pt(8)
+
+        doc.add_page_break()
+
+# ════════════════════════════════════════════════════════════
+# APPENDICES (back matter)
+# ════════════════════════════════════════════════════════════
+
+doc.add_heading("Appendix A: Software Design", level=1)
 
 doc.add_heading("Data Flow", level=2)
-flow = [
+for step in [
     "1. User asks about provider quality or clinical trial quality",
     "2. Claude Sonnet routes to evaluate_provider_quality() or evaluate_trial_quality()",
     "3. EvaluateCareFacade collects measures from provider/trial services",
-    "4. Each measure normalized via MeasureNormalizationFramework (0-1)",
+    "4. Each measure normalized (0-1 scale)",
     "5. ScoringEngine computes weighted composite score (deterministic)",
     "6. ScoreExplainabilityService generates measure breakdown + provenance",
-    "7. ConfidenceIndicator scores data completeness",
-    "8. MeasureFailsafe validates minimum 3 measures; degrades if insufficient",
-    "9. QualityScoreCache stores result",
-    "10. EVAL-EXPLAIN-UX renders score card in chat",
-]
-for step in flow:
+    "7. MeasureFailsafe validates minimum 3 measures",
+    "8. Score card rendered in chat via EVAL-EXPLAIN-UX",
+]:
     doc.add_paragraph(step)
 
 doc.add_heading("AI Calls", level=2)
@@ -203,158 +242,61 @@ t.style = "Table Grid"
 for i, h in enumerate(["Model", "Purpose", "Invocation"]):
     t.rows[0].cells[i].text = h
     t.rows[0].cells[i].paragraphs[0].runs[0].bold = True
-set_repeat_header(t)
-for model, purpose, inv in [
+repeat_header(t)
+for m, p, inv in [
     ("Claude Sonnet 4.6", "Conversation + tool calling", "Per message"),
-    ("Claude Haiku 4.5", "Query expansion, summarization, de-ID", "Per tool call"),
+    ("Claude Haiku 4.5", "Query expansion, de-ID", "Per tool call"),
     ("GPT-4.1-mini", "Safety classification", "Per message"),
     ("text-embedding-3-large", "Provider vector search", "Per search"),
-    ("text-embedding-3-small", "Specialty vector search", "Per specialty"),
-    ("Google Routes API", "Travel distance for trials", "Per trial location"),
+    ("Google Routes API", "Travel distance", "Per trial location"),
 ]:
     row = t.add_row()
-    row.cells[0].text = model
-    row.cells[1].text = purpose
+    row.cells[0].text = m
+    row.cells[1].text = p
     row.cells[2].text = inv
 
 doc.add_heading("Object Model", level=2)
-objects = [
-    ("EvaluateCareFacade", "application/facades/",
-     "evaluate_provider_quality(), evaluate_trial_quality(), get_score_explanation()",
-     "Orchestrates scoring, measures, explainability"),
-    ("ProviderScoringEngine", "domain/evaluate_care_quality/",
-     "compute_score(), normalize(), apply_weights()",
-     "Deterministic composite from provider measures"),
-    ("ClinicalTrialScoringEngine", "domain/evaluate_care_quality/",
-     "compute_score(), normalize(), apply_weights()",
-     "Deterministic composite from trial measures"),
-    ("ScoreExplainabilityService", "domain/evaluate_care_quality/",
-     "explain(), format_breakdown(), trace_to_data()",
-     "Measure values, contributions, provenance"),
-    ("MeasureNormalizationFramework", "domain/evaluate_care_quality/",
-     "normalize(), scale_to_range(), handle_missing()",
-     "Consistent 0-1 normalization"),
-    ("QualityScoreCache", "infrastructure/",
-     "get(), put(), invalidate(), ttl_check()",
-     "Read-through/write-through cache"),
-    ("MeasureFailsafe", "domain/evaluate_care_quality/",
-     "validate_minimum(), degrade_gracefully(), flag_insufficient()",
-     "Minimum measure count enforcement"),
-    ("ConfidenceIndicator", "domain/evaluate_care_quality/",
-     "compute_confidence(), explain_confidence()",
-     "Confidence based on data completeness"),
-    ("DataProvenanceTracker", "infrastructure/",
-     "attach(), trace(), audit_trail()",
-     "Source, freshness, lineage per measure"),
-]
 t = doc.add_table(rows=1, cols=4)
 t.style = "Table Grid"
 for i, h in enumerate(["Class", "Location", "Methods", "Description"]):
     t.rows[0].cells[i].text = h
     t.rows[0].cells[i].paragraphs[0].runs[0].bold = True
-set_repeat_header(t)
-for cls, loc, methods, desc in objects:
+repeat_header(t)
+for cls, loc, meth, desc in [
+    ("EvaluateCareFacade", "application/facades/", "evaluate_provider_quality(), evaluate_trial_quality()", "Orchestrates scoring + explainability"),
+    ("ProviderScoringEngine", "domain/evaluate_care_quality/", "compute_score(), apply_weights()", "Deterministic composite from provider measures"),
+    ("ClinicalTrialScoringEngine", "domain/evaluate_care_quality/", "compute_score(), apply_weights()", "Deterministic composite from trial measures"),
+    ("ScoreExplainabilityService", "domain/evaluate_care_quality/", "explain(), format_breakdown()", "Measure breakdowns + provenance"),
+    ("MeasureNormalizationFramework", "domain/evaluate_care_quality/", "normalize(), handle_missing()", "0-1 normalization"),
+    ("MeasureFailsafe", "domain/evaluate_care_quality/", "validate_minimum(), degrade_gracefully()", "Min 3 measures enforcement"),
+    ("QualityScoreCache", "infrastructure/", "get(), put(), invalidate()", "Score caching"),
+    ("DataProvenanceTracker", "infrastructure/", "attach(), trace()", "Data lineage per measure"),
+]:
     row = t.add_row()
     row.cells[0].text = cls
     row.cells[1].text = loc
-    row.cells[2].text = methods
+    row.cells[2].text = meth
     row.cells[3].text = desc
 
 doc.add_page_break()
 
-# ── Features / Stories / Requirements (hierarchical, indented) ──
-for epic in tree["epics"]:
-    features = epic.get("features", [])
-    if not features:
-        continue
-
-    # Epic level — flush left
-    doc.add_heading(f"Epic: {epic['epic_id']}: {epic['name']}", level=1)
-
-    for feat in features:
-        stories = feat.get("stories", [])
-        feat_reqs = sum(len(s.get("requirements", [])) for s in stories)
-
-        # Feature level — 0.25in indent
-        add_indented_heading(
-            f"Feature: {feat['feature_id']}: {feat['name']}",
-            level=2, indent_inches=0.25
-        )
-
-        # Feature metadata table
-        t = doc.add_table(rows=6, cols=2)
-        t.style = "Table Grid"
-        for i, (k, v) in enumerate([
-            ("Layer", feat.get("layer", "?")),
-            ("Priority", feat.get("priority", "?")),
-            ("Evidence", str(feat.get("evidence", ""))[:200]),
-            ("Accepted by", feat.get("accepted_by", "?")),
-            ("Stories", str(len(stories))),
-            ("Requirements", str(feat_reqs)),
-        ]):
-            t.rows[i].cells[0].text = k
-            t.rows[i].cells[0].paragraphs[0].runs[0].bold = True
-            t.rows[i].cells[1].text = v
-
-        for story in stories:
-            reqs = story.get("requirements", [])
-
-            # Story level — 0.5in indent
-            add_indented_heading(
-                f"Story: {story['story_id']}: {story['title']}",
-                level=3, indent_inches=0.5
-            )
-            add_indented_para(story.get("description", ""), indent_inches=0.5)
-            add_indented_para(
-                f"Size: {story.get('size', '?')} | Sprint: {story.get('sprint', '?')} | Reqs: {len(reqs)}",
-                indent_inches=0.5, size=9
-            )
-            if story.get("evidence"):
-                add_indented_para(
-                    f"Evidence: {story['evidence'][:150]}",
-                    indent_inches=0.5, size=9
-                )
-            if story.get("dependencies"):
-                add_indented_para(
-                    f"Dependencies: {', '.join(story['dependencies'])}",
-                    indent_inches=0.5, size=9
-                )
-
-            # Requirements table — 0.75in indent (via table position)
-            if reqs:
-                add_indented_para("Requirements:", indent_inches=0.75, bold=True, size=9)
-                rt = doc.add_table(rows=1, cols=4)
-                rt.style = "Table Grid"
-                for i, h in enumerate(["Requirement ID", "Requirement", "Priority", "Status"]):
-                    rt.rows[0].cells[i].text = h
-                    rt.rows[0].cells[i].paragraphs[0].runs[0].bold = True
-                set_repeat_header(rt)
-                for req in reqs:
-                    row = rt.add_row()
-                    row.cells[0].text = req.get("req_id", "?")
-                    row.cells[1].text = req.get("requirement", "?")[:150]
-                    row.cells[2].text = req.get("priority", "?")
-                    row.cells[3].text = req.get("status", "?")
-
-        doc.add_page_break()
-
-# ── Sprint Map ──
-doc.add_heading("Sprint Capability Map", level=1)
+# Sprint Map
+doc.add_heading("Appendix B: Sprint Capability Map", level=1)
 for sprint in tree.get("sprint_map", []):
     if not isinstance(sprint, dict):
         continue
     doc.add_heading(f"Sprint {sprint.get('sprint', '?')}: {sprint.get('sprint_goal', '')}", level=2)
-    doc.add_paragraph(f"Dates: {sprint.get('dates', '?')}")
-    doc.add_paragraph(f"Capacity: {sprint.get('capacity_split', '?')}")
+    doc.add_paragraph(f"Dates: {sprint.get('dates', '?')} | Capacity: {sprint.get('capacity_split', '?')}")
     shipped = sprint.get("features_shipped", [])
     if shipped:
-        doc.add_paragraph(f"Features ({len(shipped)}): {', '.join(shipped)}")
-    notes = sprint.get("notes", "")
-    if notes:
-        doc.add_paragraph(f"Notes: {notes}")
+        doc.add_paragraph(f"Features ({len(shipped)}): {', '.join(shipped[:10])}")
+        if len(shipped) > 10:
+            doc.add_paragraph(f"  ... +{len(shipped)-10} more")
+    if sprint.get("notes"):
+        doc.add_paragraph(f"Notes: {sprint['notes']}")
 
-# ── Risk Matrix ──
-doc.add_heading("Risk Matrix", level=1)
+# Risk Matrix
+doc.add_heading("Appendix C: Risk Matrix", level=1)
 rm = tree.get("risk_matrix", {})
 if isinstance(rm, dict):
     pf = rm.get("per_feature", [])
@@ -365,7 +307,7 @@ if isinstance(rm, dict):
         for i, h in enumerate(["Feature", "Likelihood", "Impact", "Mitigation"]):
             t.rows[0].cells[i].text = h
             t.rows[0].cells[i].paragraphs[0].runs[0].bold = True
-        set_repeat_header(t)
+        repeat_header(t)
         for e in pf:
             if isinstance(e, dict):
                 row = t.add_row()
@@ -382,7 +324,7 @@ if isinstance(rm, dict):
         for i, h in enumerate(["Measure", "Availability", "Quality", "Credibility", "Mitigation"]):
             t.rows[0].cells[i].text = h
             t.rows[0].cells[i].paragraphs[0].runs[0].bold = True
-        set_repeat_header(t)
+        repeat_header(t)
         for e in pm:
             if isinstance(e, dict):
                 row = t.add_row()
@@ -392,20 +334,17 @@ if isinstance(rm, dict):
                 row.cells[3].text = e.get("credibility", "?")
                 row.cells[4].text = e.get("mitigation", "")[:80]
 
-# ── Rejected Candidates ──
+# Rejected Candidates
 rejected = tree.get("rejected_measure_candidates", [])
 if rejected:
-    doc.add_heading("Rejected Measure Candidates", level=1)
-    doc.add_paragraph(
-        "The following measures were evaluated and rejected by Boss. "
-        "Preserved for institutional knowledge."
-    )
+    doc.add_heading("Appendix D: Rejected Measure Candidates", level=1)
+    doc.add_paragraph("Evaluated and rejected by Boss. Preserved for institutional knowledge.")
     t = doc.add_table(rows=1, cols=4)
     t.style = "Table Grid"
     for i, h in enumerate(["ID", "Name", "Disposition", "Reason"]):
         t.rows[0].cells[i].text = h
         t.rows[0].cells[i].paragraphs[0].runs[0].bold = True
-    set_repeat_header(t)
+    repeat_header(t)
     for r in rejected:
         row = t.add_row()
         row.cells[0].text = r.get("id", "?")
@@ -413,7 +352,7 @@ if rejected:
         row.cells[2].text = r.get("disposition", "?")
         row.cells[3].text = r.get("reason_dropped", "")[:120]
 
-# ── Gate ──
+# Gate
 doc.add_heading("Gate Recommendation", level=1)
 doc.add_paragraph(f"Gate: {tree.get('gate_recommendation', 'N/A')}")
 
@@ -421,9 +360,7 @@ doc.add_paragraph(f"Gate: {tree.get('gate_recommendation', 'N/A')}")
 doc.save(str(_DOC_OUT))
 print(f"Word: {_DOC_OUT}")
 
-# JSON
 with open(_JSON_OUT, "w", encoding="utf-8") as f:
     json.dump(tree, f, indent=2, ensure_ascii=False)
 print(f"JSON: {_JSON_OUT}")
-
 print(f"\nTotals: {total_f} features, {total_s} stories, {total_r} requirements")
