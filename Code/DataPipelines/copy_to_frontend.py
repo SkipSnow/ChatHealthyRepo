@@ -158,6 +158,73 @@ def create_frontend_vector_index_fn(config: dict) -> dict:
         client.close()
 
 
+def copy_single_state(config: dict) -> dict:
+    """Copy providers for a single state from pipeline to frontend. Append mode — no drop.
+
+    config:
+        env_prefix, src_db, state, drop_first (bool)
+    """
+    pipeline_conn = os.environ.get("MONGO_connectionString")
+    frontend_conn = os.environ.get("MONGO_FRONTEND_connectionString")
+    if not pipeline_conn:
+        raise ValueError("MONGO_connectionString not set")
+    if not frontend_conn:
+        raise ValueError("MONGO_FRONTEND_connectionString not set")
+
+    env_prefix = config.get("env_prefix", "dev")
+    src_db_name = config.get("src_db", "dev_PublicHealthData")
+    dst_db_name = f"{env_prefix}_PublicHealthData" if env_prefix else "PublicHealthData"
+    state = config["state"]
+    drop_first = config.get("drop_first", False)
+
+    pipeline_client = MongoClient(pipeline_conn, serverSelectionTimeoutMS=30_000)
+    frontend_client = MongoClient(frontend_conn, serverSelectionTimeoutMS=30_000)
+
+    try:
+        src = pipeline_client[src_db_name]["providers"]
+        dst = frontend_client[dst_db_name]["providers"]
+
+        if drop_first:
+            logging.info("Dropping frontend providers collection before fresh copy")
+            dst.drop()
+
+        query = {"practice_address.state": state}
+        total = src.count_documents(query)
+        logging.info("Copying state %s: %s providers", state, f"{total:,}")
+
+        if total == 0:
+            return {"state": state, "copied": 0}
+
+        cursor = src.find(query, batch_size=BATCH_SIZE, no_cursor_timeout=True)
+        batch = []
+        copied = 0
+        start = time.time()
+
+        try:
+            for doc in cursor:
+                doc.pop("_id", None)  # let destination generate new _id
+                batch.append(doc)
+                if len(batch) >= BATCH_SIZE:
+                    dst.insert_many(batch, ordered=False)
+                    copied += len(batch)
+                    elapsed = time.time() - start
+                    rate = copied / elapsed if elapsed > 0 else 0
+                    logging.info("%s: %s / %s (%.0f doc/s)", state, f"{copied:,}", f"{total:,}", rate)
+                    batch = []
+            if batch:
+                dst.insert_many(batch, ordered=False)
+                copied += len(batch)
+        finally:
+            cursor.close()
+
+        elapsed = time.time() - start
+        logging.info("%s: done — %s docs in %.1f s", state, f"{copied:,}", elapsed)
+        return {"state": state, "copied": copied, "seconds": round(elapsed, 1)}
+    finally:
+        pipeline_client.close()
+        frontend_client.close()
+
+
 def run_copy_to_frontend(config: dict) -> dict:
     pipeline_conn  = os.environ.get("MONGO_connectionString")
     frontend_conn  = os.environ.get("MONGO_FRONTEND_connectionString")

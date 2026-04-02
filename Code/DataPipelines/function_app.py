@@ -31,7 +31,7 @@ from auth import require_auth
 from otp_manager import exchange_otp
 from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
-from copy_to_frontend import run_copy_to_frontend, snapshot_collection_fn, create_frontend_vector_index_fn
+from copy_to_frontend import run_copy_to_frontend, snapshot_collection_fn, create_frontend_vector_index_fn, copy_single_state
 from promote_data_fn import run_promote_data
 from gpt_reader import handle_gpt_reader
 from pipeline_health import check_mongo_health
@@ -385,11 +385,43 @@ def provider_load_orchestrator(context: df.DurableOrchestrationContext):
 
 @app.orchestration_trigger(context_name="context")
 def copy_to_frontend_orchestrator(context: df.DurableOrchestrationContext):
-    """Async CopyToFrontEnd — reserve cluster, copy, release. Returns 202 immediately."""
+    """Async CopyToFrontEnd — reserve, poll, copy state-by-state, release.
+
+    Copies providers from DataPipelines → FrontEnd cluster, one state at a time.
+    Each state is a separate activity so no single call exceeds the Azure timeout.
+
+    payload:
+        states         — list of states to copy, OR {"mode":"exclude","list":[...]}
+                         If omitted, copies ALL states.
+        env_prefix     — "dev" (default)
+        cluster_name   — "ChatHealthyDataPipelines" (default)
+    """
+    import datetime as dt
+
     config = context.get_input() or {}
     cluster_name = config.get("cluster_name", "ChatHealthyDataPipelines")
+    env_prefix = config.get("env_prefix", "dev")
     job_id = config.get("job_id", f"copy_to_frontend_{int(time.time())}")
-    config["job_id"] = job_id
+
+    # Build state list
+    ALL_STATES = [
+        "AL","AK","AZ","AR","CA","CO","CT","DC","DE","FL","GA","HI","ID","IL",
+        "IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE",
+        "NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD",
+        "TN","TX","UT","VT","VA","WA","WV","WI","WY",
+    ]
+    states_cfg = config.get("states")
+    if isinstance(states_cfg, dict):
+        state_list = states_cfg.get("list", [])
+        mode = states_cfg.get("mode", "include")
+        if mode == "exclude":
+            copy_states = [s for s in ALL_STATES if s not in state_list]
+        else:
+            copy_states = state_list
+    elif isinstance(states_cfg, list):
+        copy_states = states_cfg
+    else:
+        copy_states = ALL_STATES  # copy everything
 
     # Step 1: Reserve cluster
     reservation = {
@@ -398,14 +430,13 @@ def copy_to_frontend_orchestrator(context: df.DurableOrchestrationContext):
         "cluster_name": cluster_name,
         "expected_duration_minutes": config.get("expected_duration_minutes", 120),
     }
-    context.set_custom_status(f"Reserving cluster {cluster_name}")
+    context.set_custom_status(f"Reserving cluster")
     yield context.call_activity("register_reservation_activity", reservation)
 
-    # Step 2: Wait for cluster IDLE (poll every 15s, up to 30 min)
-    import datetime as dt
+    # Step 2: Wait for cluster IDLE
     deadline = context.current_utc_datetime + dt.timedelta(minutes=30)
     while context.current_utc_datetime < deadline:
-        context.set_custom_status(f"Waiting for cluster IDLE")
+        context.set_custom_status("Waiting for cluster IDLE")
         status = yield context.call_activity("check_cluster_state_activity",
                                               {"cluster_name": cluster_name})
         if status.get("cluster_state") == "IDLE":
@@ -413,20 +444,46 @@ def copy_to_frontend_orchestrator(context: df.DurableOrchestrationContext):
         next_check = context.current_utc_datetime + dt.timedelta(seconds=15)
         yield context.create_timer(next_check)
 
-    # Step 3: Copy
-    context.set_custom_status(f"Copying providers (excluding {config.get('states', {}).get('list', [])})")
-    try:
-        result = yield context.call_activity("copy_to_frontend_activity", config)
-    except Exception as e:
-        context.set_custom_status(f"Copy failed: {e}")
-        result = {"status": "failed", "error": str(e)}
-    finally:
-        # Step 4: Release reservation
-        context.set_custom_status("Releasing cluster reservation")
-        yield context.call_activity("release_reservation_activity", reservation)
+    # Step 3: Copy static collections first
+    context.set_custom_status("Copying static collections")
+    yield context.call_activity("copy_to_frontend_activity", {
+        "env_prefix": env_prefix,
+        "states": [],  # no providers, just static
+    })
 
-    context.set_custom_status(f"Done — {result.get('status', 'unknown')}")
-    return result
+    # Step 4: Copy providers state by state
+    results = []
+    total_copied = 0
+    for i, state in enumerate(copy_states):
+        context.set_custom_status(f"Copying {state} ({i+1}/{len(copy_states)}) — {total_copied:,} total so far")
+        try:
+            r = yield context.call_activity("copy_single_state_activity", {
+                "env_prefix": env_prefix,
+                "state": state,
+                "drop_first": (i == 0),  # drop only on first state
+            })
+            copied = r.get("copied", 0)
+            total_copied += copied
+            results.append(r)
+        except Exception as e:
+            results.append({"state": state, "error": str(e)})
+            logging.error("Failed to copy state %s: %s", state, e)
+
+    # Step 5: Create vector index
+    context.set_custom_status("Creating vector search index")
+    try:
+        yield context.call_activity("create_frontend_vector_index_activity", {
+            "env_prefix": env_prefix,
+        })
+    except Exception:
+        pass  # non-fatal — index may already exist
+
+    # Step 6: Release reservation
+    context.set_custom_status("Releasing cluster")
+    yield context.call_activity("release_reservation_activity", reservation)
+
+    context.set_custom_status(f"Done — {total_copied:,} providers across {len(copy_states)} states")
+    return {"status": "complete", "total_copied": total_copied, "states": len(copy_states), "results": results}
 
 
 @app.orchestration_trigger(context_name="context")
@@ -450,6 +507,17 @@ def check_mongo_health_activity(config: dict) -> dict:
 @app.activity_trigger(input_name="config")
 def copy_to_frontend_activity(config: dict) -> dict:
     return run_copy_to_frontend(config)
+
+
+@app.activity_trigger(input_name="config")
+def copy_single_state_activity(config: dict) -> dict:
+    """Copy providers for a single state. Append mode."""
+    return copy_single_state(config)
+
+
+@app.activity_trigger(input_name="config")
+def create_frontend_vector_index_activity(config: dict) -> dict:
+    return create_frontend_vector_index_fn(config)
 
 
 @app.activity_trigger(input_name="config")
