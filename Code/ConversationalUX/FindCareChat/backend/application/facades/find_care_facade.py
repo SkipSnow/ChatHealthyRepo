@@ -26,15 +26,33 @@ class FindCareFacade:
         self._provider_search = provider_search
         self._specialty = specialty
 
-    def search_providers(self, specialty_query: str, state: str, city: str = "",
-                         county: str = "", limit: int = 5) -> dict:
-        """UAT Feature 1: Search for healthcare providers."""
+    def search_providers(self, specialty_query: str = "", state: str = "",
+                         city: str = "", county: str = "", limit: int = 5,
+                         npi: str = "", name: str = "", fuzzy_specialty: str = "",
+                         specialty_codes: list[str] = None) -> dict:
+        """UAT Feature 1: Search for healthcare providers.
+
+        Args:
+            specialty_query: natural language specialty search
+            state: state abbreviation (DE, MS, VA)
+            city: city name filter
+            county: county name filter
+            limit: max results (default 5)
+            npi: exact NPI lookup
+            name: provider name search
+            fuzzy_specialty: loose specialty text match
+            specialty_codes: list of NUCC taxonomy codes to filter by
+        """
         return self._provider_search.search(
             specialty_query=specialty_query,
             state=state,
             city=city,
             county=county,
             limit=limit,
+            npi=npi,
+            name=name,
+            fuzzy_specialty=fuzzy_specialty,
+            specialty_codes=specialty_codes or [],
             find_specialty_fn=self.identify_specialty if self._specialty else None,
         )
 

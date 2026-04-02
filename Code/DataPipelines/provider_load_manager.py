@@ -381,6 +381,19 @@ def ensure_postload_indexes_fn(config: dict) -> None:
         "worker_id",
         name="worker_id",
     )
+    collection.create_index(
+        "npi",
+        unique=True,
+        name="npi_unique",
+    )
+    collection.create_index(
+        "practice_address.state",
+        name="state_idx",
+    )
+    collection.create_index(
+        "taxonomies.code",
+        name="taxonomy_code",
+    )
     logging.info("Post-load indexes ensured on %s", staging_collection)
 
 

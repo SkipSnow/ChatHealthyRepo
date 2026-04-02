@@ -1,11 +1,13 @@
 # Copyright (c) 2026 Skip Snow. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# ProviderSearchService — UAT Feature 1: Provider Search (DE+MS+VA, vector+regex)
+# FindCareService — the public interface for all FindCare business capabilities.
 #
-# Extracted from main.py as part of ARCH-001 Phase 2.
-# Host-independent — no FastAPI, no HuggingFace dependencies.
+# This is a Facade (GoF: https://refactoring.guru/design-patterns/facade)
+# implemented as a service class. It is the single entry point for FindCare.
+# EvaluateCareFacade calls this, never internal services directly.
 #
+# UAT Features: 1 (Provider Search), 2 (Specialty Identification)
 # Design: ARCH-001, business component: FindCare
 
 import logging
@@ -25,13 +27,18 @@ _fips_to_county = {
 }
 
 
-class ProviderSearchService:
-    """Provider search: vector + taxonomy fallback + county fallback.
+class FindCareService:
+    """FindCare Facade — single entry point for all FindCare capabilities.
 
-    Dependencies: MongoDB (read-only), OpenAI embeddings.
+    Facade pattern (GoF): simplifies access to provider search, specialty
+    identification, and provider location. EvaluateCareFacade calls this
+    service, never internal components directly.
+
+    UAT Features: 1 (Provider Search), 2 (Specialty Identification)
+    Dependencies: MongoDB (read-only), OpenAI embeddings, SpecialtyService.
     """
 
-    def __init__(self, get_db_fn, env_prefix: str, get_embedding_fn):
+    def __init__(self, get_db_fn, env_prefix: str, get_embedding_fn, specialty_service=None):
         """
         Args:
             get_db_fn: callable returning MongoDB client or None
@@ -41,6 +48,7 @@ class ProviderSearchService:
         self._get_db = get_db_fn
         self._env = env_prefix
         self._get_embedding = get_embedding_fn
+        self._specialty = specialty_service
         self._fips_to_county = dict(_fips_to_county)
         self._load_fips_county_map()
 
@@ -135,20 +143,39 @@ class ProviderSearchService:
             _log.warning("Vector search failed: %s", e)
             return []
 
-    def search(self, specialty_query: str, state: str, city: str = "", county: str = "",
-               limit: int = 5, find_specialty_fn=None) -> dict:
+    def search(self, specialty_query: str = "", state: str = "", city: str = "",
+               county: str = "", limit: int = 25, npi: str = "", name: str = "",
+               fuzzy_specialty: str = "", specialty_codes: list[str] = None,
+               fetch_all: bool = False, after_npi: str = "",
+               find_specialty_fn=None) -> dict:
         """Search for providers. Main entry point.
 
+        Facade pattern (GoF) — routes to the right search strategy based on args.
+
         Args:
-            specialty_query: what kind of provider to find
+            specialty_query: natural language specialty search (vector + taxonomy)
             state: two-letter state code
             city: optional city filter
             county: optional county filter
-            limit: max results (capped at DEFAULT_LIMIT)
+            limit: max results (default 25, ignored if fetch_all=True)
+            npi: exact NPI lookup
+            name: provider name search
+            fuzzy_specialty: loose specialty text match -> identify_specialty -> codes -> filter
+            specialty_codes: list of NUCC taxonomy codes to filter by directly
+            fetch_all: if True, return all matching providers (overrides limit)
+            after_npi: keyset pagination — return results after this NPI (sorted by NPI ascending)
             find_specialty_fn: callable for taxonomy fallback (injected to avoid circular dep)
         """
-        state_upper = state.upper().strip()
-        if state_upper not in SUPPORTED_STATES:
+        # Route: fuzzy_specialty -> identify codes first, then search by codes
+        if fuzzy_specialty and not specialty_codes:
+            spec_result = self.identify_specialty(fuzzy_specialty)
+            specialty_codes = [s["Code"] for s in spec_result.get("specialties", [])]
+            if not specialty_codes:
+                return {"supported": True, "providers": [],
+                        "message": f"No matching specialty found for '{fuzzy_specialty}'."}
+
+        state_upper = state.upper().strip() if state else ""
+        if state_upper and state_upper not in SUPPORTED_STATES:
             return {
                 "supported": False,
                 "state": state_upper,
@@ -162,64 +189,148 @@ class ProviderSearchService:
         if db is None:
             return {"error": "Database unavailable"}
 
-        safe_limit = min(int(limit), DEFAULT_LIMIT)
+        safe_limit = 0 if fetch_all else int(limit)
+        collection = db[f"{self._env}_PublicHealthData"]["providers"]
 
-        # Vector search
-        embedding = self._get_embedding(specialty_query)
-        if embedding:
-            providers = self._vector_search(embedding, state_upper, city, county, safe_limit)
-            if providers:
-                _log.info("search: vector returned %d for '%s' in %s", len(providers), specialty_query, state_upper)
-                return {"supported": True, "state": state_upper, "specialty_searched": specialty_query,
-                        "search_mode": "vector", "count": len(providers), "providers": providers}
-            _log.info("search: vector returned 0, falling back to taxonomy")
+        # ── Route 1: NPI exact lookup ──
+        if npi:
+            provider = collection.find_one({"npi": npi}, self._PROJECTION)
+            if provider:
+                return {"supported": True, "search_mode": "npi", "count": 1,
+                        "providers": [self._format_provider(provider)]}
+            return {"supported": True, "providers": [], "message": f"No provider found for NPI {npi}."}
 
-        # Taxonomy fallback
-        if find_specialty_fn:
-            specialty_result = find_specialty_fn(specialty_query)
-            if "error" in specialty_result:
-                return specialty_result
-            codes = [s["Code"] for s in specialty_result.get("specialties", [])]
-            if not codes:
-                return {"supported": True, "providers": [], "message": f"No matching specialty found for '{specialty_query}'."}
+        # ── Route 2: Name search ──
+        if name:
+            name_filter = {"practice_address.state": state_upper} if state_upper else {}
+            name_filter["$or"] = [
+                {"provider_last_name_legal_name": {"$regex": name.strip(), "$options": "i"}},
+                {"provider_first_name": {"$regex": name.strip(), "$options": "i"}},
+                {"provider_organization_name_legal_business_name": {"$regex": name.strip(), "$options": "i"}},
+            ]
+            if after_npi:
+                name_filter["npi"] = {"$gt": after_npi}
+            cursor = collection.find(name_filter, self._PROJECTION).sort("npi", 1)
+            if safe_limit > 0:
+                cursor = cursor.limit(safe_limit)
+            raw = list(cursor)
+            providers = [self._format_provider(p) for p in raw]
+            return {"supported": True, "search_mode": "name", "count": len(providers), "providers": providers}
 
-            query_filter = {
-                "practice_address.state": state_upper,
-                "taxonomies.code": {"$in": codes},
-            }
+        # ── Route 3: Specialty codes direct filter ──
+        if specialty_codes:
+            query_filter = {"taxonomies.code": {"$in": specialty_codes}}
+            if state_upper:
+                query_filter["practice_address.state"] = state_upper
             if city:
                 query_filter["practice_address.city"] = {"$regex": city.strip(), "$options": "i"}
             if county:
                 query_filter.update(self._make_county_filter(county))
 
-            raw = list(
-                db[f"{self._env}_PublicHealthData"]["providers"]
-                .find(query_filter, self._PROJECTION)
-                .limit(safe_limit)
-            )
-            if raw:
+            if after_npi:
+                query_filter["npi"] = {"$gt": after_npi}
+            cursor = collection.find(query_filter, self._PROJECTION).sort("npi", 1)
+            if safe_limit > 0:
+                cursor = cursor.limit(safe_limit)
+            raw = list(cursor)
+            providers = [self._format_provider(p) for p in raw]
+            _log.info("search: specialty_codes returned %d for %d codes in %s",
+                       len(providers), len(specialty_codes), state_upper or "all")
+            return {"supported": True, "state": state_upper, "search_mode": "specialty_codes",
+                    "codes_searched": len(specialty_codes), "count": len(providers), "providers": providers}
+
+        # ── Route 4: Vector search (natural language) ──
+        if specialty_query:
+            embedding = self._get_embedding(specialty_query)
+            if embedding:
+                vec_limit = safe_limit if safe_limit > 0 else DEFAULT_LIMIT
+                providers = self._vector_search(embedding, state_upper, city, county, vec_limit)
+                if providers:
+                    _log.info("search: vector returned %d for '%s' in %s", len(providers), specialty_query, state_upper)
+                    return {"supported": True, "state": state_upper, "specialty_searched": specialty_query,
+                            "search_mode": "vector", "count": len(providers), "providers": providers}
+                _log.info("search: vector returned 0, falling back to taxonomy")
+
+            # Taxonomy fallback — use identify_specialty or injected fn
+            spec_fn = find_specialty_fn or (self.identify_specialty if self._specialty else None)
+            if spec_fn:
+                specialty_result = spec_fn(specialty_query)
+                if "error" in specialty_result:
+                    return specialty_result
+                codes = [s["Code"] for s in specialty_result.get("specialties", [])]
+                if not codes:
+                    return {"supported": True, "providers": [],
+                            "message": f"No matching specialty found for '{specialty_query}'."}
+
+                query_filter = {
+                    "practice_address.state": state_upper,
+                    "taxonomies.code": {"$in": codes},
+                }
+                if city:
+                    query_filter["practice_address.city"] = {"$regex": city.strip(), "$options": "i"}
+                if county:
+                    query_filter.update(self._make_county_filter(county))
+
+                if after_npi:
+                    query_filter["npi"] = {"$gt": after_npi}
+                cursor = collection.find(query_filter, self._PROJECTION).sort("npi", 1)
+                if safe_limit > 0:
+                    cursor = cursor.limit(safe_limit)
+                raw = list(cursor)
                 providers = [self._format_provider(p) for p in raw]
                 _log.info("search: taxonomy returned %d for '%s' in %s", len(providers), specialty_query, state_upper)
                 return {"supported": True, "state": state_upper, "specialty_searched": specialty_query,
                         "search_mode": "taxonomy", "count": len(providers), "providers": providers}
 
-        # County fallback
-        if county:
+        # ── Route 5: County fallback ──
+        if county and state_upper:
             county_filter = {
                 "practice_address.state": state_upper,
                 "entity_type_code": "1",
                 "taxonomies": {"$elemMatch": {"code": {"$regex": "^2"}, "primary": True}},
             }
             county_filter.update(self._make_county_filter(county))
-            raw = list(
-                db[f"{self._env}_PublicHealthData"]["providers"]
-                .find(county_filter, self._PROJECTION)
-                .limit(safe_limit)
-            )
-            if raw:
-                providers = [self._format_provider(p) for p in raw]
-                _log.info("search: county fallback returned %d for '%s' in %s", len(providers), county, state_upper)
-                return {"supported": True, "state": state_upper, "county_searched": county,
-                        "search_mode": "county_physicians", "count": len(providers), "providers": providers}
+            if after_npi:
+                county_filter["npi"] = {"$gt": after_npi}
+            cursor = collection.find(county_filter, self._PROJECTION).sort("npi", 1)
+            if safe_limit > 0:
+                cursor = cursor.limit(safe_limit)
+            raw = list(cursor)
+            providers = [self._format_provider(p) for p in raw]
+            _log.info("search: county fallback returned %d for '%s' in %s", len(providers), county, state_upper)
+            return {"supported": True, "state": state_upper, "county_searched": county,
+                    "search_mode": "county_physicians", "count": len(providers), "providers": providers}
 
-        return {"supported": True, "providers": [], "message": f"No {specialty_query} providers found in {state_upper}."}
+        return {"supported": True, "providers": [],
+                "message": f"No providers found matching the search criteria."}
+
+    def identify_specialty(self, query: str) -> dict:
+        """UAT Feature 2: Identify NUCC specialty codes."""
+        if not self._specialty:
+            return {"error": "SpecialtyService not configured"}
+        return self._specialty.find_specialty_codes(query)
+
+    def get_provider_location(self, npi: str) -> dict:
+        """Return provider location for cross-domain travel calculations.
+
+        Called by EvaluateCareFacade for clinical trial travel info.
+        """
+        db = self._get_db()
+        if db is None:
+            return {"npi": npi, "error": "Database unavailable"}
+        try:
+            provider = db[f"{self._env}_PublicHealthData"]["providers"].find_one(
+                {"npi": npi}, {"practice_address": 1, "npi": 1, "_id": 0}
+            )
+            if provider:
+                addr = provider.get("practice_address", {})
+                return {
+                    "npi": npi,
+                    "lat": addr.get("lat"),
+                    "lng": addr.get("lng"),
+                    "address": ", ".join(x for x in [addr.get("line1"), addr.get("city"), addr.get("state"), addr.get("zip")] if x),
+                }
+            return {"npi": npi, "error": "Provider not found"}
+        except Exception as e:
+            _log.warning("get_provider_location failed for %s: %s", npi, e)
+            return {"npi": npi, "error": str(e)}
