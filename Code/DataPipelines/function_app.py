@@ -72,6 +72,8 @@ from provider_load_manager import (
     provider_load_orchestrator_fn,
     provider_worker_fn,
     reconcile_fn,
+    register_reservation_fn,
+    release_reservation_fn,
     report_fn,
     stamp_embedding_version_fn,
     write_metadata_fn,
@@ -247,6 +249,37 @@ def exchange_otp_route(req: func.HttpRequest) -> func.HttpResponse:
 #     check_and_pause()
 
 
+# ── Cluster Lifecycle Manager — hourly check for overdue reservations ─────────
+
+@app.timer_trigger(schedule="0 0 * * * *", arg_name="myTimer", run_on_startup=False)
+def cluster_lifecycle_timer(myTimer: func.TimerRequest) -> None:
+    """Check for overdue cluster reservations every hour. Alerts Boss via Pushover."""
+    from cluster_lifecycle_manager import ClusterLifecycleManager
+    from pymongo import MongoClient
+    import os
+
+    try:
+        client = MongoClient(os.environ.get("MONGO_connectionString", ""))
+        push_fn = None
+        try:
+            from pipeline_health import send_pushover
+            push_fn = lambda title, msg: send_pushover(title, msg)
+        except Exception:
+            pass
+
+        manager = ClusterLifecycleManager(
+            get_db_fn=lambda: client,
+            env_prefix=os.environ.get("ENV_PREFIX", "dev"),
+            push_fn=push_fn,
+        )
+        manager.check_overdue()
+        status = manager.get_status()
+        logging.info("Cluster lifecycle check: %s, %d active reservations",
+                     status["cluster_state"], status["active_reservations"])
+    except Exception:
+        logging.exception("Cluster lifecycle timer failed")
+
+
 # ── Durable Orchestrators ─────────────────────────────────────────────────────
 
 @app.orchestration_trigger(context_name="context")
@@ -316,6 +349,16 @@ def ensure_postload_indexes_activity(config: dict) -> None:
 @app.activity_trigger(input_name="config")
 def write_metadata_activity(config: dict) -> list:
     return write_metadata_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def register_reservation_activity(config: dict) -> dict:
+    return register_reservation_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def release_reservation_activity(config: dict) -> dict:
+    return release_reservation_fn(config)
 
 
 @app.activity_trigger(input_name="config")

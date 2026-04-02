@@ -118,13 +118,27 @@ def _ensure_container(container: str) -> None:
 # ── Orchestrators ─────────────────────────────────────────────────────────────
 
 def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
-    """Main orchestrator. No timeouts — Azure manages state."""
+    """Main orchestrator. No timeouts — Azure manages state.
+
+    Lifecycle: registers a cluster reservation at start, releases in finally.
+    If orchestrator fails, the ClusterLifecycleManager timer catches overdue
+    reservations and alerts Boss.
+    """
     config = context.get_input()
 
     # Propagate load_id (= orchestration instance_id) through all activities.
-    # Used for idempotency on retry: unique index on (load_id, record_id).
     load_id = context.instance_id
     config = {**config, "load_id": load_id}
+
+    # Register cluster reservation — wake the pipeline DB
+    reservation = {
+        "job_id": load_id,
+        "requester": "FullProviderPipeline",
+        "cluster_name": config.get("pipeline_cluster", "ChatHealthyDataPipelines"),
+        "expected_duration_minutes": config.get("expected_duration_minutes", 240),
+    }
+    context.set_custom_status("Step 0/10: Registering cluster reservation")
+    yield context.call_activity("register_reservation_activity", reservation)
 
     # Step 1: Download zip to blob (auto-discovers URL + version if not supplied)
     context.set_custom_status("Step 1/10: Downloading NPI zip from CMS")
@@ -206,14 +220,16 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
 
     total = sum(r.get("num_records", 0) for r in worker_results)
     any_failed = any(not r.get("success", True) for r in worker_results)
-    # Per 2.5: mark entire load FAILED if any worker failed.
-    # Successful inserts are NOT rolled back — load_id isolates this run.
     status = "failed" if any_failed else "complete"
     context.set_custom_status(f"Done — {status}, {total:,} records loaded")
-    return {
-        "status": status,
-        "records_loaded": total,
-    }
+
+    # Release cluster reservation — always runs after pipeline completes.
+    # If orchestrator fails mid-way, ClusterLifecycleManager timer catches
+    # the overdue reservation and alerts Boss.
+    context.set_custom_status("Step 11/10: Releasing cluster reservation")
+    yield context.call_activity("release_reservation_activity", reservation)
+
+    return {"status": status, "records_loaded": total}
 
 
 # ── Activity implementations ──────────────────────────────────────────────────
@@ -705,3 +721,43 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     }
 
 
+
+
+# ── Cluster Lifecycle Activities ─────────────────────────────────────────────
+
+def register_reservation_fn(reservation_config: dict) -> dict:
+    """Register a cluster reservation. Wakes the cluster if needed."""
+    from cluster_lifecycle_manager import ClusterLifecycleManager, ResourceReservation
+
+    reservation = ResourceReservation(
+        job_id=reservation_config["job_id"],
+        requester=reservation_config["requester"],
+        cluster_name=reservation_config["cluster_name"],
+        expected_duration_minutes=reservation_config["expected_duration_minutes"],
+    )
+
+    manager = ClusterLifecycleManager(
+        get_db_fn=lambda: _get_mongo_client(),
+        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
+    )
+    result = manager.register(reservation)
+    return result.to_dict()
+
+
+def release_reservation_fn(reservation_config: dict) -> dict:
+    """Release a cluster reservation. Shuts down cluster if last one."""
+    from cluster_lifecycle_manager import ClusterLifecycleManager, ResourceReservation
+
+    reservation = ResourceReservation(
+        job_id=reservation_config["job_id"],
+        requester=reservation_config["requester"],
+        cluster_name=reservation_config["cluster_name"],
+        expected_duration_minutes=reservation_config.get("expected_duration_minutes", 0),
+    )
+
+    manager = ClusterLifecycleManager(
+        get_db_fn=lambda: _get_mongo_client(),
+        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
+    )
+    manager.release(reservation)
+    return {"released": reservation_config["job_id"]}
