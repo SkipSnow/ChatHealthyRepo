@@ -95,21 +95,62 @@ SYNC_TASK_HANDLERS = {
 }
 
 # Ops Manager tasks — infrastructure only, no pipeline business logic
+def _get_mongo_conn():
+    return os.environ.get("MONGO_FRONTEND_connectionString",
+                          os.environ.get("MONGO_connectionString", ""))
+
 def _get_ops_manager():
     from cluster_lifecycle_manager import ClusterLifecycleManager
     from pymongo import MongoClient
-    conn = os.environ.get("MONGO_FRONTEND_connectionString",
-                          os.environ.get("MONGO_connectionString", ""))
+    conn = _get_mongo_conn()
     push_fn = None
+    email_fn = None
     try:
         from pipeline_health import send_pushover
         push_fn = lambda title, msg: send_pushover(title, msg)
+    except Exception:
+        pass
+    try:
+        from pipeline_health import send_admin_notification
+        email_fn = lambda subject, text: send_admin_notification(subject, text)
     except Exception:
         pass
     return ClusterLifecycleManager(
         get_db_fn=lambda: MongoClient(conn),
         env_prefix=os.environ.get("ENV_PREFIX", "dev"),
         push_fn=push_fn,
+    )
+
+def _get_ops_agent():
+    """Get the OpsManagerAgent — full agent with tools, triage, audit."""
+    from cluster_lifecycle_manager import ClusterLifecycleManager
+    from ops_manager import OpsManagerAgent
+    from pymongo import MongoClient
+    conn = _get_mongo_conn()
+    env_prefix = os.environ.get("ENV_PREFIX", "dev")
+    push_fn = None
+    email_fn = None
+    try:
+        from pipeline_health import send_pushover
+        push_fn = lambda title, msg: send_pushover(title, msg)
+    except Exception:
+        pass
+    try:
+        from pipeline_health import send_admin_notification
+        email_fn = lambda subject, text: send_admin_notification(subject, text)
+    except Exception:
+        pass
+    mgr = ClusterLifecycleManager(
+        get_db_fn=lambda: MongoClient(conn),
+        env_prefix=env_prefix,
+        push_fn=push_fn,
+    )
+    return OpsManagerAgent(
+        lifecycle_manager=mgr,
+        get_db_fn=lambda: MongoClient(conn),
+        env_prefix=env_prefix,
+        push_fn=push_fn,
+        email_fn=email_fn,
     )
 
 def _handle_wake_cluster(payload):
@@ -309,31 +350,22 @@ def cluster_lifecycle_timer(myTimer: func.TimerRequest) -> None:
 
     Checks overdue reservations (alerts Boss).
     Shuts down idle clusters (zero reservations).
+    Checks for stuck clusters.
+    Uses OpsManagerAgent for full triage + audit trail.
     """
-    from cluster_lifecycle_manager import ClusterLifecycleManager
-    from pymongo import MongoClient
-
     try:
-        conn = os.environ.get("MONGO_FRONTEND_connectionString",
-                              os.environ.get("MONGO_connectionString", ""))
-        client = MongoClient(conn)
-        push_fn = None
-        try:
-            from pipeline_health import send_pushover
-            push_fn = lambda title, msg: send_pushover(title, msg)
-        except Exception:
-            pass
-
-        manager = ClusterLifecycleManager(
-            get_db_fn=lambda: client,
-            env_prefix=os.environ.get("ENV_PREFIX", "dev"),
-            push_fn=push_fn,
-        )
-        manager.check_overdue()
-        manager.check_idle_shutdown()
-        status = manager.status(os.environ.get("PIPELINE_CLUSTER", "ChatHealthyDataPipelines"))
-        logging.info("Ops timer: %s, %d reservations",
-                     status["cluster_state"], status["active_reservations"])
+        agent = _get_ops_agent()
+        cluster_name = os.environ.get("PIPELINE_CLUSTER", "ChatHealthyDataPipelines")
+        result = agent.handle_event({
+            "type": "timer_check",
+            "cluster_name": cluster_name,
+        })
+        if result.success:
+            data = result.data or {}
+            logging.info("Ops timer: %s, %d reservations",
+                         data.get("cluster_state", "?"), data.get("active_reservations", 0))
+        else:
+            logging.warning("Ops timer returned error: %s", result.error_message)
     except Exception:
         logging.exception("Cluster lifecycle timer failed")
 

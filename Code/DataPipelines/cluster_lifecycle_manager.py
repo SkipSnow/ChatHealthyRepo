@@ -39,7 +39,8 @@ class ResourceReservation:
     job_id: str
     requester: str
     cluster_name: str
-    expected_duration_minutes: int
+    expected_duration_minutes: int      # max — OVERDUE if exceeded
+    expected_min_minutes: int = 0       # min — WARNING if completed faster
     start_time: str = ""
     expected_end_time: str = ""
     status: str = "active"  # active | released
@@ -114,7 +115,7 @@ class ClusterLifecycleManager:
     # ── v0.1 API: WakeCluster ────────────────────────────────
 
     def reserve(self, cluster_name: str, job_id: str, requester: str,
-                expected_duration_minutes: int) -> dict:
+                expected_duration_minutes: int, expected_min_minutes: int = 0) -> dict:
         """Reserve a cluster. Sends wake request (non-blocking). Returns reservation.
 
         Called by pipeline tasks before starting work.
@@ -126,6 +127,7 @@ class ClusterLifecycleManager:
             requester=requester,
             cluster_name=cluster_name,
             expected_duration_minutes=expected_duration_minutes,
+            expected_min_minutes=expected_min_minutes,
             start_time=now.isoformat(),
             expected_end_time=(now + timedelta(minutes=expected_duration_minutes)).isoformat(),
             status="active",
