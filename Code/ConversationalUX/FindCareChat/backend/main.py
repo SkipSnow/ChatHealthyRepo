@@ -343,10 +343,10 @@ def _extract_user_search_term(user_message: str) -> str:
         from openai import OpenAI
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         resp = client.chat.completions.create(
-            model="gpt-4.1-nano",
+            model="gpt-4.1-mini",
             max_tokens=50,
             messages=[
-                {"role": "system", "content": "Extract ONLY the provider/specialty search term from the user message. Return the term in PLURAL form always. Examples: bone doc -> bone docs, shrink -> shrinks, pediatrician -> pediatricians. No quotes, no punctuation, no explanation. Just the plural term."},
+                {"role": "system", "content": "Extract ONLY the provider/specialty search term from the user message. Return the PLURAL form preserving the user's exact wording style. Keep possessives and colloquialisms intact. Examples: kid's doc -> kid's docs, bone doc -> bone docs, shrink -> shrinks, children's doctor -> children's doctors. Just the plural term, nothing else."},
                 {"role": "user", "content": user_message},
             ],
         )

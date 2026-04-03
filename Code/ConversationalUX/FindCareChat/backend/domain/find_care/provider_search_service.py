@@ -173,7 +173,7 @@ class FindCareService:
             parts.append(f" in '{state}'")
         parts.append(". ")
         if spec_count > 0:
-            parts.append(f"We have included {spec_count} types of providers. ")
+            parts.append(f"There are {spec_count} types of providers. ")
         parts.append(f"Shall I show you [more '{search_term}'](#action:next-page)")
         if spec_count > 0:
             parts.append(f" or would you like to [filter '{search_term}' by provider type](#action:filter)?")
