@@ -376,9 +376,9 @@ export default function ChatWindow() {
       return
     }
 
-    // Hide pagination and filter panel when user sends a new non-pagination message
+    // Hide pagination when user sends a new non-pagination message
+    // Filter panel stays open — user may still want to refine
     gui.hidePagination()
-    gui.hideFilterPanel()
 
     const historyForBackend = messagesRef.current
       .filter(m => (m.role === 'user' || m.role === 'assistant')

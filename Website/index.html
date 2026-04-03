@@ -27,7 +27,7 @@
       --accent:     #f0a500;
       --border:     #d8e2e1;
       --radius:     6px;
-      --max-w:      1160px;
+      --max-w:      100%;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -42,7 +42,7 @@
     body {
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
+      min-height: 100%;
     }
 
     /* ── Content area with side panels ────────────── */
@@ -53,8 +53,7 @@
     }
 
     .side-panel {
-      width: 1%;
-      min-width: 1%;
+      width: 20%;
       transition: width 0.3s ease;
       overflow: hidden;
     }
@@ -74,8 +73,7 @@
     header {
       position: sticky;
       top: 0;
-      height: 6vh;
-      min-height: 48px;
+      height: 6%;
       z-index: 100;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
@@ -337,12 +335,12 @@
     body.env-dev .frame-label,
     body.env-qa .frame-label { display: inline; }
 
+
     /* ── Footer ────────────────────────────────────── */
     footer {
       border-top: 1px solid var(--border);
       background: var(--surface);
-      height: 4vh;
-      min-height: 36px;
+      height: 4%;
     }
 
     .footer-inner {
@@ -420,7 +418,7 @@
       top: 0;
       right: 0;
       width: min(520px, 100vw);
-      height: 100vh;
+      height: 100%;
       background: var(--surface);
       border-left: 1px solid var(--border);
       box-shadow: -4px 0 24px rgba(11,122,117,0.10);
@@ -600,9 +598,9 @@
     <span class="chat-label">Chat with Find Care AI</span>
 
     <div class="content-row">
-      <!-- Left panel — 1%, expands for future nav -->
-      <div class="side-panel" id="leftPanel" style="background:#f5f5f4;border-right:1px solid #d8e2e1;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;text-orientation:mixed;">
-        <span class="frame-label" style="color:#ccc;font-size:9px;">LEFT PANEL</span>
+      <!-- Left panel — 1% prod, 20% non-prod for dev visibility -->
+      <div class="side-panel" id="leftPanel" style="background:rgb(225,225,255);border-right:1px solid #d8e2e1;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;text-orientation:mixed;">
+        <span class="frame-label" style="color:#8888cc;font-size:9px;">LEFT PANEL</span>
       </div>
 
       <!-- Center column — chat + controls -->
@@ -624,7 +622,7 @@
         </div>
 
         <!-- Control Frame — outside the iframe wrapper, visible canvas -->
-        <div id="guiControlFrame" style="height:7vh;min-height:40px;overflow:hidden;transition:all 0.2s ease;border-top:1px solid #d8e2e1;background:#fafaf9;display:flex;align-items:center;justify-content:center;">
+        <div id="guiControlFrame" style="height:7%;overflow:hidden;transition:all 0.2s ease;border-top:1px solid #d8e2e1;background:#fafaf9;display:flex;align-items:center;justify-content:center;">
           <span class="frame-label" style="color:#ccc;font-size:9px;">CONTROL FRAME</span>
         </div>
       </div> <!-- /center-column -->
@@ -714,8 +712,7 @@
         // Filter panel — renders in left panel
         var leftPanel = document.getElementById('leftPanel');
         if (msg.type === 'gui:filter') {
-          leftPanel.style.width = '15%';
-          leftPanel.style.minWidth = '180px';
+          // Panel stays at 20% — its default. Just replace content.
           leftPanel.innerHTML = msg.html || '';
           // Store search params for filter-apply
           leftPanel.dataset.searchParams = msg.searchParams || '{}';
@@ -744,9 +741,8 @@
         }
 
         if (msg.type === 'gui:filter-clear') {
-          leftPanel.style.width = '1%';
-          leftPanel.style.minWidth = '1%';
-          leftPanel.innerHTML = '<span class="frame-label" style="color:#ccc;font-size:9px;writing-mode:vertical-rl;">LEFT PANEL</span>';
+          // Clear content but keep width at 20% — user controls layout (future feature)
+          leftPanel.innerHTML = '<span class="frame-label" style="color:#8888cc;font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;">LEFT PANEL</span>';
         }
       });
     })();
