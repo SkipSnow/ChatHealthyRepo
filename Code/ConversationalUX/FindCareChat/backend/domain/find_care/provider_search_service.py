@@ -324,15 +324,7 @@ class FindCareService:
                 {"provider_first_name": {"$regex": name.strip(), "$options": "i"}},
                 {"provider_organization_name_legal_business_name": {"$regex": name.strip(), "$options": "i"}},
             ]
-            total_count = collection.count_documents(base_filter)
-            query_filter = dict(base_filter)
-            if after_npi:
-                query_filter["npi"] = {"$gt": after_npi}
-            cursor = collection.find(query_filter, self._PROJECTION).sort("npi", 1)
-            if safe_limit > 0:
-                cursor = cursor.limit(safe_limit)
-            raw = list(cursor)
-            providers = [self._format_provider(p) for p in raw]
+            providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
             return self._paginated_result(providers, "name", safe_limit, search_params=_search_params,
                                           total_count=total_count)
 
@@ -429,15 +421,7 @@ class FindCareService:
             if county:
                 base_filter.update(self._make_county_filter(county))
 
-            total_count = collection.count_documents(base_filter)
-            query_filter = dict(base_filter)
-            if after_npi:
-                query_filter["npi"] = {"$gt": after_npi}
-            cursor = collection.find(query_filter, self._PROJECTION).sort("npi", 1)
-            if safe_limit > 0:
-                cursor = cursor.limit(safe_limit)
-            raw = list(cursor)
-            providers = [self._format_provider(p) for p in raw]
+            providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
             _log.info("search: specialty '%s' → %d codes → %d/%d providers in %s",
                        specialty_query, len(codes), len(providers), total_count, state_upper or "all")
 
@@ -474,15 +458,7 @@ class FindCareService:
                 "taxonomies": {"$elemMatch": {"code": {"$regex": "^2"}, "primary": True}},
             }
             base_filter.update(self._make_county_filter(county))
-            total_count = collection.count_documents(base_filter)
-            county_filter = dict(base_filter)
-            if after_npi:
-                county_filter["npi"] = {"$gt": after_npi}
-            cursor = collection.find(county_filter, self._PROJECTION).sort("npi", 1)
-            if safe_limit > 0:
-                cursor = cursor.limit(safe_limit)
-            raw = list(cursor)
-            providers = [self._format_provider(p) for p in raw]
+            providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
             _log.info("search: county fallback returned %d for '%s' in %s", len(providers), county, state_upper)
             return self._paginated_result(providers, "county_physicians", safe_limit,
                                           search_params=_search_params, total_count=total_count,

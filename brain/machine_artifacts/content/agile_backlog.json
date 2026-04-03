@@ -15155,6 +15155,52 @@
           ]
         },
         {
+          "feature_id": "FC-FILTER-TOGGLE",
+          "name": "Filter Panel — Check All / Uncheck All Toggle with Scroll",
+          "epic_id": "EPIC-2",
+          "layer": "frontend",
+          "capability": "FindCare",
+          "description": "Toggle checkbox at top of filter panel. If majority checked: label 'Uncheck All', clicking unchecks all. If majority unchecked: label 'Check All', clicking checks all. Must apply to ALL items including those scrolled out of view.",
+          "priority": "HIGH",
+          "status": "untested",
+          "accepted_by": "Boss",
+          "backend_dependencies": [],
+          "stories": [
+            {
+              "story_id": "FC-FILT-001",
+              "title": "Toggle all checkboxes including scrolled items",
+              "description": "The toggle button must affect every checkbox in the filter list, not just visible ones. Need to determine how to SIT test scroll behavior with Playwright.",
+              "parent_feature": "FC-FILTER-TOGGLE",
+              "sprint": 5,
+              "dependencies": [],
+              "size": "S",
+              "status": "untested",
+              "accepted_by": "Boss",
+              "test_note": "UNTESTED: need to figure out how to test scroll behavior with Playwright. Toggle implemented but scroll verification not yet possible.",
+              "requirements": [
+                {
+                  "req_id": "FC-FILT-001-REQ-001",
+                  "story_id": "FC-FILT-001",
+                  "requirement": "Toggle button must apply to all items in the filter list, including items above or below the visible scroll window.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "untested",
+                  "label": ""
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-002",
+                  "story_id": "FC-FILT-001",
+                  "requirement": "Label must read 'Uncheck All' when majority are checked, 'Check All' when majority are unchecked.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "untested",
+                  "label": ""
+                }
+              ]
+            }
+          ]
+        },
+        {
           "feature_id": "MAINT-SIT-MIGRATE",
           "name": "Migrate All Pytests to Playwright Full-Page SIT",
           "epic_id": "EPIC-2",
