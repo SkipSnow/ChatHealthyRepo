@@ -585,6 +585,72 @@ class TestSearchResultPresentation(unittest.TestCase):
             specialty_searched="surgeons")
         self.assertIn("#action:next-page", msg)
 
+    # ── BUG-MSG-001: LLM must not duplicate system summary ──
+
+    def test_strip_redundant_summary(self):
+        """_strip_redundant_summary must remove LLM pagination language."""
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+        from main import _strip_redundant_summary
+        text = (
+            "Here are the first **25 of 11,772** mental health providers in Virginia:\n\n"
+            "- **Jennifer McEwan, Ph.D.**\n"
+            "  - Alexandria, VA\n\n"
+            "- **Nevin Yilmaz, MD**\n"
+            "  - Richmond, VA\n\n"
+            "There are 11,747 more providers. Would you like to see more? "
+            "I can also narrow results by city or county! 😊"
+        )
+        cleaned = _strip_redundant_summary(text, 11772, 25)
+        self.assertNotIn("Here are the first", cleaned)
+        self.assertNotIn("Would you like to see more", cleaned)
+        self.assertNotIn("I can also narrow", cleaned)
+        # Provider listing must be preserved
+        self.assertIn("Jennifer McEwan", cleaned)
+        self.assertIn("Nevin Yilmaz", cleaned)
+
+    def test_strip_preserves_provider_data(self):
+        """De-dup must not remove provider records or medical data."""
+        from main import _strip_redundant_summary
+        text = (
+            "Here are the first **25 of 686** surgeons in Delaware:\n\n"
+            "- **Dr. Smith, MD** *(General Surgery)*\n"
+            "  - 123 Main St, Wilmington, DE\n"
+            "  - NPI: 1234567890\n\n"
+            "Would you like to see the next page?"
+        )
+        cleaned = _strip_redundant_summary(text, 686, 25)
+        self.assertIn("Dr. Smith", cleaned)
+        self.assertIn("General Surgery", cleaned)
+        self.assertIn("1234567890", cleaned)
+        self.assertNotIn("Here are the first", cleaned)
+
+    # ── BUG-MSG-002: Summary must use user's term, not LLM's ──
+
+    def test_summary_uses_user_term_not_llm(self):
+        """summary_message must use user's original words, not LLM-translated terms."""
+        from domain.find_care.provider_search_service import FindCareService
+        msg = FindCareService._build_summary_message(
+            has_more=True, total_count=11772, page_count=25,
+            specialty_searched="find me shrinks in VA",
+            specialization_options=[{"code": "c1"}],
+            state="VA")
+        self.assertIn("shrinks", msg.lower())
+        self.assertNotIn("psychiatrist", msg.lower())
+
+    # ── GOV-011-STD-002: User terms over professional terms ──
+
+    def test_user_term_preserved_not_translated(self):
+        """User's colloquial term must appear in summary, not professional equivalent."""
+        from domain.find_care.provider_search_service import FindCareService
+        for user_term in ["shrinks", "heart doctors", "bone doctors", "eye docs"]:
+            msg = FindCareService._build_summary_message(
+                has_more=True, total_count=100, page_count=25,
+                specialty_searched=user_term,
+                specialization_options=[{"code": "c1"}],
+                state="VA")
+            self.assertIn(user_term, msg,
+                          f"Summary must contain user's term '{user_term}'")
+
     # ── FC-MSG-002-REQ-004: Frontend handles action links ──
 
     def test_frontend_handles_action_links(self):

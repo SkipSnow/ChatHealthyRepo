@@ -736,6 +736,12 @@
         // Filter panel — renders in left panel
         var leftPanel = document.getElementById('leftPanel');
         if (msg.type === 'gui:filter') {
+          // Reset vertical text mode — only used for empty label
+          leftPanel.style.writingMode = 'horizontal-tb';
+          leftPanel.style.textOrientation = 'mixed';
+          leftPanel.style.alignItems = 'flex-start';
+          leftPanel.style.justifyContent = 'flex-start';
+          leftPanel.style.overflow = 'auto';
           // Panel stays at 20% — its default. Just replace content.
           leftPanel.innerHTML = msg.html || '';
           // Store search params for filter-apply
@@ -774,8 +780,13 @@
         }
 
         if (msg.type === 'gui:filter-clear') {
-          // Clear content but keep width at 20% — user controls layout (future feature)
-          leftPanel.innerHTML = '<span class="frame-label" style="color:#8888cc;font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;">LEFT PANEL</span>';
+          // Restore vertical label mode
+          leftPanel.style.writingMode = 'vertical-rl';
+          leftPanel.style.textOrientation = 'mixed';
+          leftPanel.style.alignItems = 'center';
+          leftPanel.style.justifyContent = 'center';
+          leftPanel.style.overflow = 'hidden';
+          leftPanel.innerHTML = '<span class="frame-label" style="color:#8888cc;font-size:9px;">LEFT PANEL</span>';
         }
       });
     })();
