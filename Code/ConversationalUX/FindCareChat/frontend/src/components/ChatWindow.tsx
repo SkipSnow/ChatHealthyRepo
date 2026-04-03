@@ -378,6 +378,15 @@ export default function ChatWindow() {
           isSummary: true,
         } as Message])
       }
+
+      // Clinical trials summary — same GOV-011 pattern
+      if (data.trials?.summary_message) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: data.trials.summary_message,
+          isSummary: true,
+        } as Message])
+      }
     }
 
     setIsLoading(false)

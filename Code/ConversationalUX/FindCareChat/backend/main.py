@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import requests as _requests_lib
 from url_guardian import URLGuardian
 
 # ARCH-001 — domain services
@@ -239,6 +240,12 @@ class PaginationMeta(BaseModel):
     specialization_options: Optional[list[dict]] = None
     summary_message: Optional[str] = None
 
+class TrialsMeta(BaseModel):
+    trial_count: int = 0
+    condition: str = ""
+    location: str = ""
+    summary_message: Optional[str] = None
+
 class ChatResponse(BaseModel):
     response: Optional[str] = None
     emergency: bool = False
@@ -247,6 +254,7 @@ class ChatResponse(BaseModel):
     tokens_in: Optional[int] = None
     tokens_out: Optional[int] = None
     pagination: Optional[PaginationMeta] = None
+    trials: Optional[TrialsMeta] = None
 
 class SearchRequest(BaseModel):
     """Direct provider search — bypasses Claude. Used for pagination."""
@@ -414,16 +422,22 @@ async def _chat_inner(body: ChatRequest, request: Request):
 
     loop_iter = 0
     last_provider_result = None  # capture pagination metadata from find_providers
+    last_trials_result = None    # capture clinical trials metadata
 
     while response.stop_reason == "tool_use":
         tool_uses = [b for b in response.content if b.type == "tool_use"]
         tool_results = _handle_tool_calls(tool_uses, messages)
 
-        # Capture the last find_providers result for pagination
+        # Capture tool results for system summary
         for i, block in enumerate(tool_uses):
             if block.name == "find_providers":
                 try:
                     last_provider_result = json.loads(tool_results[i]["content"])
+                except (json.JSONDecodeError, KeyError, IndexError):
+                    pass
+            elif block.name == "search_clinical_trials":
+                try:
+                    last_trials_result = json.loads(tool_results[i]["content"])
                 except (json.JSONDecodeError, KeyError, IndexError):
                     pass
 
@@ -471,13 +485,35 @@ async def _chat_inner(body: ChatRequest, request: Request):
                 summary_message=user_summary,
             )
 
+    # Build trials metadata if search_clinical_trials returned results
+    trials_meta = None
+    if last_trials_result and isinstance(last_trials_result, dict):
+        trial_list = last_trials_result.get("trials", [])
+        if trial_list:
+            trial_count = len(trial_list)
+            has_travel = any(t.get("travel_info") for t in trial_list)
+            user_msg = body.message
+            # URL-safe condition from first trial's NCT ID page
+            first_url = trial_list[0].get("url", "https://clinicaltrials.gov")
+            parts = [f"Found {trial_count} recruiting trial{'s' if trial_count != 1 else ''} for '{user_msg}'."]
+            if has_travel:
+                parts.append(" Travel times included.")
+            parts.append(f" [View all on ClinicalTrials.gov](https://clinicaltrials.gov/search?cond={_requests_lib.utils.quote(user_msg)}&aggFilters=status:rec)")
+            trials_meta = TrialsMeta(
+                trial_count=trial_count,
+                condition=user_msg,
+                summary_message="".join(parts),
+            )
+
     # GOV-011-STD-001: Strip redundant summary from LLM response when system summary exists
     if pagination and pagination.summary_message and text:
         text = _strip_redundant_summary(text, pagination.total_count, pagination.count)
 
-    _log.info("CHAT complete tokens_in=%d tokens_out=%d pagination=%s", total_in, total_out, bool(pagination))
+    _log.info("CHAT complete tokens_in=%d tokens_out=%d pagination=%s trials=%s",
+              total_in, total_out, bool(pagination), bool(trials_meta))
     _debug_logger.log_chat(ip, body.message, len(body.history), loop_iter, total_in, total_out, text, None)
-    return ChatResponse(response=text, tokens_in=total_in, tokens_out=total_out, pagination=pagination)
+    return ChatResponse(response=text, tokens_in=total_in, tokens_out=total_out,
+                        pagination=pagination, trials=trials_meta)
 
 # ---------------------------------------------------------------------------
 # Static files
