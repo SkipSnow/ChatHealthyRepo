@@ -471,44 +471,47 @@ class TestSearchResultPresentation(unittest.TestCase):
     # ── FC-MSG-001-REQ-003: Specialty type count ──
 
     def test_summary_shows_specialty_count(self):
-        """summary_message must state how many types of specialists."""
+        """summary_message must state how many types of providers."""
         from domain.find_care.provider_search_service import FindCareService
         opts = [{"code": f"c{i}", "name": f"Spec {i}"} for i in range(12)]
         msg = FindCareService._build_summary_message(
             has_more=True, total_count=100, page_count=25,
             specialty_searched="surgeons", specialization_options=opts)
-        self.assertIn("12 types of specialists", msg)
+        self.assertIn("12 types of providers", msg)
 
     # ── FC-MSG-001-REQ-004: Filter link marker ──
 
     def test_summary_contains_filter_link(self):
-        """summary_message must contain a [Filter] action link."""
+        """summary_message must contain a filter action link."""
         from domain.find_care.provider_search_service import FindCareService
         opts = [{"code": "c1", "name": "Spec 1"}]
         msg = FindCareService._build_summary_message(
             has_more=True, total_count=100, page_count=25,
             specialty_searched="surgeons", specialization_options=opts)
-        self.assertIn("[Filter](#action:filter)", msg)
+        self.assertIn("#action:filter", msg)
+        self.assertIn("filter", msg.lower())
 
     # ── FC-MSG-001-REQ-005: Next page link marker ──
 
     def test_summary_contains_next_page_link(self):
-        """summary_message must contain a [next page] action link."""
+        """summary_message must contain a next page action link."""
         from domain.find_care.provider_search_service import FindCareService
         msg = FindCareService._build_summary_message(
             has_more=True, total_count=100, page_count=25,
             specialty_searched="surgeons")
-        self.assertIn("[next page](#action:next-page)", msg)
+        self.assertIn("#action:next-page", msg)
+        self.assertIn("more 'surgeons'", msg)
 
-    # ── FC-MSG-001-REQ-006: City/county narrowing offer ──
+    # ── FC-MSG-001-REQ-006: Search term echoed in links ──
 
-    def test_summary_offers_city_county_narrowing(self):
-        """summary_message must offer to narrow by city or county."""
+    def test_summary_echoes_search_term_in_links(self):
+        """summary_message must echo the search term in the action links."""
         from domain.find_care.provider_search_service import FindCareService
         msg = FindCareService._build_summary_message(
             has_more=True, total_count=100, page_count=25,
-            specialty_searched="surgeons")
-        self.assertIn("city or county", msg)
+            specialty_searched="shrinks", specialization_options=[{"code": "1"}])
+        self.assertIn("more 'shrinks'", msg)
+        self.assertIn("filter 'shrinks'", msg)
 
     # ── FC-MSG-001-REQ-007: summary_message in /chat PaginationMeta ──
 
@@ -541,13 +544,13 @@ class TestSearchResultPresentation(unittest.TestCase):
     # ── FC-MSG-001-REQ-003 edge: No specialty count when no options ──
 
     def test_no_specialty_count_when_no_options(self):
-        """summary_message must not mention specialist types when specialization_options is empty."""
+        """summary_message must not mention provider types when specialization_options is empty."""
         from domain.find_care.provider_search_service import FindCareService
         msg = FindCareService._build_summary_message(
             has_more=True, total_count=100, page_count=25,
             specialty_searched="Smith")
-        self.assertNotIn("types of specialists", msg)
-        self.assertNotIn("[Filter]", msg)
+        self.assertNotIn("types of providers", msg)
+        self.assertNotIn("#action:filter", msg)
 
     # ── FC-MSG-002-REQ-001: summary_message in /search response ──
 
