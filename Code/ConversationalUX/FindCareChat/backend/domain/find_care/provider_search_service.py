@@ -298,8 +298,13 @@ class FindCareService:
                         total_count = collection.count_documents(count_filter)
                     _log.info("search: vector returned %d (total %d) for '%s' in %s",
                               len(providers), total_count, specialty_query, state_upper)
+                    # Include resolved codes in search_params so /search can replay without vector
+                    replay_params = dict(_search_params)
+                    if result_codes:
+                        replay_params["specialty_codes"] = list(result_codes)
+                        replay_params.pop("specialty_query", None)
                     return self._paginated_result(providers, "vector", safe_limit,
-                                                  search_params=_search_params, total_count=total_count,
+                                                  search_params=replay_params, total_count=total_count,
                                                   state=state_upper, specialty_searched=specialty_query)
                 _log.info("search: vector returned 0, falling back to taxonomy")
 
@@ -333,8 +338,12 @@ class FindCareService:
                 raw = list(cursor)
                 providers = [self._format_provider(p) for p in raw]
                 _log.info("search: taxonomy returned %d for '%s' in %s", len(providers), specialty_query, state_upper)
+                # Include resolved codes so /search can replay without re-running identify_specialty
+                replay_params = dict(_search_params)
+                replay_params["specialty_codes"] = codes
+                replay_params.pop("specialty_query", None)
                 return self._paginated_result(providers, "taxonomy", safe_limit,
-                                              search_params=_search_params, total_count=total_count,
+                                              search_params=replay_params, total_count=total_count,
                                               state=state_upper, specialty_searched=specialty_query)
 
         # ── Route 5: County fallback ──
