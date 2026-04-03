@@ -229,20 +229,6 @@ function renderFilterHTML(options: { code: string; name: string; classification:
     </label>`
   ).join('')
 
-  const totalItems = options.length
-  const toggleScript = `
-    (function(btn) {
-      var panel = btn.closest('[data-filter-panel]');
-      var boxes = panel.querySelectorAll('input[data-gui-action="filter-toggle"]');
-      var checked = panel.querySelectorAll('input[data-gui-action="filter-toggle"]:checked').length;
-      var majority = checked > boxes.length / 2;
-      var newState = !majority;
-      boxes.forEach(function(cb) { cb.checked = newState; });
-      btn.textContent = newState ? 'Uncheck All' : 'Check All';
-    })(this)
-  `.replace(/\n\s+/g, ' ')
-
-  // All start checked → majority checked → label "Uncheck All"
   const toggleLabel = 'Uncheck All'
   const toggleStyle = `padding:6px 8px;display:flex;align-items:center;gap:8px;font-size:11px;
     border-bottom:2px solid #d8e2e1;cursor:pointer;color:#0b7a75;font-weight:600;`.replace(/\n\s+/g, '')
@@ -254,7 +240,7 @@ function renderFilterHTML(options: { code: string; name: string; classification:
         Filter by Specialty
       </div>
       <div style="${toggleStyle}">
-        <button data-gui-action="toggle-all" onclick="${toggleScript}"
+        <button data-gui-action="toggle-all"
           style="background:none;border:1px solid #0b7a75;border-radius:3px;padding:3px 10px;
           font-size:11px;color:#0b7a75;cursor:pointer;font-weight:600;">${toggleLabel}</button>
       </div>
