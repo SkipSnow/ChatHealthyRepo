@@ -346,7 +346,7 @@ def _extract_user_search_term(user_message: str) -> str:
             model="gpt-4.1-nano",
             max_tokens=50,
             messages=[
-                {"role": "system", "content": "Extract ONLY the provider/specialty search term from the user's message. Return just the term, nothing else. Examples: 'find me shrinks in VA' → 'shrinks'. 'show me a bone doc near Richmond' → 'bone doc'. 'find pediatricians in delaware' → 'pediatricians'. No quotes, no punctuation, no explanation."},
+                {"role": "system", "content": "Extract ONLY the provider/specialty search term from the user message. Return the term in PLURAL form always. Examples: bone doc -> bone docs, shrink -> shrinks, pediatrician -> pediatricians. No quotes, no punctuation, no explanation. Just the plural term."},
                 {"role": "user", "content": user_message},
             ],
         )
