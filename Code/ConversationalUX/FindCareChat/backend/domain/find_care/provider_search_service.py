@@ -331,6 +331,22 @@ class FindCareService:
             _log.info("search: specialty '%s' → %d codes → %d/%d providers in %s",
                        specialty_query, len(codes), len(providers), total_count, state_upper or "all")
 
+            # Log resolved codes to admin DB for debugging (non-prod only)
+            if self._env != "prod":
+                try:
+                    db = self._get_db()
+                    if db:
+                        db[f"{self._env}_admin"]["specialty_code_log"].insert_one({
+                            "query": specialty_query,
+                            "resolved_codes": codes,
+                            "code_count": len(codes),
+                            "total_providers": total_count,
+                            "state": state_upper,
+                            "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+                        })
+                except Exception:
+                    pass
+
             # search_params includes resolved codes — /search replays with codes, no AI
             replay_params = {"state": state_upper, "specialty_codes": codes}
             if city: replay_params["city"] = city
