@@ -87,6 +87,12 @@
       "rule": "BUG: Specialty filter panel empty — specialization_options returns 0 items. Root cause: SpecialtyService.find_specialty_codes returns empty despite SpecialtyMetaData having 45 matches for 'surg' in Display Name. Vector search indexes missing on frontend cluster (both provider_vector_index and specialty_vector_index). Regex pipeline in SpecialtyService._expand_query may be failing silently. Pipeline must create all vector search indexes on CopyToFrontEnd.",
       "incident": "User searched 'surgeons in VA', got 4,418 results but no filter panel. specialization_options was empty in the response because identify_specialty returned no codes.",
       "date": "2026-04-03"
+    },
+    {
+      "id": "DR-014",
+      "rule": "Commit before every test cycle. The build number must increment with every code change Boss tests. No uncommitted code during UAT.",
+      "incident": "Boss saw Build 255 throughout the session while testing new code. Build number was stale because changes were not committed.",
+      "date": "2026-04-03"
     }
   ]
 }

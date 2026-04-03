@@ -402,7 +402,7 @@ export default function ChatWindow() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: 800, margin: '0 auto', width: '100%' }}>
-      {envBanner && (
+      {envBanner && window.parent === window && (
         <div style={{ background: envBanner.env === 'local' ? '#d97706' : '#dc2626', color: '#fff', textAlign: 'center', padding: '4px 8px', fontSize: 13, fontWeight: 600, letterSpacing: '0.03em' }}>
           {envBanner.env.toUpperCase()} — Build {envBanner.build} — {envBanner.version}
         </div>
