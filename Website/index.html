@@ -593,6 +593,25 @@
     <iframe id="legalPanelFrame" src="" title="Legal document" tabindex="0"></iframe>
   </div>
 
+  <!-- ══ ENVIRONMENT BANNER — full width, below header ══ -->
+  <div id="envBanner" style="display:none;background:#d97706;color:#fff;text-align:center;padding:4px 8px;font-size:13px;font-weight:600;letter-spacing:0.03em;width:100%;"></div>
+  <script>
+    (function() {
+      var host = window.location.hostname;
+      var isLocal = host === 'localhost' || host === '127.0.0.1';
+      var env = isLocal ? 'LOCAL'
+        : host.indexOf('dev.') === 0 ? 'DEV'
+        : host.indexOf('qa.') === 0 ? 'QA'
+        : '';
+      if (env) {
+        var banner = document.getElementById('envBanner');
+        banner.textContent = env + ' ENVIRONMENT';
+        banner.style.display = 'block';
+        if (env !== 'LOCAL') banner.style.background = '#dc2626';
+      }
+    })();
+  </script>
+
   <!-- ══ MAIN — chat embed ════════════════════════════ -->
   <main>
     <span class="chat-label">Chat with Find Care AI</span>
