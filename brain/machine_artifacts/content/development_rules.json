@@ -113,6 +113,18 @@
       "date": "2026-04-03"
     },
     {
+      "id": "BUG-MSG-001",
+      "rule": "BUG: LLM response duplicates system summary. LLM says 'Here are the first 25 of 11,772' AND system says 'There are 11,747 more'. User sees double. Root cause: system prompt RULE 9 still tells LLM to summarize results. Fix: update RULE 9 to stop LLM from summarizing when system summary exists.",
+      "incident": "Boss tested 'find me shrinks in VA' and saw repetitive data — both LLM and system summaries displayed.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-MSG-002",
+      "rule": "BUG FIXED: Summary used LLM-translated term ('psychiatrist') instead of user's term ('shrinks'). Root cause: specialty_searched came from the LLM's tool call parameter, not the user's original message. Fix: main.py now passes body.message as specialty_searched in summary_message.",
+      "incident": "Boss tested 'find me shrinks in VA', summary said 'psychiatrist' instead of 'shrinks'.",
+      "date": "2026-04-03"
+    },
+    {
       "id": "DR-018",
       "rule": "Infrastructure tasks require inventory before execution. Grep the entire codebase for all consumers of the resource type before building the dependency list. Do not assume scope from memory. Complete the full list, then execute.",
       "incident": "Boss said 'build the indexes.' Claude built provider_vector_index only because copy_to_frontend.py had a function for it. Missed specialty_vector_index because it did not search for all $vectorSearch references in the codebase first.",

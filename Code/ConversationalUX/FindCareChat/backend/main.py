@@ -386,6 +386,18 @@ async def _chat_inner(body: ChatRequest, request: Request):
     if last_provider_result and isinstance(last_provider_result, dict):
         total_count = last_provider_result.get("total_count", 0)
         if total_count > 0:
+            # GOV-011: rebuild summary_message using user's original term, not LLM's translation
+            from domain.find_care.provider_search_service import FindCareService
+            user_summary = FindCareService._build_summary_message(
+                has_more=last_provider_result.get("has_more", False),
+                total_count=total_count,
+                page_count=last_provider_result.get("count", 0),
+                specialty_searched=body.message,  # user's words, not LLM's
+                specialization_options=last_provider_result.get("specialization_options"),
+                state=last_provider_result.get("state", ""),
+                city=(last_provider_result.get("search_params") or {}).get("city", ""),
+                county=(last_provider_result.get("search_params") or {}).get("county", ""),
+            )
             pagination = PaginationMeta(
                 has_more=last_provider_result.get("has_more", False),
                 first_npi=last_provider_result.get("first_npi"),
@@ -396,7 +408,7 @@ async def _chat_inner(body: ChatRequest, request: Request):
                 page_end=last_provider_result.get("page_end", 0),
                 search_params=last_provider_result.get("search_params"),
                 specialization_options=last_provider_result.get("specialization_options"),
-                summary_message=last_provider_result.get("summary_message"),
+                summary_message=user_summary,
             )
 
     _log.info("CHAT complete tokens_in=%d tokens_out=%d pagination=%s", total_in, total_out, bool(pagination))
