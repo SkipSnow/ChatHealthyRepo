@@ -119,6 +119,12 @@
       "date": "2026-04-03"
     },
     {
+      "id": "BUG-FILTER-002",
+      "rule": "BUG FIXED: Filter panel text displayed sideways. Root cause: leftPanel div had writing-mode:vertical-rl for the blank label, never reset when filter content loaded. Fix: reset writing-mode to horizontal-tb when gui:filter message received, restore vertical on gui:filter-clear.",
+      "incident": "Boss saw checkboxes and specialty names rotated 90 degrees in the filter panel.",
+      "date": "2026-04-03"
+    },
+    {
       "id": "BUG-MSG-002",
       "rule": "BUG FIXED: Summary used LLM-translated term ('psychiatrist') instead of user's term ('shrinks'). Root cause: specialty_searched came from the LLM's tool call parameter, not the user's original message. Fix: main.py now passes body.message as specialty_searched in summary_message.",
       "incident": "Boss tested 'find me shrinks in VA', summary said 'psychiatrist' instead of 'shrinks'.",

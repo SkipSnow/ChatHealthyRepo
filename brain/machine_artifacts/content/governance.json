@@ -197,7 +197,21 @@
           "name": "AI Translates, System Answers",
           "policy": "The AI turns what the user says into a clear question. The system answers using real data, not guesses. The AI's role is translation (natural language to structured intent). The system's role is resolution (query real data, apply rules, return bounded results). The AI must never generate answers from its own knowledge when system data exists to answer the question.",
           "rationale": "This is the operational restatement of GOV-001's core principle ('The model may suggest. The system must decide.') applied specifically to the user-facing chat. Users trust that answers come from verified provider data, not LLM confabulation. Every answer must trace back to the data layer.",
-          "status": "permanent"
+          "status": "permanent",
+          "implementation_standards": [
+            {
+              "id": "GOV-011-STD-001",
+              "name": "System Content Precedence",
+              "standard": "When both the system and the AI produce output for the same response, system-generated content takes precedence. Redundant AI content must be stripped. The system summary, counts, links, and structured metadata are authoritative. The AI response retains only non-redundant content (e.g., provider listing, conversational context).",
+              "enforcement": "A small model (e.g., Haiku) strips redundant summary/pagination language from the AI response when a system summary_message exists."
+            },
+            {
+              "id": "GOV-011-STD-002",
+              "name": "User Terms Over Professional Terms",
+              "standard": "All user-facing output must use the user's own language, not professional/medical terminology. If the user says 'shrinks', the system says 'shrinks' — not 'psychiatrists'. The AI may translate user terms to professional codes internally for query resolution, but the user-facing response must echo the user's words.",
+              "enforcement": "summary_message is built from the user's original message (body.message), not from the LLM's translated tool parameters."
+            }
+          ]
         },
         {
           "id": "GOV-012",

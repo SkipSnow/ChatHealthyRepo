@@ -159,6 +159,18 @@ class TestSITProviderSearch:
             assert "Filter" in panel_text or "filter" in panel_text or len(panel_text) > 20, \
                 "Left panel should show specialty filter options"
 
+    def test_filter_panel_text_horizontal(self, page: Page):
+        """Filter panel text must be horizontal, not sideways."""
+        frame = _get_chat_frame(page)
+        _send_message(frame, "find surgeons in delaware")
+        page.wait_for_timeout(5000)
+        left_panel = page.locator("#leftPanel")
+        if left_panel.count() > 0:
+            writing_mode = left_panel.evaluate("el => getComputedStyle(el).writingMode")
+            _screenshot(page, "10_filter_text_orientation")
+            assert writing_mode == "horizontal-tb", \
+                f"Filter panel text must be horizontal, got writing-mode: {writing_mode}"
+
 
 class TestSITMobile:
     """SIT: Mobile device emulation — iPhone 14 Pro and Galaxy S24."""

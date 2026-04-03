@@ -325,6 +325,66 @@ async def chat(body: ChatRequest, request: Request):
         return ChatResponse(error=err_msg, error_type=err_type)
 
 # ---------------------------------------------------------------------------
+# GOV-011-STD-001: Strip redundant summary/pagination language from LLM text
+# when the system has already built a summary_message.
+# ---------------------------------------------------------------------------
+def _strip_redundant_summary(text: str, total_count: int, page_count: int) -> str:
+    """Remove LLM-generated summary lines that duplicate the system summary.
+
+    Patterns stripped:
+    - "Here are the first N of M..."
+    - "I found N providers..."
+    - "There are N more..."
+    - "Would you like to see more..."
+    - "I can narrow/filter..."
+    - Any line with the total count that looks like a summary
+    """
+    lines = text.split("\n")
+    total_str = f"{total_count:,}"
+    total_str_no_comma = str(total_count)
+    cleaned = []
+    for line in lines:
+        lower = line.lower().strip()
+        # Skip empty lines at the end
+        if not lower:
+            cleaned.append(line)
+            continue
+        # Skip lines that are LLM summary/pagination language
+        is_redundant = False
+        redundant_phrases = [
+            "here are the first",
+            "i found",
+            "there are",
+            "would you like to see more",
+            "would you like to see the next",
+            "want to see more",
+            "i can also narrow",
+            "i can narrow",
+            "i can also filter",
+            "shall i show",
+            "would you like me to narrow",
+            "let me know if you'd like",
+            "more providers",
+            "more results",
+            "next page",
+        ]
+        for phrase in redundant_phrases:
+            if phrase in lower and (total_str in line or total_str_no_comma in line
+                                    or "more" in lower or "narrow" in lower or "filter" in lower):
+                is_redundant = True
+                break
+        # Also catch "Here are the first N of M" pattern directly
+        if re.match(r".*here are the first \*?\*?\d+.*of \*?\*?[\d,]+", lower):
+            is_redundant = True
+        if not is_redundant:
+            cleaned.append(line)
+    # Strip trailing empty lines
+    while cleaned and not cleaned[-1].strip():
+        cleaned.pop()
+    return "\n".join(cleaned)
+
+
+# ---------------------------------------------------------------------------
 # Chat loop
 # ---------------------------------------------------------------------------
 async def _chat_inner(body: ChatRequest, request: Request):
@@ -410,6 +470,10 @@ async def _chat_inner(body: ChatRequest, request: Request):
                 specialization_options=last_provider_result.get("specialization_options"),
                 summary_message=user_summary,
             )
+
+    # GOV-011-STD-001: Strip redundant summary from LLM response when system summary exists
+    if pagination and pagination.summary_message and text:
+        text = _strip_redundant_summary(text, pagination.total_count, pagination.count)
 
     _log.info("CHAT complete tokens_in=%d tokens_out=%d pagination=%s", total_in, total_out, bool(pagination))
     _debug_logger.log_chat(ip, body.message, len(body.history), loop_iter, total_in, total_out, text, None)
