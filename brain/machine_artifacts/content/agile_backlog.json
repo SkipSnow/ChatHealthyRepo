@@ -15001,7 +15001,7 @@
             {
               "story_id": "FC-MSG-001",
               "title": "Build summary_message from structured search result data",
-              "description": "The backend must construct a summary_message string from the structured tool result fields (specialty_searched, total_count, count, specialization_options). This message is system-built per GOV-011 — the LLM does not write it.",
+              "description": "The backend must construct a summary_message string from the structured tool result fields (specialty_searched, total_count, count, specialization_options, state, city, county). This message is system-built per GOV-011 — the LLM does not write it. Template: \"There are N more '{term}' in '{state}'. We have included M types of providers. Shall I show you [more '{term}'] or would you like to [filter '{term}' by provider type]? You can also search by {zipcode, county, or city — omit the one they already used}.\"",
               "parent_feature": "FC-RESULT-MSG",
               "sprint": 1,
               "dependencies": [],

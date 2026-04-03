@@ -146,7 +146,8 @@ class FindCareService:
     @staticmethod
     def _build_summary_message(has_more: bool, total_count: int, page_count: int,
                                specialty_searched: str = "",
-                               specialization_options: list = None) -> str:
+                               specialization_options: list = None,
+                               **kwargs) -> str:
         """Build a system-generated summary message per GOV-011 / FC-RESULT-MSG.
 
         The system builds this message from structured data — the LLM does not write it.
@@ -156,7 +157,21 @@ class FindCareService:
         remaining = total_count - page_count
         search_term = specialty_searched or "results"
         spec_count = len(specialization_options) if specialization_options else 0
-        parts = [f"There are {remaining:,} more '{search_term}'. "]
+        # Build location narrowing options — omit the one they already used
+        state = kwargs.get("state", "")
+        city = kwargs.get("city", "")
+        county = kwargs.get("county", "")
+        narrow_options = []
+        if not city:
+            narrow_options.append("city")
+        if not county:
+            narrow_options.append("county")
+        narrow_options.append("zipcode")
+
+        parts = [f"There are {remaining:,} more '{search_term}'"]
+        if state:
+            parts.append(f" in '{state}'")
+        parts.append(". ")
         if spec_count > 0:
             parts.append(f"We have included {spec_count} types of providers. ")
         parts.append(f"Shall I show you [more '{search_term}'](#action:next-page)")
@@ -164,6 +179,8 @@ class FindCareService:
             parts.append(f" or would you like to [filter '{search_term}' by provider type](#action:filter)?")
         else:
             parts.append("?")
+        if narrow_options:
+            parts.append(f" You can also search by {', '.join(narrow_options)}.")
         return "".join(parts)
 
     def _paginated_result(self, providers: list, search_mode: str, safe_limit: int,
@@ -178,6 +195,9 @@ class FindCareService:
             has_more, total_count, len(providers),
             specialty_searched=extra.get("specialty_searched", ""),
             specialization_options=extra.get("specialization_options"),
+            state=extra.get("state", ""),
+            city=(search_params or {}).get("city", ""),
+            county=(search_params or {}).get("county", ""),
         )
         result = {
             "supported": True,
