@@ -236,6 +236,7 @@ class PaginationMeta(BaseModel):
     page_start: int = 1
     page_end: int = 0
     search_params: Optional[dict] = None
+    specialization_options: Optional[list[dict]] = None
 
 class ChatResponse(BaseModel):
     response: Optional[str] = None
@@ -365,6 +366,7 @@ async def _chat_inner(body: ChatRequest, request: Request):
                 page_start=last_provider_result.get("page_start", 1),
                 page_end=last_provider_result.get("page_end", 0),
                 search_params=last_provider_result.get("search_params"),
+                specialization_options=last_provider_result.get("specialization_options"),
             )
 
     _log.info("CHAT complete tokens_in=%d tokens_out=%d pagination=%s", total_in, total_out, bool(pagination))

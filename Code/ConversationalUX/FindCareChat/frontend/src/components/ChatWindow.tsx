@@ -88,6 +88,51 @@ export default function ChatWindow() {
       })
   }, [(gui.pagination as any).direction, gui.pagination.npiHistory.length])
 
+  // Filter apply — user selected specializations from left panel
+  useEffect(() => {
+    gui.onFilterApply((codes: string[], params: any) => {
+      const searchParams = { ...params, specialty_codes: codes }
+      // Remove specialty_query — we have exact codes now
+      delete searchParams.specialty_query
+      setIsLoading(true)
+      fetch(`${API_URL}/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...searchParams, limit: 25 }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.providers && data.providers.length > 0) {
+            const resultText = data.providers.map((p: any) =>
+              `**${p.name}**\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
+            ).join('\n\n')
+            setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: `**Filtered results — ${data.total_count} providers found:**\n\n${resultText}`,
+            }])
+            // Update pagination for filtered results
+            pendingPaginationRef.current = {
+              totalCount: data.total_count,
+              lastNpi: data.last_npi,
+              searchParams,
+              pageSize: data.count,
+              pageEnd: data.count,
+            }
+          } else {
+            setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: 'No providers found matching the selected specializations.',
+            }])
+          }
+          setIsLoading(false)
+        })
+        .catch(() => {
+          setMessages(prev => [...prev, { role: 'assistant', content: '**Error:** Could not apply filter.', isError: true }])
+          setIsLoading(false)
+        })
+    })
+  }, [])
+
   // Refs — avoid stale closures in async callbacks
   const messagesRef = useRef<Message[]>([LOADING_MESSAGE])
   useEffect(() => { messagesRef.current = messages }, [messages])
@@ -268,6 +313,11 @@ export default function ChatWindow() {
           pageEnd: data.pagination.count,  // first page ends at count (e.g., 25)
         }
       }
+
+      // Show filter panel if specialization options returned
+      if (data.pagination?.specialization_options?.length > 1) {
+        gui.showFilterPanel(data.pagination.specialization_options, data.pagination.search_params)
+      }
     }
 
     setIsLoading(false)
@@ -326,8 +376,9 @@ export default function ChatWindow() {
       return
     }
 
-    // Hide pagination when user sends a new non-pagination message
+    // Hide pagination and filter panel when user sends a new non-pagination message
     gui.hidePagination()
+    gui.hideFilterPanel()
 
     const historyForBackend = messagesRef.current
       .filter(m => (m.role === 'user' || m.role === 'assistant')

@@ -66490,6 +66490,25 @@
                 {"req_id": "GUI-PAG-R21", "requirement": "Disabled buttons cannot be clicked and show not-allowed cursor", "priority": "must-have", "label": "Y"},
                 {"req_id": "GUI-PAG-R22", "requirement": "Mouse leave on pressed button returns to unpressed raised state", "priority": "must-have", "label": "Y"}
               ]
+            },
+            {
+              "story_id": "GUI-PAG-S4",
+              "title": "Specialty refinement — user selects from resolved NUCC specializations",
+              "parent_feature": "GUI-PAGINATION",
+              "size": "M",
+              "status": "accepted",
+              "requirements": [
+                {"req_id": "GUI-PAG-R23", "requirement": "When specialty query resolves to multiple NUCC codes, present specialization names (not codes) to the user for selection", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R24", "requirement": "Desktop: left panel expands from 1% to 15% and shows scrolling checkbox list", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R25", "requirement": "Phone: popup/modal with same checkbox list", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R26", "requirement": "List scrolls only if items exceed available panel height", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R27", "requirement": "User checks specializations they want, search re-runs with only checked codes", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R28", "requirement": "Left panel stays open so user can refine further", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R29", "requirement": "Specialization names come from SpecialtyMetaData collection, not hardcoded", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R30", "requirement": "Resolved NUCC codes logged to {env}_admin.specialty_code_log in non-prod environments", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R31", "requirement": "When user sends a new chat message, left panel collapses back to 1%", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R32", "requirement": "Checkbox selection does not invoke the LLM — deterministic /search with selected codes", "priority": "must-have", "label": "Y"}
+              ]
             }
           ]
         }

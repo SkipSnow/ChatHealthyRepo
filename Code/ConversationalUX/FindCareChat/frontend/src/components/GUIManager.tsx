@@ -85,6 +85,9 @@ function renderPaginationHTML(state: PaginationState): string {
 
 // ── Hook ────────────────────────────────────────────────────
 
+// Ref for filter apply callback — set by ChatWindow
+const filterApplyCallbackRef = { current: null as ((codes: string[], params: any) => void) | null }
+
 export function useGUIManager() {
   const [pagination, setPagination] = useState<PaginationState>({
     visible: false,
@@ -118,6 +121,14 @@ export function useGUIManager() {
             history.pop()  // remove current
             return { ...prev, npiHistory: history, direction: 'back' } as any
           })
+          break
+        case 'filter-apply':
+          // User applied filter — store selected codes for ChatWindow to pick up
+          if (filterApplyCallbackRef.current) {
+            const codes = JSON.parse(msg.value || '[]')
+            const params = JSON.parse(msg.searchParams || '{}')
+            filterApplyCallbackRef.current(codes, params)
+          }
           break
       }
     }
@@ -177,6 +188,17 @@ export function useGUIManager() {
     }
   }, [])
 
+  const showFilterPanel = useCallback((options: { code: string; name: string; classification: string }[],
+                                       searchParams: any) => {
+    // Send filter options to parent's left panel
+    const html = renderFilterHTML(options)
+    sendToParent('gui:filter', { html, searchParams: JSON.stringify(searchParams) })
+  }, [])
+
+  const hideFilterPanel = useCallback(() => {
+    sendToParent('gui:filter-clear')
+  }, [])
+
   return {
     pagination,
     showPagination,
@@ -184,5 +206,47 @@ export function useGUIManager() {
     getAfterNpi,
     getBeforeNpi,
     updateFromResponse,
+    showFilterPanel,
+    hideFilterPanel,
+    onFilterApply: (cb: (codes: string[], params: any) => void) => {
+      filterApplyCallbackRef.current = cb
+    },
   }
+}
+
+function renderFilterHTML(options: { code: string; name: string; classification: string }[]): string {
+  if (!options.length) return ''
+
+  const itemStyle = `padding:6px 8px;display:flex;align-items:center;gap:8px;font-size:12px;
+    border-bottom:1px solid #f0f0f0;cursor:pointer;`.replace(/\n\s+/g, '')
+
+  const items = options.map(opt =>
+    `<label style="${itemStyle}" title="${opt.code}">
+      <input type="checkbox" data-gui-action="filter-toggle" data-gui-value="${opt.code}" checked
+        style="accent-color:#0b7a75;width:14px;height:14px;" />
+      <span style="color:#374151;">${opt.name}</span>
+    </label>`
+  ).join('')
+
+  return `
+    <div style="display:flex;flex-direction:column;height:100%;font-family:system-ui,sans-serif;">
+      <div style="padding:8px 10px;font-size:11px;font-weight:600;color:#0b7a75;
+        border-bottom:1px solid #d8e2e1;text-transform:uppercase;letter-spacing:0.05em;">
+        Filter by Specialty
+      </div>
+      <div style="flex:1;overflow-y:auto;overflow-x:hidden;">
+        ${items}
+      </div>
+      <div style="padding:6px 8px;border-top:1px solid #d8e2e1;">
+        <button data-gui-action="filter-apply" style="width:100%;padding:6px;border-radius:4px;
+          border:none;background:linear-gradient(180deg,#0b9a94,#0b7a75);color:#fff;
+          font-size:12px;font-weight:600;cursor:pointer;
+          border-bottom:2px solid #065a56;box-shadow:0 1px 3px rgba(0,0,0,0.2);"
+          onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='none'"
+          onmouseup="this.style.transform='';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.2)'"
+          onmouseleave="this.style.transform='';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.2)'"
+        >Apply Filter</button>
+      </div>
+    </div>
+  `
 }
