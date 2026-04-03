@@ -15058,7 +15058,25 @@
                 {
                   "req_id": "FC-MSG-001-REQ-006",
                   "story_id": "FC-MSG-001",
-                  "requirement": "The summary must offer to narrow results by city or county.",
+                  "requirement": "The summary must include the state in the message (e.g., \"in 'VA'\") when the user specified a state.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-009",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary must echo the user's search term in the action links (e.g., \"more 'shrinks'\", \"filter 'shrinks' by provider type\").",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-010",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary must offer location narrowing options (zipcode, county, city) but omit the dimension the user already specified.",
                   "source": "Boss directive",
                   "priority": "must-have",
                   "status": "accepted",
@@ -15131,6 +15149,45 @@
                   "priority": "must-have",
                   "status": "accepted",
                   "label": ""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "feature_id": "MAINT-SIT-MIGRATE",
+          "name": "Migrate All Pytests to Playwright Full-Page SIT",
+          "epic_id": "EPIC-2",
+          "layer": "testing",
+          "capability": "Quality",
+          "description": "DR-019: Convert all existing pytest test cases to Playwright browser tests running against the full parent page (dev.chathealthy.ai). No more isolated HF Space testing. Gate: must complete before QA promotion.",
+          "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_pagination.py; Code/ConversationalUX/FindCareChat/backend/tests/test_sit_browser.py",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "backend_dependencies": [],
+          "deadline": "2026-04-23",
+          "gate": "QA promotion blocked until complete",
+          "stories": [
+            {
+              "story_id": "SIT-MIG-001",
+              "title": "Convert test_pagination.py to Playwright full-page tests",
+              "description": "All pagination requirement tests must run via Playwright against dev.chathealthy.ai, not FastAPI TestClient.",
+              "parent_feature": "MAINT-SIT-MIGRATE",
+              "sprint": 5,
+              "dependencies": [],
+              "size": "L",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "SIT-MIG-001-REQ-001",
+                  "story_id": "SIT-MIG-001",
+                  "requirement": "Every test in test_pagination.py must have a Playwright equivalent that tests through the full parent page.",
+                  "source": "DR-019",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "DR-019"
                 }
               ]
             }

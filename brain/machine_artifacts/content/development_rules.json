@@ -131,6 +131,12 @@
       "date": "2026-04-03"
     },
     {
+      "id": "DR-019",
+      "rule": "All SIT testing must be against the full parent page (dev.chathealthy.ai), never the HF Space iframe in isolation. The parent page is the product. The iframe is a component. Test the product.",
+      "incident": "SIT tests were passing against the iframe but missing bugs visible on the full page — sideways filter text, missing banner build number, filter panel not rendering. These were only visible in the parent page context.",
+      "date": "2026-04-03"
+    },
+    {
       "id": "DR-018",
       "rule": "Infrastructure tasks require inventory before execution. Grep the entire codebase for all consumers of the resource type before building the dependency list. Do not assume scope from memory. Complete the full list, then execute.",
       "incident": "Boss said 'build the indexes.' Claude built provider_vector_index only because copy_to_frontend.py had a function for it. Missed specialty_vector_index because it did not search for all $vectorSearch references in the codebase first.",
