@@ -156,12 +156,14 @@ class FindCareService:
         remaining = total_count - page_count
         search_term = specialty_searched or "results"
         spec_count = len(specialization_options) if specialization_options else 0
-        parts = [f"There are {remaining:,} more {search_term}"]
+        parts = [f"There are {remaining:,} more '{search_term}'. "]
         if spec_count > 0:
-            parts.append(f" and they represent {spec_count} types of specialists"
-                         f" [Filter](#action:filter)")
-        parts.append(f". Would you like to see the [next page](#action:next-page)?")
-        parts.append(" I can also narrow results by city or county if that would help!")
+            parts.append(f"We have included {spec_count} types of providers. ")
+        parts.append(f"Shall I show you [more '{search_term}'](#action:next-page)")
+        if spec_count > 0:
+            parts.append(f" or would you like to [filter '{search_term}' by provider type](#action:filter)?")
+        else:
+            parts.append("?")
         return "".join(parts)
 
     def _paginated_result(self, providers: list, search_mode: str, safe_limit: int,
