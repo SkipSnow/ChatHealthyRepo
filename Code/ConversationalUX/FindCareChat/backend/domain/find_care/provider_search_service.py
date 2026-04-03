@@ -308,6 +308,21 @@ class FindCareService:
                 return {"supported": True, "providers": [],
                         "message": f"No matching specialty found for '{specialty_query}'."}
 
+            # Step 2.5: Look up specialization names for the resolved codes
+            specialization_options = []
+            try:
+                meta_coll = db[f"{self._env}_PublicHealthData"]["SpecialtyMetaData"]
+                for doc in meta_coll.find({"Code": {"$in": codes}},
+                                           {"Code": 1, "Classification": 1, "Specialization": 1,
+                                            "Display Name": 1, "_id": 0}):
+                    specialization_options.append({
+                        "code": doc.get("Code", ""),
+                        "name": doc.get("Display Name") or doc.get("Specialization") or doc.get("Classification", ""),
+                        "classification": doc.get("Classification", ""),
+                    })
+            except Exception:
+                pass
+
             # Step 3: Database answers — deterministic taxonomy query
             base_filter = {
                 "taxonomies.code": {"$in": codes},
@@ -353,7 +368,8 @@ class FindCareService:
             if county: replay_params["county"] = county
             return self._paginated_result(providers, "taxonomy", safe_limit,
                                           search_params=replay_params, total_count=total_count,
-                                          state=state_upper, specialty_searched=specialty_query)
+                                          state=state_upper, specialty_searched=specialty_query,
+                                          specialization_options=specialization_options)
 
         # ── Route 5: County fallback ──
         if county and state_upper:

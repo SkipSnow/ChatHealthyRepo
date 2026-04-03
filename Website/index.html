@@ -710,6 +710,44 @@
         if (msg.type === 'gui:clear') {
           frame.innerHTML = '<span class="frame-label" style="color:#ccc;font-size:9px;">CONTROL FRAME</span>';
         }
+
+        // Filter panel — renders in left panel
+        var leftPanel = document.getElementById('leftPanel');
+        if (msg.type === 'gui:filter') {
+          leftPanel.style.width = '15%';
+          leftPanel.style.minWidth = '180px';
+          leftPanel.innerHTML = msg.html || '';
+          // Store search params for filter-apply
+          leftPanel.dataset.searchParams = msg.searchParams || '{}';
+          // Attach handlers
+          var filterActions = leftPanel.querySelectorAll('[data-gui-action]');
+          for (var j = 0; j < filterActions.length; j++) {
+            (function(el) {
+              var tag = el.tagName.toLowerCase();
+              if (el.getAttribute('data-gui-action') === 'filter-apply') {
+                el.addEventListener('click', function() {
+                  // Collect checked codes
+                  var checked = [];
+                  leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]:checked').forEach(function(cb) {
+                    checked.push(cb.getAttribute('data-gui-value'));
+                  });
+                  chatFrame.contentWindow.postMessage({
+                    type: 'gui:event',
+                    action: 'filter-apply',
+                    value: JSON.stringify(checked),
+                    searchParams: leftPanel.dataset.searchParams
+                  }, '*');
+                });
+              }
+            })(filterActions[j]);
+          }
+        }
+
+        if (msg.type === 'gui:filter-clear') {
+          leftPanel.style.width = '1%';
+          leftPanel.style.minWidth = '1%';
+          leftPanel.innerHTML = '<span class="frame-label" style="color:#ccc;font-size:9px;writing-mode:vertical-rl;">LEFT PANEL</span>';
+        }
       });
     })();
   </script>

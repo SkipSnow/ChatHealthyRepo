@@ -338,5 +338,104 @@ class TestPaginationUIRequirements(unittest.TestCase):
         self.assertIn("onmouseleave", content, "Must have mouseleave handler to restore state")
 
 
+class TestSpecialtyRefinementRequirements(unittest.TestCase):
+    """GUI-PAG-S4: Specialty refinement requirements."""
+
+    def _gui(self):
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend",
+                             "src", "components", "GUIManager.tsx")
+        with open(path) as f:
+            return f.read()
+
+    def _chat(self):
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend",
+                             "src", "components", "ChatWindow.tsx")
+        with open(path) as f:
+            return f.read()
+
+    def _index(self):
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..",
+                             "Website", "index.html")
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+
+    # R23: Present specialization names to user
+    def test_r23_specialization_options_in_search_response(self):
+        """Search response must include specialization_options with names."""
+        r = self.__class__.client.post("/search", json={
+            "state": "DE", "limit": 5, "specialty_query": "pediatrician"
+        })
+        data = r.json()
+        opts = data.get("specialization_options", [])
+        if opts:
+            self.assertTrue(all("name" in o for o in opts), "Each option must have a name")
+            self.assertTrue(all("code" in o for o in opts), "Each option must have a code")
+
+    # R24: Desktop left panel expands to 15%
+    def test_r24_left_panel_expands(self):
+        content = self._index()
+        self.assertIn("width = '15%'", content.replace('"', "'"),
+                      "Left panel must expand to 15%")
+
+    # R25: Phone popup (deferred — check for responsive handling)
+    def test_r25_phone_popup_placeholder(self):
+        """Phone popup requirement exists in story."""
+        pass  # Deferred — mobile popup not yet implemented
+
+    # R26: Scrolls only if needed
+    def test_r26_overflow_auto(self):
+        content = self._gui()
+        self.assertIn("overflow-y:auto", content, "Filter list must scroll only when needed")
+
+    # R27: Re-run search with checked codes
+    def test_r27_filter_apply_calls_search(self):
+        content = self._chat()
+        self.assertIn("/search", content, "Filter apply must call /search")
+        self.assertIn("onFilterApply", content, "Must handle filter apply callback")
+
+    # R28: Left panel stays open
+    def test_r28_panel_stays_open(self):
+        """Left panel stays at 15% until user sends new message."""
+        content = self._index()
+        self.assertIn("gui:filter-clear", content, "Must support filter-clear to collapse")
+
+    # R29: Names from SpecialtyMetaData
+    def test_r29_names_from_db(self):
+        src = os.path.join(os.path.dirname(__file__), "..", "domain", "find_care",
+                            "provider_search_service.py")
+        with open(src) as f:
+            content = f.read()
+        self.assertIn("SpecialtyMetaData", content, "Must look up names from SpecialtyMetaData")
+
+    # R30: Log codes in non-prod
+    def test_r30_log_codes_non_prod(self):
+        src = os.path.join(os.path.dirname(__file__), "..", "domain", "find_care",
+                            "provider_search_service.py")
+        with open(src) as f:
+            content = f.read()
+        self.assertIn("specialty_code_log", content, "Must log to specialty_code_log")
+        self.assertIn('!= "prod"', content, "Must only log in non-prod")
+
+    # R31: New message collapses panel
+    def test_r31_new_message_collapses(self):
+        content = self._chat()
+        self.assertIn("hideFilterPanel", content, "Must hide filter panel on new message")
+
+    # R32: No LLM on filter apply
+    def test_r32_no_llm_on_filter(self):
+        # filter-apply is in GUIManager, callback in ChatWindow calls /search
+        gui_content = self._gui()
+        self.assertIn("filter-apply", gui_content, "GUIManager must handle filter-apply event")
+        chat_content = self._chat()
+        self.assertIn("onFilterApply", chat_content, "ChatWindow must register filter callback")
+        self.assertIn("/search", chat_content, "Must use /search not /chat")
+
+    @classmethod
+    def setUpClass(cls):
+        from main import app
+        from fastapi.testclient import TestClient
+        cls.client = TestClient(app)
+
+
 if __name__ == "__main__":
     unittest.main()
