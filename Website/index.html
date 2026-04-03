@@ -755,7 +755,6 @@
               var tag = el.tagName.toLowerCase();
               if (el.getAttribute('data-gui-action') === 'filter-apply') {
                 el.addEventListener('click', function() {
-                  // Collect checked codes
                   var checked = [];
                   leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]:checked').forEach(function(cb) {
                     checked.push(cb.getAttribute('data-gui-value'));
@@ -766,6 +765,16 @@
                     value: JSON.stringify(checked),
                     searchParams: leftPanel.dataset.searchParams
                   }, '*');
+                });
+              }
+              if (el.getAttribute('data-gui-action') === 'toggle-all') {
+                el.addEventListener('click', function() {
+                  var boxes = leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]');
+                  var checkedCount = leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]:checked').length;
+                  var majority = checkedCount > boxes.length / 2;
+                  var newState = !majority;
+                  boxes.forEach(function(cb) { cb.checked = newState; });
+                  el.textContent = newState ? 'Uncheck All' : 'Check All';
                 });
               }
             })(filterActions[j]);
