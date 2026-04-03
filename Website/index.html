@@ -637,22 +637,26 @@
   </main>
 
   <!-- Scripts for iframe URL and control frame postMessage -->
-  <script src="chat-config.js"></script>
   <script>
     (function() {
       var host = window.location.hostname;
-      var env = host.indexOf('dev.') === 0 ? 'dev' : host.indexOf('qa.') === 0 ? 'qa' : 'prod';
-      var org = 'skipsnow';
-      var base = 'chathealthyspace';
-      var spaceName = env === 'prod' ? base : env + '-' + base;
       var isLocal = host === 'localhost' || host === '127.0.0.1';
-      var bodyEnv = isLocal ? 'local' : env;
-      document.body.classList.add('env-' + bodyEnv);
+      var env = isLocal ? 'local'
+        : host.indexOf('dev.') === 0 ? 'dev'
+        : host.indexOf('qa.') === 0 ? 'qa'
+        : 'prod';
+      document.body.classList.add('env-' + env);
 
-      var chatConfig = window.chatConfig || {};
-      var src = chatConfig.iframeUrl
-        || (isLocal ? 'http://localhost:5173'
-            : 'https://' + org + '-' + spaceName + '.hf.space');
+      // Build iframe URL from environment — single source of truth
+      var src;
+      if (isLocal) {
+        src = 'http://localhost:5173';
+      } else {
+        var org = 'skipsnow';
+        var base = 'chathealthyspace';
+        var spaceName = env === 'prod' ? base : env + '-' + base;
+        src = 'https://' + org + '-' + spaceName + '.hf.space';
+      }
 
       // Retry loading iframe — wait 3s between attempts, max 10 tries
       var iframe = document.getElementById('coreChatFrame');
