@@ -17,8 +17,6 @@ class ProviderSearchInput(BaseModel):
     name: str = Field("", description="Provider name search")
     fuzzy_specialty: str = Field("", description="Loose specialty match — maps to codes then searches")
     specialty_codes: list[str] = Field(default_factory=list, description="NUCC taxonomy codes to filter by directly")
-    fetch_all: bool = Field(False, description="Return all matching providers (overrides limit). Use when user asks for every/all providers.")
-    after_npi: str = Field("", description="Keyset pagination — return results after this NPI")
 
 
 class SpecialtyInput(BaseModel):

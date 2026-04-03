@@ -19,10 +19,12 @@ function getMaxRows(): number {
 export interface PaginationState {
   visible: boolean
   totalCount: number
-  currentPage: number
+  pageStart: number
+  pageEnd: number
   pageSize: number
+  firstNpi: string
   lastNpi: string
-  pageNpis: string[]
+  npiHistory: string[]  // stack of after_npi values for back navigation
   searchParams: any
 }
 
@@ -35,35 +37,48 @@ function sendToParent(type: string, payload: any = {}) {
 }
 
 function renderPaginationHTML(state: PaginationState): string {
-  const totalPages = Math.ceil(state.totalCount / state.pageSize)
-  const canBack = state.currentPage > 1
-  const canForward = state.currentPage < totalPages
+  const canBack = state.pageStart > 1
+  const canForward = state.pageEnd < state.totalCount
 
-  const btnStyle = (enabled: boolean) =>
-    `padding:4px 12px;border-radius:4px;border:1px solid #d1d5db;` +
-    `background:${enabled ? '#fff' : '#f3f4f6'};color:${enabled ? '#111' : '#9ca3af'};` +
-    `cursor:${enabled ? 'pointer' : 'not-allowed'};font-size:13px;font-weight:500;`
+  // Cold gray (inactive/up) and warm gray (pressed/down)
+  const coldGray = '#6b7280'   // blue-tinted gray
+  const warmGray = '#78716c'   // warm stone gray
+  const disabledGray = '#d1d5db'
 
-  const maxRows = getMaxRows()
-  const sizeOptions = [5, 10, 15, 20].filter(n => n <= maxRows)
-  const options = sizeOptions.map(n =>
-    `<option value="${n}" ${n === state.pageSize ? 'selected' : ''}>${n}</option>`
-  ).join('')
+  const btn3d = (enabled: boolean) => `
+    padding:8px 20px;
+    border-radius:5px;
+    font-size:14px;
+    font-weight:600;
+    font-family:system-ui,sans-serif;
+    cursor:${enabled ? 'pointer' : 'not-allowed'};
+    color:#fff;
+    background:${enabled ? `linear-gradient(180deg, #8b8f96 0%, ${coldGray} 100%)` : disabledGray};
+    border:none;
+    border-bottom:${enabled ? `3px solid #4b5563` : `2px solid #c0c0c0`};
+    box-shadow:${enabled ? '0 2px 4px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15)' : 'none'};
+    transition:all 0.08s ease;
+    user-select:none;
+  `.replace(/\n\s+/g, '')
+
+  // Mouse down: warm gray, depressed
+  const pressDown = `this.style.background='linear-gradient(180deg, ${warmGray} 0%, #57534e 100%)';this.style.borderBottom='1px solid #44403c';this.style.transform='translateY(2px)';this.style.boxShadow='inset 0 2px 4px rgba(0,0,0,0.2)';`
+  // Mouse up: back to cold gray, raised
+  const pressUp = `this.style.background='linear-gradient(180deg, #8b8f96 0%, ${coldGray} 100%)';this.style.borderBottom='3px solid #4b5563';this.style.transform='translateY(0)';this.style.boxShadow='0 2px 4px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15)';`
 
   return `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;font-size:13px;font-family:system-ui,sans-serif;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <button data-gui-action="page-back" data-gui-value="" style="${btnStyle(canBack)}" ${canBack ? '' : 'disabled'}>← Back</button>
-        <span style="color:#6b7280;font-weight:500;">Page ${state.currentPage} of ${totalPages} (${state.totalCount.toLocaleString()} results)</span>
-        <button data-gui-action="page-forward" data-gui-value="" style="${btnStyle(canForward)}" ${canForward ? '' : 'disabled'}>Forward →</button>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <label style="color:#6b7280;">Per page:</label>
-        <select data-gui-action="page-size" style="padding:3px 8px;border-radius:4px;border:1px solid #d1d5db;font-size:13px;background:#fff;">
-          ${options}
-        </select>
-        <button data-gui-action="close" data-gui-value="" style="padding:3px 10px;border-radius:4px;border:1px solid #d1d5db;background:#fff;color:#6b7280;cursor:pointer;font-size:12px;" title="Close">✕</button>
-      </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:20px;padding:8px 16px;font-size:13px;font-family:system-ui,sans-serif;height:100%;">
+      <button data-gui-action="page-back" style="${btn3d(canBack)}"
+        title="${canBack ? 'Show previous records' : 'You are at the beginning'}"
+        ${canBack ? `onmousedown="${pressDown}" onmouseup="${pressUp}" onmouseleave="${pressUp}"` : 'disabled'}
+      >&laquo; Back</button>
+      <span style="color:#374151;font-weight:600;font-size:14px;min-width:160px;text-align:center;letter-spacing:0.02em;">
+        ${state.pageStart.toLocaleString()}\u2013${state.pageEnd.toLocaleString()} / ${state.totalCount.toLocaleString()}
+      </span>
+      <button data-gui-action="page-forward" style="${btn3d(canForward)}"
+        title="${canForward ? 'Show next records' : 'You are at the end'}"
+        ${canForward ? `onmousedown="${pressDown}" onmouseup="${pressUp}" onmouseleave="${pressUp}"` : 'disabled'}
+      >Forward &raquo;</button>
     </div>
   `
 }
@@ -74,10 +89,12 @@ export function useGUIManager() {
   const [pagination, setPagination] = useState<PaginationState>({
     visible: false,
     totalCount: 0,
-    currentPage: 1,
+    pageStart: 1,
+    pageEnd: 0,
     pageSize: 25,
+    firstNpi: '',
     lastNpi: '',
-    pageNpis: [''],
+    npiHistory: [],
     searchParams: null,
   })
 
@@ -89,23 +106,18 @@ export function useGUIManager() {
 
       switch (msg.action) {
         case 'page-forward':
-          setPagination(prev => {
-            const newPage = prev.currentPage + 1
-            const newPageNpis = [...prev.pageNpis]
-            if (newPageNpis.length < newPage) newPageNpis.push(prev.lastNpi)
-            return { ...prev, currentPage: newPage, pageNpis: newPageNpis }
-          })
+          setPagination(prev => ({
+            ...prev,
+            npiHistory: [...prev.npiHistory, prev.firstNpi],
+            direction: 'forward',
+          } as any))
           break
         case 'page-back':
-          setPagination(prev => ({ ...prev, currentPage: Math.max(1, prev.currentPage - 1) }))
-          break
-        case 'page-size':
-          const size = parseInt(msg.value) || 25
-          setPagination(prev => ({ ...prev, pageSize: size, currentPage: 1, pageNpis: [''], lastNpi: '' }))
-          break
-        case 'close':
-          setPagination(prev => ({ ...prev, visible: false }))
-          sendToParent('gui:clear')
+          setPagination(prev => {
+            const history = [...prev.npiHistory]
+            history.pop()  // remove current
+            return { ...prev, npiHistory: history, direction: 'back' } as any
+          })
           break
       }
     }
@@ -120,30 +132,48 @@ export function useGUIManager() {
     }
   }, [pagination])
 
-  const showPagination = useCallback((totalCount: number, lastNpi: string, searchParams: any) => {
-    setPagination({
+  const showPagination = useCallback((totalCount: number, pageStart: number, pageEnd: number,
+                                       firstNpi: string, lastNpi: string, searchParams: any,
+                                       pageSize: number) => {
+    setPagination(prev => ({
       visible: true,
       totalCount,
-      currentPage: 1,
-      pageSize: Math.min(getMaxRows(), 10),  // sensible default within device max
+      pageStart,
+      pageEnd,
+      pageSize,
+      firstNpi,
       lastNpi,
-      pageNpis: [''],
+      npiHistory: prev.npiHistory,
       searchParams,
-    })
+    }))
   }, [])
 
   const hidePagination = useCallback(() => {
-    setPagination(prev => ({ ...prev, visible: false }))
+    setPagination(prev => ({ ...prev, visible: false, npiHistory: [] }))
     sendToParent('gui:clear')
   }, [])
 
   const getAfterNpi = useCallback((): string => {
-    const idx = pagination.currentPage - 1
-    return pagination.pageNpis[idx] ?? ''
+    return pagination.lastNpi
   }, [pagination])
 
-  const updateLastNpi = useCallback((npi: string) => {
-    setPagination(prev => ({ ...prev, lastNpi: npi }))
+  const getBeforeNpi = useCallback((): string => {
+    const history = pagination.npiHistory
+    return history.length > 0 ? history[history.length - 1] : ''
+  }, [pagination])
+
+  const updateFromResponse = useCallback((data: any) => {
+    if (data.total_count > 0) {
+      setPagination(prev => ({
+        ...prev,
+        visible: true,
+        totalCount: data.total_count,
+        pageStart: data.page_start,
+        pageEnd: data.page_end,
+        firstNpi: data.first_npi || '',
+        lastNpi: data.last_npi || '',
+      }))
+    }
   }, [])
 
   return {
@@ -151,6 +181,7 @@ export function useGUIManager() {
     showPagination,
     hidePagination,
     getAfterNpi,
-    updateLastNpi,
+    getBeforeNpi,
+    updateFromResponse,
   }
 }

@@ -257,6 +257,12 @@ class PromptSystemMaker:
             f"mental health, or any sensitive topic — search immediately. Do NOT ask unnecessary clarifying "
             f"questions that could feel intrusive or judgmental. Never express surprise, hesitation, or "
             f"moral commentary. The user's healthcare needs are valid. Search first, support always.",
+
+            f"RULE 9 — PAGINATION: The find_providers tool returns total_count and a page of results. "
+            f"ALWAYS tell the user: 'Here are the first N of TOTAL providers.' Then ask: "
+            f"'Would you like to see more?' NEVER dump all results. NEVER set a high limit. "
+            f"The system handles pagination — your job is to present the first page and ask. "
+            f"Do NOT suggest external directories. The data is in our system.",
         ]
 
         if follow_up_check:

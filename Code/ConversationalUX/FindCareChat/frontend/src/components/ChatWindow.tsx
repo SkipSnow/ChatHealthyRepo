@@ -39,12 +39,54 @@ export default function ChatWindow() {
 
   // GUI Manager — non-chat controls (pagination, future widgets)
   const gui = useGUIManager()
+  const paginationTriggerRef = useRef(0)
+
+  // Pagination: when direction changes (forward/back click from control frame), fetch directly
+  useEffect(() => {
+    const dir = (gui.pagination as any).direction
+    if (!dir || !gui.pagination.visible || !gui.pagination.searchParams) return
+
+    const afterNpi = dir === 'forward' ? gui.pagination.lastNpi : gui.getBeforeNpi()
+    const params = {
+      ...gui.pagination.searchParams,
+      after_npi: afterNpi || undefined,
+      limit: gui.pagination.pageSize,
+    }
+
+    setIsLoading(true)
+    fetch(`${API_URL}/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.providers) {
+          const text = data.providers.map((p: any) =>
+            `**${p.name}**\n${p.address}\n${p.county ? p.county + ' County' : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
+          ).join('\n\n')
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: `**Records ${data.page_start}\u2013${data.page_end}:**\n\n${text}`,
+          }])
+          gui.updateFromResponse(data)
+        }
+        setIsLoading(false)
+      })
+      .catch(() => {
+        setMessages(prev => [...prev, { role: 'assistant', content: '**Error:** Could not fetch records.', isError: true }])
+        setIsLoading(false)
+      })
+  }, [(gui.pagination as any).direction, gui.pagination.npiHistory.length])
 
   // Refs — avoid stale closures in async callbacks
   const messagesRef = useRef<Message[]>([LOADING_MESSAGE])
   useEffect(() => { messagesRef.current = messages }, [messages])
   const backendEnvRef = useRef<string>('prod')
   const pendingRetryRef = useRef<{ message: string; history: any[]; startTime: number } | null>(null)
+  const pendingPaginationRef = useRef<{
+    totalCount: number; lastNpi: string; searchParams: any; pageSize: number; pageEnd: number
+  } | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
   // Fetch welcome message dynamically from server — no static defaults
@@ -205,6 +247,18 @@ export default function ChatWindow() {
       }])
       if (data.emergency) setIsLocked(true)
       if (data.response === 'Session unlocked.') setIsLocked(false)
+
+      // Store pagination state silently — no controls yet.
+      // Controls appear only when user says "yes" and we fetch page 2.
+      if (data.pagination?.total_count > 0 && data.pagination?.has_more) {
+        pendingPaginationRef.current = {
+          totalCount: data.pagination.total_count,
+          lastNpi: data.pagination.last_npi,
+          searchParams: data.pagination.search_params,
+          pageSize: data.pagination.count,
+          pageEnd: data.pagination.page_end,
+        }
+      }
     }
 
     setIsLoading(false)
@@ -216,7 +270,49 @@ export default function ChatWindow() {
     const text = input.trim()
     if (!text || !canSubmit) return
 
-    // Hide pagination when user sends a new message
+    // If there's a pending pagination and user responds, fetch page 2 directly (no LLM)
+    if (pendingPaginationRef.current) {
+      const pp = pendingPaginationRef.current
+      pendingPaginationRef.current = null
+      setMessages(prev => [...prev, { role: 'user', content: text }])
+      setInput('')
+      setIsLoading(true)
+
+      fetch(`${API_URL}/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...pp.searchParams,
+          after_npi: pp.lastNpi,
+          limit: pp.pageSize,
+        }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.providers) {
+            const resultText = data.providers.map((p: any) =>
+              `**${p.name}**\n${p.address}\n${p.county ? p.county + ' County' : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
+            ).join('\n\n')
+            setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: `**Records ${data.page_start}\u2013${data.page_end} of ${data.total_count}:**\n\n${resultText}`,
+            }])
+            // NOW show controls — user opted in, second page is on screen
+            gui.showPagination(
+              data.total_count, data.page_start, data.page_end,
+              data.first_npi, data.last_npi, data.search_params, data.count,
+            )
+          }
+          setIsLoading(false)
+        })
+        .catch(() => {
+          setMessages(prev => [...prev, { role: 'assistant', content: '**Error:** Could not fetch more results.', isError: true }])
+          setIsLoading(false)
+        })
+      return
+    }
+
+    // Hide pagination when user sends a new non-pagination message
     gui.hidePagination()
 
     const historyForBackend = messagesRef.current

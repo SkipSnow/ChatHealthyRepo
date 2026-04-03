@@ -229,8 +229,12 @@ class ChatRequest(BaseModel):
 
 class PaginationMeta(BaseModel):
     has_more: bool = False
+    first_npi: Optional[str] = None
     last_npi: Optional[str] = None
     count: int = 0
+    total_count: int = 0
+    page_start: int = 1
+    page_end: int = 0
     search_params: Optional[dict] = None
 
 class ChatResponse(BaseModel):
@@ -241,6 +245,25 @@ class ChatResponse(BaseModel):
     tokens_in: Optional[int] = None
     tokens_out: Optional[int] = None
     pagination: Optional[PaginationMeta] = None
+
+class SearchRequest(BaseModel):
+    """Direct provider search — bypasses Claude. Used for pagination."""
+    specialty_query: Optional[str] = None
+    state: Optional[str] = None
+    city: Optional[str] = None
+    county: Optional[str] = None
+    name: Optional[str] = None
+    npi: Optional[str] = None
+    specialty_codes: Optional[list[str]] = None
+    after_npi: Optional[str] = None
+    limit: int = 25
+
+@app.post("/search")
+async def search(body: SearchRequest):
+    """Direct provider search — for pagination. No LLM involved."""
+    params = body.model_dump(exclude_none=True)
+    result = _find_care.search_providers(**params)
+    return result
 
 @app.get("/welcome")
 def welcome():
@@ -331,12 +354,16 @@ async def _chat_inner(body: ChatRequest, request: Request):
     # Build pagination metadata if find_providers returned results
     pagination = None
     if last_provider_result and isinstance(last_provider_result, dict):
-        has_more = last_provider_result.get("has_more", False)
-        if has_more or last_provider_result.get("last_npi"):
+        total_count = last_provider_result.get("total_count", 0)
+        if total_count > 0:
             pagination = PaginationMeta(
-                has_more=has_more,
+                has_more=last_provider_result.get("has_more", False),
+                first_npi=last_provider_result.get("first_npi"),
                 last_npi=last_provider_result.get("last_npi"),
                 count=last_provider_result.get("count", 0),
+                total_count=total_count,
+                page_start=last_provider_result.get("page_start", 1),
+                page_end=last_provider_result.get("page_end", 0),
                 search_params=last_provider_result.get("search_params"),
             )
 

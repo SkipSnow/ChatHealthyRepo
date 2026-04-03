@@ -1,0 +1,100 @@
+{
+  "_record_id": "gui_frame_layout",
+  "title": "GUI Manager — Frame Layout and Control Surface Design",
+  "status": "designed",
+  "date": "2026-04-02",
+  "description": "Parent page frame layout with GUI Manager control surface. All dimensions percentage-based. Left and right panels start at 1%, can expand to push center content. Control frame is a 7% canvas that renders controls on demand via postMessage.",
+  "publish": false,
+  "layout": {
+    "header": {
+      "height": "6%",
+      "content": "Nav bar, logo, menu"
+    },
+    "left_panel": {
+      "width": "1%",
+      "height": "full (header to footer)",
+      "default": "collapsed sliver",
+      "behavior": "Expands to push center content. Future: navigation, sidebar.",
+      "notes": "Allows entire interface to shift right at will."
+    },
+    "center": {
+      "chat_iframe": {
+        "height": "83% of center",
+        "width": "fills between left and right panels",
+        "content": "CoreChatUX React app (iframe)"
+      },
+      "control_frame": {
+        "height": "7%",
+        "width": "same as chat iframe",
+        "id": "guiControlFrame",
+        "content": "Empty canvas. Controls appear when needed (pagination, filters, future widgets). Blank otherwise.",
+        "behavior": "React app sends HTML via postMessage (gui:render). Parent renders into this div. Clicks relay back to React app via postMessage (gui:event). When controls are cleared (gui:clear), the canvas goes blank but stays visible at 7%."
+      }
+    },
+    "right_panel": {
+      "width": "1%",
+      "height": "full (header to footer)",
+      "default": "collapsed sliver",
+      "behavior": "Expands when leaf page opens (architecture, roadmap, design docs). Retracts when closed.",
+      "current_impl": "legal-panel class — needs refactor from fixed overlay to inline flex panel"
+    },
+    "footer": {
+      "height": "4%",
+      "content": "Copyright, contact, roadmap link"
+    }
+  },
+  "gui_manager": {
+    "owner": "React app (ChatWindow.tsx via GUIManager.tsx hook)",
+    "rendering_surface": "guiControlFrame div in parent page (index.html)",
+    "communication": {
+      "react_to_parent": "window.parent.postMessage({type: 'gui:render', html: '...'}, '*')",
+      "parent_to_react": "chatFrame.contentWindow.postMessage({type: 'gui:event', action: '...', value: '...'}, '*')",
+      "clear": "window.parent.postMessage({type: 'gui:clear'}, '*')"
+    },
+    "controls": {
+      "pagination": {
+        "flow": [
+          "1. User asks for providers",
+          "2. Tool counts total, returns first N records + total_count",
+          "3. Claude tells user: 'Here are the first N of TOTAL. Would you like to see more?'",
+          "4. NO controls yet. Client stores search state silently (pendingPaginationRef).",
+          "5. User says 'yes' (any message while pagination is pending)",
+          "6. Frontend fetches page 2 via /search directly — NO LLM round-trip",
+          "7. Controls appear: << Back | 6-10 / 347 | Forward >>",
+          "8. User pages forward/back via control buttons — all deterministic, no LLM",
+          "9. User sends new chat message — controls disappear, state cleared"
+        ],
+        "button_states": {
+          "back_at_beginning": "Disabled, tooltip: 'You are at the beginning'",
+          "back_active": "Clickable, tooltip: 'Show previous records'",
+          "forward_at_end": "Disabled, tooltip: 'You are at the end'",
+          "forward_active": "Clickable, tooltip: 'Show next records'"
+        },
+        "button_style": "3D raised buttons. Cold gray (blue-tinted) at rest. Warm gray (stone) when pressed. Mouse down depresses with inset shadow. Mouse up returns to raised.",
+        "display_format": "<< Back | start-end / total | Forward >>",
+        "api_endpoint": "/search — direct provider search, no LLM, deterministic",
+        "rules": [
+          "LLM never sees fetch_all or after_npi — those fields are not in the tool definition",
+          "LLM always gets total_count in tool result and must report it to user",
+          "System prompt RULE 9 tells Claude to present first page and ask 'would you like to see more?'",
+          "Controls only appear after user opts in and second page renders",
+          "All pagination after first page is deterministic — /search with after_npi, no LLM"
+        ]
+      }
+    },
+    "state_ownership": "All state lives in React. Parent page is a stateless rendering surface.",
+    "responsive": {
+      "pc": "max 20 rows per page",
+      "mobile": "max 5 rows per page"
+    }
+  },
+  "rules": [
+    "All dimensions in percentages, no pixels",
+    "Left and right panels are always present (1% minimum)",
+    "Either panel can expand independently",
+    "Control frame is always visible at 7% — blank canvas when no controls active",
+    "Chat iframe fills remaining vertical space in center column",
+    "React app owns all state — parent page is a dumb rendering surface",
+    "Controls appear and disappear via postMessage — no page reloads"
+  ]
+}

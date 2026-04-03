@@ -66301,7 +66301,55 @@
           "status": "accepted",
           "accepted_by": "Boss (direct mandate)",
           "backend_dependencies": [],
-          "stories": []
+          "stories": [
+            {
+              "story_id": "E2E-PIPE-S1",
+              "title": "Pipeline orchestrator runs load → enrich → embed in sequence",
+              "parent_feature": "MAINT-E2E-PIPELINE",
+              "size": "L",
+              "status": "accepted",
+              "requirements": [
+                {"req_id": "E2E-PIPE-R01", "requirement": "Pipeline reserves cluster before any DB operation", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R02", "requirement": "Pipeline polls for cluster IDLE before starting work", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R03", "requirement": "Pipeline loads NPI data from CMS file into dev_PublicHealthData.providers", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R04", "requirement": "Pipeline enriches providers with county data in-place (not to a new collection)", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R05", "requirement": "Pipeline generates vector embeddings for all loaded providers", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R06", "requirement": "Pipeline releases reservation in finally block (success or failure)", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R07", "requirement": "Pipeline pauses cluster if last reservation", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R08", "requirement": "Pipeline returns status complete with record counts for each step", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R09", "requirement": "Each pipeline step is a separate durable activity with checkpointing", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R10", "requirement": "Pipeline can resume from any step via start_step parameter", "priority": "must-have", "label": "Y"}
+              ]
+            },
+            {
+              "story_id": "E2E-PIPE-S2",
+              "title": "Pipeline smoke test with Delaware",
+              "parent_feature": "MAINT-E2E-PIPELINE",
+              "size": "M",
+              "status": "accepted",
+              "requirements": [
+                {"req_id": "E2E-PIPE-R11", "requirement": "Pipeline loads DE providers from CMS file", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R12", "requirement": "Pipeline enriches DE providers with county economic data", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R13", "requirement": "Pipeline embeds DE providers with vector embeddings", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R14", "requirement": "DE provider count in dev_PublicHealthData matches expected NPI count", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R15", "requirement": "DE providers have non-null embedding field after pipeline completes", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R16", "requirement": "DE providers have enriched county data (gdp, income, rural_urban) after pipeline", "priority": "must-have", "label": "Y"}
+              ]
+            },
+            {
+              "story_id": "E2E-PIPE-S3",
+              "title": "Pipeline scale test with CA, TX, NY",
+              "parent_feature": "MAINT-E2E-PIPELINE",
+              "size": "L",
+              "status": "accepted",
+              "requirements": [
+                {"req_id": "E2E-PIPE-R17", "requirement": "Pipeline loads CA providers end to end without timeout or failure", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R18", "requirement": "Pipeline loads TX providers end to end without timeout or failure", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R19", "requirement": "Pipeline loads NY providers end to end without timeout or failure", "priority": "must-have", "label": "Y"},
+                {"req_id": "E2E-PIPE-R20", "requirement": "Each large state completes within the reservation expected_duration", "priority": "must-have", "label": "Y"}
+              ]
+            }
+          ]
         },
         {
           "feature_id": "MAINT-INCREMENTAL-LOAD",
@@ -66339,13 +66387,111 @@
           "epic_id": "EPIC-2",
           "layer": "backend",
           "capability": "DataPipelines",
-          "description": "Pipeline cluster is only running during jobs. Start cluster before job, pause/shutdown after completion. No idle clusters. No manual intervention by Boss.",
-          "evidence": "Code/DataPipelines/atlas_cluster_manager.py (cluster scaling exists). GAP: No automatic shutdown on pipeline completion.",
+          "description": "Pipeline cluster is only running during jobs. Start cluster before job, pause/shutdown after completion. No idle clusters. No manual intervention by Boss. Includes MigrateEnvironment (same cluster dev→qa→prod) and CopyToFrontEnd (cross-cluster to frontend).",
+          "evidence": "Code/DataPipelines/atlas_cluster_manager.py, Code/DataPipelines/cluster_lifecycle_manager.py, Code/DataPipelines/copy_to_frontend.py, Code/DataPipelines/function_app.py",
           "priority": "HIGH",
           "status": "accepted",
           "accepted_by": "Boss (direct mandate)",
           "backend_dependencies": [],
-          "stories": []
+          "stories": [
+            {
+              "story_id": "MONGO-LIFE-S1",
+              "title": "MigrateEnvironment — same-cluster env-to-env data promotion",
+              "parent_feature": "MAINT-MONGO-LIFECYCLE",
+              "size": "L",
+              "status": "accepted",
+              "requirements": [
+                {"req_id": "MONGO-LIFE-R01", "requirement": "MigrateEnvironment copies all collections from src_env to dst_env on same cluster", "priority": "must-have", "label": "Y"},
+                {"req_id": "MONGO-LIFE-R02", "requirement": "Small collections use $out (server-side, no wire transfer)", "priority": "must-have", "label": "Y"},
+                {"req_id": "MONGO-LIFE-R03", "requirement": "Providers use chunked _id range copy (partition + fan out workers)", "priority": "must-have", "label": "Y"},
+                {"req_id": "MONGO-LIFE-R04", "requirement": "Each chunk worker copies a fixed record count, not a state-based boundary", "priority": "must-have", "label": "Y"},
+                {"req_id": "MONGO-LIFE-R05", "requirement": "Partition does NOT pull all _ids into memory — uses $bucketAuto or sampling", "priority": "must-have", "label": "Y"},
+                {"req_id": "MONGO-LIFE-R06", "requirement": "Orchestrator reserves cluster, polls for IDLE, releases in finally", "priority": "must-have", "label": "Y"},
+                {"req_id": "MONGO-LIFE-R07", "requirement": "Environment naming follows devops.json convention: dev, qa, prod", "priority": "must-have", "label": "Y"},
+                {"req_id": "MONGO-LIFE-R08", "requirement": "Data promotes forward only: dev→qa→prod per GOV-012", "priority": "must-have", "label": "Y"},
+                {"req_id": "MONGO-LIFE-R09", "requirement": "Returns 202 immediately with status URL (async durable pattern)", "priority": "must-have", "label": "Y"}
+              ]
+            },
+            {
+              "story_id": "MONGO-LIFE-S2",
+              "title": "CopyToFrontEnd — cross-cluster copy to frontend",
+              "parent_feature": "MAINT-MONGO-LIFECYCLE",
+              "size": "L",
+              "status": "accepted",
+              "requirements": [
+                {"req_id": "MONGO-LIFE-R10", "requirement": "CopyToFrontEnd copies from pipeline cluster to frontend cluster", "priority": "must-have", "label": "Y"},
+                {"req_id": "MONGO-LIFE-R11", "requirement": "Providers use chunked _id range copy (same pattern as MigrateEnvironment)", "priority": "must-have", "label": "Y"},
+                {"req_id": "MONGO-LIFE-R12", "requirement": "Static collections (SpecialtyMetaData etc) copied before providers", "priority": "must-have", "label": "Y"},
+                {"req_id": "MONGO-LIFE-R13", "requirement": "Vector search index created on frontend after provider copy", "priority": "must-have", "label": "Y"},
+                {"req_id": "MONGO-LIFE-R14", "requirement": "dev pipeline data goes to dev frontend only (GOV-012)", "priority": "must-have", "label": "Y"},
+                {"req_id": "MONGO-LIFE-R15", "requirement": "Returns 202 immediately with status URL", "priority": "must-have", "label": "Y"}
+              ]
+            }
+          ]
+        },
+        {
+          "feature_id": "GUI-PAGINATION",
+          "name": "Generic Paginated Result Control",
+          "epic_id": "EPIC-2",
+          "layer": "both",
+          "capability": "ConversationalUX",
+          "description": "Generic GUI component for paginating any tool result with multiple records. Renders in the parent page control frame via postMessage. Record-based navigation (not page-based). LLM presents first page and asks user. All subsequent pagination is deterministic via /search endpoint. Reusable by any future tool that returns multiple records.",
+          "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/GUIManager.tsx, Code/ConversationalUX/FindCareChat/backend/main.py (/search endpoint), brain/machine_artifacts/content/design.gui_frame_layout.json",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss (direct mandate)",
+          "backend_dependencies": [],
+          "stories": [
+            {
+              "story_id": "GUI-PAG-S1",
+              "title": "Pagination data flow — tool returns total_count, /search for direct pagination",
+              "parent_feature": "GUI-PAGINATION",
+              "size": "L",
+              "status": "accepted",
+              "requirements": [
+                {"req_id": "GUI-PAG-R01", "requirement": "Tool returns total_count showing total matching records", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R02", "requirement": "Tool returns count of records in current page", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R03", "requirement": "Tool returns has_more boolean", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R04", "requirement": "fetch_all and after_npi NOT in LLM tool definition", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R05", "requirement": "search_params returned for query replay by frontend", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R06", "requirement": "Keyset pagination via first_npi, last_npi, after_npi", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R07", "requirement": "has_more=False at end of results", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R08", "requirement": "/chat response includes pagination metadata when find_providers called", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R09", "requirement": "Claude mentions total count and asks would you like to see more", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R10", "requirement": "/search endpoint exists, works without LLM, returns in under 5 seconds", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R11", "requirement": "Limit always enforced, tool never returns more than requested", "priority": "must-have", "label": "Y"}
+              ]
+            },
+            {
+              "story_id": "GUI-PAG-S2",
+              "title": "Control appearance and lifecycle",
+              "parent_feature": "GUI-PAGINATION",
+              "size": "M",
+              "status": "accepted",
+              "requirements": [
+                {"req_id": "GUI-PAG-R12", "requirement": "Controls do NOT appear on first page — only after user opts in and second page loads", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R13", "requirement": "Display format is record-based (start-end / total), not page numbers", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R14", "requirement": "Controls disappear when user sends a new chat message", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R15", "requirement": "Forward/back uses /search not /chat — no LLM for pagination", "priority": "must-have", "label": "Y"}
+              ]
+            },
+            {
+              "story_id": "GUI-PAG-S3",
+              "title": "Button behavior — 3D, hot/cold, tooltips",
+              "parent_feature": "GUI-PAGINATION",
+              "size": "S",
+              "status": "accepted",
+              "requirements": [
+                {"req_id": "GUI-PAG-R16", "requirement": "Back button disabled at beginning with tooltip You are at the beginning", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R17", "requirement": "Forward button disabled at end with tooltip You are at the end", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R18", "requirement": "Buttons are 3D raised with border-bottom shadow and box-shadow", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R19", "requirement": "Mouse down changes from cold gray to warm gray, mouse up returns", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R20", "requirement": "Back button is active when second page loads because page 1 exists behind it", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R21", "requirement": "Disabled buttons cannot be clicked and show not-allowed cursor", "priority": "must-have", "label": "Y"},
+                {"req_id": "GUI-PAG-R22", "requirement": "Mouse leave on pressed button returns to unpressed raised state", "priority": "must-have", "label": "Y"}
+              ]
+            }
+          ]
         }
       ]
     },
