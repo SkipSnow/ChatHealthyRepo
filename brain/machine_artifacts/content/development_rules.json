@@ -81,6 +81,12 @@
       "rule": "AI resolves codes. Database returns data. Vector search must NEVER return provider records directly to the user. It resolves taxonomy codes, then the deterministic taxonomy query returns the actual data. GOV-011 policy violation: 'The AI turns what the user says into a clear question. The system answers using real data, not guesses.'",
       "incident": "Vector search route returned provider records directly from similarity ranking. These results were non-deterministic, inconsistent with taxonomy query counts, and caused pagination to show different data on replay. The AI was answering instead of the system.",
       "date": "2026-04-02"
+    },
+    {
+      "id": "BUG-FILTER-001",
+      "rule": "BUG: Specialty filter panel empty — specialization_options returns 0 items. Root cause: SpecialtyService.find_specialty_codes returns empty despite SpecialtyMetaData having 45 matches for 'surg' in Display Name. Vector search indexes missing on frontend cluster (both provider_vector_index and specialty_vector_index). Regex pipeline in SpecialtyService._expand_query may be failing silently. Pipeline must create all vector search indexes on CopyToFrontEnd.",
+      "incident": "User searched 'surgeons in VA', got 4,418 results but no filter panel. specialization_options was empty in the response because identify_specialty returned no codes.",
+      "date": "2026-04-03"
     }
   ]
 }
