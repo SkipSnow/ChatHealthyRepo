@@ -111,6 +111,14 @@ export default function ChatWindow() {
               role: 'assistant',
               content: `**Filtered results — ${data.total_count} providers found:**\n\n${resultText}`,
             }])
+            // System summary for filtered results
+            if (data.summary_message) {
+              setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: data.summary_message,
+                isSummary: true,
+              } as Message])
+            }
             // Update pagination for filtered results
             pendingPaginationRef.current = {
               totalCount: data.total_count,

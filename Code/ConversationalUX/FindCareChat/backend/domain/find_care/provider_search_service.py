@@ -323,9 +323,29 @@ class FindCareService:
             providers = [self._format_provider(p) for p in raw]
             _log.info("search: specialty_codes returned %d for %d codes in %s",
                        len(providers), len(specialty_codes), state_upper or "all")
+
+            # Look up selected specialty names for the summary
+            specialization_options = []
+            try:
+                meta_coll = db[f"{self._env}_PublicHealthData"]["SpecialtyMetaData"]
+                for doc in meta_coll.find({"Code": {"$in": specialty_codes}},
+                                           {"Code": 1, "Display Name": 1, "_id": 0}):
+                    specialization_options.append({
+                        "code": doc.get("Code", ""),
+                        "name": doc.get("Display Name", ""),
+                    })
+            except Exception:
+                pass
+
+            # Build filtered search term from selected specialty names
+            selected_names = [o["name"] for o in specialization_options if o.get("name")]
+            filtered_term = ", ".join(selected_names) if selected_names else f"{len(specialty_codes)} selected specialties"
+
             return self._paginated_result(providers, "specialty_codes", safe_limit,
                                           search_params=_search_params, total_count=total_count,
-                                          state=state_upper, codes_searched=len(specialty_codes))
+                                          state=state_upper, specialty_searched=filtered_term,
+                                          specialization_options=specialization_options,
+                                          codes_searched=len(specialty_codes))
 
         # ── Route 4: Specialty query (vector resolves codes → taxonomy returns data) ──
         if specialty_query:
