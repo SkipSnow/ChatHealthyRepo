@@ -338,16 +338,19 @@ async def chat(body: ChatRequest, request: Request):
 # "show me shrinks near Richmond" → "shrinks"
 # ---------------------------------------------------------------------------
 def _extract_user_search_term(user_message: str) -> str:
-    """Use Haiku to extract the colloquial search term from user's message."""
+    """Use GPT-4.1-nano to extract the colloquial search term from user's message."""
     try:
-        client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
-        resp = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+        from openai import OpenAI
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        resp = client.chat.completions.create(
+            model="gpt-4.1-nano",
             max_tokens=50,
-            system="Extract ONLY the provider/specialty search term from the user's message. Return just the term, nothing else. Examples: 'find me shrinks in VA' → 'shrinks'. 'show me a bone doc near Richmond' → 'bone doc'. 'find pediatricians in delaware' → 'pediatricians'. No quotes, no punctuation, no explanation.",
-            messages=[{"role": "user", "content": user_message}],
+            messages=[
+                {"role": "system", "content": "Extract ONLY the provider/specialty search term from the user's message. Return just the term, nothing else. Examples: 'find me shrinks in VA' → 'shrinks'. 'show me a bone doc near Richmond' → 'bone doc'. 'find pediatricians in delaware' → 'pediatricians'. No quotes, no punctuation, no explanation."},
+                {"role": "user", "content": user_message},
+            ],
         )
-        term = resp.content[0].text.strip().strip("'\"")
+        term = resp.choices[0].message.content.strip().strip("'\"")
         _log.info("GOV-011-STD-002: '%s' → '%s'", user_message, term)
         return term if term else user_message
     except Exception as exc:
