@@ -605,9 +605,14 @@
         : '';
       if (env) {
         var banner = document.getElementById('envBanner');
-        banner.textContent = env + ' ENVIRONMENT';
+        banner.textContent = env;
         banner.style.display = 'block';
         if (env !== 'LOCAL') banner.style.background = '#dc2626';
+        // Fetch build/version from backend
+        var apiUrl = isLocal ? 'http://localhost:8000' : '';
+        fetch(apiUrl + '/health').then(function(r) { return r.json(); }).then(function(d) {
+          banner.textContent = env + ' \u2014 Build ' + (d.build || '?') + ' \u2014 ' + (d.version || '?');
+        }).catch(function() {});
       }
     })();
   </script>
