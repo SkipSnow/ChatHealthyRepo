@@ -143,17 +143,26 @@ class FindCareService:
             _log.warning("Vector search failed: %s", e)
             return []
 
-    def _paginated_result(self, providers: list, search_mode: str, safe_limit: int, **extra) -> dict:
+    def _paginated_result(self, providers: list, search_mode: str, safe_limit: int,
+                          search_params: dict = None, total_count: int = 0,
+                          page_start: int = 1, **extra) -> dict:
         """Build a result dict with pagination metadata."""
+        first_npi = providers[0]["npi"] if providers else ""
         last_npi = providers[-1]["npi"] if providers else ""
         has_more = len(providers) == safe_limit and safe_limit > 0
+        page_end = page_start + len(providers) - 1 if providers else 0
         result = {
             "supported": True,
             "search_mode": search_mode,
             "count": len(providers),
+            "total_count": total_count,
             "providers": providers,
+            "first_npi": first_npi,
             "last_npi": last_npi,
             "has_more": has_more,
+            "page_start": page_start,
+            "page_end": page_end,
+            "search_params": search_params or {},
         }
         result.update(extra)
         return result
@@ -161,7 +170,7 @@ class FindCareService:
     def search_providers(self, specialty_query: str = "", state: str = "", city: str = "",
                          county: str = "", limit: int = 25, npi: str = "", name: str = "",
                          fuzzy_specialty: str = "", specialty_codes: list[str] = None,
-                         fetch_all: bool = False, after_npi: str = "",
+                         after_npi: str = "",
                          find_specialty_fn=None) -> dict:
         """Search for providers. Main entry point.
 
@@ -200,11 +209,20 @@ class FindCareService:
                 ),
             }
 
+        # Build search_params for pagination replay
+        _search_params = {}
+        if specialty_query: _search_params["specialty_query"] = specialty_query
+        if state_upper: _search_params["state"] = state_upper
+        if city: _search_params["city"] = city
+        if county: _search_params["county"] = county
+        if name: _search_params["name"] = name
+        if specialty_codes: _search_params["specialty_codes"] = specialty_codes
+
         db = self._get_db()
         if db is None:
             return {"error": "Database unavailable"}
 
-        safe_limit = 0 if fetch_all else int(limit)
+        safe_limit = int(limit)
         collection = db[f"{self._env}_PublicHealthData"]["providers"]
 
         # ── Route 1: NPI exact lookup ──
@@ -217,31 +235,36 @@ class FindCareService:
 
         # ── Route 2: Name search ──
         if name:
-            name_filter = {"practice_address.state": state_upper} if state_upper else {}
-            name_filter["$or"] = [
+            base_filter = {"practice_address.state": state_upper} if state_upper else {}
+            base_filter["$or"] = [
                 {"provider_last_name_legal_name": {"$regex": name.strip(), "$options": "i"}},
                 {"provider_first_name": {"$regex": name.strip(), "$options": "i"}},
                 {"provider_organization_name_legal_business_name": {"$regex": name.strip(), "$options": "i"}},
             ]
+            total_count = collection.count_documents(base_filter)
+            query_filter = dict(base_filter)
             if after_npi:
-                name_filter["npi"] = {"$gt": after_npi}
-            cursor = collection.find(name_filter, self._PROJECTION).sort("npi", 1)
+                query_filter["npi"] = {"$gt": after_npi}
+            cursor = collection.find(query_filter, self._PROJECTION).sort("npi", 1)
             if safe_limit > 0:
                 cursor = cursor.limit(safe_limit)
             raw = list(cursor)
             providers = [self._format_provider(p) for p in raw]
-            return self._paginated_result(providers, "name", safe_limit)
+            return self._paginated_result(providers, "name", safe_limit, search_params=_search_params,
+                                          total_count=total_count)
 
         # ── Route 3: Specialty codes direct filter ──
         if specialty_codes:
-            query_filter = {"taxonomies.code": {"$in": specialty_codes}}
+            base_filter = {"taxonomies.code": {"$in": specialty_codes}}
             if state_upper:
-                query_filter["practice_address.state"] = state_upper
+                base_filter["practice_address.state"] = state_upper
             if city:
-                query_filter["practice_address.city"] = {"$regex": city.strip(), "$options": "i"}
+                base_filter["practice_address.city"] = {"$regex": city.strip(), "$options": "i"}
             if county:
-                query_filter.update(self._make_county_filter(county))
+                base_filter.update(self._make_county_filter(county))
 
+            total_count = collection.count_documents(base_filter)
+            query_filter = dict(base_filter)
             if after_npi:
                 query_filter["npi"] = {"$gt": after_npi}
             cursor = collection.find(query_filter, self._PROJECTION).sort("npi", 1)
@@ -252,6 +275,7 @@ class FindCareService:
             _log.info("search: specialty_codes returned %d for %d codes in %s",
                        len(providers), len(specialty_codes), state_upper or "all")
             return self._paginated_result(providers, "specialty_codes", safe_limit,
+                                          search_params=_search_params, total_count=total_count,
                                           state=state_upper, codes_searched=len(specialty_codes))
 
         # ── Route 4: Vector search (natural language) ──
@@ -277,15 +301,17 @@ class FindCareService:
                     return {"supported": True, "providers": [],
                             "message": f"No matching specialty found for '{specialty_query}'."}
 
-                query_filter = {
+                base_filter = {
                     "practice_address.state": state_upper,
                     "taxonomies.code": {"$in": codes},
                 }
                 if city:
-                    query_filter["practice_address.city"] = {"$regex": city.strip(), "$options": "i"}
+                    base_filter["practice_address.city"] = {"$regex": city.strip(), "$options": "i"}
                 if county:
-                    query_filter.update(self._make_county_filter(county))
+                    base_filter.update(self._make_county_filter(county))
 
+                total_count = collection.count_documents(base_filter)
+                query_filter = dict(base_filter)
                 if after_npi:
                     query_filter["npi"] = {"$gt": after_npi}
                 cursor = collection.find(query_filter, self._PROJECTION).sort("npi", 1)
@@ -295,16 +321,19 @@ class FindCareService:
                 providers = [self._format_provider(p) for p in raw]
                 _log.info("search: taxonomy returned %d for '%s' in %s", len(providers), specialty_query, state_upper)
                 return self._paginated_result(providers, "taxonomy", safe_limit,
+                                              search_params=_search_params, total_count=total_count,
                                               state=state_upper, specialty_searched=specialty_query)
 
         # ── Route 5: County fallback ──
         if county and state_upper:
-            county_filter = {
+            base_filter = {
                 "practice_address.state": state_upper,
                 "entity_type_code": "1",
                 "taxonomies": {"$elemMatch": {"code": {"$regex": "^2"}, "primary": True}},
             }
-            county_filter.update(self._make_county_filter(county))
+            base_filter.update(self._make_county_filter(county))
+            total_count = collection.count_documents(base_filter)
+            county_filter = dict(base_filter)
             if after_npi:
                 county_filter["npi"] = {"$gt": after_npi}
             cursor = collection.find(county_filter, self._PROJECTION).sort("npi", 1)
@@ -314,6 +343,7 @@ class FindCareService:
             providers = [self._format_provider(p) for p in raw]
             _log.info("search: county fallback returned %d for '%s' in %s", len(providers), county, state_upper)
             return self._paginated_result(providers, "county_physicians", safe_limit,
+                                          search_params=_search_params, total_count=total_count,
                                           state=state_upper, county_searched=county)
 
         return {"supported": True, "providers": [],

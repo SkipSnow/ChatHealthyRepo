@@ -45,10 +45,37 @@
       min-height: 100vh;
     }
 
+    /* ── Content area with side panels ────────────── */
+    .content-row {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+
+    .side-panel {
+      width: 1%;
+      min-width: 1%;
+      transition: width 0.3s ease;
+      overflow: hidden;
+    }
+
+    .side-panel.expanded {
+      width: 40%;
+    }
+
+    .center-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
     /* ── Header ────────────────────────────────────── */
     header {
       position: sticky;
       top: 0;
+      height: 6vh;
+      min-height: 48px;
       z-index: 100;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
@@ -59,7 +86,7 @@
       max-width: var(--max-w);
       margin: 0 auto;
       padding: 0 24px;
-      height: 64px;
+      height: 100%;
       display: flex;
       align-items: center;
       gap: 40px;
@@ -265,8 +292,6 @@
       border-radius: var(--radius);
       overflow: hidden;
       box-shadow: 0 2px 12px rgba(11,122,117,0.08);
-      /* Fills available vertical space; minimum sensible height on phone */
-      min-height: clamp(420px, 70dvh, 800px);
       position: relative;
       background: #f7fbfa;
     }
@@ -310,13 +335,18 @@
     footer {
       border-top: 1px solid var(--border);
       background: var(--surface);
+      height: 4vh;
+      min-height: 36px;
     }
 
     .footer-inner {
       max-width: var(--max-w);
       margin: 0 auto;
-      padding: 16px clamp(12px, 4vw, 24px);
+      padding: 0 clamp(12px, 4vw, 24px);
       width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
     }
 
     .footer-links {
@@ -602,7 +632,7 @@
       <!-- Control Frame — GUI surface owned by the React app via postMessage.
            React app pushes HTML here. Clicks relay back to the app.
            Invisible when empty. -->
-      <div id="guiControlFrame" style="min-height:0;overflow:hidden;transition:all 0.2s ease;"></div>
+      <div id="guiControlFrame" style="height:44px;overflow:hidden;transition:all 0.2s ease;border-top:1px solid #d8e2e1;"></div>
 
       <script>
         (function() {

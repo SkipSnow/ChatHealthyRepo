@@ -1,0 +1,62 @@
+{
+  "_record_id": "development_rules",
+  "title": "Development Rules — Learned the Hard Way",
+  "description": "Rules created from mistakes. Each rule exists because Claude did something stupid. Read before every session.",
+  "publish": false,
+  "rules": [
+    {
+      "id": "DR-001",
+      "rule": "Never create a database or environment without checking devops.json for the naming convention first.",
+      "incident": "Created staging_PublicHealthData instead of qa_PublicHealthData. Environments are dev/qa/prod, not dev/staging/prod.",
+      "date": "2026-04-02"
+    },
+    {
+      "id": "DR-002",
+      "rule": "Never drop a collection without explicit Boss authorization. State the cluster, database, and collection name and get confirmation.",
+      "incident": "Dropped dev_PublicHealthData.providers on the frontend cluster during cleanup without realizing it was the only copy the chat app could read from.",
+      "date": "2026-04-02"
+    },
+    {
+      "id": "DR-003",
+      "rule": "Never hack around the pipeline software. If the software cannot do the job, fix the software.",
+      "incident": "Tried batching curl calls by state, swapping connection strings for local testing, and other workarounds instead of building the proper pipeline task.",
+      "date": "2026-04-02"
+    },
+    {
+      "id": "DR-004",
+      "rule": "When a pattern is established, apply it everywhere in the same commit. Do not build a correct pattern then forget to use it 10 minutes later.",
+      "incident": "Built chunked _id range copy for CopyToFrontEnd, then used single $out for MigrateEnvironment. Same problem, forgot to use the same solution.",
+      "date": "2026-04-02"
+    },
+    {
+      "id": "DR-005",
+      "rule": "Never kill a running job without Boss authorization.",
+      "incident": "Killed running MigrateEnvironment orchestrator without asking. Boss did not authorize it.",
+      "date": "2026-04-02"
+    },
+    {
+      "id": "DR-006",
+      "rule": "State is not a valid partition boundary for data operations. Record count or _id range is the correct boundary.",
+      "incident": "Chunked CopyToFrontEnd by state. CA has 500K records, WY has 5K. Chunks were wildly uneven. Boss had to explain why this was wrong.",
+      "date": "2026-04-02"
+    },
+    {
+      "id": "DR-007",
+      "rule": "Know which cluster you are operating on before every database operation. Name the cluster, database, and collection explicitly.",
+      "incident": "Confused pipeline cluster and frontend cluster operations multiple times. Tried to copy cross-cluster when same-cluster was needed.",
+      "date": "2026-04-02"
+    },
+    {
+      "id": "DR-008",
+      "rule": "Do not pull all _ids into memory to compute partition boundaries. Use $bucketAuto or sampling.",
+      "incident": "partition_source aggregated all _ids from millions of records into a Python list. Activity hung and likely timed out.",
+      "date": "2026-04-02"
+    },
+    {
+      "id": "DR-009",
+      "rule": "Before starting any local server, kill all dead and zombie processes on the target ports first. Verify the port is clear before binding.",
+      "incident": "Had 12 zombie Python processes running. Old servers on port 8000 served stale code while the new server hadn't finished loading. Caused false 404s and hours of confusion.",
+      "date": "2026-04-02"
+    }
+  ]
+}

@@ -1,234 +1,30 @@
-# ChatHealthy — Project Context
+# ChatHealthy — Session Startup Protocol
 
-## Repo
-**`SkipSnow/ChatHealthyRepo`** — single monorepo for all ChatHealthy production code.
+## Step 1: Load the Brain
+Read and retain every file listed in the project manifest:
+`brain/manifest/project_manifest.json`
 
-## Diagrams
-Always use simple boxes and lines with white backgrounds and black text.
-All diagrams must be fully visible. Never cross lines. Never place objects on top of one another.
+## Step 2: Load Governance
+Read and retain all records in:
+`brain/machine_artifacts/content/governance.json`
 
----
+## Step 3: Load DevOps
+Read and retain all records in:
+`brain/machine_artifacts/content/devops.json`
 
-## Repository Structure
+## Step 4: Load Architecture  
+Read and retain all records in:
+`brain/machine_artifacts/content/architecture.json`
 
-```
-ChatHealthyRepo/
-  Code/
-    ConversationalUX/         ← Layer 1: React + FastAPI (HuggingFace)
-      ChatHealthyWhoAmIChat/  ← current About Us chatbot (Gradio, active)
-    DataPipelines/            ← Layer 2: Azure Function App (CrewAI workflows)
-    Shared/                   ← ChatHealthyMongoUtilities, common types
-  Website/                    ← Static site (Cloudflare) — single source of truth for all design docs
-  Legal/
-  .github/
-    workflows/
-      deploy-hf.yml                    ← ChatHealthyWhoAmIChat → HuggingFace (on push to main)
-      deploy-findcare-backend.yml      ← FindCareChat backend+frontend → HuggingFace (on push to dev)
-      deploy-findcare-website-dev.yml  ← Website/ → Cloudflare Pages (on push to dev)
-      deploy-pipelines.yml             ← DataPipelines → Azure (on push to main)
-      test.yml                         ← Unit tests (on push to main / PR)
-```
+## Step 5: Load All Brain Content
+Read every JSON file in:
+`brain/machine_artifacts/content/`
 
----
+## Step 6: Confirm Context
+Before writing any code, state back to Boss:
+- What environment am I in (dev/qa/prod)
+- What are the database naming conventions ({env}_DatabaseName)
+- What are the application boundaries (GOV-005)
+- What branch am I on and what deploys from it
 
-## Infrastructure
-
-```
-Cloudflare (www.chathealthy.ai)
-  → Serves Website/ as static pages
-  → DNS, embeds HuggingFace space via iframe
-
-HuggingFace Spaces
-  → SkipSnow/ChatHealthyWhoAmIChat — About Us chatbot (Gradio, active until FindCare replaces)
-  → SkipSnow/dev_ChatHealthyAIChatWindow — FindCare dev (Docker: React + FastAPI)
-  → Direct Anthropic SDK for chat
-  → UX model: ChatGPT / Claude.ai — single session, rich inline components
-
-Azure Function App (FindCare-AI, US East 2)
-  → Layer 2: DataPipelines — CrewAI workflows
-  → Python 3.12.10, pay-per-use
-  → Core library: ChatHealthyLib.pipelines
-
-MongoDB Atlas
-  → Account: skip.snow@gmail.com
-  → ChatHealthyFrontEnd cluster — always on
-      App reads (providers, specialties), admin data: prod_Brain, prod_Backlog, AboutUs
-      Connection: MONGO_FRONTEND_connectionString
-  → ChatHealthyDataPipelines cluster — started manually for pipeline runs only
-      Batch writes: provider load, enrichment, embeddings
-      Connection: MONGO_connectionString
-      Never holds admin or operational data
-```
-
----
-
-## GitHub
-
-- **Repo**: `SkipSnow/ChatHealthyRepo`
-- **Lab/experiments**: `SkipSnow/ChatHealthyLabRepo`
-- CI/CD: push to dev/main → GitHub Actions path-filtered deploy
-- Secrets: HF_TOKEN, OPENAI_API_KEY, Anthropic_API_KEY, MONGO_connectionString, AZURE_FUNCTION_APP_NAME, AZURE_FUNCTION_PUBLISH_PROFILE
-
----
-
-## Three-Application Architecture — Strict Separation
-
-The system is exactly three applications. Keep them rigorous and separate.
-
-| # | Application | Host | Code Path |
-|---|---|---|---|
-| 1 | **Static Website** | Cloudflare | `Website/` |
-| 2 | **Chat Window** | HuggingFace Docker Space | `Code/ConversationalUX/` |
-| 3 | **Data Management & Pipelines** | Azure Functions | `Code/DataPipelines/` |
-
-### Boundary rules — enforced without exception
-
-- **App 1 (Website)** contains only static content: HTML, CSS, JS, images. No business logic, no LLM calls, no database access. It embeds App 2 via iframe. That is the only coupling.
-- **App 2 (Chat)** handles all user interaction and real-time UX: LLM conversation, tool calls, inline components. It reads from the database freely for fast UX lookups. It may write to application collections (e.g. `AboutUs`). It must never write to `PublicHealthData`.
-- **App 3 (Pipelines)** exclusively owns all writes to `PublicHealthData`: ingestion, embeddings, and multi-agent workflows. It exposes a REST API (`/api/Router`). It has no UX and no knowledge of the chat session.
-
-### What belongs where
-
-| Concern | App |
-|---|---|
-| Page content, navigation, legal, marketing | 1 — Website |
-| Conversation, intent routing, tool calls, DB reads, writes to application DBs (e.g. AboutUs) | 2 — Chat |
-| All PublicHealthData writes: ingestion, embeddings, multi-agent workflows | 3 — Pipelines |
-
-### Integration pattern
-- App 1 → App 2: iframe embed only
-- App 2 → App 3: HTTP POST to `/api/Router` with `Bearer` token, JSON payload `{ ChatHealthyTask, payload }`
-- App 3 → App 2: JSON response only — no callbacks, no direct coupling
-
-### Decision rule
-Before adding any code, ask: which application owns this concern? If it crosses a boundary, use the prescribed integration pattern — never bypass it.
-
----
-
-## Architecture Decisions
-
-### UX: One unified session
-- No separate About Us app — it is one intent path within the main session
-- Intent routing is invisible to the user
-- Rich components (maps, charts, provider cards) render inline in the message stream
-- Session transcript is a first-class output — users can share it with their doctor
-- UX model: ChatGPT / Claude.ai
-
-### Layer 1 — ConversationalUX (HuggingFace)
-- React + shadcn/ui frontend
-- FastAPI backend
-- Direct Anthropic SDK — Claude handles routing, tool calls, response
-- Tools defined in FastAPI, called by Claude during conversation
-
-### Router
-The Router is a first-class architectural component of App 2. Its implementation is Claude's tool selector — not a separate service, not a workaround. Claude reads the user's message, selects the appropriate tool, and that selection IS the routing decision.
-
-| Intent | Route (tool called) | Context loaded |
-|---|---|---|
-| Find a provider | `find_providers` | 0 extra tokens |
-| Identify specialty | `find_specialty_codes` | 0 extra tokens |
-| Clinical trials | `search_clinical_trials` | 0 extra tokens |
-| About Skip Snow | `get_skip_snow_context` | ~2k tokens (summary + LinkedIn) |
-| About ChatHealthy | `get_chathealthy_context` | ~6k tokens (business plan + principles) |
-| Lead capture | `record_user_details` | 0 extra tokens |
-| Unknown question | `record_unknown_question` | 0 extra tokens |
-
-The system prompt stays minimal (~700 tokens) for every request. Context loads on demand through tool results, not pre-loaded unconditionally. Do not replace the Router with a separate classification service — Claude's tool selection is more context-aware and requires no extra API call.
-
-### Layer 2 — DataPipelines (Azure Functions)
-- CrewAI multi-agent orchestration
-- Multi-LLM: each agent uses the best model for its task
-- Triggered by App 2 via API call for complex workflows
-- Example: eligibility matching, document generation, data ingestion
-
-### Why CrewAI over Anthropic Agent SDK
-- CrewAI supports multiple LLMs per agent — needed for cost and capability optimization
-
-### Environments
-- **Dev**: current HuggingFace Space + Azure dev slot + ChatHealthyDB_dev
-- **Prod**: separate HuggingFace Space + Azure prod + ChatHealthyDB_prod (future)
-- SIT/UAT added when team size justifies separate roles
-
-### FHIR / Epic EMR
-- Deferred to a later phase — plugs into Layer 2
-
----
-
-## Existing Chatbot (About Us)
-
-Currently live at `SkipSnow/ChatHealthyWhoAmIChat` on HuggingFace.
-Stack: Python, Gradio 5.22, OpenAI gpt-4o-mini (chat), Claude Haiku (deIdentify + summarize).
-Keep running until FindCare ConversationalUX replaces it.
-
----
-
-## MongoDB Guidelines
-
-- Use batch writes when possible
-- Use connection pooling (design pending)
-- Monitor and throttle — dev cluster uses shared CPU
-- Tag all automated test records: `testdata: true`
-- Never delete records by default — filter with `{ testdata: true }` when needed
-
-### Collections
-- `AboutUs.lead` — contact records (verbatim or de-identified, per consent)
-- `AboutUs.AboutSkip` — unknown questions (de-identified)
-
-### Lead Record Schema
-```json
-{
-  "email": "...",
-  "name": "...",
-  "notes": "...",
-  "reason_for_contact": "...",
-  "consent_verbatim": true,
-  "consent_summary": null,
-  "chat_history": [...],
-  "datetime": "ISO string",
-  "testdata": false
-}
-```
-
----
-
-## HIPAA Consent Flow
-
-1. **Verbatim**: "May we save a verbatim transcript of this conversation with your contact details?"
-   - Yes → store full `chat_history` (PII intact, consent exchange included as evidence)
-2. **Summary** (if verbatim declined): "May we save a de-identified summary instead?"
-   - Yes → LLM summarizes → `deIdentify()` scrubs PII → stored in `notes`, no `chat_history`
-3. **Neither** → contact fields only, no history stored
-
----
-
-## Testing
-
-- Unit tests (mocked): `python -m pytest Code/ConversationalUX/ChatHealthyWhoAmIChat/tests/test_record_user_details.py -v`
-- E2E tests (real systems): `python Code/ConversationalUX/ChatHealthyWhoAmIChat/tests/test_e2e_record_user_details.py`
-- E2E uses timestamped emails — records persist in dev DB, no teardown
-- Run both before any deploy
-
----
-
-## Design Compliance
-
-The design documents in `Website/` are authoritative. All code must comply with them.
-
-- Before writing or modifying code, check the relevant design doc.
-- If code would violate a documented pattern — application boundary rules, pipeline exception handling framework, integration patterns — comply with the doc or raise it before proceeding.
-- If the design changes, update the doc in the same commit as the code.
-
-Key design documents:
-- `Website/architecture.html` — system architecture, three-application boundaries, pipeline overview
-- `Website/provider-data-load.html` — pipeline design, exception handling framework, class contracts
-
----
-
-## Dev Preferences
-
-- No auto-commit — only commit when explicitly asked
-- No teardown on test data — records stay in dev DB
-- End-to-end tests use real systems (MongoDB, Anthropic) — no mocks
-- Keep solutions simple — no over-engineering, no speculative features
-- FHIR is later — don't design for it now
-- Notebooks go in ChatHealthyLabRepo, not here
+Do not write code until context is confirmed.
