@@ -143,6 +143,27 @@ class FindCareService:
             _log.warning("Vector search failed: %s", e)
             return []
 
+    @staticmethod
+    def _build_summary_message(has_more: bool, total_count: int, page_count: int,
+                               specialty_searched: str = "",
+                               specialization_options: list = None) -> str:
+        """Build a system-generated summary message per GOV-011 / FC-RESULT-MSG.
+
+        The system builds this message from structured data — the LLM does not write it.
+        """
+        if not has_more:
+            return ""
+        remaining = total_count - page_count
+        search_term = specialty_searched or "results"
+        spec_count = len(specialization_options) if specialization_options else 0
+        parts = [f"There are {remaining:,} more {search_term}"]
+        if spec_count > 0:
+            parts.append(f" and they represent {spec_count} types of specialists"
+                         f" [Filter](#action:filter)")
+        parts.append(f". Would you like to see the [next page](#action:next-page)?")
+        parts.append(" I can also narrow results by city or county if that would help!")
+        return "".join(parts)
+
     def _paginated_result(self, providers: list, search_mode: str, safe_limit: int,
                           search_params: dict = None, total_count: int = 0,
                           page_start: int = 1, **extra) -> dict:
@@ -151,6 +172,11 @@ class FindCareService:
         last_npi = providers[-1]["npi"] if providers else ""
         has_more = len(providers) == safe_limit and safe_limit > 0
         page_end = page_start + len(providers) - 1 if providers else 0
+        summary_message = self._build_summary_message(
+            has_more, total_count, len(providers),
+            specialty_searched=extra.get("specialty_searched", ""),
+            specialization_options=extra.get("specialization_options"),
+        )
         result = {
             "supported": True,
             "search_mode": search_mode,
@@ -163,6 +189,7 @@ class FindCareService:
             "page_start": page_start,
             "page_end": page_end,
             "search_params": search_params or {},
+            "summary_message": summary_message,
         }
         result.update(extra)
         return result

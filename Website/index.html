@@ -764,6 +764,15 @@
           }
         }
 
+        if (msg.type === 'gui:event' && msg.action === 'highlight-filter') {
+          // Flash the filter panel to draw attention
+          leftPanel.style.transition = 'background 0.3s';
+          leftPanel.style.background = '#fffbcc';
+          setTimeout(function() { leftPanel.style.background = 'rgb(225,225,255)'; }, 800);
+          setTimeout(function() { leftPanel.style.background = '#fffbcc'; }, 1100);
+          setTimeout(function() { leftPanel.style.background = 'rgb(225,225,255)'; }, 1400);
+        }
+
         if (msg.type === 'gui:filter-clear') {
           // Clear content but keep width at 20% — user controls layout (future feature)
           leftPanel.innerHTML = '<span class="frame-label" style="color:#8888cc;font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;">LEFT PANEL</span>';
