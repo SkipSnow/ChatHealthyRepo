@@ -16,9 +16,13 @@ const sanitizeSchema = {
   attributes: {
     ...defaultSchema.attributes,
     span: [['className', 'state-name']],
-    a: [...(defaultSchema.attributes?.a || []), 'target', 'rel'],
+    a: [...(defaultSchema.attributes?.a || []), 'target', 'rel', 'href'],
     th: ['align'],
     td: ['align'],
+  },
+  protocols: {
+    ...defaultSchema.protocols,
+    href: [...(defaultSchema.protocols?.href || []), '#action'],
   },
 }
 
