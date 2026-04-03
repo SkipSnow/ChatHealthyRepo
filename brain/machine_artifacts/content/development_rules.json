@@ -131,6 +131,12 @@
       "date": "2026-04-03"
     },
     {
+      "id": "BUG-DESIGN-001",
+      "rule": "DESIGN ERROR (Boss): Filtered results with more than one page must show pagination controls in the control frame immediately. Do not make the user ask for page 2 after applying a filter — they already expressed intent to see results.",
+      "incident": "Boss applied specialty filter, got summary but had to ask to see more. Pagination controls should appear automatically when has_more is true on filtered results.",
+      "date": "2026-04-03"
+    },
+    {
       "id": "DR-019",
       "rule": "All SIT testing must be against the full parent page (dev.chathealthy.ai), never the HF Space iframe in isolation. The parent page is the product. The iframe is a component. Test the product.",
       "incident": "SIT tests were passing against the iframe but missing bugs visible on the full page — sideways filter text, missing banner build number, filter panel not rendering. These were only visible in the parent page context.",
