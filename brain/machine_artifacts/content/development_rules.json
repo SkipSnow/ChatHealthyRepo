@@ -75,6 +75,12 @@
       "rule": "Never remove a requirement from the implementation to save performance. If a requirement is expensive, find a cheaper way to implement it. Only Boss can waive requirements.",
       "incident": "Removed server-side page_start calculation because it was slow (extra count_documents query). This broke the pagination display — every page showed Records 1-25. Should have moved the tracking to the frontend instead of dropping the requirement.",
       "date": "2026-04-02"
+    },
+    {
+      "id": "DR-013",
+      "rule": "AI resolves codes. Database returns data. Vector search must NEVER return provider records directly to the user. It resolves taxonomy codes, then the deterministic taxonomy query returns the actual data. GOV-011 policy violation: 'The AI turns what the user says into a clear question. The system answers using real data, not guesses.'",
+      "incident": "Vector search route returned provider records directly from similarity ranking. These results were non-deterministic, inconsistent with taxonomy query counts, and caused pagination to show different data on replay. The AI was answering instead of the system.",
+      "date": "2026-04-02"
     }
   ]
 }
