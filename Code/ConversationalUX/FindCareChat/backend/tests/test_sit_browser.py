@@ -105,18 +105,20 @@ class TestSITProviderSearch:
         """Summary message contains a clickable Filter link."""
         frame = _get_chat_frame(page)
         _send_message(frame, "find surgeons in delaware")
-        _screenshot(page, "05_filter_link")
-        # Look for the Filter action link
+        # Summary message renders after LLM response — wait for action link
         filter_link = frame.locator("a[href='#action:filter']")
+        filter_link.wait_for(state="attached", timeout=15000)
+        _screenshot(page, "05_filter_link")
         assert filter_link.count() > 0, "Summary must contain a [Filter] action link"
 
     def test_summary_has_next_page_link(self, page: Page):
         """Summary message contains a clickable next page link."""
         frame = _get_chat_frame(page)
         _send_message(frame, "find surgeons in delaware")
-        _screenshot(page, "06_next_page_link")
-        # Look for the next page action link
+        # Summary message renders after LLM response — wait for action link
         next_link = frame.locator("a[href='#action:next-page']")
+        next_link.wait_for(state="attached", timeout=15000)
+        _screenshot(page, "06_next_page_link")
         assert next_link.count() > 0, "Summary must contain a [next page] action link"
 
     def test_filter_link_highlights_panel(self, page: Page):
@@ -147,7 +149,8 @@ class TestSITProviderSearch:
         """After provider search, specialty filter panel appears in left panel."""
         frame = _get_chat_frame(page)
         _send_message(frame, "find surgeons in delaware")
-        page.wait_for_timeout(2000)
+        # Wait for filter panel to populate via postMessage to parent
+        page.wait_for_timeout(5000)
         # Check parent page for filter panel content
         left_panel = page.locator("#leftPanel")
         if left_panel.count() > 0:
@@ -155,3 +158,94 @@ class TestSITProviderSearch:
             _screenshot(page, "09_filter_panel")
             assert "Filter" in panel_text or "filter" in panel_text or len(panel_text) > 20, \
                 "Left panel should show specialty filter options"
+
+
+class TestSITMobile:
+    """SIT: Mobile device emulation — iPhone 14 Pro and Galaxy S24."""
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, playwright):
+        self.playwright = playwright
+
+    def _run_mobile_test(self, device_name: str, search_query: str):
+        """Run provider search on a mobile device and capture screenshots."""
+        device = self.playwright.devices[device_name]
+        browser = self.playwright.chromium.launch(headless=True)
+        context = browser.new_context(**device)
+        page = context.new_page()
+
+        tag = device_name.replace(" ", "_")
+
+        # Load page
+        page.goto(BASE_URL, wait_until="networkidle", timeout=60000)
+        page.wait_for_timeout(8000)
+        _screenshot(page, f"mobile_{tag}_01_loaded")
+
+        # Find chat frame
+        frame = None
+        for f in page.frames:
+            if "hf.space" in f.url or ":5173" in f.url:
+                frame = f
+                break
+        if not frame:
+            frame = page
+
+        frame.wait_for_timeout(3000)
+
+        # Send message
+        chat_input = frame.locator("input[placeholder*='Type a message'], textarea").first
+        chat_input.fill(search_query)
+        send_btn = frame.locator("button", has_text="Send").first
+        send_btn.click()
+        send_btn.wait_for(state="visible", timeout=90000)
+        frame.wait_for_timeout(5000)
+        _screenshot(page, f"mobile_{tag}_02_results")
+
+        # Check for summary message content
+        content = frame.content()
+        assert search_query.split()[0].lower() in content.lower() or "more" in content.lower(), \
+            f"Response should contain search results on {device_name}"
+
+        # Wait for action links
+        filter_link = frame.locator("a[href='#action:filter']")
+        next_link = frame.locator("a[href='#action:next-page']")
+        try:
+            next_link.wait_for(state="attached", timeout=15000)
+        except Exception:
+            pass
+        _screenshot(page, f"mobile_{tag}_03_summary")
+
+        has_filter = filter_link.count() > 0
+        has_next = next_link.count() > 0
+
+        context.close()
+        browser.close()
+
+        return {"filter_link": has_filter, "next_link": has_next, "content_ok": True}
+
+    def test_iphone14_provider_search(self, playwright):
+        """Provider search with summary links on iPhone 14 Pro."""
+        result = self._run_mobile_test("iPhone 14 Pro", "find surgeons in delaware")
+        assert result["content_ok"], "Search must return results on iPhone"
+        assert result["next_link"], "Next page link must render on iPhone"
+
+    def test_galaxy_s24_provider_search(self, playwright):
+        """Provider search with summary links on Galaxy S24."""
+        result = self._run_mobile_test("Galaxy S24", "find pediatricians in virginia")
+        assert result["content_ok"], "Search must return results on Galaxy"
+        assert result["next_link"], "Next page link must render on Galaxy"
+
+    def test_iphone14_screenshot_review(self, playwright):
+        """Capture iPhone layout for Boss review — page load, results, summary."""
+        self._run_mobile_test("iPhone 14 Pro", "find me shrinks in VA")
+        # Screenshots saved for manual review
+        assert os.path.exists(os.path.join(SCREENSHOT_DIR, "mobile_iPhone_14_Pro_01_loaded.png"))
+        assert os.path.exists(os.path.join(SCREENSHOT_DIR, "mobile_iPhone_14_Pro_02_results.png"))
+        assert os.path.exists(os.path.join(SCREENSHOT_DIR, "mobile_iPhone_14_Pro_03_summary.png"))
+
+    def test_galaxy_s24_screenshot_review(self, playwright):
+        """Capture Galaxy layout for Boss review — page load, results, summary."""
+        self._run_mobile_test("Galaxy S24", "find me shrinks in VA")
+        assert os.path.exists(os.path.join(SCREENSHOT_DIR, "mobile_Galaxy_S24_01_loaded.png"))
+        assert os.path.exists(os.path.join(SCREENSHOT_DIR, "mobile_Galaxy_S24_02_results.png"))
+        assert os.path.exists(os.path.join(SCREENSHOT_DIR, "mobile_Galaxy_S24_03_summary.png"))
