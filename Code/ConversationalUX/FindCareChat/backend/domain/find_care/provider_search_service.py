@@ -105,6 +105,40 @@ class FindCareService:
             "lng": p.get("practice_address", {}).get("lng"),
         }
 
+    def _facet_query(self, collection, base_filter: dict, after_npi: str, safe_limit: int) -> tuple:
+        """Single-query count + page using $facet. Returns (providers, total_count)."""
+        query_filter = dict(base_filter)
+        if after_npi:
+            query_filter["npi"] = {"$gt": after_npi}
+        pipeline = [
+            {"$match": query_filter},
+            {"$facet": {
+                "count": [{"$match": base_filter}, {"$count": "total"}] if not after_npi
+                          else [{"$count": "total"}],
+                "page": [{"$sort": {"npi": 1}}] +
+                         ([{"$limit": safe_limit}] if safe_limit > 0 else []) +
+                         [{"$project": self._PROJECTION}],
+            }},
+        ]
+        # For the count facet, we need the full base_filter count (not after_npi filtered)
+        # So we run count separately only when paginating
+        if after_npi:
+            total_count = collection.count_documents(base_filter)
+            result = list(collection.aggregate([
+                {"$match": query_filter},
+                {"$sort": {"npi": 1}},
+            ] + ([{"$limit": safe_limit}] if safe_limit > 0 else []) + [
+                {"$project": self._PROJECTION},
+            ]))
+            return [self._format_provider(p) for p in result], total_count
+
+        result = list(collection.aggregate(pipeline))
+        if not result:
+            return [], 0
+        total_count = result[0]["count"][0]["total"] if result[0]["count"] else 0
+        providers = [self._format_provider(p) for p in result[0]["page"]]
+        return providers, total_count
+
     _PROJECTION = {
         "_id": 0, "npi": 1, "entity_type_code": 1,
         "provider_first_name": 1, "provider_last_name_legal_name": 1,
@@ -312,15 +346,7 @@ class FindCareService:
             if county:
                 base_filter.update(self._make_county_filter(county))
 
-            total_count = collection.count_documents(base_filter)
-            query_filter = dict(base_filter)
-            if after_npi:
-                query_filter["npi"] = {"$gt": after_npi}
-            cursor = collection.find(query_filter, self._PROJECTION).sort("npi", 1)
-            if safe_limit > 0:
-                cursor = cursor.limit(safe_limit)
-            raw = list(cursor)
-            providers = [self._format_provider(p) for p in raw]
+            providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
             _log.info("search: specialty_codes returned %d for %d codes in %s",
                        len(providers), len(specialty_codes), state_upper or "all")
 
