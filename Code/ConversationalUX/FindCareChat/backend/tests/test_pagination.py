@@ -437,5 +437,163 @@ class TestSpecialtyRefinementRequirements(unittest.TestCase):
         cls.client = TestClient(app)
 
 
+class TestSearchResultPresentation(unittest.TestCase):
+    """FC-RESULT-MSG: System-built summary message per GOV-011."""
+
+    @classmethod
+    def setUpClass(cls):
+        from main import app
+        from fastapi.testclient import TestClient
+        cls.client = TestClient(app)
+
+    # ── FC-MSG-001-REQ-001: Use search term, not generic 'providers' ──
+
+    def test_summary_uses_search_term(self):
+        """summary_message must contain the user's search term, not 'providers'."""
+        from domain.find_care.provider_search_service import FindCareService
+        msg = FindCareService._build_summary_message(
+            has_more=True, total_count=100, page_count=25,
+            specialty_searched="surgeons", specialization_options=[{"code": "1"}])
+        self.assertIn("surgeons", msg)
+        self.assertNotIn("providers", msg)
+
+    # ── FC-MSG-001-REQ-002: Remaining count, not total ──
+
+    def test_summary_shows_remaining_count(self):
+        """summary_message must show remaining (total - displayed), not total."""
+        from domain.find_care.provider_search_service import FindCareService
+        msg = FindCareService._build_summary_message(
+            has_more=True, total_count=17278, page_count=25,
+            specialty_searched="surgeons")
+        self.assertIn("17,253", msg)
+        self.assertNotIn("17,278", msg)
+
+    # ── FC-MSG-001-REQ-003: Specialty type count ──
+
+    def test_summary_shows_specialty_count(self):
+        """summary_message must state how many types of specialists."""
+        from domain.find_care.provider_search_service import FindCareService
+        opts = [{"code": f"c{i}", "name": f"Spec {i}"} for i in range(12)]
+        msg = FindCareService._build_summary_message(
+            has_more=True, total_count=100, page_count=25,
+            specialty_searched="surgeons", specialization_options=opts)
+        self.assertIn("12 types of specialists", msg)
+
+    # ── FC-MSG-001-REQ-004: Filter link marker ──
+
+    def test_summary_contains_filter_link(self):
+        """summary_message must contain a [Filter] action link."""
+        from domain.find_care.provider_search_service import FindCareService
+        opts = [{"code": "c1", "name": "Spec 1"}]
+        msg = FindCareService._build_summary_message(
+            has_more=True, total_count=100, page_count=25,
+            specialty_searched="surgeons", specialization_options=opts)
+        self.assertIn("[Filter](#action:filter)", msg)
+
+    # ── FC-MSG-001-REQ-005: Next page link marker ──
+
+    def test_summary_contains_next_page_link(self):
+        """summary_message must contain a [next page] action link."""
+        from domain.find_care.provider_search_service import FindCareService
+        msg = FindCareService._build_summary_message(
+            has_more=True, total_count=100, page_count=25,
+            specialty_searched="surgeons")
+        self.assertIn("[next page](#action:next-page)", msg)
+
+    # ── FC-MSG-001-REQ-006: City/county narrowing offer ──
+
+    def test_summary_offers_city_county_narrowing(self):
+        """summary_message must offer to narrow by city or county."""
+        from domain.find_care.provider_search_service import FindCareService
+        msg = FindCareService._build_summary_message(
+            has_more=True, total_count=100, page_count=25,
+            specialty_searched="surgeons")
+        self.assertIn("city or county", msg)
+
+    # ── FC-MSG-001-REQ-007: summary_message in /chat PaginationMeta ──
+
+    def test_chat_returns_summary_message(self):
+        """/chat must include summary_message in pagination metadata."""
+        r = self.client.post("/chat", json={
+            "message": "find pediatricians in delaware",
+            "history": [],
+        })
+        data = r.json()
+        if data.get("error"):
+            self.skipTest(f"Chat API error: {data['error'][:100]}")
+        pagination = data.get("pagination")
+        if pagination and pagination.get("has_more"):
+            self.assertIsNotNone(pagination.get("summary_message"),
+                                  "pagination.summary_message must exist when has_more=True")
+            self.assertIn("pediatrician", pagination["summary_message"].lower(),
+                          "summary_message must contain the search term")
+
+    # ── FC-MSG-001-REQ-008: No summary when has_more is False ──
+
+    def test_no_summary_when_no_more(self):
+        """summary_message must be empty when has_more is False."""
+        from domain.find_care.provider_search_service import FindCareService
+        msg = FindCareService._build_summary_message(
+            has_more=False, total_count=5, page_count=5,
+            specialty_searched="surgeons")
+        self.assertEqual(msg, "")
+
+    # ── FC-MSG-001-REQ-003 edge: No specialty count when no options ──
+
+    def test_no_specialty_count_when_no_options(self):
+        """summary_message must not mention specialist types when specialization_options is empty."""
+        from domain.find_care.provider_search_service import FindCareService
+        msg = FindCareService._build_summary_message(
+            has_more=True, total_count=100, page_count=25,
+            specialty_searched="Smith")
+        self.assertNotIn("types of specialists", msg)
+        self.assertNotIn("[Filter]", msg)
+
+    # ── FC-MSG-002-REQ-001: summary_message in /search response ──
+
+    def test_search_returns_summary_message(self):
+        """/search must include summary_message in response."""
+        r = self.client.post("/search", json={
+            "state": "DE", "limit": 5, "specialty_query": "pediatrician"
+        })
+        data = r.json()
+        if data.get("has_more"):
+            self.assertIn("summary_message", data)
+            self.assertTrue(len(data["summary_message"]) > 0)
+
+    # ── FC-MSG-002-REQ-002: Filter link is markdown action ──
+
+    def test_filter_link_is_action_markdown(self):
+        """Filter link must use #action:filter href for frontend interception."""
+        from domain.find_care.provider_search_service import FindCareService
+        opts = [{"code": "c1"}]
+        msg = FindCareService._build_summary_message(
+            has_more=True, total_count=100, page_count=25,
+            specialty_searched="surgeons", specialization_options=opts)
+        self.assertIn("#action:filter", msg)
+
+    # ── FC-MSG-002-REQ-003: Next page link is markdown action ──
+
+    def test_next_page_link_is_action_markdown(self):
+        """Next page link must use #action:next-page href for frontend interception."""
+        from domain.find_care.provider_search_service import FindCareService
+        msg = FindCareService._build_summary_message(
+            has_more=True, total_count=100, page_count=25,
+            specialty_searched="surgeons")
+        self.assertIn("#action:next-page", msg)
+
+    # ── FC-MSG-002-REQ-004: Frontend handles action links ──
+
+    def test_frontend_handles_action_links(self):
+        """MessageBubble must intercept #action: links."""
+        bubble_path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend",
+                                    "src", "components", "MessageBubble.tsx")
+        with open(bubble_path) as f:
+            content = f.read()
+        self.assertIn("#action:", content, "MessageBubble must handle #action: links")
+        self.assertIn("gui:next-page", content, "Must dispatch gui:next-page message")
+        self.assertIn("gui:highlight-filter", content, "Must dispatch gui:highlight-filter message")
+
+
 if __name__ == "__main__":
     unittest.main()

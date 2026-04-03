@@ -237,6 +237,7 @@ class PaginationMeta(BaseModel):
     page_end: int = 0
     search_params: Optional[dict] = None
     specialization_options: Optional[list[dict]] = None
+    summary_message: Optional[str] = None
 
 class ChatResponse(BaseModel):
     response: Optional[str] = None
@@ -270,11 +271,39 @@ async def search(body: SearchRequest):
 def welcome():
     return {"message": _build_test_welcome() if _HUMAN_TESTING else WELCOME_MESSAGE}
 
+_REQUIRED_INDEXES = {
+    "providers": ["provider_vector_index"],
+    "SpecialtyMetaData": ["specialty_vector_index"],
+}
+
+def _check_indexes() -> dict:
+    """DR-016/DR-018: verify all required vector search indexes exist."""
+    db = _get_db()
+    if db is None:
+        return {"status": "db_unavailable"}
+    missing = []
+    for coll_name, index_names in _REQUIRED_INDEXES.items():
+        try:
+            existing = [idx.get("name") for idx in
+                        db[f"{_ENV_PREFIX}_PublicHealthData"][coll_name].list_search_indexes()]
+            for idx in index_names:
+                if idx not in existing:
+                    missing.append(f"{coll_name}/{idx}")
+        except Exception:
+            missing.append(f"{coll_name}/ERROR")
+    return {"missing": missing, "status": "fail" if missing else "ok"}
+
 @app.get("/health")
 def health():
     env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
-    return {"status": "ok", "db": "connected" if _get_db() else "unavailable",
-            "env": env_label, "build": _BUILD, "version": _APP_VERSION}
+    idx_check = _check_indexes()
+    status = "ok" if idx_check["status"] == "ok" else "degraded"
+    result = {"status": status, "db": "connected" if _get_db() else "unavailable",
+              "env": env_label, "build": _BUILD, "version": _APP_VERSION}
+    if idx_check.get("missing"):
+        result["missing_indexes"] = idx_check["missing"]
+        _log.error("HEALTH CHECK: missing indexes — %s", idx_check["missing"])
+    return result
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, request: Request):
@@ -367,6 +396,7 @@ async def _chat_inner(body: ChatRequest, request: Request):
                 page_end=last_provider_result.get("page_end", 0),
                 search_params=last_provider_result.get("search_params"),
                 specialization_options=last_provider_result.get("specialization_options"),
+                summary_message=last_provider_result.get("summary_message"),
             )
 
     _log.info("CHAT complete tokens_in=%d tokens_out=%d pagination=%s", total_in, total_out, bool(pagination))

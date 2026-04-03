@@ -143,6 +143,22 @@ def _create_frontend_vector_index(frontend_client: MongoClient, db_name: str, co
                         "type": "filter",
                         "path": "practice_address.state",
                     },
+                    {
+                        "type": "filter",
+                        "path": "practice_address.city",
+                    },
+                    {
+                        "type": "filter",
+                        "path": "practice_address.zip",
+                    },
+                    {
+                        "type": "filter",
+                        "path": "county.name",
+                    },
+                    {
+                        "type": "filter",
+                        "path": "county.fips",
+                    },
                 ]
             },
         })
@@ -153,6 +169,65 @@ def _create_frontend_vector_index(frontend_client: MongoClient, db_name: str, co
         else:
             raise
     return {"index": index_name, "db": db_name, "collection": coll_name, "status": "ready"}
+
+
+def _create_specialty_vector_index(frontend_client: MongoClient, db_name: str) -> dict:
+    """Create Atlas Vector Search index on SpecialtyMetaData. Idempotent."""
+    collection = frontend_client[db_name]["SpecialtyMetaData"]
+    index_name = "specialty_vector_index"
+    try:
+        collection.create_search_index({
+            "name": index_name,
+            "type": "vectorSearch",
+            "definition": {
+                "fields": [
+                    {
+                        "type": "vector",
+                        "path": "embedding",
+                        "numDimensions": 3072,
+                        "similarity": "cosine",
+                    },
+                ]
+            },
+        })
+        logging.info("Frontend vector index '%s' created on %s.SpecialtyMetaData", index_name, db_name)
+    except Exception as exc:
+        if "already exists" in str(exc).lower() or "duplicate" in str(exc).lower():
+            logging.info("Frontend vector index '%s' already exists — skipping.", index_name)
+        else:
+            raise
+    return {"index": index_name, "db": db_name, "collection": "SpecialtyMetaData", "status": "ready"}
+
+
+def verify_frontend_indexes(frontend_client: MongoClient, db_name: str) -> dict:
+    """DR-016: Verify all required vector search indexes exist. Fails promotion if missing.
+
+    Required indexes:
+      - provider_vector_index on providers
+      - specialty_vector_index on SpecialtyMetaData
+    """
+    required = {
+        "providers": "provider_vector_index",
+        "SpecialtyMetaData": "specialty_vector_index",
+    }
+    results = {}
+    missing = []
+    for coll_name, idx_name in required.items():
+        try:
+            indexes = list(frontend_client[db_name][coll_name].list_search_indexes())
+            found = any(idx.get("name") == idx_name for idx in indexes)
+            results[idx_name] = "exists" if found else "MISSING"
+            if not found:
+                missing.append(f"{db_name}.{coll_name}/{idx_name}")
+        except Exception as exc:
+            results[idx_name] = f"ERROR: {exc}"
+            missing.append(f"{db_name}.{coll_name}/{idx_name}")
+    return {
+        "db": db_name,
+        "indexes": results,
+        "missing": missing,
+        "passed": len(missing) == 0,
+    }
 
 
 def create_frontend_vector_index_fn(config: dict) -> dict:

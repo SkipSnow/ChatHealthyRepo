@@ -9,6 +9,7 @@ export interface Message {
   role: 'user' | 'assistant'
   content: string
   isError?: boolean
+  isSummary?: boolean
   thinkSeconds?: number
   tokensIn?: number
   build?: string
@@ -131,6 +132,56 @@ export default function ChatWindow() {
           setIsLoading(false)
         })
     })
+  }, [])
+
+  // FC-RESULT-MSG: handle action links from system summary message
+  const fetchNextPageRef = useRef<() => void>(() => {})
+  useEffect(() => {
+    fetchNextPageRef.current = () => {
+      const pp = pendingPaginationRef.current
+      if (!pp) return
+      pendingPaginationRef.current = null
+      setIsLoading(true)
+      const pageStart = pp.pageEnd + 1
+      fetch(`${API_URL}/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...pp.searchParams, after_npi: pp.lastNpi, limit: pp.pageSize }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.providers && data.providers.length > 0) {
+            const pageEnd = pageStart + data.providers.length - 1
+            const resultText = data.providers.map((p: any) =>
+              `**${p.name}**\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
+            ).join('\n\n')
+            setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: `**Records ${pageStart}\u2013${pageEnd} of ${pp.totalCount}:**\n\n${resultText}`,
+            }])
+            gui.showPagination(pp.totalCount, pageStart, pageEnd,
+              data.first_npi, data.last_npi, pp.searchParams, pp.pageSize)
+          }
+          setIsLoading(false)
+        })
+        .catch(() => {
+          setMessages(prev => [...prev, { role: 'assistant', content: '**Error:** Could not fetch more results.', isError: true }])
+          setIsLoading(false)
+        })
+    }
+  })
+  useEffect(() => {
+    function handleAction(event: MessageEvent) {
+      const msg = event.data
+      if (!msg || typeof msg !== 'object') return
+      if (msg.type === 'gui:highlight-filter') {
+        window.parent.postMessage({ type: 'gui:event', action: 'highlight-filter' }, '*')
+      } else if (msg.type === 'gui:next-page') {
+        fetchNextPageRef.current()
+      }
+    }
+    window.addEventListener('message', handleAction)
+    return () => window.removeEventListener('message', handleAction)
   }, [])
 
   // Refs — avoid stale closures in async callbacks
@@ -317,6 +368,15 @@ export default function ChatWindow() {
       // Show filter panel if specialization options returned
       if (data.pagination?.specialization_options?.length > 1) {
         gui.showFilterPanel(data.pagination.specialization_options, data.pagination.search_params)
+      }
+
+      // FC-RESULT-MSG / GOV-011: system-built summary message replaces LLM summary
+      if (data.pagination?.summary_message) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: data.pagination.summary_message,
+          isSummary: true,
+        } as Message])
       }
     }
 

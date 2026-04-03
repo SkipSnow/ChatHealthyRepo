@@ -14984,7 +14984,288 @@
       "goal": "",
       "definition_of_done": "",
       "status": "active",
-      "features": []
+      "features": [
+        {
+          "feature_id": "FC-RESULT-MSG",
+          "name": "Search Result Presentation — System-Built Summary",
+          "epic_id": "EPIC-2",
+          "layer": "full-stack",
+          "capability": "FindCare",
+          "description": "GOV-011 compliance: the system builds the search result summary message from structured data, not the LLM. Message must echo the user's search term, report specialty type count with filter link, and present next page as an actionable link.",
+          "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py (_paginated_result); Code/ConversationalUX/FindCareChat/backend/main.py (PaginationMeta); Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx (response display)",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "backend_dependencies": [],
+          "stories": [
+            {
+              "story_id": "FC-MSG-001",
+              "title": "Build summary_message from structured search result data",
+              "description": "The backend must construct a summary_message string from the structured tool result fields (specialty_searched, total_count, count, specialization_options). This message is system-built per GOV-011 — the LLM does not write it.",
+              "parent_feature": "FC-RESULT-MSG",
+              "sprint": 1,
+              "dependencies": [],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py:146 (_paginated_result)",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "FC-MSG-001-REQ-001",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary must use the user's search term (specialty_searched), not the generic word 'providers'.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "GOV-011"
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-002",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary must report the remaining count (total_count minus count of displayed providers), not the total count.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "GOV-011"
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-003",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary must state how many types of specialists the results represent (len of specialization_options).",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-004",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary must include a marker for 'Filter' that the frontend can render as a clickable link to the specialty filter panel.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-005",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary must include a marker for 'next page' that the frontend can render as a clickable link to trigger pagination.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-006",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary must offer to narrow results by city or county.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-007",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary_message must be included in the PaginationMeta Pydantic model returned by /chat.",
+                  "source": "architecture",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-008",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary_message must not be generated when has_more is False (no remaining results to page through).",
+                  "source": "architecture",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "FC-MSG-002",
+              "title": "Frontend renders system summary with actionable links",
+              "description": "The frontend must display the system-built summary_message from PaginationMeta. Filter and next page markers must be rendered as clickable actions that trigger the filter panel and pagination respectively.",
+              "parent_feature": "FC-RESULT-MSG",
+              "sprint": 1,
+              "dependencies": ["FC-MSG-001"],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx:295",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "FC-MSG-002-REQ-001",
+                  "story_id": "FC-MSG-002",
+                  "requirement": "The frontend must display the summary_message from PaginationMeta as a separate system message after the LLM's provider listing.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "GOV-011"
+                },
+                {
+                  "req_id": "FC-MSG-002-REQ-002",
+                  "story_id": "FC-MSG-002",
+                  "requirement": "The [Filter] marker in summary_message must render as a clickable link that highlights or scrolls to the specialty filter panel.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "FC-MSG-002-REQ-003",
+                  "story_id": "FC-MSG-002",
+                  "requirement": "The [next page] marker in summary_message must render as a clickable link that triggers loading the next page of results.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "FC-MSG-002-REQ-004",
+                  "story_id": "FC-MSG-002",
+                  "requirement": "The summary_message must not appear when pagination.has_more is false.",
+                  "source": "architecture",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "feature_id": "MAINT-IDX-TUNE",
+          "name": "Index Tuning — Frontend and Pipeline Clusters",
+          "epic_id": "EPIC-2",
+          "layer": "infrastructure",
+          "capability": "DataOps",
+          "description": "DR-016/DR-017/DR-018: Audit, create, and verify all database indexes on frontend and pipeline clusters. Every vector search index referenced in code must exist on every environment. Every promotion must verify indexes. /health must report missing indexes.",
+          "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (_REQUIRED_INDEXES, /health); Code/DataPipelines/copy_to_frontend.py (verify_frontend_indexes); Code/DataPipelines/promote_data_fn.py (index verification gate)",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "backend_dependencies": [],
+          "stories": [
+            {
+              "story_id": "IDX-001",
+              "title": "Audit and create all required indexes on frontend cluster (dev, qa, prod)",
+              "description": "Enumerate all $vectorSearch references in codebase. Create missing indexes on all three frontend environments. Verify with list_search_indexes.",
+              "parent_feature": "MAINT-IDX-TUNE",
+              "sprint": 5,
+              "dependencies": [],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py:124 (provider_vector_index); Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py:89 (specialty_vector_index)",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "IDX-001-REQ-001",
+                  "story_id": "IDX-001",
+                  "requirement": "provider_vector_index must exist on providers in dev, qa, and prod with vector on embedding (3072d, cosine) and filter fields: practice_address.state, practice_address.city, practice_address.zip, county.name, county.fips.",
+                  "source": "codebase",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "DR-016"
+                },
+                {
+                  "req_id": "IDX-001-REQ-002",
+                  "story_id": "IDX-001",
+                  "requirement": "specialty_vector_index must exist on SpecialtyMetaData in dev, qa, and prod with vector on embedding (3072d, cosine).",
+                  "source": "codebase",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "DR-016"
+                },
+                {
+                  "req_id": "IDX-001-REQ-003",
+                  "story_id": "IDX-001",
+                  "requirement": "All indexes must be in READY status before UAT begins.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "IDX-002",
+              "title": "Propose pipeline cluster indexes",
+              "description": "Resume pipeline cluster, audit current indexes, read all pipeline code (enrichment, embedding, copy operations), and propose an index strategy. Pipeline indexes exist only to support enrichment workflows. Present proposal to Boss for approval before creating anything.",
+              "parent_feature": "MAINT-IDX-TUNE",
+              "sprint": 5,
+              "dependencies": [],
+              "size": "S",
+              "evidence": "Code/DataPipelines/provider_load_manager.py; Code/DataPipelines/copy_to_frontend.py; Code/DataPipelines/county_economic_enrichment.py",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "IDX-002-REQ-001",
+                  "story_id": "IDX-002",
+                  "requirement": "Audit existing indexes on pipeline cluster when resumed. Document what exists.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "IDX-002-REQ-002",
+                  "story_id": "IDX-002",
+                  "requirement": "Read all pipeline code and identify every query pattern used during enrichment workflows. Propose indexes that support those patterns.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "DR-018"
+                },
+                {
+                  "req_id": "IDX-002-REQ-003",
+                  "story_id": "IDX-002",
+                  "requirement": "Present index proposal to Boss for approval. Do not create indexes without sign-off.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "IDX-003",
+              "title": "Index verification gate on every environment promotion",
+              "description": "promote_data_fn must verify all required indexes exist on the target environment after promotion. Promotion fails if any index is missing. verify_frontend_indexes runs as final step.",
+              "parent_feature": "MAINT-IDX-TUNE",
+              "sprint": 5,
+              "dependencies": ["IDX-001"],
+              "size": "S",
+              "evidence": "Code/DataPipelines/promote_data_fn.py (verify_frontend_indexes); Code/DataPipelines/copy_to_frontend.py (verify_frontend_indexes)",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "IDX-003-REQ-001",
+                  "story_id": "IDX-003",
+                  "requirement": "promote_data must call verify_frontend_indexes after every promotion and fail with RuntimeError if any required index is missing.",
+                  "source": "DR-016",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "DR-016"
+                },
+                {
+                  "req_id": "IDX-003-REQ-002",
+                  "story_id": "IDX-003",
+                  "requirement": "/health endpoint must return status 'degraded' with missing_indexes list if any required index is absent.",
+                  "source": "DR-016",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "DR-016"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "sprint_map": [
@@ -15060,8 +15341,8 @@
   "gate_recommendation": "proceed_with_warning",
   "summary": {
     "epics": 2,
-    "features": 22,
-    "stories": 96,
-    "requirements": 1459
+    "features": 24,
+    "stories": 101,
+    "requirements": 1477
   }
 }
