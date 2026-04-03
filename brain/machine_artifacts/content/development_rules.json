@@ -131,6 +131,12 @@
       "date": "2026-04-03"
     },
     {
+      "id": "BUG-VECTOR-001",
+      "rule": "RELEASE BLOCKER: Vector search resolves wildly inaccurate specialty codes. 'kid's doc' returns Hospitalist, Clinic/Center, Mental Health Clinic instead of Pediatrics-focused specialties. Only 2 of 7 results were correct (Pediatrics Physician, Pediatric Clinical Nurse Specialist). Root cause: vector similarity on provider embeddings resolves taxonomy codes that are not relevant to the user's intent. The prompt and model selection for specialty resolution must be reworked before alpha release. This is a GOV-011 violation — the system is giving wrong answers.",
+      "incident": "Boss searched 'find a kids doc in VA', got 7 specialty types including Hospitalist Physician, Clinic/Center, Mental Health Clinic — none of which are what a user means by 'kids doc'.",
+      "date": "2026-04-03"
+    },
+    {
       "id": "BUG-DESIGN-001",
       "rule": "DESIGN ERROR (Boss): Filtered results with more than one page must show pagination controls in the control frame immediately. Do not make the user ask for page 2 after applying a filter — they already expressed intent to see results.",
       "incident": "Boss applied specialty filter, got summary but had to ask to see more. Pagination controls should appear automatically when has_more is true on filtered results.",
