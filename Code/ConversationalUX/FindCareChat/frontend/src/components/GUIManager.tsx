@@ -128,6 +128,7 @@ export function useGUIManager() {
   // Push render to parent whenever pagination state changes
   useEffect(() => {
     if (pagination.visible) {
+      console.log('[GUIManager] Sending gui:render to parent', pagination)
       sendToParent('gui:render', { html: renderPaginationHTML(pagination) })
     }
   }, [pagination])

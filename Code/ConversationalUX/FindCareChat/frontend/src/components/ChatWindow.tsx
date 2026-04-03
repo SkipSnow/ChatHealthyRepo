@@ -39,18 +39,23 @@ export default function ChatWindow() {
 
   // GUI Manager — non-chat controls (pagination, future widgets)
   const gui = useGUIManager()
-  const paginationTriggerRef = useRef(0)
-
   // Pagination: when direction changes (forward/back click from control frame), fetch directly
   useEffect(() => {
     const dir = (gui.pagination as any).direction
     if (!dir || !gui.pagination.visible || !gui.pagination.searchParams) return
 
     const afterNpi = dir === 'forward' ? gui.pagination.lastNpi : gui.getBeforeNpi()
+    const prevPageEnd = gui.pagination.pageEnd
+    const prevPageStart = gui.pagination.pageStart
+    const pageSize = gui.pagination.pageSize
+
+    // Compute new page position from current state
+    const newPageStart = dir === 'forward' ? prevPageEnd + 1 : Math.max(1, prevPageStart - pageSize)
+
     const params = {
       ...gui.pagination.searchParams,
       after_npi: afterNpi || undefined,
-      limit: gui.pagination.pageSize,
+      limit: pageSize,
     }
 
     setIsLoading(true)
@@ -61,15 +66,19 @@ export default function ChatWindow() {
     })
       .then(r => r.json())
       .then(data => {
-        if (data.providers) {
+        if (data.providers && data.providers.length > 0) {
+          const newPageEnd = newPageStart + data.providers.length - 1
           const text = data.providers.map((p: any) =>
-            `**${p.name}**\n${p.address}\n${p.county ? p.county + ' County' : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
+            `**${p.name}**\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
           ).join('\n\n')
           setMessages(prev => [...prev, {
             role: 'assistant',
-            content: `**Records ${data.page_start}\u2013${data.page_end}:**\n\n${text}`,
+            content: `**Records ${newPageStart}\u2013${newPageEnd} of ${gui.pagination.totalCount}:**\n\n${text}`,
           }])
-          gui.updateFromResponse(data)
+          gui.showPagination(
+            gui.pagination.totalCount, newPageStart, newPageEnd,
+            data.first_npi, data.last_npi, gui.pagination.searchParams, pageSize,
+          )
         }
         setIsLoading(false)
       })
@@ -256,7 +265,7 @@ export default function ChatWindow() {
           lastNpi: data.pagination.last_npi,
           searchParams: data.pagination.search_params,
           pageSize: data.pagination.count,
-          pageEnd: data.pagination.page_end,
+          pageEnd: data.pagination.count,  // first page ends at count (e.g., 25)
         }
       }
     }
@@ -278,6 +287,9 @@ export default function ChatWindow() {
       setInput('')
       setIsLoading(true)
 
+      // Page position tracked by frontend — backend just returns records
+      const pageStart = pp.pageEnd + 1
+
       fetch(`${API_URL}/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -289,18 +301,20 @@ export default function ChatWindow() {
       })
         .then(r => r.json())
         .then(data => {
-          if (data.providers) {
+          if (data.providers && data.providers.length > 0) {
+            const pageEnd = pageStart + data.providers.length - 1
             const resultText = data.providers.map((p: any) =>
-              `**${p.name}**\n${p.address}\n${p.county ? p.county + ' County' : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
+              `**${p.name}**\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
             ).join('\n\n')
             setMessages(prev => [...prev, {
               role: 'assistant',
-              content: `**Records ${data.page_start}\u2013${data.page_end} of ${data.total_count}:**\n\n${resultText}`,
+              content: `**Records ${pageStart}\u2013${pageEnd} of ${pp.totalCount}:**\n\n${resultText}`,
             }])
             // NOW show controls — user opted in, second page is on screen
+            console.log('[ChatWindow] Calling showPagination', { totalCount: pp.totalCount, pageStart, pageEnd })
             gui.showPagination(
-              data.total_count, data.page_start, data.page_end,
-              data.first_npi, data.last_npi, data.search_params, data.count,
+              pp.totalCount, pageStart, pageEnd,
+              data.first_npi, data.last_npi, pp.searchParams, pp.pageSize,
             )
           }
           setIsLoading(false)
