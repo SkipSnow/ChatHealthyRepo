@@ -107,18 +107,18 @@ export default function ChatWindow() {
             const resultText = data.providers.map((p: any) =>
               `**${p.name}**\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
             ).join('\n\n')
-            setMessages(prev => [...prev, {
+            const newMessages: Message[] = [{
               role: 'assistant',
               content: `**Filtered results — ${data.total_count} providers found:**\n\n${resultText}`,
-            }])
-            // System summary for filtered results
+            }]
             if (data.summary_message) {
-              setMessages(prev => [...prev, {
+              newMessages.push({
                 role: 'assistant',
                 content: data.summary_message,
                 isSummary: true,
-              } as Message])
+              } as Message)
             }
+            setMessages(prev => [...prev, ...newMessages])
             // Update pagination for filtered results
             pendingPaginationRef.current = {
               totalCount: data.total_count,
