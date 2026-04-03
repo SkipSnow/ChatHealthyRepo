@@ -285,9 +285,22 @@ class FindCareService:
                 vec_limit = safe_limit if safe_limit > 0 else DEFAULT_LIMIT
                 providers = self._vector_search(embedding, state_upper, city, county, vec_limit)
                 if providers:
-                    _log.info("search: vector returned %d for '%s' in %s", len(providers), specialty_query, state_upper)
-                    return {"supported": True, "state": state_upper, "specialty_searched": specialty_query,
-                            "search_mode": "vector", "count": len(providers), "providers": providers}
+                    # Get taxonomy codes from vector results to count total via taxonomy
+                    result_codes = set()
+                    for p in providers:
+                        result_codes.add(p.get("taxonomy_code", ""))
+                    result_codes.discard("")
+                    total_count = len(providers)
+                    if result_codes:
+                        count_filter = {"taxonomies.code": {"$in": list(result_codes)}}
+                        if state_upper:
+                            count_filter["practice_address.state"] = state_upper
+                        total_count = collection.count_documents(count_filter)
+                    _log.info("search: vector returned %d (total %d) for '%s' in %s",
+                              len(providers), total_count, specialty_query, state_upper)
+                    return self._paginated_result(providers, "vector", safe_limit,
+                                                  search_params=_search_params, total_count=total_count,
+                                                  state=state_upper, specialty_searched=specialty_query)
                 _log.info("search: vector returned 0, falling back to taxonomy")
 
             # Taxonomy fallback — use identify_specialty or injected fn

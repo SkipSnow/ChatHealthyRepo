@@ -331,6 +331,12 @@
 
     .frame-loading p { font-size: 0.85rem; color: var(--ink-soft); }
 
+    /* Frame labels — visible in non-prod only */
+    .frame-label { display: none; }
+    body.env-local .frame-label,
+    body.env-dev .frame-label,
+    body.env-qa .frame-label { display: inline; }
+
     /* ── Footer ────────────────────────────────────── */
     footer {
       border-top: 1px solid var(--border);
@@ -593,91 +599,116 @@
   <main>
     <span class="chat-label">Chat with Find Care AI</span>
 
-    <div class="chat-frame-wrapper">
-
-      <!-- Loading placeholder -->
-      <div class="frame-loading" id="frameLoading">
-        <div class="spinner"></div>
-        <p>Loading Find Care AI…</p>
+    <div class="content-row">
+      <!-- Left panel — 1%, expands for future nav -->
+      <div class="side-panel" id="leftPanel" style="background:#f5f5f4;border-right:1px solid #d8e2e1;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;text-orientation:mixed;">
+        <span class="frame-label" style="color:#ccc;font-size:9px;">LEFT PANEL</span>
       </div>
 
-      <!--
-        CoreChatUX iframe URL resolved at runtime from chatConfig.
-        Hostname determines environment: dev/qa/prod.
-      -->
-      <iframe
-        id="coreChatFrame"
-        src=""
-        title="Find Care — CoreChatUX"
-        allow="microphone; clipboard-write"
-        loading="lazy"
-        onload="document.getElementById('frameLoading').classList.add('hidden')"
-      ></iframe>
-      <script>
-        (function() {
-          var host = window.location.hostname;
-          var env = host.indexOf('dev.') === 0 ? 'dev' : host.indexOf('qa.') === 0 ? 'qa' : 'prod';
-          var org = 'skipsnow';
-          var base = 'chathealthyspace';
-          var spaceName = env === 'prod' ? base : env + '-' + base;
-          // Local dev override: open index.html with ?local to point iframe at localhost
-          var params = new URLSearchParams(window.location.search);
-          var src = params.get('local') !== null
-            ? 'http://localhost:5173'
-            : 'https://' + org + '-' + spaceName + '.hf.space';
-          document.getElementById('coreChatFrame').src = src;
-        })();
-      </script>
+      <!-- Center column — chat + controls -->
+      <div class="center-column">
+        <!-- Chat iframe -->
+        <div class="chat-frame-wrapper">
+          <div class="frame-loading" id="frameLoading">
+            <div class="spinner"></div>
+            <p>Loading Find Care AI…</p>
+          </div>
+          <iframe
+            id="coreChatFrame"
+            src=""
+            title="Find Care — CoreChatUX"
+            allow="microphone; clipboard-write"
+            loading="lazy"
+            onload="document.getElementById('frameLoading').classList.add('hidden')"
+          ></iframe>
+        </div>
 
-      <!-- Control Frame — GUI surface owned by the React app via postMessage.
-           React app pushes HTML here. Clicks relay back to the app.
-           Invisible when empty. -->
-      <div id="guiControlFrame" style="height:44px;overflow:hidden;transition:all 0.2s ease;border-top:1px solid #d8e2e1;"></div>
+        <!-- Control Frame — outside the iframe wrapper, visible canvas -->
+        <div id="guiControlFrame" style="height:7vh;min-height:40px;overflow:hidden;transition:all 0.2s ease;border-top:1px solid #d8e2e1;background:#fafaf9;display:flex;align-items:center;justify-content:center;">
+          <span class="frame-label" style="color:#ccc;font-size:9px;">CONTROL FRAME</span>
+        </div>
+      </div> <!-- /center-column -->
 
-      <script>
-        (function() {
-          var frame = document.getElementById('guiControlFrame');
-          var chatFrame = document.getElementById('coreChatFrame');
-
-          // Listen for render commands from the React app inside the iframe
-          window.addEventListener('message', function(event) {
-            // Only accept messages from our chat iframe
-            if (!chatFrame || !chatFrame.contentWindow) return;
-            if (event.source !== chatFrame.contentWindow) return;
-
-            var msg = event.data;
-            if (!msg || typeof msg !== 'object') return;
-
-            // Render command: app sends HTML to display
-            if (msg.type === 'gui:render') {
-              frame.innerHTML = msg.html || '';
-              // Attach click handlers to any [data-gui-action] elements
-              var actions = frame.querySelectorAll('[data-gui-action]');
-              for (var i = 0; i < actions.length; i++) {
-                (function(el) {
-                  var tag = el.tagName.toLowerCase();
-                  var eventType = (tag === 'select') ? 'change' : 'click';
-                  el.addEventListener(eventType, function() {
-                    chatFrame.contentWindow.postMessage({
-                      type: 'gui:event',
-                      action: el.getAttribute('data-gui-action'),
-                      value: (tag === 'select') ? el.value : (el.getAttribute('data-gui-value') || '')
-                    }, '*');
-                  });
-                })(actions[i]);
-              }
-            }
-
-            // Clear command: hide the control frame
-            if (msg.type === 'gui:clear') {
-              frame.innerHTML = '';
-            }
-          });
-        })();
-      </script>
-
-    </div>
+      <!-- Right panel — 1%, expands for leaf pages -->
+      <div class="side-panel" id="rightPanel" style="background:#f5f5f4;border-left:1px solid #d8e2e1;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;text-orientation:mixed;">
+        <span class="frame-label" style="color:#ccc;font-size:9px;">RIGHT PANEL</span>
+      </div>
+    </div> <!-- /content-row -->
   </main>
+
+  <!-- Scripts for iframe URL and control frame postMessage -->
+  <script src="chat-config.js"></script>
+  <script>
+    (function() {
+      var host = window.location.hostname;
+      var env = host.indexOf('dev.') === 0 ? 'dev' : host.indexOf('qa.') === 0 ? 'qa' : 'prod';
+      var org = 'skipsnow';
+      var base = 'chathealthyspace';
+      var spaceName = env === 'prod' ? base : env + '-' + base;
+      var isLocal = host === 'localhost' || host === '127.0.0.1';
+      var bodyEnv = isLocal ? 'local' : env;
+      document.body.classList.add('env-' + bodyEnv);
+
+      var chatConfig = window.chatConfig || {};
+      var src = chatConfig.iframeUrl
+        || (isLocal ? 'http://localhost:5173'
+            : 'https://' + org + '-' + spaceName + '.hf.space');
+
+      // Retry loading iframe — wait 3s between attempts, max 10 tries
+      var iframe = document.getElementById('coreChatFrame');
+      var maxRetries = 10;
+      var attempt = 0;
+      function tryLoad() {
+        attempt++;
+        iframe.src = src;
+        iframe.onerror = function() {
+          if (attempt < maxRetries) {
+            console.log('[iframe] Load attempt ' + attempt + ' failed, retrying in 3s...');
+            setTimeout(tryLoad, 3000);
+          } else {
+            console.error('[iframe] Failed to load after ' + maxRetries + ' attempts');
+          }
+        };
+      }
+      tryLoad();
+    })();
+
+    (function() {
+      var frame = document.getElementById('guiControlFrame');
+      var chatFrame = document.getElementById('coreChatFrame');
+
+      window.addEventListener('message', function(event) {
+        if (!chatFrame || !chatFrame.contentWindow) return;
+        if (event.source !== chatFrame.contentWindow) return;
+
+        var msg = event.data;
+        if (!msg || typeof msg !== 'object') return;
+
+        console.log('[ControlFrame] Received message:', msg.type);
+        if (msg.type === 'gui:render') {
+          frame.innerHTML = msg.html || '';
+          var actions = frame.querySelectorAll('[data-gui-action]');
+          for (var i = 0; i < actions.length; i++) {
+            (function(el) {
+              var tag = el.tagName.toLowerCase();
+              var eventType = (tag === 'select') ? 'change' : 'click';
+              el.addEventListener(eventType, function() {
+                chatFrame.contentWindow.postMessage({
+                  type: 'gui:event',
+                  action: el.getAttribute('data-gui-action'),
+                  value: (tag === 'select') ? el.value : (el.getAttribute('data-gui-value') || '')
+                }, '*');
+              });
+            })(actions[i]);
+          }
+        }
+
+        if (msg.type === 'gui:clear') {
+          frame.innerHTML = '<span class="frame-label" style="color:#ccc;font-size:9px;">CONTROL FRAME</span>';
+        }
+      });
+    })();
+  </script>
 
   <!-- ══ FOOTER ═══════════════════════════════════════ -->
   <footer>
