@@ -363,59 +363,36 @@ def _extract_user_search_term(user_message: str) -> str:
 # when the system has already built a summary_message.
 # ---------------------------------------------------------------------------
 def _strip_redundant_summary(text: str, total_count: int, page_count: int) -> str:
-    """Remove LLM-generated summary lines that duplicate the system summary.
-
-    Patterns stripped:
-    - "Here are the first N of M..."
-    - "I found N providers..."
-    - "There are N more..."
-    - "Would you like to see more..."
-    - "I can narrow/filter..."
-    - Any line with the total count that looks like a summary
-    """
-    lines = text.split("\n")
-    total_str = f"{total_count:,}"
-    total_str_no_comma = str(total_count)
-    cleaned = []
-    for line in lines:
-        lower = line.lower().strip()
-        # Skip empty lines at the end
-        if not lower:
-            cleaned.append(line)
-            continue
-        # Skip lines that are LLM summary/pagination language
-        is_redundant = False
-        redundant_phrases = [
-            "here are the first",
-            "i found",
-            "there are",
-            "would you like to see more",
-            "would you like to see the next",
-            "want to see more",
-            "i can also narrow",
-            "i can narrow",
-            "i can also filter",
-            "shall i show",
-            "would you like me to narrow",
-            "let me know if you'd like",
-            "more providers",
-            "more results",
-            "next page",
-        ]
-        for phrase in redundant_phrases:
-            if phrase in lower and (total_str in line or total_str_no_comma in line
-                                    or "more" in lower or "narrow" in lower or "filter" in lower):
-                is_redundant = True
-                break
-        # Also catch "Here are the first N of M" pattern directly
-        if re.match(r".*here are the first \*?\*?\d+.*of \*?\*?[\d,]+", lower):
-            is_redundant = True
-        if not is_redundant:
-            cleaned.append(line)
-    # Strip trailing empty lines
-    while cleaned and not cleaned[-1].strip():
-        cleaned.pop()
-    return "\n".join(cleaned)
+    """GOV-011-STD-001: Use GPT-4.1-mini to strip LLM content that duplicates
+    the system summary. Keep only the provider listing. Remove all summary,
+    pagination, filter suggestions, and conversational fluff."""
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        resp = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            max_tokens=4096,
+            messages=[
+                {"role": "system", "content": (
+                    "You are a content editor. The user will give you an AI response that contains "
+                    "a provider listing mixed with summary/navigation text. "
+                    "KEEP ONLY the provider listing (names, addresses, phones, NPIs). "
+                    "REMOVE everything else: introductions ('Here are the first...'), "
+                    "summaries ('There are N more...'), filter suggestions ('Which type...'), "
+                    "emoji bullet lists of provider types, pagination offers ('Would you like to see more...'), "
+                    "location narrowing offers ('Are you looking in a specific city...'), "
+                    "and any other conversational text that is not a provider record. "
+                    "Return ONLY the cleaned provider listing. Preserve markdown formatting."
+                )},
+                {"role": "user", "content": text},
+            ],
+        )
+        cleaned = resp.choices[0].message.content.strip()
+        _log.info("GOV-011-STD-001: stripped %d → %d chars", len(text), len(cleaned))
+        return cleaned if cleaned else text
+    except Exception as exc:
+        _log.warning("De-dup failed, returning original: %s", exc)
+        return text
 
 
 # ---------------------------------------------------------------------------
