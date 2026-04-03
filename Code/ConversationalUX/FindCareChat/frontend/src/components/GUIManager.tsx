@@ -196,6 +196,7 @@ export function useGUIManager() {
   }, [])
 
   const hideFilterPanel = useCallback(() => {
+    // Clear filter content but keep panel at 20% — user controls layout (future feature)
     sendToParent('gui:filter-clear')
   }, [])
 
