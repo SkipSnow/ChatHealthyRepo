@@ -163,7 +163,8 @@ class TestSITProviderSearch:
         """Filter panel text must be horizontal, not sideways."""
         frame = _get_chat_frame(page)
         _send_message(frame, "find surgeons in delaware")
-        page.wait_for_timeout(5000)
+        # Wait longer — filter panel arrives via postMessage after response
+        page.wait_for_timeout(10000)
         left_panel = page.locator("#leftPanel")
         if left_panel.count() > 0:
             writing_mode = left_panel.evaluate("el => getComputedStyle(el).writingMode")
