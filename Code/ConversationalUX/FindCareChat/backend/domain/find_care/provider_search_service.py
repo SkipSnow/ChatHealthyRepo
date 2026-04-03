@@ -278,73 +278,66 @@ class FindCareService:
                                           search_params=_search_params, total_count=total_count,
                                           state=state_upper, codes_searched=len(specialty_codes))
 
-        # ── Route 4: Vector search (natural language) ──
+        # ── Route 4: Specialty query (vector resolves codes → taxonomy returns data) ──
         if specialty_query:
+            codes = []
+
+            # Step 1: Try vector search to resolve specialty codes
             embedding = self._get_embedding(specialty_query)
             if embedding:
-                vec_limit = safe_limit if safe_limit > 0 else DEFAULT_LIMIT
-                providers = self._vector_search(embedding, state_upper, city, county, vec_limit)
-                if providers:
-                    # Get taxonomy codes from vector results to count total via taxonomy
+                vec_providers = self._vector_search(embedding, state_upper, city, county, 25)
+                if vec_providers:
                     result_codes = set()
-                    for p in providers:
+                    for p in vec_providers:
                         result_codes.add(p.get("taxonomy_code", ""))
                     result_codes.discard("")
-                    total_count = len(providers)
                     if result_codes:
-                        count_filter = {"taxonomies.code": {"$in": list(result_codes)}}
-                        if state_upper:
-                            count_filter["practice_address.state"] = state_upper
-                        total_count = collection.count_documents(count_filter)
-                    _log.info("search: vector returned %d (total %d) for '%s' in %s",
-                              len(providers), total_count, specialty_query, state_upper)
-                    # Include resolved codes in search_params so /search can replay without vector
-                    replay_params = dict(_search_params)
-                    if result_codes:
-                        replay_params["specialty_codes"] = list(result_codes)
-                        replay_params.pop("specialty_query", None)
-                    return self._paginated_result(providers, "vector", safe_limit,
-                                                  search_params=replay_params, total_count=total_count,
-                                                  state=state_upper, specialty_searched=specialty_query)
-                _log.info("search: vector returned 0, falling back to taxonomy")
+                        codes = list(result_codes)
+                        _log.info("search: vector resolved %d codes for '%s'", len(codes), specialty_query)
 
-            # Taxonomy fallback — use identify_specialty or injected fn
-            spec_fn = find_specialty_fn or (self.identify_specialty if self._specialty else None)
-            if spec_fn:
-                specialty_result = spec_fn(specialty_query)
-                if "error" in specialty_result:
-                    return specialty_result
-                codes = [s["Code"] for s in specialty_result.get("specialties", [])]
-                if not codes:
-                    return {"supported": True, "providers": [],
-                            "message": f"No matching specialty found for '{specialty_query}'."}
+            # Step 2: If vector didn't resolve codes, try taxonomy identification
+            if not codes:
+                spec_fn = find_specialty_fn or (self.identify_specialty if self._specialty else None)
+                if spec_fn:
+                    specialty_result = spec_fn(specialty_query)
+                    if "error" in specialty_result:
+                        return specialty_result
+                    codes = [s["Code"] for s in specialty_result.get("specialties", [])]
 
-                base_filter = {
-                    "practice_address.state": state_upper,
-                    "taxonomies.code": {"$in": codes},
-                }
-                if city:
-                    base_filter["practice_address.city"] = {"$regex": city.strip(), "$options": "i"}
-                if county:
-                    base_filter.update(self._make_county_filter(county))
+            if not codes:
+                return {"supported": True, "providers": [],
+                        "message": f"No matching specialty found for '{specialty_query}'."}
 
-                total_count = collection.count_documents(base_filter)
-                query_filter = dict(base_filter)
-                if after_npi:
-                    query_filter["npi"] = {"$gt": after_npi}
-                cursor = collection.find(query_filter, self._PROJECTION).sort("npi", 1)
-                if safe_limit > 0:
-                    cursor = cursor.limit(safe_limit)
-                raw = list(cursor)
-                providers = [self._format_provider(p) for p in raw]
-                _log.info("search: taxonomy returned %d for '%s' in %s", len(providers), specialty_query, state_upper)
-                # Include resolved codes so /search can replay without re-running identify_specialty
-                replay_params = dict(_search_params)
-                replay_params["specialty_codes"] = codes
-                replay_params.pop("specialty_query", None)
-                return self._paginated_result(providers, "taxonomy", safe_limit,
-                                              search_params=replay_params, total_count=total_count,
-                                              state=state_upper, specialty_searched=specialty_query)
+            # Step 3: Database answers — deterministic taxonomy query
+            base_filter = {
+                "taxonomies.code": {"$in": codes},
+            }
+            if state_upper:
+                base_filter["practice_address.state"] = state_upper
+            if city:
+                base_filter["practice_address.city"] = {"$regex": city.strip(), "$options": "i"}
+            if county:
+                base_filter.update(self._make_county_filter(county))
+
+            total_count = collection.count_documents(base_filter)
+            query_filter = dict(base_filter)
+            if after_npi:
+                query_filter["npi"] = {"$gt": after_npi}
+            cursor = collection.find(query_filter, self._PROJECTION).sort("npi", 1)
+            if safe_limit > 0:
+                cursor = cursor.limit(safe_limit)
+            raw = list(cursor)
+            providers = [self._format_provider(p) for p in raw]
+            _log.info("search: specialty '%s' → %d codes → %d/%d providers in %s",
+                       specialty_query, len(codes), len(providers), total_count, state_upper or "all")
+
+            # search_params includes resolved codes — /search replays with codes, no AI
+            replay_params = {"state": state_upper, "specialty_codes": codes}
+            if city: replay_params["city"] = city
+            if county: replay_params["county"] = county
+            return self._paginated_result(providers, "taxonomy", safe_limit,
+                                          search_params=replay_params, total_count=total_count,
+                                          state=state_upper, specialty_searched=specialty_query)
 
         # ── Route 5: County fallback ──
         if county and state_upper:

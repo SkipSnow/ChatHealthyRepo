@@ -88,6 +88,14 @@
       "mobile": "max 5 rows per page"
     }
   },
+  "backlog": [
+    {
+      "id": "GUI-LEAF",
+      "title": "Leaf page control — more control over right panel behavior",
+      "status": "backlog",
+      "notes": "Boss directive: add to GUI Manager. Not further defined yet."
+    }
+  ],
   "rules": [
     "All dimensions in percentages, no pixels",
     "Left and right panels are always present (1% minimum)",
