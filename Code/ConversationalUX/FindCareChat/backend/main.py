@@ -333,6 +333,29 @@ async def chat(body: ChatRequest, request: Request):
         return ChatResponse(error=err_msg, error_type=err_type)
 
 # ---------------------------------------------------------------------------
+# GOV-011-STD-002: Extract user's search term from their message using small model.
+# "find me a bone doc in VA" → "bone doc"
+# "show me shrinks near Richmond" → "shrinks"
+# ---------------------------------------------------------------------------
+def _extract_user_search_term(user_message: str) -> str:
+    """Use Haiku to extract the colloquial search term from user's message."""
+    try:
+        client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=50,
+            system="Extract ONLY the provider/specialty search term from the user's message. Return just the term, nothing else. Examples: 'find me shrinks in VA' → 'shrinks'. 'show me a bone doc near Richmond' → 'bone doc'. 'find pediatricians in delaware' → 'pediatricians'. No quotes, no punctuation, no explanation.",
+            messages=[{"role": "user", "content": user_message}],
+        )
+        term = resp.content[0].text.strip().strip("'\"")
+        _log.info("GOV-011-STD-002: '%s' → '%s'", user_message, term)
+        return term if term else user_message
+    except Exception as exc:
+        _log.warning("Search term extraction failed: %s", exc)
+        return user_message
+
+
+# ---------------------------------------------------------------------------
 # GOV-011-STD-001: Strip redundant summary/pagination language from LLM text
 # when the system has already built a summary_message.
 # ---------------------------------------------------------------------------
@@ -460,13 +483,14 @@ async def _chat_inner(body: ChatRequest, request: Request):
     if last_provider_result and isinstance(last_provider_result, dict):
         total_count = last_provider_result.get("total_count", 0)
         if total_count > 0:
-            # GOV-011: rebuild summary_message using user's original term, not LLM's translation
+            # GOV-011-STD-002: extract user's colloquial search term, not full message
             from domain.find_care.provider_search_service import FindCareService
+            user_term = _extract_user_search_term(body.message)
             user_summary = FindCareService._build_summary_message(
                 has_more=last_provider_result.get("has_more", False),
                 total_count=total_count,
                 page_count=last_provider_result.get("count", 0),
-                specialty_searched=body.message,  # user's words, not LLM's
+                specialty_searched=user_term,
                 specialization_options=last_provider_result.get("specialization_options"),
                 state=last_provider_result.get("state", ""),
                 city=(last_provider_result.get("search_params") or {}).get("city", ""),
@@ -492,7 +516,7 @@ async def _chat_inner(body: ChatRequest, request: Request):
         if trial_list:
             trial_count = len(trial_list)
             has_travel = any(t.get("travel_info") for t in trial_list)
-            user_msg = body.message
+            user_msg = _extract_user_search_term(body.message)
             # URL-safe condition from first trial's NCT ID page
             first_url = trial_list[0].get("url", "https://clinicaltrials.gov")
             parts = [f"Found {trial_count} recruiting trial{'s' if trial_count != 1 else ''} for '{user_msg}'."]
