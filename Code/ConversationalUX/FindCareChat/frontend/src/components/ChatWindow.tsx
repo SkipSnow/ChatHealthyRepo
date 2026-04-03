@@ -119,7 +119,14 @@ export default function ChatWindow() {
               } as Message)
             }
             setMessages(prev => [...prev, ...newMessages])
-            // Update pagination for filtered results
+            // Boss design: filtered results show pagination controls immediately
+            if (data.has_more) {
+              gui.showPagination(
+                data.total_count, 1, data.count,
+                data.first_npi, data.last_npi, searchParams, data.count,
+              )
+            }
+            // Also store in pending for next-page action link
             pendingPaginationRef.current = {
               totalCount: data.total_count,
               lastNpi: data.last_npi,
