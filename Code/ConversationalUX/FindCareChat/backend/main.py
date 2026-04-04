@@ -275,6 +275,57 @@ async def search(body: SearchRequest):
     result = _find_care.search_providers(**params)
     return result
 
+@app.get("/qa-report")
+def qa_report():
+    """DEVOPS-QA-001: Render QA report from brain JSON. Dev/QA only."""
+    if _ENV_PREFIX == "prod":
+        return {"error": "QA report not available in production"}
+    import glob
+    report_path = os.path.join(_brain_dir, "machine_artifacts", "content", "qa_report_v014_sit.json")
+    if not os.path.exists(report_path):
+        return {"error": "QA report not found"}
+    with open(report_path) as f:
+        report = json.load(f)
+    features = report.get("features", [])
+    # Build HTML
+    rows = ""
+    for feat in features:
+        status = feat.get("status", "NOT_STARTED")
+        color = {"PASS": "#059669", "IN_PROGRESS": "#2563eb", "NOT_STARTED": "#9ca3af",
+                 "UNTESTED": "#d97706", "RELEASE_BLOCKER": "#dc2626", "TO_TEST": "#7c3aed"}.get(status, "#6b7280")
+        tc_count = len(feat.get("test_cases", []))
+        tc_pass = sum(1 for tc in feat.get("test_cases", []) if tc.get("status") == "PASS")
+        rows += f'<tr><td>{feat.get("id","")}</td><td>{feat.get("feature_id","")}</td>'
+        rows += f'<td>{feat.get("name","")}</td><td>{feat.get("epic","")}</td>'
+        rows += f'<td style="color:{color};font-weight:600">{status}</td>'
+        rows += f'<td>{tc_pass}/{tc_count}</td></tr>\n'
+        for tc in feat.get("test_cases", []):
+            tc_status = tc.get("status", "")
+            tc_color = {"PASS": "#059669", "FAIL": "#dc2626"}.get(tc_status, "#9ca3af")
+            tc_badge = f'<span style="color:{tc_color};font-weight:600">{tc_status or "—"}</span>'
+            rows += f'<tr style="font-size:12px;color:#6b7280"><td></td><td></td>'
+            rows += f'<td style="padding-left:24px">↳ {tc.get("tc","")}: {tc.get("test","")}</td>'
+            rows += f'<td></td><td>{tc_badge}</td><td></td></tr>\n'
+    summary = report.get("summary", {})
+    from starlette.responses import HTMLResponse
+    html = f"""<!DOCTYPE html><html><head><title>QA Report — {report.get('version','')}</title>
+<style>body{{font-family:system-ui,sans-serif;max-width:1000px;margin:40px auto;padding:0 20px}}
+table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #e5e7eb;padding:8px 12px;text-align:left}}
+th{{background:#f3f4f6;font-size:13px}}tr:hover{{background:#f9fafb}}
+h1{{font-size:24px}}h2{{font-size:16px;color:#6b7280}}</style></head><body>
+<h1>QA Report — {report.get('version','')} Dev→SIT</h1>
+<h2>{report.get('scope','')}</h2>
+<p>Date: {report.get('date','')} | Target: {report.get('target','')} | Status: {report.get('status','')}</p>
+<p><b>Features:</b> {summary.get('total_features',0)} | <b>Test Cases:</b> {summary.get('total_test_cases',0)} |
+<b style="color:#059669">Pass:</b> {summary.get('pass',0)} |
+<b style="color:#2563eb">In Progress:</b> {summary.get('in_progress',0)} |
+<b style="color:#9ca3af">Not Started:</b> {summary.get('not_started',0)}</p>
+<table><tr><th>#</th><th>Feature ID</th><th>Name</th><th>Epic</th><th>Status</th><th>Tests</th></tr>
+{rows}</table>
+<p style="font-size:11px;color:#9ca3af;margin-top:24px">© 2026 Skip Snow. All rights reserved.</p>
+</body></html>"""
+    return HTMLResponse(content=html)
+
 @app.get("/welcome")
 def welcome():
     return {"message": _build_test_welcome() if _HUMAN_TESTING else WELCOME_MESSAGE}
