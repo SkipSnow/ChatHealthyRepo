@@ -1,0 +1,111 @@
+{
+  "assignment_id": "PHASE-2-EVAL-F-1-STORIES",
+  "iteration": 20,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Edited existing stories to strengthen contracts, normalization, and error handling. No new IDs created.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-001-S2.description",
+      "value": "Implement core search logic calling ClinicalTrials.gov API with RECRUITING filter, condition and location parameters; parse and normalize response into internal schema, extract trial locations, eligibility summary, and handle empty/partial results with deterministic fallbacks.",
+      "note": "Added eligibility summary and deterministic fallback handling",
+      "iteration": 20
+    },
+    {
+      "path": "stories.EVAL-F-001-S3.description",
+      "value": "Augment trial location results with optional travel distance and duration using Google Routes API; compute from user location to trial sites, cache per request, and append to response while preserving base results if enrichment fails or times out.",
+      "note": "Added timeout and caching constraint",
+      "iteration": 20
+    },
+    {
+      "path": "stories.EVAL-F-001-S4.description",
+      "value": "Expose clinical trials search through evaluate_care_facade with validated inputs, tool routing compatibility, structured response delivery, and strict schema conformance to Pydantic models.",
+      "note": "Strengthened schema conformance requirement",
+      "iteration": 20
+    },
+    {
+      "path": "stories.EVAL-F-001-S5.description",
+      "value": "Create unit tests for schema validation and search parsing, plus integration tests covering end-to-end flow from facade to service including travel enrichment, timeout behavior, and error handling.",
+      "note": "Expanded test coverage scope",
+      "iteration": 20
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F-001-S1": {
+      "story_id": "EVAL-F-001-S1",
+      "title": "Define Clinical Trials Search Schema and Contract",
+      "description": "Define request/response schema for clinical trials search including condition, location, and optional travel enrichment flags; response must include structured trial fields (NCT ID, title, status, locations), eligibility summary, and normalized location objects. Align with Pydantic models and downstream facade contract.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    "EVAL-F-001-S2": {
+      "story_id": "EVAL-F-001-S2",
+      "title": "Implement ClinicalTrials.gov Search Logic",
+      "description": "Implement core search logic calling ClinicalTrials.gov API with RECRUITING filter, condition and location parameters; parse and normalize response into internal schema, extract trial locations, eligibility summary, and handle empty/partial results with deterministic fallbacks.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-F-001-S3": {
+      "story_id": "EVAL-F-001-S3",
+      "title": "Add Travel Distance and Time Enrichment",
+      "description": "Augment trial location results with optional travel distance and duration using Google Routes API; compute from user location to trial sites, cache per request, and append to response while preserving base results if enrichment fails or times out.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-F-001-S4": {
+      "story_id": "EVAL-F-001-S4",
+      "title": "Expose Clinical Trials Search via Evaluate Care Facade",
+      "description": "Expose clinical trials search through evaluate_care_facade with validated inputs, tool routing compatibility, structured response delivery, and strict schema conformance to Pydantic models.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S2",
+        "EVAL-F-001-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F-001-S5": {
+      "story_id": "EVAL-F-001-S5",
+      "title": "Unit and Integration Tests for Clinical Trials Search",
+      "description": "Create unit tests for schema validation and search parsing, plus integration tests covering end-to-end flow from facade to service including travel enrichment, timeout behavior, and error handling.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S2",
+        "EVAL-F-001-S3",
+        "EVAL-F-001-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

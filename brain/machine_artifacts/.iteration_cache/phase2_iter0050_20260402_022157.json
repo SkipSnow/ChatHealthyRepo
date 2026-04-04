@@ -1,0 +1,64 @@
+{
+  "stories": {
+    "GPTR-F-001-S177": {
+      "story_id": "GPTR-F-001-S177",
+      "title": "Allowlist Schema and Request Contract Definition",
+      "description": "Define a strict request/response contract and allowlist schema for GPTReader operations, including permitted collections, fields, operators, and limits, enforced via Pydantic models.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S178": {
+      "story_id": "GPTR-F-001-S178",
+      "title": "Core Allowlist Enforcement Engine",
+      "description": "Implement the core enforcement logic that validates incoming GPTReader requests against the allowlist schema, rejecting disallowed collections, fields, operators, and excessive limits before query execution.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S177",
+        "GPTR-F-001-S176"
+      ],
+      "size": "L",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S179": {
+      "story_id": "GPTR-F-001-S179",
+      "title": "Azure Function Middleware Integration",
+      "description": "Integrate the allowlist enforcement engine into the Azure Function request pipeline so that all GPTReader requests are validated prior to any database interaction.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S178"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/function_app.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S180": {
+      "story_id": "GPTR-F-001-S180",
+      "title": "Unit and Negative Security Test Coverage",
+      "description": "Develop comprehensive unit and negative tests to validate enforcement behavior, including rejection of unauthorized fields, operators, injection attempts, and boundary violations.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S178"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S181": {
+      "story_id": "GPTR-F-001-S181",
+      "title": "End-to-End Integration with Tooling and Auth Layer",
+      "description": "Validate that enforced GPTReader requests operate correctly with existing authentication (Bearer token) and upstream tool routing, ensuring only compliant queries reach downstream services.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S179",
+        "GPTR-F-001-S175"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  }
+}

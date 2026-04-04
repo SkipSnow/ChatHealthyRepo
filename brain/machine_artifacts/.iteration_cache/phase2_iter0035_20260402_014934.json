@@ -1,0 +1,81 @@
+{
+  "assignment_id": "FEAT-2-STORIES",
+  "iteration": 35,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added core logic hardening, parallel pipeline handling, and test coverage stories.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-2-S106",
+      "value": "Core specialty identification logic orchestration",
+      "note": "Add missing core logic story",
+      "iteration": 35
+    },
+    {
+      "path": "stories.FEAT-2-S107",
+      "value": "Parallel pipeline reconciliation",
+      "note": "Add dual-pipeline aggregation logic",
+      "iteration": 35
+    },
+    {
+      "path": "stories.FEAT-2-S108",
+      "value": "Unit and integration tests for specialty service",
+      "note": "Add test coverage story",
+      "iteration": 35
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-2-S106": {
+      "story_id": "FEAT-2-S106",
+      "title": "Implement Core Specialty Identification Orchestration",
+      "description": "Implement the primary service method that accepts user input, invokes regex matching and vector-based similarity pipelines, and returns consolidated NUCC specialty mappings with confidence scoring.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S102"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "FEAT-2-S107": {
+      "story_id": "FEAT-2-S107",
+      "title": "Reconcile Dual-Pipeline Specialty Results",
+      "description": "Build logic to merge and deduplicate results from regex and vector pipelines, including NUCC code aggregation, conflict resolution, and classification ranking.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S106"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "FEAT-2-S108": {
+      "story_id": "FEAT-2-S108",
+      "title": "Test Specialty Identification Accuracy and Edge Cases",
+      "description": "Create unit and integration tests validating specialty identification across common queries, ambiguous inputs, and edge cases (e.g., multiple specialties, no matches), ensuring stable NUCC outputs.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S106",
+        "FEAT-2-S107"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing dedicated tests for specialty_service; must be created under backend/tests/"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

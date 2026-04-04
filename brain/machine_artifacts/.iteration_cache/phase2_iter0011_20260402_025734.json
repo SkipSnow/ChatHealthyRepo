@@ -1,0 +1,91 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-006",
+  "iteration": 11,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories refined for clearer separation of persistence vs evaluation and tighter alignment with manifest + snapshot tooling.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-006-S1.description",
+      "value": "Explicitly defines persistence contract with brain_snapshot and manifest_generator outputs including storage location and retrieval contract.",
+      "note": "Clarify schema vs persistence responsibility",
+      "iteration": 11
+    },
+    {
+      "path": "stories.BL-0.1.4-006-S2.description",
+      "value": "Clarifies dual-check logic: TTL expiry and SHA-256 drift against current filesystem using manifest_generator hashing behavior.",
+      "note": "Tighten core logic definition",
+      "iteration": 11
+    },
+    {
+      "path": "stories.BL-0.1.4-006-S4.description",
+      "value": "Clarifies enforcement behavior: block or trigger existing manifest regeneration step without introducing new pipeline steps.",
+      "note": "Ensure no scope expansion per governance",
+      "iteration": 11
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-006-S1",
+      "title": "Define Manifest Snapshot Freshness Schema and Persistence Contract",
+      "description": "Define schema for manifest snapshot metadata including generated_at timestamp, source SHA-256 hash, file count, and TTL policy; specify persistence and retrieval contract aligned with manifest_generator output and brain_snapshot storage.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/Shared/ops/manifest_generator.py; Code/Shared/ops/brain_snapshot.py"
+    },
+    {
+      "story_id": "BL-0.1.4-006-S2",
+      "title": "Implement Manifest Freshness Evaluation Engine",
+      "description": "Implement logic to compute freshness using TTL expiry, generated_at age, and SHA-256 comparison between current file system state and last manifest snapshot, leveraging manifest_generator hashing behavior.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/manifest_generator.py"
+    },
+    {
+      "story_id": "BL-0.1.4-006-S3",
+      "title": "Expose Manifest Freshness Status via Internal Service API",
+      "description": "Provide internal callable service/API returning freshness status (fresh, stale, regenerate_required) with metadata (age_seconds, ttl, hash_match, last_generated_at) for use by pipelines.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/Shared/ops/dev_pipeline.py"
+    },
+    {
+      "story_id": "BL-0.1.4-006-S4",
+      "title": "Integrate Freshness Enforcement into Dev Pipeline and Brain Runner",
+      "description": "Integrate freshness checks into dev_pipeline and brain_runner to block execution or trigger existing manifest regeneration when status is stale or regenerate_required, without introducing new pipeline steps.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S2",
+        "BL-0.1.4-006-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/dev_pipeline.py; Code/Shared/brain_runner.py"
+    },
+    {
+      "story_id": "BL-0.1.4-006-S5",
+      "title": "Unit and Integration Tests for Manifest Freshness and Enforcement",
+      "description": "Create tests validating schema correctness, TTL expiration behavior, hash mismatch detection, and enforcement behavior within dev_pipeline and brain_runner execution paths.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S2",
+        "BL-0.1.4-006-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/manifest_generator.py; Code/DataPipelines/tests"
+    }
+  ]
+}

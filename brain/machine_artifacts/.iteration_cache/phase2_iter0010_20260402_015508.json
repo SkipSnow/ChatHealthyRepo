@@ -1,0 +1,66 @@
+{
+  "stories": [
+    {
+      "story_id": "SHARED-B-M1-S1",
+      "title": "Tool Schema and Validation Contract",
+      "description": "Define Pydantic schemas for all allowlisted tools with strict input models, required/optional fields, defaults, and standardized 422 validation errors with field-level detail. Schemas must align exactly with Anthropic tool_use structure (name + input payload) and existing tool_models modules.",
+      "parent_feature": "SHARED-B-M1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/"
+    },
+    {
+      "story_id": "SHARED-B-M1-S2",
+      "title": "Allowlist-Based Tool Routing Logic",
+      "description": "Implement routing engine enforcing explicit allowlist, binding tools to schemas, validating inputs, normalizing payloads, rejecting unknown tools, and emitting structured debug logs (tool name, validation outcome, rejection reason). Include structured error taxonomy (validation_error, unknown_tool, execution_error) with standardized response payloads.",
+      "parent_feature": "SHARED-B-M1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-B-M1-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "SHARED-B-M1-S3",
+      "title": "Chat History Injection into Tool Context",
+      "description": "Implement controlled chat history injection with token-bound truncation, role filtering, and mandatory de-identification aligned with consent_service before tool execution.",
+      "parent_feature": "SHARED-B-M1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-B-M1-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    {
+      "story_id": "SHARED-B-M1-S4",
+      "title": "Tool Router API Integration with Main Loop",
+      "description": "Integrate router into FastAPI main loop: parse Anthropic tool_use blocks, invoke routing, handle validation vs execution errors, enforce timeout boundaries, and normalize outputs (including errors) into Anthropic-compatible tool_result blocks.",
+      "parent_feature": "SHARED-B-M1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-B-M1-S1",
+        "SHARED-B-M1-S2",
+        "SHARED-B-M1-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "SHARED-B-M1-S5",
+      "title": "Tool Routing and Validation Test Suite",
+      "description": "Develop unit and integration tests covering allowlist enforcement, schema validation success/failure, dispatch correctness, chat history injection, malformed tool_use blocks, unknown tools, partial inputs, and edge cases.",
+      "parent_feature": "SHARED-B-M1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-B-M1-S2",
+        "SHARED-B-M1-S3",
+        "SHARED-B-M1-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ]
+}

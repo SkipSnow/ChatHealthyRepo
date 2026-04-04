@@ -1,0 +1,43 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-P-MEASURE-3-S36",
+      "title": "Enforce Disciplinary Signal Response Contract",
+      "description": "Implement strict response schema validation within provider_detail_service to ensure the disciplinary signal only includes an availability indicator and a validated state medical board lookup URL, explicitly preventing inclusion of detailed disciplinary records.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-M3-S1",
+        "EVAL-P-M3-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-3-S37",
+      "title": "Integrate URL Validation for Medical Board Links",
+      "description": "Integrate URL Guardian validation to ensure all generated state medical board links are reachable, safe, and correctly formatted before being returned as part of the disciplinary signal.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MEASURE-3-S33"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-3-S38",
+      "title": "End-to-End Integration Test for Disciplinary Signal Delivery",
+      "description": "Create integration tests validating the full flow from provider lookup (NPI) through provider_detail_service to Evaluate Care facade, ensuring disciplinary signals are correctly constructed, validated, and included in final responses.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MEASURE-3-S33",
+        "EVAL-P-MEASURE-3-S34",
+        "EVAL-P-MEASURE-3-S36"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  ]
+}

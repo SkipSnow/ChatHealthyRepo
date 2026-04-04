@@ -1,0 +1,65 @@
+{
+  "stories": {
+    "SHARED-F-1-S182": {
+      "story_id": "SHARED-F-1-S182",
+      "title": "Core Allowlist Enforcement Logic",
+      "description": "Implement strict allowlist enforcement within the tool router to ensure only explicitly registered tools can be executed, rejecting any unknown or malformed tool calls before reaching domain services.",
+      "parent_feature": "SHARED-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-F-1-S178"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "SHARED-F-1-S183": {
+      "story_id": "SHARED-F-1-S183",
+      "title": "Pydantic Validation Execution and Error Handling",
+      "description": "Execute Pydantic model validation for all tool inputs and implement standardized error handling for validation failures, including safe user-facing responses and internal error propagation.",
+      "parent_feature": "SHARED-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-F-1-S178"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "SHARED-F-1-S184": {
+      "story_id": "SHARED-F-1-S184",
+      "title": "Tool Router Security Logging and Audit Trail",
+      "description": "Add structured logging for all tool routing decisions, including allowed, rejected, and validation-failed tool calls, integrating with existing debug logging infrastructure for auditability.",
+      "parent_feature": "SHARED-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-F-1-S182"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    "SHARED-F-1-S185": {
+      "story_id": "SHARED-F-1-S185",
+      "title": "Dynamic Tool Registration and Mapping",
+      "description": "Implement a centralized mechanism to register and map tools to their corresponding Pydantic models and execution handlers, ensuring consistency between allowlist definitions and runtime behavior.",
+      "parent_feature": "SHARED-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-F-1-S178"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/"
+    },
+    "SHARED-F-1-S186": {
+      "story_id": "SHARED-F-1-S186",
+      "title": "Graceful Handling of Unsupported Tool Calls",
+      "description": "Implement fallback behavior for unsupported or disallowed tool calls, returning controlled responses to the LLM loop without breaking conversation flow or exposing internal errors.",
+      "parent_feature": "SHARED-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-F-1-S182",
+        "SHARED-F-1-S183"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  }
+}

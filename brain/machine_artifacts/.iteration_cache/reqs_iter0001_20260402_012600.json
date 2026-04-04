@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CONF-REQ-001",
+      "story_id": "EVAL-CONF-ST-003",
+      "requirement": "The system must include a 'confidence' object in every evaluation API response produced by the evaluate care facade when a quality score is returned.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-002",
+      "story_id": "EVAL-CONF-ST-003",
+      "requirement": "The system must structure the 'confidence' object مطابق the schema defined in EVAL-CONF-ST-001, including completeness, recency, agreement, and overall fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-003",
+      "story_id": "EVAL-CONF-ST-003",
+      "requirement": "The system must populate the 'confidence.overall' value using the output from the confidence calculation logic implemented in EVAL-CONF-ST-002.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-004",
+      "story_id": "EVAL-CONF-ST-003",
+      "requirement": "The system must include the confidence object without altering or removing any existing fields in the evaluation API response.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-005",
+      "story_id": "EVAL-CONF-ST-003",
+      "requirement": "The system must maintain backward-compatible JSON structure such that existing clients can parse responses without modification.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-006",
+      "story_id": "EVAL-CONF-ST-003",
+      "requirement": "The system must attach the confidence object at the same hierarchical level as the quality score in the response payload.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-007",
+      "story_id": "EVAL-CONF-ST-003",
+      "requirement": "The system must include confidence data for both provider evaluations and clinical trial evaluations when applicable.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-008",
+      "story_id": "EVAL-CONF-ST-003",
+      "requirement": "The system must return numeric confidence values normalized to a consistent scale (e.g., 0 to 1 or 0 to 100) as defined in the schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-009",
+      "story_id": "EVAL-CONF-ST-003",
+      "requirement": "The system must serialize the confidence object in valid JSON format with no null structural keys when data is available.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-010",
+      "story_id": "EVAL-CONF-ST-003",
+      "requirement": "The system must not increase API response latency beyond acceptable thresholds defined for evaluation endpoints due to confidence integration.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-011",
+      "story_id": "EVAL-CONF-ST-003",
+      "requirement": "The system must return a default confidence object with clearly defined fallback values when confidence calculation succeeds but partial input data is missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-012",
+      "story_id": "EVAL-CONF-ST-003",
+      "requirement": "The system must omit or flag the confidence object with an error indicator when confidence calculation fails due to upstream service errors.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-013",
+      "story_id": "EVAL-CONF-ST-003",
+      "requirement": "The system must still return the quality score even if the confidence calculation fails, without causing full API failure.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-014",
+      "story_id": "EVAL-CONF-ST-003",
+      "requirement": "The system must ensure the evaluate care facade orchestrates and injects the confidence object before final response serialization.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

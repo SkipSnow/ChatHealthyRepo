@@ -1,0 +1,55 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-F5-S18",
+      "title": "Explainability Normalization Logic",
+      "description": "Implement core logic to normalize raw evaluation signals from provider credentials, external links, and clinical trials into the standardized explainability schema (populate source, meaning, limitations consistently across signal types).",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S14",
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-F5-S19",
+      "title": "Frontend Rendering of Explainability Content",
+      "description": "Update chat UI message rendering to display explainability content (source, meaning, limitations) in a readable format within MessageBubble without breaking existing markdown rendering or sanitization.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S15"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    {
+      "story_id": "EVAL-F5-S20",
+      "title": "Graceful Handling of Missing Explainability Fields",
+      "description": "Ensure system gracefully handles partial or missing explainability data by applying defaults or fallbacks, preventing malformed responses or UI breakage.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S18"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F5-S21",
+      "title": "Tool Router Compatibility with Explainability Objects",
+      "description": "Ensure tool_router correctly passes through explainability-enhanced responses without validation errors and maintains compatibility with existing tool schemas and chat history injection.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S15"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  ]
+}

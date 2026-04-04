@@ -1,0 +1,79 @@
+{
+  "assignment_id": "BL-0.1.4-009",
+  "iteration": 13,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added observability/config story to complete API/operational coverage without duplicating existing concepts.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-009-S5",
+      "value": "Add query size guard observability and configuration",
+      "note": "Completes API/operational surface (metrics, logs, thresholds) missing from prior iteration",
+      "iteration": 13
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-009-S1",
+      "title": "Define Mongo Query Size Estimation Contract",
+      "description": "Define a schema and contract for estimating MongoDB query result size including fields for document count, average document size, projected total size, and enforcement thresholds aligned with GPT Reader limits.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py (500KB response cap, 100-doc limit)"
+    },
+    {
+      "story_id": "BL-0.1.4-009-S2",
+      "title": "Implement Query Size Estimation and Guard Logic",
+      "description": "Implement backend logic to estimate MongoDB query response size prior to execution using heuristics (doc count × avg size) and enforce guardrails by truncating, limiting, or rejecting queries that exceed defined thresholds.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [
+        "BL-0.1.4-009-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py (enforces response caps and query limits)"
+    },
+    {
+      "story_id": "BL-0.1.4-009-S3",
+      "title": "Integrate Size Estimation into GPT Reader Query Flow",
+      "description": "Integrate the size estimation and guard logic into the GPT Reader query execution path to ensure all queries are pre-validated before hitting MongoDB and responses comply with system limits.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [
+        "BL-0.1.4-009-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py (Mongo query broker and response handling)"
+    },
+    {
+      "story_id": "BL-0.1.4-009-S4",
+      "title": "Unit and Integration Tests for Query Size Enforcement",
+      "description": "Create unit and integration tests to validate size estimation accuracy, enforcement of response caps, handling of edge cases (large documents, high cardinality queries), and safe truncation behavior.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [
+        "BL-0.1.4-009-S2",
+        "BL-0.1.4-009-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py"
+    },
+    {
+      "story_id": "BL-0.1.4-009-S5",
+      "title": "Add Query Size Guard Observability and Configuration",
+      "description": "Expose configurable thresholds (max bytes, max docs) and add structured logging/metrics for estimated vs actual query sizes, guard triggers (truncate/reject), and query patterns to support tuning and auditability.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [
+        "BL-0.1.4-009-S2",
+        "BL-0.1.4-009-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py (audit logging, caps); Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (logging patterns)"
+    }
+  ]
+}

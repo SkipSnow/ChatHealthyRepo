@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-001",
+      "story_id": "EVAL-FAILSAFE-S1",
+      "requirement": "The system must define a Pydantic model named InsufficiencyResponse for scoring insufficiency outputs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-002",
+      "story_id": "EVAL-FAILSAFE-S1",
+      "requirement": "The system must include a field valid_measure_count of type integer in the InsufficiencyResponse model.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-003",
+      "story_id": "EVAL-FAILSAFE-S1",
+      "requirement": "The system must include a field required_minimum with a default value of 3 in the InsufficiencyResponse model.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-004",
+      "story_id": "EVAL-FAILSAFE-S1",
+      "requirement": "The system must include a field missing_measure_types as a list of strings in the InsufficiencyResponse model.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-005",
+      "story_id": "EVAL-FAILSAFE-S1",
+      "requirement": "The system must include a field message of type string for user-facing explanation in the InsufficiencyResponse model.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-006",
+      "story_id": "EVAL-FAILSAFE-S1",
+      "requirement": "The system must enforce that valid_measure_count cannot be negative.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-007",
+      "story_id": "EVAL-FAILSAFE-S1",
+      "requirement": "The system must enforce that required_minimum is an integer greater than or equal to 1.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-008",
+      "story_id": "EVAL-FAILSAFE-S1",
+      "requirement": "The system must ensure the InsufficiencyResponse model is serializable to JSON without transformation.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-009",
+      "story_id": "EVAL-FAILSAFE-S1",
+      "requirement": "The system must ensure field names and types are identical for both provider and clinical trial scoring outputs.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-010",
+      "story_id": "EVAL-FAILSAFE-S1",
+      "requirement": "The system must validate that missing_measure_types contains only predefined measure category identifiers when provided.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-011",
+      "story_id": "EVAL-FAILSAFE-S1",
+      "requirement": "The system must allow missing_measure_types to be an empty list when no classification of missing measures is available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-012",
+      "story_id": "EVAL-FAILSAFE-S1",
+      "requirement": "The system must require the message field to be non-empty.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-013",
+      "story_id": "EVAL-FAILSAFE-S1",
+      "requirement": "The system must raise a validation error if any required field is missing during model instantiation.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-014",
+      "story_id": "EVAL-FAILSAFE-S1",
+      "requirement": "The system must raise a validation error if valid_measure_count exceeds required_minimum by an unrealistic threshold greater than total possible measures (exception path).",
+      "source": "architecture_constraint",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-FAILSAFE-015",
+      "story_id": "EVAL-FAILSAFE-S1",
+      "requirement": "The system must raise a validation error if missing_measure_types contains null or non-string values (exception path).",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,82 @@
+{
+  "assignment_id": "FEAT-2-STORIES",
+  "iteration": 17,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing API exposure, integration wiring, and test coverage stories for Specialty Identification.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-2-S47",
+      "value": "Add specialty identification API via tool router",
+      "note": "Expose backend capability to system",
+      "iteration": 17
+    },
+    {
+      "path": "stories.FEAT-2-S48",
+      "value": "Integrate specialty identification into FindCare facade",
+      "note": "Ensure orchestration layer uses mapping",
+      "iteration": 17
+    },
+    {
+      "path": "stories.FEAT-2-S49",
+      "value": "Add unit and integration tests for specialty identification",
+      "note": "Close coverage gap",
+      "iteration": 17
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-2-S47",
+      "title": "Expose Specialty Identification via Tool Router",
+      "description": "Add a tool definition and routing logic to expose specialty identification as a callable backend capability, including input validation, tool registration, and response formatting.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-2-S48",
+      "title": "Integrate Specialty Mapping into FindCare Facade",
+      "description": "Wire specialty identification into the FindCare facade flow so that user queries are automatically translated into NUCC codes before provider search execution.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S44",
+        "FEAT-2-S46"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    {
+      "story_id": "FEAT-2-S49",
+      "title": "Implement Unit and Integration Tests for Specialty Identification",
+      "description": "Create comprehensive tests covering schema validation, specialty_service logic (regex + vector), ambiguity handling, and end-to-end flow through tool router and facade.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S44",
+        "FEAT-2-S46",
+        "FEAT-2-S47",
+        "FEAT-2-S48"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "assignment_id": "EVAL-P-MEASURE-3-STORIES",
+  "iteration": 2,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Refined test scope to include integration coverage and tightened dependencies for API consistency.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-P-MEASURE-3-S4.dependencies",
+      "value": "[\"EVAL-P-MEASURE-3-S1\",\"EVAL-P-MEASURE-3-S3\"]",
+      "note": "API must depend on schema and logic",
+      "iteration": 2
+    },
+    {
+      "path": "stories.EVAL-P-MEASURE-3-S5.description",
+      "value": "Create unit and integration tests covering supported states, unsupported states (no link), missing provider state, correct disclaimer inclusion, and end-to-end propagation through evaluate_care_facade.",
+      "note": "Expanded to include integration coverage",
+      "iteration": 2
+    },
+    {
+      "path": "stories.EVAL-P-MEASURE-3-S5.size",
+      "value": "M",
+      "note": "Increased due to added integration scope",
+      "iteration": 2
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "EVAL-P-MEASURE-3-S1",
+      "title": "Disciplinary Signal Schema and Contract",
+      "description": "Define the response schema for disciplinary history signals including fields for state_board_url, signal_present (boolean), supported_states (list), and disclaimer text. Ensure alignment with existing provider detail response structure.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-3-S2",
+      "title": "State Medical Board Link Resolution Logic",
+      "description": "Implement logic to map provider state to known medical board lookup URLs (DE, MS, VA currently supported) and return correct link based on provider location data from NPI lookup.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MEASURE-3-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-3-S3",
+      "title": "Disciplinary Signal Presence Indicator",
+      "description": "Implement logic to determine and surface a disciplinary signal presence indicator based on availability of a state board lookup (not actual disciplinary records). Include clear disclaimer that full records are external.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MEASURE-3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-3-S4",
+      "title": "Evaluate Care API Integration",
+      "description": "Integrate disciplinary signal fields into provider detail response returned by evaluate_care_facade so frontend/chat can surface links and indicators consistently.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MEASURE-3-S1",
+        "EVAL-P-MEASURE-3-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-3-S5",
+      "title": "Disciplinary Signal Tests and Edge Cases",
+      "description": "Create unit and integration tests covering supported states, unsupported states (no link), missing provider state, correct disclaimer inclusion, and end-to-end propagation through evaluate_care_facade.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MEASURE-3-S2",
+        "EVAL-P-MEASURE-3-S3",
+        "EVAL-P-MEASURE-3-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+{
+  "assignment_id": "EVAL-WEIGHTS-STORIES",
+  "iteration": 9,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Feature depends on scoring engines but no existing extensibility contract for weights in scoring logic (ASSUMPTION required)"
+  ],
+  "notes": "Stories created for EVAL-WEIGHTS with full coverage: schema, logic, API/UI, tests, integration.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-WEIGHTS-S1",
+      "value": "Created schema/contract story for weight configuration",
+      "note": "No prior stories existed",
+      "iteration": 9
+    },
+    {
+      "path": "stories.EVAL-WEIGHTS-S2",
+      "value": "Created core logic story for weighted score calculation",
+      "note": "Implements backend weighting behavior",
+      "iteration": 9
+    },
+    {
+      "path": "stories.EVAL-WEIGHTS-S3",
+      "value": "Created API and UI interaction story",
+      "note": "Enables user interaction and persistence",
+      "iteration": 9
+    },
+    {
+      "path": "stories.EVAL-WEIGHTS-S4",
+      "value": "Created test suite story",
+      "note": "Ensures correctness and regression safety",
+      "iteration": 9
+    },
+    {
+      "path": "stories.EVAL-WEIGHTS-S5",
+      "value": "Created integration story with scoring engines",
+      "note": "Connects weights to provider and clinical trial scoring",
+      "iteration": 9
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-WEIGHTS-S1": {
+      "story_id": "EVAL-WEIGHTS-S1",
+      "title": "Define Weight Configuration Schema and Contract",
+      "description": "Define a normalized schema for user-adjustable weights across quality measures, including measure identifiers, weight values, defaults, and validation rules. Ensure compatibility with both provider and clinical trial scoring inputs.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "GAP: No weighting schema or persistence model exists; required to enable adjustable scoring inputs"
+    },
+    "EVAL-WEIGHTS-S2": {
+      "story_id": "EVAL-WEIGHTS-S2",
+      "title": "Implement Weighted Scoring Logic",
+      "description": "Extend scoring computation to apply user-defined weights to individual measures and recompute composite scores deterministically. Ensure normalization (e.g., weights sum or scaling) and safe handling of missing measures.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-SCORE-PROV",
+        "EVAL-SCORE-CT",
+        "EVAL-WEIGHTS-S1"
+      ],
+      "size": "L",
+      "evidence": "ASSUMPTION: Existing scoring engines support modular measure inputs but not weighting; extension required in evaluate_care_facade.py and clinical_trials_service.py to apply weights"
+    },
+    "EVAL-WEIGHTS-S3": {
+      "story_id": "EVAL-WEIGHTS-S3",
+      "title": "Expose Weight Configuration API and UI Controls",
+      "description": "Create backend API endpoints for setting, retrieving, and resetting user weight preferences, and implement frontend controls to adjust weights and trigger score recalculation.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S1",
+        "EVAL-WEIGHTS-S2"
+      ],
+      "size": "M",
+      "evidence": "GAP: No API endpoints or frontend components exist for user preference capture or persistence"
+    },
+    "EVAL-WEIGHTS-S4": {
+      "story_id": "EVAL-WEIGHTS-S4",
+      "title": "Unit and Integration Tests for Weighting System",
+      "description": "Develop unit tests for schema validation and scoring logic, and integration tests verifying end-to-end flow from user input through recalculated scores for both providers and clinical trials.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S2",
+        "EVAL-WEIGHTS-S3"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing tests for weighting behavior; must extend backend test suite under backend/tests/"
+    },
+    "EVAL-WEIGHTS-S5": {
+      "story_id": "EVAL-WEIGHTS-S5",
+      "title": "Integrate Weighting into Evaluate Care Facade",
+      "description": "Integrate weight-aware scoring into evaluate_care_facade so that all outbound responses reflect user-adjusted scores, ensuring consistent behavior across provider and clinical trial evaluation flows.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S2",
+        "EVAL-SCORE-PROV",
+        "EVAL-SCORE-CT"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "EVAL-WEIGHTS": {
+        "feature_id": "EVAL-WEIGHTS",
+        "likelihood": "Moderate",
+        "impact": "Moderate",
+        "mitigation": "Default weights fallback to existing scoring to prevent regression"
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

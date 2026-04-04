@@ -1,0 +1,52 @@
+{
+  "stories": {
+    "GOV-F-004-S72": {
+      "story_id": "GOV-F-004-S72",
+      "title": "Audit Log Schema Versioning and Migration Strategy",
+      "description": "Introduce schema version field and backward-compatible parsing to support future audit log evolution without breaking reads. Implement migration rules for older records and validation to reject incompatible writes.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S68"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/machine_brain.py (schema evolution patterns); Code/Shared/ops/manifest_generator.py (versioned artifacts); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S73": {
+      "story_id": "GOV-F-004-S73",
+      "title": "Write Path Resilience and Fail-Safe Buffering",
+      "description": "Implement fail-safe audit logging with retry logic, transient error handling, and optional in-memory or queue-based buffering to prevent loss of audit events during downstream persistence failures.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S69"
+      ],
+      "size": "L",
+      "evidence": "Code/Shared/cost_guard.py (resilient logging patterns); Code/DataPipelines/pipeline_worker_base.py (retry/backoff patterns); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S74": {
+      "story_id": "GOV-F-004-S74",
+      "title": "Access Control and Redaction for Audit Log Reads",
+      "description": "Enforce strict access control for audit log retrieval including role-based filtering and automatic redaction of sensitive fields (e.g., PHI, tokens) in read responses.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S70"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_auth.py (scope-based access control); Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py (de-identification); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S75": {
+      "story_id": "GOV-F-004-S75",
+      "title": "Audit Log Indexing and Query Performance Optimization",
+      "description": "Design and implement indexes on trace_id, timestamp, and actor fields to support efficient query patterns for debugging and compliance without degrading write performance.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S68"
+      ],
+      "size": "S",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py (Mongo access patterns); Code/DataPipelines/gpt_reader.py (query limits and performance constraints); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "assignment_id": "GPTR-F-002-STORIES",
+  "iteration": 24,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema/contract and core lifecycle logic stories to complete feature decomposition.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GPTR-F-002-S81": {
+      "story_id": "GPTR-F-002-S81",
+      "title": "Token Schema and Storage Contract",
+      "description": "Define and implement token schema including fields for token_id, hashed_token, created_at, expires_at, rotated_from, rotated_to, revoked_at, and scope. Ensure persistence model supports lifecycle queries and auditability.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/DataPipelines/gpt_reader.py; GAP: No persistent token lifecycle schema currently defined"
+    },
+    "GPTR-F-002-S82": {
+      "story_id": "GPTR-F-002-S82",
+      "title": "Token Expiration Enforcement Logic",
+      "description": "Implement expiration validation logic to reject tokens past expires_at. Integrate into shared auth validation layer to ensure consistent enforcement across all GPTReader access paths.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S81"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/auth.py; GAP: Expiration enforcement not explicitly implemented"
+    },
+    "GPTR-F-002-S83": {
+      "story_id": "GPTR-F-002-S83",
+      "title": "Token Rotation Chain Logic",
+      "description": "Implement rotation mechanism that issues new tokens linked via rotated_from/rotated_to fields, invalidates prior tokens upon rotation, and ensures only the latest token in a chain is accepted.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S81"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; GAP: No rotation chain logic exists"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

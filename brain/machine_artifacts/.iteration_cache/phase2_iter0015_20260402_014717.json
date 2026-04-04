@@ -1,0 +1,29 @@
+{
+  "assignment_id": "EVAL-TRAVEL-BURDEN",
+  "iteration": 15,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined story boundaries to eliminate overlap between core logic and external API integration.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-TRAVEL-BURDEN-S2.description",
+      "value": "Implement core logic to compute travel distance and duration using a provider-agnostic interface, including batching, normalization, and fallback handling independent of external API details.",
+      "note": "Separated core logic from Google API specifics",
+      "iteration": 15
+    },
+    {
+      "path": "stories.EVAL-TRAVEL-BURDEN-S4.description",
+      "value": "Implement Google Routes API client wrapper including request/response mapping, API key management, rate limiting, retries, and error handling, callable by core logic layer.",
+      "note": "Clarified responsibility as external API adapter",
+      "iteration": 15
+    },
+    {
+      "path": "stories.EVAL-TRAVEL-BURDEN-S3.description",
+      "value": "Integrate normalized travel burden data into evaluate_care_facade ensuring consistent inclusion in trial result payloads and compatibility with existing response structure.",
+      "note": "Strengthened contract alignment with facade output",
+      "iteration": 15
+    }
+  ]
+}

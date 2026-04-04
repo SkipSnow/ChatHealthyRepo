@@ -1,0 +1,165 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-RX-S4-001",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must include a prescription_behavior field in the provider evaluation API response payload when RX data is available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-002",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must structure the prescription_behavior payload to conform exactly to the schema defined in EVAL-P-RX-UX-S1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-003",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must integrate prescription_behavior data within evaluate_care_facade.py without breaking existing response fields.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-004",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must ensure that provider evaluation responses without RX data omit the prescription_behavior field or set it to null.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-005",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must allow the frontend to detect the presence of prescription_behavior data via a deterministic key check.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-006",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must ensure that the frontend renders the prescription behavior module only when prescription_behavior data is present and valid.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-007",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must pass top_drugs, relevance_indicator, integrity_flag, and score_contribution fields through the API unchanged from backend computation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-008",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must preserve ordering of top_drugs as provided by the backend in the API response.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-009",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must handle malformed prescription_behavior payloads by excluding the module from the response rather than causing a full response failure.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-010",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must log an error when prescription_behavior data fails schema validation during integration.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-011",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must ensure that chat response generation includes prescription behavior content when present in the payload.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-012",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must ensure the LLM references prescription behavior insights in the generated chat text when prescription_behavior data is present.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-013",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must ensure the LLM does not hallucinate prescription behavior details when prescription_behavior data is absent.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-014",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must ensure the LLM uses only fields provided in prescription_behavior payload when generating explanations.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-015",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must ensure the LLM correctly interprets integrity_flag values (clean or flagged) and reflects them accurately in the chat response.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-016",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must ensure the LLM summarizes top_drugs without altering their relative importance or introducing new drugs.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-017",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must ensure the LLM includes a relevance explanation when relevance_indicator is present.",
+      "source": "epic_goal",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-018",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must ensure the LLM avoids overemphasizing prescription behavior when score_contribution is low.",
+      "source": "epic_goal",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-019",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must return a valid provider evaluation response within existing latency thresholds after adding prescription_behavior integration.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-RX-S4-020",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must ensure backward compatibility such that clients not expecting prescription_behavior do not fail when receiving the field.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

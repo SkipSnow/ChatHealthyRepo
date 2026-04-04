@@ -1,0 +1,116 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-006",
+  "iteration": 2,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined dependencies and integration points; no new stories created.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-006-S2.dependencies",
+      "value": "[\"BL-0.1.4-006-S1\"]",
+      "note": "Validated minimal dependency chain",
+      "iteration": 2
+    },
+    {
+      "path": "stories.BL-0.1.4-006-S3.description",
+      "value": "Implement mechanism to automatically trigger manifest regeneration when freshness validation fails prior to pipeline or Brain execution, leveraging existing dev_pipeline orchestration hooks.",
+      "note": "Clarified orchestration integration",
+      "iteration": 2
+    },
+    {
+      "path": "stories.BL-0.1.4-006-S3.evidence",
+      "value": "Code/Shared/ops/dev_pipeline.py; Code/Shared/ops/manifest_generator.py; Code/Shared/ops/brain_snapshot.py",
+      "note": "Added Brain snapshot integration evidence",
+      "iteration": 2
+    },
+    {
+      "path": "stories.BL-0.1.4-006-S4.description",
+      "value": "Expose internal interface or endpoint to report manifest freshness status (fresh/stale, age, last_generated, hash_status) for use by Brain runner and DevOps pipelines.",
+      "note": "Expanded contract fields",
+      "iteration": 2
+    },
+    {
+      "path": "stories.BL-0.1.4-006-S5.description",
+      "value": "Create unit and integration tests validating freshness checks, stale detection, hash drift detection, auto-regeneration trigger, and correct behavior within pipeline and Brain execution flows.",
+      "note": "Expanded test coverage scope",
+      "iteration": 2
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-006-S1",
+      "title": "Manifest Snapshot Metadata Schema",
+      "description": "Define schema for manifest snapshot metadata including generated_at timestamp, source_hashes, build_id, and freshness TTL contract to determine validity before execution.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/Shared/ops/manifest_generator.py"
+    },
+    {
+      "story_id": "BL-0.1.4-006-S2",
+      "title": "Snapshot Freshness Validation Engine",
+      "description": "Implement core logic to validate manifest freshness by comparing generated_at against TTL and verifying no source file hash drift since snapshot creation.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/manifest_generator.py; Code/Shared/ops/sync_to_mongo.py"
+    },
+    {
+      "story_id": "BL-0.1.4-006-S3",
+      "title": "Auto-Regeneration Trigger on Stale Manifest",
+      "description": "Implement mechanism to automatically trigger manifest regeneration when freshness validation fails prior to pipeline or Brain execution, leveraging existing dev_pipeline orchestration hooks.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/dev_pipeline.py; Code/Shared/ops/manifest_generator.py; Code/Shared/ops/brain_snapshot.py"
+    },
+    {
+      "story_id": "BL-0.1.4-006-S4",
+      "title": "Manifest Freshness Exposure API",
+      "description": "Expose internal interface or endpoint to report manifest freshness status (fresh/stale, age, last_generated, hash_status) for use by Brain runner and DevOps pipelines.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/Shared/ops/dev_pipeline.py; Code/Shared/brain_runner.py"
+    },
+    {
+      "story_id": "BL-0.1.4-006-S5",
+      "title": "Manifest Freshness Tests and Integration",
+      "description": "Create unit and integration tests validating freshness checks, stale detection, hash drift detection, auto-regeneration trigger, and correct behavior within pipeline and Brain execution flows.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S2",
+        "BL-0.1.4-006-S3",
+        "BL-0.1.4-006-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_pipeline_worker_base.py; Code/DataPipelines/tests/test_gpt_reader_integration.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

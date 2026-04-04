@@ -1,0 +1,165 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include unit tests that validate Pydantic schema acceptance of valid prescription records with NPI, drug code, volume, and mapped condition.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include unit tests that reject prescription records missing required schema fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include unit tests that verify ingestion pipeline correctly normalizes drug identifiers into a canonical format.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include unit tests that confirm aggregation of prescription data by provider NPI produces deterministic results.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include unit tests that verify prescriptions are correctly mapped to ICD-10 conditions using the mapping logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include unit tests that validate scoring logic produces a normalized score within an expected bounded range.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include unit tests that verify identical input datasets always yield identical prescribing scores.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include integration tests that execute the full pipeline from ingestion through scoring and confirm end-to-end output structure matches the defined contract.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include integration tests that call the Evaluate Care API endpoint and verify a successful response includes prescribing score and summary fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include integration tests that verify API responses conform to the facade contract defined in evaluate_care_facade.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include tests that simulate sparse prescribing data and verify the scoring logic still returns a valid but appropriately adjusted score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include tests that simulate missing prescribing data and verify the system returns a controlled empty or fallback response without crashing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include tests that verify LLM-assisted condition mapping produces consistent outputs when given the same ambiguous input.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include tests that verify LLM-assisted mapping outputs conform to the expected ICD-10 schema format.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include tests that validate fallback behavior when LLM mapping fails or returns low-confidence results.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-016",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include tests that ensure scoring logic remains stable when LLM-derived mappings are partially missing.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-017",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include tests that verify no hallucinated conditions are introduced by LLM mapping beyond provided inputs.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-018",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include tests that confirm LLM outputs are deterministic under controlled test conditions (e.g., seeded or mocked responses).",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-019",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include tests that validate graceful degradation when LLM services are unavailable.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-020",
+      "story_id": "EVAL-P-RX-S5",
+      "requirement": "The system must include tests that ensure LLM-derived mappings do not break downstream scoring or API serialization.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,165 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute unit tests validating that the comparison schema mapping correctly transforms backend EVAL-COMPARE responses into the defined frontend contract.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute unit tests verifying normalization logic produces consistent scores across providers with different raw scales.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute unit tests verifying ranking logic correctly orders providers based on normalized scores.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute UI tests confirming that two providers render side-by-side with correct names, scores, and measures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute UI tests confirming that three or more providers render correctly without layout breakage.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute UI tests verifying that strengths and weaknesses indicators are displayed correctly based on computed deltas.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests validating correct rendering when one provider has missing measure data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests validating correct handling when providers have unequal sets of measures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests verifying loading state is rendered when API data is not yet available.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests verifying error state is rendered when the comparison API call fails.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests confirming that schema mapping gracefully handles null or undefined provider fields without crashing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests verifying that comparison logic produces deterministic outputs for identical input data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests verifying that UI rendering remains stable when providers have identical scores.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests validating that accessibility attributes (e.g., labels or roles) are present on comparison UI elements.",
+      "source": "architecture_constraint",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests verifying that LLM-generated comparison summaries (if present) accurately reflect the underlying score differences without contradiction.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-016",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests ensuring LLM-generated text does not fabricate measures or scores not present in the input data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-017",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests verifying LLM output remains consistent for the same structured input (no nondeterministic contradictions across runs).",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-018",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests validating that LLM summaries correctly highlight the highest and lowest performing providers.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-019",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests ensuring LLM summaries handle missing or incomplete provider data without generating misleading conclusions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-020",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests verifying that LLM-generated comparison language avoids absolute claims when differences are marginal.",
+      "source": "feature",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

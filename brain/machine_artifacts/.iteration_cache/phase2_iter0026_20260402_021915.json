@@ -1,0 +1,88 @@
+{
+  "assignment_id": "PHASE 2: GPTR-F-001 Stories",
+  "iteration": 26,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added API, testing, and integration coverage stories to complete feature.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-001-S97",
+      "value": "Azure Function API Enforcement Layer",
+      "note": "Adds API surface enforcing validation before execution",
+      "iteration": 26
+    },
+    {
+      "path": "stories.GPTR-F-001-S98",
+      "value": "Unit Test Coverage for Allowlist Enforcement",
+      "note": "Adds deterministic unit validation coverage",
+      "iteration": 26
+    },
+    {
+      "path": "stories.GPTR-F-001-S99",
+      "value": "Integration Tests with GPTReader and Tool Router",
+      "note": "Validates end-to-end enforcement across stack",
+      "iteration": 26
+    },
+    {
+      "path": "stories.GPTR-F-001-S100",
+      "value": "Audit Logging and Security Telemetry",
+      "note": "Ensures enforcement actions are logged for audit",
+      "iteration": 26
+    }
+  ],
+  "stories": {
+    "GPTR-F-001-S97": {
+      "story_id": "GPTR-F-001-S97",
+      "title": "Azure Function API Enforcement Layer",
+      "description": "Implement Azure Function endpoint wrapper that intercepts all GPTReader requests, applies schema validation and allowlist enforcement before invoking any MongoDB query logic.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S95",
+        "GPTR-F-001-S96"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/function_app.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S98": {
+      "story_id": "GPTR-F-001-S98",
+      "title": "Unit Test Coverage for Allowlist Enforcement",
+      "description": "Create unit tests validating schema compliance, allowlist enforcement, and rejection paths for invalid collections, fields, operators, and malformed queries.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S94",
+        "GPTR-F-001-S95"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S99": {
+      "story_id": "GPTR-F-001-S99",
+      "title": "Integration Tests with GPTReader and Tool Router",
+      "description": "Implement end-to-end tests ensuring that requests originating from tool_router pass through GPTReader enforcement and correctly block disallowed queries while allowing valid ones.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S95",
+        "GPTR-F-001-S97"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S100": {
+      "story_id": "GPTR-F-001-S100",
+      "title": "Audit Logging and Security Telemetry",
+      "description": "Extend GPTReader logging to capture all enforcement decisions (allowed, rejected, reason codes) with audit-safe metadata for monitoring and security review.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S95"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  }
+}

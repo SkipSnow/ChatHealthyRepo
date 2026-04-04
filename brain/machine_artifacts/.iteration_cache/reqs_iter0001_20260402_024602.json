@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must transform raw prescription behavior input into a structured display model conforming to the schema defined in EVAL-P-RX-UX-S1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must normalize prescribing pattern values (e.g., percentages, counts) into consistent numeric formats suitable for UI rendering.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must map clinical condition identifiers from input data to human-readable condition labels using the defined schema contract.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must calculate each prescription behavior metric’s relative contribution to the overall quality score as a normalized value between 0 and 1 or 0 and 100%.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must preserve ordering of prescription behavior items based on contribution or importance as defined by the schema.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must output display-ready text or structured content compatible with MessageBubble.tsx rendering expectations.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must round or format numeric values (e.g., percentages) to a consistent precision suitable for UI display.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must handle multiple prescription behavior entries in a single input and produce a corresponding list of display-ready items.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must exclude or flag prescription entries that do not meet minimum data completeness thresholds defined in the schema.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must produce deterministic outputs such that identical inputs always result in identical transformed display structures.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must return an empty but valid display structure when prescription behavior input data is empty.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must gracefully handle missing condition mappings by substituting a default label such as \"Unknown condition\" without failing the transformation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must validate input data against the schema from EVAL-P-RX-UX-S1 before transformation and reject or flag invalid structures.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must ensure that the sum of relative contribution values does not exceed 100% (or normalized equivalent) after transformation.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

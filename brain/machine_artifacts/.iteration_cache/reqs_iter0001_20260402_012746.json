@@ -1,0 +1,165 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CACHE-REQ-001",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must intercept every quality score computation request and route it through the caching service before execution.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-002",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must generate a deterministic cache key using the schema defined in EVAL-CACHE-S1 for every incoming request.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-003",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must check the cache store for an existing entry matching the generated cache key.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-004",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must return the cached result when a matching entry exists and is within TTL and version validity.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-005",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must treat a cache entry as invalid if its TTL has expired.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-006",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must treat a cache entry as invalid if its version does not match the current computation version.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-007",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must compute a new quality score when no valid cache entry is found.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-008",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must persist newly computed quality scores to the cache using the generated cache key.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-009",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must store TTL and version metadata alongside each cached entry.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-010",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must return the newly computed result to the caller after writing it to the cache.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-011",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must ensure that cache read and write operations follow the persistence patterns established in machine_brain.py.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-012",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must support read-through caching behavior where cache miss triggers computation automatically.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-013",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must support write-through caching behavior where computed results are immediately written to cache before response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-014",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must handle cache miss scenarios without increasing response latency beyond the baseline computation time.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-015",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must log whether each request resulted in a cache hit or miss for observability.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-016",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must handle cache read failures by proceeding with score computation and returning a valid result.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-017",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must handle cache write failures by returning the computed result without blocking the response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-018",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must avoid writing duplicate cache entries for the same key within a single request lifecycle.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-019",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must ensure idempotent behavior such that repeated identical requests produce the same cache key and result.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CACHE-REQ-020",
+      "story_id": "EVAL-CACHE-S2",
+      "requirement": "The system must not return partially computed or incomplete cache entries under any condition.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

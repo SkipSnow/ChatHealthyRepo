@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must execute unit tests validating that prescription behavior schema objects conform to the TypeScript interfaces defined in EVAL-P-RX-UX-S1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must verify via unit tests that transformation logic correctly normalizes prescribing pattern values into display-ready formats.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must verify via unit tests that condition mappings are correctly converted into human-readable labels.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must verify via unit tests that score contribution calculations produce consistent and deterministic outputs for identical inputs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must execute integration tests confirming that the prescription behavior component renders within MessageBubble when valid structured data is provided.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must verify via integration tests that all expected UI elements (patterns, conditions, score contribution) are present when complete data is provided.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must verify via integration tests that the component renders in the correct position within the MessageBubble content flow.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must execute tests confirming that partial prescription data (missing one or more fields) results in graceful fallback rendering without runtime errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must execute tests confirming that completely missing prescription data does not render the component and does not break MessageBubble rendering.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must verify via unit tests that invalid data types in schema inputs are rejected or handled according to defined validation rules.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must ensure all unit and integration tests pass in the CI test environment before merge.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must verify via integration tests that no console errors or warnings are emitted during rendering of the prescription behavior component.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must verify via unit tests that transformation logic handles empty arrays and null values without throwing exceptions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P-RX-UX-S4",
+      "requirement": "The system must ensure test coverage includes both happy path scenarios and at least two distinct edge cases involving missing and malformed data.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

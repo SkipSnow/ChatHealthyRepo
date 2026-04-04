@@ -1,0 +1,82 @@
+{
+  "assignment_id": "PHASE-2-FEAT-2-STORIES",
+  "iteration": 39,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing API exposure, testing, and integration coverage for FEAT-2.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-2-S118",
+      "value": "Expose Specialty Identification via Tool Router API",
+      "note": "Adds API layer for specialty identification",
+      "iteration": 39
+    },
+    {
+      "path": "stories.FEAT-2-S119",
+      "value": "Unit Tests for Specialty Identification Logic",
+      "note": "Adds test coverage for core logic",
+      "iteration": 39
+    },
+    {
+      "path": "stories.FEAT-2-S120",
+      "value": "Integration Test: End-to-End Specialty Mapping in Provider Search Flow",
+      "note": "Ensures full pipeline works with provider search",
+      "iteration": 39
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-2-S118": {
+      "story_id": "FEAT-2-S118",
+      "title": "Expose Specialty Identification via Tool Router API",
+      "description": "Expose specialty identification as an allowlisted tool through the tool_router, enabling the LLM agent to invoke specialty mapping and receive NUCC codes during conversation flow.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S114"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-2-S119": {
+      "story_id": "FEAT-2-S119",
+      "title": "Unit Tests for Specialty Identification Logic",
+      "description": "Create unit tests validating regex matching, vector matching, query expansion, and NUCC mapping accuracy within specialty_service, including edge cases for ambiguous and multi-specialty queries.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S116",
+        "FEAT-2-S117"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "FEAT-2-S120": {
+      "story_id": "FEAT-2-S120",
+      "title": "Integration Test: End-to-End Specialty Mapping in Provider Search Flow",
+      "description": "Validate that user input flows from chat → tool_router → find_care_facade → specialty_service and results in correct NUCC codes being applied to provider_search_service queries.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S115",
+        "FEAT-2-S118"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

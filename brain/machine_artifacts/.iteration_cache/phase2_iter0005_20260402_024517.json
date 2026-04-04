@@ -1,0 +1,107 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-002",
+  "iteration": 5,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories refined for stricter contract clarity and non-duplication alignment with existing Brain token patterns.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-002-S1.description",
+      "value": "Clarified canonical schema fields and enforcement rules including signature validation and scope enforcement alignment with brain_auth.",
+      "note": "Tighten contract to prevent drift across services",
+      "iteration": 5
+    },
+    {
+      "path": "stories.BL-0.1.4-002-S2.description",
+      "value": "Explicitly added atomic rotation guarantees and constant-time revocation lookup requirement.",
+      "note": "Strengthen security and performance guarantees",
+      "iteration": 5
+    },
+    {
+      "path": "stories.BL-0.1.4-002-S3.description",
+      "value": "Clarified internal-only exposure and strict non-public surface constraint.",
+      "note": "Prevent accidental API surface expansion",
+      "iteration": 5
+    },
+    {
+      "path": "stories.BL-0.1.4-002-S4.description",
+      "value": "Added fail-fast validation requirement and audit-safe error handling semantics.",
+      "note": "Align with safety and audit expectations",
+      "iteration": 5
+    },
+    {
+      "path": "stories.BL-0.1.4-002-S5.description",
+      "value": "Expanded coverage to include replay attack scenarios and invalid signature handling.",
+      "note": "Close test coverage gaps",
+      "iteration": 5
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-002-S1",
+      "title": "Token Schema and Validation Contract",
+      "description": "Define canonical bearer token schema (hashed_token_id, issued_at, expires_at, scope, status, rotation_parent_id) and strict validation contract including signature verification, expiry enforcement, scope validation, and revocation checks aligned with shared brain_auth patterns.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/DataPipelines/auth.py; Code/Shared/brain_auth.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S2",
+      "title": "Core Token Lifecycle Engine",
+      "description": "Implement lifecycle engine covering secure issuance, expiration enforcement, atomic rotation (invalidate prior token on issue), and revocation with constant-time lookup to ensure performant validation under load.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/DataPipelines/auth.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S3",
+      "title": "Internal Token Management Interfaces",
+      "description": "Expose internal-only service interfaces (issue_token, validate_token, rotate_token, revoke_token) for GPTReader, Azure Functions, and pipelines with strict contract adherence and no external/public API exposure.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/function_app.py; Code/DataPipelines/auth.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S4",
+      "title": "GPTReader Lifecycle Enforcement Integration",
+      "description": "Integrate token validation into GPTReader request pipeline enforcing signature, expiration, revocation, and scope checks with fail-fast rejection and audit-safe error handling.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S2",
+        "BL-0.1.4-002-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S5",
+      "title": "Token Lifecycle Test Suite",
+      "description": "Develop unit and integration tests covering issuance, expiration, rotation, revocation, replay attack prevention, invalid signature handling, and GPTReader enforcement paths.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S2",
+        "BL-0.1.4-002-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py"
+    }
+  ],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

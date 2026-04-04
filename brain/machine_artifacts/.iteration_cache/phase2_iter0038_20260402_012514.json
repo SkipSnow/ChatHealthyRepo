@@ -1,0 +1,61 @@
+{
+  "assignment_id": "SHARED-F-2-STORIES",
+  "iteration": 38,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema/contract and test coverage stories to complete feature lifecycle.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-2-S115",
+      "value": "Consent Data Schema & Storage Contract",
+      "note": "Added schema layer story",
+      "iteration": 38
+    },
+    {
+      "path": "stories.SHARED-F-2-S116",
+      "value": "Consent Framework Test Suite",
+      "note": "Added test coverage story",
+      "iteration": 38
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "SHARED-F-2-S115",
+      "title": "Consent Data Schema & Storage Contract",
+      "description": "Define and implement the MongoDB schema and Pydantic models for consent records, including tier designation, timestamping, user/session linkage, and audit fields. Ensure strict contract enforcement for Tier 1 (de-identified) vs Tier 2 (identifiable) storage pathways.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; architecture/refactor_design_arch001"
+    },
+    {
+      "story_id": "SHARED-F-2-S116",
+      "title": "Consent Framework Test Suite",
+      "description": "Develop unit and integration tests validating two-tier consent behavior, including correct de-identification for Tier 1, persistence rules for Tier 2, rejection of invalid consent states, and enforcement across integrated services.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S112",
+        "SHARED-F-2-S114"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

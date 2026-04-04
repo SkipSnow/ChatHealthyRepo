@@ -1,0 +1,64 @@
+{
+  "assignment_id": "FEAT-1-STORIES",
+  "iteration": 11,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added test and domain integration coverage stories to complete FEAT-1.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-1-STORY-026",
+      "value": "Add unit and integration tests for provider search flow",
+      "note": "Ensure reliability and regression safety",
+      "iteration": 11
+    },
+    {
+      "path": "stories.FEAT-1-STORY-027",
+      "value": "Validate domain-level provider search service integration",
+      "note": "Ensure vector + taxonomy fallback and location logic correctness",
+      "iteration": 11
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-1-STORY-026": {
+      "story_id": "FEAT-1-STORY-026",
+      "title": "Add unit and integration tests for provider search",
+      "description": "Create unit tests for schema validation and facade orchestration, plus integration tests covering end-to-end provider search including vector search, taxonomy fallback, and location filtering behavior.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-023",
+        "FEAT-1-STORY-024",
+        "FEAT-1-STORY-025"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-027": {
+      "story_id": "FEAT-1-STORY-027",
+      "title": "Integrate provider search service with location and fallback logic",
+      "description": "Ensure provider_search_service correctly executes MongoDB vector search, applies taxonomy fallback using NUCC codes, and enforces location filtering (FIPS/county/state) with consistent ranking and result shaping.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-024"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

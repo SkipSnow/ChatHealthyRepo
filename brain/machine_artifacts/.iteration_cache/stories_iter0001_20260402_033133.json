@@ -1,0 +1,55 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-P-MALPRACTICE-SCHEMA-001",
+      "title": "Define malpractice and disciplinary action schema",
+      "description": "Create Pydantic models and internal data contract for malpractice signals including fields for state_board_actions (list), npdb_flag (boolean/unknown), action_count, severity_score (derived), and evidence_links (URLs). Ensure schema supports null/unknown states and negative-only scoring semantics (no positive boost for absence).",
+      "parent_feature": "EVAL-P-MEASURE-MALPRACTICE",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (existing provider detail patterns, state board URL construction). ASSUMPTION: No existing malpractice schema; must be introduced in evaluate_care domain.",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-P-MALPRACTICE-LOGIC-001",
+      "title": "Implement malpractice signal aggregation logic",
+      "description": "Build backend service logic to construct malpractice signal: (1) generate state board URLs per provider state, (2) detect known negative indicators from available data (e.g., NPI deactivation or sanctions proxy), (3) compute severity_score based on presence/count of actions, (4) enforce rule: presence reduces score, absence is neutral. Return structured malpractice object.",
+      "parent_feature": "EVAL-P-MEASURE-MALPRACTICE",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MALPRACTICE-SCHEMA-001"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (state board URL logic exists). GAP: No automated ingestion of board actions; logic must rely on constructed links and proxy indicators.",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-P-MALPRACTICE-API-001",
+      "title": "Expose malpractice measure in provider evaluation API",
+      "description": "Extend evaluate_care_facade and provider detail response to include malpractice measure object. Ensure compatibility with existing tool_router and response formats. Include evidence_links for UI rendering and clear flag when data is unknown vs confirmed clean.",
+      "parent_feature": "EVAL-P-MEASURE-MALPRACTICE",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-P-MALPRACTICE-LOGIC-001"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (provider evaluation orchestration).",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-P-MALPRACTICE-TEST-001",
+      "title": "Unit and integration tests for malpractice measure",
+      "description": "Create tests validating: (1) schema validation (null vs populated cases), (2) correct negative-only scoring behavior, (3) correct construction of state board URLs, (4) API response includes malpractice object, (5) graceful handling of missing data. Include edge cases for unknown NPDB status.",
+      "parent_feature": "EVAL-P-MEASURE-MALPRACTICE",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-P-MALPRACTICE-API-001"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ (existing testing patterns). ASSUMPTION: No existing malpractice tests; must follow current pytest structure.",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

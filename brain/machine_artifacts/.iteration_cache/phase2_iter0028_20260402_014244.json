@@ -1,0 +1,52 @@
+{
+  "stories": {
+    "FEAT-1-STORY-093": {
+      "story_id": "FEAT-1-STORY-093",
+      "title": "Define provider search request and response schema",
+      "description": "Implement and validate Pydantic models for provider search inputs (query, location, filters) and standardized response structure to ensure consistent contract between tool router, facade, and domain services.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-1-STORY-094": {
+      "story_id": "FEAT-1-STORY-094",
+      "title": "Expose provider search via tool router API",
+      "description": "Register provider search as an allowed tool in the tool_router with proper input validation and routing to find_care_facade, enabling LLM-driven invocation.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-090",
+        "FEAT-1-STORY-093"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-1-STORY-095": {
+      "story_id": "FEAT-1-STORY-095",
+      "title": "Integrate specialty resolution into provider search flow",
+      "description": "Incorporate specialty_service into the provider search pipeline to translate user queries into NUCC taxonomy codes prior to executing vector and fallback search.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-089"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "FEAT-1-STORY-096": {
+      "story_id": "FEAT-1-STORY-096",
+      "title": "End-to-end integration test for provider search via facade and router",
+      "description": "Create integration tests that simulate tool_router invocation through find_care_facade down to provider_search_service, validating full execution including schema validation and formatted results.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-094",
+        "FEAT-1-STORY-092"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  }
+}

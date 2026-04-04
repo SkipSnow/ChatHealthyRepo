@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute unit tests validating that the comparison schema mapping correctly transforms backend EVAL-COMPARE responses into the frontend contract defined in EVAL-COMPARE-UX-S1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute unit tests verifying that normalization logic produces consistent relative scores across at least two providers with differing raw values.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute unit tests confirming that ranking logic correctly orders providers based on normalized scores.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute UI tests verifying that the comparison component renders multiple providers side-by-side with all required fields (identity, score, measures).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute UI tests confirming that visual indicators for strengths and weaknesses appear correctly based on computed deltas.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute integration tests verifying that API responses are correctly consumed and rendered without runtime errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests validating correct behavior when one or more providers have missing measure data, ensuring the UI renders placeholders or omissions without crashing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests validating comparison behavior when providers have unequal sets of measures, ensuring alignment logic does not mis-map measures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests confirming that the component supports rendering three or more providers simultaneously without layout or logic failure.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute UI tests verifying correct loading state rendering while awaiting API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute UI tests verifying correct error state rendering when the comparison API returns an error.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests ensuring that no uncaught exceptions occur during rendering when provided with null or empty comparison datasets.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute snapshot or DOM-based tests confirming consistent rendering output for a fixed comparison input.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "requirement": "The system must execute tests validating that state updates (e.g., changing selected providers) trigger correct re-render and recomputation of comparison results.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

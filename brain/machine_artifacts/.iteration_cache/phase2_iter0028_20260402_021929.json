@@ -1,0 +1,89 @@
+{
+  "assignment_id": "GPTR-F-001-STORIES",
+  "iteration": 28,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added remaining stories to complete API, testing, and integration coverage for server-side scope enforcement.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-001-S104",
+      "value": "API endpoint enforcement wrapper for GPTReader",
+      "note": "Adds API layer enforcement binding",
+      "iteration": 28
+    },
+    {
+      "path": "stories.GPTR-F-001-S105",
+      "value": "Automated test suite for allowlist enforcement",
+      "note": "Adds unit and integration validation coverage",
+      "iteration": 28
+    },
+    {
+      "path": "stories.GPTR-F-001-S106",
+      "value": "Integration with existing GPTReader execution pipeline",
+      "note": "Ensures enforcement is mandatory in execution flow",
+      "iteration": 28
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GPTR-F-001-S104": {
+      "story_id": "GPTR-F-001-S104",
+      "title": "API Enforcement Wrapper for GPTReader Endpoint",
+      "description": "Wrap GPTReader Azure Function endpoint with enforcement middleware that validates every incoming request against the allowlist schema and enforcement engine before any database interaction occurs.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S101",
+        "GPTR-F-001-S102"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S105": {
+      "story_id": "GPTR-F-001-S105",
+      "title": "Allowlist Enforcement Test Suite",
+      "description": "Develop comprehensive unit and integration tests covering valid requests, blocked queries, edge cases (nested queries, large payloads), and security bypass attempts to ensure enforcement cannot be circumvented.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S102",
+        "GPTR-F-001-S103"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S106": {
+      "story_id": "GPTR-F-001-S106",
+      "title": "Mandatory Enforcement Integration in Execution Pipeline",
+      "description": "Integrate allowlist enforcement into GPTReader execution flow such that no query execution path exists without passing validation, including direct function calls and internal reuse paths.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S102",
+        "GPTR-F-001-S104"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_runner.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "GPTR-F-001": {
+        "likelihood": "High",
+        "impact": "Critical",
+        "mitigation": "Enforce validation as a mandatory pre-execution step with no bypass paths and full test coverage."
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must compute an appropriateness score for each provider using normalized prescription-to-condition mappings produced by the ingestion pipeline.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must compare observed prescribing patterns against expected condition-treatment mappings derived from ICD-10 associations.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must normalize appropriateness scores to a consistent scale between 0 and 1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must weight prescription volumes when calculating appropriateness scores.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must penalize prescriptions that do not map to any expected condition-treatment pairing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must produce a structured output containing provider NPI, score, and contributing factors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must invoke an LLM to infer condition-treatment relationships when deterministic mappings are missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must constrain LLM outputs to a predefined schema for condition-treatment mapping.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must log LLM inputs and outputs for each inference used in scoring.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must assign a confidence score to each LLM-inferred mapping.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must incorporate LLM confidence scores into the final appropriateness score weighting.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must fallback to deterministic scoring when LLM inference is unavailable.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must reject LLM outputs that do not conform to the expected schema.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must handle ambiguous drug-to-condition mappings by invoking LLM disambiguation logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must ensure LLM prompts include sufficient context (drug, condition candidates, metadata) for accurate inference.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-016",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must cache LLM mapping results to avoid repeated inference for identical inputs.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-017",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must return a default score of null when no prescribing data is available for a provider.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-018",
+      "story_id": "EVAL-P-RX-S3",
+      "requirement": "The system must flag providers with insufficient data volume and exclude them from scoring calculations.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

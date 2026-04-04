@@ -1,0 +1,83 @@
+{
+  "assignment_id": "PHASE-2-EVAL-P-MEASURE-3",
+  "iteration": 15,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing integration, facade mapping, and contract validation stories without duplicating existing schema/core/API/test coverage.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-P-MEASURE-3-S30",
+      "value": "Added facade mapping story",
+      "note": "Ensure signal is included in EvaluateCare facade response",
+      "iteration": 15
+    },
+    {
+      "path": "stories.EVAL-P-MEASURE-3-S31",
+      "value": "Added URL guardian integration story",
+      "note": "Close gap between link generation and validation pipeline",
+      "iteration": 15
+    },
+    {
+      "path": "stories.EVAL-P-MEASURE-3-S32",
+      "value": "Added contract validation test story",
+      "note": "Ensure 'presence indicator only' constraint is enforced",
+      "iteration": 15
+    }
+  ],
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "EVAL-P-MEASURE-3-S30",
+      "title": "Integrate Disciplinary Signal into EvaluateCare Facade Response",
+      "description": "Map the disciplinary signal object from provider_detail_service into the evaluate_care_facade response payload, ensuring consistent structure alongside other provider quality signals and compatibility with chat tool output.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-F-002",
+        "EVAL-P-MEASURE-3-S21"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-3-S31",
+      "title": "Integrate URL Guardian Validation for Board Links",
+      "description": "Ensure all generated state medical board links pass through the URL Guardian validation pipeline (HEAD check, AI verification, correction fallback) before inclusion in the disciplinary signal to prevent broken or unsafe links.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MEASURE-3-S23",
+        "EVAL-P-MEASURE-3-S28"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    },
+    {
+      "story_id": "EVAL-P-MEASURE-3-S32",
+      "title": "Validate Disciplinary Signal Contract Enforces 'Indicator Only'",
+      "description": "Create validation logic and tests to ensure the disciplinary signal never includes detailed disciplinary records, only presence indicators and links, enforcing product constraint and avoiding scope creep into regulated data handling.",
+      "parent_feature": "EVAL-P-MEASURE-3",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MEASURE-3-S1",
+        "EVAL-P-MEASURE-3-S24"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must include a unit test that verifies identical inputs to the scoring algorithm produce identical composite scores across multiple executions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must include a unit test that validates the composite score equals the weighted sum of input measures using the configured fixed weights.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must include a unit test that verifies normalization logic produces consistent scale outputs for varying input ranges.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must include a unit test that enforces rejection or error when fewer than 3 quality measures are provided as input.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must include a unit test that validates correct handling when exactly 3 measures are provided (minimum valid case).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must include a unit test that verifies additional measures beyond 3 are incorporated correctly into the weighted score.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must include a unit test that confirms null or missing measure values are either excluded or handled according to defined scoring rules without causing crashes.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must include a unit test that verifies the scoring algorithm raises a deterministic error or returns a defined fallback when all measures are null or missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must include a unit test that ensures weight configurations sum to an expected total (e.g., 1.0) and produce predictable output when valid.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must include a unit test that verifies behavior when weight configuration is invalid (e.g., sums not equal to expected total) results in a controlled failure or validation error.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must include a unit test that confirms the scoring output schema matches the defined Pydantic model structure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must include a unit test that validates floating point precision is consistent and within an acceptable tolerance for repeated calculations.",
+      "source": "feature",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

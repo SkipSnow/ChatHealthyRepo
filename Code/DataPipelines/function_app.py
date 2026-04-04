@@ -7,6 +7,7 @@
 import json
 import logging
 import os
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -30,7 +31,9 @@ from auth import require_auth
 from otp_manager import exchange_otp
 from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
-from copy_to_frontend import run_copy_to_frontend, snapshot_collection_fn, create_frontend_vector_index_fn
+from copy_to_frontend import (run_copy_to_frontend, snapshot_collection_fn, create_frontend_vector_index_fn,
+                              partition_source, copy_chunk, drop_destination,
+                              migrate_small_collections, migrate_chunk)
 from promote_data_fn import run_promote_data
 from gpt_reader import handle_gpt_reader
 from pipeline_health import check_mongo_health
@@ -72,6 +75,8 @@ from provider_load_manager import (
     provider_load_orchestrator_fn,
     provider_worker_fn,
     reconcile_fn,
+    register_reservation_fn,
+    release_reservation_fn,
     report_fn,
     stamp_embedding_version_fn,
     write_metadata_fn,
@@ -85,11 +90,97 @@ PIPELINE_ROUTE = "Router"
 SYNC_TASK_HANDLERS = {
     "LoadSpecialtyData": run_load_specialty_data,
     "LoadICD10": load_icd10,
-    "CopyToFrontEnd": run_copy_to_frontend,
     "CreateFrontendVectorIndex": create_frontend_vector_index_fn,
     "CheckMongoHealth": check_mongo_health,
     "StampEmbeddingVersion": stamp_embedding_version_fn,
     "PromoteData": run_promote_data,
+}
+
+# Ops Manager tasks — infrastructure only, no pipeline business logic
+def _get_mongo_conn():
+    return os.environ.get("MONGO_FRONTEND_connectionString",
+                          os.environ.get("MONGO_connectionString", ""))
+
+def _get_ops_manager():
+    from cluster_lifecycle_manager import ClusterLifecycleManager
+    from pymongo import MongoClient
+    conn = _get_mongo_conn()
+    push_fn = None
+    email_fn = None
+    try:
+        from pipeline_health import send_pushover
+        push_fn = lambda title, msg: send_pushover(title, msg)
+    except Exception:
+        pass
+    try:
+        from pipeline_health import send_admin_notification
+        email_fn = lambda subject, text: send_admin_notification(subject, text)
+    except Exception:
+        pass
+    return ClusterLifecycleManager(
+        get_db_fn=lambda: MongoClient(conn),
+        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
+        push_fn=push_fn,
+    )
+
+def _get_ops_agent():
+    """Get the OpsManagerAgent — full agent with tools, triage, audit."""
+    from cluster_lifecycle_manager import ClusterLifecycleManager
+    from ops_manager import OpsManagerAgent
+    from pymongo import MongoClient
+    conn = _get_mongo_conn()
+    env_prefix = os.environ.get("ENV_PREFIX", "dev")
+    push_fn = None
+    email_fn = None
+    try:
+        from pipeline_health import send_pushover
+        push_fn = lambda title, msg: send_pushover(title, msg)
+    except Exception:
+        pass
+    try:
+        from pipeline_health import send_admin_notification
+        email_fn = lambda subject, text: send_admin_notification(subject, text)
+    except Exception:
+        pass
+    mgr = ClusterLifecycleManager(
+        get_db_fn=lambda: MongoClient(conn),
+        env_prefix=env_prefix,
+        push_fn=push_fn,
+    )
+    return OpsManagerAgent(
+        lifecycle_manager=mgr,
+        get_db_fn=lambda: MongoClient(conn),
+        env_prefix=env_prefix,
+        push_fn=push_fn,
+        email_fn=email_fn,
+    )
+
+def _handle_wake_cluster(payload):
+    mgr = _get_ops_manager()
+    return mgr.reserve(
+        cluster_name=payload.get("cluster_name", "ChatHealthyDataPipelines"),
+        job_id=payload.get("job_id", f"manual_{int(__import__('time').time())}"),
+        requester=payload.get("requester", "manual"),
+        expected_duration_minutes=payload.get("expected_duration_minutes", 60),
+    )
+
+def _handle_cluster_status(payload):
+    mgr = _get_ops_manager()
+    return mgr.status(payload.get("cluster_name", "ChatHealthyDataPipelines"))
+
+def _handle_release(payload):
+    mgr = _get_ops_manager()
+    return mgr.release(payload.get("job_id", ""))
+
+def _handle_force_release(payload):
+    mgr = _get_ops_manager()
+    return mgr.force_release_all(payload.get("cluster_name", "ChatHealthyDataPipelines"))
+
+OPS_TASK_HANDLERS = {
+    "WakeCluster": _handle_wake_cluster,
+    "ClusterStatus": _handle_cluster_status,
+    "Release": _handle_release,
+    "ForceRelease": _handle_force_release,
 }
 
 # Asynchronous tasks — start a Durable orchestrator, return 202 + status URL
@@ -98,6 +189,8 @@ ASYNC_TASK_ORCHESTRATORS = {
     "CountyEnrichment": "county_enrichment_orchestrator",
     "FullProviderPipeline": "full_provider_pipeline_orchestrator",
     "SnapshotCollection": "snapshot_collection_orchestrator",
+    "CopyToFrontEnd": "copy_to_frontend_orchestrator",
+    "MigrateEnvironment": "migrate_environment_orchestrator",
 }
 
 
@@ -156,7 +249,13 @@ async def dev_pipeline_management(
 
         logging.info("User '%s' requested task '%s'", user_id, task)
 
-        # Synchronous path
+        # Ops Manager path — infrastructure only
+        if task in OPS_TASK_HANDLERS:
+            result = OPS_TASK_HANDLERS[task](payload)
+            logging.info("Ops task '%s' completed", task)
+            return json_response({"success": True, "task": task, "data": result}, 200)
+
+        # Synchronous pipeline path
         if task in SYNC_TASK_HANDLERS:
             result = SYNC_TASK_HANDLERS[task](payload)
             logging.info("Task '%s' completed for user '%s'", task, user_id)
@@ -247,6 +346,34 @@ def exchange_otp_route(req: func.HttpRequest) -> func.HttpResponse:
 #     check_and_pause()
 
 
+# ── Cluster Lifecycle Manager — hourly check for overdue reservations ─────────
+
+@app.timer_trigger(schedule="0 */5 * * * *", arg_name="myTimer", run_on_startup=False)
+def cluster_lifecycle_timer(myTimer: func.TimerRequest) -> None:
+    """Ops-only timer. No task execution. No pipeline imports.
+
+    Checks overdue reservations (alerts Boss).
+    Shuts down idle clusters (zero reservations).
+    Checks for stuck clusters.
+    Uses OpsManagerAgent for full triage + audit trail.
+    """
+    try:
+        agent = _get_ops_agent()
+        cluster_name = os.environ.get("PIPELINE_CLUSTER", "ChatHealthyDataPipelines")
+        result = agent.handle_event({
+            "type": "timer_check",
+            "cluster_name": cluster_name,
+        })
+        if result.success:
+            data = result.data or {}
+            logging.info("Ops timer: %s, %d reservations",
+                         data.get("cluster_state", "?"), data.get("active_reservations", 0))
+        else:
+            logging.warning("Ops timer returned error: %s", result.error_message)
+    except Exception:
+        logging.exception("Cluster lifecycle timer failed")
+
+
 # ── Durable Orchestrators ─────────────────────────────────────────────────────
 
 @app.orchestration_trigger(context_name="context")
@@ -257,6 +384,210 @@ def full_provider_pipeline_orchestrator(context: df.DurableOrchestrationContext)
 @app.orchestration_trigger(context_name="context")
 def provider_load_orchestrator(context: df.DurableOrchestrationContext):
     return provider_load_orchestrator_fn(context)
+
+
+@app.orchestration_trigger(context_name="context")
+def copy_to_frontend_orchestrator(context: df.DurableOrchestrationContext):
+    """Async CopyToFrontEnd — count, partition, fan out workers by _id range.
+
+    Pattern: reserve → poll → static collections → drop destination →
+             partition source → fan out N workers (one per chunk) →
+             vector index → release.
+
+    Each worker copies a fixed-size _id range. Every worker is identical.
+    No special cases for first/last. Job number tracks each worker.
+
+    payload:
+        env_prefix             — "dev" (default)
+        cluster_name           — "ChatHealthyDataPipelines" (default)
+        chunk_size             — records per worker (default: 50,000)
+        expected_duration_minutes — reservation duration (default: 120)
+    """
+    import datetime as dt
+
+    config = context.get_input() or {}
+    cluster_name = config.get("cluster_name", "ChatHealthyDataPipelines")
+    env_prefix = config.get("env_prefix", "dev")
+    chunk_size = config.get("chunk_size", 50_000)
+    job_id = config.get("job_id", f"copy_to_frontend_{int(time.time())}")
+
+    # Step 1: Reserve cluster
+    reservation = {
+        "job_id": job_id,
+        "requester": "CopyToFrontEnd",
+        "cluster_name": cluster_name,
+        "expected_duration_minutes": config.get("expected_duration_minutes", 120),
+    }
+    context.set_custom_status("Reserving cluster")
+    yield context.call_activity("register_reservation_activity", reservation)
+
+    # Step 2: Wait for cluster IDLE
+    deadline = context.current_utc_datetime + dt.timedelta(minutes=30)
+    while context.current_utc_datetime < deadline:
+        context.set_custom_status("Waiting for cluster IDLE")
+        status = yield context.call_activity("check_cluster_state_activity",
+                                              {"cluster_name": cluster_name})
+        if status.get("cluster_state") == "IDLE":
+            break
+        next_check = context.current_utc_datetime + dt.timedelta(seconds=15)
+        yield context.create_timer(next_check)
+
+    # Step 3: Copy static collections
+    context.set_custom_status("Copying static collections")
+    yield context.call_activity("copy_to_frontend_activity", {
+        "env_prefix": env_prefix,
+        "states": [],
+    })
+
+    # Step 4: Drop destination providers (clean slate)
+    context.set_custom_status("Dropping destination providers")
+    yield context.call_activity("drop_destination_activity", {
+        "env_prefix": env_prefix,
+        "collection": "providers",
+    })
+
+    # Step 5: Partition source into chunks by _id range
+    context.set_custom_status("Partitioning source")
+    partition = yield context.call_activity("partition_source_activity", {
+        "env_prefix": env_prefix,
+        "collection": "providers",
+        "chunk_size": chunk_size,
+    })
+    chunks = partition.get("chunks", [])
+    total = partition.get("total", 0)
+
+    # Step 6: Fan out — one worker per chunk
+    results = []
+    total_copied = 0
+    for chunk in chunks:
+        jn = chunk["job_number"]
+        context.set_custom_status(f"Worker {jn}/{len(chunks)} — {total_copied:,}/{total:,} copied")
+        r = yield context.call_activity("copy_chunk_activity", {
+            "env_prefix": env_prefix,
+            "collection": "providers",
+            "job_number": jn,
+            "start_id": chunk["start_id"],
+            "end_id": chunk["end_id"],
+        })
+        copied = r.get("copied", 0)
+        total_copied += copied
+        results.append(r)
+
+    # Step 7: Create vector index
+    context.set_custom_status("Creating vector search index")
+    try:
+        yield context.call_activity("create_frontend_vector_index_activity", {
+            "env_prefix": env_prefix,
+        })
+    except Exception:
+        pass
+
+    # Step 8: Release reservation
+    context.set_custom_status("Releasing cluster")
+    yield context.call_activity("release_reservation_activity", reservation)
+
+    context.set_custom_status(f"Done — {total_copied:,} providers in {len(chunks)} chunks")
+    return {"status": "complete", "total_copied": total_copied, "chunks": len(chunks), "results": results}
+
+
+@app.orchestration_trigger(context_name="context")
+def migrate_environment_orchestrator(context: df.DurableOrchestrationContext):
+    """Migrate all PublicHealthData collections from one env to another.
+
+    Small collections: $out (single activity, fast).
+    Large collections (providers): partition by _id range, one chunk per activity.
+
+    payload:
+        src_env      — "dev" (default)
+        dst_env      — "qa" (default)
+        cluster_name — "ChatHealthyDataPipelines" (default)
+        chunk_size   — records per chunk for large collections (default: 50,000)
+    """
+    import datetime as dt
+
+    config = context.get_input() or {}
+    src_env = config.get("src_env", "dev")
+    dst_env = config.get("dst_env", "qa")
+    chunk_size = config.get("chunk_size", 50_000)
+    cluster_name = config.get("cluster_name", "ChatHealthyDataPipelines")
+
+    # Reserve cluster
+    reservation = {
+        "job_id": f"migrate_{src_env}_to_{dst_env}_{int(time.time())}",
+        "requester": "MigrateEnvironment",
+        "cluster_name": cluster_name,
+        "expected_duration_minutes": config.get("expected_duration_minutes", 120),
+    }
+    context.set_custom_status("Reserving cluster")
+    yield context.call_activity("register_reservation_activity", reservation)
+
+    # Wait for IDLE
+    deadline = context.current_utc_datetime + dt.timedelta(minutes=30)
+    while context.current_utc_datetime < deadline:
+        context.set_custom_status("Waiting for cluster IDLE")
+        status = yield context.call_activity("check_cluster_state_activity",
+                                              {"cluster_name": cluster_name})
+        if status.get("cluster_state") == "IDLE":
+            break
+        next_check = context.current_utc_datetime + dt.timedelta(seconds=15)
+        yield context.create_timer(next_check)
+
+    # Step 1: Migrate small collections via $out
+    context.set_custom_status(f"Migrating small collections {src_env} → {dst_env}")
+    small_result = yield context.call_activity("migrate_small_collections_activity", {
+        "src_env": src_env,
+        "dst_env": dst_env,
+    })
+
+    # Step 2: Chunked copy for providers
+    context.set_custom_status("Partitioning providers")
+    src_db_name = f"{src_env}_PublicHealthData"
+    dst_db_name = f"{dst_env}_PublicHealthData"
+
+    partition = yield context.call_activity("partition_source_activity", {
+        "env_prefix": src_env,
+        "collection": "providers",
+        "chunk_size": chunk_size,
+    })
+    chunks = partition.get("chunks", [])
+    total = partition.get("total", 0)
+
+    # Drop destination providers before copying
+    context.set_custom_status("Dropping destination providers")
+    yield context.call_activity("drop_destination_activity", {
+        "env_prefix": dst_env,
+        "collection": "providers",
+        "use_pipeline_cluster": True,
+    })
+
+    # Fan out — one chunk at a time
+    total_copied = 0
+    for chunk in chunks:
+        jn = chunk["job_number"]
+        context.set_custom_status(f"Providers {jn+1}/{len(chunks)} — {total_copied:,}/{total:,}")
+        r = yield context.call_activity("migrate_chunk_activity", {
+            "src_env": src_env,
+            "dst_env": dst_env,
+            "collection": "providers",
+            "job_number": jn,
+            "start_id": chunk["start_id"],
+            "end_id": chunk["end_id"],
+        })
+        total_copied += r.get("copied", 0)
+
+    # Release
+    context.set_custom_status("Releasing cluster")
+    yield context.call_activity("release_reservation_activity", reservation)
+
+    context.set_custom_status(f"Done — {total_copied:,} providers + small collections")
+    return {
+        "status": "complete",
+        "src": src_db_name,
+        "dst": dst_db_name,
+        "providers_copied": total_copied,
+        "chunks": len(chunks),
+        "small_collections": small_result,
+    }
 
 
 @app.orchestration_trigger(context_name="context")
@@ -275,6 +606,48 @@ def snapshot_collection_orchestrator(context: df.DurableOrchestrationContext):
 @app.activity_trigger(input_name="config")
 def check_mongo_health_activity(config: dict) -> dict:
     return check_mongo_health(config)
+
+
+@app.activity_trigger(input_name="config")
+def copy_to_frontend_activity(config: dict) -> dict:
+    return run_copy_to_frontend(config)
+
+
+@app.activity_trigger(input_name="config")
+def migrate_small_collections_activity(config: dict) -> dict:
+    return migrate_small_collections(config)
+
+
+@app.activity_trigger(input_name="config")
+def migrate_chunk_activity(config: dict) -> dict:
+    return migrate_chunk(config)
+
+
+@app.activity_trigger(input_name="config")
+def drop_destination_activity(config: dict) -> dict:
+    return drop_destination(config)
+
+
+@app.activity_trigger(input_name="config")
+def partition_source_activity(config: dict) -> dict:
+    return partition_source(config)
+
+
+@app.activity_trigger(input_name="config")
+def copy_chunk_activity(config: dict) -> dict:
+    return copy_chunk(config)
+
+
+@app.activity_trigger(input_name="config")
+def create_frontend_vector_index_activity(config: dict) -> dict:
+    return create_frontend_vector_index_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def check_cluster_state_activity(config: dict) -> dict:
+    """Return cluster state for orchestrator polling."""
+    mgr = _get_ops_manager()
+    return mgr.status(config.get("cluster_name", "ChatHealthyDataPipelines"))
 
 
 @app.activity_trigger(input_name="config")
@@ -316,6 +689,16 @@ def ensure_postload_indexes_activity(config: dict) -> None:
 @app.activity_trigger(input_name="config")
 def write_metadata_activity(config: dict) -> list:
     return write_metadata_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def register_reservation_activity(config: dict) -> dict:
+    return register_reservation_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def release_reservation_activity(config: dict) -> dict:
+    return release_reservation_fn(config)
 
 
 @app.activity_trigger(input_name="config")

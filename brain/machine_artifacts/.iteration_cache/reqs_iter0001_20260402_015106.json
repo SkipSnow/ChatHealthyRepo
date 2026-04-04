@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-TEST-001",
+      "story_id": "EVAL-CT-PHASE-TEST-001",
+      "requirement": "The system must include a unit test validating that Phase I input returns the lowest defined score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-TEST-002",
+      "story_id": "EVAL-CT-PHASE-TEST-001",
+      "requirement": "The system must include a unit test validating that Phase II input returns a higher score than Phase I.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-TEST-003",
+      "story_id": "EVAL-CT-PHASE-TEST-001",
+      "requirement": "The system must include a unit test validating that Phase III input returns a higher score than Phase II.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-TEST-004",
+      "story_id": "EVAL-CT-PHASE-TEST-001",
+      "requirement": "The system must include a unit test validating that Phase IV input returns the highest defined score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-TEST-005",
+      "story_id": "EVAL-CT-PHASE-TEST-001",
+      "requirement": "The system must include a unit test validating that 'N/A' or equivalent non-phase input returns a defined neutral or lowest score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-TEST-006",
+      "story_id": "EVAL-CT-PHASE-TEST-001",
+      "requirement": "The system must include a unit test validating that the phase-to-score mapping function is deterministic for repeated identical inputs.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-TEST-007",
+      "story_id": "EVAL-CT-PHASE-TEST-001",
+      "requirement": "The system must include a unit test validating that all supported phase values map within the normalized score range defined by the schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-TEST-008",
+      "story_id": "EVAL-CT-PHASE-TEST-001",
+      "requirement": "The system must include a unit test validating that input phase values are handled case-insensitively (e.g., 'phase i' equals 'Phase I').",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-TEST-009",
+      "story_id": "EVAL-CT-PHASE-TEST-001",
+      "requirement": "The system must include a unit test validating that a missing or null phase input does not throw an error and returns a safe default score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-TEST-010",
+      "story_id": "EVAL-CT-PHASE-TEST-001",
+      "requirement": "The system must include a unit test validating that an unexpected phase value (e.g., 'Phase V') is handled gracefully without exception and returns a default score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-TEST-011",
+      "story_id": "EVAL-CT-PHASE-TEST-001",
+      "requirement": "The system must include a unit test validating that invalid input types (e.g., numeric or object instead of string) are handled without runtime failure.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-PHASE-TEST-012",
+      "story_id": "EVAL-CT-PHASE-TEST-001",
+      "requirement": "The system must ensure unit tests execute within the existing backend test framework and pass successfully.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

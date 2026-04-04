@@ -1,0 +1,63 @@
+{
+  "stories": {
+    "FEAT-1-STORY-043": {
+      "story_id": "FEAT-1-STORY-043",
+      "title": "Define provider search request/response schema contract",
+      "description": "Define and validate Pydantic models for provider search inputs (query, location, specialty) and structured outputs (provider list, scores, metadata) to ensure consistent contract across facade, service, and API layers.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-1-STORY-044": {
+      "story_id": "FEAT-1-STORY-044",
+      "title": "Implement specialty identification integration for search queries",
+      "description": "Integrate specialty_service into provider search flow to expand and normalize user queries into NUCC taxonomy codes using regex + vector pipeline before executing search.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-039"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    "FEAT-1-STORY-045": {
+      "story_id": "FEAT-1-STORY-045",
+      "title": "Integrate find_care_facade orchestration for provider search",
+      "description": "Ensure find_care_facade orchestrates provider_search_service, specialty_service, and input validation, returning normalized results to tool_router with proper error handling and fallback sequencing.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-039",
+        "FEAT-1-STORY-043"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    "FEAT-1-STORY-046": {
+      "story_id": "FEAT-1-STORY-046",
+      "title": "Enable tool_router dispatch for provider search tool",
+      "description": "Configure tool_router to allowlist and correctly dispatch provider search requests, including validation, tool selection, and integration with the conversational agent tool-use loop.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-045"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-1-STORY-047": {
+      "story_id": "FEAT-1-STORY-047",
+      "title": "Add logging and debug instrumentation for provider search",
+      "description": "Instrument provider search flow with debug_logger to capture query inputs, embedding usage, fallback triggers, and performance metrics for observability and troubleshooting.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-039"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "stories": {
+    "GOV-F-004-S104": {
+      "story_id": "GOV-F-004-S104",
+      "title": "Audit Event Schema & Contract Definition",
+      "description": "Define a strict audit event schema (actor, system, action, timestamp, trace_id, payload_ref, metadata) using Pydantic models and shared contract utilities to standardize logging across GPT, Claude, and system components.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S103"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models (Pydantic patterns); Code/Shared/machine_brain.py (structured record patterns); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S105": {
+      "story_id": "GOV-F-004-S105",
+      "title": "Append-Only Enforcement Guards (No Update/Delete)",
+      "description": "Implement repository-level and MongoDB-level safeguards preventing update/delete operations on audit records, including write-once interfaces and defensive checks in shared Mongo utilities.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S101"
+      ],
+      "size": "S",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py (write patterns); Code/DataPipelines/gpt_reader.py (audit logging constraints); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S106": {
+      "story_id": "GOV-F-004-S106",
+      "title": "Audit Logging Integration Across AI Execution Points",
+      "description": "Integrate audit logging calls into key execution paths including tool_router dispatch, Brain runner execution, safety_service triggers, and consent workflows to ensure full coverage of GPT and Claude operations.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S101",
+        "GOV-F-004-S102"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (dispatch flow); Code/Shared/brain_runner.py (AI orchestration); Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py (critical events); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S107": {
+      "story_id": "GOV-F-004-S107",
+      "title": "Audit Log Query API (Internal Access Only)",
+      "description": "Expose internal API endpoints for querying audit logs by trace_id, actor, and time range with pagination and strict access control for debugging, QA, and compliance use.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S101",
+        "GOV-F-004-S104"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (FastAPI routing); Code/DataPipelines/gpt_reader.py (secure read patterns); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S108": {
+      "story_id": "GOV-F-004-S108",
+      "title": "Audit Logging Test Suite (Unit + Integration)",
+      "description": "Develop comprehensive tests validating append-only guarantees, schema compliance, trace_id propagation, and correct logging across tool execution and Brain orchestration flows.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S105",
+        "GOV-F-004-S106"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py (logging tests); Code/DataPipelines/tests/test_gpt_reader_integration.py (integration patterns); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    }
+  }
+}

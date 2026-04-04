@@ -1,0 +1,104 @@
+{
+  "assignment_id": "PHASE-2-MAINT-DIST-STORIES",
+  "iteration": 8,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Defined core story set for MAINT-DIST covering contract, logic, integration, and tests.",
+  "change_log": [
+    {
+      "path": "stories.MAINT-DIST-S1",
+      "value": "Added schema/contract story for distance calculation",
+      "note": "Feature had zero stories",
+      "iteration": 8
+    },
+    {
+      "path": "stories.MAINT-DIST-S2",
+      "value": "Added core distance computation logic story",
+      "note": "Feature had zero stories",
+      "iteration": 8
+    },
+    {
+      "path": "stories.MAINT-DIST-S3",
+      "value": "Added integration story with existing services",
+      "note": "Feature had zero stories",
+      "iteration": 8
+    },
+    {
+      "path": "stories.MAINT-DIST-S4",
+      "value": "Added unit and integration tests story",
+      "note": "Feature had zero stories",
+      "iteration": 8
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "MAINT-DIST-S1": {
+      "story_id": "MAINT-DIST-S1",
+      "title": "Define Distance Calculation Schema and Contract",
+      "description": "Define input/output contract for distance calculation including coordinates (lat/long), units (miles/km), and response structure (distance, duration optional). Align with existing Google Routes response patterns.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "MAINT-DIST-S2": {
+      "story_id": "MAINT-DIST-S2",
+      "title": "Implement Core Distance Computation Logic",
+      "description": "Implement backend service to compute distance between two coordinate pairs using Google Routes logic or equivalent abstraction. Normalize output and handle missing/invalid coordinates.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (Google Routes distance logic present)"
+    },
+    "MAINT-DIST-S3": {
+      "story_id": "MAINT-DIST-S3",
+      "title": "Integrate Distance Calculation into Domain Services",
+      "description": "Integrate reusable distance calculation into relevant services (e.g., clinical trials and provider search) to ensure consistent distance computation across features.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "MAINT-DIST-S4": {
+      "story_id": "MAINT-DIST-S4",
+      "title": "Distance Calculation Unit and Integration Tests",
+      "description": "Create unit tests for coordinate validation and distance accuracy, plus integration tests validating usage within clinical trials service flows.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S2",
+        "MAINT-DIST-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ (test patterns for services)"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "MAINT-DIST": {
+        "feature_id": "MAINT-DIST",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "Reuse existing Google Routes logic already implemented to avoid new external dependencies."
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

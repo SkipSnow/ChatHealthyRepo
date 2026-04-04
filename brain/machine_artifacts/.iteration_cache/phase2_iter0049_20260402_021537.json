@@ -1,0 +1,61 @@
+{
+  "assignment_id": "FEAT-6-STORIES",
+  "iteration": 49,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Previously only 2 stories existed; minimum coverage incomplete for schema and testing layers"
+  ],
+  "notes": "Added missing schema/contract and testing stories to complete feature coverage.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-6-S159": {
+      "story_id": "FEAT-6-S159",
+      "title": "Consent Data Schema & Contracts",
+      "description": "Define and implement data schemas for consent records including tier designation, timestamps, user/session linkage, and de-identification flags. Ensure Pydantic models and MongoDB schema alignment for persistence and validation.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py"
+    },
+    "FEAT-6-S160": {
+      "story_id": "FEAT-6-S160",
+      "title": "Consent Workflow Integration with Lead Capture",
+      "description": "Integrate ConsentService with LeadService to enforce tier-based consent requirements before storing identifiable user data. Ensure Tier 2 consent is required for lead persistence and Tier 1 enforces de-identified handling.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S158"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py"
+    },
+    "FEAT-6-S161": {
+      "story_id": "FEAT-6-S161",
+      "title": "Consent Workflow Unit and Integration Tests",
+      "description": "Implement unit and integration tests covering consent tier transitions, de-identification enforcement, API validation, and persistence behavior. Validate Safe Harbor compliance paths and failure cases.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S157",
+        "FEAT-6-S158"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing consent-specific test coverage found; tests must be created for consent workflow validation"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-001",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must include an 'explainability' field in the FastAPI JSON response when the evaluate care endpoint is invoked.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-002",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must populate the 'explainability' field with the exact structured payload returned by the evaluate_care_facade without mutation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-003",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must ensure the explainability payload includes measure_id, raw_value, normalized_score, weight, and contribution_to_final_score for each measure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-004",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must update the tool_router response contract to include the explainability field in tool outputs.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-005",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must ensure the explainability payload is serializable to valid JSON without runtime errors.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-006",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must preserve backward compatibility by continuing to return existing top-level score fields alongside the new explainability payload.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-007",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must ensure that the explainability payload is included in responses delivered to both API clients and chat-based tool consumers.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-008",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must return an empty array for the explainability field when no measures are available rather than omitting the field.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-009",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must return a 500 error response if the explainability payload cannot be constructed due to facade failure.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-010",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must return a 200 response with explainability omitted only if the facade explicitly returns null for explainability and logs a warning.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-011",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must ensure LLM-facing tool responses include explainability in a deterministic and schema-consistent format across repeated calls.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-012",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must ensure LLM-facing tool responses do not reorder or drop measures within the explainability payload unless explicitly defined by the facade.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-013",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must ensure LLM-facing tool responses expose numeric fields (raw_value, normalized_score, weight, contribution_to_final_score) as numbers, not strings.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-014",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must ensure LLM-facing tool responses include all measures used in final score computation without omission.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-015",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must ensure LLM-facing tool responses maintain consistent key naming exactly as defined in the explainability schema.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-016",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must ensure LLM-facing tool responses include explainability payload within the same response object as the overall score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-017",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must ensure LLM-facing tool responses remain under size limits defined by FastAPI and do not exceed payload constraints due to explainability data.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXPLAIN-REQ-018",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must ensure LLM-facing tool responses do not include any internal-only fields (e.g., debug metadata) within the explainability payload.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-COMPARE-ST-004",
+      "requirement": "The system must include unit tests that verify providers are ranked in descending order by normalized score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-COMPARE-ST-004",
+      "requirement": "The system must include unit tests that validate deterministic ranking when two providers have identical scores (tie handling).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-COMPARE-ST-004",
+      "requirement": "The system must include unit tests that verify behavior when one or more providers have missing scores.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-COMPARE-ST-004",
+      "requirement": "The system must include unit tests that validate the comparison response conforms to the defined Pydantic schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-COMPARE-ST-004",
+      "requirement": "The system must include unit tests that verify strengths and weaknesses are computed and present for each provider in the response.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-COMPARE-ST-004",
+      "requirement": "The system must include integration tests that validate the evaluate_care_facade returns a complete comparison response for multiple providers.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-COMPARE-ST-004",
+      "requirement": "The system must include integration tests that validate the tool_router correctly invokes the comparison capability and returns structured output.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-COMPARE-ST-004",
+      "requirement": "The system must include integration tests that simulate LLM/tool usage and confirm the comparison tool is discoverable and callable.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-COMPARE-ST-004",
+      "requirement": "The system must include tests that verify invalid input (e.g., empty provider list) results in a controlled error response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-COMPARE-ST-004",
+      "requirement": "The system must include tests that verify invalid provider identifiers are handled without system crashes.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-COMPARE-ST-004",
+      "requirement": "The system must include tests that confirm consistent output ordering across repeated executions with identical inputs.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-COMPARE-ST-004",
+      "requirement": "The system must include tests that verify measure breakdown data is included and correctly mapped to each provider.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-COMPARE-ST-004",
+      "requirement": "The system must include tests that validate the comparison response includes at least two providers when valid input is provided.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-COMPARE-ST-004",
+      "requirement": "The system must include tests that confirm API responses match expected JSON structure used by downstream consumers.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

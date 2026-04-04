@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-BOARD-REQ-001",
+      "story_id": "EVAL-BOARD-ST-002",
+      "requirement": "The system must extract credential and taxonomy fields from NPI provider data returned by provider_detail_service.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-BOARD-REQ-002",
+      "story_id": "EVAL-BOARD-ST-002",
+      "requirement": "The system must identify board certification entries from credential text using deterministic parsing rules or keyword matching (e.g., 'board certified', specialty boards).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-BOARD-REQ-003",
+      "story_id": "EVAL-BOARD-ST-002",
+      "requirement": "The system must normalize extracted certification names into a consistent format for comparison (e.g., lowercase, trimmed, standardized tokens).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-BOARD-REQ-004",
+      "story_id": "EVAL-BOARD-ST-002",
+      "requirement": "The system must map provider taxonomy codes to human-readable specialties for relevance comparison.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-BOARD-REQ-005",
+      "story_id": "EVAL-BOARD-ST-002",
+      "requirement": "The system must compute a relevance score between extracted board certifications and the queried specialty using taxonomy alignment or keyword similarity.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-BOARD-REQ-006",
+      "story_id": "EVAL-BOARD-ST-002",
+      "requirement": "The system must assign a higher relevance score when certification specialty exactly matches the queried specialty than when it partially matches.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-BOARD-REQ-007",
+      "story_id": "EVAL-BOARD-ST-002",
+      "requirement": "The system must return a zero or minimal relevance score when certifications are unrelated to the queried specialty.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-BOARD-REQ-008",
+      "story_id": "EVAL-BOARD-ST-002",
+      "requirement": "The system must support multiple certifications per provider and compute an aggregate relevance score based on the best or combined match.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-BOARD-REQ-009",
+      "story_id": "EVAL-BOARD-ST-002",
+      "requirement": "The system must output structured data including extracted certifications and computed relevance score in accordance with the schema defined in EVAL-BOARD-ST-001.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-BOARD-REQ-010",
+      "story_id": "EVAL-BOARD-ST-002",
+      "requirement": "The system must handle missing or empty credential fields by returning no certifications and a default relevance score without throwing an error.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-BOARD-REQ-011",
+      "story_id": "EVAL-BOARD-ST-002",
+      "requirement": "The system must handle malformed or unstructured credential text by skipping unparseable entries and continuing processing for valid ones.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-BOARD-REQ-012",
+      "story_id": "EVAL-BOARD-ST-002",
+      "requirement": "The system must ensure scoring logic executes deterministically given the same input data and queried specialty.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-BOARD-REQ-013",
+      "story_id": "EVAL-BOARD-ST-002",
+      "requirement": "The system must complete extraction and scoring within acceptable backend latency thresholds consistent with provider_detail_service performance.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-BOARD-REQ-014",
+      "story_id": "EVAL-BOARD-ST-002",
+      "requirement": "The system must not modify or overwrite original NPI data fields during extraction and scoring operations.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-NORM-API-001-REQ-001",
+      "story_id": "EVAL-NORM-API-001",
+      "requirement": "The system must expose a callable normalization interface accessible via the Evaluate Care facade.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-API-001-REQ-002",
+      "story_id": "EVAL-NORM-API-001",
+      "requirement": "The system must accept normalization requests conforming to the schema defined in EVAL-NORM-SCHEMA-001.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-API-001-REQ-003",
+      "story_id": "EVAL-NORM-API-001",
+      "requirement": "The system must return normalized outputs strictly in the standardized scale defined by the normalization schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-API-001-REQ-004",
+      "story_id": "EVAL-NORM-API-001",
+      "requirement": "The system must invoke the normalization engine from EVAL-NORM-LOGIC-001 for all valid requests.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-API-001-REQ-005",
+      "story_id": "EVAL-NORM-API-001",
+      "requirement": "The system must support batch normalization of multiple measures within a single request.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-API-001-REQ-006",
+      "story_id": "EVAL-NORM-API-001",
+      "requirement": "The system must return a consistent response structure including normalized values, applied method, and metadata for each measure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-API-001-REQ-007",
+      "story_id": "EVAL-NORM-API-001",
+      "requirement": "The system must ensure compatibility of the normalization API response with downstream scoring engines for providers and clinical trials.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-API-001-REQ-008",
+      "story_id": "EVAL-NORM-API-001",
+      "requirement": "The system must validate all incoming requests and reject those with missing required fields.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-API-001-REQ-009",
+      "story_id": "EVAL-NORM-API-001",
+      "requirement": "The system must return a structured error response when validation fails, including error code and message.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-API-001-REQ-010",
+      "story_id": "EVAL-NORM-API-001",
+      "requirement": "The system must handle unsupported measure types by returning a defined error without invoking the normalization engine.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-API-001-REQ-011",
+      "story_id": "EVAL-NORM-API-001",
+      "requirement": "The system must log normalization requests and responses for traceability within the Evaluate Care workflow.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-API-001-REQ-012",
+      "story_id": "EVAL-NORM-API-001",
+      "requirement": "The system must ensure idempotent behavior such that identical inputs produce identical normalized outputs.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-API-001-REQ-013",
+      "story_id": "EVAL-NORM-API-001",
+      "requirement": "The system must enforce that normalization is executed prior to scoring within the Evaluate Care facade flow.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-NORM-API-001-REQ-014",
+      "story_id": "EVAL-NORM-API-001",
+      "requirement": "The system must gracefully handle internal normalization engine failures by returning a standardized error response without exposing internal stack traces.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

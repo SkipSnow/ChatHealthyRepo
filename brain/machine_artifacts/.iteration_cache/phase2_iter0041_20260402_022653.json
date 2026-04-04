@@ -1,0 +1,66 @@
+{
+  "assignment_id": "GPTR-F-002-STORIES",
+  "iteration": 41,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added remaining stories to complete API/revocation, testing, and integration coverage.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-002-S137",
+      "value": "Token Revocation API and Enforcement",
+      "note": "Add revocation capability per backlog security requirement",
+      "iteration": 41
+    },
+    {
+      "path": "stories.GPTR-F-002-S138",
+      "value": "Lifecycle Integration and End-to-End Tests",
+      "note": "Add integration and test coverage for lifecycle completeness",
+      "iteration": 41
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S137",
+      "title": "Token Revocation API and Enforcement",
+      "description": "Implement API endpoint(s) and backend logic to revoke bearer tokens, including immediate invalidation, status update in storage, and enforcement during authentication checks. Ensure revoked tokens cannot be reused and are logged for audit.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S134",
+        "GPTR-F-002-S135"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S138",
+      "title": "Lifecycle Integration and End-to-End Tests",
+      "description": "Implement unit and integration tests covering full token lifecycle: issuance, rotation, expiration, and revocation. Validate enforcement within GPTReader request flow and ensure audit logs capture all lifecycle events.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S134",
+        "GPTR-F-002-S135",
+        "GPTR-F-002-S136",
+        "GPTR-F-002-S137"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

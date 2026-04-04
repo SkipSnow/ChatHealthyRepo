@@ -1,0 +1,62 @@
+{
+  "stories": {
+    "FEAT4-ST-016": {
+      "story_id": "FEAT4-ST-016",
+      "title": "Define Provider Detail Response Schema",
+      "description": "Create a structured response contract for provider detail output including demographics, credentials, addresses, and external links to ensure consistent downstream consumption.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "FEAT4-ST-017": {
+      "story_id": "FEAT4-ST-017",
+      "title": "Implement NPI Registry Lookup Orchestration",
+      "description": "Build core logic to call CMS NPI Registry API, parse response payload, and map fields into the defined provider detail schema.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT4-ST-016"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "FEAT4-ST-018": {
+      "story_id": "FEAT4-ST-018",
+      "title": "Expose Provider Detail via Evaluate Care Facade",
+      "description": "Integrate provider detail lookup into evaluate_care_facade to make it accessible through tool routing and conversational flows.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT4-ST-017"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "FEAT4-ST-019": {
+      "story_id": "FEAT4-ST-019",
+      "title": "Add Unit Tests for Provider Detail Service",
+      "description": "Create unit tests covering NPI lookup success, partial data handling, error scenarios, and schema compliance for provider detail responses.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT4-ST-017"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    },
+    "FEAT4-ST-020": {
+      "story_id": "FEAT4-ST-020",
+      "title": "Validate Tool Router Integration for Provider Detail",
+      "description": "Ensure provider detail lookup is properly registered in tool_router with input validation and safe dispatch, enabling LLM-driven invocation.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT4-ST-018"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  }
+}

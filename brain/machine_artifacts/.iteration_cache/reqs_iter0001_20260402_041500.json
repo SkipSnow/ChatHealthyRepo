@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-001",
+      "story_id": "EVAL-P-TRIAGE-UX-S2",
+      "requirement": "The system must render triage reasoning blocks in an order where specialty match appears before any quality score content.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-002",
+      "story_id": "EVAL-P-TRIAGE-UX-S2",
+      "requirement": "The system must always display a pass or fail indicator for the provider triage result.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-003",
+      "story_id": "EVAL-P-TRIAGE-UX-S2",
+      "requirement": "The system must render specialty match explanation text when specialty data is present in the triage response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-004",
+      "story_id": "EVAL-P-TRIAGE-UX-S2",
+      "requirement": "The system must render quality score reasoning only after the specialty match block has been displayed.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-005",
+      "story_id": "EVAL-P-TRIAGE-UX-S2",
+      "requirement": "The system must handle partial specialty matches by displaying a distinct explanation indicating partial alignment.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-006",
+      "story_id": "EVAL-P-TRIAGE-UX-S2",
+      "requirement": "The system must display a fail state explanation when the triage result indicates failure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-007",
+      "story_id": "EVAL-P-TRIAGE-UX-S2",
+      "requirement": "The system must not render quality score reasoning if the provider fails triage due to specialty mismatch.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-008",
+      "story_id": "EVAL-P-TRIAGE-UX-S2",
+      "requirement": "The system must gracefully handle missing specialty data by displaying a fallback message indicating unavailable specialty information.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-009",
+      "story_id": "EVAL-P-TRIAGE-UX-S2",
+      "requirement": "The system must still render quality reasoning if specialty data is missing but quality data is available.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-010",
+      "story_id": "EVAL-P-TRIAGE-UX-S2",
+      "requirement": "The system must ensure deterministic ordering of reasoning blocks regardless of input order from the backend.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-011",
+      "story_id": "EVAL-P-TRIAGE-UX-S2",
+      "requirement": "The system must not duplicate reasoning blocks when rendering triage explanations.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-012",
+      "story_id": "EVAL-P-TRIAGE-UX-S2",
+      "requirement": "The system must handle empty reasoning arrays by displaying a user-visible message indicating no explanation is available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-013",
+      "story_id": "EVAL-P-TRIAGE-UX-S2",
+      "requirement": "The system must render reasoning blocks consistently across re-renders without changing order or content.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-014",
+      "story_id": "EVAL-P-TRIAGE-UX-S2",
+      "requirement": "The system must prioritize specialty match explanation visually (e.g., first position) even if backend marks another block as higher priority.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

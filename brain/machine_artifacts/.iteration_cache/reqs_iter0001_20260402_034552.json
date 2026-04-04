@@ -1,0 +1,149 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must render a malpractice section within the provider scorecard UI when malpractice data is present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must display a visual status indicator icon that reflects the malpractice status value (clean, flagged, or unknown).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must display the malpractice status label using neutral language consistent with prior labeling rules.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must render a clickable link to the state medical board when a valid state_board_url is provided.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must validate that the state_board_url is a properly formatted HTTPS URL before rendering it.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must not render the state board link if the URL is missing, malformed, or non-HTTPS.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must render the malpractice score contribution value in the section using the formatted output from display logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must render all malpractice section content through the MessageBubble.tsx markdown pipeline.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must sanitize all rendered markdown content to prevent script injection or unsafe HTML execution.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must ensure that outbound links rendered in the malpractice section open safely (e.g., no access to window.opener).",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must display a fallback 'Information unavailable' state when malpractice data is null or missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must render the malpractice section without breaking the scorecard layout when optional fields (case_count, last_incident_date) are absent.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must ensure the malpractice section visually differentiates clean vs flagged states using distinct icons or styles.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must not display prohibited terms such as 'fraud' or 'misconduct' anywhere in the malpractice section.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must ensure that all text rendered in the malpractice section is derived only from the structured UI schema and not raw backend strings.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-016",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must render the malpractice section within 200ms after the parent scorecard component loads under normal conditions.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-017",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must ensure the malpractice section is accessible, including readable text labels for icons and keyboard-navigable links.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-018",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "requirement": "The system must prevent rendering of duplicate malpractice sections within a single provider scorecard.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

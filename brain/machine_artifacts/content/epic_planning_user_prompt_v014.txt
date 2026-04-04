@@ -1,0 +1,166 @@
+Planning for April 2026, Epic 2 Deliver credible quality module
+
+Date: 2026-04-01 | From: Boss | To: GPT (Enterprise Architect) | Iteration: {iteration} of {max_iterations}
+
+---
+
+CONTEXT
+
+current_version: v0.1.3
+current_build: 327
+next_version: v0.1.4
+sprint_cadence: weekly, Tuesday start, 7 days/week, PST
+
+Team:
+- Boss: CEO/QA, final gate authority
+- Claude: Engineer, claude-opus-4-6
+- GPT: Enterprise Architect, gpt-5.3-chat-latest
+
+Live Today:
+- FindCare Chat: React + FastAPI on HuggingFace Docker Space
+- Provider search: DE, MS (MongoDB with NPI provider data, lat/lng geocoded)
+- Safety filter: dual-trigger (keyword + GPT-4.1-mini classifier)
+- Clinical trials: ClinicalTrials.gov API integration
+- About Us / Contact: HIPAA two-tier consent flow
+- The Brain: GPTReader (27/27 SIT), manifest, governance, audit
+- DataPipelines: Azure Functions, CrewAI, provider load, county enrichment
+- Website: Cloudflare Pages (static)
+- Maps: NONE — provider results are text only
+- Distance: NONE — no distance from user to provider
+- Find Care: STABLE — alpha release candidate, sufficient as-is
+
+Shipped in v0.1.3:
+- Brain infrastructure (GPTReader, manifest, governance sync)
+- Safety filter hardening (false positive fix, GPT-4.1-mini, full audit trail)
+- QA framework (human testing mode, build tracking)
+- Corporate governance GOV-001 through GOV-009
+- Four business components (Find Care, Evaluate Care, Discuss Care, The Brain)
+- Production release with QA report and business artifacts gate
+
+---
+
+EPIC-1: Evaluate Care v0.1.4
+
+Capacity: 80%
+
+Goal: Release a credible version 1 of the Evaluate Care business component. Evaluate Care contains two separate and distinct capabilities: Evaluate Care for Providers and Evaluate Care for Clinical Trials. These are independent capabilities but may share measures where applicable. Each capability must deliver a quality score derived from a minimum of 3 credible measures, with a substantive, explainable answer showing what measures produced that score and how each measure contributed. If we can deliver 3 credible measures for both providers and clinical trials, we have an alpha component. Stretch goal: allow the user to adjust the algorithm to determine quality by adjusting the importance of the different measures that are used to determine quality.
+
+Boss's non-binding suggestion: Prescription behavior mapped to diseases. This is the secret AI-enhanced feature — the ability to analyze how a provider prescribes relative to the conditions they treat. Premium differentiator.
+
+Claude's non-binding suggestions for measures (replace or add as you see fit):
+- Provider: board certifications, patient ratings/reviews, malpractice or disciplinary history, years in practice, specialty match accuracy, acceptance of new patients
+- Clinical trials: trial phase (I/II/III/IV), enrollment status, relevance to user's condition, sponsor credibility, proximity to user, recency of results
+
+Description: Evaluate Care is one of four business components (Find Care, Evaluate Care, Discuss Care, The Brain). Find Care is stable and ships as-is for the alpha. This epic delivers the first shippable version of Evaluate Care — the system's ability to assess, score, and explain healthcare provider quality and clinical trial relevance to consumers. Evaluate Care for Providers and Evaluate Care for Clinical Trials are separate capabilities with independent feature sets, scoring, and explainability. Measures may be shared where the same data source applies. Each quality measure is a feature.
+
+Success Criteria:
+- The system can tell the user what a provider's quality is and why we say so
+- The system can tell the user what a clinical trial's quality/relevance is and why we say so
+- Evaluate Care for Providers and Evaluate Care for Clinical Trials are separately functional
+- Every quality assessment includes a quality score derived from minimum 3 distinct measures
+- Every quality score is coupled with the measures that produced it
+- Quality assessments are grounded in data (not fabricated by the LLM)
+- Quality signals are explainable
+- No regressions from v0.1.3 Find Care baseline
+- STRETCH: User can adjust the weight of individual quality measures and the score recalculates
+
+Definition of Done: Boss signs off as sufficient subsequent to UAT.
+
+Minimum features (define the specific measures):
+- EVAL-SCORE-PROV: Provider Quality Scoring Engine (backend, Providers) — composite score from 3+ measures, deterministic
+- EVAL-SCORE-CT: Clinical Trial Quality Scoring Engine (backend, Clinical Trials) — composite score from 3+ measures, deterministic
+- EVAL-EXPLAIN: Score Explainability (backend, Shared) — return measures, values, contributions
+- EVAL-EXPLAIN-UX: Score Explainability Display (frontend, Shared) — render in chat. Depends on EVAL-SCORE-PROV, EVAL-SCORE-CT, EVAL-EXPLAIN
+- EVAL-P-MEASURE-1/2/3: At least 3 provider quality measures (backend) — define what, data source, why credible
+- EVAL-P-RX: Prescription Behavior Analysis (backend, Providers) — Boss's non-binding suggestion
+- EVAL-CT-MEASURE-1/2/3: At least 3 clinical trial quality measures (backend) — define what, data source, why credible
+- EVAL-WEIGHTS: User-Adjustable Quality Weights (frontend+backend, Shared) — STRETCH
+
+GPT and Claude are free to recommend a different feature set if it better serves the epic goal.
+
+---
+
+EPIC-2: Maintenance
+
+Capacity: 20%
+
+Goal: Find Care enhancements (maps, distance, UX), architecture hardening, Brain enhancements, and operational hardening from the Perplexity external audit.
+
+Description: All Find Care work is maintenance. Maps, distance, architecture refactor, safety improvements, consent bug fixes, UX polish, and highest-priority Perplexity audit findings. Brain enhancements in scope if recommended.
+
+Success Criteria:
+- Provider search results render on interactive Google Map with clickable markers
+- Distance from user's location displayed wherever a provider address is shown
+- Architecture refactor complete — monolith main.py replaced by domain services
+- HIGH-priority Perplexity audit items addressed or deferred with rationale
+- Brand audit complete — ChatHealthy.ai everywhere
+- No regressions
+
+Definition of Done: Boss signs off as sufficient subsequent to UAT.
+
+Features:
+- MAINT-MAPS: Maps & Mapping (frontend, HIGH)
+- MAINT-DIST: Distance Propagation (backend, HIGH)
+- MAINT-DIST-UX: Distance Display (frontend, HIGH) — depends on MAINT-DIST
+- MAINT-ARCH: ARCH-001 Architecture Refactor (backend, HIGH)
+- MAINT-F09: Emergency Keyword Expansion (backend, MEDIUM)
+- MAINT-F10: Provider Search Cap (backend, LOW)
+- MAINT-CONSENT: Consent Framework Bug Fixes (backend, HIGH)
+- MAINT-TIMEOUT: UX Timeout Handling (frontend, MEDIUM)
+- MAINT-BRAIN: Brain Enhancements (backend, GPT to recommend)
+- BL-0.1.4-001: Server-Side Scope Enforcement (backend, HIGH)
+- BL-0.1.4-002: Bearer Token Lifecycle (backend, HIGH)
+- BL-0.1.4-003: Brain Lock TTL and Deadlock Recovery (backend, HIGH)
+- BL-0.1.4-004: Independent Append-Only Audit Logging (backend, HIGH)
+- BL-0.1.4-005: Local Disk Resilience (backend, MEDIUM)
+- BL-0.1.4-006: Manifest Snapshot Freshness (backend, MEDIUM)
+- BL-0.1.4-007: Health Check Endpoint (backend, MEDIUM)
+- BL-0.1.4-008: Rate Limiting (backend, MEDIUM)
+- BL-0.1.4-009: Mongo Query Size Estimation (backend, LOW)
+- BL-0.1.4-010: Multi-Cluster Connection String Governance (backend, MEDIUM)
+- BRAND-001: Brand Name Audit (both, HIGH)
+
+Not all items fit in 20% — prioritize by risk, tell Boss what defers to v0.1.5.
+GPT and Claude are free to recommend a different feature set if it better serves the epic goal.
+
+---
+
+NOT IN SCOPE: FHIR/Epic EMR, multi-tenancy (GOV-002), monitoring/observability hardening (beta work)
+
+---
+
+SPRINTS
+
+Sprint 1: Apr 1-5 — Development
+Sprint 2: Apr 7-12 — Development
+Sprint 3: Apr 14-19 — Development
+Sprint 4: Apr 21-26 — Development
+Sprint 5: Apr 26-May 1 — UAT and release. No new development. Bug fixes only. Boss sign-off (GOV-007).
+
+---
+
+ASSIGNMENT DEFINITION OF DONE
+
+Schedule: every story assigned to a sprint, pipeline execution time accounted for, no sprint exceeds capacity.
+Traceability: features have stories, stories have requirements, requirements trace to epic goal, no dangling references.
+Completeness: all sections populated, every frontend feature lists backend dependencies, every sprint delivers at least one complete feature.
+
+---
+
+DELIVERABLES
+
+Two artifacts: Business document (Word) + JSON (per output schema). Must be consistent. GPT produces both. Claude validates compliance. Neither complete until both agree.
+
+Iteration cache: brain/machine_artifacts/.iteration_cache/ (committed). GPT reviews last iteration as starting place. Non-trivial changes flagged to Claude.
+
+1. Epic Definitions — validate or revise goals, criteria, definition of done
+2. Features Per Epic — define quality measures as features, size to fit one sprint
+3. Stories Per Feature — all stories in a feature land in the same sprint
+4. Boolean Requirements Per Story — traces to epic goal
+5. Sprint Capability Map — per sprint: capability, stories, goal, capacity, ceiling
+6. Risk Matrix — per feature (both epics) + per measure (EPIC-1)
+7. Gate Recommendation
+
+RESEARCH: If you need to read any file or Brain record to make the plan credible, include a content_requests array in your response. Claude will fetch the content from disk and send it back. You can request multiple resources per round, and multiple rounds per iteration. Do not guess at file contents — request them. Do not proceed with thin features or ungrounded claims when the data is in the Brain and you can ask for it.
+
+Output: Return JSON matching the output schema in the system prompt. Include usage block.

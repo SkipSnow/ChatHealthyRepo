@@ -1,0 +1,80 @@
+{
+  "assignment_id": "FEAT-5-STORIES",
+  "iteration": 8,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Incremental stories added for deeper routing logic, observability, and Anthropic tool_use handling.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-5-S27",
+      "value": "Added",
+      "note": "Anthropic tool_use parsing coverage",
+      "iteration": 8
+    },
+    {
+      "path": "stories.FEAT-5-S28",
+      "value": "Added",
+      "note": "Chat history injection into tool execution",
+      "iteration": 8
+    },
+    {
+      "path": "stories.FEAT-5-S29",
+      "value": "Added",
+      "note": "Audit logging for tool routing decisions",
+      "iteration": 8
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-5-S27",
+      "title": "Anthropic tool_use Block Parsing and Mapping",
+      "description": "Implement parsing logic for Anthropic tool_use blocks within the tool router, extracting tool name and inputs, mapping them to allowlisted tools, and preparing validated payloads for dispatch.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S23"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S28",
+      "title": "Chat History Injection into Tool Context",
+      "description": "Enhance tool routing to inject relevant chat history into tool execution context where required, ensuring continuity for downstream services while maintaining safe and minimal context passing.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S24"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S29",
+      "title": "Tool Routing Audit Logging Integration",
+      "description": "Integrate debug_logger to capture tool routing decisions, including selected tool, validation outcomes, and execution status, enabling traceability and post-hoc debugging without exposing sensitive data.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S25"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

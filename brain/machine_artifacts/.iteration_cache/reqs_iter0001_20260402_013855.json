@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-201",
+      "story_id": "EVAL-EXPLAIN-UX-S2",
+      "requirement": "The system must render an overall score header when a valid explainability payload with a score field is present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-202",
+      "story_id": "EVAL-EXPLAIN-UX-S2",
+      "requirement": "The system must display the overall score as a normalized value (e.g., 0–100 or equivalent format defined in schema) consistent with the schema from EVAL-EXPLAIN-UX-S1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-203",
+      "story_id": "EVAL-EXPLAIN-UX-S2",
+      "requirement": "The system must render a list of measure rows when the payload contains a non-empty measures array.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-204",
+      "story_id": "EVAL-EXPLAIN-UX-S2",
+      "requirement": "The system must display each measure row with its name, score, and contribution value if present in the payload.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-205",
+      "story_id": "EVAL-EXPLAIN-UX-S2",
+      "requirement": "The system must render contribution visualization (e.g., bar or percentage) for each measure when contribution data is available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-206",
+      "story_id": "EVAL-EXPLAIN-UX-S2",
+      "requirement": "The system must ensure contribution visualizations are proportionally scaled relative to other measures in the same payload.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-207",
+      "story_id": "EVAL-EXPLAIN-UX-S2",
+      "requirement": "The system must integrate explainability rendering within the existing MessageBubble structured rendering pipeline without breaking markdown rendering.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-208",
+      "story_id": "EVAL-EXPLAIN-UX-S2",
+      "requirement": "The system must render explainability content only when the payload matches the schema defined in EVAL-EXPLAIN-UX-S1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-209",
+      "story_id": "EVAL-EXPLAIN-UX-S2",
+      "requirement": "The system must maintain consistent visual hierarchy: score header above measure rows and measure rows above contribution visualizations.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-210",
+      "story_id": "EVAL-EXPLAIN-UX-S2",
+      "requirement": "The system must support rendering of explainability content within a single chat message without requiring page navigation.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-211",
+      "story_id": "EVAL-EXPLAIN-UX-S2",
+      "requirement": "The system must gracefully omit contribution visualization for a measure if its contribution value is missing or null while still rendering the measure row.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-212",
+      "story_id": "EVAL-EXPLAIN-UX-S2",
+      "requirement": "The system must render a fallback text indicator (e.g., 'No measures available') when the measures array is empty.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-213",
+      "story_id": "EVAL-EXPLAIN-UX-S2",
+      "requirement": "The system must not throw runtime errors when the explainability payload is malformed and must instead skip rendering the explainability block.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-214",
+      "story_id": "EVAL-EXPLAIN-UX-S2",
+      "requirement": "The system must ensure that rendering logic executes deterministically for identical payload inputs (no randomness in visual output).",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-215",
+      "story_id": "EVAL-EXPLAIN-UX-S2",
+      "requirement": "The system must support rendering multiple explainability blocks within a single conversation thread without UI collision or overwrite.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

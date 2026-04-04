@@ -1,0 +1,81 @@
+{
+  "assignment_id": "GPTR-F-002-STORIES",
+  "iteration": 42,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [
+    "Previous iteration produced fewer than required minimum stories"
+  ],
+  "notes": "Added missing foundational stories to meet minimum and ensure full lifecycle coverage.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-002-S139",
+      "value": "Token Schema and Storage Model",
+      "note": "Added schema/contract story for lifecycle persistence",
+      "iteration": 42
+    },
+    {
+      "path": "stories.GPTR-F-002-S140",
+      "value": "Token Expiration and Rotation Logic",
+      "note": "Added core logic story for expiration and rotation",
+      "iteration": 42
+    },
+    {
+      "path": "stories.GPTR-F-002-S141",
+      "value": "Token Validation Middleware Integration",
+      "note": "Added integration story to enforce lifecycle in request flow",
+      "iteration": 42
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S139",
+      "title": "Token Schema and Storage Model",
+      "description": "Define and implement the data schema for bearer tokens including fields for token value (hashed), issued_at, expires_at, rotation_version, and revocation_status. Persist tokens in a secure store and ensure compatibility with existing GPTReader authentication flow.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S140",
+      "title": "Token Expiration and Rotation Logic",
+      "description": "Implement backend logic to enforce token expiration based on expires_at and support token rotation by issuing new tokens and invalidating prior versions. Ensure rotation is atomic and prevents race conditions or reuse of stale tokens.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S139"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S141",
+      "title": "Token Validation Middleware Integration",
+      "description": "Integrate lifecycle-aware token validation into GPTReader request handling, ensuring every request checks expiration, rotation status, and revocation before allowing access. Update middleware or entrypoint validation accordingly.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S140",
+        "GPTR-F-002-S137"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

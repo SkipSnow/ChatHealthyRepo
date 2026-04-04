@@ -1,0 +1,114 @@
+{
+  "assignment_id": "FEAT-1-STORIES",
+  "iteration": 41,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added complete story set for FEAT-1 covering schema, core logic, API, tests, and integration.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-1-STORY-7",
+      "value": "Provider Search Request/Response Schema Definition",
+      "note": "Add schema/contract story",
+      "iteration": 41
+    },
+    {
+      "path": "stories.FEAT-1-STORY-8",
+      "value": "Core Provider Search Logic (Vector + Taxonomy Fallback)",
+      "note": "Add core logic story",
+      "iteration": 41
+    },
+    {
+      "path": "stories.FEAT-1-STORY-9",
+      "value": "Expose Provider Search via Tool Router API",
+      "note": "Add API integration story",
+      "iteration": 41
+    },
+    {
+      "path": "stories.FEAT-1-STORY-10",
+      "value": "Provider Search Testing Suite",
+      "note": "Add testing story",
+      "iteration": 41
+    },
+    {
+      "path": "stories.FEAT-1-STORY-11",
+      "value": "End-to-End Integration with FindCare Facade",
+      "note": "Add integration story",
+      "iteration": 41
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-1-STORY-7": {
+      "story_id": "FEAT-1-STORY-7",
+      "title": "Provider Search Request/Response Schema Definition",
+      "description": "Define and validate Pydantic models for provider search inputs (query, location, filters) and outputs (ranked providers, metadata, fallback indicators) to enforce strict contracts across the system.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-1-STORY-8": {
+      "story_id": "FEAT-1-STORY-8",
+      "title": "Core Provider Search Logic (Vector + Taxonomy Fallback)",
+      "description": "Implement multi-stage provider search using MongoDB Atlas vector search with embedding queries, with deterministic taxonomy fallback using NUCC codes when vector confidence is low, including location filtering (state/city/county).",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "FEAT-1-STORY-9": {
+      "story_id": "FEAT-1-STORY-9",
+      "title": "Expose Provider Search via Tool Router API",
+      "description": "Integrate provider search capability into the tool_router with allowlisted access, ensuring validated inputs, proper tool dispatch, and compatibility with the conversational agent tool-use loop.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-7",
+        "FEAT-1-STORY-8"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-1-STORY-10": {
+      "story_id": "FEAT-1-STORY-10",
+      "title": "Provider Search Testing Suite",
+      "description": "Develop unit and integration tests for provider search including vector query execution, taxonomy fallback behavior, location filtering accuracy, and schema validation.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-8"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing provider_search test file; must create tests aligned with provider_search_service behavior"
+    },
+    "FEAT-1-STORY-11": {
+      "story_id": "FEAT-1-STORY-11",
+      "title": "End-to-End Integration with FindCare Facade",
+      "description": "Wire provider search service into find_care_facade to support conversational queries, ensuring specialty extraction, search execution, and formatted response delivery through the facade layer.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-6",
+        "FEAT-1-STORY-9"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

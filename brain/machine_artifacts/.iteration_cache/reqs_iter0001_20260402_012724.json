@@ -1,0 +1,149 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CTM7-401",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that validate correct parsing of inclusion and exclusion sections from well-formed eligibility criteria text.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-402",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that verify strictness scores increase as the number of exclusion criteria increases.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-403",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that verify strictness scores decrease for trials with minimal eligibility criteria.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-404",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that validate strictness score normalization to a 0–1 range.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-405",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that confirm demographic restrictions (e.g., age, gender) increase strictness score relative to unrestricted trials.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-406",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that validate higher strictness scores for trials with complex medical exclusions compared to simple exclusions.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-407",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that confirm consistent scoring output for identical eligibility input across multiple runs.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-408",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that validate parsing and scoring behavior when only inclusion criteria are present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-409",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that validate parsing and scoring behavior when only exclusion criteria are present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-410",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that validate scoring behavior for highly restrictive trials with numerous exclusion rules.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-411",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that confirm graceful handling of malformed eligibility text without raising unhandled exceptions.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-412",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that verify a default or fallback strictness score is returned when eligibility text is missing or empty.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-413",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that validate correct tokenization or segmentation of eligibility criteria into individual rules.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-414",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that verify scoring logic does not double-count duplicated criteria entries.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-415",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that validate robustness to irregular formatting such as bullet points, line breaks, and mixed casing.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-416",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that confirm scoring output aligns with expected values for predefined sample trials with known strictness levels.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-417",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that validate the scoring function returns structured output conforming to the schema defined in EVAL-CT-M7-S1.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CTM7-418",
+      "story_id": "EVAL-CT-M7-S4",
+      "requirement": "The system must include unit tests that simulate LLM-parsed eligibility inputs and verify scoring behaves consistently with deterministic parsing outputs.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

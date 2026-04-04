@@ -1,0 +1,178 @@
+{
+  "collection": "design",
+  "record_count": 3,
+  "records": [
+    {
+      "_record_id": "design_eval_p_rx_drug_mapping",
+      "title": "Prescription Behavior Measure -- Drug-to-Indication-to-ICD10 Mapping Design",
+      "feature_id": "EVAL-P-RX",
+      "epic_id": "EPIC-1",
+      "status": "stub",
+      "created": "2026-04-02",
+      "created_by": "Boss + Claude",
+      "description": "Design for mapping provider prescription data to on-label FDA indications with ICD-10 codes, tied to recognized CMS/NQF quality measures. Two implementation paths under evaluation: static reference dataset or LLM-generated mapping with cache.",
+      "data_sources": {
+        "prescriptions": "CMS Medicare Part D Public Use Files (data.cms.gov) -- provider NPI + drug + quantity",
+        "drug_indications": "TBD: DailyMed SPL, FDA Orange Book, RxNorm, or LLM-generated mapping",
+        "icd10": "ICD-10-CM code set (icd10_loader.py already in pipeline)",
+        "quality_measures": "NQF quality measures, CMS Quality IDs (e.g., NQF 0018 / CMS 236)"
+      },
+      "schema_sample": {
+        "drugName": "Prinzide (lisinopril/hydrochlorothiazide)",
+        "uses": [
+          {
+            "indication": "Treatment of hypertension (high blood pressure)",
+            "qualityMeasureContext": "Adult BP control measure (e.g., NQF 0018 / CMS Quality ID 236 -- Controlling High Blood Pressure)",
+            "icd10Codes": [
+              "I10"
+            ]
+          }
+        ]
+      },
+      "schema_definition": {
+        "type": "object",
+        "properties": {
+          "drugName": {
+            "type": "string",
+            "description": "Brand or generic name of the drug"
+          },
+          "uses": {
+            "type": "array",
+            "description": "Array of on-label FDA-approved uses, constrained to how they are recognized for this quality measure",
+            "items": {
+              "type": "object",
+              "properties": {
+                "indication": {
+                  "type": "string",
+                  "description": "Clinical description of the on-label indication as applied in this quality measure"
+                },
+                "qualityMeasureContext": {
+                  "type": "string",
+                  "description": "Name/identifier of the quality measure this mapping is intended for (e.g., NQF ID, CMS Quality ID)"
+                },
+                "icd10Codes": {
+                  "type": "array",
+                  "description": "ICD-10-CM diagnosis codes that qualify as this condition for the quality measure denominator/logic",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[A-TV-Z][0-9][0-9A-Z](\\.[0-9A-Z]{1,4})?$"
+                  }
+                }
+              },
+              "required": [
+                "indication",
+                "qualityMeasureContext",
+                "icd10Codes"
+              ]
+            }
+          }
+        },
+        "required": [
+          "drugName",
+          "uses"
+        ],
+        "additionalProperties": false
+      },
+      "signals": {
+        "relevance": {
+          "description": "Does the provider prescribing pattern indicate they treat the patient condition?",
+          "method": "Map provider top drugs -> on-label indications -> ICD-10 -> compare to patient condition",
+          "positive": true
+        },
+        "integrity": {
+          "description": "Does the prescribing pattern show red flags for fraud or inappropriate prescribing?",
+          "method": "Controlled substance ratio vs specialty peers, prescribing outside specialty scope, anomaly detection",
+          "positive": false
+        }
+      },
+      "implementation_paths": {
+        "path_a": {
+          "name": "Static reference dataset",
+          "source": "DailyMed SPL, FDA Orange Book, or RxNorm",
+          "pro": "Cheaper to maintain, deterministic, auditable",
+          "con": "Requires finding and licensing the dataset, ETL pipeline to keep current",
+          "decision": "TBD"
+        },
+        "path_b": {
+          "name": "LLM-generated mapping with cache",
+          "source": "GPT or Haiku generates drug-indication-ICD10 mapping on demand",
+          "pro": "No dataset dependency, covers any drug immediately",
+          "con": "LLM output not verified, hallucination risk on clinical data, per-call cost",
+          "decision": "TBD -- acceptable for alpha, close in beta with verified source"
+        }
+      },
+      "alpha_gap": "Drug-to-indication mapping source not finalized. LLM fallback acceptable for alpha. Close in beta with verified mapping table.",
+      "patent_relevance": "Method of combining CMS prescriber data + ICD-10 + drug indication mapping + quality measure context + LLM synthesis for consumer provider quality signal. Data is public. Method is novel.",
+      "publish": false
+    },
+    {
+      "_record_id": "design_county_economic_enrichment",
+      "title": "County Economic Enrichment Design",
+      "feature_id": "MAINT-COUNTY-ENRICH",
+      "epic_id": "EPIC-2",
+      "status": "designed",
+      "created": "2026-04-02",
+      "created_by": "Claude",
+      "description": "Enrich provider county attribute with GDP, income, rural/urban classification from public federal data sources.",
+      "data_sources": {
+        "census_acs": "api.census.gov ACS 5-year: B19013 (median income), B19025 (mean income). By county FIPS.",
+        "bea_gdp": "apps.bea.gov CAGDP2: county GDP by industry. By county FIPS.",
+        "usda_rucc": "ers.usda.gov Rural-Urban Continuum Codes 2023. CSV, maps FIPS to 1-9 metro/rural scale."
+      },
+      "schema": {
+        "county.gdp_millions": "float -- county GDP in millions USD",
+        "county.median_income": "int -- median household income",
+        "county.mean_income": "int -- mean household income",
+        "county.rural_urban_code": "int 1-9 -- USDA RUCC",
+        "county.rural_urban_label": "string -- human readable classification",
+        "county.is_rural": "bool -- code >= 7",
+        "county.is_metro": "bool -- code <= 3"
+      },
+      "implementation": "Code/DataPipelines/county_economic_enrichment.py",
+      "requires_env": [
+        "CENSUS_API_KEY",
+        "BEA_API_KEY"
+      ],
+      "publish": false
+    },
+    {
+      "_record_id": "design_agent_framework",
+      "title": "Agent Framework Architecture Design",
+      "feature_id": "EPIC-3",
+      "epic_id": "EPIC-3",
+      "status": "designed",
+      "created": "2026-04-02",
+      "created_by": "Boss + Claude",
+      "description": "Shared agent framework for all ChatHealthy AI agents. BaseAgent, BaseTool, ToolRegistry. Extensible without refactor.",
+      "agents": {
+        "ops_manager": "Pipeline infrastructure lifecycle. Tools: ClusterTool, CostTool, AlertTool, ScheduleTool.",
+        "research_agent": "External data research. Tools: WebSearchTool, PubMedTool, CTGovTool, FDATool.",
+        "db_agent": "Database management. Tools: QueryTool, IndexTool, BackupTool, MigrateTool."
+      },
+      "base_classes": {
+        "BaseAgent": "Code/Shared/agent_framework/base_agent.py — has ToolRegistry, handles events, decides, acts or escalates",
+        "BaseTool": "Code/Shared/agent_framework/base_tool.py — execute(), can_handle_error(), repair(). Standard ToolResult.",
+        "ToolRegistry": "Code/Shared/agent_framework/tool_registry.py — allowlist (GOV-004). Agent only calls registered tools.",
+        "ToolResult": "Standard result: success, data, error_code, is_infrastructure_error, is_pipeline_error"
+      },
+      "event_flow": "Timer/API/Error -> Agent.handle_event() -> pick tool -> execute -> success or escalate",
+      "error_routing": {
+        "infrastructure_error": "Ops Manager attempts self-repair via repair tool. If fails, escalates to Boss.",
+        "pipeline_error": "Escalates to Dev Manager (Claude). Ops Manager does not diagnose pipeline errors.",
+        "unknown_error": "Escalates to Boss with full context."
+      },
+      "governance": "GOV-004 enforced via ToolRegistry. Agent suggests tool, registry decides if allowed. Boss is final escalation.",
+      "versioning": {
+        "v01": "Rule-based decisions. Ops Manager with ClusterLifecycleTool only.",
+        "v02": "AI-powered triage. LLM reads error context, decides repair vs escalate.",
+        "v03": "Multi-agent coordination. Ops Manager + Research Agent + DB Agent."
+      },
+      "implementation": {
+        "base": "Code/Shared/agent_framework/",
+        "ops_manager": "Code/DataPipelines/ops_manager/",
+        "reservation_model": "Array in MongoDB. Multiple concurrent. Last release shuts down cluster."
+      },
+      "publish": false
+    }
+  ]
+}

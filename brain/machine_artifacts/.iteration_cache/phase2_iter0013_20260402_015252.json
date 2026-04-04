@@ -1,0 +1,55 @@
+{
+  "stories": [
+    {
+      "story_id": "FEAT-3-S48",
+      "title": "Clinical Trials Input/Output Schema Validation",
+      "description": "Define and enforce Pydantic schemas for clinical trial search inputs (condition, location, radius) and outputs (trial metadata, locations, distance, duration) to ensure contract consistency across layers.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    {
+      "story_id": "FEAT-3-S49",
+      "title": "Evaluate Care Facade Integration for Clinical Trial Search",
+      "description": "Integrate clinical trials service into evaluate_care_facade to orchestrate end-to-end flow from validated input through search, enrichment (distance), and formatted response.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S44",
+        "FEAT-3-S46",
+        "FEAT-3-S48"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "FEAT-3-S50",
+      "title": "Tool Router Exposure for Clinical Trials Search",
+      "description": "Expose clinical trials search as an allowlisted tool via tool_router, including input validation, routing, and response formatting for LLM tool-use loop.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S48",
+        "FEAT-3-S49"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-3-S51",
+      "title": "Unit and Integration Tests for Clinical Trials Search Flow",
+      "description": "Implement unit tests for query builder, location normalization, and distance computation, plus integration tests covering full flow through facade and tool router with mocked external APIs.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S44",
+        "FEAT-3-S46",
+        "FEAT-3-S50"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    }
+  ]
+}

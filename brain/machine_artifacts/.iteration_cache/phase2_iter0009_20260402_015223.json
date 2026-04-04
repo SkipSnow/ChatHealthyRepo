@@ -1,0 +1,81 @@
+{
+  "assignment_id": "FEAT-3-STORIES",
+  "iteration": 9,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema/contract, API integration, and test coverage stories for FEAT-3.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-3-S33",
+      "value": "Clinical Trials Search Input/Output Schema Definition",
+      "note": "Adds schema/contract layer missing for feature",
+      "iteration": 9
+    },
+    {
+      "path": "stories.FEAT-3-S34",
+      "value": "EvaluateCare Facade Integration for Clinical Trials Search",
+      "note": "Adds API/facade integration story",
+      "iteration": 9
+    },
+    {
+      "path": "stories.FEAT-3-S35",
+      "value": "Unit and Integration Tests for Clinical Trials Service",
+      "note": "Adds required testing coverage",
+      "iteration": 9
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-3-S33",
+      "title": "Clinical Trials Search Input/Output Schema Definition",
+      "description": "Define and validate Pydantic models for clinical trials search inputs (condition, location, radius) and structured outputs (trial metadata, recruiting status, locations, distance, duration) to ensure strict contract between tool router, facade, and domain service.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    {
+      "story_id": "FEAT-3-S34",
+      "title": "EvaluateCare Facade Integration for Clinical Trials Search",
+      "description": "Integrate clinical trials search into EvaluateCare facade, exposing a callable method that orchestrates query builder, trial retrieval, location normalization, and distance computation for use by tool router.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S28",
+        "FEAT-3-S32"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "FEAT-3-S35",
+      "title": "Unit and Integration Tests for Clinical Trials Service",
+      "description": "Implement unit tests for query building, location extraction, and distance computation, plus integration tests validating end-to-end clinical trials search flow through facade with mocked external APIs.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S28",
+        "FEAT-3-S30",
+        "FEAT-3-S34"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

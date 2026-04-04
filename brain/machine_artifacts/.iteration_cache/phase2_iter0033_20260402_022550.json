@@ -1,0 +1,63 @@
+{
+  "assignment_id": "GPTR-F-002-STORIES",
+  "iteration": 33,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing stories to complete lifecycle coverage: revocation API, validation integration, and tests.",
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S108",
+      "title": "Token Revocation Service and API Endpoint",
+      "description": "Implement revocation capability allowing tokens to be invalidated before expiration. Provide internal service method and API endpoint to revoke by token_id or lineage (cascade revocation). Ensure revoked_at is persisted and enforced in validation.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S106"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S109",
+      "title": "Token Validation Integration in GPTReader",
+      "description": "Integrate lifecycle checks (expiration, revocation, rotation lineage) into GPTReader request authentication flow. All incoming bearer tokens must be validated against storage and rejected if expired or revoked.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S107",
+        "GPTR-F-002-S108"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S110",
+      "title": "Token Lifecycle Unit and Integration Tests",
+      "description": "Develop comprehensive tests covering token issuance, expiration, rotation, revocation, and validation enforcement. Include negative cases (expired, revoked, tampered tokens) and integration tests with GPTReader endpoints.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S107",
+        "GPTR-F-002-S108",
+        "GPTR-F-002-S109"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

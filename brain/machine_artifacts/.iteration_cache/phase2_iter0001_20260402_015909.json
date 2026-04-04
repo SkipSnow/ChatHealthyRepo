@@ -1,0 +1,85 @@
+{
+  "assignment_id": "EVAL-F-002-STORIES",
+  "iteration": 1,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories defined for Provider Detail Lookup backend feature.",
+  "change_log": {},
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "EVAL-F-002-S1",
+      "title": "Provider Detail Response Schema and Contract",
+      "description": "Define canonical response schema for provider details including NPI, name, specialty, license status, practice address, phone, and enumeration date. Ensure alignment with NPI Registry fields and internal tool models.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S2",
+      "title": "NPI Registry Lookup Core Logic",
+      "description": "Implement service logic to query CMS NPI Registry API, parse response, and normalize provider attributes including specialty, license status, address, phone, and enumeration date.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S3",
+      "title": "Evaluate Care Facade Integration",
+      "description": "Integrate provider detail service into EvaluateCare facade to enable orchestrated retrieval and exposure to tool router flows.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S4",
+      "title": "Tool/API Exposure for Provider Detail Lookup",
+      "description": "Expose provider detail lookup via tool router with validated inputs (NPI or provider identifier) and structured output for chat consumption.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "EVAL-F-002-S5",
+      "title": "Provider Detail Lookup Tests and Validation",
+      "description": "Develop unit and integration tests validating NPI lookup, field mapping accuracy, error handling (invalid NPI, missing data), and facade/tool integration.",
+      "parent_feature": "EVAL-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002-S2",
+        "EVAL-F-002-S3",
+        "EVAL-F-002-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py; Code/ConversationalUX/FindCareChat/backend/tests/"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "stories": {
+    "GPTR-F-001-S166": {
+      "story_id": "GPTR-F-001-S166",
+      "title": "Allowlist Schema and Query Contract Definition",
+      "description": "Define a strict allowlist schema and request contract for GPTReader queries, including permitted collections, fields, operators, and limit constraints, implemented via Pydantic models aligned with existing validation patterns.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S167": {
+      "story_id": "GPTR-F-001-S167",
+      "title": "Request Normalization and Pre-Validation Layer",
+      "description": "Implement a preprocessing layer that normalizes incoming GPTReader requests (field casing, operator standardization, limit defaults) before allowlist enforcement to ensure consistent evaluation and eliminate ambiguity.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S166"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S168": {
+      "story_id": "GPTR-F-001-S168",
+      "title": "Audit Logging for Enforcement Decisions",
+      "description": "Extend GPTReader audit logging to capture allowlist enforcement decisions, including rejected queries, rule violations, and metadata for traceability without exposing sensitive data.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S162",
+        "GPTR-F-001-S163"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  }
+}

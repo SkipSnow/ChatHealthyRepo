@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-UX-S4-001",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must map provider scoring responses from EVAL-SCORE-PROV into the frontend explainability schema defined in EVAL-EXPLAIN-UX-S1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-S4-002",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must map clinical trial scoring responses from EVAL-SCORE-CT into the frontend explainability schema defined in EVAL-EXPLAIN-UX-S1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-S4-003",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must merge EVAL-EXPLAIN response data with score responses to produce a unified explainability payload.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-S4-004",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must correctly map overall score values into the explainability schema numeric score field.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-S4-005",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must transform backend measure-level data into a normalized list of measures including name, value, weight, and contribution.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-S4-006",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must preserve numeric precision for weights and contribution percentages during mapping without unintended rounding errors.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-S4-007",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must handle missing measure fields by substituting null or default values without causing rendering failures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-S4-008",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must return a valid explainability payload structure even when the backend response is partially populated.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-S4-009",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must omit or flag malformed measures that cannot be safely mapped into the schema.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-S4-010",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must support both provider and clinical trial payload shapes without requiring separate frontend schema definitions.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-S4-011",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must ensure the mapped payload conforms to the TypeScript interface defined in EVAL-EXPLAIN-UX-S1.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-S4-012",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must handle completely missing backend responses by returning an empty explainability payload with no measures and no score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-S4-013",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must log mapping errors or schema mismatches for debugging without interrupting the user experience.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-S4-014",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must maintain consistent field naming and casing conventions between backend data and frontend schema.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

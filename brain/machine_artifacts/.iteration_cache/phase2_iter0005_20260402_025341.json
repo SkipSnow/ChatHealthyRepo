@@ -1,0 +1,98 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-005",
+  "iteration": 5,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories refined for clearer separation of contract, core logic, recovery, API exposure, and testing. No new IDs created.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-005-S1.description",
+      "value": "Clarified schema includes retry policy, error taxonomy, fallback semantics, and response envelope aligned to existing pipeline patterns",
+      "note": "Increase precision of contract scope",
+      "iteration": 5
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S3.description",
+      "value": "Explicitly includes temp-file strategy, atomic rename, checksum validation, and last-known-good recovery pointer",
+      "note": "Strengthen recovery guarantees",
+      "iteration": 5
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S4.description",
+      "value": "Scoped to internal APIs and debug surfaces only; no external/public exposure",
+      "note": "Prevent unintended scope expansion",
+      "iteration": 5
+    },
+    {
+      "path": "stories.BL-0.1.4-005-S5.description",
+      "value": "Expanded to include fault injection (disk full, permission errors, file locks) and deterministic replay scenarios",
+      "note": "Improve test completeness",
+      "iteration": 5
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-005-S1",
+      "title": "File Operation Resilience Contract and Error Schema",
+      "description": "Define a standard contract for local file operations including retry policy, error classification (transient vs fatal), fallback behavior, and a unified response schema aligned with existing pipeline and logging patterns.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/DataPipelines/data_fetcher_base.py; Code/Shared/ops/manifest_generator.py"
+    },
+    {
+      "story_id": "BL-0.1.4-005-S2",
+      "title": "Retry and Backoff Engine for File Operations",
+      "description": "Implement core retry logic with exponential backoff, jitter, and max retry thresholds for local disk operations, handling transient I/O errors such as file locks and partial availability.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/pipeline_worker_base.py; Code/DataPipelines/embedding_worker.py"
+    },
+    {
+      "story_id": "BL-0.1.4-005-S3",
+      "title": "Fallback and Atomic Write Recovery Mechanism",
+      "description": "Implement safe file write patterns including temp-file writes, atomic renames, checksum validation, and rollback to last-known-good state to prevent propagation of corrupted or partial files.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S2"
+      ],
+      "size": "L",
+      "evidence": "ASSUMPTION: No atomic write or rollback safeguards exist; GAP requires temp-file + rename pattern and recovery handling"
+    },
+    {
+      "story_id": "BL-0.1.4-005-S4",
+      "title": "Expose File Resilience Status via Internal APIs",
+      "description": "Expose resilience outcomes (retry count, fallback usage, error classification) through internal service interfaces and debug logging surfaces for pipelines and ops tooling.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S2",
+        "BL-0.1.4-005-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "BL-0.1.4-005-S5",
+      "title": "File Operation Resilience Test Suite",
+      "description": "Develop unit and integration tests with fault injection (disk full, permission errors, file locks, interrupted writes) to validate retry behavior, atomicity, and recovery integrity across services.",
+      "parent_feature": "BL-0.1.4-005",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-005-S2",
+        "BL-0.1.4-005-S3",
+        "BL-0.1.4-005-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_pipeline_worker_base.py; Code/DataPipelines/tests/test_provider_embedding.py"
+    }
+  ]
+}

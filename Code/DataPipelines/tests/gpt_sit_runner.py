@@ -13,7 +13,7 @@
 #
 # Usage: python gpt_sit_runner.py
 #
-# Output: brain/machine_artifacts/document_type_json/gpt_reader_qa_report.json
+# Output: brain/machine_artifacts/ai_operations.json
 #         brain/BusinessArtifacts/gpt_reader_qa_report.pdf
 
 import base64
@@ -75,7 +75,7 @@ def run_all_tests() -> list:
 
     # R1: Read text artifact
     start = time.time()
-    status, resp = gpt_call({"action": "ReadArtifact", "project_path": "brain/machine_artifacts/document_type_json/corporate_governance.json"})
+    status, resp = gpt_call({"action": "ReadArtifact", "project_path": "brain/machine_artifacts/governance/corporate_governance.json"})
     ms = int((time.time() - start) * 1000)
     passed = status == 200 and resp.get("encoding") == "text" and "ChatHealthy" in resp.get("content", "")
     results.append(test_result("R1", "Read text artifact (JSON)", passed, f"Status: {status}, encoding: {resp.get('encoding')}", ms))
@@ -169,13 +169,13 @@ def run_all_tests() -> list:
 
     # R19: Response time under 30s
     start = time.time()
-    status, resp = gpt_call({"action": "ReadArtifact", "project_path": "brain/machine_artifacts/document_type_json/corporate_governance.json"})
+    status, resp = gpt_call({"action": "ReadArtifact", "project_path": "brain/machine_artifacts/governance/corporate_governance.json"})
     ms = int((time.time() - start) * 1000)
     results.append(test_result("R19", "ReadArtifact under 30s timeout", ms < 30000, f"Elapsed: {ms}ms", ms))
 
     # R26: Audit log written
     before = client["admin"]["gpt_reader_audit"].count_documents({})
-    gpt_call({"action": "ReadArtifact", "project_path": "brain/machine_artifacts/document_type_json/corporate_governance.json"})
+    gpt_call({"action": "ReadArtifact", "project_path": "brain/machine_artifacts/governance/corporate_governance.json"})
     after = client["admin"]["gpt_reader_audit"].count_documents({})
     results.append(test_result("R26", "Audit log entry created", after > before, f"Before: {before}, after: {after}"))
 
@@ -191,7 +191,7 @@ def run_all_tests() -> list:
 
     # R27: Stale snapshot returns 409
     start = time.time()
-    status, resp = gpt_call({"action": "ReadArtifact", "project_path": "brain/machine_artifacts/document_type_json/corporate_governance.json", "manifest_snapshot_id": "snapshot_fake_stale"})
+    status, resp = gpt_call({"action": "ReadArtifact", "project_path": "brain/machine_artifacts/governance/corporate_governance.json", "manifest_snapshot_id": "snapshot_fake_stale"})
     ms = int((time.time() - start) * 1000)
     results.append(test_result("R27", "Stale snapshot returns 409", status == 409, f"Status: {status}", ms))
 

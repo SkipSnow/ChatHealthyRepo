@@ -1,0 +1,122 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-002",
+  "iteration": 7,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Net-new stories created for token lifecycle. No reuse of duplicate story IDs.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-002-S1",
+      "value": "Token schema and contract definition",
+      "note": "Initial creation",
+      "iteration": 7
+    },
+    {
+      "path": "stories.BL-0.1.4-002-S2",
+      "value": "Core token lifecycle logic",
+      "note": "Initial creation",
+      "iteration": 7
+    },
+    {
+      "path": "stories.BL-0.1.4-002-S3",
+      "value": "Token validation middleware/API enforcement",
+      "note": "Initial creation",
+      "iteration": 7
+    },
+    {
+      "path": "stories.BL-0.1.4-002-S4",
+      "value": "Token lifecycle tests",
+      "note": "Initial creation",
+      "iteration": 7
+    },
+    {
+      "path": "stories.BL-0.1.4-002-S5",
+      "value": "Integration with GPTReader and Azure Functions auth",
+      "note": "Initial creation",
+      "iteration": 7
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-002-S1",
+      "title": "Define Token Schema and Contract",
+      "description": "Define the bearer token structure including fields for token_id, subject, scopes, issued_at, expires_at, rotation_version, and revocation status. Establish validation rules and serialization contract aligned with existing auth.py usage.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/DataPipelines/auth.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S2",
+      "title": "Implement Core Token Lifecycle Logic",
+      "description": "Implement issuance, rotation, expiration, and revocation logic. Ensure tokens expire based on TTL, support rotation with versioning, and enforce revocation checks during validation.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S3",
+      "title": "Token Validation Enforcement Middleware",
+      "description": "Implement middleware or request interceptor to validate bearer tokens on incoming requests. Enforce expiration, scope checks, and revocation before allowing access to protected services.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S4",
+      "title": "Token Lifecycle Unit and Integration Tests",
+      "description": "Create unit and integration tests covering token issuance, expiration, rotation, revocation, and validation enforcement. Include edge cases such as expired tokens, invalid signatures, and revoked tokens.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S2",
+        "BL-0.1.4-002-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S5",
+      "title": "Integrate Token Lifecycle with GPTReader and Azure Functions",
+      "description": "Integrate lifecycle enforcement into GPTReader and Azure Functions entry points to ensure all data access paths require valid bearer tokens and respect lifecycle rules.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "BL-0.1.4-002",
+        "likelihood": "Moderate",
+        "impact": "High",
+        "mitigation": "Reuse existing auth.py validation patterns and limit scope to enforcement without introducing new auth providers"
+      }
+    ],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

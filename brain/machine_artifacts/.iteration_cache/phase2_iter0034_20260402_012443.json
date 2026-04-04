@@ -1,0 +1,80 @@
+{
+  "assignment_id": "PHASE 2: SHARED-F-2 STORIES",
+  "iteration": 34,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added schema/contract hardening, persistence/audit, and test coverage stories to complete feature.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-2-S102",
+      "value": "Consent schema and contract definition with tier rules and audit fields",
+      "note": "Adds explicit schema layer missing from prior stories",
+      "iteration": 34
+    },
+    {
+      "path": "stories.SHARED-F-2-S103",
+      "value": "Consent persistence and audit logging implementation",
+      "note": "Ensures storage and traceability required for HIPAA workflow",
+      "iteration": 34
+    },
+    {
+      "path": "stories.SHARED-F-2-S104",
+      "value": "Unit and integration tests for consent framework",
+      "note": "Closes test coverage gap for high-risk feature",
+      "iteration": 34
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "SHARED-F-2-S102",
+      "title": "Consent Schema and Contract Definition",
+      "description": "Define canonical consent data schema including tier (1/2), timestamp, session linkage, de-identification flag, and audit metadata. Standardize contract used across services and APIs.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    {
+      "story_id": "SHARED-F-2-S103",
+      "title": "Consent Persistence and Audit Logging",
+      "description": "Implement storage of consent decisions with full audit trail, including tier selection, changes over time, and linkage to session/user identifiers. Ensure compatibility with debug logger and MongoDB utilities.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S102"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/Shared/ChatHealthyMongoUtilities.py"
+    },
+    {
+      "story_id": "SHARED-F-2-S104",
+      "title": "Consent Framework Unit and Integration Tests",
+      "description": "Create unit tests for consent tier logic, de-identification enforcement, and schema validation, plus integration tests validating end-to-end flow across API, services, and storage.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S98",
+        "SHARED-F-2-S100",
+        "SHARED-F-2-S103"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

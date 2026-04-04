@@ -1,0 +1,52 @@
+{
+  "stories": {
+    "FEAT-2-S102": {
+      "story_id": "FEAT-2-S102",
+      "title": "Define Specialty Identification Input/Output Contracts",
+      "description": "Create Pydantic models for specialty identification inputs (free-text query, optional context) and outputs (NUCC codes, classifications, confidence scores) to standardize service interfaces and tool usage.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-2-S103": {
+      "story_id": "FEAT-2-S103",
+      "title": "Expose Specialty Identification via Tool Router",
+      "description": "Register specialty identification as an allowlisted tool in tool_router, enabling LLM-driven invocation with validated inputs and structured outputs for downstream workflows.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S102",
+        "FEAT-2-S99"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-2-S104": {
+      "story_id": "FEAT-2-S104",
+      "title": "Integrate Specialty Identification into FindCare Facade",
+      "description": "Wire specialty identification into find_care_facade to ensure user queries are enriched with NUCC mappings before provider search execution, supporting end-to-end orchestration.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S99",
+        "FEAT-2-S103"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    "FEAT-2-S105": {
+      "story_id": "FEAT-2-S105",
+      "title": "Validate NUCC Data Coverage and Mapping Consistency",
+      "description": "Verify that loaded specialty taxonomy data (NUCC codes) supports expected mappings, including completeness checks, duplicate handling, and alignment with specialty_service outputs.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S99"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/load_specialty_data.py"
+    }
+  }
+}

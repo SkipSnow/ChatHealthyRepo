@@ -1,0 +1,114 @@
+{
+  "assignment_id": "EVAL-CT-M2-STORIES",
+  "iteration": 13,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added required stories for Recruitment Status measure feature.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-CT-M2-S1",
+      "value": "Added schema/contract story",
+      "note": "Feature had zero stories",
+      "iteration": 13
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S2",
+      "value": "Added core logic story",
+      "note": "Feature had zero stories",
+      "iteration": 13
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S3",
+      "value": "Added facade/API exposure story",
+      "note": "Feature had zero stories",
+      "iteration": 13
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S4",
+      "value": "Added tests story",
+      "note": "Feature had zero stories",
+      "iteration": 13
+    },
+    {
+      "path": "stories.EVAL-CT-M2-S5",
+      "value": "Added integration story",
+      "note": "Feature had zero stories",
+      "iteration": 13
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-CT-M2-S1": {
+      "story_id": "EVAL-CT-M2-S1",
+      "title": "Define Recruitment Status Score Schema and Contract",
+      "description": "Define normalized schema for clinical trial recruitment status (e.g., RECRUITING, COMPLETED, TERMINATED) and scoring output contract including score value and explanation field.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M2-S2": {
+      "story_id": "EVAL-CT-M2-S2",
+      "title": "Implement Recruitment Status Scoring Logic",
+      "description": "Implement logic to map trial recruitment statuses to scores (e.g., RECRUITING=high, COMPLETED=medium, TERMINATED=low) and handle unknown or missing statuses safely.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M2-S3": {
+      "story_id": "EVAL-CT-M2-S3",
+      "title": "Expose Recruitment Status Score via EvaluateCare Facade",
+      "description": "Integrate recruitment status scoring into EvaluateCare facade response so downstream consumers receive score and explanation alongside trial results.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-CT-M2-S4": {
+      "story_id": "EVAL-CT-M2-S4",
+      "title": "Unit Tests for Recruitment Status Scoring",
+      "description": "Create unit tests validating scoring logic across all statuses (RECRUITING, COMPLETED, TERMINATED, UNKNOWN) including edge cases and null handling.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M2-S5": {
+      "story_id": "EVAL-CT-M2-S5",
+      "title": "Integration Test for Recruitment Status in Trial Results",
+      "description": "Validate end-to-end flow from ClinicalTrials.gov API fetch through scoring to facade output, ensuring recruitment status is correctly scored and surfaced.",
+      "parent_feature": "EVAL-CT-M2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-008-S1",
+      "title": "Rate Limit Policy Schema and Configuration",
+      "description": "Define rate limiting policy schema including request thresholds (per minute/hour), key dimensions (IP, session, API key), and enforcement rules. Add configuration support via environment variables or centralized config.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/DataPipelines/host.json"
+    },
+    {
+      "story_id": "BL-0.1.4-008-S2",
+      "title": "Core Rate Limiting Middleware",
+      "description": "Implement FastAPI middleware to enforce rate limits per defined policy. Track request counts per key (IP/session) and reject requests exceeding thresholds with appropriate HTTP status (429).",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "BL-0.1.4-008-S3",
+      "title": "Rate Limit Storage and Tracking Mechanism",
+      "description": "Implement in-memory or Mongo-backed counter mechanism for tracking request frequency with TTL-based expiration. Ensure atomic updates and efficient cleanup of expired counters.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; ASSUMPTION: No existing rate tracking store implemented; GAP required"
+    },
+    {
+      "story_id": "BL-0.1.4-008-S4",
+      "title": "Rate Limit Response Handling and Client Feedback",
+      "description": "Standardize API responses for throttled requests including error payload, retry-after headers, and user-friendly messaging compatible with frontend ChatWindow handling.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx; Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "BL-0.1.4-008-S5",
+      "title": "Rate Limiting Tests and Integration Validation",
+      "description": "Develop unit and integration tests validating enforcement of rate limits, correct rejection behavior, TTL reset behavior, and no impact to normal request flows under threshold.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S2",
+        "BL-0.1.4-008-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py; ASSUMPTION: No existing rate limit tests; GAP required"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-F-3-S1",
+      "title": "Define Evaluate Care Facade Request/Response Schema",
+      "description": "Define unified Pydantic request/response contract with operation enum (clinical_trials_search, provider_detail), normalized inputs, and a consistent response envelope (status, data, errors, metadata) supporting forward-compatible extensions.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py + Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    {
+      "story_id": "EVAL-F-3-S2",
+      "title": "Implement Facade Orchestration Logic",
+      "description": "Implement deterministic routing, aggregation, normalization, and error standardization across clinical_trials_service and provider_detail_service with consistent envelope output and graceful degradation on partial failures.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001",
+        "EVAL-F-002"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py + Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/"
+    },
+    {
+      "story_id": "EVAL-F-3-S3",
+      "title": "Expose Evaluate Care Facade via Tool Router Interface",
+      "description": "Expose facade through tool_router with strict Pydantic validation, operation dispatch, and compatibility with Anthropic tool-use loop, enforcing allowlist constraints (GOV-004).",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "EVAL-F-3-S4",
+      "title": "Cross-Domain Integration and Aggregation Validation",
+      "description": "Validate multi-service aggregation scenarios ensuring consistent schema output when combining clinical trials and provider detail data, including partial response stitching, precedence rules, and null-handling.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001",
+        "EVAL-F-002",
+        "EVAL-F-3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py + Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-3-S5",
+      "title": "Unit and Integration Tests for Facade Orchestration",
+      "description": "Implement unit and integration tests covering schema contract validation, routing logic, error handling, and full tool_router execution paths for both clinical trials search and provider detail flows.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-3-S2",
+        "EVAL-F-3-S3",
+        "EVAL-F-3-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ]
+}

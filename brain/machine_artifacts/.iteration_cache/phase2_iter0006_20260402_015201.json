@@ -1,0 +1,78 @@
+{
+  "assignment_id": "FEAT-3-STORIES",
+  "iteration": 6,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Adds missing core logic decomposition and API contract hardening stories for FEAT-3.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-3-S20",
+      "value": "ClinicalTrials.gov Query Builder and Recruiting Filter Enforcement",
+      "note": "Adds explicit core logic for external API query construction and filtering",
+      "iteration": 6
+    },
+    {
+      "path": "stories.FEAT-3-S21",
+      "value": "Trial Location Extraction and Normalization",
+      "note": "Adds structured parsing of trial sites into normalized schema",
+      "iteration": 6
+    },
+    {
+      "path": "stories.FEAT-3-S22",
+      "value": "Travel Distance API Integration and Fallback Handling",
+      "note": "Separates routing integration and resilience logic",
+      "iteration": 6
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-3-S20",
+      "title": "ClinicalTrials.gov Query Builder and Recruiting Filter Enforcement",
+      "description": "Implement core logic to construct ClinicalTrials.gov API queries from validated inputs, enforce recruiting status filter, and handle pagination and query parameter mapping.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "FEAT-3-S21",
+      "title": "Trial Location Extraction and Normalization",
+      "description": "Parse ClinicalTrials.gov API responses to extract trial site locations, normalize address fields, and structure them for downstream distance calculation and UI consumption.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S20"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "FEAT-3-S22",
+      "title": "Travel Distance API Integration and Fallback Handling",
+      "description": "Integrate Google Routes API to compute travel distance and duration for each trial site, including fallback handling for missing routes, API failures, and partial data scenarios.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S21"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

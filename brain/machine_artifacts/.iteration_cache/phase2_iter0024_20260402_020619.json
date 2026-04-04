@@ -1,0 +1,74 @@
+{
+  "assignment_id": "FEAT-5-STORIES",
+  "iteration": 24,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing error handling and observability coverage for allowlist routing.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-5-S92",
+      "value": "Add error handling and rejection logic for non-allowlisted tools",
+      "note": "Covers allowlist enforcement gap",
+      "iteration": 24
+    },
+    {
+      "path": "stories.FEAT-5-S93",
+      "value": "Add structured logging and traceability for tool routing",
+      "note": "Improves debuggability and aligns with debug_logger usage",
+      "iteration": 24
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-5-S92",
+      "title": "Allowlist Enforcement and Rejection Handling",
+      "description": "Implement strict allowlist checks that reject any tool invocation not explicitly registered, returning structured error responses and preventing execution.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S87"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S93",
+      "title": "Tool Routing Observability and Debug Logging",
+      "description": "Instrument tool routing with structured logs capturing tool name, validation outcome, execution path, and errors, integrated with existing debug_logger infrastructure.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S88"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S94",
+      "title": "Anthropic tool_use Block Parsing and Normalization",
+      "description": "Implement parsing logic for Anthropic tool_use blocks, normalizing inputs into the internal schema format before validation and routing.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S87"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

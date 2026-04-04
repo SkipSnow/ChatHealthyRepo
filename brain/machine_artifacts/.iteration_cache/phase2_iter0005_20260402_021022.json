@@ -1,0 +1,89 @@
+{
+  "assignment_id": "FEAT-6-STORIES",
+  "iteration": 5,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Adds missing API layer, core enforcement logic, and test coverage for consent workflow.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-6-S16",
+      "value": "Consent enforcement engine",
+      "note": "Adds core logic layer missing for runtime enforcement",
+      "iteration": 5
+    },
+    {
+      "path": "stories.FEAT-6-S17",
+      "value": "Consent API endpoints",
+      "note": "Adds API exposure for consent operations",
+      "iteration": 5
+    },
+    {
+      "path": "stories.FEAT-6-S18",
+      "value": "Consent workflow tests",
+      "note": "Adds test coverage for compliance-critical flows",
+      "iteration": 5
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-6-S16",
+      "title": "Consent Enforcement Engine",
+      "description": "Implement core logic to enforce consent tiers at runtime, ensuring all downstream services (lead capture, unknown question logging, debug logging) respect Tier 1 vs Tier 2 rules for PII storage and de-identification.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S13"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    {
+      "story_id": "FEAT-6-S17",
+      "title": "Consent API and Tool Router Integration",
+      "description": "Expose consent operations (create, upgrade to Tier 2, revoke) via FastAPI endpoints and integrate with tool_router to allow LLM-triggered consent flows with validated inputs.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S16"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py"
+    },
+    {
+      "story_id": "FEAT-6-S18",
+      "title": "Consent Workflow Unit and Integration Tests",
+      "description": "Create unit and integration tests covering consent creation, tier transitions, enforcement behavior, audit logging, and lead capture integration to ensure HIPAA-compliant handling of PII.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S14",
+        "FEAT-6-S15",
+        "FEAT-6-S16"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "FEAT-6",
+        "likelihood": "Moderate",
+        "impact": "High",
+        "mitigation": "Enforce strict unit and integration test coverage for all consent transitions and PII handling paths."
+      }
+    ],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

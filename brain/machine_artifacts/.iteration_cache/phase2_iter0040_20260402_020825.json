@@ -1,0 +1,52 @@
+{
+  "stories": {
+    "FEAT-5-S159": {
+      "story_id": "FEAT-5-S159",
+      "title": "Allowlist Configuration and Tool Registry Contract",
+      "description": "Define and implement a centralized allowlist configuration that maps tool names to their corresponding Pydantic schemas and handler functions, ensuring a strict contract for all permitted tools.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S155"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/"
+    },
+    "FEAT-5-S160": {
+      "story_id": "FEAT-5-S160",
+      "title": "Unknown Tool Rejection and Error Handling",
+      "description": "Implement explicit rejection logic for non-allowlisted tools, including structured error responses, safe fallback messaging, and prevention of execution for any tool not defined in the allowlist.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S159"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-5-S161": {
+      "story_id": "FEAT-5-S161",
+      "title": "Tool Execution Audit Logging",
+      "description": "Integrate debug logging to capture tool routing decisions, validation outcomes, execution timing, and error states for each tool invocation to support observability and QA traceability.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S156"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "FEAT-5-S162": {
+      "story_id": "FEAT-5-S162",
+      "title": "Conversation Context Injection into Tool Calls",
+      "description": "Ensure the tool router correctly injects relevant chat history and context into tool execution inputs where required, maintaining consistency with the agent loop and improving downstream service accuracy.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S157"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/main.py"
+    }
+  }
+}

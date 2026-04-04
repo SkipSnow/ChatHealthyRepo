@@ -1,0 +1,97 @@
+{
+  "assignment_id": "BL-0.1.4-008-STORIES",
+  "iteration": 3,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Rate limiting stories defined across contract, logic, integration, and testing.",
+  "change_log": [
+    {
+      "path": "stories",
+      "value": "Added 5 stories for BL-0.1.4-008",
+      "note": "Feature previously had zero stories",
+      "iteration": 3
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-008-S1",
+      "title": "Define Rate Limiting Policy Schema and Configuration Contract",
+      "description": "Define configurable rate limiting policies including request thresholds, time windows, keying strategy (IP, session, API key), and exemption rules. Establish a schema for configuration and enforcement.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (FastAPI entrypoint requires middleware contract definition)"
+    },
+    {
+      "story_id": "BL-0.1.4-008-S2",
+      "title": "Implement Core Rate Limiting Middleware Logic",
+      "description": "Build middleware to enforce rate limits per defined policy. Track request counts using in-memory or Mongo-backed store, enforce throttling (429), and support sliding or fixed window strategies.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (middleware insertion point); Code/Shared/ChatHealthyMongoUtilities.py (optional persistence)"
+    },
+    {
+      "story_id": "BL-0.1.4-008-S3",
+      "title": "Integrate Rate Limiting into API Request Pipeline",
+      "description": "Integrate middleware into FastAPI pipeline to protect all endpoints including tool_router and facade calls. Ensure compatibility with existing request lifecycle and error handling.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (central dispatch); Code/ConversationalUX/FindCareChat/backend/main.py (request lifecycle)"
+    },
+    {
+      "story_id": "BL-0.1.4-008-S4",
+      "title": "Expose Rate Limit Headers and Client Feedback",
+      "description": "Return standard rate limit headers (X-RateLimit-Limit, Remaining, Reset) and structured 429 responses. Ensure frontend can handle throttling gracefully.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx (handles API responses and errors)"
+    },
+    {
+      "story_id": "BL-0.1.4-008-S5",
+      "title": "Unit and Integration Tests for Rate Limiting Behavior",
+      "description": "Create tests validating threshold enforcement, reset windows, concurrent request handling, and exemption rules. Include integration tests across API endpoints.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py (existing API test patterns); Code/Shared/cost_guard.py (example of limit enforcement testing)"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "BL-0.1.4-008",
+        "likelihood": "Moderate",
+        "impact": "High",
+        "mitigation": "Apply conservative default limits and allow internal override via config without expanding scope"
+      }
+    ],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

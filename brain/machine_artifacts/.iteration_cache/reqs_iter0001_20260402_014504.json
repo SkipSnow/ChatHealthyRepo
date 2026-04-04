@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-EXP-002-REQ-001",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must calculate years_in_practice as current_year minus graduation_year when graduation_year is present and valid.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-002",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must calculate years_in_practice as current_year minus enumeration_date.year when graduation_year is missing and enumeration_date is present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-003",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must prioritize graduation_year over enumeration_date when both fields are present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-004",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must return years_in_practice as null when both graduation_year and enumeration_date are missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-005",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must validate that graduation_year is less than or equal to the current year before using it in calculations.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-006",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must ignore graduation_year and fall back to enumeration_date when graduation_year is invalid (e.g., in the future or non-numeric).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-007",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must ignore enumeration_date and fall back to graduation_year when enumeration_date is invalid or malformed.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-008",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must ensure years_in_practice is not negative; if negative, it must be set to null.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-009",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must compute a normalized_experience_score based on years_in_practice using predefined deterministic ranges.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-010",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must assign a normalized_experience_score of null when years_in_practice is null.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-011",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must ensure normalized_experience_score falls within a bounded range of 0 to 1 inclusive.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-012",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must produce consistent years_in_practice outputs for identical inputs across multiple executions.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-013",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must handle enumeration_date values that include full timestamps by extracting only the year component.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-EXP-002-REQ-014",
+      "story_id": "EVAL-EXP-002",
+      "requirement": "The system must support graduation_year values provided as strings by converting them to integers before calculation.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

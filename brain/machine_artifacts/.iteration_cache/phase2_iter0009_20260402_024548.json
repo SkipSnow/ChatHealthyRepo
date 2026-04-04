@@ -1,0 +1,63 @@
+{
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-002-S1",
+      "title": "Define Token Schema and Contract",
+      "description": "Define the bearer token structure including token_id, subject, scopes, issued_at, expires_at, rotation_version, and revocation status. Establish serialization, signing expectations, and validation rules aligned with existing auth.py behavior.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/DataPipelines/auth.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S2",
+      "title": "Implement Core Token Lifecycle Logic",
+      "description": "Implement token issuance, rotation, expiration, and revocation logic. Enforce TTL-based expiration, rotation via versioning, and revocation checks during validation using patterns established in auth.py.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S3",
+      "title": "Token Validation Middleware and Access Enforcement",
+      "description": "Implement request-level enforcement for bearer tokens via middleware/interceptors. Validate signature, expiration, scope, and revocation status on all protected endpoints, ensuring consistent enforcement across services.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S4",
+      "title": "Token Lifecycle Unit and Integration Tests",
+      "description": "Create unit and integration tests covering issuance, expiration, rotation, revocation, and validation enforcement. Include edge cases such as expired tokens, invalid signatures, replay attempts, and revoked tokens.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S2",
+        "BL-0.1.4-002-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/auth.py"
+    },
+    {
+      "story_id": "BL-0.1.4-002-S5",
+      "title": "Integrate Token Lifecycle with GPTReader and Azure Functions",
+      "description": "Integrate lifecycle validation into GPTReader and Azure Functions entry points, ensuring all inbound requests require valid bearer tokens and lifecycle enforcement is consistently applied across data access and pipeline operations.",
+      "parent_feature": "BL-0.1.4-002",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-002-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/auth.py"
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-004",
+  "iteration": 15,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories refined to remove conceptual overlap with BRAIN-F-004 by constraining scope strictly to FindCare backend implementation using existing debug_logger.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-004-S1.description",
+      "value": "Constrained schema to existing debug_logger fields only; clarified no independent audit schema beyond FindCare backend.",
+      "note": "Eliminate duplication with Brain audit schema work",
+      "iteration": 15
+    },
+    {
+      "path": "stories.BL-0.1.4-004-S2.description",
+      "value": "Append-only enforcement explicitly implemented as wrapper around debug_logger without introducing new storage layers.",
+      "note": "Differentiate from platform-level append-only storage",
+      "iteration": 15
+    },
+    {
+      "path": "stories.BL-0.1.4-004-S3.description",
+      "value": "Scoped API to internal FindCare FastAPI only; no Brain or cross-system audit access.",
+      "note": "Avoid duplication with Brain audit access APIs",
+      "iteration": 15
+    },
+    {
+      "path": "stories.BL-0.1.4-004-S4.description",
+      "value": "Instrumentation limited to FindCare services (tool_router, safety_service); excludes GPT/Claude/Brain audit hooks.",
+      "note": "Remove overlap with Brain-wide audit instrumentation",
+      "iteration": 15
+    },
+    {
+      "path": "stories.BL-0.1.4-004-S5.description",
+      "value": "Tests limited to debug_logger behavior within FindCare backend; no cross-system audit validation.",
+      "note": "Prevent duplication with Brain audit test suite",
+      "iteration": 15
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-004-S1",
+      "title": "Audit Log Schema and Contract Definition",
+      "description": "Define immutable audit log schema strictly aligned to existing debug_logger fields (chat_id, session_id, tool_name, token_usage, error_flag, timestamps) and extend minimally with hash_chain fields; enforce compatibility with current MongoDB document structure without introducing a new audit system.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S2",
+      "title": "Append-Only Write Enforcement Logic",
+      "description": "Implement append-only enforcement as a wrapper around debug_logger such that only insert operations are permitted; add per-session hash chaining for tamper evidence while preserving existing Mongo insert patterns and avoiding any new storage abstraction.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S3",
+      "title": "Audit Log Read API (Controlled Access)",
+      "description": "Expose a read-only internal FastAPI endpoint within FindCare backend for audit inspection (dev/admin only), reusing main.py routing and ensuring no external or Brain-level audit access is introduced.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S4",
+      "title": "System-Wide Audit Logging Integration (FindCare Scope)",
+      "description": "Instrument FindCare backend components only (tool_router, safety_service, and existing debug_logger call sites) to capture tool execution, safety triggers, and errors with de-identified payloads; explicitly exclude Brain or cross-application audit instrumentation.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S2"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S5",
+      "title": "Audit Logging Test Suite and Tamper Detection Validation",
+      "description": "Extend test_debug_logger.py to validate append-only guarantees, hash chain integrity, and mutation attempt rejection within the FindCare backend context only; simulate tampering and ensure detection without introducing cross-system dependencies.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py"
+    }
+  ]
+}

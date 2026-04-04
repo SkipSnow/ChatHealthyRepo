@@ -1,0 +1,103 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-008",
+  "iteration": 6,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Rate limiting not present in current FastAPI stack; implemented as middleware without expanding scope.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-008-S1",
+      "value": "Added schema/contract story for rate limiting policy",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    },
+    {
+      "path": "stories.BL-0.1.4-008-S2",
+      "value": "Added core logic story for rate limiting engine",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    },
+    {
+      "path": "stories.BL-0.1.4-008-S3",
+      "value": "Added middleware/API enforcement story",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    },
+    {
+      "path": "stories.BL-0.1.4-008-S4",
+      "value": "Added test and integration validation story",
+      "note": "Feature had zero stories",
+      "iteration": 6
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "BL-0.1.4-008-S1": {
+      "story_id": "BL-0.1.4-008-S1",
+      "title": "Define Rate Limiting Policy Schema and Contract",
+      "description": "Define configurable rate limiting rules including request thresholds, time windows, and client identification strategy (IP/session). Establish contract for how limits are declared and consumed by middleware.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (FastAPI entrypoint supports middleware injection); ASSUMPTION: No existing rate limit schema; GAP required"
+    },
+    "BL-0.1.4-008-S2": {
+      "story_id": "BL-0.1.4-008-S2",
+      "title": "Implement Rate Limiting Core Logic",
+      "description": "Build rate limiting engine to track request counts per client and enforce thresholds using in-memory or lightweight store. Include sliding window or fixed window logic.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (demonstrates request metadata tracking patterns); ASSUMPTION: No reusable limiter exists; GAP required"
+    },
+    "BL-0.1.4-008-S3": {
+      "story_id": "BL-0.1.4-008-S3",
+      "title": "Integrate Rate Limiting Middleware into FastAPI",
+      "description": "Add middleware to FastAPI app to enforce rate limits on incoming requests. Return standardized HTTP 429 responses when limits are exceeded.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (central request handling and middleware insertion point); ASSUMPTION: No existing rate limiting middleware; GAP required"
+    },
+    "BL-0.1.4-008-S4": {
+      "story_id": "BL-0.1.4-008-S4",
+      "title": "Rate Limiting Tests and Integration Validation",
+      "description": "Create unit tests for rate limiting logic and integration tests validating 429 responses under load and normal behavior under threshold.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py (existing testing patterns); ASSUMPTION: No rate limit tests exist; GAP required"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "BL-0.1.4-008": {
+        "feature_id": "BL-0.1.4-008",
+        "likelihood": "Moderate",
+        "impact": "Moderate",
+        "mitigation": "Use simple in-memory limiting scoped to single instance; avoid distributed complexity"
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

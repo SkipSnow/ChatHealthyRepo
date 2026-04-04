@@ -1,0 +1,77 @@
+{
+  "assignment_id": "EVAL-PROVIDER-LINKS-STORIES",
+  "iteration": 11,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories defined for EVAL-PROVIDER-LINKS with full lifecycle coverage.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-PROVIDER-LINKS-*",
+      "value": "Added 4 stories covering schema, logic, API/UI, and tests",
+      "note": "Feature previously had zero stories",
+      "iteration": 11
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S1",
+      "title": "Define External Link Schema and Contract",
+      "description": "Define a structured schema for external verification links including site name (Healthgrades, NPI Registry, State Board), URL, label, and guidance text for user interpretation.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (research site URL construction)"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S2",
+      "title": "Implement External Link Construction Logic",
+      "description": "Implement logic to construct external verification links using provider identifiers (e.g., NPI, state) including Healthgrades, NPI Registry, and state medical board URLs.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (research_sites construction, state board links)"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S3",
+      "title": "Expose External Links via EvaluateCare Facade and UI Rendering",
+      "description": "Expose structured external links through the EvaluateCare facade and render them in the frontend with clear labels and guidance text to help users understand what each source represents.",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-PROVIDER-LINKS-S4",
+      "title": "Unit and Integration Tests for External Links",
+      "description": "Create unit tests for link construction logic and integration tests to validate end-to-end delivery of external links in provider detail responses, including handling missing data (e.g., missing state board link).",
+      "parent_feature": "EVAL-PROVIDER-LINKS",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-LINKS-S2",
+        "EVAL-PROVIDER-LINKS-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests; provider_detail_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "assignment_id": "FEAT-5-STORIES",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing robustness, observability, and extensibility stories for FEAT-5.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-5-S35",
+      "value": "Tool Router Error Handling and Fallback Behavior",
+      "note": "Add explicit error handling coverage",
+      "iteration": 10
+    },
+    {
+      "path": "stories.FEAT-5-S36",
+      "value": "Tool Invocation Logging and Audit Trail",
+      "note": "Add observability and auditability",
+      "iteration": 10
+    },
+    {
+      "path": "stories.FEAT-5-S37",
+      "value": "Dynamic Tool Registration and Extensibility Hook",
+      "note": "Support future-safe extensibility within allowlist model",
+      "iteration": 10
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-5-S35",
+      "title": "Tool Router Error Handling and Fallback Behavior",
+      "description": "Implement structured error handling for tool routing, including graceful rejection of non-allowlisted tools, Pydantic validation failures, and safe fallback responses to the LLM without breaking the agent loop.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S31"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S36",
+      "title": "Tool Invocation Logging and Audit Trail",
+      "description": "Integrate logging of tool routing decisions, including tool name, validation outcome, and execution status, leveraging existing debug_logger infrastructure for traceability and audit compliance.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S31"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "FEAT-5-S37",
+      "title": "Dynamic Tool Registration and Extensibility Hook",
+      "description": "Introduce a structured mechanism for registering new tools into the allowlist (e.g., centralized registry or config pattern) while preserving strict validation and governance constraints.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S30"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

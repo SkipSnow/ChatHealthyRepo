@@ -1,0 +1,149 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-PI-TEST-001",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must execute unit tests validating that composite_credibility_score is computed deterministically for a given fixed PI input dataset.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-002",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must validate via unit tests that each input attribute (prior_trials_count, publications_count, fda_approval_count) contributes to the composite score according to defined weighting logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-003",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must verify that zero-value inputs (e.g., no prior trials) produce a valid composite score without runtime errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-004",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must validate that missing investigator_name results in a null or default PI credibility object without breaking the pipeline.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-005",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must verify that inconsistent investigator naming across sources is normalized or resolved to a single PI identity in test scenarios.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-006",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must execute integration tests confirming that PI credibility data is included in Evaluate Care API responses for clinical trials.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-007",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must validate that API responses include all schema fields defined in the PI credibility contract.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-008",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must confirm that trials without PI data still return a valid clinical trial response without PI credibility enrichment.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-009",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must validate that PI credibility enrichment does not alter or corrupt existing clinical trial fields in API responses.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-010",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must execute tests ensuring that large input datasets (multiple trials with multiple PIs) are processed without performance degradation beyond acceptable thresholds.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-011",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must validate that LLM-assisted enrichment (if used) produces structured outputs conforming to the PI schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-012",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must ensure that LLM outputs with missing fields are handled gracefully and do not break downstream scoring logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-013",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must validate that LLM-generated publication counts are numeric and within reasonable bounds before scoring.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-014",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must ensure that LLM-derived investigator identity resolution does not merge distinct individuals incorrectly in test scenarios.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-015",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must validate that LLM outputs with hallucinated FDA approvals are either corrected or excluded from scoring.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-016",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must ensure that LLM enrichment failures fall back to baseline data without causing pipeline failure.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-017",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must validate that composite scores remain within a defined bounded range (e.g., 0–100) under all tested conditions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-PI-TEST-018",
+      "story_id": "EVAL-CT-PI-TEST-001",
+      "requirement": "The system must confirm via integration tests that multiple trials in a single response each receive independent PI credibility calculations.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

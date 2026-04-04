@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-RX-REQ-001",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must accept raw prescription behavior data conforming to the schema defined in EVAL-P-RX-UX-S1 as input to the transformation function.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-002",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must rank drugs by relevance using the logic defined in design/design_eval_p_rx_drug_mapping.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-003",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must return a list of top relevant drugs limited to the maximum count specified in the UI data contract.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-004",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must compute a normalized relevance indicator value suitable for UI display (e.g., low/medium/high or numeric score).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-005",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must map backend integrity flags into UI-ready states (e.g., clean or flagged) exactly as defined in the UI contract.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-006",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must preserve the contribution-to-score value from backend data without modification unless explicitly defined by the transformation rules.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-007",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must output a transformation result object that exactly matches the structure defined in EVAL-P-RX-UX-S1.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-008",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must deterministically produce the same output given identical input data.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-009",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must handle missing optional fields in the input by applying default values defined in the UI contract without throwing runtime errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-010",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must return an empty top drugs list when no valid drug data is present in the input.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-011",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must assign a fallback relevance indicator of 'unknown' or equivalent when insufficient data exists to compute relevance.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-012",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must map any unrecognized integrity flag values to a safe default UI state (e.g., flagged).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-013",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must not mutate the original input data object during transformation.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-014",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must complete the transformation within acceptable frontend performance bounds (e.g., under 50ms for typical payload size).",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-015",
+      "story_id": "EVAL-P-RX-UX-S2",
+      "requirement": "The system must log or surface a structured error when the input data violates the expected schema and cannot be transformed.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

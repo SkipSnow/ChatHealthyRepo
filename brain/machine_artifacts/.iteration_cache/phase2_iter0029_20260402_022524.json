@@ -1,0 +1,66 @@
+{
+  "assignment_id": "GPTR-F-002-STORIES",
+  "iteration": 29,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added API surface and test coverage stories to complete lifecycle implementation.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-002-S99",
+      "value": "Token Revocation and Validation API",
+      "note": "Add API layer for lifecycle control",
+      "iteration": 29
+    },
+    {
+      "path": "stories.GPTR-F-002-S100",
+      "value": "Token Lifecycle Test and Integration Suite",
+      "note": "Add full validation and regression coverage",
+      "iteration": 29
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S99",
+      "title": "Token Revocation and Validation API",
+      "description": "Implement backend endpoints and internal service methods for validating bearer tokens, revoking active tokens, and checking expiration/rotation status during GPTReader access. Ensure compatibility with existing auth flow in gpt_reader and Shared brain_auth utilities.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S96",
+        "GPTR-F-002-S97"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002"
+    },
+    {
+      "story_id": "GPTR-F-002-S100",
+      "title": "Token Lifecycle Test and Integration Suite",
+      "description": "Create unit and integration tests covering token issuance, expiration, rotation chains, revocation, and invalid token access. Extend existing GPTReader and pipeline test suites to validate security behavior under normal and failure scenarios.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S96",
+        "GPTR-F-002-S97",
+        "GPTR-F-002-S98",
+        "GPTR-F-002-S99"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py; brain/BusinessArtifacts/gpt_reader_qa_report.pdf"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

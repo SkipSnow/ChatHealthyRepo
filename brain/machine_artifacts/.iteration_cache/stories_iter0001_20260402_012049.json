@@ -1,0 +1,81 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-SCORE-PROV-S1",
+      "title": "Define provider score schema and contract",
+      "description": "Create Pydantic models defining input measures (≥3 required), weight configuration, and output composite score structure. Ensure compatibility with existing provider detail data structures and enforce deterministic inputs.",
+      "parent_feature": "EVAL-SCORE-PROV",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py (existing Pydantic pattern); Code/Schemas/ChatHealthy.Providers.json (provider data structure)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-SCORE-PROV-S2",
+      "title": "Implement deterministic scoring algorithm",
+      "description": "Build core scoring logic that aggregates ≥3 provider quality measures using fixed weights. Ensure no randomness, consistent normalization, and deterministic output for identical inputs.",
+      "parent_feature": "EVAL-SCORE-PROV",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-SCORE-PROV-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (orchestration extension point for scoring)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-SCORE-PROV-S3",
+      "title": "Integrate scoring into EvaluateCare facade",
+      "description": "Extend evaluate_care_facade to call the scoring engine and return composite provider score alongside existing provider detail responses.",
+      "parent_feature": "EVAL-SCORE-PROV",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-SCORE-PROV-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (existing orchestration layer)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-SCORE-PROV-S4",
+      "title": "Expose scoring via API response contract",
+      "description": "Update FastAPI response models and tool outputs to include provider composite score and component measures so frontend/chat can consume results.",
+      "parent_feature": "EVAL-SCORE-PROV",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-SCORE-PROV-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (FastAPI adapter and response handling); Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (tool output handling)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "title": "Unit tests for scoring engine",
+      "description": "Create unit tests validating deterministic behavior, correct weighting, minimum measure enforcement (≥3), and edge cases (missing/null inputs).",
+      "parent_feature": "EVAL-SCORE-PROV",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SCORE-PROV-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ (existing pytest structure)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-SCORE-PROV-S6",
+      "title": "Integration tests for facade scoring flow",
+      "description": "Validate end-to-end flow from EvaluateCare facade through scoring engine to API response, ensuring score appears correctly in provider evaluation outputs.",
+      "parent_feature": "EVAL-SCORE-PROV",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SCORE-PROV-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py (integration patterns for tool flows)",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

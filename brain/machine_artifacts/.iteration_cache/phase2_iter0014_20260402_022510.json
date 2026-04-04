@@ -1,0 +1,76 @@
+{
+  "assignment_id": "PHASE-2-EVAL-CT-MEASURE-1",
+  "iteration": 14,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing phase extraction/normalization integration story to complete backend flow.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-CT-M1-S5",
+      "value": "Add phase extraction and normalization from ClinicalTrials.gov data before scoring",
+      "note": "Closes gap between raw API data and scoring logic",
+      "iteration": 14
+    }
+  ],
+  "stories": {
+    "EVAL-CT-M1-S1": {
+      "story_id": "EVAL-CT-M1-S1",
+      "title": "Define Trial Phase Quality Schema and Contract",
+      "description": "Define structured schema for representing clinical trial phase (I–IV) and corresponding quality score, including normalization rules and allowed values.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M1-S2": {
+      "story_id": "EVAL-CT-M1-S2",
+      "title": "Implement Trial Phase Scoring Logic",
+      "description": "Implement mapping from clinical trial phase (Phase I–IV) to a normalized quality score reflecting maturity and validation strength, including handling of missing or non-standard phase values.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M1-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-M1-S3": {
+      "story_id": "EVAL-CT-M1-S3",
+      "title": "Expose Trial Phase Quality via Evaluate Care Facade",
+      "description": "Integrate trial phase quality score into clinical trial results returned by evaluate_care_facade, ensuring consistent response structure for downstream UI and explainability.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M1-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-CT-M1-S4": {
+      "story_id": "EVAL-CT-M1-S4",
+      "title": "Unit and Integration Tests for Trial Phase Quality",
+      "description": "Create unit tests for phase-to-score mapping and edge cases (missing, malformed phases) and integration tests validating presence of quality score in end-to-end clinical trial responses.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M1-S2",
+        "EVAL-CT-M1-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    },
+    "EVAL-CT-M1-S5": {
+      "story_id": "EVAL-CT-M1-S5",
+      "title": "Extract and Normalize Trial Phase from ClinicalTrials.gov Data",
+      "description": "Parse trial phase values from ClinicalTrials.gov API responses, normalize variants (e.g., 'Phase 1/Phase 2', 'Early Phase 1') into standard categories, and handle missing or multi-phase trials prior to scoring.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  }
+}

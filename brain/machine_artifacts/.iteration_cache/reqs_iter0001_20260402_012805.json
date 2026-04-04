@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must produce identical composite scores for identical input payloads across multiple test runs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must verify that changing a single measure value results in a deterministic and reproducible change in the composite score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must validate that the composite score equals the weighted sum of input measures according to the configured fixed weights.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must confirm that weight configurations are applied exactly as defined without normalization drift or implicit redistribution.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must enforce that at least 3 input measures are provided, and reject inputs with fewer than 3 measures.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must raise a controlled error when input measures contain null or missing values required for scoring.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must handle inputs where optional measures are missing by excluding them from scoring without breaking execution.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must validate correct normalization of input measures when values are at minimum and maximum bounds.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must ensure that the composite score remains within the defined output range for all valid inputs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must verify that input order of measures does not affect the resulting composite score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must raise a deterministic error when weight configuration is missing or incomplete.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-SCORE-PROV-S5",
+      "requirement": "The system must validate that floating point precision does not introduce inconsistent results across repeated calculations.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

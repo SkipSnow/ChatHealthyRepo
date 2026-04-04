@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-UX-301",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must render a dedicated prescription behavior React component when structured prescription data is present in the message payload.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-302",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must integrate the prescription behavior component within the MessageBubble rendering pipeline without breaking existing message types.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-303",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must display prescribing patterns in a human-readable format based on transformed data from the rendering logic layer.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-304",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must display mapped condition labels associated with prescription behaviors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-305",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must display the contribution of prescription behavior to the overall provider quality score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-306",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must ensure the component styling is consistent with existing provider quality scorecard UI patterns.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-307",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must support reusable rendering of the prescription behavior component across multiple messages without duplication of logic.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-308",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must render the component in the correct position within the message flow relative to other scorecard elements.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-309",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must gracefully fall back to a non-structured text display when prescription behavior data is missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-310",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must not render the prescription behavior component when no prescription-related data is present in the message.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-311",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must handle partially populated prescription data by rendering only available fields without UI breakage.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-312",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must prevent runtime errors in MessageBubble when prescription data structure does not match the expected schema.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-313",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must support responsive layout behavior for the prescription component across standard viewport sizes.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-314",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must ensure the component renders within acceptable performance limits without noticeable delay in message display.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-UX-315",
+      "story_id": "EVAL-P-RX-UX-S3",
+      "requirement": "The system must isolate component styles to avoid unintended side effects on other MessageBubble elements.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

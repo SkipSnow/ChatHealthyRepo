@@ -1,0 +1,84 @@
+{
+  "assignment_id": "GPTR-F-002-STORIES",
+  "iteration": 2,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing operational and audit stories to complete lifecycle management.",
+  "change_log": [
+    {
+      "path": "stories.GPTR-F-002-S6",
+      "value": "Audit Logging for Token Lifecycle Events",
+      "note": "Add auditability for security compliance",
+      "iteration": 2
+    },
+    {
+      "path": "stories.GPTR-F-002-S7",
+      "value": "TTL Index Enforcement and Expiry Sweep",
+      "note": "Ensure expiration enforcement at DB level",
+      "iteration": 2
+    },
+    {
+      "path": "stories.GPTR-F-002-S8",
+      "value": "Backward Compatibility and Token Migration",
+      "note": "Support transition from existing tokens",
+      "iteration": 2
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S6",
+      "title": "Audit Logging for Token Lifecycle Events",
+      "description": "Implement structured audit logging for token issuance, rotation, revocation, and validation failures, including actor, timestamp, token hash reference, and action type.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S2",
+        "GPTR-F-002-S3",
+        "GPTR-F-002-S4"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader.py"
+    },
+    {
+      "story_id": "GPTR-F-002-S7",
+      "title": "TTL Index Enforcement and Expiry Sweep",
+      "description": "Configure MongoDB TTL indexes on token expiration fields and implement fallback expiry sweep logic to guarantee expired tokens are unusable even if TTL lag occurs.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S1",
+        "GPTR-F-002-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; GAP: TTL enforcement not explicitly implemented in current token handling"
+    },
+    {
+      "story_id": "GPTR-F-002-S8",
+      "title": "Backward Compatibility and Token Migration",
+      "description": "Introduce compatibility layer to validate legacy bearer tokens during rollout and provide migration path to new schema without service interruption.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S1",
+        "GPTR-F-002-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; GAP: No existing migration framework for token schema evolution"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

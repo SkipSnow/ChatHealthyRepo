@@ -1,0 +1,76 @@
+{
+  "assignment_id": "FEAT-2-STORIES",
+  "iteration": 18,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing schema/contract and core logic decomposition stories for FEAT-2.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-2-S50",
+      "value": "Add Pydantic schema for specialty input/output contract",
+      "note": "Covers schema/contract requirement gap",
+      "iteration": 18
+    },
+    {
+      "path": "stories.FEAT-2-S51",
+      "value": "Refactor specialty_service into explicit pipeline stages",
+      "note": "Clarifies core logic separation per dual-pipeline design",
+      "iteration": 18
+    },
+    {
+      "path": "stories.FEAT-2-S52",
+      "value": "Add NUCC code normalization and dedup module",
+      "note": "Ensures consistent output for downstream provider search",
+      "iteration": 18
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-2-S50",
+      "title": "Define Specialty Identification Schema and Contract",
+      "description": "Create Pydantic models defining input (user query, optional context) and output (NUCC codes, confidence, labels) for specialty identification, ensuring strict validation and compatibility with tool router and facade layers.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    {
+      "story_id": "FEAT-2-S51",
+      "title": "Decompose Specialty Identification Pipeline Logic",
+      "description": "Refactor specialty_service into explicit stages: regex extraction, vector similarity matching, AI query expansion, and aggregation, enabling clearer execution flow and maintainability aligned with ARCH-001 modular service design.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    {
+      "story_id": "FEAT-2-S52",
+      "title": "Implement NUCC Code Normalization and Deduplication",
+      "description": "Build a normalization layer to standardize NUCC codes, remove duplicates across regex/vector pipelines, and aggregate classifications into a consistent structure for downstream consumption.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S51"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

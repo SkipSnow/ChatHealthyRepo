@@ -1,0 +1,94 @@
+{
+  "assignment_id": "FEAT-2-STORIES",
+  "iteration": 26,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing schema/contract, integration tests, and data alignment stories for FEAT-2.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-2-S77",
+      "value": "Added schema/contract story for specialty identification I/O models",
+      "note": "Ensure strict contract for NUCC mapping",
+      "iteration": 26
+    },
+    {
+      "path": "stories.FEAT-2-S78",
+      "value": "Added NUCC data alignment and normalization story",
+      "note": "Guarantee consistency with taxonomy source",
+      "iteration": 26
+    },
+    {
+      "path": "stories.FEAT-2-S79",
+      "value": "Added integration tests across facade and provider search",
+      "note": "Validate end-to-end behavior",
+      "iteration": 26
+    },
+    {
+      "path": "stories.FEAT-2-S80",
+      "value": "Added error handling and fallback behavior story",
+      "note": "Handle no-match and ambiguity safely",
+      "iteration": 26
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-2-S77",
+      "title": "Define Specialty Identification Input/Output Schema",
+      "description": "Create and validate Pydantic models for specialty identification requests and responses, including normalized query input, NUCC code list output, confidence scores, and classification metadata.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    {
+      "story_id": "FEAT-2-S78",
+      "title": "Align Specialty Mapping with NUCC Taxonomy Data",
+      "description": "Ensure specialty_service outputs conform exactly to NUCC taxonomy codes and descriptions, including normalization, deduplication, and mapping consistency with loaded specialty dataset.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/load_specialty_data.py"
+    },
+    {
+      "story_id": "FEAT-2-S79",
+      "title": "End-to-End Integration Test: Specialty → Provider Search",
+      "description": "Implement integration tests validating that user input flows through specialty identification into provider_search_service, confirming correct NUCC filtering and fallback behavior.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S76"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    {
+      "story_id": "FEAT-2-S80",
+      "title": "Handle Ambiguous and No-Match Specialty Scenarios",
+      "description": "Implement logic for ambiguous inputs (multiple specialties) and no-match cases, including fallback strategies, confidence thresholds, and safe defaults for downstream provider search.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S72"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

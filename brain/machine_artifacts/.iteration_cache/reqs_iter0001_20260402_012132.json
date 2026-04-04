@@ -1,0 +1,165 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must validate that normalization converts all supported rating scales (e.g., 1-5, 1-10) into a consistent target scale with deterministic outputs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must verify that weighting logic correctly prioritizes more recent ratings over older ratings according to defined rules.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must verify that weighting logic increases confidence as the number of ratings increases.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must produce a consistent composite reputation score for identical input datasets across multiple test runs.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must validate end-to-end integration from ratings ingestion through normalization and aggregation to API response output.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must ensure the API response includes reputation score, source count, and last updated timestamp fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must handle sparse data by returning a valid fallback score or null value without runtime failure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must handle conflicting rating sources by applying normalization and aggregation rules without producing invalid scores.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must return a deterministic response structure even when no ratings data is available.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must ensure unit tests cover all normalization branches including minimum, maximum, and midpoint values.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must ensure integration tests simulate multiple external sources with differing scales and timestamps.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must ensure that invalid rating inputs (e.g., negative values, values exceeding scale) are rejected or sanitized without crashing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must ensure test coverage includes edge cases where only a single rating exists.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must ensure test coverage includes edge cases where multiple sources provide identical ratings.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must ensure LLM-generated explanations of ratings (if invoked) reflect the computed score without numerical inconsistency.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-016",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must ensure LLM outputs do not fabricate rating sources not present in the input dataset.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-017",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must ensure LLM explanations include mention of source count when such metadata is available.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-018",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must ensure LLM explanations degrade gracefully when ratings data is sparse or missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-019",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must ensure LLM explanations do not contradict normalized scores or weighting logic.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-020",
+      "story_id": "EVAL-P5-S4",
+      "requirement": "The system must ensure LLM outputs remain consistent across repeated runs given identical inputs and prompts.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

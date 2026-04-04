@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "CT-PROX-004-REQ-001",
+      "story_id": "CT-PROX-004",
+      "requirement": "The system must include unit tests that validate correct ingestion of distance_miles and duration_minutes from Google Routes responses.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "CT-PROX-004-REQ-002",
+      "story_id": "CT-PROX-004",
+      "requirement": "The system must verify via unit tests that proximity scores are computed using both distance and duration inputs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "CT-PROX-004-REQ-003",
+      "story_id": "CT-PROX-004",
+      "requirement": "The system must validate that normalized_score values are always bounded between 0 and 100 inclusive.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "CT-PROX-004-REQ-004",
+      "story_id": "CT-PROX-004",
+      "requirement": "The system must confirm via tests that normalization is consistent across multiple trials within the same result set.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "CT-PROX-004-REQ-005",
+      "story_id": "CT-PROX-004",
+      "requirement": "The system must include integration tests verifying that evaluate_care_facade returns proximity data in the clinical trial API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "CT-PROX-004-REQ-006",
+      "story_id": "CT-PROX-004",
+      "requirement": "The system must validate that API responses include distance_miles, duration_minutes, normalized_score, and metadata fields for each trial.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "CT-PROX-004-REQ-007",
+      "story_id": "CT-PROX-004",
+      "requirement": "The system must include a test case where distance_miles is zero and confirm the normalized_score reflects highest proximity.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "CT-PROX-004-REQ-008",
+      "story_id": "CT-PROX-004",
+      "requirement": "The system must include a test case for long-distance outliers and confirm scores are proportionally reduced without breaking normalization.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "CT-PROX-004-REQ-009",
+      "story_id": "CT-PROX-004",
+      "requirement": "The system must include an exception test where user location is missing and confirm the proximity score is not computed and is safely omitted or null.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "CT-PROX-004-REQ-010",
+      "story_id": "CT-PROX-004",
+      "requirement": "The system must include an exception test where Google Routes data is unavailable and confirm fallback behavior does not crash the service.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "CT-PROX-004-REQ-011",
+      "story_id": "CT-PROX-004",
+      "requirement": "The system must verify that proximity scoring logic produces deterministic outputs for identical inputs across test runs.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "CT-PROX-004-REQ-012",
+      "story_id": "CT-PROX-004",
+      "requirement": "The system must include tests ensuring that trials without proximity data are still returned in API responses without breaking schema validation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "CT-PROX-004-REQ-013",
+      "story_id": "CT-PROX-004",
+      "requirement": "The system must validate that metadata fields such as route_source and timestamp are present and correctly typed in test outputs.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "CT-PROX-004-REQ-014",
+      "story_id": "CT-PROX-004",
+      "requirement": "The system must ensure integration tests validate end-to-end flow from clinical_trials_service through evaluate_care_facade to API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "CT-PROX-004-REQ-015",
+      "story_id": "CT-PROX-004",
+      "requirement": "The system must include LLM-facing response validation ensuring proximity data is structured consistently for downstream explanation generation.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

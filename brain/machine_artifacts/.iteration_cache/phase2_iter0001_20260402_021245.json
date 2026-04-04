@@ -1,0 +1,64 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-F-003-S1",
+      "title": "External Link Schema and Contract Definition",
+      "description": "Define the response schema for external provider research links including fields for source (Healthgrades, NPI, state board), URL, validation_status, and guidance_text. Establish contract for downstream consumers.",
+      "parent_feature": "EVAL-F-003",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-003-S2",
+      "title": "Core Link Generation Logic",
+      "description": "Implement logic to construct external research URLs for Healthgrades, NPI Registry, and supported state medical boards using provider identifiers (e.g., NPI, state). Include guidance text generation per source.",
+      "parent_feature": "EVAL-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-F-003-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-003-S3",
+      "title": "URL Validation and Safety Integration",
+      "description": "Integrate URL Guardian to validate generated links (HEAD check, AI verification, correction) and ensure safe, reachable URLs before returning them.",
+      "parent_feature": "EVAL-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-F-003-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    },
+    {
+      "story_id": "EVAL-F-003-S4",
+      "title": "Facade/API Exposure for External Links",
+      "description": "Expose validated external research links through Evaluate Care facade for use in provider detail responses and chat outputs.",
+      "parent_feature": "EVAL-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-F-003-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-003-S5",
+      "title": "Unit and Integration Tests for Link Generation",
+      "description": "Create tests covering URL construction accuracy, validation outcomes, fallback behavior for unsupported states, and correct guidance text inclusion.",
+      "parent_feature": "EVAL-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-F-003-S2",
+        "EVAL-F-003-S3",
+        "EVAL-F-003-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py; Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  ]
+}

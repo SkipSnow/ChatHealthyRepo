@@ -1,0 +1,103 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 28,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing explainability stories for normalization, UI formatting, fallback handling, and facade-level aggregation.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F5-S98",
+      "value": "Explainability Signal Normalization Layer",
+      "note": "Adds core logic to standardize signals across providers and trials",
+      "iteration": 28
+    },
+    {
+      "path": "stories.EVAL-F5-S99",
+      "value": "Explainability Fallback and Missing Data Handling",
+      "note": "Ensures robustness when signals are incomplete",
+      "iteration": 28
+    },
+    {
+      "path": "stories.EVAL-F5-S100",
+      "value": "Frontend Rendering Contract for Explainability",
+      "note": "Defines UI-safe formatting for explainability output",
+      "iteration": 28
+    },
+    {
+      "path": "stories.EVAL-F5-S101",
+      "value": "Explainability Aggregation Across Multiple Signals",
+      "note": "Combines multiple evaluation signals into coherent explanations",
+      "iteration": 28
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F5-S98",
+      "title": "Explainability Signal Normalization Layer",
+      "description": "Implement a normalization layer that converts raw provider (credentials, links) and clinical trial signals into a consistent explainability structure with fields for source, meaning, and limitations.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3",
+        "EVAL-F5-S91"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F5-S99",
+      "title": "Explainability Fallback and Missing Data Handling",
+      "description": "Define and implement fallback logic when explainability inputs are missing or partial, ensuring the system still produces safe, transparent explanations with explicit limitations.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S98"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-F5-S100",
+      "title": "Frontend Rendering Contract for Explainability",
+      "description": "Define and enforce a frontend-safe rendering format for explainability content so that MessageBubble displays source, meaning, and limitations clearly without breaking markdown or chat UX.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S95",
+        "EVAL-F5-S96"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    {
+      "story_id": "EVAL-F5-S101",
+      "title": "Explainability Aggregation Across Multiple Signals",
+      "description": "Implement logic in the evaluation facade to aggregate multiple explainability entries (e.g., credentials + external links + trial data) into a coherent, non-redundant explanation set for end users.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S94",
+        "EVAL-F5-S98"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

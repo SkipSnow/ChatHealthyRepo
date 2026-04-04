@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-001",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must return a clinical trial search response from the facade layer that includes a 'phase' field for each trial.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-002",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must return a 'phase_score' field for each clinical trial in the facade response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-003",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must ensure the 'phase_score' value in the response matches the deterministic mapping defined in the phase scoring logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-004",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must propagate both 'phase' and 'phase_score' fields through the evaluate_care_facade without omission.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-005",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must return a list of trials where every item includes both 'phase' and 'phase_score' fields when valid phase data exists.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-006",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must preserve the original phase value (e.g., I, II, III, IV) exactly as received from the upstream service in the response.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-007",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must ensure the 'phase_score' field is a numeric value within the normalized range defined by the schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-008",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must successfully return a response with 'phase' and 'phase_score' fields when invoked through the full facade API endpoint under normal conditions.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-009",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must include 'phase_score' for all trials where 'phase' is one of the supported values (I, II, III, IV).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-010",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must return a null or default 'phase_score' value when the 'phase' field is missing or marked as N/A.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-011",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must not throw an error when a clinical trial has an unexpected or unsupported phase value and must still return a valid response.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-TEST-002-REQ-012",
+      "story_id": "EVAL-CT-PHASE-TEST-002",
+      "requirement": "The system must ensure the API response structure remains valid and parseable JSON when 'phase' or 'phase_score' fields are absent or null.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

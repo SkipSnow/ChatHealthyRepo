@@ -1,0 +1,28 @@
+{
+  "stories": {
+    "SHARED-F-2-S85": {
+      "story_id": "SHARED-F-2-S85",
+      "title": "Consent API and Tool Router Integration",
+      "description": "Expose consent framework via backend APIs and integrate with tool_router to enforce consent checks before any tool execution that may store or process PHI. Ensure standardized consent status responses and error handling for non-compliant requests.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S83"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "SHARED-F-2-S86": {
+      "story_id": "SHARED-F-2-S86",
+      "title": "Cross-Service Consent Integration (Lead Capture and Unknowns)",
+      "description": "Integrate consent framework with lead_capture and unknown_question services to enforce Tier 2 consent before storing identifiable user data and ensure de-identified handling when consent is not granted.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S83"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    }
+  }
+}

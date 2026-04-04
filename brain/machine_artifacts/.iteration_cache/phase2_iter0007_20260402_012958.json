@@ -1,0 +1,112 @@
+{
+  "assignment_id": "PHASE-2-MAINT-MAPS-STORIES",
+  "iteration": 7,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "MAINT-MAPS stories defined (schema, logic, UI, integration, tests).",
+  "change_log": [
+    {
+      "path": "stories.MAINT-MAPS-S1",
+      "value": "Added schema/contract story for map provider data",
+      "note": "Phase 2 story creation",
+      "iteration": 7
+    },
+    {
+      "path": "stories.MAINT-MAPS-S2",
+      "value": "Added core logic for provider-to-map transformation",
+      "note": "Phase 2 story creation",
+      "iteration": 7
+    },
+    {
+      "path": "stories.MAINT-MAPS-S3",
+      "value": "Added UI rendering story for interactive map",
+      "note": "Phase 2 story creation",
+      "iteration": 7
+    },
+    {
+      "path": "stories.MAINT-MAPS-S4",
+      "value": "Added integration with provider search results",
+      "note": "Phase 2 story creation",
+      "iteration": 7
+    },
+    {
+      "path": "stories.MAINT-MAPS-S5",
+      "value": "Added test suite for map functionality",
+      "note": "Phase 2 story creation",
+      "iteration": 7
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "MAINT-MAPS-S1": {
+      "story_id": "MAINT-MAPS-S1",
+      "title": "Define Map Provider Data Schema and Contract",
+      "description": "Define the frontend contract for rendering providers on a map including latitude, longitude, provider name, specialty, and identifier. Ensure compatibility with existing provider search outputs.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Website/architecture.html"
+    },
+    "MAINT-MAPS-S2": {
+      "story_id": "MAINT-MAPS-S2",
+      "title": "Implement Provider-to-Map Transformation Logic",
+      "description": "Transform provider search results into map-ready marker objects including coordinate validation, deduplication, and fallback handling for missing geo data.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    "MAINT-MAPS-S3": {
+      "story_id": "MAINT-MAPS-S3",
+      "title": "Render Interactive Map with Provider Markers",
+      "description": "Implement frontend map component to display provider markers, support zoom/pan, and show provider summary on marker click.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Website/architecture.html"
+    },
+    "MAINT-MAPS-S4": {
+      "story_id": "MAINT-MAPS-S4",
+      "title": "Integrate Map with Provider Search Results",
+      "description": "Bind map rendering to provider search results so that map updates dynamically based on user queries and search filters.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S2",
+        "MAINT-MAPS-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx"
+    },
+    "MAINT-MAPS-S5": {
+      "story_id": "MAINT-MAPS-S5",
+      "title": "Map Rendering and Interaction Test Suite",
+      "description": "Create unit and integration tests validating marker rendering, coordinate handling, user interaction (click/zoom), and synchronization with provider results.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S3",
+        "MAINT-MAPS-S4"
+      ],
+      "size": "S",
+      "evidence": "Website/tests/test_website.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

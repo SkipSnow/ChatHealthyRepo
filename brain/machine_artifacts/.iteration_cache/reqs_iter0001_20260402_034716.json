@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+      "requirement": "The system must define a typed UI schema object for malpractice display including fields: status, case_count, last_incident_date, state_board_url, and score_contribution.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+      "requirement": "The system must restrict the status field to only three allowed enum values: clean, flagged, or unknown.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+      "requirement": "The system must allow case_count to be nullable or omitted without causing schema validation failure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+      "requirement": "The system must allow last_incident_date to be nullable or omitted without causing schema validation failure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+      "requirement": "The system must require state_board_url to be a valid absolute URL string when present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+      "requirement": "The system must represent score_contribution as a numeric value or formatted string compatible with existing score display conventions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+      "requirement": "The system must ensure the schema is serializable into markdown-safe text without introducing unsafe characters or breaking rendering in MessageBubble.tsx.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+      "requirement": "The system must ensure all string fields in the schema are escaped or sanitized to prevent markdown injection or rendering corruption.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+      "requirement": "The system must define the schema in a format directly consumable by MessageBubble.tsx without requiring transformation outside the component.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+      "requirement": "The system must ensure that missing optional fields do not prevent rendering of the malpractice section in the UI.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+      "requirement": "The system must default status to unknown when no malpractice data is provided from the backend.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+      "requirement": "The system must reject schema objects containing fields outside the defined contract.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+      "requirement": "The system must handle invalid state_board_url values by omitting the link from the rendered output rather than failing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+      "requirement": "The system must handle improperly formatted last_incident_date values by treating them as null and continuing rendering.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-015",
+      "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+      "requirement": "The system must ensure the schema structure is consistent across all provider responses to enable deterministic UI rendering.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

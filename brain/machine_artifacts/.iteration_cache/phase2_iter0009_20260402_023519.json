@@ -1,0 +1,74 @@
+{
+  "assignment_id": "GOV-F-004-STORIES",
+  "iteration": 9,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing coverage for ingestion hooks, integration with existing logging/safety systems, and test validation for append-only guarantees.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GOV-F-004-S30": {
+      "story_id": "GOV-F-004-S30",
+      "title": "Audit Logging Ingestion Hooks (GPT/Claude Operations)",
+      "description": "Instrument core system entry points (tool_router, safety_service, GPT/Claude orchestration loop, GPT Reader) to emit audit events conforming to schema. Ensure all model decisions, tool invocations, and safety triggers are captured.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S27",
+        "GOV-F-004-S28"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S31": {
+      "story_id": "GOV-F-004-S31",
+      "title": "Integration with Existing Debug Logger",
+      "description": "Integrate append-only audit logging with existing debug_logger to avoid duplication while ensuring audit logs remain independent and immutable. Route critical events (errors, token usage, metadata) into audit pipeline with hash chaining.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S28"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S32": {
+      "story_id": "GOV-F-004-S32",
+      "title": "Append-Only Enforcement and Tamper Detection Tests",
+      "description": "Develop unit and integration tests validating that audit records cannot be updated or deleted, and that hash-chain integrity detects tampering or gaps. Include negative tests simulating mutation attempts.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S28"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py; Code/DataPipelines/tests/test_gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S33": {
+      "story_id": "GOV-F-004-S33",
+      "title": "Cross-System Audit Consistency Integration",
+      "description": "Ensure consistent audit logging across Chat backend, Data Pipelines, and Brain operations by standardizing event structure and verifying propagation across systems. Validate compatibility with Brain runner and SIT logging.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S30",
+        "GOV-F-004-S29"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/DataPipelines/tests/gpt_sit_runner.py; Code/Shared/machine_brain.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

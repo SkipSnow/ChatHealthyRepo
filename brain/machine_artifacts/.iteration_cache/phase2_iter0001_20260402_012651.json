@@ -1,0 +1,94 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 1,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories cover schema, logic, API/UI exposure, integration, and testing for explainability layer.",
+  "change_log": [],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F5-S1": {
+      "story_id": "EVAL-F5-S1",
+      "title": "Explainability Schema and Contract Definition",
+      "description": "Define a standardized schema for evaluation explainability including fields: signal_type, source, meaning, limitations, confidence, and supporting_links. Ensure compatibility with provider (EVAL-F1, F2) and clinical trial (EVAL-F3) outputs.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F5-S2": {
+      "story_id": "EVAL-F5-S2",
+      "title": "Explainability Core Logic Builder",
+      "description": "Implement backend logic to transform raw evaluation signals (credentials, links, trial data) into explainable artifacts using the defined schema, including human-readable summaries and limitations.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S1",
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-F5-S3": {
+      "story_id": "EVAL-F5-S3",
+      "title": "Facade Integration for Explainability Output",
+      "description": "Integrate explainability layer into evaluate_care_facade so that all evaluation responses include structured explanations alongside raw signals.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F5-S4": {
+      "story_id": "EVAL-F5-S4",
+      "title": "Frontend Rendering of Explainability Content",
+      "description": "Update chat UI message rendering to display explainability fields (source, meaning, limitations) in a clear, user-friendly format within MessageBubble.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    "EVAL-F5-S5": {
+      "story_id": "EVAL-F5-S5",
+      "title": "Explainability Test Coverage and Validation",
+      "description": "Create unit and integration tests to validate explainability schema compliance, correctness of generated explanations, and presence in API responses.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S2",
+        "EVAL-F5-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "EVAL-F5": {
+        "feature_id": "EVAL-F5",
+        "likelihood": "Moderate",
+        "impact": "High",
+        "mitigation": "Standardize schema early (S1) and enforce via tests (S5) to prevent inconsistent explanations."
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-F-03-S9",
+      "title": "Facade Input Schema Alignment with Tool Models",
+      "description": "Align EvaluateCare facade method signatures with Pydantic tool models for clinical trials and provider detail inputs, ensuring strict validation and compatibility with tool_router dispatch.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-03-S10",
+      "title": "Facade Integration with Tool Router",
+      "description": "Register EvaluateCare facade operations in tool_router with allowlisted tool definitions, ensuring correct routing, input validation, and response handling within the agentic loop.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S9"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-03-S11",
+      "title": "Facade Wiring into FastAPI Entry Point",
+      "description": "Wire EvaluateCare facade into main.py service container and ensure availability within the chat execution loop, including dependency injection and lifecycle management.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S10"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-03-S12",
+      "title": "Facade Unit and Integration Tests",
+      "description": "Create unit tests for facade orchestration logic and integration tests covering end-to-end flows (tool_router → facade → domain services), including success, validation failure, and downstream service failure scenarios.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S10",
+        "EVAL-F-03-S11"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  ]
+}

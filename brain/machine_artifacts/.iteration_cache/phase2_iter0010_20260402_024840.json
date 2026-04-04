@@ -1,0 +1,96 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-003",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Adjusted existing stories to explicitly cover API/contract surface without creating duplicates.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-003-S4.title",
+      "value": "Lock Lifecycle Integration and Internal API Surface",
+      "note": "Expanded to include API/contract responsibilities",
+      "iteration": 10
+    },
+    {
+      "path": "stories.BL-0.1.4-003-S4.description",
+      "value": "Integrate lock acquisition, TTL checks, and recovery logic into the Brain runner execution loop and expose internal lock management interfaces (acquire, renew, release, force-unlock) for controlled orchestration.",
+      "note": "Adds API/contract scope without new story",
+      "iteration": 10
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-003-S1",
+      "title": "Lock Schema with TTL and Ownership Metadata",
+      "description": "Define the Brain lock data model including lock_id, owner_id, acquired_at, ttl_seconds, and status fields to support expiration and recovery logic.",
+      "parent_feature": "BL-0.1.4-003",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/Shared/brain_loop.py"
+    },
+    {
+      "story_id": "BL-0.1.4-003-S2",
+      "title": "TTL Enforcement and Expiration Logic",
+      "description": "Implement core logic to evaluate lock age against TTL and automatically mark locks as expired when ttl_seconds is exceeded.",
+      "parent_feature": "BL-0.1.4-003",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-003-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_loop.py"
+    },
+    {
+      "story_id": "BL-0.1.4-003-S3",
+      "title": "Deadlock Detection and Recovery Execution",
+      "description": "Implement detection of stuck execution states and enable forced lock release and safe reacquisition to recover Brain loop processing.",
+      "parent_feature": "BL-0.1.4-003",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-003-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_loop.py"
+    },
+    {
+      "story_id": "BL-0.1.4-003-S4",
+      "title": "Lock Lifecycle Integration and Internal API Surface",
+      "description": "Integrate lock acquisition, TTL checks, and recovery logic into the Brain runner execution loop and expose internal lock management interfaces (acquire, renew, release, force-unlock) for controlled orchestration.",
+      "parent_feature": "BL-0.1.4-003",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-003-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py"
+    },
+    {
+      "story_id": "BL-0.1.4-003-S5",
+      "title": "Unit and Integration Tests for Lock TTL and Recovery",
+      "description": "Create test suite covering lock expiration, concurrent acquisition attempts, deadlock scenarios, and recovery behavior.",
+      "parent_feature": "BL-0.1.4-003",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-003-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_loop.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

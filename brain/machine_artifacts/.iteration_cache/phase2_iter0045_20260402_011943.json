@@ -1,0 +1,53 @@
+{
+  "stories": {
+    "SHARED-F-1-S170": {
+      "story_id": "SHARED-F-1-S170",
+      "title": "Tool Schema Contract Standardization and Versioning",
+      "description": "Define and enforce a standardized contract for all tool schemas using Pydantic models, including version tagging and strict field validation to ensure compatibility with the tool router.",
+      "parent_feature": "SHARED-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-F-1-S160"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    "SHARED-F-1-S171": {
+      "story_id": "SHARED-F-1-S171",
+      "title": "Allowlist Registry Configuration and Loading Mechanism",
+      "description": "Implement a centralized allowlist registry for all permitted tools, including initialization and runtime loading within the tool router to prevent unauthorized tool execution.",
+      "parent_feature": "SHARED-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-F-1-S160"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "SHARED-F-1-S172": {
+      "story_id": "SHARED-F-1-S172",
+      "title": "Prompt System Integration for Tool Exposure",
+      "description": "Integrate the allowlisted tool definitions with the prompt system maker to ensure only approved tools are exposed to the LLM during tool-use initialization.",
+      "parent_feature": "SHARED-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-F-1-S171"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/prompt_system_maker.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "SHARED-F-1-S173": {
+      "story_id": "SHARED-F-1-S173",
+      "title": "Unit Tests for Schema Validation and Allowlist Enforcement",
+      "description": "Develop unit tests covering valid and invalid tool inputs, schema violations, and allowlist rejection scenarios to ensure strict enforcement behavior.",
+      "parent_feature": "SHARED-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "SHARED-F-1-S170",
+        "SHARED-F-1-S171"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "assignment_id": "PHASE 2: SHARED-F-2 Stories",
+  "iteration": 39,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing core logic and API integration stories to meet minimum and complete feature coverage.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-2-S117",
+      "value": "Core consent enforcement logic",
+      "note": "Add missing core logic layer story",
+      "iteration": 39
+    },
+    {
+      "path": "stories.SHARED-F-2-S118",
+      "value": "Consent API and service integration",
+      "note": "Add API/integration story",
+      "iteration": 39
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "SHARED-F-2-S117",
+      "title": "Consent Tier Enforcement Logic",
+      "description": "Implement core business logic in ConsentService to enforce two-tier consent rules, including routing of data to de-identified vs identifiable storage paths, validation of consent state transitions, and invocation of HIPAA Safe Harbor de-identification where required.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S115"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; architecture/refactor_design_arch001"
+    },
+    {
+      "story_id": "SHARED-F-2-S118",
+      "title": "Consent API & Cross-Service Integration",
+      "description": "Expose consent framework through application layer and integrate with dependent services (lead_capture, unknown_question_service, debug_logger) to ensure all persisted data flows respect consent tier decisions.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S117"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; architecture/refactor_design_arch001"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-P-M1-S5",
+      "title": "Handle Missing, Ambiguous, and Non-Standard Credential Data",
+      "description": "Implement explicit handling for edge cases in NPI credential data including missing credentials, ambiguous abbreviations, and non-standard free-text entries. Add flags for unverifiable certifications and ensure downstream consumers receive clear status indicators (e.g., verified, unverified, unknown).",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-M1-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    }
+  ]
+}

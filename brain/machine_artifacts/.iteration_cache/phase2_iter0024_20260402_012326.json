@@ -1,0 +1,65 @@
+{
+  "assignment_id": "SHARED-F-2-STORIES",
+  "iteration": 24,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing core logic and test coverage stories for Consent Framework.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-2-S73",
+      "value": "Consent tier evaluation and state machine logic",
+      "note": "Core logic gap",
+      "iteration": 24
+    },
+    {
+      "path": "stories.SHARED-F-2-S74",
+      "value": "Consent framework unit and integration tests",
+      "note": "Test coverage gap",
+      "iteration": 24
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "SHARED-F-2-S73": {
+      "story_id": "SHARED-F-2-S73",
+      "title": "Consent Tier Evaluation and State Machine Logic",
+      "description": "Implement core consent logic including Tier 1 vs Tier 2 evaluation, state transitions (not asked → partial → full consent), and enforcement hooks used by downstream services to determine allowable data storage and processing.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S70"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "SHARED-F-2-S74": {
+      "story_id": "SHARED-F-2-S74",
+      "title": "Consent Framework Unit and Integration Tests",
+      "description": "Create comprehensive test suite validating consent schema, tier transitions, API behavior, and enforcement across integrated services including lead capture and unknown question flows.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S70",
+        "SHARED-F-2-S71",
+        "SHARED-F-2-S72",
+        "SHARED-F-2-S73"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

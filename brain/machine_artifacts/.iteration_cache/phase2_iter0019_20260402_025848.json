@@ -1,0 +1,35 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-006",
+  "iteration": 19,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories validated. Minor refinements applied to clarify enforcement boundaries and avoid implicit scope expansion.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-006-S2.description",
+      "value": "Clarified that SHA-256 comparison uses manifest_generator output only (no independent filesystem crawler) and must reuse existing hashing logic.",
+      "note": "Prevent scope expansion and duplication of hashing logic",
+      "iteration": 19
+    },
+    {
+      "path": "stories.BL-0.1.4-006-S3.description",
+      "value": "Explicitly constrained to internal service only (no HTTP/FastAPI exposure) and callable within existing process boundaries.",
+      "note": "Avoid accidental API surface expansion",
+      "iteration": 19
+    },
+    {
+      "path": "stories.BL-0.1.4-006-S4.description",
+      "value": "Added constraint that regeneration must invoke existing manifest generation step from dev_pipeline without introducing new orchestration flows.",
+      "note": "Ensure reuse of existing pipeline hooks",
+      "iteration": 19
+    },
+    {
+      "path": "stories.BL-0.1.4-006-S5.description",
+      "value": "Expanded to include validation of no-op behavior when manifest is fresh and enforcement does not trigger regeneration.",
+      "note": "Close test coverage gap for fresh-path behavior",
+      "iteration": 19
+    }
+  ]
+}

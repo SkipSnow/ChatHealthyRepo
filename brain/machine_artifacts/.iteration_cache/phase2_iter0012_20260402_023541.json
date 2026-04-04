@@ -1,0 +1,51 @@
+{
+  "stories": {
+    "GOV-F-004-S40": {
+      "story_id": "GOV-F-004-S40",
+      "title": "Audit Log Storage Schema and Append-Only Contract",
+      "description": "Define and implement the MongoDB collection schema for audit logs including immutable fields, hash chaining fields (prev_hash, current_hash), timestamps, actor (GPT/Claude), operation type, and payload metadata. Enforce append-only behavior at the data access layer (no updates/deletes).",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; Code/DataPipelines/gpt_reader.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S41": {
+      "story_id": "GOV-F-004-S41",
+      "title": "Audit Logging Service Core Logic",
+      "description": "Build a centralized audit logging service responsible for generating audit events, computing hash chains, and persisting records using the append-only schema. Ensure consistent usage across GPT and Claude operations and support structured event types.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S40"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/Shared/ChatHealthyMongoUtilities.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S42": {
+      "story_id": "GOV-F-004-S42",
+      "title": "Audit Log Access API (Read-Only)",
+      "description": "Expose secure, read-only API endpoints for retrieving audit logs for QA, SIT, and governance review. Include filtering by time range, operation type, and actor, while enforcing strict no-mutation guarantees.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S41"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/main.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S43": {
+      "story_id": "GOV-F-004-S43",
+      "title": "Audit Logging Test Suite (Unit + Integration)",
+      "description": "Create unit and integration tests validating append-only enforcement, hash chain correctness, event completeness, and integration with runtime hooks. Include tamper simulation scenarios to verify detection.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S41",
+        "GOV-F-004-S39"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    }
+  }
+}

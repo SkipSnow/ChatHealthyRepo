@@ -1,0 +1,36 @@
+{
+  "assignment_id": "PHASE-2-MAINT-DIST",
+  "iteration": 9,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing API exposure story to complete schema→logic→integration→tests→API coverage.",
+  "change_log": [
+    {
+      "path": "stories.MAINT-DIST-S5",
+      "value": "Add API/facade exposure for distance calculation",
+      "note": "Complete feature coverage with API layer",
+      "iteration": 9
+    }
+  ],
+  "stories": {
+    "MAINT-DIST-S5": {
+      "story_id": "MAINT-DIST-S5",
+      "title": "Expose Distance Calculation via Internal API/Facade",
+      "description": "Expose distance computation through application layer (facade or tool) so other services and chat flows can request distance consistently. Ensure alignment with existing tool_router patterns and response formats.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S1",
+        "MAINT-DIST-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  },
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

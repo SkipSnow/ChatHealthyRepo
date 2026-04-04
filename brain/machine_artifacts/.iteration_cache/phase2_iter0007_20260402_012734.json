@@ -1,0 +1,78 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 7,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema/contract and test coverage stories for explainability layer.",
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F5-S22",
+      "title": "Explainability Schema Definition (Contract)",
+      "description": "Define a standardized explainability schema (fields: source, meaning, limitations) using Pydantic models to enforce consistency across all evaluation signals returned by evaluate_care_facade.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F5-S23",
+      "title": "Explainability Injection into Facade Responses",
+      "description": "Integrate explainability schema into evaluate_care_facade outputs so all provider and clinical trial responses include structured explanation metadata alongside raw signals.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S18",
+        "EVAL-F5-S22"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F5-S24",
+      "title": "Unit Tests for Explainability Logic",
+      "description": "Create unit tests validating that explainability fields (source, meaning, limitations) are correctly populated, normalized, and resilient to missing upstream data across provider and clinical trial signals.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S18",
+        "EVAL-F5-S20"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    },
+    {
+      "story_id": "EVAL-F5-S25",
+      "title": "End-to-End Validation of Explainability in Chat Responses",
+      "description": "Validate that explainability metadata flows from backend services through tool_router into frontend chat responses without loss, formatting issues, or rendering errors.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S19",
+        "EVAL-F5-S21",
+        "EVAL-F5-S23"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}
