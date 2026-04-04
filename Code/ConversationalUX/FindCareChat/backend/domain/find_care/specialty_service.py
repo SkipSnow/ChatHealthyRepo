@@ -94,7 +94,9 @@ class SpecialtyService:
                 }},
                 {"$project": {"_id": 0, "Classification": 1, "score": {"$meta": "vectorSearchScore"}}},
             ]))
-            classifications = list({m["Classification"] for m in top if m.get("score", 0) > 0.4})
+            _log.info("vector scores: %s", [(m.get("Classification"), round(m.get("score", 0), 3)) for m in top])
+            # BUG-VECTOR-001: tighter threshold (0.6) and max 3 classifications
+            classifications = list({m["Classification"] for m in top if m.get("score", 0) > 0.6})[:3]
             codes = list(specialty_col.find(
                 {"$and": [{"Classification": {"$in": classifications}}, individual_filter]}, projection
             )) if classifications else []
