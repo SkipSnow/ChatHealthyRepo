@@ -15812,6 +15812,27 @@
       ]
     },
     {
+      "feature_id": "DEVOPS-GPT-CLAUDE-COMMS",
+      "name": "GPT-Claude Communications",
+      "epic_id": "EPIC-5",
+      "layer": "devops",
+      "capability": "SDLC",
+      "description": "How GPT and Claude communicate during assignments. GPT reads code and brain content via GPTReader API. Claude prepares assignments with system and user prompts stored in brain. Results stored in brain.",
+      "priority": "HIGH",
+      "status": "accepted",
+      "accepted_by": "Boss",
+      "stories": [
+        {"story_id": "DEVOPS-COMMS-001", "title": "GPT reads code via GPTReader API, not bundled in prompt", "size": "M", "status": "accepted", "requirements": [
+          {"req_id": "DEVOPS-COMMS-001-REQ-001", "requirement": "GPT code reviews must use GPTReader API to read files from disk. Code must not be bundled into the prompt. The source of record is always the disk.", "priority": "must-have", "status": "accepted"},
+          {"req_id": "DEVOPS-COMMS-001-REQ-002", "requirement": "System prompts for GPT assignments must be stored in brain JSON as reusable records.", "priority": "must-have", "status": "accepted"},
+          {"req_id": "DEVOPS-COMMS-001-REQ-003", "requirement": "User prompts for GPT assignments must be stored in brain JSON with a reference to the system prompt.", "priority": "must-have", "status": "accepted"},
+          {"req_id": "DEVOPS-COMMS-001-REQ-004", "requirement": "GPT assignment results must be stored in brain JSON for audit and review.", "priority": "must-have", "status": "accepted"}
+        ]}
+      ]
+    }
+  ]
+},
+{
       "epic_id": "EPIC-4",
       "name": "Security",
       "capacity": "",
