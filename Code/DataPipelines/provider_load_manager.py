@@ -577,17 +577,19 @@ def create_vector_index_fn(config: dict) -> dict:
 def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
     """Top-level orchestrator: health check → load → enrichment → embeddings.
 
-    start_step (1–7): skip all steps before this number. Default 1 (full run).
-    Pass start_step in the payload to resume after a partial failure.
+    start_step (2–8): skip optional steps before this number. Default 2 (full run).
+    Steps 0 and 1 are MANDATORY and always run.
 
     Steps:
-      1 — MongoDB health check
+      0 — Reserve cluster, wake DB (MANDATORY — always runs)
+      1 — MongoDB health check (MANDATORY — always runs)
       2 — Download + extract + load provider records
       3 — County enrichment Pass 1: ZIP crosswalk (bulk updateMany per ZIP)
       4 — County enrichment Pass 2: Census Geocoder, practice address
       5 — County enrichment Pass 3: Census Geocoder, billing address
       6 — County enrichment Pass 4: Google Maps, final fallback (google_maps_enabled=True)
-      7 — Generate embeddings + create Atlas Vector Search index (embedding_enabled=True)
+      7 — County enrichment Pass 6: NPPES registry lookup
+      8 — Generate embeddings + create Atlas Vector Search index (embedding_enabled=True)
     """
     from county_enrichment_job import _build_enrichment_reconcile
 
@@ -637,11 +639,10 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     step_statuses = []
 
     try:
-        # Step 1: MongoDB health check
-        if start_step <= 1:
-            context.set_custom_status("Step 1/7: Checking MongoDB health")
-            yield context.call_activity("check_mongo_health_activity", config)
-            step_statuses.append({"step": 1, "name": "health_check", "status": "completed_success"})
+        # Step 1: MongoDB health check — MANDATORY, always runs regardless of start_step
+        context.set_custom_status("Step 1/7: Checking MongoDB health")
+        yield context.call_activity("check_mongo_health_activity", config)
+        step_statuses.append({"step": 1, "name": "health_check", "status": "completed_success"})
 
         # Step 2: Load provider data
         if start_step <= 2:
