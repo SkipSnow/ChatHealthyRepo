@@ -15578,7 +15578,7 @@
                 {
                   "req_id": "PIPE-LC-003-REQ-003",
                   "story_id": "PIPE-LC-003",
-                  "requirement": "If incremental is true, existing records are updated in-place per ENH-PIPE-001.",
+                  "requirement": "If incremental is true, the providers collection must not be dropped. The load step must use the incremental code path instead of insert.",
                   "source": "Boss directive",
                   "priority": "must-have",
                   "status": "accepted",
