@@ -623,104 +623,109 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         next_check = context.current_utc_datetime + datetime.timedelta(seconds=30)
         yield context.create_timer(next_check)
 
-    # Step 1: MongoDB health check
-    if start_step <= 1:
-        context.set_custom_status("Step 1/7: Checking MongoDB health")
-        yield context.call_activity("check_mongo_health_activity", config)
-
-    # Step 2: Load provider data
+    # BUG-PIPE-002: all steps wrapped so reservation is released on any failure
     load_result = {"status": "skipped"}
-    if start_step <= 2:
-        context.set_custom_status("Step 2/7: Loading provider data")
-        load_config = {
-            "num_workers": config.get("num_workers", 32),
-            "batch_size": config.get("batch_size", 5000),
-            "blob_container": config.get("blob_container", "provider-data"),
-        }
-        load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
-
-    # Step 3: County enrichment — Pass 1: ZIP crosswalk
-    pass1_result = None
-    if start_step <= 3:
-        context.set_custom_status("Step 3/7: County enrichment — Pass 1: ZIP crosswalk")
-        pass1_result = yield context.call_sub_orchestrator(
-            "county_enrichment_pass1_orchestrator", enrich_config
-        )
-
-    # Step 4: County enrichment — Pass 2: Census Geocoder, practice address
-    pass2_result = None
-    if start_step <= 4:
-        context.set_custom_status("Step 4/7: County enrichment — Pass 2: Census Geocoder, practice address")
-        pass2_result = yield context.call_sub_orchestrator(
-            "county_enrichment_pass2_orchestrator", enrich_config
-        )
-
-    # Step 5: County enrichment — Pass 3: Census Geocoder, billing address
-    pass3_result = None
-    if start_step <= 5:
-        context.set_custom_status("Step 5/7: County enrichment — Pass 3: Census Geocoder, billing address")
-        pass3_result = yield context.call_sub_orchestrator(
-            "county_enrichment_pass3_orchestrator", enrich_config
-        )
-
-    # Step 6: County enrichment — Pass 4: Google Maps, final fallback
-    # google_maps_enabled must be explicitly True — Maps API is paid beyond the free tier.
-    pass4_result = None
-    if start_step <= 6 and config.get("google_maps_enabled", False):
-        context.set_custom_status("Step 6/8: County enrichment — Pass 4: Google Maps, final fallback")
-        pass4_result = yield context.call_sub_orchestrator(
-            "county_enrichment_pass4_orchestrator", enrich_config
-        )
-
-    # Step 7: County enrichment — Pass 6: NPPES public registry lookup
-    # Free API, no key required. ~5 req/s rate limit per IP.
-    # Use states_filter in payload to limit scope (e.g. for test runs).
-    pass6_result = None
-    if start_step <= 7:
-        context.set_custom_status("Step 7/8: County enrichment — Pass 6: NPPES registry lookup")
-        pass6_result = yield context.call_sub_orchestrator(
-            "county_enrichment_pass6_nppes_orchestrator", enrich_config
-        )
-
-    # Enrichment reconcile report — runs after all passes
+    pass1_result = pass2_result = pass3_result = pass4_result = pass6_result = None
     reconcile = None
-    if pass1_result is not None or pass2_result is not None or pass3_result is not None or pass6_result is not None:
-        reconcile = _build_enrichment_reconcile(
-            pass1_result or {}, pass2_result or {}, pass3_result or {},
-            pass4_result or {}, pass6_result or {},
-        )
-        yield context.call_activity(
-            "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
-        )
-
-    # Step 8: Generate embeddings + create Atlas Vector Search index
-    # embedding_enabled must be explicitly True — default is False (embeddings are expensive
-    # and require OpenAI; skip unless intentionally requested).
     embed_results = []
-    if start_step <= 8 and config.get("embedding_enabled", False):
-        num_workers = config.get("num_workers", 32)
-        staging_collection = config.get("staging_collection", "dev_PublicHealthData.providers")
-        context.set_custom_status(f"Step 8/8: Generating embeddings ({num_workers} workers)")
-        embed_tasks = [
-            context.call_activity(
-                "embed_worker_activity",
-                {
-                    "worker_id": i + 1,
-                    "staging_collection": staging_collection,
-                    "states": config.get("states"),
-                    "embed_model": config.get("embed_model", "text-embedding-3-large"),
-                    "embed_batch_size": config.get("embed_batch_size", 100),
-                    "embed_initial_jitter": config.get("embed_initial_jitter", 5.0),
-                },
-            )
-            for i in range(num_workers)
-        ]
-        embed_results = yield context.task_all(embed_tasks)
+    pipeline_error = None
 
-        context.set_custom_status(f"Step 8/8: Creating vector search index")
-        yield context.call_activity(
-            "create_vector_index_activity", {"staging_collection": staging_collection}
-        )
+    try:
+        # Step 1: MongoDB health check
+        if start_step <= 1:
+            context.set_custom_status("Step 1/7: Checking MongoDB health")
+            yield context.call_activity("check_mongo_health_activity", config)
+
+        # Step 2: Load provider data
+        if start_step <= 2:
+            context.set_custom_status("Step 2/7: Loading provider data")
+            load_config = {
+                "num_workers": config.get("num_workers", 32),
+                "batch_size": config.get("batch_size", 5000),
+                "blob_container": config.get("blob_container", "provider-data"),
+            }
+            load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
+
+        # Step 3: County enrichment — Pass 1: ZIP crosswalk
+        if start_step <= 3:
+            context.set_custom_status("Step 3/7: County enrichment — Pass 1: ZIP crosswalk")
+            pass1_result = yield context.call_sub_orchestrator(
+                "county_enrichment_pass1_orchestrator", enrich_config
+            )
+
+        # Step 4: County enrichment — Pass 2: Census Geocoder, practice address
+        if start_step <= 4:
+            context.set_custom_status("Step 4/7: County enrichment — Pass 2: Census Geocoder, practice address")
+            pass2_result = yield context.call_sub_orchestrator(
+                "county_enrichment_pass2_orchestrator", enrich_config
+            )
+
+        # Step 5: County enrichment — Pass 3: Census Geocoder, billing address
+        if start_step <= 5:
+            context.set_custom_status("Step 5/7: County enrichment — Pass 3: Census Geocoder, billing address")
+            pass3_result = yield context.call_sub_orchestrator(
+                "county_enrichment_pass3_orchestrator", enrich_config
+            )
+
+        # Step 6: County enrichment — Pass 4: Google Maps, final fallback
+        if start_step <= 6 and config.get("google_maps_enabled", False):
+            context.set_custom_status("Step 6/8: County enrichment — Pass 4: Google Maps, final fallback")
+            pass4_result = yield context.call_sub_orchestrator(
+                "county_enrichment_pass4_orchestrator", enrich_config
+            )
+
+        # Step 7: County enrichment — Pass 6: NPPES public registry lookup
+        if start_step <= 7:
+            context.set_custom_status("Step 7/8: County enrichment — Pass 6: NPPES registry lookup")
+            pass6_result = yield context.call_sub_orchestrator(
+                "county_enrichment_pass6_nppes_orchestrator", enrich_config
+            )
+
+        # Enrichment reconcile report
+        if pass1_result or pass2_result or pass3_result or pass6_result:
+            reconcile = _build_enrichment_reconcile(
+                pass1_result or {}, pass2_result or {}, pass3_result or {},
+                pass4_result or {}, pass6_result or {},
+            )
+            yield context.call_activity(
+                "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
+            )
+
+        # Step 8: Generate embeddings
+        if start_step <= 8 and config.get("embedding_enabled", False):
+            num_workers = config.get("num_workers", 32)
+            staging_collection = config.get("staging_collection", "dev_PublicHealthData.providers")
+            context.set_custom_status(f"Step 8/8: Generating embeddings ({num_workers} workers)")
+            embed_tasks = [
+                context.call_activity(
+                    "embed_worker_activity",
+                    {
+                        "worker_id": i + 1,
+                        "staging_collection": staging_collection,
+                        "states": config.get("states"),
+                        "embed_model": config.get("embed_model", "text-embedding-3-large"),
+                        "embed_batch_size": config.get("embed_batch_size", 100),
+                        "embed_initial_jitter": config.get("embed_initial_jitter", 5.0),
+                    },
+                )
+                for i in range(num_workers)
+            ]
+            embed_results = yield context.task_all(embed_tasks)
+            context.set_custom_status("Step 8/8: Creating vector search index")
+            yield context.call_activity(
+                "create_vector_index_activity", {"staging_collection": staging_collection}
+            )
+
+    except Exception as exc:
+        pipeline_error = str(exc)
+        context.set_custom_status(f"FAILED: {pipeline_error[:200]}")
+
+    # BUG-PIPE-002: ALWAYS release reservation — success or failure
+    context.set_custom_status("Releasing cluster reservation")
+    yield context.call_activity("release_reservation_activity", {"job_id": load_id})
+
+    if pipeline_error:
+        raise Exception(f"Pipeline failed (reservation released): {pipeline_error}")
 
     total_embedded = sum(r.get("embedded", 0) for r in embed_results)
     total_tokens = sum(r.get("total_tokens", 0) for r in embed_results)
@@ -730,10 +735,6 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         else "partial" if reconcile
         else "skipped"
     )
-
-    # Release cluster reservation — manager will pause if last reservation
-    context.set_custom_status("Releasing cluster reservation")
-    yield context.call_activity("release_reservation_activity", {"job_id": load_id})
 
     context.set_custom_status(
         f"Done — load {load_result.get('status', 'unknown')}, "

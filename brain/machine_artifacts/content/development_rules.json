@@ -161,6 +161,12 @@
       "date": "2026-04-04"
     },
     {
+      "id": "BUG-PIPE-005",
+      "rule": "BUG: Cluster lifecycle reservations stored on the managed cluster. The pipeline management data (_System.cluster_lifecycle) is on the pipeline cluster — the cluster being managed. This creates chicken-and-egg: can't write reservation before cluster is up, can't wake cluster without reservation. Fix: move reservations to the frontend cluster (24/7 uptime).",
+      "incident": "reserve() failed because it tried to write to MongoDB on the paused pipeline cluster. Fixed with Atlas API wake-first hack, but root cause is architectural.",
+      "date": "2026-04-04"
+    },
+    {
       "id": "BUG-PIPE-004",
       "rule": "BUG: Enrichment must be in-place on provider record. Per MongoDB best practices, one document per provider. No separate enrichment collection.",
       "incident": "Design review identified separate enrichment pattern as anti-pattern.",
