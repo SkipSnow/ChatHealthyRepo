@@ -280,8 +280,10 @@ def qa_report():
     """DEVOPS-QA-001: Render QA report from brain JSON. Dev/QA only."""
     if _ENV_PREFIX == "prod":
         return {"error": "QA report not available in production"}
-    import glob
+    # Try brain dir (local dev), then brain_data/ (HF deploy)
     report_path = os.path.join(_brain_dir, "machine_artifacts", "content", "qa_report_v014_sit.json")
+    if not os.path.exists(report_path):
+        report_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brain_data", "qa_report_v014_sit.json")
     if not os.path.exists(report_path):
         return {"error": "QA report not found"}
     with open(report_path) as f:
