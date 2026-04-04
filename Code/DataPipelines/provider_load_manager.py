@@ -158,10 +158,12 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
         "partition_file_activity", {**config, "csv_path": csv_path}
     )
 
-    # Step 4: Drain staging — drop all existing records before loading new data.
-    # New data is verified viable (download + extract + partition succeeded) before we drop.
-    context.set_custom_status("Step 4/10: Draining staging collection")
-    yield context.call_activity("drain_staging_activity", config)
+    # Step 4: Drain staging — drop unless incremental=true (BUG-PIPE-003)
+    if not config.get("incremental", False):
+        context.set_custom_status("Step 4/10: Draining staging collection (full load)")
+        yield context.call_activity("drain_staging_activity", config)
+    else:
+        context.set_custom_status("Step 4/10: Skipping drain (incremental=true)")
 
     # Step 5: Pre-load index only — unique compound index for idempotency on retry.
     # Secondary indexes are deferred to Step 8 (post-load) to eliminate write
