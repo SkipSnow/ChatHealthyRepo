@@ -14,6 +14,249 @@
       "time": "2026-04-04T02:53:53.470043+00:00",
       "status": "Failed",
       "customStatus": "Step 0/7: Reserving cluster \u2014 manager waking DB"
+    },
+    {
+      "time": "2026-04-04T03:07:53Z",
+      "status": "Failed",
+      "customStatus": "Step 2/7: Loading provider data"
+    },
+    {
+      "time": "2026-04-04T03:08:00Z",
+      "action": "pipeline_failed_step2",
+      "error": "BlobNotFound: NPI zip not in Azure storage. extract_csv_activity cannot find the blob.",
+      "root_cause": "Download step may not have completed or blob path mismatch.",
+      "next_action": "Check if provider data already exists in dev_PublicHealthData from prior runs. If yes, resubmit with start_step=3 to skip load and go to enrichment."
+    },
+    {
+      "time": "2026-04-04T03:15:00Z",
+      "action": "resubmitted_step3",
+      "reason": "Data already exists for all 4 states. Skip load, start enrichment.",
+      "instance_id": "dc567b6ac7f147348e8ff96f9ec619c5"
+    },
+    {
+      "time": "2026-04-04T03:42:39Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T03:47:41Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T03:52:42Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T03:57:43Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T04:02:44Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T04:07:46Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T04:12:47Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T04:17:48Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T04:22:50Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T04:27:51Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T04:32:53Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T04:37:54Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T04:42:55Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T04:47:57Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T04:52:58Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T04:57:59Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T05:03:01Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T05:08:02Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T05:13:03Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T05:18:05Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T05:23:06Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T05:28:08Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T05:33:09Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T05:38:10Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T05:43:12Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T05:48:13Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T05:53:15Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T05:58:16Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T06:03:17Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T06:08:19Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T06:13:20Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T06:18:22Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T06:23:23Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T06:28:24Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T06:33:26Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T06:38:27Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T06:43:28Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T06:48:30Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T06:53:31Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T06:58:32Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T07:03:34Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T07:08:35Z",
+      "status": "Running",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T07:13:37Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T07:18:38Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T07:23:39Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
     }
   ]
 }

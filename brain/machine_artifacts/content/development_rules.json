@@ -143,6 +143,30 @@
       "date": "2026-04-03"
     },
     {
+      "id": "BUG-PIPE-001",
+      "rule": "BUG: Enrichment steps do not filter by states. Pass 1 ZIP crosswalk processed 8.8M records instead of 1.3M because no state filter was applied. Every enrichment step must accept and enforce the states parameter.",
+      "incident": "Pipeline ran enrichment on all 50 states instead of DE/MS/VA/CA. Wasted 3.5+ hours on unnecessary records.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-002",
+      "rule": "BUG: No try/finally in orchestrators. If a step fails, the reservation is never released and the cluster stays up. Orphan reservations cause unnecessary cost.",
+      "incident": "Pipeline terminated but cluster remained up with no active reservation release.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-003",
+      "rule": "BUG: Skipping load step (start_step=3) left stale data. 8.8M records from prior runs remained. Load step must drop collection unless incremental=true.",
+      "incident": "Resubmitted with start_step=3 to skip load. Enrichment ran against entire collection from prior runs instead of just 4 states.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-004",
+      "rule": "BUG: Enrichment must be in-place on provider record. Per MongoDB best practices, one document per provider. No separate enrichment collection.",
+      "incident": "Design review identified separate enrichment pattern as anti-pattern.",
+      "date": "2026-04-04"
+    },
+    {
       "id": "DR-019",
       "rule": "All SIT testing must be against the full parent page (dev.chathealthy.ai), never the HF Space iframe in isolation. The parent page is the product. The iframe is a component. Test the product.",
       "incident": "SIT tests were passing against the iframe but missing bugs visible on the full page — sideways filter text, missing banner build number, filter panel not rendering. These were only visible in the parent page context.",
