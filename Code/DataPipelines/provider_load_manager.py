@@ -628,17 +628,20 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         yield context.create_timer(next_check)
 
     # BUG-PIPE-002: all steps wrapped so reservation is released on any failure
+    # PIPE-LC-002-REQ-002: each step reports status
     load_result = {"status": "skipped"}
     pass1_result = pass2_result = pass3_result = pass4_result = pass6_result = None
     reconcile = None
     embed_results = []
     pipeline_error = None
+    step_statuses = []
 
     try:
         # Step 1: MongoDB health check
         if start_step <= 1:
             context.set_custom_status("Step 1/7: Checking MongoDB health")
             yield context.call_activity("check_mongo_health_activity", config)
+            step_statuses.append({"step": 1, "name": "health_check", "status": "completed_success"})
 
         # Step 2: Load provider data
         if start_step <= 2:
@@ -647,8 +650,11 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
                 "num_workers": config.get("num_workers", 32),
                 "batch_size": config.get("batch_size", 5000),
                 "blob_container": config.get("blob_container", "provider-data"),
+                "states": config.get("states"),
+                "incremental": config.get("incremental", False),
             }
             load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
+            step_statuses.append({"step": 2, "name": "load_data", "status": "completed_success"})
 
         # Step 3: County enrichment — Pass 1: ZIP crosswalk
         if start_step <= 3:
@@ -656,6 +662,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
             pass1_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass1_orchestrator", enrich_config
             )
+            step_statuses.append({"step": 3, "name": "pass1_crosswalk", "status": "completed_success"})
 
         # Step 4: County enrichment — Pass 2: Census Geocoder, practice address
         if start_step <= 4:
@@ -663,6 +670,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
             pass2_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass2_orchestrator", enrich_config
             )
+            step_statuses.append({"step": 4, "name": "pass2_geocoder", "status": "completed_success"})
 
         # Step 5: County enrichment — Pass 3: Census Geocoder, billing address
         if start_step <= 5:
@@ -670,6 +678,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
             pass3_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass3_orchestrator", enrich_config
             )
+            step_statuses.append({"step": 5, "name": "pass3_billing", "status": "completed_success"})
 
         # Step 6: County enrichment — Pass 4: Google Maps, final fallback
         if start_step <= 6 and config.get("google_maps_enabled", False):
@@ -677,6 +686,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
             pass4_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass4_orchestrator", enrich_config
             )
+            step_statuses.append({"step": 6, "name": "pass4_maps", "status": "completed_success"})
 
         # Step 7: County enrichment — Pass 6: NPPES public registry lookup
         if start_step <= 7:
@@ -684,6 +694,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
             pass6_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass6_nppes_orchestrator", enrich_config
             )
+            step_statuses.append({"step": 7, "name": "pass6_nppes", "status": "completed_success"})
 
         # Enrichment reconcile report
         if pass1_result or pass2_result or pass3_result or pass6_result:
@@ -722,6 +733,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
 
     except Exception as exc:
         pipeline_error = str(exc)
+        step_statuses.append({"step": "unknown", "name": "exception", "status": "completed_fail", "error": pipeline_error[:200]})
         context.set_custom_status(f"FAILED: {pipeline_error[:200]}")
 
     # BUG-PIPE-002: ALWAYS release reservation — success or failure
@@ -751,6 +763,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         "enrichment": reconcile,
         "pass3": pass3_result,
         "embeddings": {"total_embedded": total_embedded, "total_tokens": total_tokens},
+        "step_statuses": step_statuses,
     }
 
 
