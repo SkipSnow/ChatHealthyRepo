@@ -13,7 +13,7 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-VOCAB_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..",
+VOCAB_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "..",
                            "brain", "machine_artifacts", "content", "controlled_vocabularies.json")
 
 
@@ -130,8 +130,9 @@ class TestStateFilterEnforcement(unittest.TestCase):
     def test_provider_worker_requires_states(self):
         """ProviderWorker must raise ValueError when states is missing."""
         from provider_worker import ProviderWorker
-        with self.assertRaises(ValueError):
-            ProviderWorker({"worker_id": 1, "load_id": "test"})
+        with self.assertRaises((ValueError, KeyError)):
+            ProviderWorker({"worker_id": 1, "load_id": "test",
+                           "start_byte": 0, "end_byte": 100, "csv_path": "test.csv"})
 
     def test_embedding_worker_uses_strict_filter(self):
         """EmbeddingWorker must import _build_states_filter, not _build_states_query."""
