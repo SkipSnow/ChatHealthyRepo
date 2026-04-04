@@ -132,8 +132,8 @@
     },
     {
       "id": "BUG-VECTOR-001",
-      "rule": "RELEASE BLOCKER: Vector search resolves wildly inaccurate specialty codes. 'kid's doc' returns Hospitalist, Clinic/Center, Mental Health Clinic instead of Pediatrics-focused specialties. Only 2 of 7 results were correct (Pediatrics Physician, Pediatric Clinical Nurse Specialist). Root cause: vector similarity on provider embeddings resolves taxonomy codes that are not relevant to the user's intent. The prompt and model selection for specialty resolution must be reworked before alpha release. This is a GOV-011 violation — the system is giving wrong answers.",
-      "incident": "Boss searched 'find a kids doc in VA', got 7 specialty types including Hospitalist Physician, Clinic/Center, Mental Health Clinic — none of which are what a user means by 'kids doc'.",
+      "rule": "RELEASE BLOCKER — SIT NEXT SPRINT, MUST-HAVE: Specialty code resolution must vector search against SpecialtyMetaData (883 specialty descriptions), not provider records. Current code searches provider embeddings which returns irrelevant taxonomy codes because providers have rich text (address, licenses, county) that pollutes similarity. Fix: Route 4 Step 1 should embed user query with text-embedding-3-small (1536d) and search SpecialtyMetaData. Provider embeddings (3072d) are retained for Evaluate Care provider detail lookups.",
+      "incident": "Boss searched 'find a kids doc in VA', got 7 specialty types including Hospitalist Physician, Clinic/Center, Mental Health Clinic — only 2/7 correct. Root cause: vector similarity ran against provider embeddings, not specialty descriptions.",
       "date": "2026-04-03"
     },
     {

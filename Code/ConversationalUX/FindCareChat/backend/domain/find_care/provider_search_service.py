@@ -369,27 +369,16 @@ class FindCareService:
         if specialty_query:
             codes = []
 
-            # Step 1: Try vector search to resolve specialty codes
-            embedding = self._get_embedding(specialty_query)
-            if embedding:
-                vec_providers = self._vector_search(embedding, state_upper, city, county, 25)
-                if vec_providers:
-                    result_codes = set()
-                    for p in vec_providers:
-                        result_codes.add(p.get("taxonomy_code", ""))
-                    result_codes.discard("")
-                    if result_codes:
-                        codes = list(result_codes)
-                        _log.info("search: vector resolved %d codes for '%s'", len(codes), specialty_query)
-
-            # Step 2: If vector didn't resolve codes, try taxonomy identification
-            if not codes:
-                spec_fn = find_specialty_fn or (self.identify_specialty if self._specialty else None)
-                if spec_fn:
-                    specialty_result = spec_fn(specialty_query)
-                    if "error" in specialty_result:
-                        return specialty_result
-                    codes = [s["Code"] for s in specialty_result.get("specialties", [])]
+            # BUG-VECTOR-001 fix: resolve codes via SpecialtyMetaData (vector + regex),
+            # NOT via provider embeddings. SpecialtyService searches the 883 NUCC specialty
+            # descriptions which match user intent accurately. Provider embeddings contain
+            # address/county/license text that pollutes similarity.
+            spec_fn = find_specialty_fn or (self.identify_specialty if self._specialty else None)
+            if spec_fn:
+                specialty_result = spec_fn(specialty_query)
+                if "error" in specialty_result:
+                    return specialty_result
+                codes = [s["Code"] for s in specialty_result.get("specialties", [])]
 
             if not codes:
                 return {"supported": True, "providers": [],
