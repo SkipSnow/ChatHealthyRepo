@@ -35,6 +35,38 @@
         "epic": "EPIC-3 Pipeline Management",
         "date_of_delivery": "2026-04-25"
       }
+    },
+    {
+      "id": "IDEA-004",
+      "author": "Boss",
+      "datetime": "2026-04-04T09:15:00Z",
+      "title": "Continuous Improvement Opportunity",
+      "description": "These are real KPIs that must be broken down to measurable things and Skip must set goals for improvement and work to meet them.",
+      "assessment_date": "2026-04-04",
+      "overall_score": "78% — Middle 30% band",
+      "dimensions": [
+        {"dimension": "Governance & Policy", "band": "Top 5%", "score": 95, "kpis": ["Number of formal policies (currently 12)", "Policy violation count per sprint", "Time from policy creation to enforcement in code", "Audit findings resolved vs open"]},
+        {"dimension": "Architecture Documentation", "band": "Top 5%", "score": 95, "kpis": ["Docs updated in same commit as design change", "Architecture pages published and current", "Component diagram accuracy vs actual code", "Design doc coverage per feature"]},
+        {"dimension": "Traceability (Epic→Test)", "band": "Top 5%", "score": 95, "kpis": ["Percentage of code changes linked to a story", "Percentage of stories with boolean testable requirements", "Requirements with passing test cases", "Orphan code (code with no backlog item)"]},
+        {"dimension": "Delivery Velocity", "band": "Top 5%", "score": 95, "kpis": ["Builds per session", "Time from idea to deployed code", "Time from bug report to fix deployed", "Features shipped per sprint"]},
+        {"dimension": "SDLC Process Design", "band": "Top 5%", "score": 95, "kpis": ["Process steps documented and followed", "Gateway compliance rate", "Attended vs unattended build ratio", "Commit message quality (prefix, description)"]},
+        {"dimension": "Testing Tooling", "band": "Top 5%", "score": 95, "kpis": ["Playwright tests written vs features shipped", "Mobile device coverage (iPhone, Galaxy)", "Screenshot capture on failure rate", "SIT test pass rate"]},
+        {"dimension": "DevOps Design", "band": "Top 5%", "score": 95, "kpis": ["Pipeline steps with monitoring", "Promotion gate enforcement rate", "Build counter accuracy", "Deploy success rate"]},
+        {"dimension": "Code Quality", "band": "Top 5%", "score": 95, "kpis": ["Pydantic model coverage on tool inputs", "Functions over 50 lines count", "Files over 500 lines count", "Dead code ratio"]},
+        {"dimension": "Security Awareness", "band": "Top 20%", "score": 80, "kpis": ["Cloudflare findings open vs resolved", "Secrets in git history count", "MFA enforcement percentage", "TLS/HSTS coverage across domains"]},
+        {"dimension": "Testing Execution", "band": "Top 20%", "score": 80, "kpis": ["SIT test coverage vs total features", "Percentage of features with passing SIT before deploy", "Regression test coverage", "Time between code change and test execution"]},
+        {"dimension": "Pipeline Reliability", "band": "Top 20%", "score": 80, "kpis": ["Pipeline runs to completion rate", "Mean time to recover from pipeline failure", "Retry count per successful run", "State filter enforcement (records processed vs expected)"]},
+        {"dimension": "Data Architecture", "band": "Top 20%", "score": 80, "kpis": ["Collections on correct cluster percentage", "Index coverage for query patterns", "Embedding dimension accuracy", "Environment isolation violations"]},
+        {"dimension": "Requirements Accuracy", "band": "Middle 30%", "score": 60, "kpis": ["Boss corrections per feature", "Requirements changed after implementation started", "Features rebuilt due to wrong interpretation", "Clarifying questions asked before coding vs after"]},
+        {"dimension": "Design Decisions", "band": "Middle 30%", "score": 60, "kpis": ["Design reversals per session", "Components placed in wrong location count", "Ad hoc decisions without backlog item", "Design decisions made without asking Boss"]},
+        {"dimension": "Architecture Compliance", "band": "Bottom 50%", "score": 40, "kpis": ["ARCH-001 phases complete vs planned", "Code that violates documented architecture", "GOV-011 audit violations open", "Integration patterns used vs prescribed"]},
+        {"dimension": "Engineer Discipline", "band": "Bottom 50%", "score": 40, "kpis": ["Rules broken per session", "Infrastructure touched without authorization", "DR violations (DR-001 through DR-019)", "Times Boss had to correct same mistake twice"]},
+        {"dimension": "Unattended Operations", "band": "Bottom 50%", "score": 40, "kpis": ["Hours of reliable unattended operation", "Jobs monitored to completion without intervention", "Overnight tasks completed vs assigned", "Agent infrastructure uptime"]}
+      ],
+      "recommended_roadmap": {
+        "epic": "Continuous — not an epic, a practice",
+        "date_of_delivery": "Ongoing"
+      }
     }
   ]
 }
