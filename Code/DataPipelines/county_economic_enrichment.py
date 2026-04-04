@@ -202,7 +202,7 @@ def build_county_economics(states: list[str] = None) -> dict:
     return all_economics
 
 
-def enrich_providers_with_economics(get_db_fn, env_prefix: str, states: list[str] = None):
+def enrich_providers_with_economics(get_db_fn, env_prefix: str, config: dict = None, states: list[str] = None):
     """Enrich provider records with county economic data.
 
     Adds to the existing county attribute:
@@ -210,7 +210,17 @@ def enrich_providers_with_economics(get_db_fn, env_prefix: str, states: list[str
         county.rural_urban_code, county.rural_urban_label, county.is_rural, county.is_metro
 
     Uses bulk writes for cost efficiency.
+    BUG-PIPE-001: states parameter is REQUIRED — raises ValueError if missing.
     """
+    from county_enrichment_job import _build_states_filter
+
+    # BUG-PIPE-001: mandatory state filter
+    if config is None:
+        config = {}
+    if states and "states" not in config:
+        config["states"] = states
+    sf = _build_states_filter(config)  # raises ValueError if states missing
+
     economics = build_county_economics(states)
     if not economics:
         _log.warning("No economic data to enrich with")
@@ -222,7 +232,6 @@ def enrich_providers_with_economics(get_db_fn, env_prefix: str, states: list[str
 
     collection = db[f"{env_prefix}_PublicHealthData"]["providers"]
     enriched = 0
-    skipped = 0
 
     from pymongo import UpdateMany
     bulk_ops = []
@@ -236,7 +245,7 @@ def enrich_providers_with_economics(get_db_fn, env_prefix: str, states: list[str
         if update_fields:
             bulk_ops.append(
                 UpdateMany(
-                    {"county.fips": fips},
+                    {"county.fips": fips, **sf},
                     {"$set": update_fields},
                 )
             )
@@ -250,5 +259,5 @@ def enrich_providers_with_economics(get_db_fn, env_prefix: str, states: list[str
         result = collection.bulk_write(bulk_ops)
         enriched += result.modified_count
 
-    _log.info("County economic enrichment: %d providers enriched", enriched)
+    _log.info("County economic enrichment: %d providers enriched (states: %s)", enriched, sf)
     return {"enriched": enriched, "counties_with_data": len(economics)}

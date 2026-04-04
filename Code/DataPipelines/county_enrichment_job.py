@@ -319,7 +319,7 @@ def reset_geocoder_failed_fn(config: dict) -> dict:
     db_name, coll_name = collection.split(".", 1)
     sf = _build_states_filter(config)  # BUG-PIPE-001
     result = _get_mongo_client()[db_name][coll_name].update_many(
-        {"county.source": "geocoder_failed", **sf},
+        {"county.source": "geocoder_failed", "bad_data.flagged": {"$ne": True}, "out_of_scope.flagged": {"$ne": True}, **sf},
         {"$set": {"county": {"fips": None}}},
     )
     logging.info("Reset %d geocoder_failed records for retry", result.modified_count)
@@ -598,6 +598,8 @@ class ZipEnrichmentWorker(PipelineWorkerBase):
         query = {
             "county.fips": None,
             "county.source": {"$ne": "out_of_scope"},
+            "bad_data.flagged": {"$ne": True},
+            "out_of_scope.flagged": {"$ne": True},
             "practice_address.zip": {"$regex": f"^{zip5}"},
             **self._state_filter,  # BUG-PIPE-001
         }
@@ -637,16 +639,19 @@ def enrich_by_zip_batch_fn(config: dict) -> dict:
 
 
 def mark_out_of_scope_fn(config: dict) -> dict:
-    """Mark providers the Census geocoder cannot resolve as out_of_scope.
+    """Mark providers with data quality issues or out-of-scope status.
 
-    Three conditions, each marked with a specific reason:
-    - no_address:       both practice_address and mailing_address are absent.
+    PIPE-DQ-001 — bad_data flag (data quality issues, record retained but flagged):
+    - no_address: both practice_address and mailing_address are absent.
+      Sets bad_data: {flagged: true, reason: "no_address"}, county.fips: null.
+
+    PIPE-DQ-002 — out_of_scope flag (valid record, outside processing scope):
     - foreign_provider: practice_address.country is set and is not "US".
-    - deactivated:      npi_deactivation_date set without a later reactivation.
+      Sets out_of_scope: {flagged: true, reason: "foreign_provider"}, county.fips: null.
+    - deactivated: npi_deactivation_date set without a later reactivation.
+      Sets out_of_scope: {flagged: true, reason: "deactivated"}, county.fips: null.
 
-    Sets county = {fips: null, source: "out_of_scope", reason: "<reason>"} so
-    they are excluded from all subsequent geocoder passes and the reason is
-    preserved for reporting and runtime resolution.
+    Uses controlled vocabulary values from CV-001 (bad_data_reasons) and CV-002 (out_of_scope_reasons).
     """
     collection = config.get("staging_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
@@ -655,30 +660,49 @@ def mark_out_of_scope_fn(config: dict) -> dict:
     sf = _build_states_filter(config)  # BUG-PIPE-001
     _base = {
         "county.fips": None,
+        "bad_data.flagged": {"$ne": True},
+        "out_of_scope.flagged": {"$ne": True},
         "county.source": {"$nin": ["geocoder_failed", "geocoder_no_address", "out_of_scope"]},
         **sf,
     }
 
+    # PIPE-DQ-001: no_address → bad_data flag
     r_no_address = coll.update_many(
         {**_base,
          "practice_address": {"$exists": False},
          "mailing_address":  {"$exists": False}},
-        {"$set": {"county": {"fips": None, "source": "out_of_scope", "reason": "no_address"}}},
+        {"$set": {
+            "bad_data": {"flagged": True, "reason": "no_address"},
+            "county": {"fips": None},
+        }},
     )
+    logging.info("PIPE-DQ-001: flagged %d providers as bad_data (no_address)", r_no_address.modified_count)
+
+    # PIPE-DQ-002: foreign_provider → out_of_scope flag
     r_foreign = coll.update_many(
         {**_base, "practice_address.country": {"$exists": True, "$ne": "US"}},
-        {"$set": {"county": {"fips": None, "source": "out_of_scope", "reason": "foreign_provider"}}},
+        {"$set": {
+            "out_of_scope": {"flagged": True, "reason": "foreign_provider"},
+            "county": {"fips": None},
+        }},
     )
+    logging.info("PIPE-DQ-002: flagged %d providers as out_of_scope (foreign_provider)", r_foreign.modified_count)
+
+    # PIPE-DQ-002: deactivated → out_of_scope flag
     r_deactivated = coll.update_many(
         {**_base,
          "npi_deactivation_date":  {"$exists": True},
          "npi_reactivation_date":  {"$exists": False}},
-        {"$set": {"county": {"fips": None, "source": "out_of_scope", "reason": "deactivated"}}},
+        {"$set": {
+            "out_of_scope": {"flagged": True, "reason": "deactivated"},
+            "county": {"fips": None},
+        }},
     )
+    logging.info("PIPE-DQ-002: flagged %d providers as out_of_scope (deactivated)", r_deactivated.modified_count)
 
     total = r_no_address.modified_count + r_foreign.modified_count + r_deactivated.modified_count
     logging.info(
-        "Marked %d providers as out_of_scope — no_address: %d, foreign: %d, deactivated: %d",
+        "Marked %d providers — bad_data(no_address): %d, out_of_scope(foreign): %d, out_of_scope(deactivated): %d",
         total, r_no_address.modified_count, r_foreign.modified_count, r_deactivated.modified_count,
     )
     return {
@@ -692,14 +716,20 @@ def mark_out_of_scope_fn(config: dict) -> dict:
 
 
 def mark_zip_state_mismatch_fn(config: dict) -> dict:
-    """Mark providers whose ZIP belongs to a different state than their filed state.
+    """PIPE-DQ-003: Detect and repair zip/state mismatches using provider license data.
 
     Loads ZipCountyCrosswalk to build a ZIP → expected_state mapping.
-    Providers where practice_address.zip maps to a state that does not match
-    practice_address.state have bad source data (the mismatch originates in NPPES
-    itself) and will never geocode correctly. ~0.03% of providers.
+    Providers where practice_address.zip maps to a different state than
+    practice_address.state have bad source data from NPPES.
 
-    Sets county = {fips: null, source: "out_of_scope", reason: "zip_state_mismatch"}.
+    Repair logic (checks provider licenses array):
+    - If exactly one license state matches the zip's expected state → repair
+      practice_address.state, clear bad_data flag (auto-repair).
+    - If multiple license states match → bad_data (zip_state_mismatch_multiple_licenses).
+    - If no license data → bad_data (zip_state_mismatch_no_license).
+    - If license doesn't resolve → bad_data (zip_state_mismatch).
+
+    Uses controlled vocabulary values from CV-001 (bad_data_reasons).
     Called after mark_out_of_scope_fn so already-excluded providers are skipped.
     """
     collection = config.get("staging_collection", PROVIDERS_COLLECTION)
@@ -717,11 +747,13 @@ def mark_zip_state_mismatch_fn(config: dict) -> dict:
             if abbrev:
                 zip_to_state[zip_code] = abbrev
 
-    # Aggregate distinct (zip, state) pairs from unenriched, non-out_of_scope providers
+    # Aggregate distinct (zip, state) pairs from unenriched, non-excluded providers
     sf = _build_states_filter(config)  # BUG-PIPE-001
     pipeline = [
         {"$match": {
             "county.fips": None,
+            "out_of_scope.flagged": {"$ne": True},
+            "bad_data.flagged": {"$ne": True},
             "county.source": {"$ne": "out_of_scope"},
             "practice_address.zip":   {"$exists": True},
             "practice_address.state": {"$exists": True},
@@ -746,29 +778,111 @@ def mark_zip_state_mismatch_fn(config: dict) -> dict:
         if expected and expected != state:
             mismatch_by_state[state].append(zip5)
 
-    total_modified = 0
+    # Process each mismatched provider individually to attempt license-based repair
+    total_repaired = 0
+    total_bad_data = 0
+    ops: list = []
+
     for state, zip_list in mismatch_by_state.items():
-        r = coll.update_many(
+        mismatched_providers = list(coll.find(
             {
                 "county.fips": None,
+                "out_of_scope.flagged": {"$ne": True},
+                "bad_data.flagged": {"$ne": True},
                 "county.source": {"$ne": "out_of_scope"},
                 "practice_address.state": state,
                 "practice_address.zip":   {"$in": zip_list},
+                **sf,
             },
-            {"$set": {"county": {"fips": None, "source": "out_of_scope", "reason": "zip_state_mismatch"}}},
-        )
-        total_modified += r.modified_count
+            {"_id": 1, "practice_address": 1, "licenses": 1},
+        ))
+
+        for p in mismatched_providers:
+            zip5 = (p.get("practice_address", {}).get("zip") or "")[:5]
+            expected_state = zip_to_state.get(zip5)
+            if not expected_state:
+                continue
+
+            licenses = p.get("licenses") or []
+            if not licenses:
+                # PIPE-DQ-003: no license data — cannot repair
+                ops.append(UpdateOne(
+                    {"_id": p["_id"]},
+                    {"$set": {
+                        "bad_data": {"flagged": True, "reason": "zip_state_mismatch_no_license"},
+                        "county": {"fips": None},
+                    }},
+                ))
+                total_bad_data += 1
+                continue
+
+            # Extract unique license states
+            license_states = set()
+            for lic in licenses:
+                ls = (lic.get("state") or "").strip().upper()
+                if ls:
+                    license_states.add(ls)
+
+            matching_license_states = {ls for ls in license_states if ls == expected_state}
+
+            if len(matching_license_states) == 1:
+                # Exactly one license state matches the zip's expected state → repair
+                ops.append(UpdateOne(
+                    {"_id": p["_id"]},
+                    {"$set": {
+                        "practice_address.state": expected_state,
+                        "bad_data": None,
+                    }},
+                ))
+                total_repaired += 1
+                logging.info(
+                    "PIPE-DQ-003: repaired provider %s state %s→%s via license data",
+                    p["_id"], state, expected_state,
+                )
+            elif len(license_states) > 1 and len(matching_license_states) >= 1:
+                # Multiple license states — ambiguous
+                ops.append(UpdateOne(
+                    {"_id": p["_id"]},
+                    {"$set": {
+                        "bad_data": {"flagged": True, "reason": "zip_state_mismatch_multiple_licenses"},
+                        "county": {"fips": None},
+                    }},
+                ))
+                total_bad_data += 1
+            else:
+                # License data present but doesn't resolve the mismatch
+                ops.append(UpdateOne(
+                    {"_id": p["_id"]},
+                    {"$set": {
+                        "bad_data": {"flagged": True, "reason": "zip_state_mismatch"},
+                        "county": {"fips": None},
+                    }},
+                ))
+                total_bad_data += 1
+
+        # Flush ops in batches
+        if len(ops) >= 1000:
+            coll.bulk_write(ops, ordered=False)
+            ops = []
+
+    if ops:
+        coll.bulk_write(ops, ordered=False)
 
     logging.info(
-        "Marked %d providers as out_of_scope (zip_state_mismatch) across %d states",
-        total_modified, len(mismatch_by_state),
+        "PIPE-DQ-003: %d providers repaired via license, %d flagged as bad_data (zip_state_mismatch) across %d states",
+        total_repaired, total_bad_data, len(mismatch_by_state),
     )
-    return {"marked_zip_state_mismatch": total_modified}
+    return {
+        "marked_zip_state_mismatch": total_bad_data,
+        "repaired_via_license": total_repaired,
+    }
 
 
 _UNENRICHED_FILTER = {
     "county.fips": None,
     "county.source": {"$nin": ["geocoder_failed", "geocoder_no_address", "out_of_scope"]},
+    "bad_data.flagged": {"$ne": True},
+    "out_of_scope.flagged": {"$ne": True},
 }
 
 
@@ -871,13 +985,14 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
 
+    sf = _build_states_filter(config)  # BUG-PIPE-001: defense-in-depth
     id_filter: dict = {"_id": {"$gte": ObjectId(start_id_hex)}}
     if end_id_hex:
         id_filter["_id"]["$lt"] = ObjectId(end_id_hex)
 
     providers = list(coll.find(
-        {**_UNENRICHED_FILTER, **id_filter},
-        {"_id": 1, "practice_address": 1, "mailing_address": 1},
+        {**_UNENRICHED_FILTER, **id_filter, **sf},
+        {"_id": 1, "practice_address": 1, "mailing_address": 1, "licenses": 1},
     ))
 
     # Pre-screen: flag providers with no usable address
@@ -967,6 +1082,8 @@ def get_billing_retryable_fn(config: dict) -> dict:
         for doc in coll.find(
             {
                 "county.source": "geocoder_failed",
+                "bad_data.flagged": {"$ne": True},
+                "out_of_scope.flagged": {"$ne": True},
                 **sf,
                 "$and": [
                     {"$or": [
@@ -1100,6 +1217,8 @@ def get_maps_retryable_fn(config: dict) -> dict:
         for doc in coll.find(
             {
                 "county.source": "geocoder_failed",
+                "bad_data.flagged": {"$ne": True},
+                "out_of_scope.flagged": {"$ne": True},
                 **sf,
                 "$or": [
                     {"practice_address.line1": {"$nin": [None, ""]}},
@@ -1223,27 +1342,6 @@ def _build_states_filter(config: dict) -> dict:
     raise ValueError(f"BUG-PIPE-001: invalid states format: {states}")
 
 
-def _build_states_query(config: dict) -> dict:
-    """Build a MongoDB state filter clause from the states config parameter.
-
-    config["states"] shape:
-      {"mode": "include", "list": ["RI", "HI", "ME"]}  — only these states
-      {"mode": "exclude", "list": ["CA", "TX"]}         — all states except these
-      omitted / None                                     — no filter (all states)
-
-    Returns a dict to merge into a MongoDB query, or {} if no filter applies.
-    """
-    states = config.get("states")
-    if not states or not states.get("list"):
-        return {}
-    mode       = states.get("mode", "include").lower()
-    state_list = states["list"]
-    if mode == "include":
-        return {"practice_address.state": {"$in": state_list}}
-    if mode == "exclude":
-        return {"practice_address.state": {"$nin": state_list}}
-    logging.warning("Unknown states.mode '%s' — ignoring state filter", mode)
-    return {}
 
 
 def get_nppes_retryable_fn(config: dict) -> dict:
@@ -1264,6 +1362,8 @@ def get_nppes_retryable_fn(config: dict) -> dict:
     query: dict = {
         "county.fips": None,
         "county.source": {"$ne": "out_of_scope"},
+        "bad_data.flagged": {"$ne": True},
+        "out_of_scope.flagged": {"$ne": True},
         "npi": {"$nin": [None, ""]},
         **_build_states_filter(config),  # BUG-PIPE-001: mandatory
     }
@@ -1497,11 +1597,13 @@ def enrichment_report_fn(config: dict) -> dict:
     client = _get_mongo_client()
 
     staging_coll = client[db_name_s][coll_name_s]
+    sf = _build_states_filter(config)  # BUG-PIPE-001: mandatory state filter
 
     # Live count by county.source (null source = never touched)
     source_counts: dict = {
         doc["_id"]: doc["count"]
         for doc in staging_coll.aggregate([
+            {"$match": sf},
             {"$group": {"_id": "$county.source", "count": {"$sum": 1}}}
         ])
     }
@@ -1510,14 +1612,38 @@ def enrichment_report_fn(config: dict) -> dict:
     out_of_scope_by_reason: dict = {
         (doc["_id"] or "legacy"): doc["count"]
         for doc in staging_coll.aggregate([
-            {"$match": {"county.source": "out_of_scope"}},
+            {"$match": {"county.source": "out_of_scope", **sf}},
             {"$group": {"_id": "$county.reason", "count": {"$sum": 1}}},
+        ])
+    }
+
+    # PIPE-DQ-001/002: count records with new bad_data and out_of_scope flags
+    bad_data_count = staging_coll.count_documents({"bad_data.flagged": True, **sf})
+    out_of_scope_flagged_count = staging_coll.count_documents({"out_of_scope.flagged": True, **sf})
+
+    # Bad data breakdown by reason
+    bad_data_by_reason: dict = {
+        (doc["_id"] or "unknown"): doc["count"]
+        for doc in staging_coll.aggregate([
+            {"$match": {"bad_data.flagged": True, **sf}},
+            {"$group": {"_id": "$bad_data.reason", "count": {"$sum": 1}}},
+        ])
+    }
+
+    # Out-of-scope (new flag) breakdown by reason
+    out_of_scope_flagged_by_reason: dict = {
+        (doc["_id"] or "unknown"): doc["count"]
+        for doc in staging_coll.aggregate([
+            {"$match": {"out_of_scope.flagged": True, **sf}},
+            {"$group": {"_id": "$out_of_scope.reason", "count": {"$sum": 1}}},
         ])
     }
 
     total      = sum(source_counts.values())
     out_of_scope = source_counts.get("out_of_scope", 0)
-    addressable  = total - out_of_scope  # providers the geocoder can reach
+    # Excluded = legacy out_of_scope + new bad_data + new out_of_scope flags
+    total_excluded = out_of_scope + bad_data_count + out_of_scope_flagged_count
+    addressable  = total - total_excluded  # providers the geocoder can reach
 
     def pct(n: int, d: int) -> float:
         return round(n / d * 100, 1) if d else 0.0
@@ -1554,6 +1680,18 @@ def enrichment_report_fn(config: dict) -> dict:
             "pct_of_total":       pct(out_of_scope, total),
             "pct_of_addressable": None,
             "by_reason":          out_of_scope_by_reason,
+        },
+        "bad_data": {  # PIPE-DQ-001: records with data quality flags
+            "count":              bad_data_count,
+            "pct_of_total":       pct(bad_data_count, total),
+            "pct_of_addressable": None,
+            "by_reason":          bad_data_by_reason,
+        },
+        "out_of_scope_flagged": {  # PIPE-DQ-002: records with out_of_scope flags
+            "count":              out_of_scope_flagged_count,
+            "pct_of_total":       pct(out_of_scope_flagged_count, total),
+            "pct_of_addressable": None,
+            "by_reason":          out_of_scope_flagged_by_reason,
         },
         "unenriched":       bucket([None]),
         "total_enriched": {
