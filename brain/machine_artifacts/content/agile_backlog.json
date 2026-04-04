@@ -14978,6 +14978,92 @@
       ]
     },
     {
+      "epic_id": "EPIC-1",
+      "name_note": "continued — Research Agent feature added below main EPIC-1 features"
+    },
+    {
+      "feature_id": "EVAL-RESEARCH",
+      "name": "Research Agent — Subspecialty Discovery",
+      "epic_id": "EPIC-1",
+      "layer": "pipeline",
+      "capability": "EvaluateCare",
+      "description": "Autonomous research agent that discovers provider subspecialties and micro-credentials beyond NUCC taxonomy codes. Combines CMS public data (NPI, Medicare utilization, Part D prescriptions), board certification sources (ABMS), and professional society directories. Produces structured subspecialty data that feeds into provider quality scoring.",
+      "evidence": "brain/machine_artifacts/content/architecture.json (DC-14 Shared Research Bot); brain/machine_artifacts/content/design.json (EVAL-P-RX drug mapping)",
+      "priority": "HIGH",
+      "status": "accepted",
+      "accepted_by": "Boss",
+      "backend_dependencies": ["EVAL-SCORE-PROV"],
+      "stories": [
+        {
+          "story_id": "EVAL-RES-001",
+          "title": "Surgery subspecialty discovery agent — Delaware verification",
+          "description": "Build a research agent that discovers all surgery subspecialties available in the data. Starting from NUCC surgery taxonomy codes, cross-reference with ABMS board structure, CMS Medicare procedure codes (HCPCS/CPT), and Part D prescriber patterns. Map each subspecialty to its authoritative data source and assess programmatic accessibility (API, scrapable directory, partnership required). Verify results against Delaware provider data.",
+          "parent_feature": "EVAL-RESEARCH",
+          "sprint": 5,
+          "dependencies": [],
+          "size": "L",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "requirements": [
+            {
+              "req_id": "EVAL-RES-001-REQ-001",
+              "story_id": "EVAL-RES-001",
+              "requirement": "The agent must enumerate all NUCC taxonomy codes classified under surgery and produce a complete list with code, classification, and specialization.",
+              "source": "feature",
+              "priority": "must-have",
+              "status": "accepted",
+              "label": ""
+            },
+            {
+              "req_id": "EVAL-RES-001-REQ-002",
+              "story_id": "EVAL-RES-001",
+              "requirement": "The agent must cross-reference NUCC surgery codes with ABMS board certification structure and identify subspecialties that exist beyond the NUCC taxonomy.",
+              "source": "feature",
+              "priority": "must-have",
+              "status": "accepted",
+              "label": ""
+            },
+            {
+              "req_id": "EVAL-RES-001-REQ-003",
+              "story_id": "EVAL-RES-001",
+              "requirement": "The agent must produce a data acquisition plan per subspecialty: source name, URL, access method (API/scrape/partnership), and cost.",
+              "source": "feature",
+              "priority": "must-have",
+              "status": "accepted",
+              "label": ""
+            },
+            {
+              "req_id": "EVAL-RES-001-REQ-004",
+              "story_id": "EVAL-RES-001",
+              "requirement": "The agent must verify its findings against Delaware provider data in dev_PublicHealthData.providers — confirm that providers with surgery taxonomy codes exist and that the subspecialty mapping is accurate for at least 10 Delaware surgeons.",
+              "source": "Boss directive",
+              "priority": "must-have",
+              "status": "accepted",
+              "label": "verification"
+            },
+            {
+              "req_id": "EVAL-RES-001-REQ-005",
+              "story_id": "EVAL-RES-001",
+              "requirement": "The agent must identify which professional society directories (ACS, STS, AANS, etc.) offer surgeon lookup and assess whether programmatic access is feasible.",
+              "source": "feature",
+              "priority": "must-have",
+              "status": "accepted",
+              "label": ""
+            },
+            {
+              "req_id": "EVAL-RES-001-REQ-006",
+              "story_id": "EVAL-RES-001",
+              "requirement": "The agent must distinguish between licensed credentials (state board), board certifications (ABMS), and non-licensed micro-credentials (fellowships, society memberships, device certifications).",
+              "source": "feature",
+              "priority": "must-have",
+              "status": "accepted",
+              "label": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
       "epic_id": "EPIC-2",
       "name": "Maintenance",
       "capacity": "",
