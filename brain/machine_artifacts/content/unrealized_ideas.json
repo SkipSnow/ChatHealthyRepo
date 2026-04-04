@@ -1,0 +1,17 @@
+{
+  "collection": "unrealized_ideas",
+  "description": "Ideas captured from Boss that are not yet in the backlog. Every idea gets tracked here first, then promoted to a story when prioritized.",
+  "ideas": [
+    {
+      "id": "IDEA-001",
+      "author": "Boss",
+      "datetime": "2026-04-04T02:30:00Z",
+      "title": "Biz Ops MongoDB Cluster",
+      "description": "Break out a dedicated MongoDB cluster for business operations (lifecycle reservations, audit trails, build counters, promotion logs). Currently these are on the frontend cluster as an interim fix. The pipeline cluster is expensive and usually off — devops state should not be there. The frontend cluster is for user-facing data — devops state should not be there either.",
+      "recommended_roadmap": {
+        "epic": "EPIC-3 Pipeline Management",
+        "date_of_delivery": "Before Beta end (2026-08-25)"
+      }
+    }
+  ]
+}
