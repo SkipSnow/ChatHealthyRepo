@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<!--
+  Copyright © 2026 Skip Snow. All rights reserved.
+  Licensed under the FindCare Evaluation License (FEL-1.0).
+
+  Coded by Claude Opus 4.6 (Anthropic).
+  Developed in collaboration with ChatGPT (OpenAI).
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QA Report — ChatHealthy.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --ink:        #0d1117;
+      --ink-soft:   #4a5568;
+      --surface:    #ffffff;
+      --teal:       #0b7a75;
+      --teal-light: #e6f4f3;
+      --teal-mid:   #d0eeec;
+      --accent:     #f0a500;
+      --warn:       #c0392b;
+      --border:     #d8e2e1;
+      --radius:     6px;
+      --max-w:      1160px;
+      --content-w:  960px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* -- Header ----------------------------------------- */
+    header { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: 0 1px 6px rgba(11,122,117,0.06); }
+    .header-inner { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+    .logo-mark { width: 32px; height: 32px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; }
+    .logo-mark svg { width: 18px; height: 18px; fill: white; }
+    .logo-text { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--teal); letter-spacing: -0.01em; }
+    .logo-text span { color: var(--accent); }
+
+    /* -- Main ------------------------------------------- */
+    main { flex: 1; max-width: var(--max-w); width: 100%; margin: 0 auto; padding: clamp(20px,4vw,48px) clamp(16px,4vw,24px); }
+
+    .page-header { border-bottom: 2px solid var(--teal-mid); padding-bottom: 20px; margin-bottom: 36px; }
+    .page-header .eyebrow { font-size: 0.72rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 6px; }
+    .page-header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(1.5rem,4vw,2.25rem); color: var(--ink); line-height: 1.15; margin-bottom: 8px; }
+    .page-header .effective { font-size: 0.82rem; color: var(--ink-soft); }
+
+    /* -- Report body ------------------------------------ */
+    .report-body { max-width: var(--content-w); }
+
+    .report-body h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.4rem;
+      color: var(--teal);
+      margin: 40px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 3px solid var(--teal);
+    }
+    .report-body h2:first-child { margin-top: 0; }
+
+    .report-body p { font-size: 0.92rem; line-height: 1.7; color: var(--ink); margin-bottom: 10px; }
+
+    /* -- Summary cards ---------------------------------- */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin: 16px 0 32px;
+    }
+    .summary-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+      background: var(--surface);
+    }
+    .summary-card .card-value {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2rem;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .summary-card .card-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+    }
+    .card-value.c-pass     { color: #16a34a; }
+    .card-value.c-fail     { color: var(--warn); }
+    .card-value.c-progress { color: #2563eb; }
+    .card-value.c-pending  { color: var(--ink-soft); }
+    .card-value.c-total    { color: var(--ink); }
+
+    /* -- Meta table ------------------------------------- */
+    .meta-table { margin: 12px 0 24px; font-size: 0.88rem; }
+    .meta-table td { padding: 4px 16px 4px 0; vertical-align: top; }
+    .meta-table td:first-child { font-weight: 500; color: var(--ink-soft); white-space: nowrap; }
+
+    /* -- Feature table ---------------------------------- */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 12px 0; }
+    table.qa-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 700px; }
+    table.qa-table th {
+      background: var(--ink);
+      color: #fff;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 500;
+      font-size: 0.82rem;
+      letter-spacing: 0.03em;
+    }
+    table.qa-table td {
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    table.qa-table tr.feature-row { cursor: pointer; }
+    table.qa-table tr.feature-row:hover td { background: var(--teal-light); }
+    table.qa-table tr.feature-row td { font-weight: 500; }
+    table.qa-table tr.tc-row td {
+      font-size: 0.84rem;
+      padding-left: 32px;
+      color: var(--ink-soft);
+      background: #fafcfc;
+    }
+    table.qa-table tr.tc-row td:first-child { padding-left: 32px; }
+    table.qa-table tr.tc-row.hidden { display: none; }
+
+    /* -- Status badges ---------------------------------- */
+    .status-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 3px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .status-PASS         { background: #dcfce7; color: #166534; }
+    .status-FAIL         { background: #fee2e2; color: #991b1b; }
+    .status-NOT_STARTED  { background: #f1f5f9; color: #64748b; }
+    .status-IN_PROGRESS  { background: #dbeafe; color: #1e40af; }
+    .status-UNTESTED     { background: #fff7ed; color: #9a3412; }
+    .status-RELEASE_BLOCKER { background: #fee2e2; color: #991b1b; font-weight: 700; border: 1px solid #991b1b; }
+    .status-empty        { background: #f1f5f9; color: #94a3b8; }
+
+    /* -- Expand arrow ----------------------------------- */
+    .expand-arrow {
+      display: inline-block;
+      width: 14px;
+      transition: transform 0.2s;
+      font-size: 0.72rem;
+      color: var(--ink-soft);
+    }
+    .expand-arrow.open { transform: rotate(90deg); }
+
+    /* -- Prior reports ---------------------------------- */
+    .prior-list { list-style: disc; margin: 8px 0 0 20px; font-size: 0.88rem; line-height: 1.8; }
+    .prior-list li span { font-weight: 500; }
+
+    /* -- Footer ----------------------------------------- */
+    footer { border-top: 1px solid var(--border); background: var(--surface); }
+    .footer-inner { max-width: var(--max-w); margin: 0 auto; padding: 14px clamp(16px,4vw,24px); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .footer-copy { font-size: 0.78rem; color: var(--ink-soft); font-style: italic; }
+    .footer-copy a { color: var(--ink-soft); text-decoration: none; }
+    .footer-copy a:hover { color: var(--teal); }
+
+    @media (max-width: 480px) { .footer-inner { justify-content: center; text-align: center; } }
+
+    /* -- Print ------------------------------------------ */
+    @media print {
+      header, footer { display: none !important; }
+      body { font-size: 11pt; }
+      .report-body { max-width: 100%; }
+      .tc-row.hidden { display: table-row !important; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="header-inner">
+      <a class="logo" href="/" target="_top" title="Back to ChatHealthy.ai">
+        <div class="logo-mark">
+          <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="2" width="4" height="16" rx="1"/>
+            <rect x="2" y="8" width="16" height="4" rx="1"/>
+          </svg>
+        </div>
+        <span class="logo-text">Chat<span>Healthy</span>.ai</span>
+      </a>
+    </div>
+  </header>
+
+  <main>
+
+    <div class="page-header">
+      <p class="eyebrow">Quality Assurance Report</p>
+      <h1>QA Report &mdash; v0.1.4 Dev to SIT Promotion Checklist</h1>
+      <p class="effective">April 4, 2026 &nbsp;&middot;&nbsp; &copy; 2026 Skip Snow. All rights reserved. &nbsp;&middot;&nbsp; <a href="https://www.chathealthy.ai" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none;">chathealthy.ai</a> &nbsp;&middot;&nbsp; <a href="https://github.com/SkipSnow/ChatHealthyRepo" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none;">GitHub</a></p>
+    </div>
+
+    <div class="report-body">
+
+      <!-- Metadata -->
+      <h2>Report Details</h2>
+      <table class="meta-table">
+        <tr><td>Version</td><td>v0.1.4</td></tr>
+        <tr><td>Status</td><td><span class="status-badge status-IN_PROGRESS">In Progress</span></td></tr>
+        <tr><td>Environment</td><td>dev</td></tr>
+        <tr><td>Target</td><td>SIT (QA promotion 2026-04-23)</td></tr>
+        <tr><td>Tester</td><td>Boss (Skip Snow)</td></tr>
+        <tr><td>Engineer</td><td>Claude Opus 4.6</td></tr>
+        <tr><td>Architect</td><td>GPT-4o</td></tr>
+        <tr><td>Scope</td><td>EPIC-1 (Evaluate Care) + EPIC-3 (Pipeline Management) only. FindCare regression deferred to UAT.</td></tr>
+      </table>
+
+      <!-- Summary -->
+      <h2>Summary</h2>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="card-value c-total">23</div>
+          <div class="card-label">Features</div>
+        </div>
+        <div class="summary-card">
+          <div class="card-value c-total">43</div>
+          <div class="card-label">Test Cases</div>
+        </div>
+        <div class="summary-card">
+          <div class="card-value c-pass">3</div>
+          <div class="card-label">Pass</div>
+        </div>
+        <div class="summary-card">
+          <div class="card-value c-progress">4</div>
+          <div class="card-label">In Progress</div>
+        </div>
+        <div class="summary-card">
+          <div class="card-value c-pending">36</div>
+          <div class="card-label">Not Started</div>
+        </div>
+        <div class="summary-card">
+          <div class="card-value c-fail">0</div>
+          <div class="card-label">Blockers</div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div style="background:#f1f5f9; border-radius:var(--radius); height:24px; overflow:hidden; margin-bottom:32px; display:flex;">
+        <div style="width:6.98%; background:#16a34a;" title="Pass: 3"></div>
+        <div style="width:9.30%; background:#2563eb;" title="In Progress: 4"></div>
+        <div style="width:83.72%; background:#e2e8f0;" title="Not Started: 36"></div>
+      </div>
+
+      <!-- Feature table -->
+      <h2>Features &amp; Test Cases</h2>
+      <p>Click a feature row to expand its test cases.</p>
+
+      <div class="table-wrap">
+        <table class="qa-table">
+          <thead>
+            <tr>
+              <th style="width:36px;"></th>
+              <th style="width:60px;">#</th>
+              <th style="width:170px;">Feature ID</th>
+              <th>Feature Name</th>
+              <th style="width:70px;">Epic</th>
+              <th style="width:120px;">Status</th>
+              <th style="width:60px;">Tests</th>
+            </tr>
+          </thead>
+          <tbody>
+
+            <!-- Feature 1 -->
+            <tr class="feature-row" onclick="toggleTests(1)">
+              <td><span class="expand-arrow" id="arrow-1">&#9654;</span></td>
+              <td>1</td>
+              <td>EVAL-SCORE-PROV</td>
+              <td>Provider Quality Scoring Engine</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>4</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="1">
+              <td></td>
+              <td>TC-01</td>
+              <td colspan="4">Pydantic input model validates measures, weights, metadata</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="1">
+              <td></td>
+              <td>TC-02</td>
+              <td colspan="4">Deterministic scoring — same input always yields same output</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="1">
+              <td></td>
+              <td>TC-03</td>
+              <td colspan="4">Composite score, subscores, and trace returned in output</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="1">
+              <td></td>
+              <td>TC-04</td>
+              <td colspan="4">Validation error on missing required fields</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 2 -->
+            <tr class="feature-row" onclick="toggleTests(2)">
+              <td><span class="expand-arrow" id="arrow-2">&#9654;</span></td>
+              <td>2</td>
+              <td>EVAL-SCORE-CT</td>
+              <td>Clinical Trial Quality Scoring Engine</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>2</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="2">
+              <td></td>
+              <td>TC-05</td>
+              <td colspan="4">Trial scoring schema defined and validated</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="2">
+              <td></td>
+              <td>TC-06</td>
+              <td colspan="4">Scoring logic deterministic</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 3 -->
+            <tr class="feature-row" onclick="toggleTests(3)">
+              <td><span class="expand-arrow" id="arrow-3">&#9654;</span></td>
+              <td>3</td>
+              <td>EVAL-EXPLAIN</td>
+              <td>Score Explainability Service</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>2</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="3">
+              <td></td>
+              <td>TC-07</td>
+              <td colspan="4">Explanation traces back to input measures and weights</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="3">
+              <td></td>
+              <td>TC-08</td>
+              <td colspan="4">No AI-generated explanations — system-authored only</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 4 -->
+            <tr class="feature-row" onclick="toggleTests(4)">
+              <td><span class="expand-arrow" id="arrow-4">&#9654;</span></td>
+              <td>4</td>
+              <td>EVAL-P-MEASURE-1</td>
+              <td>Provider Board Certification Verification</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>2</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="4">
+              <td></td>
+              <td>TC-09</td>
+              <td colspan="4">Board certification data sourced from NPI/CMS</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="4">
+              <td></td>
+              <td>TC-10</td>
+              <td colspan="4">Certification aligned with provider specialty</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 5 -->
+            <tr class="feature-row" onclick="toggleTests(5)">
+              <td><span class="expand-arrow" id="arrow-5">&#9654;</span></td>
+              <td>5</td>
+              <td>EVAL-P-MEASURE-2</td>
+              <td>Provider Years in Practice</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>1</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="5">
+              <td></td>
+              <td>TC-11</td>
+              <td colspan="4">Years in practice computed from enumeration date</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 6 -->
+            <tr class="feature-row" onclick="toggleTests(6)">
+              <td><span class="expand-arrow" id="arrow-6">&#9654;</span></td>
+              <td>6</td>
+              <td>EVAL-P-MEASURE-3</td>
+              <td>Provider Specialty Match Accuracy</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>1</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="6">
+              <td></td>
+              <td>TC-12</td>
+              <td colspan="4">NUCC code matching logic correct for multi-taxonomy providers</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 7 -->
+            <tr class="feature-row" onclick="toggleTests(7)">
+              <td><span class="expand-arrow" id="arrow-7">&#9654;</span></td>
+              <td>7</td>
+              <td>EVAL-P-RX</td>
+              <td>Prescription Behavior Analysis</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>2</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="7">
+              <td></td>
+              <td>TC-13</td>
+              <td colspan="4">CMS Part D data loaded and mapped to providers</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="7">
+              <td></td>
+              <td>TC-14</td>
+              <td colspan="4">Drug-to-indication-to-ICD10 mapping produces valid output</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 8 -->
+            <tr class="feature-row" onclick="toggleTests(8)">
+              <td><span class="expand-arrow" id="arrow-8">&#9654;</span></td>
+              <td>8</td>
+              <td>EVAL-CT-MEASURE-1</td>
+              <td>Clinical Trial Phase Scoring</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>1</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="8">
+              <td></td>
+              <td>TC-15</td>
+              <td colspan="4">Phase value mapped to numeric score</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 9 -->
+            <tr class="feature-row" onclick="toggleTests(9)">
+              <td><span class="expand-arrow" id="arrow-9">&#9654;</span></td>
+              <td>9</td>
+              <td>EVAL-CT-MEASURE-2</td>
+              <td>Clinical Trial Recruitment Status Scoring</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>1</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="9">
+              <td></td>
+              <td>TC-16</td>
+              <td colspan="4">Recruiting status scored higher than not-recruiting</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 10 -->
+            <tr class="feature-row" onclick="toggleTests(10)">
+              <td><span class="expand-arrow" id="arrow-10">&#9654;</span></td>
+              <td>10</td>
+              <td>EVAL-CT-MEASURE-3</td>
+              <td>Clinical Trial Condition Relevance Scoring</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>1</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="10">
+              <td></td>
+              <td>TC-17</td>
+              <td colspan="4">Condition match scoring produces relevance_score 0-1</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 11 -->
+            <tr class="feature-row" onclick="toggleTests(11)">
+              <td><span class="expand-arrow" id="arrow-11">&#9654;</span></td>
+              <td>11</td>
+              <td>EVAL-WEIGHTS</td>
+              <td>Configurable Scoring Weights</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>1</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="11">
+              <td></td>
+              <td>TC-18</td>
+              <td colspan="4">Weights adjustable via API, recomputed scores match</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 12 -->
+            <tr class="feature-row" onclick="toggleTests(12)">
+              <td><span class="expand-arrow" id="arrow-12">&#9654;</span></td>
+              <td>12</td>
+              <td>EVAL-P-MEASURE-5</td>
+              <td>Provider Disciplinary Actions</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>1</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="12">
+              <td></td>
+              <td>TC-19</td>
+              <td colspan="4">State board disciplinary data sourced and scored</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 13 -->
+            <tr class="feature-row" onclick="toggleTests(13)">
+              <td><span class="expand-arrow" id="arrow-13">&#9654;</span></td>
+              <td>13</td>
+              <td>EVAL-CT-MEASURE-4</td>
+              <td>Clinical Trial Sponsor Reputation</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>1</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="13">
+              <td></td>
+              <td>TC-20</td>
+              <td colspan="4">Sponsor history aggregated from ClinicalTrials.gov</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 14 -->
+            <tr class="feature-row" onclick="toggleTests(14)">
+              <td><span class="expand-arrow" id="arrow-14">&#9654;</span></td>
+              <td>14</td>
+              <td>EVAL-CT-MEASURE-5</td>
+              <td>Clinical Trial Safety Signal</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>1</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="14">
+              <td></td>
+              <td>TC-21</td>
+              <td colspan="4">Adverse event and DSMB signals detected and scored</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 15 -->
+            <tr class="feature-row" onclick="toggleTests(15)">
+              <td><span class="expand-arrow" id="arrow-15">&#9654;</span></td>
+              <td>15</td>
+              <td>EVAL-NORMALIZATION</td>
+              <td>Score Normalization</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>1</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="15">
+              <td></td>
+              <td>TC-22</td>
+              <td colspan="4">Scores normalized to 0-100 scale</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 16 -->
+            <tr class="feature-row" onclick="toggleTests(16)">
+              <td><span class="expand-arrow" id="arrow-16">&#9654;</span></td>
+              <td>16</td>
+              <td>EVAL-DATA-PROVENANCE</td>
+              <td>Data Provenance Tracking</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>1</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="16">
+              <td></td>
+              <td>TC-23</td>
+              <td colspan="4">Every score traces to source data with timestamp</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 17 -->
+            <tr class="feature-row" onclick="toggleTests(17)">
+              <td><span class="expand-arrow" id="arrow-17">&#9654;</span></td>
+              <td>17</td>
+              <td>EVAL-FAILSAFE</td>
+              <td>Scoring Failsafe — Incomplete Data Handling</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>1</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="17">
+              <td></td>
+              <td>TC-24</td>
+              <td colspan="4">Incomplete data produces partial score with confidence indicator</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 18 -->
+            <tr class="feature-row" onclick="toggleTests(18)">
+              <td><span class="expand-arrow" id="arrow-18">&#9654;</span></td>
+              <td>18</td>
+              <td>EVAL-CONFIDENCE</td>
+              <td>Score Confidence Indicator</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>1</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="18">
+              <td></td>
+              <td>TC-25</td>
+              <td colspan="4">Confidence score reflects data completeness</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 19 -->
+            <tr class="feature-row" onclick="toggleTests(19)">
+              <td><span class="expand-arrow" id="arrow-19">&#9654;</span></td>
+              <td>19</td>
+              <td>EVAL-CACHE</td>
+              <td>Evaluation Result Caching</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>2</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="19">
+              <td></td>
+              <td>TC-26</td>
+              <td colspan="4">Cache key includes all scoring parameters</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="19">
+              <td></td>
+              <td>TC-27</td>
+              <td colspan="4">TTL and version invalidation working</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 20 -->
+            <tr class="feature-row" onclick="toggleTests(20)">
+              <td><span class="expand-arrow" id="arrow-20">&#9654;</span></td>
+              <td>20</td>
+              <td>EVAL-RESEARCH</td>
+              <td>Research Agent — Subspecialty Discovery</td>
+              <td>EPIC-1</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>4</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="20">
+              <td></td>
+              <td>TC-28</td>
+              <td colspan="4">NUCC surgery codes enumerated</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="20">
+              <td></td>
+              <td>TC-29</td>
+              <td colspan="4">ABMS board structure cross-referenced</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="20">
+              <td></td>
+              <td>TC-30</td>
+              <td colspan="4">Data acquisition plan per subspecialty</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="20">
+              <td></td>
+              <td>TC-31</td>
+              <td colspan="4">Verified against 10 Delaware surgeons</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 21 -->
+            <tr class="feature-row" onclick="toggleTests(21)" style="background:var(--teal-light);">
+              <td><span class="expand-arrow" id="arrow-21">&#9654;</span></td>
+              <td>21</td>
+              <td>PIPE-LIFECYCLE</td>
+              <td>Pipeline Lifecycle Management</td>
+              <td>EPIC-3</td>
+              <td><span class="status-badge status-IN_PROGRESS">In Progress</span></td>
+              <td>7</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="21">
+              <td></td>
+              <td>TC-32</td>
+              <td colspan="4">Pipeline reserves cluster through manager</td>
+              <td><span class="status-badge status-PASS">Pass</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="21">
+              <td></td>
+              <td>TC-33</td>
+              <td colspan="4">Manager wakes cluster on reservation</td>
+              <td><span class="status-badge status-PASS">Pass</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="21">
+              <td></td>
+              <td>TC-34</td>
+              <td colspan="4">Manager pauses cluster on zero reservations</td>
+              <td><span class="status-badge status-PASS">Pass</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="21">
+              <td></td>
+              <td>TC-35</td>
+              <td colspan="4">State filter enforced in all enrichment passes</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="21">
+              <td></td>
+              <td>TC-36</td>
+              <td colspan="4">Try/finally releases reservation on failure</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="21">
+              <td></td>
+              <td>TC-37</td>
+              <td colspan="4">Collection dropped unless incremental=true</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="21">
+              <td></td>
+              <td>TC-38</td>
+              <td colspan="4">Full pipeline end-to-end on DE (25K providers)</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 22 -->
+            <tr class="feature-row" onclick="toggleTests(22)">
+              <td><span class="expand-arrow" id="arrow-22">&#9654;</span></td>
+              <td>22</td>
+              <td>PIPE-DATA-MODEL</td>
+              <td>Provider Data Model — In-Place Enrichment</td>
+              <td>EPIC-3</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>1</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="22">
+              <td></td>
+              <td>TC-39</td>
+              <td colspan="4">Enrichment writes directly to provider record</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+            <!-- Feature 23 -->
+            <tr class="feature-row" onclick="toggleTests(23)">
+              <td><span class="expand-arrow" id="arrow-23">&#9654;</span></td>
+              <td>23</td>
+              <td>PIPE-INCREMENTAL</td>
+              <td>Incremental Provider Updates</td>
+              <td>EPIC-3</td>
+              <td><span class="status-badge status-NOT_STARTED">Not Started</span></td>
+              <td>4</td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="23">
+              <td></td>
+              <td>TC-40</td>
+              <td colspan="4">Incremental=true replaces full record, sets county to null</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="23">
+              <td></td>
+              <td>TC-41</td>
+              <td colspan="4">New records inserted</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="23">
+              <td></td>
+              <td>TC-42</td>
+              <td colspan="4">Deactivated records deleted</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+            <tr class="tc-row hidden" data-feature="23">
+              <td></td>
+              <td>TC-43</td>
+              <td colspan="4">Deleted NPIs logged for audit</td>
+              <td><span class="status-badge status-empty">--</span></td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Prior Reports -->
+      <h2>Prior Reports</h2>
+      <ul class="prior-list">
+        <li><span>v0.1.2</span> — qa_report_v012 — <span class="status-badge status-PASS">Released</span></li>
+        <li><span>v0.1.3</span> — qa_report_v013_release — <span class="status-badge status-PASS">Released</span></li>
+      </ul>
+
+    </div><!-- /report-body -->
+
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <span class="footer-copy"><a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener">&copy; 2026 Skip Snow. All rights reserved.</a></span>
+      <span class="footer-copy"><a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('roadmap.html'),('Roadmap'));return false;">Product Roadmap</a></span>
+    </div>
+  </footer>
+
+  <script>
+    function toggleTests(featureId) {
+      var rows = document.querySelectorAll('tr.tc-row[data-feature="' + featureId + '"]');
+      var arrow = document.getElementById('arrow-' + featureId);
+      var isHidden = rows[0] && rows[0].classList.contains('hidden');
+      for (var i = 0; i < rows.length; i++) {
+        if (isHidden) {
+          rows[i].classList.remove('hidden');
+        } else {
+          rows[i].classList.add('hidden');
+        }
+      }
+      if (arrow) {
+        arrow.classList.toggle('open', isHidden);
+      }
+    }
+  </script>
+
+</body>
+</html>
