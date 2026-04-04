@@ -15676,8 +15676,8 @@
             },
             {
               "story_id": "PIPE-INC-002",
-              "title": "ENH-PIPE-002: Incremental delete — deactivated NPIs",
-              "description": "When the incremental NPI file marks a record for deletion (deactivation), delete the provider record from the collection.",
+              "title": "ENH-PIPE-002: Incremental deactivation — flag out_of_scope",
+              "description": "When the incremental NPI file marks a record as deactivated, flag it out_of_scope with reason deactivated. Do not delete. Log for audit.",
               "parent_feature": "PIPE-INCREMENTAL",
               "sprint": 5,
               "dependencies": ["PIPE-INC-001"],
@@ -15686,18 +15686,9 @@
               "accepted_by": "Boss",
               "requirements": [
                 {
-                  "req_id": "PIPE-INC-002-REQ-001",
-                  "story_id": "PIPE-INC-002",
-                  "requirement": "Records marked for deactivation in the NPI file must be deleted from the providers collection.",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": ""
-                },
-                {
                   "req_id": "PIPE-INC-002-REQ-002",
                   "story_id": "PIPE-INC-002",
-                  "requirement": "Deleted NPI numbers must be logged for audit trail.",
+                  "requirement": "Deactivated NPI numbers must be logged for audit trail.",
                   "source": "Boss directive",
                   "priority": "must-have",
                   "status": "accepted",
