@@ -15829,10 +15829,8 @@
           {"req_id": "DEVOPS-COMMS-001-REQ-004", "requirement": "GPT assignment results must be stored in brain JSON for audit and review.", "priority": "must-have", "status": "accepted"}
         ]}
       ]
-    }
-  ]
-},
-{
+    },
+    {
       "epic_id": "EPIC-4",
       "name": "Security",
       "capacity": "",
