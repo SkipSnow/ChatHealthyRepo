@@ -330,7 +330,7 @@ h1{{font-size:24px}}h2{{font-size:16px;color:#6b7280}}</style></head><body>
 
 @app.get("/welcome")
 def welcome():
-    return {"message": _build_test_welcome() if _HUMAN_TESTING else WELCOME_MESSAGE}
+    return {"message": WELCOME_MESSAGE}
 
 _REQUIRED_INDEXES = {
     "providers": ["provider_vector_index"],
