@@ -197,8 +197,8 @@
   },
   {
     "project_path": "brain/machine_artifacts/content/agile_backlog.json",
-    "size": 818509,
-    "content_hash": "d8508cd1b580d826",
+    "size": 820831,
+    "content_hash": "d0d78187a891c8b9",
     "entity_type": "file",
     "description": ""
   },
@@ -407,8 +407,8 @@
   },
   {
     "project_path": "brain/manifest/project_manifest.json",
-    "size": 76878,
-    "content_hash": "7c91b2ecf72b52d6",
+    "size": 52898,
+    "content_hash": "9f1275c43c2e0864",
     "entity_type": "file",
     "description": ""
   },
@@ -1606,6 +1606,13 @@
     "project_path": "Code/Shared/ops/promote_data.py",
     "size": 4164,
     "content_hash": "06d112cbc61510f9",
+    "entity_type": "file",
+    "description": ""
+  },
+  {
+    "project_path": "Code/Shared/ops/rebuild_manifest.py",
+    "size": 1203,
+    "content_hash": "dff086f794320a94",
     "entity_type": "file",
     "description": ""
   },
