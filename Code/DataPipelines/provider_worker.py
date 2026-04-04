@@ -228,8 +228,8 @@ class ProviderWorker(PipelineWorkerBase):
         self.load_id = config["load_id"]
         self.metadata_id = config["metadata_id"]
         self.batch_size = config.get("batch_size", 10_000)
-        self.staging_collection = config.get(
-            "staging_collection", "dev_PublicHealthData.providers"
+        self.provider_collection = config.get(
+            "provider_collection", "dev_PublicHealthData.providers"
         )
         self.metadata_collection = config.get("metadata_collection", "admin.DataLoadMetadata")
         self.blob_container = config.get("blob_container", "provider-data")
@@ -282,7 +282,7 @@ class ProviderWorker(PipelineWorkerBase):
         stream = blob_client.download_blob(offset=self.start_byte, length=length)
         self._reader = csv.reader(_iter_lines(stream, stop_after=stop_after))
 
-        db_name, coll_name = self.staging_collection.split(".", 1)
+        db_name, coll_name = self.provider_collection.split(".", 1)
         self._collection = _get_mongo_client()[db_name][coll_name]
 
         self._npi_idx = self.header.index("NPI") if "NPI" in self.header else None

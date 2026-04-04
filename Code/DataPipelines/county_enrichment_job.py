@@ -315,7 +315,7 @@ def reset_geocoder_failed_fn(config: dict) -> dict:
     This clears that flag so get_unenriched_fn picks them up again.
     Only call this when switching geocoder strategy; not on routine reruns.
     """
-    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     sf = _build_states_filter(config)  # BUG-PIPE-001
     result = _get_mongo_client()[db_name][coll_name].update_many(
@@ -529,7 +529,7 @@ def county_enrichment_orchestrator_fn(context):
 
 def get_distinct_zips_fn(config: dict) -> dict:
     """Return total provider count and list of distinct 5-digit ZIPs."""
-    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
     state_filter = _build_states_filter(config)  # BUG-PIPE-001
@@ -574,7 +574,7 @@ class ZipEnrichmentWorker(PipelineWorkerBase):
     def __init__(self, config: dict):
         super().__init__(config)
         self.zip_batch = config["zip_batch"]
-        self.staging_collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+        self.provider_collection = config.get("provider_collection", PROVIDERS_COLLECTION)
         self._state_filter = _build_states_filter(config)  # BUG-PIPE-001: required
         self._idx: int = -1
         self._collection = None
@@ -585,7 +585,7 @@ class ZipEnrichmentWorker(PipelineWorkerBase):
     def _pipeline_open(self) -> None:
         self._started_at = datetime.now(timezone.utc).isoformat()
         self._start_time = time.monotonic()
-        db_name, coll_name = self.staging_collection.split(".", 1)
+        db_name, coll_name = self.provider_collection.split(".", 1)
         self._collection = _get_mongo_client()[db_name][coll_name]
 
     def _pipeline_has_next(self) -> bool:
@@ -653,7 +653,7 @@ def mark_out_of_scope_fn(config: dict) -> dict:
 
     Uses controlled vocabulary values from CV-001 (bad_data_reasons) and CV-002 (out_of_scope_reasons).
     """
-    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
 
@@ -732,7 +732,7 @@ def mark_zip_state_mismatch_fn(config: dict) -> dict:
     Uses controlled vocabulary values from CV-001 (bad_data_reasons).
     Called after mark_out_of_scope_fn so already-excluded providers are skipped.
     """
-    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
 
@@ -897,7 +897,7 @@ def get_unenriched_fn(config: dict) -> dict:
     geocoder_failed, geocoder_no_address, out_of_scope.
     mark_out_of_scope_fn must run before this.
     """
-    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
     sf = _build_states_filter(config)  # BUG-PIPE-001
@@ -981,7 +981,7 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
     start_time = time.monotonic()
     start_id_hex = config["start_id"]
     end_id_hex   = config.get("end_id")       # None for the last batch (open upper bound)
-    collection   = config.get("staging_collection", PROVIDERS_COLLECTION)
+    collection   = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
 
@@ -1073,7 +1073,7 @@ def get_billing_retryable_fn(config: dict) -> dict:
 
     Excludes deactivated and foreign providers — same rules as Pass 2.
     """
-    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
     sf = _build_states_filter(config)  # BUG-PIPE-001
@@ -1117,7 +1117,7 @@ def enrich_by_billing_batch_fn(config: dict) -> dict:
     started_at = datetime.now(timezone.utc).isoformat()
     start_time = time.monotonic()
     id_batch   = config["id_batch"]
-    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
 
@@ -1208,7 +1208,7 @@ def get_maps_retryable_fn(config: dict) -> dict:
 
     Any provider with a usable address string (practice or mailing) is eligible.
     """
-    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
     sf = _build_states_filter(config)  # BUG-PIPE-001
@@ -1248,7 +1248,7 @@ def enrich_by_maps_batch_fn(config: dict) -> dict:
     started_at = datetime.now(timezone.utc).isoformat()
     start_time = time.monotonic()
     id_batch   = config["id_batch"]
-    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     delay      = config.get("maps_call_delay_seconds", 0.1)
     api_key    = os.environ["GOOGLE_MAPS_API_KEY"]
 
@@ -1355,7 +1355,7 @@ def get_nppes_retryable_fn(config: dict) -> dict:
       {"mode": "exclude", "list": ["CA", "TX"]}         — skip these states
       omitted                                            — all states
     """
-    collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
 
@@ -1396,7 +1396,7 @@ def enrich_by_nppes_batch_fn(config: dict) -> dict:
     started_at = datetime.now(timezone.utc).isoformat()
     start_time = time.monotonic()
     provider_batch = config["provider_batch"]   # list of {id, npi}
-    collection     = config.get("staging_collection", PROVIDERS_COLLECTION)
+    collection     = config.get("provider_collection", PROVIDERS_COLLECTION)
     delay          = config.get("nppes_call_delay_seconds", 0.2)
 
     db_name, coll_name = collection.split(".", 1)
@@ -1590,9 +1590,9 @@ def enrichment_report_fn(config: dict) -> dict:
     reconcile = config["reconcile"]
     load_id = config.get("load_id", "unknown")
     report_collection = config.get("report_collection", "admin.PipelineDiscrepancyReports")
-    staging_collection = config.get("staging_collection", PROVIDERS_COLLECTION)
+    provider_collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name_r, coll_name_r = report_collection.split(".", 1)
-    db_name_s, coll_name_s = staging_collection.split(".", 1)
+    db_name_s, coll_name_s = provider_collection.split(".", 1)
 
     client = _get_mongo_client()
 

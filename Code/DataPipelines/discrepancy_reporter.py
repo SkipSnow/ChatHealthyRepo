@@ -53,8 +53,8 @@ class DiscrepancyReporter:
         total_failed_rows = sum(r.get("rows_failed", 0) for r in worker_results)
 
         # ── Enrichment stats from staging collection ──────────────────────────
-        staging_collection = config.get("staging_collection", "dev_PublicHealthData.providers")
-        db_name, coll_name = staging_collection.split(".", 1)
+        provider_collection = config.get("provider_collection", "dev_PublicHealthData.providers")
+        db_name, coll_name = provider_collection.split(".", 1)
         staging_coll = _get_mongo_client()[db_name][coll_name]
 
         source_counts: dict = {
