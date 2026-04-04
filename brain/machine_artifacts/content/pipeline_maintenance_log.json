@@ -257,6 +257,71 @@
       "time": "2026-04-04T07:23:39Z",
       "status": "Terminated",
       "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T07:28:41Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T07:33:42Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T07:38:43Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T07:43:45Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T07:48:46Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T00:52:00Z",
+      "action": "submitted_full_load",
+      "states": [
+        "DE",
+        "MS",
+        "VA",
+        "CA"
+      ],
+      "instance_id": "4668cc4d3ebf4eb99e72e975a0a2ac9f",
+      "build": "444"
+    },
+    {
+      "time": "2026-04-04T07:53:52Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T07:58:46Z",
+      "status": "Failed",
+      "customStatus": "Releasing cluster reservation"
+    },
+    {
+      "time": "2026-04-04T07:59:00Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T08:04:06Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T01:05:00Z",
+      "action": "pipeline_failed_step2_again",
+      "error": "BlobNotFound: NPI zip not in Azure storage. Download step runs but blob not persisted.",
+      "root_cause": "TBD \u2014 download_zip_activity may be writing to wrong container or path. Debug in morning.",
+      "try_finally": "WORKED \u2014 reservation released on failure, manager will pause cluster.",
+      "state_filter": "NOT TESTED \u2014 failed before reaching enrichment steps."
     }
   ]
 }
