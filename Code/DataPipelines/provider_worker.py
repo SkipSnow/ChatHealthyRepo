@@ -234,6 +234,20 @@ class ProviderWorker(PipelineWorkerBase):
         self.metadata_collection = config.get("metadata_collection", "admin.DataLoadMetadata")
         self.blob_container = config.get("blob_container", "provider-data")
 
+        # BUG-PIPE-001: state filter is REQUIRED for all pipeline steps
+        states = config.get("states")
+        if not states:
+            raise ValueError("BUG-PIPE-001: states parameter is REQUIRED. Cannot load all records.")
+        if isinstance(states, list):
+            self._allowed_states = set(s.upper() for s in states)
+        elif isinstance(states, dict):
+            self._allowed_states = set(s.upper() for s in states.get("list", []))
+        else:
+            raise ValueError(f"BUG-PIPE-001: invalid states format: {states}")
+        if not self._allowed_states:
+            raise ValueError("BUG-PIPE-001: states list is empty. Cannot load all records.")
+        self._skipped_states = 0
+
         # State initialised in _pipeline_open(); set to safe defaults so
         # _pipeline_close() is always safe to call even if _pipeline_open()
         # did not complete.
@@ -295,6 +309,13 @@ class ProviderWorker(PipelineWorkerBase):
             )
 
         doc = _normalize_row(self.header, row)
+
+        # BUG-PIPE-001: skip records not in allowed states
+        state = (doc.get("practice_address") or {}).get("state", "").upper()
+        if state not in self._allowed_states:
+            self._skipped_states += 1
+            return
+
         record_id = self.worker_id * MAX_ROWS_PER_WORKER + self._local_index
         doc["load_id"] = self.load_id
         doc["record_id"] = record_id
@@ -340,9 +361,9 @@ class ProviderWorker(PipelineWorkerBase):
 
         self._update_status(12, None, num_records=self._num_records)
         logging.info(
-            "Worker %d: processed=%d inserted=%d failed=%d %.1fs (%.1f rows/s)",
-            self.worker_id, rows_processed, self._num_records, len(self.row_errors),
-            duration, rows_per_second,
+            "Worker %d: processed=%d inserted=%d skipped_state=%d failed=%d %.1fs (%.1f rows/s)",
+            self.worker_id, rows_processed, self._num_records, self._skipped_states,
+            len(self.row_errors), duration, rows_per_second,
         )
         return {
             "worker_id": self.worker_id,
