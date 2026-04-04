@@ -15785,7 +15785,28 @@
             {"story_id": "DEVOPS-QA-001", "title": "QA report renderer reads brain JSON and produces HTML", "size": "M", "status": "accepted", "requirements": [{"req_id": "DEVOPS-QA-001-REQ-001", "requirement": "Renderer reads qa_report JSON from brain and produces formatted HTML page", "priority": "must-have", "status": "accepted"}, {"req_id": "DEVOPS-QA-001-REQ-002", "requirement": "Report scoped by epic — shows only features for the specified release", "priority": "must-have", "status": "accepted"}, {"req_id": "DEVOPS-QA-001-REQ-003", "requirement": "Report accessible in dev and QA only — not visible in prod", "priority": "must-have", "status": "accepted"}]},
             {"story_id": "DEVOPS-QA-002", "title": "QA report shows test case status with color coding", "size": "S", "status": "accepted", "requirements": [{"req_id": "DEVOPS-QA-002-REQ-001", "requirement": "PASS=green, FAIL=red, NOT_STARTED=gray, IN_PROGRESS=blue, RELEASE_BLOCKER=red bold", "priority": "must-have", "status": "accepted"}]},
             {"story_id": "DEVOPS-QA-003", "title": "QA report includes prior release history", "size": "S", "status": "accepted", "requirements": [{"req_id": "DEVOPS-QA-003-REQ-001", "requirement": "Prior QA reports referenced with status", "priority": "should-have", "status": "accepted"}]},
-            {"story_id": "DEVOPS-QA-004", "title": "Application loading indicator until app is ready", "size": "S", "status": "accepted", "requirements": [{"req_id": "DEVOPS-QA-004-REQ-001", "requirement": "Display 'Application loading' message until the HF Space backend responds successfully", "priority": "must-have", "status": "accepted"}, {"req_id": "DEVOPS-QA-004-REQ-002", "requirement": "Retry for up to 10 minutes (60 attempts × 10s) before showing error", "priority": "must-have", "status": "accepted"}]}
+            {"story_id": "DEVOPS-QA-004", "title": "Application loading indicator until app is ready", "size": "S", "status": "accepted", "requirements": [{"req_id": "DEVOPS-QA-004-REQ-001", "requirement": "Display 'Application loading' message until the HF Space backend responds successfully", "priority": "must-have", "status": "accepted"}, {"req_id": "DEVOPS-QA-004-REQ-002", "requirement": "Retry for up to 10 minutes (60 attempts × 10s) before showing error", "priority": "must-have", "status": "accepted"}]},
+            {"story_id": "DEVOPS-QA-005", "title": "Interactive QA report — edit and submit from browser", "size": "M", "status": "accepted", "requirements": [{"req_id": "DEVOPS-QA-005-REQ-001", "requirement": "Test case status fields are editable dropdowns (PASS/FAIL/DEFERRED/NOT_STARTED)", "priority": "must-have", "status": "accepted"}, {"req_id": "DEVOPS-QA-005-REQ-002", "requirement": "Submit button saves changes to MongoDB via POST endpoint", "priority": "must-have", "status": "accepted"}, {"req_id": "DEVOPS-QA-005-REQ-003", "requirement": "Only Boss can submit — no authentication bypass", "priority": "must-have", "status": "accepted"}]}
+          ]
+        },
+        {
+          "feature_id": "DEVOPS-CLAUDE-MODES",
+          "name": "Claude Operating Modes — Pre-Execution Gate",
+          "epic_id": "EPIC-5",
+          "layer": "devops",
+          "capability": "SDLC",
+          "description": "Enforce Claude operating modes through a pre-execution gate. Claude Code hooks intercept tool calls, validate against rules, and block violations before execution. Claude cannot be relied upon to self-enforce.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "due_date": "2026-04-11",
+          "stories": [
+            {"story_id": "DEVOPS-MODE-001", "title": "Pre-execution hook validates actions against operating mode rules", "size": "L", "status": "accepted", "requirements": [
+              {"req_id": "DEVOPS-MODE-001-REQ-001", "requirement": "A Claude Code hook must run before every Bash, Edit, and Write tool call", "priority": "must-have", "status": "accepted"},
+              {"req_id": "DEVOPS-MODE-001-REQ-002", "requirement": "In Idiot Mode, the hook must block any action that was not explicitly confirmed by Boss in the current turn", "priority": "must-have", "status": "accepted"},
+              {"req_id": "DEVOPS-MODE-001-REQ-003", "requirement": "The hook must read the current operating mode from a state file, not from Claude's memory or inference", "priority": "must-have", "status": "accepted"},
+              {"req_id": "DEVOPS-MODE-001-REQ-004", "requirement": "Rule violations must be blocked before execution, not detected after", "priority": "must-have", "status": "accepted"}
+            ]}
           ]
         }
       ]
