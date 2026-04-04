@@ -561,6 +561,7 @@
       <nav class="header-nav">
         <button type="button" class="nav-coming-soon" data-tip="You are already home">Home</button>
         <button type="button" onclick="openPanel('products.html','Products &amp; Services')">Products &amp; Services</button>
+        <button type="button" id="qaReportNav" style="display:none" onclick="openQAReport()">QA Report</button>
       </nav>
 
       <!-- Hamburger (visible on mobile only) -->
@@ -699,6 +700,15 @@
         var spaceName = env === 'prod' ? base : env + '-' + base;
         src = 'https://' + org + '-' + spaceName + '.hf.space';
       }
+
+      // QA Report — dev/QA only
+      if (env !== 'prod') {
+        document.getElementById('qaReportNav').style.display = '';
+      }
+      window._hfBaseUrl = src;
+      window.openQAReport = function() {
+        openPanel(src + '/qa-report', 'QA Report — v0.1.4');
+      };
 
       // Retry loading iframe — wait 3s between attempts, max 10 tries
       var iframe = document.getElementById('coreChatFrame');
