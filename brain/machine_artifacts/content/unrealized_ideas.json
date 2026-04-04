@@ -13,5 +13,28 @@
         "date_of_delivery": "Before Beta end (2026-08-25)"
       }
     }
+    },
+    {
+      "id": "IDEA-002",
+      "author": "Boss",
+      "datetime": "2026-04-04T03:00:00Z",
+      "title": "Unattended Agent Space on HuggingFace",
+      "description": "Dedicated HuggingFace Space for unattended agent work. Runs 24/7, monitors pipelines, grooms unrealized_ideas.json, executes overnight assignments, checks semaphores. Separate from the product app — no dev pollution. Secure access via HF token. Can expose a port for webhook callbacks.",
+      "recommended_roadmap": {
+        "epic": "EPIC-3 Pipeline Management",
+        "date_of_delivery": "2026-04-18"
+      }
+    },
+    {
+      "id": "IDEA-003",
+      "author": "Boss",
+      "datetime": "2026-04-04T03:05:00Z",
+      "title": "Daily Agent Grooming of Unrealized Ideas",
+      "description": "An agent reads unrealized_ideas.json daily, cross-references with architecture and backlog, proposes solutions and roadmap placement, surfaces recommendations for morning Boss review. The Brain grooms itself.",
+      "recommended_roadmap": {
+        "epic": "EPIC-3 Pipeline Management",
+        "date_of_delivery": "2026-04-25"
+      }
+    }
   ]
 }
