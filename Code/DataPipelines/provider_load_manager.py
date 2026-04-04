@@ -600,6 +600,29 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         "states": config.get("states"),  # optional state filter for NPPES pass
     }
 
+    # Step 0: Reserve cluster through manager — manager wakes the cluster
+    cluster_name = config.get("pipeline_cluster", "ChatHealthyDataPipelines")
+    reservation = {
+        "job_id": load_id,
+        "requester": "FullProviderPipeline",
+        "cluster_name": cluster_name,
+        "expected_duration_minutes": config.get("expected_duration_minutes", 480),
+    }
+    context.set_custom_status("Step 0/7: Reserving cluster — manager waking DB")
+    yield context.call_activity("register_reservation_activity", reservation)
+
+    # Poll until cluster is IDLE (manager is waking it)
+    import datetime
+    deadline = context.current_utc_datetime + datetime.timedelta(minutes=15)
+    while context.current_utc_datetime < deadline:
+        context.set_custom_status("Step 0/7: Waiting for cluster to become IDLE")
+        status = yield context.call_activity("check_cluster_state_activity",
+                                              {"cluster_name": cluster_name})
+        if status.get("cluster_state") == "IDLE":
+            break
+        next_check = context.current_utc_datetime + datetime.timedelta(seconds=30)
+        yield context.create_timer(next_check)
+
     # Step 1: MongoDB health check
     if start_step <= 1:
         context.set_custom_status("Step 1/7: Checking MongoDB health")
@@ -707,6 +730,11 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         else "partial" if reconcile
         else "skipped"
     )
+
+    # Release cluster reservation — manager will pause if last reservation
+    context.set_custom_status("Releasing cluster reservation")
+    yield context.call_activity("release_reservation_activity", {"job_id": load_id})
+
     context.set_custom_status(
         f"Done — load {load_result.get('status', 'unknown')}, "
         f"enrichment {enrich_status}, "
