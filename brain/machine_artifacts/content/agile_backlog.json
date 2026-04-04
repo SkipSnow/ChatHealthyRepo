@@ -15708,6 +15708,41 @@
           ]
         }
       ]
+    },
+    {
+      "epic_id": "EPIC-4",
+      "name": "Security",
+      "capacity": "",
+      "goal": "Resolve all Cloudflare security findings and establish enterprise security posture",
+      "definition_of_done": "All Cloudflare Security Insights resolved or risk-accepted",
+      "status": "active",
+      "due_date": "2099-09-09",
+      "features": [
+        {
+          "feature_id": "SEC-CLOUDFLARE",
+          "name": "Cloudflare Security Findings",
+          "epic_id": "EPIC-4",
+          "layer": "infrastructure",
+          "capability": "Security",
+          "description": "Resolve all 11 Cloudflare Security Insights findings from April 2026 scan.",
+          "priority": "MEDIUM",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": [
+            {"story_id": "SEC-CF-001", "title": "Enable Bot Fight Mode on chathealthy.ai", "severity": "Moderate", "subject": "chathealthy.ai", "scan_date": "2026-04-02", "size": "S", "status": "accepted", "requirements": [{"req_id": "SEC-CF-001-REQ-001", "requirement": "Bot Fight Mode enabled on chathealthy.ai", "priority": "must-have", "status": "accepted"}]},
+            {"story_id": "SEC-CF-002", "title": "Configure IP Access List on chathealthy.ai", "severity": "Low", "subject": "chathealthy.ai", "scan_date": "2026-03-24", "size": "S", "status": "accepted", "requirements": [{"req_id": "SEC-CF-002-REQ-001", "requirement": "IP access list configured with admin allowlist", "priority": "should-have", "status": "accepted"}]},
+            {"story_id": "SEC-CF-003", "title": "Configure security.txt on chathealthy.ai", "severity": "Low", "subject": "chathealthy.ai", "scan_date": "2026-03-31", "size": "S", "status": "accepted", "requirements": [{"req_id": "SEC-CF-003-REQ-001", "requirement": "security.txt at /.well-known/security.txt with contact email", "priority": "must-have", "status": "accepted"}]},
+            {"story_id": "SEC-CF-004", "title": "Enable Turnstile CAPTCHA", "severity": "Low", "subject": "This account", "scan_date": "2026-03-31", "size": "M", "status": "accepted", "requirements": [{"req_id": "SEC-CF-004-REQ-001", "requirement": "Turnstile enabled on user-facing forms", "priority": "should-have", "status": "accepted"}]},
+            {"story_id": "SEC-CF-005", "title": "Enable MFA for all Cloudflare users", "severity": "Moderate", "subject": "skip.snow@gmail.com", "scan_date": "2026-03-31", "size": "S", "status": "accepted", "requirements": [{"req_id": "SEC-CF-005-REQ-001", "requirement": "MFA enabled on all Cloudflare account users", "priority": "must-have", "status": "accepted"}]},
+            {"story_id": "SEC-CF-006", "title": "Enable Always Use HTTPS on bouncedmail.chathealthy.ai", "severity": "Moderate", "subject": "bouncedmail.chathealthy.ai", "scan_date": "2026-04-01", "size": "S", "status": "accepted", "requirements": [{"req_id": "SEC-CF-006-REQ-001", "requirement": "Always Use HTTPS enabled", "priority": "must-have", "status": "accepted"}]},
+            {"story_id": "SEC-CF-007", "title": "Enable HSTS on bouncedmail.chathealthy.ai", "severity": "Moderate", "subject": "bouncedmail.chathealthy.ai", "scan_date": "2026-04-01", "size": "S", "status": "accepted", "requirements": [{"req_id": "SEC-CF-007-REQ-001", "requirement": "HSTS enabled with max-age >= 31536000", "priority": "must-have", "status": "accepted"}]},
+            {"story_id": "SEC-CF-008", "title": "Enable TLS encryption on bouncedmail.chathealthy.ai", "severity": "Moderate", "subject": "bouncedmail.chathealthy.ai", "scan_date": "2026-04-01", "type": "Compliance violation", "size": "S", "status": "accepted", "requirements": [{"req_id": "SEC-CF-008-REQ-001", "requirement": "TLS encryption enabled, minimum TLS 1.2", "priority": "must-have", "status": "accepted"}]},
+            {"story_id": "SEC-CF-009", "title": "Enable Always Use HTTPS on mail.chathealthy.ai", "severity": "Moderate", "subject": "mail.chathealthy.ai", "scan_date": "2026-04-01", "size": "S", "status": "accepted", "requirements": [{"req_id": "SEC-CF-009-REQ-001", "requirement": "Always Use HTTPS enabled", "priority": "must-have", "status": "accepted"}]},
+            {"story_id": "SEC-CF-010", "title": "Enable HSTS on mail.chathealthy.ai", "severity": "Moderate", "subject": "mail.chathealthy.ai", "scan_date": "2026-04-01", "size": "S", "status": "accepted", "requirements": [{"req_id": "SEC-CF-010-REQ-001", "requirement": "HSTS enabled with max-age >= 31536000", "priority": "must-have", "status": "accepted"}]},
+            {"story_id": "SEC-CF-011", "title": "Enable TLS encryption on mail.chathealthy.ai", "severity": "Moderate", "subject": "mail.chathealthy.ai", "scan_date": "2026-04-01", "type": "Compliance violation", "size": "S", "status": "accepted", "requirements": [{"req_id": "SEC-CF-011-REQ-001", "requirement": "TLS encryption enabled, minimum TLS 1.2", "priority": "must-have", "status": "accepted"}]}
+          ]
+        }
+      ]
     }
   ],
   "sprint_map": [
