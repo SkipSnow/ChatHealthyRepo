@@ -28,7 +28,7 @@ import random
 import time
 
 import openai
-from county_enrichment_job import _build_states_query
+from county_enrichment_job import _build_states_filter
 from pipeline_worker_base import PipelineWorkerBase
 from provider_embedding import render, project, should_embed
 from pymongo import MongoClient, UpdateOne
@@ -55,6 +55,8 @@ JITTER_MAX_DEFAULT = 5.0                        # max startup jitter seconds; ov
 # should_embed() is still called per-document as the authoritative gate.
 _EMBED_PREFILTER = {
     "county.reason": {"$nin": ["no_address", "zip_state_mismatch"]},
+    "bad_data.flagged": {"$ne": True},
+    "out_of_scope.flagged": {"$ne": True},
 }
 
 
@@ -92,7 +94,7 @@ class EmbeddingWorker(PipelineWorkerBase):
         self.staging_collection = config.get(
             "staging_collection", "dev_PublicHealthData.providers"
         )
-        self._states_query = _build_states_query(config)  # {} if no filter
+        self._states_filter = _build_states_filter(config)  # BUG-PIPE-001: strict, raises if missing
         self._batch_size = config.get("embed_batch_size", EMBED_BATCH_SIZE)
         self._jitter_max = config.get("embed_initial_jitter", JITTER_MAX_DEFAULT)
 
@@ -135,7 +137,7 @@ class EmbeddingWorker(PipelineWorkerBase):
             "worker_id": self.worker_id,
             "embedding": {"$exists": False},
             **_EMBED_PREFILTER,
-            **self._states_query,
+            **self._states_filter,
         }
         self._total = self._collection.count_documents(query)
         logging.info("EmbeddingWorker %d: %d docs to embed", self.worker_id, self._total)

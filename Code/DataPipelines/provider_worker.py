@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from blob_client import get_blob_service
 from bson import ObjectId
 from pipeline_worker_base import PipelineWorkerBase
-from pymongo import MongoClient, InsertOne
+from pymongo import MongoClient, InsertOne, ReplaceOne
 
 _mongo: MongoClient | None = None
 
@@ -248,6 +248,9 @@ class ProviderWorker(PipelineWorkerBase):
             raise ValueError("BUG-PIPE-001: states list is empty. Cannot load all records.")
         self._skipped_states = 0
 
+        # ENH-PIPE-001: incremental mode — replace_one with upsert instead of insert
+        self._incremental = config.get("incremental", False)
+
         # State initialised in _pipeline_open(); set to safe defaults so
         # _pipeline_close() is always safe to call even if _pipeline_open()
         # did not complete.
@@ -322,7 +325,29 @@ class ProviderWorker(PipelineWorkerBase):
         doc["worker_id"] = self.worker_id
         doc["county"] = {"fips": None}  # stub — enriched by county_enrichment_job
 
-        self._batch.append(InsertOne(doc))
+        if self._incremental:
+            # ENH-PIPE-001: replace_one with upsert — force re-enrichment and re-evaluation
+            doc["bad_data"] = None       # force re-evaluation by mark_out_of_scope_fn
+            doc["out_of_scope"] = None   # force re-evaluation by mark_out_of_scope_fn
+            npi = doc.get("npi")
+
+            # ENH-PIPE-002 / PIPE-INC-002: deactivated records in incremental files
+            # get out_of_scope flag instead of being deleted. Log NPI for audit.
+            if doc.get("npi_deactivation_date") and not doc.get("npi_reactivation_date"):
+                doc["out_of_scope"] = {"flagged": True, "reason": "deactivated"}
+                logging.info(
+                    "ENH-PIPE-002: deactivated NPI=%s flagged out_of_scope (incremental)",
+                    npi or "unknown",
+                )
+
+            if npi:
+                self._batch.append(ReplaceOne({"npi": npi}, doc, upsert=True))
+                logging.debug("ENH-PIPE-001: incremental replace_one for NPI=%s", npi)
+            else:
+                self._batch.append(InsertOne(doc))
+        else:
+            self._batch.append(InsertOne(doc))
+
         self._local_index += 1
         self._num_records += 1
 

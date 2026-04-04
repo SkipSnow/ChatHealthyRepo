@@ -520,13 +520,15 @@ def stamp_embedding_version_fn(config: dict) -> dict:
     """Backfill embedding_version and embedding_model onto already-embedded records
     that predate version stamping. Idempotent — skips records already stamped.
     """
+    from county_enrichment_job import _build_states_filter
     from embedding_worker import EMBED_VERSION, EMBED_MODEL
     staging_collection = config.get("staging_collection", "dev_PublicHealthData.providers")
     db_name, coll_name = staging_collection.split(".", 1)
     collection = _get_mongo_client()[db_name][coll_name]
 
+    sf = _build_states_filter(config)  # BUG-PIPE-001: mandatory state filter
     result = collection.update_many(
-        {"embedding": {"$exists": True}, "embedding_version": {"$exists": False}},
+        {"embedding": {"$exists": True}, "embedding_version": {"$exists": False}, **sf},
         {"$set": {"embedding_version": EMBED_VERSION, "embedding_model": EMBED_MODEL}},
     )
     logging.info(

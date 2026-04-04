@@ -15706,6 +15706,69 @@
               ]
             }
           ]
+        },
+        {
+          "feature_id": "PIPE-DATA-QUALITY",
+          "name": "Provider Data Quality — Bad Data and Out of Scope Flags",
+          "epic_id": "EPIC-3",
+          "layer": "pipeline",
+          "capability": "DataOps",
+          "description": "Replace the single county.source='out_of_scope' pattern with two explicit flags on the provider record: bad_data (data quality issues) and out_of_scope (good record but not in scope). Each has a controlled vocabulary of reasons. Queries decide inclusion/exclusion based on reason.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": [
+            {
+              "story_id": "PIPE-DQ-001",
+              "title": "Bad data flag with controlled reasons",
+              "description": "Add bad_data field to provider record: {flagged: bool, reason: controlled_value}. Controlled reasons: no_address (no address at all), bad_address (has address but wrong — zip/state mismatch repair failed). Replace county.source='out_of_scope' with reason='no_address' or 'zip_state_mismatch' with bad_data flag.",
+              "parent_feature": "PIPE-DATA-QUALITY",
+              "sprint": 5,
+              "dependencies": [],
+              "size": "M",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {"req_id": "PIPE-DQ-001-REQ-001", "requirement": "Provider record must have bad_data.flagged (boolean) and bad_data.reason (string from controlled vocabulary)", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-DQ-001-REQ-002", "requirement": "Controlled reasons: no_address, bad_address, zip_state_mismatch, zip_state_mismatch_multiple_licenses, zip_state_mismatch_no_license", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-DQ-001-REQ-003", "requirement": "Downstream queries must be able to include/exclude bad records based on reason", "priority": "must-have", "status": "accepted"}
+              ]
+            },
+            {
+              "story_id": "PIPE-DQ-002",
+              "title": "Out of scope flag with controlled reasons",
+              "description": "Add out_of_scope field to provider record: {flagged: bool, reason: controlled_value}. Controlled reasons: deactivated (NPI deactivated), foreign_provider (not US). These are good records that are outside our processing scope.",
+              "parent_feature": "PIPE-DATA-QUALITY",
+              "sprint": 5,
+              "dependencies": [],
+              "size": "M",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {"req_id": "PIPE-DQ-002-REQ-001", "requirement": "Provider record must have out_of_scope.flagged (boolean) and out_of_scope.reason (string from controlled vocabulary)", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-DQ-002-REQ-002", "requirement": "Controlled reasons: deactivated, foreign_provider", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-DQ-002-REQ-003", "requirement": "out_of_scope records are not enriched or embedded but are not deleted", "priority": "must-have", "status": "accepted"}
+              ]
+            },
+            {
+              "story_id": "PIPE-DQ-003",
+              "title": "Zip/state mismatch repair from license data",
+              "description": "When zip/state mismatch is detected, attempt repair using provider license state data before flagging bad_data. One license match: repair address. Multiple licenses: bad_data.reason=zip_state_mismatch_multiple_licenses. No license: bad_data.reason=zip_state_mismatch_no_license. License doesn't resolve: bad_data.reason=zip_state_mismatch.",
+              "parent_feature": "PIPE-DATA-QUALITY",
+              "sprint": 5,
+              "dependencies": ["PIPE-DQ-001"],
+              "size": "L",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {"req_id": "PIPE-DQ-003-REQ-001", "requirement": "On zip/state mismatch, check provider license state(s) to determine correct state", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-DQ-003-REQ-002", "requirement": "If exactly one license state matches, repair practice_address.state and clear bad_data flag", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-DQ-003-REQ-003", "requirement": "If multiple licenses, flag bad_data.reason=zip_state_mismatch_multiple_licenses", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-DQ-003-REQ-004", "requirement": "If no license data, flag bad_data.reason=zip_state_mismatch_no_license", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-DQ-003-REQ-005", "requirement": "If license doesn't resolve, flag bad_data.reason=zip_state_mismatch", "priority": "must-have", "status": "accepted"}
+              ]
+            }
+          ]
         }
       ]
     },
