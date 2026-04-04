@@ -15710,6 +15710,32 @@
       ]
     },
     {
+      "epic_id": "EPIC-5",
+      "name": "DevOps",
+      "capacity": "",
+      "goal": "AI-native SDLC tooling — QA reports, build management, deployment automation",
+      "definition_of_done": "QA reports render dynamically from brain data, build pipeline fully managed",
+      "status": "active",
+      "features": [
+        {
+          "feature_id": "DEVOPS-QA-REPORT",
+          "name": "QA Report Renderer",
+          "epic_id": "EPIC-5",
+          "layer": "devops",
+          "capability": "SDLC",
+          "description": "Dynamic QA report rendered from brain JSON. Accepts epic scope, renders feature checklist with test case status. Hosted on chat backend. Dev and QA only — not prod.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": [
+            {"story_id": "DEVOPS-QA-001", "title": "QA report renderer reads brain JSON and produces HTML", "size": "M", "status": "accepted", "requirements": [{"req_id": "DEVOPS-QA-001-REQ-001", "requirement": "Renderer reads qa_report JSON from brain and produces formatted HTML page", "priority": "must-have", "status": "accepted"}, {"req_id": "DEVOPS-QA-001-REQ-002", "requirement": "Report scoped by epic — shows only features for the specified release", "priority": "must-have", "status": "accepted"}, {"req_id": "DEVOPS-QA-001-REQ-003", "requirement": "Report accessible in dev and QA only — not visible in prod", "priority": "must-have", "status": "accepted"}]},
+            {"story_id": "DEVOPS-QA-002", "title": "QA report shows test case status with color coding", "size": "S", "status": "accepted", "requirements": [{"req_id": "DEVOPS-QA-002-REQ-001", "requirement": "PASS=green, FAIL=red, NOT_STARTED=gray, IN_PROGRESS=blue, RELEASE_BLOCKER=red bold", "priority": "must-have", "status": "accepted"}]},
+            {"story_id": "DEVOPS-QA-003", "title": "QA report includes prior release history", "size": "S", "status": "accepted", "requirements": [{"req_id": "DEVOPS-QA-003-REQ-001", "requirement": "Prior QA reports referenced with status", "priority": "should-have", "status": "accepted"}]}
+          ]
+        }
+      ]
+    },
+    {
       "epic_id": "EPIC-4",
       "name": "Security",
       "capacity": "",
