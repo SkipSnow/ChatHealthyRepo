@@ -289,7 +289,9 @@ def qa_report():
     with open(report_path) as f:
         report = json.load(f)
     features = report.get("features", [])
-    # Build HTML
+    # Build HTML with editable dropdowns (DEVOPS-QA-005)
+    options = "".join(f'<option value="{s}">{s}</option>' for s in
+                      ["", "PASS", "FAIL", "DEFERRED", "NOT_STARTED", "IN_PROGRESS", "TO_TEST", "UNTESTED", "RELEASE_BLOCKER"])
     rows = ""
     for feat in features:
         status = feat.get("status", "NOT_STARTED")
@@ -297,24 +299,29 @@ def qa_report():
                  "UNTESTED": "#d97706", "RELEASE_BLOCKER": "#dc2626", "TO_TEST": "#7c3aed"}.get(status, "#6b7280")
         tc_count = len(feat.get("test_cases", []))
         tc_pass = sum(1 for tc in feat.get("test_cases", []) if tc.get("status") == "PASS")
-        rows += f'<tr><td>{feat.get("id","")}</td><td>{feat.get("feature_id","")}</td>'
-        rows += f'<td>{feat.get("name","")}</td><td>{feat.get("epic","")}</td>'
+        rows += f'<tr style="background:#f9fafb"><td>{feat.get("id","")}</td><td><b>{feat.get("feature_id","")}</b></td>'
+        rows += f'<td><b>{feat.get("name","")}</b></td><td>{feat.get("epic","")}</td>'
         rows += f'<td style="color:{color};font-weight:600">{status}</td>'
         rows += f'<td>{tc_pass}/{tc_count}</td></tr>\n'
         for tc in feat.get("test_cases", []):
+            tc_id = tc.get("tc", "")
             tc_status = tc.get("status", "")
-            tc_color = {"PASS": "#059669", "FAIL": "#dc2626"}.get(tc_status, "#9ca3af")
-            tc_badge = f'<span style="color:{tc_color};font-weight:600">{tc_status or "—"}</span>'
-            rows += f'<tr style="font-size:12px;color:#6b7280"><td></td><td></td>'
-            rows += f'<td style="padding-left:24px">↳ {tc.get("tc","")}: {tc.get("test","")}</td>'
-            rows += f'<td></td><td>{tc_badge}</td><td></td></tr>\n'
+            sel_options = options.replace(f'value="{tc_status}"', f'value="{tc_status}" selected')
+            rows += f'<tr style="font-size:12px"><td></td><td></td>'
+            rows += f'<td style="padding-left:24px">{tc_id}: {tc.get("test","")}</td>'
+            rows += f'<td></td><td><select name="{tc_id}" style="font-size:11px;padding:2px">{sel_options}</select></td><td></td></tr>\n'
     summary = report.get("summary", {})
     from starlette.responses import HTMLResponse
     html = f"""<!DOCTYPE html><html><head><title>QA Report — {report.get('version','')}</title>
 <style>body{{font-family:system-ui,sans-serif;max-width:1000px;margin:40px auto;padding:0 20px}}
 table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #e5e7eb;padding:8px 12px;text-align:left}}
 th{{background:#f3f4f6;font-size:13px}}tr:hover{{background:#f9fafb}}
-h1{{font-size:24px}}h2{{font-size:16px;color:#6b7280}}</style></head><body>
+h1{{font-size:24px}}h2{{font-size:16px;color:#6b7280}}
+select{{border:1px solid #d1d5db;border-radius:4px}}
+.submit-btn{{background:linear-gradient(180deg,#0b9a94,#0b7a75);color:#fff;border:none;padding:10px 24px;
+border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px}}
+.submit-btn:hover{{opacity:0.9}}</style></head><body>
+<form method="POST" action="/qa-report">
 <h1>QA Report — {report.get('version','')} Dev→SIT</h1>
 <h2>{report.get('scope','')}</h2>
 <p>Date: {report.get('date','')} | Target: {report.get('target','')} | Status: {report.get('status','')}</p>
@@ -324,9 +331,42 @@ h1{{font-size:24px}}h2{{font-size:16px;color:#6b7280}}</style></head><body>
 <b style="color:#9ca3af">Not Started:</b> {summary.get('not_started',0)}</p>
 <table><tr><th>#</th><th>Feature ID</th><th>Name</th><th>Epic</th><th>Status</th><th>Tests</th></tr>
 {rows}</table>
-<p style="font-size:11px;color:#9ca3af;margin-top:24px">© 2026 Skip Snow. All rights reserved.</p>
+<button type="submit" class="submit-btn">Save QA Report</button>
+</form>
+<p style="font-size:11px;color:#9ca3af;margin-top:24px">&copy; 2026 Skip Snow. All rights reserved.</p>
 </body></html>"""
     return HTMLResponse(content=html)
+
+@app.post("/qa-report")
+async def qa_report_submit(request: Request):
+    """DEVOPS-QA-005: Save QA report edits from browser."""
+    if _ENV_PREFIX == "prod":
+        return {"error": "QA report not available in production"}
+    report_path = os.path.join(_brain_dir, "machine_artifacts", "content", "qa_report_v014_sit.json")
+    if not os.path.exists(report_path):
+        report_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brain_data", "qa_report_v014_sit.json")
+    if not os.path.exists(report_path):
+        return {"error": "QA report not found"}
+    form = await request.form()
+    with open(report_path) as f:
+        report = json.load(f)
+    updated = 0
+    for feat in report.get("features", []):
+        for tc in feat.get("test_cases", []):
+            tc_id = tc.get("tc", "")
+            if tc_id in form and form[tc_id]:
+                tc["status"] = form[tc_id]
+                updated += 1
+    # Recompute summary
+    all_tc = [tc for f in report["features"] for tc in f.get("test_cases", [])]
+    report["summary"]["pass"] = sum(1 for tc in all_tc if tc.get("status") == "PASS")
+    report["summary"]["in_progress"] = sum(1 for tc in all_tc if tc.get("status") == "IN_PROGRESS")
+    report["summary"]["not_started"] = sum(1 for tc in all_tc if tc.get("status") in ("NOT_STARTED", ""))
+    with open(report_path, "w") as f:
+        json.dump(report, f, indent=2)
+    _log.info("QA report updated: %d test cases changed", updated)
+    from starlette.responses import RedirectResponse
+    return RedirectResponse(url="/qa-report", status_code=303)
 
 @app.get("/welcome")
 def welcome():
