@@ -377,10 +377,10 @@ def ensure_postload_indexes_fn(config: dict) -> None:
     Also called at the start of county enrichment to guarantee indexes
     exist when CountyEnrichment is run standalone.
     """
-    staging_collection = config.get(
-        "staging_collection", "dev_PublicHealthData.providers"
+    provider_collection = config.get(
+        "provider_collection", "dev_PublicHealthData.providers"
     )
-    db_name, coll_name = staging_collection.split(".", 1)
+    db_name, coll_name = provider_collection.split(".", 1)
     collection = _get_mongo_client()[db_name][coll_name]
     collection.create_index(
         [("load_id", 1), ("record_id", 1)],
@@ -412,7 +412,7 @@ def ensure_postload_indexes_fn(config: dict) -> None:
         "taxonomies.code",
         name="taxonomy_code",
     )
-    logging.info("Post-load indexes ensured on %s", staging_collection)
+    logging.info("Post-load indexes ensured on %s", provider_collection)
 
 
 def write_metadata_fn(config: dict) -> list:
@@ -494,10 +494,10 @@ def drain_staging_fn(config: dict) -> dict:
 
     Called after download/extract/partition succeed so we know the new data is viable.
     """
-    staging_collection = config.get("staging_collection", "dev_PublicHealthData.providers")
-    db_name, coll_name = staging_collection.split(".", 1)
+    provider_collection = config.get("provider_collection", "dev_PublicHealthData.providers")
+    db_name, coll_name = provider_collection.split(".", 1)
     _get_mongo_client()[db_name][coll_name].drop()
-    logging.info("Dropped staging collection %s — disk space returned to Atlas.", staging_collection)
+    logging.info("Dropped staging collection %s — disk space returned to Atlas.", provider_collection)
     return {"drained": True}
 
 
@@ -522,8 +522,8 @@ def stamp_embedding_version_fn(config: dict) -> dict:
     """
     from county_enrichment_job import _build_states_filter
     from embedding_worker import EMBED_VERSION, EMBED_MODEL
-    staging_collection = config.get("staging_collection", "dev_PublicHealthData.providers")
-    db_name, coll_name = staging_collection.split(".", 1)
+    provider_collection = config.get("provider_collection", "dev_PublicHealthData.providers")
+    db_name, coll_name = provider_collection.split(".", 1)
     collection = _get_mongo_client()[db_name][coll_name]
 
     sf = _build_states_filter(config)  # BUG-PIPE-001: mandatory state filter
@@ -544,8 +544,8 @@ def stamp_embedding_version_fn(config: dict) -> dict:
 
 def create_vector_index_fn(config: dict) -> dict:
     """Create Atlas Vector Search index on providers_staging. Idempotent."""
-    staging_collection = config.get("staging_collection", "dev_PublicHealthData.providers")
-    db_name, coll_name = staging_collection.split(".", 1)
+    provider_collection = config.get("provider_collection", "dev_PublicHealthData.providers")
+    db_name, coll_name = provider_collection.split(".", 1)
     collection = _get_mongo_client()[db_name][coll_name]
     index_name = "provider_vector_index"
     try:
@@ -563,7 +563,7 @@ def create_vector_index_fn(config: dict) -> dict:
                 ]
             },
         })
-        logging.info("Vector search index '%s' created on %s", index_name, staging_collection)
+        logging.info("Vector search index '%s' created on %s", index_name, provider_collection)
     except Exception as exc:
         if "already exists" in str(exc).lower() or "duplicate" in str(exc).lower():
             logging.info("Vector search index '%s' already exists — skipping.", index_name)
@@ -709,14 +709,14 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
         # Step 8: Generate embeddings
         if start_step <= 8 and config.get("embedding_enabled", False):
             num_workers = config.get("num_workers", 32)
-            staging_collection = config.get("staging_collection", "dev_PublicHealthData.providers")
+            provider_collection = config.get("provider_collection", "dev_PublicHealthData.providers")
             context.set_custom_status(f"Step 8/8: Generating embeddings ({num_workers} workers)")
             embed_tasks = [
                 context.call_activity(
                     "embed_worker_activity",
                     {
                         "worker_id": i + 1,
-                        "staging_collection": staging_collection,
+                        "provider_collection": provider_collection,
                         "states": config.get("states"),
                         "embed_model": config.get("embed_model", "text-embedding-3-large"),
                         "embed_batch_size": config.get("embed_batch_size", 100),
@@ -728,7 +728,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
             embed_results = yield context.task_all(embed_tasks)
             context.set_custom_status("Step 8/8: Creating vector search index")
             yield context.call_activity(
-                "create_vector_index_activity", {"staging_collection": staging_collection}
+                "create_vector_index_activity", {"provider_collection": provider_collection}
             )
 
     except Exception as exc:

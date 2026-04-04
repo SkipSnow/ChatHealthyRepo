@@ -91,8 +91,8 @@ class EmbeddingWorker(PipelineWorkerBase):
     def __init__(self, config: dict):
         super().__init__(config)
         self.worker_id = config["worker_id"]
-        self.staging_collection = config.get(
-            "staging_collection", "dev_PublicHealthData.providers"
+        self.provider_collection = config.get(
+            "provider_collection", "dev_PublicHealthData.providers"
         )
         self._states_filter = _build_states_filter(config)  # BUG-PIPE-001: strict, raises if missing
         self._batch_size = config.get("embed_batch_size", EMBED_BATCH_SIZE)
@@ -123,7 +123,7 @@ class EmbeddingWorker(PipelineWorkerBase):
     # ── PipelineWorkerBase overrides ──────────────────────────────────────────
 
     def _pipeline_open(self) -> None:
-        db_name, coll_name = self.staging_collection.split(".", 1)
+        db_name, coll_name = self.provider_collection.split(".", 1)
         self._collection = _get_mongo()[db_name][coll_name]
         self._oai_client = _get_openai()
 
