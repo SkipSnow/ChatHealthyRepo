@@ -41,3 +41,5 @@ Code/ConversationalUX/FindCareChat/backend/static/
 # Runtime logs
 *.log
 
+# Business artifacts — confidential, local only
+brain/BusinessArtifacts/
