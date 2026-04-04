@@ -133,14 +133,24 @@ class ClusterLifecycleManager:
             status="active",
         )
 
+        # Wake cluster FIRST — must be up before we can write reservation to MongoDB
+        _log.info("Reservation: %s by %s (%d min) — waking cluster first",
+                   job_id, requester, expected_duration_minutes)
+        self._send_wake(cluster_name)
+
+        # Poll until cluster is IDLE (up to 10 min)
+        import time as _time
+        for attempt in range(60):  # 60 * 10s = 10 min
+            cluster_state = self._get_cluster_state(cluster_name)
+            if cluster_state == "IDLE":
+                break
+            _log.info("Waiting for cluster: %s (attempt %d)", cluster_state, attempt + 1)
+            _time.sleep(10)
+
+        # Now write reservation to MongoDB
         state = self._get_state()
         state["reservations"].append(reservation.to_dict())
         self._save_state(state)
-
-        _log.info("Reservation: %s by %s (%d min)", job_id, requester, expected_duration_minutes)
-
-        # Wake cluster — non-blocking, fire and forget
-        self._send_wake(cluster_name)
 
         return reservation.to_dict()
 

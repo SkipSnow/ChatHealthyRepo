@@ -1,0 +1,23 @@
+{
+  "assignment": "pipeline_monitor",
+  "status": "active",
+  "created": "2026-04-04T02:45:00Z",
+  "deadline": "2026-04-04T14:00:00Z",
+  "instructions": {
+    "task": "Monitor and maintain the 4-state provider pipeline (DE, MS, VA, CA)",
+    "instance_id": "fbc185e0da024b17b1392068664f2c67",
+    "api_url": "https://devpipelinemanagmentservice-hqa9f5b0b7b4hqgg.eastus2-01.azurewebsites.net",
+    "bearer_token": "Bearer 6PVi_lZfZYOriyQ1oU-sPfNm5gcFGK0SbVJ0OtZdAsE",
+    "check_interval_seconds": 300,
+    "on_running": "Log customStatus and continue",
+    "on_failed": "Read error, diagnose root cause, fix the code if needed, resubmit from the failed step using start_step parameter",
+    "on_completed": "Log success, commit the maintenance log, stop monitoring",
+    "log_file": "brain/machine_artifacts/content/pipeline_maintenance_log.json",
+    "rules": [
+      "Do not touch the cluster directly \u00e2\u20ac\u201d only the pipeline manager controls the cluster",
+      "If a code fix is needed, commit with [Unattended] prefix and redeploy to Azure Functions",
+      "Log every bug found and solution applied",
+      "If stuck after 3 attempts on the same error, stop and log for Boss review"
+    ]
+  }
+}
