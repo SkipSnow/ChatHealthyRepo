@@ -322,6 +322,41 @@
       "root_cause": "TBD \u2014 download_zip_activity may be writing to wrong container or path. Debug in morning.",
       "try_finally": "WORKED \u2014 reservation released on failure, manager will pause cluster.",
       "state_filter": "NOT TESTED \u2014 failed before reaching enrichment steps."
+    },
+    {
+      "time": "2026-04-04T08:09:08Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T08:14:09Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T08:19:18Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T08:24:24Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T08:29:30Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T08:34:37Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
+    },
+    {
+      "time": "2026-04-04T08:39:43Z",
+      "status": "Terminated",
+      "customStatus": "Step 3/7: County enrichment \u2014 Pass 1: ZIP crosswalk"
     }
   ]
 }
