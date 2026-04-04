@@ -514,6 +514,18 @@
       .menu-toggle { display: flex; align-items: center; justify-content: center; }
       .panel-resize-handle,
       .legal-panel-expand { display: none; }
+      /* Mobile: hide side panels, filter becomes modal overlay */
+      .side-panel { display: none !important; }
+      .side-panel.mobile-filter-open {
+        display: flex !important;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100% !important;
+        z-index: 1000;
+        background: rgba(255,255,255,0.98);
+        padding: 16px;
+        overflow-y: auto;
+      }
     }
 
     /* Phone: tighten footer to 2×2 grid */
@@ -744,7 +756,14 @@
         // Filter panel — renders in left panel
         var leftPanel = document.getElementById('leftPanel');
         if (msg.type === 'gui:filter') {
-          // Replace content — vertical mode is on the label span, not the panel div
+          // Reset centering styles so filter content can flex and scroll
+          leftPanel.style.alignItems = 'stretch';
+          leftPanel.style.justifyContent = 'stretch';
+          leftPanel.style.overflow = 'hidden';
+          // Mobile: show as fullscreen overlay
+          if (window.innerWidth <= 600) {
+            leftPanel.classList.add('mobile-filter-open');
+          }
           leftPanel.innerHTML = msg.html || '';
           // Store search params for filter-apply
           leftPanel.dataset.searchParams = msg.searchParams || '{}';
@@ -791,6 +810,10 @@
         }
 
         if (msg.type === 'gui:filter-clear') {
+          leftPanel.style.alignItems = 'center';
+          leftPanel.style.justifyContent = 'center';
+          leftPanel.style.overflow = 'hidden';
+          leftPanel.classList.remove('mobile-filter-open');
           leftPanel.innerHTML = '<span class="frame-label" style="color:#8888cc;font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;">LEFT PANEL</span>';
         }
       });
