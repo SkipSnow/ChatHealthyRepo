@@ -275,19 +275,36 @@ async def search(body: SearchRequest):
     result = _find_care.search_providers(**params)
     return result
 
-@app.get("/qa-report")
-def qa_report():
-    """DEVOPS-QA-001: Render QA report from brain JSON. Dev/QA only."""
-    if _ENV_PREFIX == "prod":
-        return {"error": "QA report not available in production"}
-    # Try brain dir (local dev), then brain_data/ (HF deploy)
+def _get_qa_report():
+    """Load QA report from MongoDB (source of truth), fall back to file for bootstrap."""
+    db = _get_db()
+    if db:
+        doc = db[f"{_ENV_PREFIX}_System"]["qa_reports"].find_one(
+            {"_record_id": "qa_report_v014_sit"}, {"_id": 0})
+        if doc:
+            return doc
+    # Bootstrap: load from file and seed into MongoDB
     report_path = os.path.join(_brain_dir, "machine_artifacts", "content", "qa_report_v014_sit.json")
     if not os.path.exists(report_path):
         report_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brain_data", "qa_report_v014_sit.json")
     if not os.path.exists(report_path):
-        return {"error": "QA report not found"}
+        return None
     with open(report_path) as f:
         report = json.load(f)
+    if db:
+        db[f"{_ENV_PREFIX}_System"]["qa_reports"].replace_one(
+            {"_record_id": "qa_report_v014_sit"}, report, upsert=True)
+        _log.info("QA report seeded to MongoDB from file")
+    return report
+
+@app.get("/qa-report")
+def qa_report():
+    """DEVOPS-QA-001: Render QA report from MongoDB. Dev/QA only."""
+    if _ENV_PREFIX == "prod":
+        return {"error": "QA report not available in production"}
+    report = _get_qa_report()
+    if not report:
+        return {"error": "QA report not found"}
     features = report.get("features", [])
     # Build HTML with editable dropdowns (DEVOPS-QA-005)
     options = "".join(f'<option value="{s}">{s}</option>' for s in
@@ -339,17 +356,13 @@ border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px}
 
 @app.post("/qa-report")
 async def qa_report_submit(request: Request):
-    """DEVOPS-QA-005: Save QA report edits from browser."""
+    """DEVOPS-QA-005: Save QA report edits to MongoDB."""
     if _ENV_PREFIX == "prod":
         return {"error": "QA report not available in production"}
-    report_path = os.path.join(_brain_dir, "machine_artifacts", "content", "qa_report_v014_sit.json")
-    if not os.path.exists(report_path):
-        report_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brain_data", "qa_report_v014_sit.json")
-    if not os.path.exists(report_path):
+    report = _get_qa_report()
+    if not report:
         return {"error": "QA report not found"}
     form = await request.form()
-    with open(report_path) as f:
-        report = json.load(f)
     updated = 0
     for feat in report.get("features", []):
         for tc in feat.get("test_cases", []):
@@ -362,9 +375,12 @@ async def qa_report_submit(request: Request):
     report["summary"]["pass"] = sum(1 for tc in all_tc if tc.get("status") == "PASS")
     report["summary"]["in_progress"] = sum(1 for tc in all_tc if tc.get("status") == "IN_PROGRESS")
     report["summary"]["not_started"] = sum(1 for tc in all_tc if tc.get("status") in ("NOT_STARTED", ""))
-    with open(report_path, "w") as f:
-        json.dump(report, f, indent=2)
-    _log.info("QA report updated: %d test cases changed", updated)
+    # Write to MongoDB
+    db = _get_db()
+    if db:
+        db[f"{_ENV_PREFIX}_System"]["qa_reports"].replace_one(
+            {"_record_id": "qa_report_v014_sit"}, report, upsert=True)
+    _log.info("QA report saved to MongoDB: %d test cases updated", updated)
     from starlette.responses import RedirectResponse
     return RedirectResponse(url="/qa-report", status_code=303)
 
