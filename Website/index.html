@@ -712,15 +712,15 @@
 
       // Retry loading iframe — wait 3s between attempts, max 10 tries
       var iframe = document.getElementById('coreChatFrame');
-      var maxRetries = 10;
+      var maxRetries = 60;  // 60 × 10s = 10 min — HF Space can take 2-3 min to restart
       var attempt = 0;
       function tryLoad() {
         attempt++;
         iframe.src = src;
         iframe.onerror = function() {
           if (attempt < maxRetries) {
-            console.log('[iframe] Load attempt ' + attempt + ' failed, retrying in 3s...');
-            setTimeout(tryLoad, 3000);
+            console.log('[iframe] Load attempt ' + attempt + ' failed, retrying in 10s...');
+            setTimeout(tryLoad, 10000);
           } else {
             console.error('[iframe] Failed to load after ' + maxRetries + ' attempts');
           }
