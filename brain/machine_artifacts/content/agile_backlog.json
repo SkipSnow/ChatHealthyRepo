@@ -15455,6 +15455,259 @@
           ]
         }
       ]
+    },
+    {
+      "epic_id": "EPIC-3",
+      "name": "Pipeline Management",
+      "capacity": "",
+      "goal": "Reliable, managed, state-filtered provider data pipeline with proper lifecycle management",
+      "definition_of_done": "Pipeline runs end-to-end for specified states, enriches in-place, handles incremental updates, releases cluster on success or failure",
+      "status": "active",
+      "features": [
+        {
+          "feature_id": "PIPE-LIFECYCLE",
+          "name": "Pipeline Lifecycle and Error Handling",
+          "epic_id": "EPIC-3",
+          "layer": "pipeline",
+          "capability": "DataOps",
+          "description": "Every pipeline step must accept state filter, report status on completion/failure, and release cluster reservation in a finally block. The orchestrator must handle abends gracefully.",
+          "priority": "CRITICAL",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": [
+            {
+              "story_id": "PIPE-LC-001",
+              "title": "BUG-PIPE-001: State filter explicit in every enrichment step",
+              "description": "Every enrichment step (Pass 1-6) must accept and apply the states filter from the job config. No step should process records outside the specified states.",
+              "parent_feature": "PIPE-LIFECYCLE",
+              "sprint": 5,
+              "dependencies": [],
+              "size": "M",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-LC-001-REQ-001",
+                  "story_id": "PIPE-LC-001",
+                  "requirement": "Every enrichment pass (1-6) must accept a states parameter and filter queries to only process providers in those states.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "PIPE-LC-001-REQ-002",
+                  "story_id": "PIPE-LC-001",
+                  "requirement": "If states is not provided, the step must raise an error, not default to all records.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "PIPE-LC-002",
+              "title": "BUG-PIPE-002: Try/finally with status report and reservation release",
+              "description": "Every orchestrator step must be wrapped in try/finally. The finally block must report completion status (success/fail) and release the cluster reservation if the job is terminal.",
+              "parent_feature": "PIPE-LIFECYCLE",
+              "sprint": 5,
+              "dependencies": [],
+              "size": "L",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-LC-002-REQ-001",
+                  "story_id": "PIPE-LC-002",
+                  "requirement": "The full_provider_pipeline_orchestrator must wrap all steps in try/finally. On any failure, the finally block must release the reservation.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "PIPE-LC-002-REQ-002",
+                  "story_id": "PIPE-LC-002",
+                  "requirement": "Each step must report status (completed_success or completed_fail) to the orchestrator.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "PIPE-LC-002-REQ-003",
+                  "story_id": "PIPE-LC-002",
+                  "requirement": "On abend, the orchestrator must inform the manager to withdraw its reservation and shut down the cluster if no other jobs hold reservations.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "PIPE-LC-003",
+              "title": "BUG-PIPE-003: Drop collection unless incremental=true",
+              "description": "The load step must drop the providers collection before loading unless the input parameter incremental=true is explicitly set. The Router API must accept incremental as a parameter.",
+              "parent_feature": "PIPE-LIFECYCLE",
+              "sprint": 5,
+              "dependencies": [],
+              "size": "M",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-LC-003-REQ-001",
+                  "story_id": "PIPE-LC-003",
+                  "requirement": "The Router API must accept an incremental parameter (boolean, default false) in the FullProviderPipeline payload.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "PIPE-LC-003-REQ-002",
+                  "story_id": "PIPE-LC-003",
+                  "requirement": "If incremental is false or absent, the providers collection must be dropped before loading new data.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "PIPE-LC-003-REQ-003",
+                  "story_id": "PIPE-LC-003",
+                  "requirement": "If incremental is true, existing records are updated in-place per ENH-PIPE-001.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "feature_id": "PIPE-DATA-MODEL",
+          "name": "Provider Data Model — In-Place Enrichment",
+          "epic_id": "EPIC-3",
+          "layer": "pipeline",
+          "capability": "DataOps",
+          "description": "BUG-PIPE-004: Provider and enrichment data must be one record. Enrichment updates fields on the provider record in-place. No separate enrichment collection. Per MongoDB best practices — avoid cross-collection joins.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": [
+            {
+              "story_id": "PIPE-DM-001",
+              "title": "BUG-PIPE-004: Enrichment in-place on provider record",
+              "description": "County enrichment, economic enrichment, and embedding must write directly to the provider record. No separate enriched collection. One document per provider, enrichment adds fields.",
+              "parent_feature": "PIPE-DATA-MODEL",
+              "sprint": 5,
+              "dependencies": [],
+              "size": "M",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-DM-001-REQ-001",
+                  "story_id": "PIPE-DM-001",
+                  "requirement": "All enrichment (county, economic, embedding) must use updateOne/updateMany on the providers collection. No separate enrichment collection.",
+                  "source": "Boss directive / MongoDB best practices",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "feature_id": "PIPE-INCREMENTAL",
+          "name": "Incremental Provider Updates",
+          "epic_id": "EPIC-3",
+          "layer": "pipeline",
+          "capability": "DataOps",
+          "description": "Support incremental NPI file updates: full record replacement with county reset, and record deletion for deactivated NPIs.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": [
+            {
+              "story_id": "PIPE-INC-001",
+              "title": "ENH-PIPE-001: Incremental update — full record replacement",
+              "description": "When incremental=true, for each record in the NPI file: replace the entire provider document content and set county to null (force re-enrichment). Do not attempt partial field updates — full replacement is more performant.",
+              "parent_feature": "PIPE-INCREMENTAL",
+              "sprint": 5,
+              "dependencies": ["PIPE-LC-003"],
+              "size": "L",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-INC-001-REQ-001",
+                  "story_id": "PIPE-INC-001",
+                  "requirement": "When incremental=true, each provider record must be fully replaced (replaceOne) with the new NPI data.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "PIPE-INC-001-REQ-002",
+                  "story_id": "PIPE-INC-001",
+                  "requirement": "On incremental replace, county must be set to null to force re-enrichment in subsequent passes.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "PIPE-INC-001-REQ-003",
+                  "story_id": "PIPE-INC-001",
+                  "requirement": "New records not already in the collection must be inserted.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "PIPE-INC-002",
+              "title": "ENH-PIPE-002: Incremental delete — deactivated NPIs",
+              "description": "When the incremental NPI file marks a record for deletion (deactivation), delete the provider record from the collection.",
+              "parent_feature": "PIPE-INCREMENTAL",
+              "sprint": 5,
+              "dependencies": ["PIPE-INC-001"],
+              "size": "S",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-INC-002-REQ-001",
+                  "story_id": "PIPE-INC-002",
+                  "requirement": "Records marked for deactivation in the NPI file must be deleted from the providers collection.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "PIPE-INC-002-REQ-002",
+                  "story_id": "PIPE-INC-002",
+                  "requirement": "Deleted NPI numbers must be logged for audit trail.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "sprint_map": [
