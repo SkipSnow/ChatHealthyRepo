@@ -166,10 +166,14 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
         context.set_custom_status("Step 4/10: Skipping drain (incremental=true)")
 
     # Step 5: Pre-load index only — unique compound index for idempotency on retry.
-    # Secondary indexes are deferred to Step 8 (post-load) to eliminate write
-    # amplification during the bulk insert phase.
-    context.set_custom_status("Step 5/10: Ensuring pre-load index")
-    yield context.call_activity("ensure_preload_indexes_activity", config)
+    # Only needed for incremental loads. Full loads drop the collection (Step 4),
+    # so there's nothing to deduplicate against. BUG-PIPE-007: skip on full load
+    # to avoid DuplicateKeyError in post-load index creation.
+    if config.get("incremental", False):
+        context.set_custom_status("Step 5/10: Ensuring pre-load index (incremental)")
+        yield context.call_activity("ensure_preload_indexes_activity", config)
+    else:
+        context.set_custom_status("Step 5/10: Skipping pre-load index (full load)")
 
     # Step 6: Write one metadata record per worker
     context.set_custom_status(f"Step 6/10: Writing metadata ({len(partitions)} workers)")
@@ -382,11 +386,14 @@ def ensure_postload_indexes_fn(config: dict) -> None:
     )
     db_name, coll_name = provider_collection.split(".", 1)
     collection = _get_mongo_client()[db_name][coll_name]
-    collection.create_index(
-        [("load_id", 1), ("record_id", 1)],
-        unique=True,
-        name="load_record_unique",
-    )
+    # load_record_unique only needed for incremental retry idempotency.
+    # Full loads have npi_unique as the natural key. BUG-PIPE-007.
+    if config.get("incremental", False):
+        collection.create_index(
+            [("load_id", 1), ("record_id", 1)],
+            unique=True,
+            name="load_record_unique",
+        )
     collection.create_index(
         "practice_address.zip",
         name="practice_zip",
