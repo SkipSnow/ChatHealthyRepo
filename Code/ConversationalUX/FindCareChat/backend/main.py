@@ -75,20 +75,18 @@ EMERGENCY_RESPONSE = (
 # ---------------------------------------------------------------------------
 _mongo_frontend_str = os.getenv("MONGO_FRONTEND_connectionString") or ""
 _db_manager = None
-_db_unavailable = False
 
 def _get_db():
-    global _db_manager, _db_unavailable
-    if not _mongo_frontend_str or _db_unavailable:
+    global _db_manager
+    if not _mongo_frontend_str:
         return None
     try:
         if _db_manager is None:
             _db_manager = ChatHealthyMongoUtilities(_mongo_frontend_str)
         return _db_manager.getConnection()
     except Exception as e:
-        _log.warning("MongoDB unavailable: %s", e)
+        _log.warning("MongoDB unavailable (will retry next call): %s", e)
         _db_manager = None
-        _db_unavailable = True
         return None
 
 # ---------------------------------------------------------------------------
