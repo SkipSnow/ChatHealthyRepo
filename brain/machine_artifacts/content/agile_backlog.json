@@ -15903,11 +15903,15 @@
           "epic_id": "EPIC-6",
           "layer": "backend",
           "capability": "FindCare",
-          "description": "FindCare chat and provider search. Existing HF Space. Port 8000 local, 7860 on HF. Public API.",
+          "description": "FindCare chat and provider search. Existing HF Space. Port 8000 local, 7860 on HF. Public API for end users, mTLS for service-to-service.",
           "priority": "HIGH",
           "status": "accepted",
           "accepted_by": "Boss",
-          "stories": []
+          "stories": [
+            {"story_id": "SDT-FC-001", "title": "mTLS for service-to-service communication", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SDT-FC-001-REQ-001", "requirement": "FindCare authenticates to EvaluateCare via mutual TLS certificate, not bearer token", "priority": "must-have", "status": "accepted"}
+            ]}
+          ]
         },
         {
           "feature_id": "SDT-EVALCARE-SPACE",
@@ -15915,11 +15919,15 @@
           "epic_id": "EPIC-6",
           "layer": "backend",
           "capability": "EvaluateCare",
-          "description": "EvaluateCare scoring engine. Separate HF Space. Port 8001 local, 7860 on HF. Calls FindCare facade over HTTP. Premium tier — higher value, separate scaling and pricing.",
+          "description": "EvaluateCare scoring engine. Separate HF Space. Port 8001 local, 7860 on HF. Calls FindCare facade over mTLS. Premium tier — higher value, separate scaling and pricing.",
           "priority": "HIGH",
           "status": "accepted",
           "accepted_by": "Boss",
-          "stories": []
+          "stories": [
+            {"story_id": "SDT-EC-001", "title": "mTLS for service-to-service communication", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SDT-EC-001-REQ-001", "requirement": "EvaluateCare authenticates to FindCare and Pipeline via mutual TLS certificate", "priority": "must-have", "status": "accepted"}
+            ]}
+          ]
         },
         {
           "feature_id": "SDT-PIPELINE",
@@ -15927,11 +15935,15 @@
           "epic_id": "EPIC-6",
           "layer": "pipeline",
           "capability": "DataOps",
-          "description": "Provider data pipeline on Azure Functions. VNet integrated. Managed by cluster lifecycle manager.",
+          "description": "Provider data pipeline on Azure Functions. VNet integrated. Managed by cluster lifecycle manager. mTLS for inter-service calls.",
           "priority": "HIGH",
           "status": "accepted",
           "accepted_by": "Boss",
-          "stories": []
+          "stories": [
+            {"story_id": "SDT-PIPE-001", "title": "mTLS for pipeline service communication", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SDT-PIPE-001-REQ-001", "requirement": "Pipeline authenticates to MongoDB and other services via mutual TLS certificate", "priority": "must-have", "status": "accepted"}
+            ]}
+          ]
         },
         {
           "feature_id": "SDT-VNET",
@@ -15963,11 +15975,33 @@
           "epic_id": "EPIC-6",
           "layer": "devops",
           "capability": "SDLC",
-          "description": "Local dev environment with multi-port topology. Port 80: public site, Port 443: admin site, Port 5173: React frontend, Port 8000: FindCare, Port 8001: EvaluateCare. All components runnable locally.",
+          "description": "Local dev environment with multi-port topology. Port 80: public site, Port 443: admin site (self-signed cert), Port 5173: React frontend, Port 8000: FindCare, Port 8001: EvaluateCare. All components runnable locally. Cloudflare provides free SSL in production.",
           "priority": "MEDIUM",
           "status": "accepted",
           "accepted_by": "Boss",
-          "stories": []
+          "stories": [
+            {"story_id": "SDT-LOCAL-001", "title": "Static website server on port 80", "size": "S", "status": "accepted", "requirements": [
+              {"req_id": "SDT-LOCAL-001-REQ-001", "requirement": "Python HTTP server serves Website/ directory on port 80", "priority": "must-have", "status": "implemented"}
+            ]},
+            {"story_id": "SDT-LOCAL-002", "title": "EvaluateCare FastAPI on port 8001", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SDT-LOCAL-002-REQ-001", "requirement": "EvaluateCare app.py runs independently on port 8001", "priority": "must-have", "status": "implemented"},
+              {"req_id": "SDT-LOCAL-002-REQ-002", "requirement": "CORS allows localhost origins for all ports", "priority": "must-have", "status": "implemented"},
+              {"req_id": "SDT-LOCAL-002-REQ-003", "requirement": "/health endpoint returns service name and version", "priority": "must-have", "status": "implemented"}
+            ]},
+            {"story_id": "SDT-LOCAL-003", "title": "One-click startup script for all services", "size": "S", "status": "accepted", "requirements": [
+              {"req_id": "SDT-LOCAL-003-REQ-001", "requirement": "start_local.bat launches all 4 services in separate windows", "priority": "must-have", "status": "implemented"},
+              {"req_id": "SDT-LOCAL-003-REQ-002", "requirement": "Script must be run as administrator for port 80", "priority": "must-have", "status": "implemented"}
+            ]},
+            {"story_id": "SDT-LOCAL-004", "title": "Admin site on port 443 with self-signed cert", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SDT-LOCAL-004-REQ-001", "requirement": "Self-signed certificate generated for localhost", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SDT-LOCAL-004-REQ-002", "requirement": "HTTPS server on port 443 serves admin content", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SDT-LOCAL-004-REQ-003", "requirement": "Admin content separated from public content", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SDT-LOCAL-005", "title": "Playwright SIT tests run against local topology", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SDT-LOCAL-005-REQ-001", "requirement": "SIT tests configurable to run against localhost:80 instead of dev.chathealthy.ai", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SDT-LOCAL-005-REQ-002", "requirement": "All 4 services must be running for SIT to pass", "priority": "must-have", "status": "accepted"}
+            ]}
+          ]
         }
       ]
     },

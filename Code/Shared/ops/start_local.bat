@@ -13,6 +13,9 @@ echo.
 echo Starting Website on port 80...
 start "Website :80" cmd /k "cd /d C:\chatHealthy\findCare && python Code\Shared\ops\local_webserver.py"
 
+echo Starting Admin on port 443 (HTTPS)...
+start "Admin :443" cmd /k "cd /d C:\chatHealthy\findCare && python Code\Shared\ops\local_admin_server.py"
+
 echo Starting FindCare Backend on port 8000...
 start "FindCare :8000" cmd /k "cd /d C:\chatHealthy\findCare\Code\ConversationalUX\FindCareChat\backend && python main.py"
 
