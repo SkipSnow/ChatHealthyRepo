@@ -15980,12 +15980,24 @@
       "status": "active",
       "features": [
         {
+          "feature_id": "PERF-PERCEPTION",
+          "name": "Perceived Performance — Loading Experience",
+          "epic_id": "EPIC-7",
+          "layer": "frontend",
+          "capability": "UX",
+          "description": "Manage the user's perception of wait time. Replace the loading spinner with valuable content. The wait time doesn't change — the experience of waiting does.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": []
+        },
+        {
           "feature_id": "PERF-HISTORY",
           "name": "The History of Healthcare",
           "epic_id": "EPIC-7",
           "layer": "content",
           "capability": "FindCare",
-          "description": "",
+          "description": "1,000 AI-generated portraits of people who brought us to where we are in medicine, technology, and art. Balanced representation per American demographics — gender, sexual orientation, ethnicity. Displayed as a slideshow during any loading state. Each portrait: name, contribution, date, one sentence. Each becomes a daily Instagram post on the ChatHealthy.ai account. One asset, three purposes: loading screen, brand content, marketing funnel. Three years of daily posts from one build.",
           "priority": "MEDIUM",
           "status": "accepted",
           "accepted_by": "Boss",
