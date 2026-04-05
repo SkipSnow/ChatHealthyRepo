@@ -15864,6 +15864,112 @@
           ]
         }
       ]
+    },
+    {
+      "epic_id": "EPIC-6",
+      "name": "Secure Distributed Topology",
+      "capacity": "",
+      "goal": "Deploy all components as independent services with network boundaries, authentication, and VNet security. Origin: Boss observed that keeping EvaluateCare in the same HF Space as FindCare would let Claude mix concerns. Separating them enforces GOV-005 boundaries architecturally — not by discipline. FindCare is commodity (free, high volume). EvaluateCare is premium (scored, high value). Different economics demand different infrastructure. The admin site behind Cloudflare Access protects architecture docs, QA reports, and business artifacts from public exposure. The Brain becomes a deployed agentic component that runs the company — governance, assignments, monitoring. VNet secures the pipeline cluster and storage. Local dev mirrors production topology with multi-port services.",
+      "definition_of_done": "All components independently deployable, authenticated where required, communicating over network boundaries",
+      "status": "active",
+      "features": [
+        {
+          "feature_id": "SDT-PUBLIC-SITE",
+          "name": "Public Website (Cloudflare Pages)",
+          "epic_id": "EPIC-6",
+          "layer": "frontend",
+          "capability": "Website",
+          "description": "chathealthy.ai — public landing page, chat, roadmap, products. Cloudflare Pages. No authentication.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": []
+        },
+        {
+          "feature_id": "SDT-ADMIN-SITE",
+          "name": "Admin Website (Cloudflare Pages + Access)",
+          "epic_id": "EPIC-6",
+          "layer": "frontend",
+          "capability": "Admin",
+          "description": "admin.chathealthy.ai — architecture, QA reports, business docs. Cloudflare Pages behind Cloudflare Access authentication. Separate Cloudflare project, separate subdomain.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": []
+        },
+        {
+          "feature_id": "SDT-FINDCARE-SPACE",
+          "name": "FindCare Service (HuggingFace Space)",
+          "epic_id": "EPIC-6",
+          "layer": "backend",
+          "capability": "FindCare",
+          "description": "FindCare chat and provider search. Existing HF Space. Port 8000 local, 7860 on HF. Public API.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": []
+        },
+        {
+          "feature_id": "SDT-EVALCARE-SPACE",
+          "name": "EvaluateCare Service (HuggingFace Space)",
+          "epic_id": "EPIC-6",
+          "layer": "backend",
+          "capability": "EvaluateCare",
+          "description": "EvaluateCare scoring engine. Separate HF Space. Port 8001 local, 7860 on HF. Calls FindCare facade over HTTP. Premium tier — higher value, separate scaling and pricing.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": []
+        },
+        {
+          "feature_id": "SDT-PIPELINE",
+          "name": "Data Pipeline (Azure Functions)",
+          "epic_id": "EPIC-6",
+          "layer": "pipeline",
+          "capability": "DataOps",
+          "description": "Provider data pipeline on Azure Functions. VNet integrated. Managed by cluster lifecycle manager.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": []
+        },
+        {
+          "feature_id": "SDT-VNET",
+          "name": "Azure VNet Integration",
+          "epic_id": "EPIC-6",
+          "layer": "infrastructure",
+          "capability": "Security",
+          "description": "Azure Function App and MongoDB Atlas behind VNet. Restrict public access. Private endpoints for storage and database.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": []
+        },
+        {
+          "feature_id": "SDT-BRAIN",
+          "name": "The Brain — Agentic Infrastructure",
+          "epic_id": "EPIC-6",
+          "layer": "devops",
+          "capability": "Brain",
+          "description": "The Brain as a deployed component. Agentic infrastructure for running the company — assignments, governance, audit, grooming, monitoring. MongoDB-backed, API accessible.",
+          "priority": "MEDIUM",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": []
+        },
+        {
+          "feature_id": "SDT-LOCAL-DEV",
+          "name": "Local Development Topology",
+          "epic_id": "EPIC-6",
+          "layer": "devops",
+          "capability": "SDLC",
+          "description": "Local dev environment with multi-port topology. Port 80: public site, Port 443: admin site, Port 5173: React frontend, Port 8000: FindCare, Port 8001: EvaluateCare. All components runnable locally.",
+          "priority": "MEDIUM",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": []
+        }
+      ]
     }
   ],
   "sprint_map": [
