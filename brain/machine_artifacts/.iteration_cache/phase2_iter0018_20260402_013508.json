@@ -1,0 +1,63 @@
+{
+  "assignment_id": "EVAL-F-03-STORIES",
+  "iteration": 18,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added API integration and test coverage stories for facade completeness.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-03-S53",
+      "value": "Add tool_router integration story",
+      "note": "Facade must be callable via governed tool dispatch",
+      "iteration": 18
+    },
+    {
+      "path": "stories.EVAL-F-03-S54",
+      "value": "Add unit and integration test coverage story",
+      "note": "Ensure orchestration reliability and regression safety",
+      "iteration": 18
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F-03-S53",
+      "title": "Integrate EvaluateCare Facade with Tool Router",
+      "description": "Expose evaluate care facade operations through tool_router with allowlisted tools, ensuring validated inputs, proper tool dispatch, and compatibility with Anthropic tool_use flow and chat history injection.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S50"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-03-S54",
+      "title": "Implement Unit and Integration Tests for Facade Orchestration",
+      "description": "Create unit tests for facade methods and integration tests covering end-to-end orchestration of clinical trials search and provider detail lookup, including failure scenarios, fallback behavior, and response structure validation.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S51",
+        "EVAL-F-03-S53"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

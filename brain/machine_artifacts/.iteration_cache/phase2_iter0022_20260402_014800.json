@@ -1,0 +1,97 @@
+{
+  "assignment_id": "FEAT-2-STORIES",
+  "iteration": 22,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing schema/contract, core logic refinement, and integration hardening stories for FEAT-2.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-2-S63",
+      "value": "Add Pydantic schema for specialty identification I/O",
+      "note": "Cover schema/contract gap",
+      "iteration": 22
+    },
+    {
+      "path": "stories.FEAT-2-S64",
+      "value": "Normalize and rank NUCC outputs with confidence scoring",
+      "note": "Strengthen core logic determinism",
+      "iteration": 22
+    },
+    {
+      "path": "stories.FEAT-2-S65",
+      "value": "Add caching and deduplication for specialty results",
+      "note": "Performance and consistency improvement",
+      "iteration": 22
+    },
+    {
+      "path": "stories.FEAT-2-S66",
+      "value": "Add error handling and fallback behavior",
+      "note": "Resilience for API and pipelines",
+      "iteration": 22
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-2-S63",
+      "title": "Define Specialty Identification Schema and Contract",
+      "description": "Create Pydantic models for specialty identification request and response, including fields for user input, expanded queries, NUCC codes, labels, and confidence scores, ensuring compatibility with tool_router validation.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    {
+      "story_id": "FEAT-2-S64",
+      "title": "Implement Confidence Scoring and Ranking Logic",
+      "description": "Enhance specialty_service to normalize outputs from regex and vector pipelines, assign confidence scores, deduplicate NUCC codes, and return ranked specialties for downstream consumption.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S59"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    {
+      "story_id": "FEAT-2-S65",
+      "title": "Add Caching and Deduplication Layer for Specialty Results",
+      "description": "Introduce lightweight caching of specialty identification results based on normalized user input and ensure strict deduplication of NUCC codes across pipelines to reduce repeated computation and improve consistency.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S64"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    {
+      "story_id": "FEAT-2-S66",
+      "title": "Implement Error Handling and Fallback Strategy",
+      "description": "Add robust error handling for specialty identification failures, including fallback to taxonomy-only mapping, safe empty responses, and logging via debug_logger for traceability.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S60",
+        "FEAT-2-S64"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

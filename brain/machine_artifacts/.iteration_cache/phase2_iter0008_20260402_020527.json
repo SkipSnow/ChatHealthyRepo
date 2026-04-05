@@ -1,0 +1,107 @@
+{
+  "assignment_id": "PHASE-2-EVAL-F-1-STORIES",
+  "iteration": 8,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Resolved duplicate story IDs by editing existing EVAL-F-001 story set.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-001-S1.description",
+      "value": "Define request/response schema for clinical trials search including condition, location, recruiting status, eligibility summary, and optional travel metrics.",
+      "note": "Clarified contract scope",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-F-001-S2.description",
+      "value": "Implement ClinicalTrials.gov API integration with recruiting filter, condition/location query handling, and structured parsing of trial data.",
+      "note": "Aligned to service capabilities",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-F-001-S3.description",
+      "value": "Add optional travel distance and duration enrichment using Google Routes API based on user location and trial sites.",
+      "note": "Explicit enrichment behavior",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-F-001-S4.description",
+      "value": "Expose clinical trials search via EvaluateCare facade and tool router with validated inputs and structured output for chat consumption.",
+      "note": "Connected to facade/tooling",
+      "iteration": 8
+    },
+    {
+      "path": "stories.EVAL-F-001-S5.description",
+      "value": "Create unit and integration tests covering API fetch, parsing, enrichment, and facade-level response validation.",
+      "note": "Expanded test coverage",
+      "iteration": 8
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "EVAL-F-001-S1",
+      "title": "Define Clinical Trials Search Schema and Contract",
+      "description": "Define request and response schema for clinical trials search including condition, location, recruiting status, eligibility summary, and optional travel metrics.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    {
+      "story_id": "EVAL-F-001-S2",
+      "title": "Implement ClinicalTrials.gov Search Logic",
+      "description": "Implement ClinicalTrials.gov API integration with recruiting filter, condition/location query handling, and structured parsing of trial data.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-F-001-S3",
+      "title": "Add Travel Distance and Time Enrichment",
+      "description": "Add optional travel distance and duration enrichment using Google Routes API based on user location and trial sites.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-F-001-S4",
+      "title": "Expose Clinical Trials Search via Evaluate Care Facade",
+      "description": "Expose clinical trials search via EvaluateCare facade and tool router with validated inputs and structured output for chat consumption.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-001-S5",
+      "title": "Unit and Integration Tests for Clinical Trials Search",
+      "description": "Create unit and integration tests covering API fetch, parsing, enrichment, and facade-level response validation.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S2",
+        "EVAL-F-001-S3",
+        "EVAL-F-001-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  ],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

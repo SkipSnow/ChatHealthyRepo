@@ -1,0 +1,101 @@
+{
+  "assignment_id": "GOV-F-004-STORIES",
+  "iteration": 24,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing core stories for append-only enforcement, API exposure, and integration with existing logging systems.",
+  "change_log": [
+    {
+      "path": "stories.GOV-F-004-S76",
+      "value": "Append-only write enforcement and immutability guarantees",
+      "note": "Core logic gap for append-only constraint",
+      "iteration": 24
+    },
+    {
+      "path": "stories.GOV-F-004-S77",
+      "value": "Audit logging API endpoints for ingestion and retrieval",
+      "note": "API layer missing for system access",
+      "iteration": 24
+    },
+    {
+      "path": "stories.GOV-F-004-S78",
+      "value": "Integration with existing debug_logger and tool_router",
+      "note": "Ensure system-wide adoption",
+      "iteration": 24
+    },
+    {
+      "path": "stories.GOV-F-004-S79",
+      "value": "End-to-end audit logging validation tests",
+      "note": "Coverage gap for compliance-critical feature",
+      "iteration": 24
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GOV-F-004-S76": {
+      "story_id": "GOV-F-004-S76",
+      "title": "Append-Only Enforcement and Immutability Guarantees",
+      "description": "Implement strict append-only behavior at the persistence layer ensuring audit records cannot be updated or deleted. Enforce write-once semantics, reject mutation operations, and validate immutability at the database access layer.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S68"
+      ],
+      "size": "L",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py (write control patterns); docs/adr/ADR-0010-safety-incident-logging.md (immutability expectations); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S77": {
+      "story_id": "GOV-F-004-S77",
+      "title": "Audit Logging API Endpoints",
+      "description": "Create backend API endpoints for audit log ingestion and controlled retrieval, including filters by trace_id, actor, and time range. Ensure endpoints enforce access control and do not allow mutation operations.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S74"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (FastAPI patterns); Code/DataPipelines/gpt_reader.py (controlled read interface); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S78": {
+      "story_id": "GOV-F-004-S78",
+      "title": "System Integration with Debug Logger and Tool Router",
+      "description": "Integrate append-only audit logging into existing system components including debug_logger, tool_router, and safety_service to ensure all GPT and Claude operations emit standardized audit events.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S69",
+        "GOV-F-004-S73"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (existing logging); Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (governed execution path); Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py (critical audit events); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S79": {
+      "story_id": "GOV-F-004-S79",
+      "title": "End-to-End Audit Logging Validation Tests",
+      "description": "Develop unit and integration tests validating that all critical operations generate audit logs, logs are immutable, retries do not duplicate inconsistently, and access control/redaction rules are enforced.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S76",
+        "GOV-F-004-S77",
+        "GOV-F-004-S78"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py (logging validation); Code/DataPipelines/tests/test_gpt_reader_integration.py (integration patterns); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

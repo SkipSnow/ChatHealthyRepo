@@ -1,0 +1,14 @@
+{
+  "assignment": "gpt_code_review_epic3",
+  "status": "pending",
+  "created": "2026-04-04T20:30:00Z",
+  "assigned_to": "GPT",
+  "system_prompt_ref": "gpt_code_review_system_prompt",
+  "user_prompt_ref": "gpt_code_review_user_prompt_epic3",
+  "instructions": {
+    "task": "Code review of EPIC-3 Pipeline Management + DB Manager",
+    "iterations": 1,
+    "output": "One report with two tables and a conclusion",
+    "code_changes": false
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "assignment_id": "EVAL-WEIGHTS-STORIES",
+  "iteration": 17,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories validated; minor strengthening of API/UI story to include preference retrieval on session load.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-WEIGHTS-S3.description",
+      "value": "Create backend endpoints and frontend controls (e.g., sliders) to allow users to adjust weights, persist preferences, retrieve saved weights on session load, and trigger score recalculation in real time with immediate UI feedback.",
+      "note": "Added retrieval on session load to complete persistence loop",
+      "iteration": 17
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-WEIGHTS-S1",
+      "title": "Define Weighting Schema and Persistence Contract",
+      "description": "Define data model for user-adjustable weights across quality measures, including defaults, bounds, normalization rules (sum=1), and persistence format for reuse across sessions; include versioning for future measure changes.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "GAP: No existing weighting schema; persistence to be implemented using Mongo utilities (Code/Shared/ChatHealthyMongoUtilities.py)"
+    },
+    {
+      "story_id": "EVAL-WEIGHTS-S2",
+      "title": "Implement Weighted Scoring Logic",
+      "description": "Extend provider and clinical trial scoring engines to apply user-defined weights, enforce normalization (sum=1), handle missing measures deterministically, and ensure consistent recomputation across both domains.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-SCORE-PROV",
+        "EVAL-SCORE-CT",
+        "EVAL-WEIGHTS-S1"
+      ],
+      "size": "L",
+      "evidence": "GAP: Existing scoring engines (evaluate_care_facade.py, clinical_trials_service.py) do not support dynamic weighting"
+    },
+    {
+      "story_id": "EVAL-WEIGHTS-S3",
+      "title": "Expose Weight Adjustment API and UI Controls",
+      "description": "Create backend endpoints and frontend controls (e.g., sliders) to allow users to adjust weights, persist preferences, retrieve saved weights on session load, and trigger score recalculation in real time with immediate UI feedback.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S1",
+        "EVAL-WEIGHTS-S2"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx; Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "EVAL-WEIGHTS-S4",
+      "title": "Integrate Weighting into Evaluate Care Facade",
+      "description": "Integrate weighting inputs into evaluate_care_facade, ensuring request contract supports optional weights, applies defaults when absent, and routes weights consistently to both provider and clinical trial scoring paths.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S2",
+        "EVAL-SCORE-PROV",
+        "EVAL-SCORE-CT"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-WEIGHTS-S5",
+      "title": "Weighting Logic Unit and Integration Tests",
+      "description": "Create unit tests for weighting calculations (normalization, edge cases) and integration tests validating end-to-end score changes when weights are adjusted across provider and clinical trial flows.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S2",
+        "EVAL-WEIGHTS-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

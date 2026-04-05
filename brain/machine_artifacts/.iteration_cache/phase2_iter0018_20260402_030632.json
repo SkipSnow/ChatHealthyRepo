@@ -1,0 +1,62 @@
+{
+  "stories": {
+    "BL-0.1.4-009-S1": {
+      "story_id": "BL-0.1.4-009-S1",
+      "title": "Define Mongo Query Size Estimation Contract",
+      "description": "Define a standard schema for estimating Mongo query size including document count, byte size approximation, and safety thresholds aligned with existing GPTReader limits.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    },
+    "BL-0.1.4-009-S2": {
+      "story_id": "BL-0.1.4-009-S2",
+      "title": "Implement Query Size Estimation Logic",
+      "description": "Build core logic to estimate Mongo query response size prior to execution using document count and average document size heuristics, explicitly incorporating existing 100-document limit and 500KB response cap enforcement alignment.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [
+        "BL-0.1.4-009-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    },
+    "BL-0.1.4-009-S3": {
+      "story_id": "BL-0.1.4-009-S3",
+      "title": "Integrate Size Guard into GPTReader API",
+      "description": "Integrate query size estimation into GPTReader request handling to block, truncate, or short-circuit oversized queries before execution and return structured warnings and metadata (estimated_size, limit_hit).",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [
+        "BL-0.1.4-009-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    },
+    "BL-0.1.4-009-S4": {
+      "story_id": "BL-0.1.4-009-S4",
+      "title": "Unit and Integration Tests for Query Size Guards",
+      "description": "Create tests validating estimation accuracy, enforcement of limits, safe truncation behavior, and handling of edge cases such as large documents, high-cardinality queries, and near-threshold responses.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [
+        "BL-0.1.4-009-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py"
+    },
+    "BL-0.1.4-009-S5": {
+      "story_id": "BL-0.1.4-009-S5",
+      "title": "Enforce Query Size Limits in GPTReader Internal Read Flows",
+      "description": "Ensure query size estimation is enforced within GPTReader read contexts (including batched internal reads) to prevent oversized responses, with graceful handling such as truncation or early return—no expansion into external pipeline orchestration.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [
+        "BL-0.1.4-009-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    }
+  }
+}

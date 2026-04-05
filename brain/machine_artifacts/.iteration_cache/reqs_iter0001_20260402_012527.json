@@ -1,0 +1,109 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-SCORE-PROV-S4",
+      "requirement": "The system must include a composite_score field in the FastAPI response model for provider evaluation responses.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-SCORE-PROV-S4",
+      "requirement": "The system must include a component_measures field containing at least three individual measure scores in the API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-SCORE-PROV-S4",
+      "requirement": "The system must ensure the composite_score value in the API response matches exactly the value returned by the EvaluateCare facade.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-SCORE-PROV-S4",
+      "requirement": "The system must serialize the composite_score as a numeric type (float or int) in the API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-SCORE-PROV-S4",
+      "requirement": "The system must serialize component_measures as a structured JSON object or array with named measures and their values.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-SCORE-PROV-S4",
+      "requirement": "The system must update tool_router outputs to include composite_score and component_measures when present in the facade response.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-SCORE-PROV-S4",
+      "requirement": "The system must preserve backward compatibility by not removing or renaming any existing response fields in main.py.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-SCORE-PROV-S4",
+      "requirement": "The system must include composite_score and component_measures in all provider evaluation responses where scoring data is available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-SCORE-PROV-S4",
+      "requirement": "The system must omit composite_score and component_measures fields or return them as null when scoring data is not available from the facade.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-SCORE-PROV-S4",
+      "requirement": "The system must return a valid FastAPI response conforming to the updated Pydantic response model without validation errors.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-SCORE-PROV-S4",
+      "requirement": "The system must ensure consistent field naming between FastAPI response models and tool_router outputs for composite_score and component_measures.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-SCORE-PROV-S4",
+      "requirement": "The system must handle the exception where the facade returns malformed scoring data by excluding the scoring fields and still returning a valid response.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-SCORE-PROV-S4",
+      "requirement": "The system must handle the exception where serialization of scoring fields fails by returning an HTTP 500 error with a structured error message.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

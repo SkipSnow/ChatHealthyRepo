@@ -1,0 +1,59 @@
+{
+  "assignment_id": "GPTR-F-001-STORIES",
+  "iteration": 31,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added schema/contract and API error handling stories to complete feature coverage.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GPTR-F-001-S115": {
+      "story_id": "GPTR-F-001-S115",
+      "title": "Allowlist Schema and Contract Definition",
+      "description": "Define a strict, versioned schema for GPTReader request validation including allowed collections, fields, operators, and limits using Pydantic or equivalent validation models to enforce structure prior to execution.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S116": {
+      "story_id": "GPTR-F-001-S116",
+      "title": "Standardized API Error Response for Rejected Requests",
+      "description": "Implement consistent error response structure for rejected GPTReader requests, including reason codes (e.g., disallowed_collection, invalid_field, limit_exceeded) and audit-safe messaging.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S111"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    "GPTR-F-001-S117": {
+      "story_id": "GPTR-F-001-S117",
+      "title": "Audit Logging for Enforcement Decisions",
+      "description": "Extend GPTReader audit logging to capture allowlist enforcement decisions, including rejected queries, violation types, and request metadata for security traceability.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S111",
+        "GPTR-F-001-S112"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

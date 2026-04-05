@@ -1,0 +1,77 @@
+{
+  "assignment_id": "BL-0.1.4-009",
+  "iteration": 8,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined core logic to account for aggregation pipelines and projection effects on payload size.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-009-S2.description",
+      "value": "Expanded to include aggregation pipeline stages and projection-aware size estimation (field filtering, $project, $lookup amplification).",
+      "note": "Improve estimation accuracy and prevent underestimation risk",
+      "iteration": 8
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-009-S1",
+      "title": "Define Mongo Query Size Estimation Contract",
+      "description": "Define a standard schema and contract for estimating Mongo query size including document count, projected payload size in bytes, aggregation amplification risk, and enforcement thresholds aligned with GPTReader limits (500KB, 100 docs).",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    },
+    {
+      "story_id": "BL-0.1.4-009-S2",
+      "title": "Implement Query Size Estimation Logic",
+      "description": "Build core logic to estimate Mongo query response size prior to execution using document sampling and metadata (avg doc size × limit), with adjustments for aggregation pipelines (e.g., $lookup expansion) and projection stages that alter payload size. Enforce caps such as 500KB and 100-document limits.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [
+        "BL-0.1.4-009-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    },
+    {
+      "story_id": "BL-0.1.4-009-S3",
+      "title": "Integrate Size Guard into GPTReader Query Pipeline",
+      "description": "Integrate the size estimation and guard logic into GPTReader so that oversized queries are rejected or truncated before execution, including handling for aggregation queries and ensuring audit logging captures guard decisions.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [
+        "BL-0.1.4-009-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    },
+    {
+      "story_id": "BL-0.1.4-009-S4",
+      "title": "Unit and Integration Tests for Query Size Enforcement",
+      "description": "Create tests validating estimation accuracy across simple queries and aggregation pipelines, enforcement of size limits, rejection of oversized queries, and safe handling of edge cases such as large documents, joins, and unbounded queries.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [
+        "BL-0.1.4-009-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py"
+    },
+    {
+      "story_id": "BL-0.1.4-009-S5",
+      "title": "Expose Query Size Estimation and Guard Status via Internal API",
+      "description": "Expose structured response fields in GPTReader to return estimated size, applied limits, and guard actions (truncate/reject), enabling debugging, audit logging, and downstream observability.",
+      "parent_feature": "BL-0.1.4-009",
+      "sprint": 4,
+      "dependencies": [
+        "BL-0.1.4-009-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    }
+  ]
+}

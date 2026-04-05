@@ -1,0 +1,78 @@
+{
+  "assignment_id": "EVAL-F-03-STORIES",
+  "iteration": 25,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing schema/contract and API exposure stories to complete feature coverage.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-03-S71",
+      "value": "Add schema and contract definition story",
+      "note": "Covers missing schema/contract requirement",
+      "iteration": 25
+    },
+    {
+      "path": "stories.EVAL-F-03-S72",
+      "value": "Add API exposure via FastAPI/main integration",
+      "note": "Ensures facade is externally reachable",
+      "iteration": 25
+    },
+    {
+      "path": "stories.EVAL-F-03-S73",
+      "value": "Add error handling and response normalization",
+      "note": "Improves orchestration robustness without expanding scope",
+      "iteration": 25
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F-03-S71": {
+      "story_id": "EVAL-F-03-S71",
+      "title": "Define EvaluateCare Facade Input and Output Contracts",
+      "description": "Define and enforce request/response schemas for EvaluateCare facade methods, aligning with existing Pydantic tool models for clinical trials and provider detail flows to ensure consistent validation and structured outputs.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F-03-S72": {
+      "story_id": "EVAL-F-03-S72",
+      "title": "Expose EvaluateCare Facade via FastAPI Entry Point",
+      "description": "Integrate EvaluateCare facade into the FastAPI application layer (main.py) to ensure it is properly wired, callable through the application runtime, and aligned with existing service initialization patterns.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S68"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F-03-S73": {
+      "story_id": "EVAL-F-03-S73",
+      "title": "Implement Error Handling and Response Normalization in Facade",
+      "description": "Add standardized error handling, fallback behavior, and response normalization within the EvaluateCare facade to handle partial failures from clinical trials and provider detail services while maintaining a consistent response structure.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S68"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

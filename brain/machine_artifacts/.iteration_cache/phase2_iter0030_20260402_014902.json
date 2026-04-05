@@ -1,0 +1,76 @@
+{
+  "assignment_id": "FEAT-2-STORIES",
+  "iteration": 30,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Incremental stories added for schema/contract, API exposure, and data integration.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-2-S90",
+      "value": "Add specialty query schema and validation models",
+      "note": "Covers schema/contract layer missing from prior iteration",
+      "iteration": 30
+    },
+    {
+      "path": "stories.FEAT-2-S91",
+      "value": "Expose specialty identification via facade/tool interface",
+      "note": "Adds API layer integration",
+      "iteration": 30
+    },
+    {
+      "path": "stories.FEAT-2-S92",
+      "value": "Integrate NUCC taxonomy data loading and normalization",
+      "note": "Ensures data dependency for mapping is defined",
+      "iteration": 30
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-2-S90": {
+      "story_id": "FEAT-2-S90",
+      "title": "Define Specialty Query Schema and Validation",
+      "description": "Create Pydantic models for specialty input parsing and validation, including normalized query text, extracted keywords, and structured specialty request format for downstream processing.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-2-S91": {
+      "story_id": "FEAT-2-S91",
+      "title": "Expose Specialty Identification via FindCare Facade",
+      "description": "Integrate specialty_service into find_care_facade and tool_router, enabling specialty identification to be triggered via tool calls and returning structured NUCC codes to calling workflows.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-2-S87"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    "FEAT-2-S92": {
+      "story_id": "FEAT-2-S92",
+      "title": "Load and Normalize NUCC Specialty Taxonomy Data",
+      "description": "Implement ingestion and normalization of NUCC taxonomy codes used for specialty mapping, ensuring consistent formatting, deduplication keys, and lookup readiness for the specialty_service.",
+      "parent_feature": "FEAT-2",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/DataPipelines/load_specialty_data.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

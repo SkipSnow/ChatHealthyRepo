@@ -1,0 +1,65 @@
+{
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S1",
+      "title": "Token Schema, TTL, and Status Contract",
+      "description": "Define canonical token schema (hash, issued_at, expires_at, status, scope, rotation_parent_id) and TTL policy contract for GPTReader, including MongoDB index strategy for expiration and status queries.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "record: sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-002; Code/DataPipelines/gpt_reader.py"
+    },
+    {
+      "story_id": "GPTR-F-002-S2",
+      "title": "Core Validation Engine (Expire + Revoke + Scope)",
+      "description": "Implement validation middleware/library enforcing expiration, revocation status, and scope checks for every GPTReader request, using constant-time hash comparison.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/DataPipelines/gpt_reader.py"
+    },
+    {
+      "story_id": "GPTR-F-002-S3",
+      "title": "Rotation Workflow with Overlap Window",
+      "description": "Implement secure rotation flow: issue new token, link lineage, mark prior token as rotating, enforce short overlap window, and finalize prior token revocation.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S2"
+      ],
+      "size": "M",
+      "evidence": "GAP: Rotation not present; required by BL-0.1.4-002 for security hardening"
+    },
+    {
+      "story_id": "GPTR-F-002-S4",
+      "title": "Token Management Endpoints (Issue/Revoke/Status)",
+      "description": "Expose internal Azure Function endpoints for token issuance, revocation, and status lookup, ensuring no plaintext tokens are persisted or returned after creation.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S2",
+        "GPTR-F-002-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/function_app.py; Code/DataPipelines/auth.py"
+    },
+    {
+      "story_id": "GPTR-F-002-S5",
+      "title": "Lifecycle Tests and GPTReader Integration",
+      "description": "Add unit and integration tests validating expiration, rotation overlap behavior, revocation enforcement, and end-to-end GPTReader request rejection for invalid tokens.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S2",
+        "GPTR-F-002-S3",
+        "GPTR-F-002-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py"
+    }
+  ]
+}

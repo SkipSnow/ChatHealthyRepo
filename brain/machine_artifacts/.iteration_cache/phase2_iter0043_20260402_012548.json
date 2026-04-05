@@ -1,0 +1,63 @@
+{
+  "assignment_id": "SHARED-F-2-STORIES",
+  "iteration": 43,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added API layer and cross-service integration stories to complete feature coverage.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-2-S128",
+      "value": "Consent API & Tool Interface",
+      "note": "Expose consent capture and retrieval via API/tool layer",
+      "iteration": 43
+    },
+    {
+      "path": "stories.SHARED-F-2-S129",
+      "value": "Consent Integration with Lead Capture & Unknowns",
+      "note": "Ensure downstream services respect consent tiers",
+      "iteration": 43
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "SHARED-F-2-S128": {
+      "story_id": "SHARED-F-2-S128",
+      "title": "Consent API & Tool Interface",
+      "description": "Expose consent framework capabilities via FastAPI endpoints and tool_router integration, including capturing Tier 1 and Tier 2 consent, retrieving current consent status, and enabling tool-use flows to trigger consent prompts.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S124",
+        "SHARED-F-2-S125"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py; architecture/refactor_design_arch001"
+    },
+    "SHARED-F-2-S129": {
+      "story_id": "SHARED-F-2-S129",
+      "title": "Consent Integration with Lead Capture & Unknowns",
+      "description": "Integrate consent enforcement with downstream shared services (lead_capture and unknown_question_service) to ensure data handling aligns with granted consent tier, including blocking identifiable storage or triggering de-identification flows.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S125"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; architecture/refactor_design_arch001"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

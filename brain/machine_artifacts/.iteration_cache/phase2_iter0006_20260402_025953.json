@@ -1,0 +1,104 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-007",
+  "iteration": 6,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined endpoint behavior to include build/version sourcing; no new stories created per feature lock and dedup rules.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-007-S3.description",
+      "value": "Add FastAPI route /health in main.py that returns the health contract response, including version sourced from build.txt. Ensure the endpoint is unauthenticated, low-latency, and avoids heavy service initialization or LLM/tool invocation paths.",
+      "note": "Clarify version source to align with schema contract",
+      "iteration": 6
+    },
+    {
+      "path": "stories.BL-0.1.4-007-S2.evidence",
+      "value": "Code/Shared/ChatHealthyMongoUtilities.py; Code/ConversationalUX/FindCareChat/backend/main.py",
+      "note": "Anchor core logic to actual FastAPI host wiring",
+      "iteration": 6
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-007-S1",
+      "title": "Health Endpoint Schema and Contract",
+      "description": "Define the /health response contract including status (ok/degraded/down), timestamp, service name, version, and dependency checks (MongoDB connectivity). Establish JSON schema and HTTP status code mapping (200=ok/degraded, 503=down).",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/build.txt"
+    },
+    {
+      "story_id": "BL-0.1.4-007-S2",
+      "title": "Core Health Check Logic",
+      "description": "Implement backend logic to evaluate system health including app liveness and MongoDB ping using shared utilities. Structure checks as modular components (e.g., db, app) and aggregate into a unified status. Exclude external APIs for low latency and add timeout guards to prevent blocking.",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [
+        "BL-0.1.4-007-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "BL-0.1.4-007-S3",
+      "title": "Expose /health API Endpoint",
+      "description": "Add FastAPI route /health in main.py that returns the health contract response, including version sourced from build.txt. Ensure the endpoint is unauthenticated, low-latency, and avoids heavy service initialization or LLM/tool invocation paths.",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [
+        "BL-0.1.4-007-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "BL-0.1.4-007-S4",
+      "title": "Health Endpoint Tests",
+      "description": "Create unit and integration tests validating /health response schema, status codes, and behavior under normal and degraded conditions (e.g., simulated MongoDB failure).",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [
+        "BL-0.1.4-007-S2",
+        "BL-0.1.4-007-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    },
+    {
+      "story_id": "BL-0.1.4-007-S5",
+      "title": "Deployment and Readiness Integration",
+      "description": "Validate /health endpoint compatibility with Azure App Service health checks and CI/CD pipelines. Confirm endpoint is reachable post-deploy, supports readiness/liveness probes, and integrates with pipeline health monitoring utilities.",
+      "parent_feature": "BL-0.1.4-007",
+      "sprint": 1,
+      "dependencies": [
+        "BL-0.1.4-007-S3"
+      ],
+      "size": "S",
+      "evidence": ".github/workflows/deploy-findcare-backend.yml; docs/adr/ADR-0003-fastapi-azure-app-service.md; Code/DataPipelines/pipeline_health.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "BL-0.1.4-007",
+        "likelihood": "Low",
+        "impact": "Low",
+        "mitigation": "Keep checks minimal (app + Mongo ping only) and enforce strict timeouts to avoid latency spikes."
+      }
+    ],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

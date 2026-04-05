@@ -1,0 +1,42 @@
+{
+  "stories": {
+    "GOV-F-004-S101": {
+      "story_id": "GOV-F-004-S101",
+      "title": "Append-Only Audit Storage Layer (Mongo Collection + Constraints)",
+      "description": "Implement the underlying MongoDB collection and repository layer for audit logs with enforced append-only behavior (no updates/deletes), indexed by trace_id, timestamp, and actor, and aligned with existing Mongo utility patterns.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S95"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py (Mongo lifecycle + write patterns); Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (existing persistence approach); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S102": {
+      "story_id": "GOV-F-004-S102",
+      "title": "Trace ID Propagation Middleware Across AI Execution Paths",
+      "description": "Introduce middleware/utilities to generate and propagate a consistent trace_id across FastAPI requests, tool_router executions, Brain runner flows, and downstream services to ensure full audit traceability.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S95",
+        "GOV-F-004-S98"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (request lifecycle); Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (execution flow); Code/Shared/brain_runner.py (orchestration entrypoint); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S103": {
+      "story_id": "GOV-F-004-S103",
+      "title": "Audit Event Validation and Sanitization Layer",
+      "description": "Add a validation and sanitization layer to ensure all audit events conform to schema, strip or de-identify sensitive data where required, and reject malformed or unsafe payloads before persistence.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S95",
+        "GOV-F-004-S96"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models (Pydantic validation patterns); Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py (de-identification patterns); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    }
+  }
+}

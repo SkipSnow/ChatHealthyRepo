@@ -1,0 +1,79 @@
+{
+  "assignment_id": "EVAL-F-03-STORIES",
+  "iteration": 31,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing schema/contract and error-handling coverage for facade orchestration.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-03-S89",
+      "value": "Add facade input/output schema contracts for clinical trials and provider detail flows",
+      "note": "Covers schema/contract gap",
+      "iteration": 31
+    },
+    {
+      "path": "stories.EVAL-F-03-S90",
+      "value": "Add facade error handling and normalization logic",
+      "note": "Improves robustness without expanding scope",
+      "iteration": 31
+    },
+    {
+      "path": "stories.EVAL-F-03-S91",
+      "value": "Add integration with Pydantic tool models for validated inputs",
+      "note": "Ensures contract alignment with tool layer",
+      "iteration": 31
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F-03-S89": {
+      "story_id": "EVAL-F-03-S89",
+      "title": "Define Facade Input/Output Schemas",
+      "description": "Define and enforce structured request and response contracts for clinical trials search and provider detail lookup within the facade, ensuring consistent fields, formatting, and downstream compatibility.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    "EVAL-F-03-S90": {
+      "story_id": "EVAL-F-03-S90",
+      "title": "Implement Facade Error Handling and Normalization",
+      "description": "Implement standardized error handling within the facade to catch domain service failures, normalize error responses, and ensure safe, user-consumable outputs without leaking raw exceptions.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S84",
+        "EVAL-F-03-S85"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    "EVAL-F-03-S91": {
+      "story_id": "EVAL-F-03-S91",
+      "title": "Integrate Pydantic Validation with Facade Inputs",
+      "description": "Ensure facade methods accept and validate inputs using existing Pydantic tool models for clinical trials and provider queries, aligning tool_router validation with facade contracts.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S86"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

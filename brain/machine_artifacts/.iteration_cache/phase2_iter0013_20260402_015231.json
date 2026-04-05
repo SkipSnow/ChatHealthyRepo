@@ -1,0 +1,91 @@
+{
+  "assignment_id": "FIND-P-M1-STORIES",
+  "iteration": 13,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories refined for clearer API contract exposure; no new IDs created.",
+  "change_log": [
+    {
+      "path": "stories.FIND-P-M1-S3.description",
+      "value": "Integrate provider_search_service into FindCareFacade and expose via tool_router and explicit FastAPI endpoint(s) in main.py (e.g., /find/providers), ensuring strict alignment with tool schema and HTTP request/response contract.",
+      "note": "Clarified API surface and endpoint expectation",
+      "iteration": 13
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FIND-P-M1-S1",
+      "title": "Define Provider Search Schema and Contract",
+      "description": "Define Pydantic models for provider search inputs (query, location, specialty, pagination) and outputs (ranked provider list, scores, geo metadata) ensuring strict compatibility with tool_router and FindCareFacade contracts.",
+      "parent_feature": "FIND-P-M1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    {
+      "story_id": "FIND-P-M1-S2",
+      "title": "Implement Vector + Taxonomy Provider Search Logic",
+      "description": "Implement provider search using MongoDB Atlas vector search with deterministic fallback to NUCC taxonomy matching, including ranking strategy, geo filtering (state/city/county via FIPS), and result normalization.",
+      "parent_feature": "FIND-P-M1",
+      "sprint": 1,
+      "dependencies": [
+        "FIND-P-M1-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    {
+      "story_id": "FIND-P-M1-S3",
+      "title": "Expose Provider Search via FindCareFacade",
+      "description": "Integrate provider_search_service into FindCareFacade and expose via tool_router and explicit FastAPI endpoint(s) in main.py (e.g., /find/providers), ensuring strict alignment with tool schema and HTTP request/response contract.",
+      "parent_feature": "FIND-P-M1",
+      "sprint": 1,
+      "dependencies": [
+        "FIND-P-M1-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    {
+      "story_id": "FIND-P-M1-S4",
+      "title": "Integrate Specialty Identification and Embedding Pipeline",
+      "description": "Integrate specialty_service (NUCC mapping, query expansion) and embedding_client (vector generation) into the provider search pipeline to support hybrid semantic + taxonomy search.",
+      "parent_feature": "FIND-P-M1",
+      "sprint": 1,
+      "dependencies": [
+        "FIND-P-M1-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py"
+    },
+    {
+      "story_id": "FIND-P-M1-S5",
+      "title": "Provider Search Unit and Integration Tests",
+      "description": "Implement unit tests for ranking, fallback, and geo filtering logic, plus integration tests validating full flow from tool_router → FindCareFacade → provider_search_service including vector + taxonomy behavior.",
+      "parent_feature": "FIND-P-M1",
+      "sprint": 1,
+      "dependencies": [
+        "FIND-P-M1-S3",
+        "FIND-P-M1-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

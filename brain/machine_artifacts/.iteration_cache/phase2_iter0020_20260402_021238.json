@@ -1,0 +1,119 @@
+{
+  "assignment_id": "EVAL-F-3-STORIES",
+  "iteration": 20,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Edited existing stories to tighten contracts, orchestration behavior, and test scope. No new IDs created.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-3-S1.description",
+      "value": "Define unified Pydantic request/response contract with operation enum (clinical_trials_search, provider_detail), normalized inputs, and a consistent response envelope (status, data, errors, metadata, trace_id, latency_ms) supporting forward-compatible extensions.",
+      "note": "Add observability fields to contract",
+      "iteration": 20
+    },
+    {
+      "path": "stories.EVAL-F-3-S2.description",
+      "value": "Implement deterministic routing, aggregation, normalization, retries/timeouts for downstream calls, and error standardization across clinical_trials_service and provider_detail_service with consistent envelope output and graceful degradation on partial failures.",
+      "note": "Add resiliency behavior (retries/timeouts)",
+      "iteration": 20
+    },
+    {
+      "path": "stories.EVAL-F-3-S3.description",
+      "value": "Expose facade through tool_router with strict Pydantic validation, operation dispatch, allowlist enforcement (GOV-004), and compatibility with Anthropic tool-use loop including trace_id propagation.",
+      "note": "Align with governance and tracing",
+      "iteration": 20
+    },
+    {
+      "path": "stories.EVAL-F-3-S4.description",
+      "value": "Validate multi-service aggregation scenarios ensuring consistent schema output when combining clinical trials and provider detail data, including partial response stitching, precedence rules, null-handling, and deterministic ordering.",
+      "note": "Clarify deterministic aggregation rules",
+      "iteration": 20
+    },
+    {
+      "path": "stories.EVAL-F-3-S5.description",
+      "value": "Implement unit and integration tests covering schema validation, routing logic, retries/timeouts, error handling, aggregation rules, and full tool_router execution paths for both clinical trials search and provider detail flows.",
+      "note": "Expand test coverage to resiliency and aggregation",
+      "iteration": 20
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F-3-S1",
+      "title": "Define Evaluate Care Facade Request/Response Schema",
+      "description": "Define unified Pydantic request/response contract with operation enum (clinical_trials_search, provider_detail), normalized inputs, and a consistent response envelope (status, data, errors, metadata, trace_id, latency_ms) supporting forward-compatible extensions.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py + Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py + Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    {
+      "story_id": "EVAL-F-3-S2",
+      "title": "Implement Facade Orchestration Logic",
+      "description": "Implement deterministic routing, aggregation, normalization, retries/timeouts for downstream calls, and error standardization across clinical_trials_service and provider_detail_service with consistent envelope output and graceful degradation on partial failures.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001",
+        "EVAL-F-002"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py + Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/"
+    },
+    {
+      "story_id": "EVAL-F-3-S3",
+      "title": "Expose Evaluate Care Facade via Tool Router Interface",
+      "description": "Expose facade through tool_router with strict Pydantic validation, operation dispatch, allowlist enforcement (GOV-004), and compatibility with Anthropic tool-use loop including trace_id propagation.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "EVAL-F-3-S4",
+      "title": "Cross-Domain Integration and Aggregation Validation",
+      "description": "Validate multi-service aggregation scenarios ensuring consistent schema output when combining clinical trials and provider detail data, including partial response stitching, precedence rules, null-handling, and deterministic ordering.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001",
+        "EVAL-F-002",
+        "EVAL-F-3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py + Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-F-3-S5",
+      "title": "Unit and Integration Tests for Facade Orchestration",
+      "description": "Implement unit and integration tests covering schema validation, routing logic, retries/timeouts, error handling, aggregation rules, and full tool_router execution paths for both clinical trials search and provider detail flows.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-3-S2",
+        "EVAL-F-3-S3",
+        "EVAL-F-3-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

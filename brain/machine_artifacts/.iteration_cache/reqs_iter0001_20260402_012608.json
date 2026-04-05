@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CONF-REQ-001",
+      "story_id": "EVAL-CONF-ST-004",
+      "requirement": "The system must render a confidence indicator in chat responses when a confidence score is present in the API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-002",
+      "story_id": "EVAL-CONF-ST-004",
+      "requirement": "The system must display the confidence score as a percentage value (0–100%) in the message metadata area.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-003",
+      "story_id": "EVAL-CONF-ST-004",
+      "requirement": "The system must support rendering a qualitative label (e.g., Low, Medium, High) derived from the numeric confidence score.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-004",
+      "story_id": "EVAL-CONF-ST-004",
+      "requirement": "The system must map numeric confidence ranges to qualitative labels consistently (e.g., 0–39 Low, 40–69 Medium, 70–100 High).",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-005",
+      "story_id": "EVAL-CONF-ST-004",
+      "requirement": "The system must ensure the confidence indicator is visually distinguishable from the primary quality score in the message UI.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-006",
+      "story_id": "EVAL-CONF-ST-004",
+      "requirement": "The system must render the confidence indicator within the existing MessageBubble component without breaking existing message layouts.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-007",
+      "story_id": "EVAL-CONF-ST-004",
+      "requirement": "The system must not render a confidence indicator if the API response does not include a confidence object.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-008",
+      "story_id": "EVAL-CONF-ST-004",
+      "requirement": "The system must gracefully handle malformed confidence data by omitting the indicator and logging a frontend error.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-009",
+      "story_id": "EVAL-CONF-ST-004",
+      "requirement": "The system must ensure that rendering the confidence indicator does not increase message render time beyond acceptable UI thresholds.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-010",
+      "story_id": "EVAL-CONF-ST-004",
+      "requirement": "The system must support confidence indicator display for both provider and clinical trial evaluation responses.",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-011",
+      "story_id": "EVAL-CONF-ST-004",
+      "requirement": "The system must ensure the confidence indicator is included in serialized chat message data passed through the rendering pipeline.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-012",
+      "story_id": "EVAL-CONF-ST-004",
+      "requirement": "The system must maintain backward compatibility such that messages without confidence data render identically to prior versions.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-013",
+      "story_id": "EVAL-CONF-ST-004",
+      "requirement": "The system must correctly round or format the confidence percentage to a maximum of one decimal place for display.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-014",
+      "story_id": "EVAL-CONF-ST-004",
+      "requirement": "The system must ensure that confidence values outside the valid range (below 0 or above 100) are not displayed and are treated as invalid input.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

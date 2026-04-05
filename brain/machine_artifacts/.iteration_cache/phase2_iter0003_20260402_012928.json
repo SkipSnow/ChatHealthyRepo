@@ -1,0 +1,91 @@
+{
+  "assignment_id": "PHASE-2-MAINT-MAPS-STORIES",
+  "iteration": 3,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories refined for clearer separation of rendering vs integration and explicit map library responsibility.",
+  "change_log": [
+    {
+      "path": "stories.MAINT-MAPS-S2.description",
+      "value": "Explicitly includes map library initialization (e.g., Leaflet/Google Maps), viewport control, and marker lifecycle management.",
+      "note": "Clarify core logic responsibility",
+      "iteration": 3
+    },
+    {
+      "path": "stories.MAINT-MAPS-S3.description",
+      "value": "Expanded to include bidirectional sync between marker selection and chat/provider list context.",
+      "note": "Strengthen UI interaction definition",
+      "iteration": 3
+    },
+    {
+      "path": "stories.MAINT-MAPS-S4.description",
+      "value": "Clarified real-time update behavior including re-render on new queries and partial result streaming handling.",
+      "note": "Improve integration precision",
+      "iteration": 3
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "MAINT-MAPS-S1",
+      "title": "Map Data Contract for Provider Locations",
+      "description": "Define strict frontend map data contract aligned to provider schema including provider_id, name, latitude, longitude, specialty, and display metadata. Include transformation rules from provider_search_service output to map-ready format.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/Schemas/ChatHealthy.Providers.json; Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    {
+      "story_id": "MAINT-MAPS-S2",
+      "title": "Core Map Rendering Component",
+      "description": "Implement core frontend map component using a mapping library (e.g., Leaflet or Google Maps) including map initialization, viewport bounds handling, dynamic centering based on results, and marker lifecycle management using the defined contract.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S1"
+      ],
+      "size": "M",
+      "evidence": "Website/architecture.html"
+    },
+    {
+      "story_id": "MAINT-MAPS-S3",
+      "title": "Provider Marker UI and Interaction",
+      "description": "Build UI logic for interactive provider markers including hover/click states, info popups with provider details, and bidirectional selection synchronization with provider list or chat context.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S2"
+      ],
+      "size": "M",
+      "evidence": "Website/architecture.html; Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    },
+    {
+      "story_id": "MAINT-MAPS-S4",
+      "title": "Integration with Provider Search Results",
+      "description": "Integrate map component with provider search API responses to dynamically update markers based on search queries, including re-rendering on new queries, handling empty states, and supporting incremental/streaming result updates.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S1",
+        "MAINT-MAPS-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    {
+      "story_id": "MAINT-MAPS-S5",
+      "title": "Map Rendering and Interaction Tests",
+      "description": "Develop frontend tests validating map initialization, marker rendering accuracy, interaction behavior, contract compliance, and synchronization with provider search results.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S3",
+        "MAINT-MAPS-S4"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend; Website/tests/test_website.py"
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-COMPARE-UX-S1",
+      "title": "Define comparison view schema and UI contract",
+      "description": "Define the frontend data contract for side-by-side provider comparison, including provider identity, overall score, individual measures, and relative ranking indicators. Ensure compatibility with backend EVAL-COMPARE response.",
+      "parent_feature": "EVAL-COMPARE-UX",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-COMPARE"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (provider detail and evaluation orchestration patterns); GAP: No comparison schema exists; must define contract aligned to backend output.",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-COMPARE-UX-S2",
+      "title": "Implement comparison normalization and ranking logic",
+      "description": "Build frontend logic to normalize provider scores, compute relative strengths/weaknesses, and highlight deltas between providers across measures.",
+      "parent_feature": "EVAL-COMPARE-UX",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-COMPARE-UX-S1"
+      ],
+      "size": "M",
+      "evidence": "GAP: No comparison logic implemented; required to transform backend scores into user-understandable comparisons.",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-COMPARE-UX-S3",
+      "title": "Build side-by-side comparison UI component",
+      "description": "Develop a reusable React component that renders two or more providers side-by-side with scores, measure breakdowns, and visual indicators for strengths and weaknesses.",
+      "parent_feature": "EVAL-COMPARE-UX",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-COMPARE-UX-S1",
+        "EVAL-COMPARE-UX-S2"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components (existing React component patterns like ChatWindow and MessageBubble); GAP: No comparison UI exists.",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-COMPARE-UX-S4",
+      "title": "Integrate comparison UI with API and state management",
+      "description": "Connect the comparison component to backend EVAL-COMPARE API, handle loading, error states, and dynamic provider selection.",
+      "parent_feature": "EVAL-COMPARE-UX",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-COMPARE",
+        "EVAL-COMPARE-UX-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx (API integration patterns); GAP: No comparison API integration exists.",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-COMPARE-UX-S5",
+      "title": "Add unit and UI tests for comparison feature",
+      "description": "Create tests validating schema mapping, comparison logic, rendering correctness, and edge cases (missing data, unequal measures, multiple providers).",
+      "parent_feature": "EVAL-COMPARE-UX",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-COMPARE-UX-S2",
+        "EVAL-COMPARE-UX-S3",
+        "EVAL-COMPARE-UX-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests and frontend test patterns; GAP: No tests for comparison feature exist.",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

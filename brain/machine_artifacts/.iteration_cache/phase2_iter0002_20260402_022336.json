@@ -1,0 +1,115 @@
+{
+  "assignment_id": "EVAL-CT-MEASURE-1-STORIES",
+  "iteration": 2,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined existing stories for clarity, contract precision, and tighter alignment to backend service and facade.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-CT-MEASURE-1-S1.description",
+      "value": "Define deterministic mapping of phases (I, II, III, IV, and combined phases like I/II) to normalized scores (0–1), including explicit handling for unknown/null values and output contract fields: phase_raw, phase_normalized, score, confidence.",
+      "note": "Clarify schema fields and combined phase handling",
+      "iteration": 2
+    },
+    {
+      "path": "stories.EVAL-CT-MEASURE-1-S2.description",
+      "value": "Implement pure function scoring logic that maps normalized phase values to scores with strict ordering (IV highest), includes parsing of combined phases (e.g., II/III), and defaults for invalid inputs with confidence downgrade.",
+      "note": "Add combined phase parsing and confidence behavior",
+      "iteration": 2
+    },
+    {
+      "path": "stories.EVAL-CT-MEASURE-1-S3.description",
+      "value": "Augment clinical_trials_service pipeline to attach phase scoring output to each trial object, ensuring non-breaking extension of existing response schema and preservation of original phase text.",
+      "note": "Ensure backward compatibility and field preservation",
+      "iteration": 2
+    },
+    {
+      "path": "stories.EVAL-CT-MEASURE-1-S4.description",
+      "value": "Expose phase quality fields (phase_normalized, score, confidence) through evaluate_care_facade tool responses consumed by chat, ensuring consistent serialization and no schema drift.",
+      "note": "Specify exact exposed fields",
+      "iteration": 2
+    },
+    {
+      "path": "stories.EVAL-CT-MEASURE-1-S5.description",
+      "value": "Add unit tests for mapping (I–IV, combined phases, invalid/null) and integration tests validating presence and correctness of scoring fields in end-to-end clinical trial responses via facade.",
+      "note": "Expand coverage to combined and invalid cases",
+      "iteration": 2
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-CT-MEASURE-1-S1": {
+      "story_id": "EVAL-CT-MEASURE-1-S1",
+      "title": "Trial Phase Scoring Schema and Contract",
+      "description": "Define deterministic mapping of phases (I, II, III, IV, and combined phases like I/II) to normalized scores (0–1), including explicit handling for unknown/null values and output contract fields: phase_raw, phase_normalized, score, confidence.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-MEASURE-1-S2": {
+      "story_id": "EVAL-CT-MEASURE-1-S2",
+      "title": "Core Trial Phase Scoring Logic",
+      "description": "Implement pure function scoring logic that maps normalized phase values to scores with strict ordering (IV highest), includes parsing of combined phases (e.g., II/III), and defaults for invalid inputs with confidence downgrade.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-MEASURE-1-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-MEASURE-1-S3": {
+      "story_id": "EVAL-CT-MEASURE-1-S3",
+      "title": "Integration with Clinical Trials Service Pipeline",
+      "description": "Augment clinical_trials_service pipeline to attach phase scoring output to each trial object, ensuring non-breaking extension of existing response schema and preservation of original phase text.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-MEASURE-1-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-CT-MEASURE-1-S4": {
+      "story_id": "EVAL-CT-MEASURE-1-S4",
+      "title": "Expose Trial Phase Quality via Facade/API",
+      "description": "Expose phase quality fields (phase_normalized, score, confidence) through evaluate_care_facade tool responses consumed by chat, ensuring consistent serialization and no schema drift.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-MEASURE-1-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-CT-MEASURE-1-S5": {
+      "story_id": "EVAL-CT-MEASURE-1-S5",
+      "title": "Unit and Integration Tests for Phase Scoring",
+      "description": "Add unit tests for mapping (I–IV, combined phases, invalid/null) and integration tests validating presence and correctness of scoring fields in end-to-end clinical trial responses via facade.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-MEASURE-1-S2",
+        "EVAL-CT-MEASURE-1-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

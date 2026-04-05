@@ -1,0 +1,40 @@
+{
+  "stories": {
+    "STORY-FEAT4-006": {
+      "story_id": "STORY-FEAT4-006",
+      "title": "Add Input Validation for Provider Detail Requests",
+      "description": "Implement Pydantic model for provider detail lookup inputs (NPI format, required fields) and integrate with tool_router validation pipeline.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-001"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "STORY-FEAT4-007": {
+      "story_id": "STORY-FEAT4-007",
+      "title": "Implement Error Handling and Fallbacks for NPI Lookup",
+      "description": "Handle API failures, empty responses, and invalid NPIs with structured error responses and safe fallbacks to prevent tool failure propagation.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-002"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "STORY-FEAT4-008": {
+      "story_id": "STORY-FEAT4-008",
+      "title": "Validate and Sanitize External Provider URLs",
+      "description": "Integrate URL validation pipeline to verify state board and research links using existing URL guardian (HEAD check, AI verification, correction fallback).",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-003"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py"
+    }
+  }
+}

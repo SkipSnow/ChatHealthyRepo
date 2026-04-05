@@ -1,0 +1,91 @@
+{
+  "assignment_id": "GPTR-F-001-STORIES",
+  "iteration": 1,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories defined for server-side scope enforcement with strict allowlist validation aligned to GPTReader architecture.",
+  "change_log": [],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "GPTR-F-001-S1",
+      "title": "Allowlist Schema and Request Contract",
+      "description": "Define the allowlist schema and request validation contract for GPTReader requests, including permitted collections, query types, field filters, and max limits. Establish canonical structure enforced by Azure Function.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-001"
+    },
+    {
+      "story_id": "GPTR-F-001-S2",
+      "title": "Allowlist Configuration and Loading",
+      "description": "Implement configuration mechanism to define and load allowlist rules (collections, operations, constraints) into the Azure Function at runtime. Ensure immutability during request execution.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S1"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py"
+    },
+    {
+      "story_id": "GPTR-F-001-S3",
+      "title": "Core Scope Enforcement Logic",
+      "description": "Implement server-side validation logic that enforces strict allowlist checks on every GPTReader request, rejecting any request with disallowed collections, query patterns, or parameter violations.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/brain_auth.py"
+    },
+    {
+      "story_id": "GPTR-F-001-S4",
+      "title": "Azure Function Request Interception Layer",
+      "description": "Integrate enforcement logic into the Azure Function entry point to intercept all incoming GPTReader requests, apply allowlist validation before execution, and return standardized rejection responses.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/function_app.py; Code/DataPipelines/gpt_reader.py"
+    },
+    {
+      "story_id": "GPTR-F-001-S5",
+      "title": "Scope Enforcement Tests and Integration Coverage",
+      "description": "Develop unit and integration tests validating allowlist enforcement, including allowed requests, rejected out-of-scope queries, boundary conditions, and regression coverage for GPTReader flows.",
+      "parent_feature": "GPTR-F-001",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-001-S3",
+        "GPTR-F-001-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader.py; Code/DataPipelines/tests/test_gpt_reader_integration.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "GPTR-F-001",
+        "likelihood": "High",
+        "impact": "Critical",
+        "mitigation": "Fail-closed validation: reject any request not explicitly allowed and log violations."
+      }
+    ],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

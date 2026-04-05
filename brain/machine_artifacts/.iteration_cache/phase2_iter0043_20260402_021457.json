@@ -1,0 +1,62 @@
+{
+  "assignment_id": "FEAT-6-STORIES",
+  "iteration": 43,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema/contract and testing coverage for consent workflow.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-6-S140",
+      "value": "Consent Data Model & Pydantic Schemas",
+      "note": "Add schema layer story",
+      "iteration": 43
+    },
+    {
+      "path": "stories.FEAT-6-S141",
+      "value": "Consent Workflow Test Coverage",
+      "note": "Add testing story",
+      "iteration": 43
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-6-S140": {
+      "story_id": "FEAT-6-S140",
+      "title": "Consent Data Model & Pydantic Schemas",
+      "description": "Define and implement Pydantic models for consent tiers, consent capture inputs, audit metadata, and storage contracts to ensure strict validation and consistent API/schema enforcement across services.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py"
+    },
+    "FEAT-6-S141": {
+      "story_id": "FEAT-6-S141",
+      "title": "Consent Workflow Test Coverage",
+      "description": "Develop unit and integration tests validating tier transitions, de-identification behavior, summarization triggers, and enforcement across API and service boundaries.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S137",
+        "FEAT-6-S138",
+        "FEAT-6-S139"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "assignment_id": "PHASE-2-MAINT-DIST-STORIES",
+  "iteration": 6,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Existing stories satisfy requirements. No changes made.",
+  "change_log": [],
+  "stories": [
+    {
+      "story_id": "MAINT-DIST-S1",
+      "title": "Distance Calculation Contract and Data Schema",
+      "description": "Define strict Pydantic schema for distance inputs/outputs including lat/lng validation, unit normalization, and standardized response fields (distance_meters, duration_seconds, source, status).",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "MAINT-DIST-S2",
+      "title": "Core Distance Calculation Logic",
+      "description": "Extract reusable distance computation into a shared domain service leveraging Google Routes with explicit handling for timeouts, null/partial responses, and deterministic fallback behavior (return status=no_distance with null metrics when computation fails).",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "MAINT-DIST-S3",
+      "title": "Service Integration with Provider and Trial Flows",
+      "description": "Integrate shared distance service into provider search and clinical trials flows to consistently enrich results with distance and duration while preserving existing response contracts and avoiding breaking changes to downstream consumers.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py"
+    },
+    {
+      "story_id": "MAINT-DIST-S4",
+      "title": "Distance Calculation API Exposure",
+      "description": "Expose distance service via internal interfaces and tool router with standardized error mapping, enabling reuse across facades without introducing new external endpoints.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "MAINT-DIST-S5",
+      "title": "Distance Calculation Tests and Edge Case Validation",
+      "description": "Implement unit and integration tests covering valid calculations, edge cases, and Google Routes failure modes including timeout, partial response, and fallback status validation.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S2",
+        "MAINT-DIST-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  ]
+}

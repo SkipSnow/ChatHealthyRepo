@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-001",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must write normalized prescription records to the MongoDB collection PublicHealthData.prescriptions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-002",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must batch prescription records into configurable batch sizes before performing MongoDB write operations.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-003",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must use bulk write operations (e.g., insertMany or bulkWrite) for each batch.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-004",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must enforce idempotency such that reprocessing the same input does not create duplicate records.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-005",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must upsert records based on a deterministic unique key derived from normalized prescription fields.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-006",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must validate each record against the schema defined in PIPE-RX-INGEST-S1 before attempting persistence.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-007",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must log successful batch writes including batch size and execution time.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-008",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must log failed write operations with sufficient detail to identify affected records.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-009",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must skip and record invalid records without halting the entire batch process.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-010",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must retry failed MongoDB write operations for transient errors up to a defined retry limit.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-011",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must terminate processing and raise an error if MongoDB connection cannot be established.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-012",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must ensure all writes are directed to the correct database and collection as defined in configuration.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-013",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must process input records sequentially through the pipeline_worker_base pattern lifecycle methods.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "PIPE-RX-INGEST-REQ-014",
+      "story_id": "PIPE-RX-INGEST-S3",
+      "requirement": "The system must produce a final summary report including total processed, successfully written, skipped, and failed records.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

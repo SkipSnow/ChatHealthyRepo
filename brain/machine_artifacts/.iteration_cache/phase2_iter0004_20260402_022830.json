@@ -1,0 +1,61 @@
+{
+  "assignment_id": "GOV-F-003",
+  "iteration": 4,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added API, integration, and observability stories to complete feature coverage.",
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "GOV-F-003-S13",
+      "title": "Brain Lock Service API Endpoints",
+      "description": "Expose internal service endpoints for lock acquisition, renewal, release, and status check. Ensure idempotency and ownership validation on all operations.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S10",
+        "GOV-F-003-S11"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/brain_auth.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    {
+      "story_id": "GOV-F-003-S14",
+      "title": "Brain Runner Integration with Lock Lifecycle",
+      "description": "Integrate lock acquisition, renewal heartbeat, and release into brain_runner and brain_loop execution flow to enforce single-writer execution and prevent concurrent assignment processing.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S11"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/brain_loop.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    {
+      "story_id": "GOV-F-003-S15",
+      "title": "Lock Observability and Audit Logging",
+      "description": "Implement structured logging and audit records for lock events (acquire, renew, expire, recover, conflict). Include timestamps, owner_id, and outcome for traceability and debugging.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S10"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; Code/Shared/cost_guard.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

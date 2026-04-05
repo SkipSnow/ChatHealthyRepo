@@ -1,0 +1,82 @@
+{
+  "assignment_id": "GOV-F-003",
+  "iteration": 33,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added recovery, integration, and test coverage stories to complete feature.",
+  "change_log": [
+    {
+      "path": "stories.GOV-F-003-S114",
+      "value": "Crash-safe lock recovery and stale lock takeover",
+      "note": "Adds recovery logic required by feature description",
+      "iteration": 33
+    },
+    {
+      "path": "stories.GOV-F-003-S115",
+      "value": "Brain runner integration with lock lifecycle",
+      "note": "Ensures orchestration layer uses lock system",
+      "iteration": 33
+    },
+    {
+      "path": "stories.GOV-F-003-S116",
+      "value": "Comprehensive tests for TTL, ownership, and recovery",
+      "note": "Adds validation coverage for high-risk feature",
+      "iteration": 33
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "GOV-F-003-S114": {
+      "story_id": "GOV-F-003-S114",
+      "title": "Crash-Safe Lock Recovery and Stale Lock Takeover",
+      "description": "Implement recovery logic to detect expired locks via TTL and allow safe takeover by a new owner. Ensure atomic compare-and-set behavior to prevent dual ownership during recovery scenarios.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S112"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_loop.py; Code/Shared/brain_runner.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S115": {
+      "story_id": "GOV-F-003-S115",
+      "title": "Brain Runner Integration with Lock Lifecycle",
+      "description": "Integrate lock acquisition, renewal, and release into brain_runner and brain_loop execution flow. Ensure all assignment execution paths require a valid lock and gracefully handle lock loss or expiration.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S113",
+        "GOV-F-003-S114"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_runner.py; Code/Shared/brain_loop.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    "GOV-F-003-S116": {
+      "story_id": "GOV-F-003-S116",
+      "title": "Comprehensive Lock TTL and Ownership Test Suite",
+      "description": "Create unit and integration tests validating TTL expiration, ownership enforcement, renewal behavior, race condition handling, and recovery takeover scenarios. Include failure injection for crash simulation.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S114",
+        "GOV-F-003-S115"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader_integration.py; Code/DataPipelines/tests/gpt_sit_runner.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

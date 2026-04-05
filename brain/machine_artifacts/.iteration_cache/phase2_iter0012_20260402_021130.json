@@ -1,0 +1,73 @@
+{
+  "assignment_id": "EVAL-F-3-STORIES",
+  "iteration": 12,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories created for Evaluate Care Facade Orchestration with full coverage: schema, logic, API, integration, tests.",
+  "change_log": [],
+  "stories": [
+    {
+      "story_id": "EVAL-F-3-S1",
+      "title": "Define Evaluate Care Facade Request/Response Schema",
+      "description": "Define a unified contract for Evaluate Care facade covering clinical trials search and provider detail lookup, including input normalization and consistent response envelope for cross-domain extensibility.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-3-S2",
+      "title": "Implement Facade Orchestration Logic",
+      "description": "Implement core orchestration logic that routes requests to clinical_trials_service and provider_detail_service, aggregates results, and enforces consistent formatting and error handling.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001",
+        "EVAL-F-002"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-3-S3",
+      "title": "Expose Evaluate Care Facade via Tool Router Interface",
+      "description": "Integrate Evaluate Care facade with tool_router to expose unified endpoints for agent tool use, ensuring compatibility with existing tool invocation patterns and validation.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-3-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "EVAL-F-3-S4",
+      "title": "Integration with Domain Services",
+      "description": "Ensure seamless integration between facade and domain services including clinical_trials_service and provider_detail_service, validating data flow, transformation, and fallback handling.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001",
+        "EVAL-F-002"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-F-3-S5",
+      "title": "Unit and Integration Tests for Facade Orchestration",
+      "description": "Create tests validating schema compliance, orchestration routing, error handling, and end-to-end flows through the facade using both clinical trials and provider detail scenarios.",
+      "parent_feature": "EVAL-F-3",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-3-S2",
+        "EVAL-F-3-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ]
+}

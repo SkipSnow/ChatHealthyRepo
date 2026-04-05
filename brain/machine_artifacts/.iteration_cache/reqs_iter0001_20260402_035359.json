@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-001",
+      "story_id": "EVAL-COMPARE-UX-S3",
+      "requirement": "The system must render a side-by-side layout displaying at least two providers simultaneously.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-002",
+      "story_id": "EVAL-COMPARE-UX-S3",
+      "requirement": "The system must display each provider's name and identifying information at the top of each comparison column.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-003",
+      "story_id": "EVAL-COMPARE-UX-S3",
+      "requirement": "The system must display an overall score for each provider in a visually prominent position.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-004",
+      "story_id": "EVAL-COMPARE-UX-S3",
+      "requirement": "The system must render a breakdown of individual evaluation measures for each provider aligned row-wise across all providers.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-005",
+      "story_id": "EVAL-COMPARE-UX-S3",
+      "requirement": "The system must visually highlight the highest-performing provider per measure using a distinct indicator (e.g., color or icon).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-006",
+      "story_id": "EVAL-COMPARE-UX-S3",
+      "requirement": "The system must visually indicate lower-performing providers per measure using a distinct but non-misleading indicator.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-007",
+      "story_id": "EVAL-COMPARE-UX-S3",
+      "requirement": "The system must support rendering more than two providers without layout breakage or overlap.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-008",
+      "story_id": "EVAL-COMPARE-UX-S3",
+      "requirement": "The system must use a consistent reusable React component structure aligned with existing component patterns in the codebase.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-009",
+      "story_id": "EVAL-COMPARE-UX-S3",
+      "requirement": "The system must accept input data conforming to the schema defined in EVAL-COMPARE-UX-S1 without requiring transformation inside the component.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-010",
+      "story_id": "EVAL-COMPARE-UX-S3",
+      "requirement": "The system must correctly render normalized scores and rankings produced by EVAL-COMPARE-UX-S2 without recomputing them.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-011",
+      "story_id": "EVAL-COMPARE-UX-S3",
+      "requirement": "The system must maintain column alignment across providers for all measures even when measure labels vary in length.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-012",
+      "story_id": "EVAL-COMPARE-UX-S3",
+      "requirement": "The system must render gracefully when a provider is missing one or more measures by displaying a placeholder state.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-013",
+      "story_id": "EVAL-COMPARE-UX-S3",
+      "requirement": "The system must render a fallback empty state when fewer than two providers are supplied.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-014",
+      "story_id": "EVAL-COMPARE-UX-S3",
+      "requirement": "The system must remain visually readable and usable across standard screen sizes (desktop and tablet) without horizontal overflow breaking layout.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

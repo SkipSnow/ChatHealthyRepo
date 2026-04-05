@@ -1,0 +1,102 @@
+{
+  "assignment_id": "PHASE-2-EVAL-P-MEASURE-1-STORIES",
+  "iteration": 15,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories refined for clearer separation: schema, core logic, facade/API, edge handling, tests. No new IDs created.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-P-M1-S1.description",
+      "value": "Explicit schema contract including fields: certification_name, issuing_board, verification_status (verified/unverified/unknown), source=NPI, normalization rules, and output alignment with provider_detail_service response model.",
+      "note": "Clarify schema completeness and contract alignment",
+      "iteration": 15
+    },
+    {
+      "path": "stories.EVAL-P-M1-S2.description",
+      "value": "Parse NPI credential fields, normalize to known boards, and classify verification status using deterministic rules (recognized boards vs free-text).",
+      "note": "Tighten core logic scope",
+      "iteration": 15
+    },
+    {
+      "path": "stories.EVAL-P-M1-S3.description",
+      "value": "Inject structured board certification data into provider detail payload and expose via evaluate_care_facade for downstream chat consumption.",
+      "note": "Clarify API exposure path",
+      "iteration": 15
+    },
+    {
+      "path": "stories.EVAL-P-M1-S4.description",
+      "value": "Unit tests for parsing/normalization and integration tests validating end-to-end flow (NPI → service → facade) across verified/unverified/unknown scenarios.",
+      "note": "Clarify test coverage",
+      "iteration": 15
+    },
+    {
+      "path": "stories.EVAL-P-M1-S5.description",
+      "value": "Explicit handling for missing, ambiguous, or non-standard credentials with fallback classification and flags to ensure deterministic downstream behavior.",
+      "note": "Clarify edge-case handling role",
+      "iteration": 15
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "EVAL-P-M1-S1",
+      "title": "Define Board Certification Schema and Contract",
+      "description": "Explicit schema contract including fields: certification_name, issuing_board, verification_status (verified/unverified/unknown), source=NPI, normalization rules, and output alignment with provider_detail_service response model.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-P-M1-S2",
+      "title": "Implement Board Certification Extraction and Verification Logic",
+      "description": "Parse NPI credential fields, normalize to known boards, and classify verification status using deterministic rules (recognized boards vs free-text).",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-M1-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-P-M1-S3",
+      "title": "Expose Board Certification Data via Evaluate Care Facade",
+      "description": "Inject structured board certification data into provider detail payload and expose via evaluate_care_facade for downstream chat consumption.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-M1-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-P-M1-S5",
+      "title": "Handle Missing, Ambiguous, and Non-Standard Credential Data",
+      "description": "Explicit handling for missing, ambiguous, or non-standard credentials with fallback classification and flags to ensure deterministic downstream behavior.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-M1-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-P-M1-S4",
+      "title": "Unit and Integration Tests for Board Certification Verification",
+      "description": "Unit tests for parsing/normalization and integration tests validating end-to-end flow (NPI → service → facade) across verified/unverified/unknown scenarios.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-M1-S2",
+        "EVAL-P-M1-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  ]
+}

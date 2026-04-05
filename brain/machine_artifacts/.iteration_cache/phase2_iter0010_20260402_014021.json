@@ -1,0 +1,79 @@
+{
+  "assignment_id": "FEAT-1-STORIES",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing stories to meet minimum and cover schema/contract, API integration, and core orchestration gaps.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-1-STORY-023",
+      "value": "Schema and contract definition for provider search inputs/outputs",
+      "note": "Add missing schema layer coverage",
+      "iteration": 10
+    },
+    {
+      "path": "stories.FEAT-1-STORY-024",
+      "value": "Facade orchestration for provider search flow",
+      "note": "Add explicit orchestration layer story",
+      "iteration": 10
+    },
+    {
+      "path": "stories.FEAT-1-STORY-025",
+      "value": "Tool router integration for provider search API exposure",
+      "note": "Ensure API/tool exposure is explicitly covered",
+      "iteration": 10
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-1-STORY-023": {
+      "story_id": "FEAT-1-STORY-023",
+      "title": "Define provider search request/response schema",
+      "description": "Implement and validate Pydantic models for provider search inputs (query, location, filters) and outputs (provider list, metadata, fallback indicators) to enforce strict contracts across layers.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py"
+    },
+    "FEAT-1-STORY-024": {
+      "story_id": "FEAT-1-STORY-024",
+      "title": "Implement FindCare facade orchestration for provider search",
+      "description": "Build orchestration logic in find_care_facade to coordinate specialty identification, vector search, taxonomy fallback, and location filtering into a single cohesive flow with consistent output structure.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-022"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py"
+    },
+    "FEAT-1-STORY-025": {
+      "story_id": "FEAT-1-STORY-025",
+      "title": "Expose provider search via tool_router API",
+      "description": "Integrate provider search into tool_router with allowlisted tool definition, input validation, and proper response handling for LLM tool-use flow, ensuring compliance with GOV-004 dispatch rules.",
+      "parent_feature": "FEAT-1",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-1-STORY-023",
+        "FEAT-1-STORY-024"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

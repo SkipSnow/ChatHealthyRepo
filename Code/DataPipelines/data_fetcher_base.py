@@ -72,16 +72,26 @@ class DataFetcherBase:
         remote_sig = self._remote_signature()
 
         if registry and remote_sig and registry.get("remote_signature") == remote_sig:
-            logging.info(
-                "[%s] Remote signature unchanged (%s) — skipping download.",
-                self.source_name, remote_sig,
-            )
-            return {
-                "blob_path": registry["blob_path"],
-                "version": registry.get("version", remote_sig),
-                "skipped": True,
-                "checksum_sha256": registry.get("checksum_sha256", ""),
-            }
+            # BUG-PIPE-006: verify blob actually exists before skipping
+            blob_path = registry["blob_path"]
+            try:
+                service = get_blob_service()
+                service.get_container_client(self.container).get_blob_client(blob_path).get_blob_properties()
+                logging.info(
+                    "[%s] Remote signature unchanged (%s), blob exists — skipping download.",
+                    self.source_name, remote_sig,
+                )
+                return {
+                    "blob_path": blob_path,
+                    "version": registry.get("version", remote_sig),
+                    "skipped": True,
+                    "checksum_sha256": registry.get("checksum_sha256", ""),
+                }
+            except Exception:
+                logging.warning(
+                    "[%s] Registry says skip but blob '%s' not found — re-downloading.",
+                    self.source_name, blob_path,
+                )
 
         logging.info(
             "[%s] Downloading from %s (signature: %s → %s)",

@@ -1,0 +1,17 @@
+{
+  "features": [
+    {
+      "feature_id": "EVAL-CT-MEASURE-SPONSOR",
+      "name": "Clinical Trial Sponsor Credibility Measure",
+      "epic_id": "EPIC-1",
+      "layer": "backend",
+      "capability": "Clinical Trials",
+      "description": "Evaluates credibility of a clinical trial based on sponsor type (e.g., NIH, academic institution, pharmaceutical company) using ClinicalTrials.gov sponsor metadata. Assigns higher scores to established, reputable sponsors and lower scores to unknown or less credible entities.",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py — ClinicalTrials.gov API integration provides sponsor metadata fields",
+      "backend_dependencies": [],
+      "priority": "MEDIUM",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

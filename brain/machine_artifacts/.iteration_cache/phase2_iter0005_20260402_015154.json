@@ -1,0 +1,115 @@
+{
+  "assignment_id": "FEAT-3-STORIES",
+  "iteration": 5,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing schema, API exposure, integration, and test coverage stories for FEAT-3.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-3-S15",
+      "value": "Clinical Trials Search Request/Response Schema",
+      "note": "Add schema/contract layer story",
+      "iteration": 5
+    },
+    {
+      "path": "stories.FEAT-3-S16",
+      "value": "EvaluateCareFacade Integration for Trials Search",
+      "note": "Add integration with facade",
+      "iteration": 5
+    },
+    {
+      "path": "stories.FEAT-3-S17",
+      "value": "Tool Router Exposure for Clinical Trials Search",
+      "note": "Expose feature to LLM tool system",
+      "iteration": 5
+    },
+    {
+      "path": "stories.FEAT-3-S18",
+      "value": "Unit and Integration Tests for Clinical Trials Service",
+      "note": "Add test coverage",
+      "iteration": 5
+    },
+    {
+      "path": "stories.FEAT-3-S19",
+      "value": "Travel Distance Calculation Consistency Validation",
+      "note": "Strengthen core logic validation",
+      "iteration": 5
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-3-S15",
+      "title": "Clinical Trials Search Request/Response Schema",
+      "description": "Define and validate structured input/output models for clinical trials search including condition, location, radius, and normalized trial result schema with distance and metadata fields.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    {
+      "story_id": "FEAT-3-S16",
+      "title": "EvaluateCareFacade Integration for Trials Search",
+      "description": "Integrate clinical trials service into EvaluateCareFacade to orchestrate search requests, apply business rules, and return formatted results to the application layer.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S13"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "FEAT-3-S17",
+      "title": "Tool Router Exposure for Clinical Trials Search",
+      "description": "Expose clinical trials search as an allowlisted tool via tool_router with validated inputs and safe dispatch into the Evaluate Care flow.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S15",
+        "FEAT-3-S16"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-3-S18",
+      "title": "Unit and Integration Tests for Clinical Trials Service",
+      "description": "Implement unit tests for clinical_trials_service and integration tests covering facade orchestration, API responses, recruiting filter enforcement, and distance calculations.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S16"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing clinical trials test file found; must create tests under backend/tests/ for service and facade coverage."
+    },
+    {
+      "story_id": "FEAT-3-S19",
+      "title": "Travel Distance Calculation Consistency Validation",
+      "description": "Validate and standardize distance and duration calculations from routing API including unit normalization, missing data handling, and deterministic mapping per trial site.",
+      "parent_feature": "FEAT-3",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-3-S11"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

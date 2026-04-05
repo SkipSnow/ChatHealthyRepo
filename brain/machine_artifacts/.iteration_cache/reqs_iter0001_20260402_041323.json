@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-003-001",
+      "story_id": "EVAL-CT-SPONSOR-ST-003",
+      "requirement": "The system must render a sponsor credibility UI block within the MessageBubble component when sponsor data is present in the trial payload.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-003-002",
+      "story_id": "EVAL-CT-SPONSOR-ST-003",
+      "requirement": "The system must display the sponsor name exactly as provided by the transformed rendering logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-003-003",
+      "story_id": "EVAL-CT-SPONSOR-ST-003",
+      "requirement": "The system must display the sponsor type (e.g., industry, academic, government) in a clearly labeled field within the component.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-003-004",
+      "story_id": "EVAL-CT-SPONSOR-ST-003",
+      "requirement": "The system must display the funding source label (public, private, or undisclosed) as provided by the rendering logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-003-005",
+      "story_id": "EVAL-CT-SPONSOR-ST-003",
+      "requirement": "The system must render a list of collaborators when collaborator data is present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-003-006",
+      "story_id": "EVAL-CT-SPONSOR-ST-003",
+      "requirement": "The system must display the sponsor's contribution to the trial score as a human-readable text element.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-003-007",
+      "story_id": "EVAL-CT-SPONSOR-ST-003",
+      "requirement": "The system must visually group sponsor name, type, funding source, collaborators, and score contribution within a single cohesive UI block.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-003-008",
+      "story_id": "EVAL-CT-SPONSOR-ST-003",
+      "requirement": "The system must ensure the sponsor credibility block follows existing MessageBubble styling conventions for spacing, typography, and layout.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-003-009",
+      "story_id": "EVAL-CT-SPONSOR-ST-003",
+      "requirement": "The system must render the sponsor credibility block without breaking or altering existing trial scorecard elements within the MessageBubble.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-003-010",
+      "story_id": "EVAL-CT-SPONSOR-ST-003",
+      "requirement": "The system must conditionally hide the collaborators section if no collaborators are provided.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-003-011",
+      "story_id": "EVAL-CT-SPONSOR-ST-003",
+      "requirement": "The system must display a fallback label of 'Undisclosed' when the funding source field is missing or null.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-003-012",
+      "story_id": "EVAL-CT-SPONSOR-ST-003",
+      "requirement": "The system must not render the sponsor credibility block if the sponsor object is entirely absent from the payload.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-003-013",
+      "story_id": "EVAL-CT-SPONSOR-ST-003",
+      "requirement": "The system must render partial sponsor data without crashing when one or more fields (type, collaborators, or score contribution) are missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-003-014",
+      "story_id": "EVAL-CT-SPONSOR-ST-003",
+      "requirement": "The system must truncate or wrap long sponsor names and collaborator lists to prevent UI overflow within the MessageBubble.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-SPONSOR-003-015",
+      "story_id": "EVAL-CT-SPONSOR-ST-003",
+      "requirement": "The system must re-render the sponsor credibility component correctly when new trial data is received in the MessageBubble lifecycle.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,96 @@
+{
+  "assignment_id": "PHASE-2-FEAT-6",
+  "iteration": 38,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing core logic, integration, audit persistence, and admin access stories for consent workflow.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-6-S126",
+      "value": "Core Consent Service Logic Implementation",
+      "note": "Adds missing core workflow logic story",
+      "iteration": 38
+    },
+    {
+      "path": "stories.FEAT-6-S127",
+      "value": "Consent Integration with Lead Capture",
+      "note": "Ensures cross-service integration with lead capture",
+      "iteration": 38
+    },
+    {
+      "path": "stories.FEAT-6-S128",
+      "value": "Consent Audit Logging and Persistence",
+      "note": "Adds auditability and persistence requirements",
+      "iteration": 38
+    },
+    {
+      "path": "stories.FEAT-6-S129",
+      "value": "Admin Consent Retrieval API",
+      "note": "Adds controlled access for consent review",
+      "iteration": 38
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-6-S126": {
+      "story_id": "FEAT-6-S126",
+      "title": "Core Consent Service Logic Implementation",
+      "description": "Implement two-tier consent logic including Tier 1 (de-identified usage) and Tier 2 (identified storage), enforcing valid transitions, triggering summarization, and applying HIPAA Safe Harbor de-identification rules.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    "FEAT-6-S127": {
+      "story_id": "FEAT-6-S127",
+      "title": "Consent Integration with Lead Capture",
+      "description": "Integrate ConsentService with LeadService to enforce Tier 2 requirement before storing identifiable lead data, including duplicate detection and consent validation gating.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S126"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py"
+    },
+    "FEAT-6-S128": {
+      "story_id": "FEAT-6-S128",
+      "title": "Consent Audit Logging and Persistence",
+      "description": "Persist consent decisions, tier changes, timestamps, and associated conversation summaries to MongoDB with audit logging support, ensuring traceability and compliance alignment.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S126"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    "FEAT-6-S129": {
+      "story_id": "FEAT-6-S129",
+      "title": "Admin Consent Retrieval API",
+      "description": "Expose secure backend endpoint(s) for retrieving consent records and audit trails for internal review, ensuring no violation of de-identification constraints for Tier 1 data.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S128"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

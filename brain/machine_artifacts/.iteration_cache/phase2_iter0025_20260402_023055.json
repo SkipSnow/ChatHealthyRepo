@@ -1,0 +1,53 @@
+{
+  "stories": [
+    {
+      "story_id": "GOV-F-003-S86",
+      "title": "TTL Index Creation and Enforcement",
+      "description": "Implement MongoDB TTL index on expires_at field for automatic lock expiration. Ensure index creation is idempotent and validated at service startup.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S81"
+      ],
+      "size": "S",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    {
+      "story_id": "GOV-F-003-S87",
+      "title": "Stale Lock Recovery Logic",
+      "description": "Implement logic to detect and safely reclaim expired locks during acquisition attempts, ensuring atomic takeover only when TTL has passed and preventing split-brain scenarios.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S83"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/machine_brain.py; Code/Shared/brain_loop.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    {
+      "story_id": "GOV-F-003-S88",
+      "title": "Admin Override and Forced Unlock Capability",
+      "description": "Provide a secure override mechanism to forcibly release or reassign locks in exceptional cases, with strict audit logging and authorization checks.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S84"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/brain_auth.py; Code/Shared/brain_runner.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    },
+    {
+      "story_id": "GOV-F-003-S89",
+      "title": "Concurrent Acquisition Stress Tests",
+      "description": "Create tests simulating high-concurrency lock acquisition attempts to validate atomicity, race condition handling, and correctness under contention.",
+      "parent_feature": "GOV-F-003",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-003-S83",
+        "GOV-F-003-S85"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/tests/test_gpt_reader_integration.py; Code/DataPipelines/tests/gpt_sit_runner.py; RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-003"
+    }
+  ]
+}

@@ -114,10 +114,23 @@ def _fetch_machine_brain_context(query: str) -> tuple[str, list[dict]]:
     return "\n\n".join(parts), records
 
 
-SYSTEM_PROMPT = """You are the Enterprise Architect for ChatHealthy, operating under framework_02.
-Your role: architectural assurance, UAT generation, risk classification, gate recommendation.
-You do not write code. You design, validate, and approve.
-You are precise, thorough, and never truncate required output."""
+# System prompt loaded from brain: ai_operations.json -> gpt_assignment_system_prompt
+# Static JSON — prompt cacheable. Dynamic parts go in user prompt only.
+def _load_system_prompt() -> str:
+    import json as _json
+    try:
+        from prompt_system_maker import PromptSystemMaker
+        maker = PromptSystemMaker()
+        record = maker.read_record("ai_operations", "gpt_assignment_system_prompt")
+        if record and record.get("system_prompt"):
+            sp = record["system_prompt"]
+            return _json.dumps(sp) if isinstance(sp, dict) else str(sp)
+    except Exception:
+        pass
+    return ("You are the Enterprise Architect for ChatHealthy.ai. "
+            "You design, validate, and approve. You do not write code.")
+
+SYSTEM_PROMPT = _load_system_prompt()
 
 
 def _build_prompt(assignment: dict, context: str, mb_context: str) -> str:
@@ -143,7 +156,12 @@ def _build_prompt(assignment: dict, context: str, mb_context: str) -> str:
     else:
         scope_block = ""
 
-    return f"""ASSIGNMENT {aid}
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    return f"""current_datetime: {now}
+
+ASSIGNMENT {aid}
 Title: {assignment['title']}
 Priority: {assignment['priority']} | Estimated risk: {assignment['estimated_risk']}
 
@@ -153,127 +171,15 @@ TASK:
 UAT RULES:
 {uat_rule}
 
-MACHINE BRAIN CONTEXT (architectural decisions relevant to this assignment — read these first):
+MACHINE BRAIN CONTEXT:
 {mb_context}
 
-REPO CONTEXT (read before responding):
+REPO CONTEXT:
 {context}
 
 ---
-JSON SCHEMA — every field marked REQUIRED must be present and non-empty:
-
-{{
-  "review_id":           REQUIRED string = "{aid}",
-  "assignment_id":       REQUIRED string = "{aid}",
-  "timestamp":           REQUIRED string ISO 8601 UTC,
-  "architecture_status": REQUIRED "pass" or "fail",
-  "behavior_status":     REQUIRED "pass" or "fail",
-  "risk":                REQUIRED one of: Low | Moderate | High | Critical | Suicidal,
-  "issues":              REQUIRED array (empty if none),
-  "gate_recommendation": REQUIRED one of: auto | proceed_with_warning | escalate | block_escalate | block_boss_required,
-  "notes":               REQUIRED string,
-
-  "scope_assessment": REQUIRED array — one entry per item in MANDATORY SCOPE (empty array if no boss_scope was provided), each {{
-    "feature":    REQUIRED string — exact name from MANDATORY SCOPE,
-    "risk":       REQUIRED Low|Moderate|High|Critical,
-    "assessment": REQUIRED string — your honest risk assessment of this mandatory item,
-    "conditions": REQUIRED array of strings — what must be true for this to ship safely (empty if Low risk)
-  }},
-
-  "tradeoff_suggestions": REQUIRED array — suggestions only, Boss decides (empty if none), each {{
-    "suggestion_id": REQUIRED string e.g. TS-001,
-    "feature":       REQUIRED string — which mandatory scope item this applies to,
-    "suggestion":    REQUIRED string — the tradeoff you are suggesting,
-    "risk_if_ignored": REQUIRED string — consequence of not taking this suggestion,
-    "risk_if_taken":   REQUIRED string — consequence of accepting this suggestion
-  }},
-
-  "requirements": REQUIRED array — derive product requirements from the code and context provided. Each requirement is a discrete, testable statement of what the system must do. MINIMUM 5 items. These become the permanent product record in Machine Brain, each {{
-    "req_id":      REQUIRED string e.g. REQ-001,
-    "feature":     REQUIRED string — which feature this belongs to,
-    "requirement": REQUIRED string — specific, testable, written as 'The system must...',
-    "source":      REQUIRED string — where you found this: 'code: <function_name>', 'assignment', or 'architecture constraint',
-    "priority":    REQUIRED string: must-have | should-have | nice-to-have
-  }},
-
-  "feature_set": REQUIRED {{
-    "ships_tuesday": REQUIRED array, MINIMUM 1 item, each {{
-      "feature":     REQUIRED string,
-      "description": REQUIRED string — specific, not generic,
-      "risk":        REQUIRED Low|Moderate|High
-    }},
-    "deferred": REQUIRED array, each {{
-      "feature": REQUIRED string,
-      "reason":  REQUIRED string — specific reason
-    }}
-  }},
-
-  "test_schedule": REQUIRED array, MINIMUM 3 phases, each {{
-    "phase":       REQUIRED string,
-    "timing":      REQUIRED string with date and time,
-    "owner":       REQUIRED Claude|GPT|Boss,
-    "description": REQUIRED string — what specifically is tested
-  }},
-
-  "acceptance_criteria": REQUIRED array, MINIMUM 3 per feature in ships_tuesday — cover distinct behavioral dimensions (e.g. happy path execution, error handling, budget enforcement, gate routing, schema conformance), each {{
-    "criterion_id": REQUIRED string e.g. AC-001,
-    "feature":      REQUIRED string matching a ships_tuesday feature,
-    "criterion":    REQUIRED string — specific, measurable, unambiguous pass condition (not generic),
-    "risk":         REQUIRED Low|Moderate|High
-  }},
-
-  "e2e_flows": REQUIRED array, MINIMUM 3 flows — one per major actor path, each {{
-    "flow_id":        REQUIRED string e.g. E2E-001,
-    "title":          REQUIRED string,
-    "actor":          REQUIRED string who initiates the flow,
-    "steps":          REQUIRED array MINIMUM 3 steps,
-    "pass_condition": REQUIRED string — exact observable boolean true condition,
-    "fail_condition": REQUIRED string — exact observable boolean false condition
-  }},
-
-  "uat_scenarios": REQUIRED array, MINIMUM 1 scenario per acceptance criterion — if the feature has 3 ACs you must produce 3+ scenarios, each {{
-    "scenario_id":          REQUIRED string e.g. UAT-001,
-    "description":          REQUIRED string,
-    "component":            REQUIRED string,
-    "scenario_type":        REQUIRED "llm" or "procedural",
-    "acceptance_criterion": REQUIRED string matching a criterion_id,
-    "test_cases": REQUIRED array — if llm: EXACTLY 10 semantically different items; if procedural: MINIMUM 3 items covering all happy paths and MINIMUM 2 exception paths, each {{
-      "case_id":  REQUIRED string e.g. UAT-001-TC-01,
-      "input":    REQUIRED string — exact input, action, or state,
-      "expected": REQUIRED boolean true or false,
-      "rationale": REQUIRED string — why this specific input produces this specific result
-    }}
-  }},
-
-  "usage": REQUIRED {{
-    "agent":         REQUIRED "GPT",
-    "model":         REQUIRED "gpt-4o",
-    "tokens_in":     REQUIRED integer — estimate if actual unavailable,
-    "tokens_out":    REQUIRED integer — estimate if actual unavailable,
-    "assignment_id": REQUIRED "{aid}"
-  }},
-
-  "machine_brain_context_used": REQUIRED array — list every Machine Brain record you read, each {{
-    "mb_id":   REQUIRED string — the record ID from the MACHINE BRAIN CONTEXT block (e.g. MB-0003 or ADR-0001),
-    "topic":   REQUIRED string — exact topic string from the record,
-    "applied": REQUIRED string — one sentence: how this record influenced your output
-  }}
-}}
-
-ABSOLUTE RULES:
-1. Every field marked REQUIRED must be present — no omissions
-2. scope_assessment must have one entry per MANDATORY SCOPE item — you assess risk, Boss controls scope
-3. You may NOT defer a MANDATORY SCOPE item — it must appear in ships_tuesday
-4. Tradeoff suggestions go in tradeoff_suggestions only — never as a reason to defer a mandatory item
-5. requirements array must have MINIMUM 5 items — derive from code if not provided
-3. Every acceptance criterion must have at least one UAT scenario — 3 ACs = minimum 3 scenarios
-4. LLM scenarios must have exactly 10 test_cases — not 9, not 11
-5. Procedural scenarios must have minimum 3 test_cases: all happy paths + minimum 2 exceptions
-6. All test_cases.expected are boolean true or false — no strings, no nulls
-7. Do NOT include gpt_api_key, bearer_token, or any secret field
-8. Return raw JSON only — no markdown, no code fences, no explanation text
-9. machine_brain_context_used must list every MB record from MACHINE BRAIN CONTEXT you considered
-10. Thin outputs are rejected. Complete professional output required.
+assignment_id: {aid}
+Respond per the output_schema in the system prompt. Return raw JSON only.
 """
 
 
@@ -318,6 +224,18 @@ def run(assignment_id: str = None) -> dict:
     Returns:
         The Assurance Output dict.
     """
+    # Always refresh manifest before any assignment — GPT must read fresh context
+    try:
+        _ops_dir = Path(__file__).parent / "ops"
+        sys.path.insert(0, str(_ops_dir))
+        from manifest_generator import ManifestGenerator
+        gen = ManifestGenerator()
+        gen.generate()
+        path = gen.save()
+        print(f"[BrainRunner] Manifest refreshed: {gen.file_count} files -> {path}")
+    except Exception as e:
+        print(f"[BrainRunner] Manifest refresh failed: {e} — continuing with stale manifest")
+
     # Find the assignment
     pending = [a for a in list_assignments("pending") if a.get("assigned_to") == "GPT"]
     if not pending:
@@ -351,9 +269,16 @@ def run(assignment_id: str = None) -> dict:
     mb_context, mb_records = _fetch_machine_brain_context(mb_query)
     print(f"[BrainRunner] Machine Brain: {len(mb_records)} records retrieved")
 
-    print("[BrainRunner] Fetching repo context...")
-    scope_files = assignment.get("scope", [])
-    context = _fetch_context(additional_files=scope_files)
+    print("[BrainRunner] Loading Brain manifest from disk...")
+    try:
+        _ops_dir2 = Path(__file__).parent / "ops"
+        sys.path.insert(0, str(_ops_dir2))
+        from brain_snapshot import take_snapshot
+        context = take_snapshot()
+        print(f"[BrainRunner] Brain manifest: {len(context)} chars — GPT will use GPTReader for content")
+    except Exception as e:
+        print(f"[BrainRunner] Brain manifest failed: {e} — cannot proceed without Brain state")
+        return {}
 
     print("[BrainRunner] Calling GPT-4o...")
     prompt = _build_prompt(assignment, context, mb_context)

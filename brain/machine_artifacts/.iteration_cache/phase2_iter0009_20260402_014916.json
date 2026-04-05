@@ -1,0 +1,63 @@
+{
+  "stories": {
+    "EVAL-SC-S1": {
+      "story_id": "EVAL-SC-S1",
+      "title": "Define Specialty Match Transparency Schema and Contract",
+      "description": "Define response schema for matched_classifications including: specialty_label, NUCC_code, pipeline_origin (regex | vector | both), and optional confidence. Ensure support for multiple matches and deduplicated aggregation output.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py (matched_classifications structure)"
+    },
+    "EVAL-SC-S2": {
+      "story_id": "EVAL-SC-S2",
+      "title": "Implement Dual-Pipeline Attribution Logic",
+      "description": "Enhance specialty_service to explicitly tag each classification with its originating pipeline(s) (regex, vector, or both). Ensure deduplication preserves combined provenance and does not drop signal origin.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SC-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py (dual-pipeline logic, aggregation)"
+    },
+    "EVAL-SC-S3": {
+      "story_id": "EVAL-SC-S3",
+      "title": "Expose Specialty Transparency via Facade Contract",
+      "description": "Update find_care_facade and evaluate_care_facade to include matched_classifications with pipeline attribution in responses, ensuring backward compatibility and no regression in existing consumers.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SC-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-SC-S4": {
+      "story_id": "EVAL-SC-S4",
+      "title": "Render Specialty Match Transparency in Chat UI",
+      "description": "Update MessageBubble rendering to display specialties with clear explanation of origin (e.g., exact match vs semantic match), ensuring readability and alignment with chat UX patterns.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SC-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    },
+    "EVAL-SC-S5": {
+      "story_id": "EVAL-SC-S5",
+      "title": "End-to-End Tests for Specialty Match Transparency",
+      "description": "Implement unit tests for attribution and deduplication logic and integration tests validating full flow from specialty_service through facade to API response, including correct pipeline labeling.",
+      "parent_feature": "EVAL-SPECIALTY-CREDIBILITY",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-SC-S2",
+        "EVAL-SC-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests; specialty_service.py; existing test patterns (test_tool_router.py, test_embedding_client.py)"
+    }
+  }
+}

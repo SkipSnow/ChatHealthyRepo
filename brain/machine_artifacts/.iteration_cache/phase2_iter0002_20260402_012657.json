@@ -1,0 +1,48 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 2,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing end-to-end integration validation story to ensure explainability consistency across provider and clinical trial flows.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F5-S6",
+      "value": "End-to-end integration validation across provider and clinical trial explainability",
+      "note": "Close integration gap across F1/F2/F3 outputs",
+      "iteration": 2
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F5-S6": {
+      "story_id": "EVAL-F5-S6",
+      "title": "End-to-End Explainability Integration Validation",
+      "description": "Validate that explainability outputs are consistently generated and rendered across both provider (credentials + links) and clinical trial flows, ensuring no missing fields, broken links, or mismatched schemas in real conversational responses.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S3",
+        "EVAL-F5-S4",
+        "EVAL-F1",
+        "EVAL-F2",
+        "EVAL-F3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

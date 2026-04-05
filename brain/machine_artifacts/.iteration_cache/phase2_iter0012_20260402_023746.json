@@ -1,0 +1,84 @@
+{
+  "assignment_id": "PHASE-2-MAINT-CONSENT-STORIES",
+  "iteration": 12,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "All required story categories (schema/contract, core logic, API/tooling, tests, integration) are already fully covered by MAINT-CONSENT-S1 through S5. No new stories created to avoid duplication per governance.",
+  "change_log": [],
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "MAINT-CONSENT-S1",
+      "title": "Define Consent Schema and Edge Case Contract",
+      "description": "Define and correct the data schema for two-tier HIPAA consent including Tier 1 and Tier 2 states, timestamps, revocation flags, and edge cases such as partial consent, re-consent, and expired sessions.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py; brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature"
+    },
+    {
+      "story_id": "MAINT-CONSENT-S2",
+      "title": "Fix Two-Tier Consent Core Logic",
+      "description": "Correct defects in ConsentService including improper tier transitions, missing validation on Tier 2 escalation, incorrect de-identification triggers, and handling of repeated or conflicting consent inputs.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-CONSENT-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature"
+    },
+    {
+      "story_id": "MAINT-CONSENT-S3",
+      "title": "Align Consent API and Tool Router Behavior",
+      "description": "Update tool_router and related API surfaces to ensure consistent enforcement of consent states, correct propagation of consent status in responses, and proper blocking or allowing of actions based on tier.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-CONSENT-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature"
+    },
+    {
+      "story_id": "MAINT-CONSENT-S4",
+      "title": "Consent Flow Tests and Integration Validation",
+      "description": "Implement unit and integration tests covering full consent lifecycle including Tier 1 capture, Tier 2 escalation, revocation, edge cases, and integration with lead capture and unknown question flows.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-CONSENT-S2",
+        "MAINT-CONSENT-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py; brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature"
+    },
+    {
+      "story_id": "MAINT-CONSENT-S5",
+      "title": "Fix Consent and Lead Capture Integration Defects",
+      "description": "Resolve inconsistencies between ConsentService and LeadService including incorrect tier persistence, duplicate lead creation under mixed consent states, and failure to enforce Tier 2 requirements before PHI capture.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-CONSENT-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

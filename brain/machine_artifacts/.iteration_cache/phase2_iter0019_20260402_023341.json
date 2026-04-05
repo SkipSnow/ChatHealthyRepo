@@ -1,0 +1,90 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-001",
+  "iteration": 19,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing observability/integration story to complete coverage (API/ops visibility).",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-001-S5",
+      "value": "New story for observability and enforcement telemetry",
+      "note": "Complete API/ops coverage for scope enforcement",
+      "iteration": 19
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-001-S1",
+      "title": "Define Tool Scope Schema and Contract",
+      "description": "Define a strict schema for tool scope boundaries including allowed tools per context, request metadata requirements, and validation rules to ensure all tool calls can be evaluated against an explicit contract.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models (existing Pydantic validation patterns)"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S2",
+      "title": "Implement Server-Side Scope Enforcement Logic",
+      "description": "Implement backend logic that evaluates each tool call against the defined scope contract and enforces allowlist boundaries, rejecting or sanitizing calls that exceed permitted scope.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (allowlist dispatch present)"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S3",
+      "title": "Integrate Scope Enforcement into Tool Router",
+      "description": "Integrate the scope enforcement logic directly into the tool_router execution flow so that every tool invocation is validated before dispatch, including handling of Anthropic tool_use blocks and chat history injection.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S4",
+      "title": "Unit and Integration Tests for Scope Enforcement",
+      "description": "Create unit and integration tests validating that out-of-scope tool calls are blocked, valid calls pass, and edge cases (malformed input, missing scope metadata) are handled safely.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S5",
+      "title": "Scope Enforcement Observability and Debug Logging",
+      "description": "Add structured logging and metrics for scope enforcement decisions, including blocked tool calls, allowed calls, and validation failures, integrated with existing debug_logger for auditability and troubleshooting.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (existing logging and audit patterns)"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

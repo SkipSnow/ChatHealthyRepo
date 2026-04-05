@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CT-M6-S4-001",
+      "story_id": "EVAL-CT-M6-S4",
+      "requirement": "The system must execute unit tests validating correct parsing of valid last_update_date strings into date objects.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S4-002",
+      "story_id": "EVAL-CT-M6-S4",
+      "requirement": "The system must execute unit tests verifying accurate calculation of days_since_update given a known current date and valid last_update_date.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S4-003",
+      "story_id": "EVAL-CT-M6-S4",
+      "requirement": "The system must execute unit tests confirming normalized_recency_score outputs match defined scoring thresholds for recent, moderate, and stale updates.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S4-004",
+      "story_id": "EVAL-CT-M6-S4",
+      "requirement": "The system must execute unit tests ensuring boundary conditions (e.g., exact threshold cutoffs) produce deterministic and expected normalized_recency_score values.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S4-005",
+      "story_id": "EVAL-CT-M6-S4",
+      "requirement": "The system must execute unit tests verifying that missing last_update_date values trigger missing_data_flag = true and a default or null score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S4-006",
+      "story_id": "EVAL-CT-M6-S4",
+      "requirement": "The system must execute unit tests verifying that malformed date inputs are safely handled without runtime failure and result in missing_data_flag = true.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S4-007",
+      "story_id": "EVAL-CT-M6-S4",
+      "requirement": "The system must execute integration tests confirming that clinical trial responses from the evaluation pipeline include normalized_recency_score for each trial when valid data is present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S4-008",
+      "story_id": "EVAL-CT-M6-S4",
+      "requirement": "The system must execute integration tests confirming that clinical trial responses include days_since_update and last_update_date fields alongside normalized_recency_score.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S4-009",
+      "story_id": "EVAL-CT-M6-S4",
+      "requirement": "The system must execute integration tests verifying that trials with missing or invalid update data still return a response object with missing_data_flag = true.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S4-010",
+      "story_id": "EVAL-CT-M6-S4",
+      "requirement": "The system must execute integration tests ensuring no regression or omission of other clinical trial fields when recency scoring is added to the response.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S4-011",
+      "story_id": "EVAL-CT-M6-S4",
+      "requirement": "The system must ensure all recency scoring unit and integration tests pass in the existing backend test framework without requiring new test infrastructure.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-M6-S4-012",
+      "story_id": "EVAL-CT-M6-S4",
+      "requirement": "The system must ensure test coverage includes at least one valid, one boundary, and two exception scenarios (missing and malformed dates) for recency scoring logic.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

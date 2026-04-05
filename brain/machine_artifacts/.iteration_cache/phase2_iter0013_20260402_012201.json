@@ -1,0 +1,79 @@
+{
+  "assignment_id": "SHARED-F-2-STORIES",
+  "iteration": 13,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing API/contract and cross-service integration coverage for consent framework.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-2-S36",
+      "value": "Consent Data Schema and Contract Definition",
+      "note": "Adds schema/contract layer for consent framework",
+      "iteration": 13
+    },
+    {
+      "path": "stories.SHARED-F-2-S37",
+      "value": "Consent API Endpoints and Tool Exposure",
+      "note": "Adds API/tool router integration for consent workflow",
+      "iteration": 13
+    },
+    {
+      "path": "stories.SHARED-F-2-S38",
+      "value": "Cross-Service Consent Enforcement Integration",
+      "note": "Ensures all shared services respect consent decisions",
+      "iteration": 13
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "SHARED-F-2-S36": {
+      "story_id": "SHARED-F-2-S36",
+      "title": "Consent Data Schema and Contract Definition",
+      "description": "Define Pydantic models and internal data contracts for consent tiers, consent status, and audit metadata. Ensure alignment with two-tier HIPAA workflow and compatibility with lead capture and unknown question flows.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py"
+    },
+    "SHARED-F-2-S37": {
+      "story_id": "SHARED-F-2-S37",
+      "title": "Consent API Endpoints and Tool Exposure",
+      "description": "Expose consent framework through FastAPI endpoints and tool router integration, enabling consent request, update, and retrieval within chat workflows. Ensure allowlist enforcement and validated inputs.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S36",
+        "SHARED-F-2-S33"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "SHARED-F-2-S38": {
+      "story_id": "SHARED-F-2-S38",
+      "title": "Cross-Service Consent Enforcement Integration",
+      "description": "Integrate consent enforcement across shared domain services including lead capture, unknown question handling, and debug logging to ensure all data flows respect consent tier rules and de-identification requirements.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S34"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

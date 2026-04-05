@@ -1,0 +1,98 @@
+{
+  "assignment_id": "FEAT-6-STORIES",
+  "iteration": 24,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing persistence, auditability, and cross-service integration coverage for consent workflow.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-6-S84",
+      "value": "Consent Audit Persistence and Retrieval",
+      "note": "Adds audit trail storage and retrieval capability",
+      "iteration": 24
+    },
+    {
+      "path": "stories.FEAT-6-S85",
+      "value": "Consent Core Logic Hardening for De-identification and Summarization",
+      "note": "Strengthens core service behavior aligned to HIPAA Safe Harbor",
+      "iteration": 24
+    },
+    {
+      "path": "stories.FEAT-6-S86",
+      "value": "Lead Service Integration with Consent Tier Enforcement",
+      "note": "Ensures downstream systems respect consent tiers",
+      "iteration": 24
+    },
+    {
+      "path": "stories.FEAT-6-S87",
+      "value": "Consent Status Query API for Downstream Consumers",
+      "note": "Exposes read endpoint for system-wide enforcement",
+      "iteration": 24
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-6-S84",
+      "title": "Consent Audit Persistence and Retrieval",
+      "description": "Implement persistence of consent decisions, tier changes, and data handling actions (store, de-identify, reject) with retrieval capability for audit and compliance review.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S79"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    {
+      "story_id": "FEAT-6-S85",
+      "title": "Consent Core Logic Hardening for De-identification and Summarization",
+      "description": "Enhance consent_service to enforce deterministic de-identification (HIPAA Safe Harbor) and consistent conversation summarization before storage, including edge case handling and failure fallbacks.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S76"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    {
+      "story_id": "FEAT-6-S86",
+      "title": "Lead Service Integration with Consent Tier Enforcement",
+      "description": "Integrate consent enforcement into lead_service to ensure Tier 2 consent is required for identifiable lead storage and that Tier 1 flows enforce de-identified capture only.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S76"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py"
+    },
+    {
+      "story_id": "FEAT-6-S87",
+      "title": "Consent Status Query API for Downstream Consumers",
+      "description": "Expose API endpoint to retrieve current consent tier and storage eligibility status for a session/user to support enforcement across services like safety, unknowns, and lead capture.",
+      "parent_feature": "FEAT-6",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-6-S80"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

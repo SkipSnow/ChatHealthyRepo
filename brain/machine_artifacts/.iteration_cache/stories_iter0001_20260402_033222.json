@@ -1,0 +1,73 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-P-MALPRACTICE-UX-S1",
+      "title": "Define malpractice UI schema and rendering contract",
+      "description": "Define frontend data contract for malpractice measure display including fields: status (clean/flagged/unknown), case_count (optional), last_incident_date (optional), state_board_url, and score_contribution. Ensure compatibility with MessageBubble.tsx rendering pipeline and markdown-safe output.",
+      "parent_feature": "EVAL-P-MALPRACTICE-UX",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-MEASURE-MALPRACTICE"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx (rendering pipeline); GAP: no malpractice UI schema exists",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-P-MALPRACTICE-UX-S2",
+      "title": "Implement malpractice display logic and labeling rules",
+      "description": "Implement logic to map backend malpractice measure to UI display states: clean vs flagged vs unknown. Enforce wording rules: never use terms like fraud or misconduct; display neutral signal language. Calculate and format contribution to overall provider score.",
+      "parent_feature": "EVAL-P-MALPRACTICE-UX",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-MALPRACTICE-UX-S1",
+        "EVAL-P-MEASURE-MALPRACTICE"
+      ],
+      "size": "M",
+      "evidence": "Feature requirement: neutral signal-only display; GAP: no existing malpractice interpretation logic",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-P-MALPRACTICE-UX-S3",
+      "title": "Render malpractice section in provider scorecard UI",
+      "description": "Create UI component within provider scorecard to display malpractice status, icon (clean/flagged), link to state medical board, and score contribution. Ensure links are validated and rendered safely via markdown pipeline.",
+      "parent_feature": "EVAL-P-MALPRACTICE-UX",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MALPRACTICE-UX-S2",
+        "EVAL-P-MEASURE-MALPRACTICE"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (state board links); MessageBubble.tsx rendering pipeline",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-P-MALPRACTICE-UX-S4",
+      "title": "Integrate malpractice data into API response and UI binding",
+      "description": "Bind malpractice measure data from backend response into frontend component, ensuring correct parsing, null handling, and graceful fallback when data is missing. Validate end-to-end flow from facade to UI.",
+      "parent_feature": "EVAL-P-MALPRACTICE-UX",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-P-MALPRACTICE-UX-S3",
+        "EVAL-P-MEASURE-MALPRACTICE"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (provider detail orchestration); GAP: malpractice field not yet exposed",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-P-MALPRACTICE-UX-S5",
+      "title": "End-to-end tests for malpractice display and wording compliance",
+      "description": "Create tests validating: correct display states (clean/flagged), presence of state board link, accurate score contribution rendering, and strict enforcement of neutral language (no prohibited terms like fraud). Include UI snapshot or rendering tests.",
+      "parent_feature": "EVAL-P-MALPRACTICE-UX",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-P-MALPRACTICE-UX-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests (existing test patterns); sprint_plan/uat_library (UAT scenarios); GAP: no malpractice UX tests exist",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

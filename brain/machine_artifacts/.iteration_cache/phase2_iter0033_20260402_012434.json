@@ -1,0 +1,54 @@
+{
+  "stories": [
+    {
+      "story_id": "SHARED-F-2-S98",
+      "title": "Consent API Endpoints for Tier Capture and Retrieval",
+      "description": "Implement FastAPI endpoints to capture user consent tier (Tier 1 vs Tier 2), retrieve current consent status by session, and expose audit metadata for downstream services.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S94",
+        "SHARED-F-2-S95"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    {
+      "story_id": "SHARED-F-2-S99",
+      "title": "Frontend Consent Prompt and Tier Selection Handling",
+      "description": "Add UI interaction pattern in chat flow to present consent options, capture user selection, and persist via backend API while maintaining conversational continuity.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S98"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx; Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py"
+    },
+    {
+      "story_id": "SHARED-F-2-S100",
+      "title": "De-identification Pipeline Enforcement Hook",
+      "description": "Implement a reusable hook within consent service to enforce HIPAA Safe Harbor de-identification prior to any storage when Tier 1 is selected, ensuring consistency across all entry points.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S95"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    },
+    {
+      "story_id": "SHARED-F-2-S101",
+      "title": "Cross-Service Consent Contract Integration (Lead + Unknown প্রশ্ন)",
+      "description": "Standardize and enforce consent contract usage across lead capture and unknown question services to ensure consistent handling of identifiable vs de-identified data.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S95",
+        "SHARED-F-2-S94"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py"
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-RX-REQ-001",
+      "story_id": "EVAL-P-RX-S4",
+      "requirement": "The system must expose a backend API endpoint within evaluate_care_facade for retrieving prescription behavior analysis by provider NPI.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-002",
+      "story_id": "EVAL-P-RX-S4",
+      "requirement": "The system must call the prescribing appropriateness scoring service (from EVAL-P-RX-S3) when the endpoint is invoked.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-003",
+      "story_id": "EVAL-P-RX-S4",
+      "requirement": "The system must return a normalized prescribing appropriateness score in the API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-004",
+      "story_id": "EVAL-P-RX-S4",
+      "requirement": "The system must include a human-readable summary explaining the prescribing behavior in the API response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-005",
+      "story_id": "EVAL-P-RX-S4",
+      "requirement": "The system must include condition-level breakdowns of prescribing patterns in the API response when available.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-006",
+      "story_id": "EVAL-P-RX-S4",
+      "requirement": "The system must format the API response according to the evaluation response schema pattern used in evaluate_care_facade.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-007",
+      "story_id": "EVAL-P-RX-S4",
+      "requirement": "The system must support JSON response output consumable by downstream UI and chat services.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-008",
+      "story_id": "EVAL-P-RX-S4",
+      "requirement": "The system must validate that a provider NPI is provided as input to the endpoint.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-009",
+      "story_id": "EVAL-P-RX-S4",
+      "requirement": "The system must return an error response when the provider NPI is missing or invalid.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-010",
+      "story_id": "EVAL-P-RX-S4",
+      "requirement": "The system must return an empty or fallback response with explanatory messaging when no prescribing data is available for the provider.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-011",
+      "story_id": "EVAL-P-RX-S4",
+      "requirement": "The system must handle partial data scenarios by returning available scores and clearly indicating incomplete data coverage.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-012",
+      "story_id": "EVAL-P-RX-S4",
+      "requirement": "The system must log each API request and response status for monitoring and debugging purposes.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-013",
+      "story_id": "EVAL-P-RX-S4",
+      "requirement": "The system must ensure response latency remains within acceptable service limits for Evaluate Care APIs.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-RX-REQ-014",
+      "story_id": "EVAL-P-RX-S4",
+      "requirement": "The system must prevent propagation of internal service errors by returning a standardized error response when the scoring service fails.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

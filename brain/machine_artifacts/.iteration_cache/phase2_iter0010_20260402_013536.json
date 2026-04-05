@@ -1,0 +1,123 @@
+{
+  "assignment_id": "MAINT-ARCH-STORIES",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "MAINT-ARCH stories created per ARCH-001 refactor phases; aligned to existing FastAPI modular monolith structure.",
+  "change_log": [
+    {
+      "path": "stories.MAINT-ARCH-S1",
+      "value": "Added schema/contract story",
+      "note": "Phase 2 requirement",
+      "iteration": 10
+    },
+    {
+      "path": "stories.MAINT-ARCH-S2",
+      "value": "Added core logic refactor story",
+      "note": "Phase 2 requirement",
+      "iteration": 10
+    },
+    {
+      "path": "stories.MAINT-ARCH-S3",
+      "value": "Added API/facade alignment story",
+      "note": "Phase 2 requirement",
+      "iteration": 10
+    },
+    {
+      "path": "stories.MAINT-ARCH-S4",
+      "value": "Added tests story",
+      "note": "Phase 2 requirement",
+      "iteration": 10
+    },
+    {
+      "path": "stories.MAINT-ARCH-S5",
+      "value": "Added integration/wiring story",
+      "note": "Phase 2 requirement",
+      "iteration": 10
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "MAINT-ARCH-S1": {
+      "story_id": "MAINT-ARCH-S1",
+      "title": "Define Service Boundaries and Contracts",
+      "description": "Define explicit service interfaces, data contracts, and module boundaries for the 4-layer modular monolith (facades, domain services, infrastructure, adapters) per ARCH-001.",
+      "parent_feature": "MAINT-ARCH",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "brain/machine_artifacts/content/architecture.json::refactor_design_arch001"
+    },
+    "MAINT-ARCH-S2": {
+      "story_id": "MAINT-ARCH-S2",
+      "title": "Refactor Domain Logic into Isolated Services",
+      "description": "Extract and reorganize existing domain logic (provider search, evaluate care, shared services) into isolated, stateless service modules aligned with defined contracts.",
+      "parent_feature": "MAINT-ARCH",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-ARCH-S1"
+      ],
+      "size": "L",
+      "evidence": "brain/machine_artifacts/content/architecture.json::refactor_design_arch001"
+    },
+    "MAINT-ARCH-S3": {
+      "story_id": "MAINT-ARCH-S3",
+      "title": "Align Facades and API Layer to Service Contracts",
+      "description": "Refactor FastAPI entrypoints and application facades (find_care_facade, evaluate_care_facade) to consume newly defined service interfaces without direct domain coupling.",
+      "parent_feature": "MAINT-ARCH",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-ARCH-S1",
+        "MAINT-ARCH-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/"
+    },
+    "MAINT-ARCH-S4": {
+      "story_id": "MAINT-ARCH-S4",
+      "title": "Refactor Unit and Integration Test Coverage",
+      "description": "Update and expand unit and integration tests to validate new module boundaries, service contracts, and facade interactions without regression.",
+      "parent_feature": "MAINT-ARCH",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-ARCH-S2",
+        "MAINT-ARCH-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    },
+    "MAINT-ARCH-S5": {
+      "story_id": "MAINT-ARCH-S5",
+      "title": "Rewire Application Bootstrap and Service Registration",
+      "description": "Update main.py wiring to register services, enforce dependency direction (no circular dependencies), and ensure clean initialization aligned with modular monolith design.",
+      "parent_feature": "MAINT-ARCH",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-ARCH-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {
+      "MAINT-ARCH": {
+        "feature_id": "MAINT-ARCH",
+        "likelihood": "Moderate",
+        "impact": "High",
+        "mitigation": "Incremental refactor with test validation at each boundary"
+      }
+    },
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

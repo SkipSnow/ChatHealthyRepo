@@ -1,0 +1,64 @@
+{
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-006-S1",
+      "title": "Define Manifest Snapshot Freshness Schema and Persistence Contract",
+      "description": "Define schema for manifest snapshot metadata including generated_at timestamp, source SHA-256 hash, file count, and TTL policy; specify persistence location aligned with manifest_generator output and snapshot storage.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/Shared/ops/manifest_generator.py; Code/Shared/ops/brain_snapshot.py"
+    },
+    {
+      "story_id": "BL-0.1.4-006-S2",
+      "title": "Implement Manifest Freshness Evaluation Engine",
+      "description": "Implement logic to compute freshness using TTL expiry, generated_at age, and SHA-256 comparison between current file system state and last manifest snapshot produced by manifest_generator.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/manifest_generator.py"
+    },
+    {
+      "story_id": "BL-0.1.4-006-S3",
+      "title": "Expose Manifest Freshness Status via Internal Service API",
+      "description": "Provide internal callable service/API returning freshness status (fresh, stale, regenerate_required) with metadata (age_seconds, ttl, hash_match, last_generated_at) for use by pipelines.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/Shared/ops/dev_pipeline.py"
+    },
+    {
+      "story_id": "BL-0.1.4-006-S4",
+      "title": "Integrate Freshness Enforcement into Dev Pipeline and Brain Runner",
+      "description": "Integrate freshness checks into dev_pipeline and brain_runner to block execution or trigger manifest regeneration when status is stale or regenerate_required, without expanding pipeline scope.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S2",
+        "BL-0.1.4-006-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/dev_pipeline.py; Code/Shared/brain_runner.py"
+    },
+    {
+      "story_id": "BL-0.1.4-006-S5",
+      "title": "Unit and Integration Tests for Manifest Freshness and Enforcement",
+      "description": "Create tests validating schema correctness, TTL expiration behavior, hash mismatch detection, and enforcement behavior within dev_pipeline and brain_runner execution paths.",
+      "parent_feature": "BL-0.1.4-006",
+      "sprint": 3,
+      "dependencies": [
+        "BL-0.1.4-006-S2",
+        "BL-0.1.4-006-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/Shared/ops/manifest_generator.py; Code/DataPipelines/tests"
+    }
+  ]
+}

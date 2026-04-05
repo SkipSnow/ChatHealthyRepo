@@ -1,0 +1,55 @@
+{
+  "assignment_id": "EVAL-F-1-STORIES",
+  "iteration": 12,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Stories already complete and correctly decomposed; refined scope clarity and sizing for implementation realism.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-001-S2.size",
+      "value": "L",
+      "note": "Up-sized due to pagination, retries, parsing complexity, and external API variability",
+      "iteration": 12
+    },
+    {
+      "path": "stories.EVAL-F-001-S2.description",
+      "value": "Implement ClinicalTrials.gov API integration with recruiting filter, condition/location query handling, structured parsing of trial data, eligibility summary normalization, trial site extraction, pagination handling with result limits, retry/backoff for rate limits, and defensive error handling for malformed or partial responses.",
+      "note": "Clarified pagination limits and defensive handling",
+      "iteration": 12
+    },
+    {
+      "path": "stories.EVAL-F-001-S3.description",
+      "value": "Add optional travel distance and duration enrichment using Google Routes API based on user location and trial sites, including batching of route requests, conditional execution when location is present, distance/time normalization, and graceful fallback when site or route data is incomplete or API fails.",
+      "note": "Added normalization requirement for consistency",
+      "iteration": 12
+    },
+    {
+      "path": "stories.EVAL-F-001-S4.description",
+      "value": "Expose clinical trials search via EvaluateCare facade and tool router with validated inputs, strict schema enforcement, structured output formatting, and compatibility with Anthropic tool-use patterns per GOV-004, including safe handling of empty or partial result sets.",
+      "note": "Added empty/partial result handling at API layer",
+      "iteration": 12
+    },
+    {
+      "path": "stories.EVAL-F-001-S5.description",
+      "value": "Create unit and integration tests covering API fetch, parsing, eligibility normalization, pagination limits, travel enrichment, facade-level response validation, tool_router integration, and edge cases including empty results, malformed responses, timeouts, and external API failures using mocks.",
+      "note": "Expanded coverage to include pagination limits explicitly",
+      "iteration": 12
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {},
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "assignment_id": "EVAL-F-1-STORIES",
+  "iteration": 13,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Resolved missing stories by editing existing EVAL-F-001 story set (no new IDs).",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-001-S1",
+      "value": "Defined schema/contract for clinical trials search",
+      "note": "Populate missing story",
+      "iteration": 13
+    },
+    {
+      "path": "stories.EVAL-F-001-S2",
+      "value": "Defined core ClinicalTrials.gov search logic",
+      "note": "Populate missing story",
+      "iteration": 13
+    },
+    {
+      "path": "stories.EVAL-F-001-S3",
+      "value": "Defined travel enrichment logic",
+      "note": "Populate missing story",
+      "iteration": 13
+    },
+    {
+      "path": "stories.EVAL-F-001-S4",
+      "value": "Defined facade/API exposure",
+      "note": "Populate missing story",
+      "iteration": 13
+    },
+    {
+      "path": "stories.EVAL-F-001-S5",
+      "value": "Defined unit/integration tests",
+      "note": "Populate missing story",
+      "iteration": 13
+    }
+  ],
+  "stories": {
+    "EVAL-F-001-S1": {
+      "story_id": "EVAL-F-001-S1",
+      "title": "Define Clinical Trials Search Schema and Contract",
+      "description": "Define request/response schema for clinical trials search including condition, location, recruiting status, structured trial fields (id, title, phase, status, locations), eligibility summary, and optional travel metrics.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    "EVAL-F-001-S2": {
+      "story_id": "EVAL-F-001-S2",
+      "title": "Implement ClinicalTrials.gov Search Logic",
+      "description": "Implement backend service to query ClinicalTrials.gov with recruiting filter, map API response into structured schema, and extract trial locations and eligibility summaries.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-F-001-S3": {
+      "story_id": "EVAL-F-001-S3",
+      "title": "Add Travel Distance and Time Enrichment",
+      "description": "Integrate Google Routes to compute travel distance and duration from user location to trial sites and append enrichment to each trial location.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-F-001-S4": {
+      "story_id": "EVAL-F-001-S4",
+      "title": "Expose Clinical Trials Search via Evaluate Care Facade",
+      "description": "Expose clinical trials search through evaluate_care_facade and tool routing, ensuring validated inputs and structured outputs returned to chat layer.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-F-001-S5": {
+      "story_id": "EVAL-F-001-S5",
+      "title": "Unit and Integration Tests for Clinical Trials Search",
+      "description": "Create unit tests for schema validation and search logic, plus integration tests covering end-to-end flow including facade invocation and travel enrichment.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S2",
+        "EVAL-F-001-S3",
+        "EVAL-F-001-S4"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing test file for clinical trials; must be created under backend/tests/"
+    }
+  }
+}

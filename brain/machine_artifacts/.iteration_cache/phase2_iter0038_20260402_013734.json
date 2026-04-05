@@ -1,0 +1,76 @@
+{
+  "assignment_id": "EVAL-F-03-STORIES",
+  "iteration": 38,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing API/tool integration and test coverage stories to complete feature.",
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "EVAL-F-03-S113",
+      "title": "Expose EvaluateCare Facade via Tool Router",
+      "description": "Integrate evaluate_care_facade methods into tool_router allowlist, enabling LLM tool-use flows to invoke clinical trials search and provider detail orchestration with validated inputs and structured outputs.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S109",
+        "EVAL-F-03-S111"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-03-S114",
+      "title": "End-to-End Integration with Domain Services",
+      "description": "Wire evaluate_care_facade to clinical_trials_service and provider_detail_service ensuring correct sequencing, parameter passing, and response aggregation across both flows.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S111"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py; Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-F-03-S115",
+      "title": "Unit Tests for EvaluateCare Facade Logic",
+      "description": "Create unit tests validating facade orchestration logic, including schema compliance, normalization, error handling, and correct interaction with mocked domain services.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S109",
+        "EVAL-F-03-S110",
+        "EVAL-F-03-S111"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/tests/"
+    },
+    {
+      "story_id": "EVAL-F-03-S116",
+      "title": "Integration Tests for Tool-to-Facade Execution",
+      "description": "Implement integration tests covering full tool invocation path from tool_router through evaluate_care_facade to domain services, validating real execution paths and structured outputs.",
+      "parent_feature": "EVAL-F-03",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-03-S113",
+        "EVAL-F-03-S114"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

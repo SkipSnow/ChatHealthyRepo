@@ -1,0 +1,110 @@
+{
+  "assignment_id": "PHASE-2-EVAL-P-MEASURE-1-STORIES",
+  "iteration": 12,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Populated existing story IDs for Board Certification Verification. No new IDs created.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-P-M1-S1",
+      "value": "Defined schema and contract for board certification verification output",
+      "note": "Populate existing story",
+      "iteration": 12
+    },
+    {
+      "path": "stories.EVAL-P-M1-S2",
+      "value": "Implemented extraction and verification logic from NPI data",
+      "note": "Populate existing story",
+      "iteration": 12
+    },
+    {
+      "path": "stories.EVAL-P-M1-S3",
+      "value": "Expose board certification via EvaluateCare facade",
+      "note": "Populate existing story",
+      "iteration": 12
+    },
+    {
+      "path": "stories.EVAL-P-M1-S4",
+      "value": "Add unit and integration tests",
+      "note": "Populate existing story",
+      "iteration": 12
+    }
+  ],
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "EVAL-P-M1-S1",
+      "title": "Define Board Certification Schema and Contract",
+      "description": "Define a normalized schema for board certification signals derived from NPI registry data, including certification presence, certifying board name, status (if available), and confidence flags for missing or partial data.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-P-M1-S2",
+      "title": "Implement Board Certification Extraction and Verification Logic",
+      "description": "Parse NPI registry response fields to extract credential strings, identify board certification indicators, normalize board names, and determine verification status using deterministic rules. Handle missing, inconsistent, or free-text credentials.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    {
+      "story_id": "EVAL-P-M1-S3",
+      "title": "Expose Board Certification via Evaluate Care Facade",
+      "description": "Integrate board certification signals into provider detail response and expose through evaluate_care_facade so downstream chat and UI layers can consume structured certification data.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-002"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-P-M1-S4",
+      "title": "Unit and Integration Tests for Board Certification Verification",
+      "description": "Create unit tests for extraction and normalization logic and integration tests validating end-to-end flow from NPI lookup through facade response, including edge cases with missing or ambiguous credential data.",
+      "parent_feature": "EVAL-P-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-P-M1-S2",
+        "EVAL-P-M1-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "EVAL-P-MEASURE-1",
+        "likelihood": "Low",
+        "impact": "Moderate",
+        "mitigation": "Use deterministic parsing with fallback 'unknown' states to avoid false claims."
+      }
+    ],
+    "per_measure": [
+      {
+        "feature_id": "EVAL-P-MEASURE-1",
+        "data_source_availability": "High",
+        "data_quality": "Moderate",
+        "credibility": "High",
+        "mitigation": "Surface uncertainty explicitly when NPI data is incomplete."
+      }
+    ]
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

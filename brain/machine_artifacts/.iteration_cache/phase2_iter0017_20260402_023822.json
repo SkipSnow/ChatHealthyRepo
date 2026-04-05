@@ -1,0 +1,86 @@
+{
+  "assignment_id": "MAINT-CONSENT-STORIES",
+  "iteration": 17,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories validated and aligned to required breakdown. No duplicates created.",
+  "change_log": [],
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "MAINT-CONSENT-S1",
+      "title": "Consent Schema and Contract Validation Fixes",
+      "description": "Audit and correct Pydantic models in consent_models.py to enforce strict Tier 1 vs Tier 2 separation, required fields, consent timestamps, and de-identification flags. Ensure backward compatibility with existing stored records.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py; brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature"
+    },
+    {
+      "story_id": "MAINT-CONSENT-S2",
+      "title": "Core Consent Logic Edge Case Fixes",
+      "description": "Fix defects in consent_service.py including improper tier escalation, duplicate consent submissions, partial consent persistence, summarization failures, and HIPAA Safe Harbor de-identification inconsistencies.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-CONSENT-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature"
+    },
+    {
+      "story_id": "MAINT-CONSENT-S3",
+      "title": "Consent Enforcement via API and Tool Router",
+      "description": "Ensure consent enforcement is consistently applied through tool_router.py and FastAPI entrypoints, including gating before lead capture and unknown question flows, and preventing bypass of Tier 2 consent requirements.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-CONSENT-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/main.py; brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature"
+    },
+    {
+      "story_id": "MAINT-CONSENT-S4",
+      "title": "Consent Workflow Unit and Integration Tests",
+      "description": "Expand automated test coverage for consent flows including Tier 1 only, Tier 2 escalation, refusal handling, duplicate submissions, and validation of de-identification behavior across services.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-CONSENT-S1",
+        "MAINT-CONSENT-S2",
+        "MAINT-CONSENT-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/; brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature"
+    },
+    {
+      "story_id": "MAINT-CONSENT-S5",
+      "title": "Consent Integration with Lead and Unknown Question Services",
+      "description": "Fix integration inconsistencies between ConsentService, LeadService, and UnknownQuestionService to ensure consent state is consistently enforced across all entry points and that no PHI is persisted without valid Tier 2 consent.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-CONSENT-S2",
+        "MAINT-CONSENT-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py; brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

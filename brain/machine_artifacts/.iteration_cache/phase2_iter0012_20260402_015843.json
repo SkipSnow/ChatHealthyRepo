@@ -1,0 +1,81 @@
+{
+  "assignment_id": "FEAT-4-STORIES",
+  "iteration": 12,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing core logic, API/facade integration, and testing coverage stories for FEAT-4.",
+  "change_log": [
+    {
+      "path": "stories.STORY-FEAT4-030",
+      "value": "Add core NPI lookup and parsing logic",
+      "note": "Core backend logic missing",
+      "iteration": 12
+    },
+    {
+      "path": "stories.STORY-FEAT4-031",
+      "value": "Add facade integration for provider detail",
+      "note": "Expose via application layer",
+      "iteration": 12
+    },
+    {
+      "path": "stories.STORY-FEAT4-032",
+      "value": "Add unit and integration tests for provider detail service",
+      "note": "Testing coverage gap",
+      "iteration": 12
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "STORY-FEAT4-030": {
+      "story_id": "STORY-FEAT4-030",
+      "title": "Implement NPI Registry Lookup and Parsing Logic",
+      "description": "Build core service logic to call CMS NPI Registry API, handle responses, parse provider demographics, specialties, and identifiers, and normalize into internal schema.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-027"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "STORY-FEAT4-031": {
+      "story_id": "STORY-FEAT4-031",
+      "title": "Integrate Provider Detail Lookup into Evaluate Care Facade",
+      "description": "Wire provider detail service into evaluate_care_facade to orchestrate lookup, enrichment, and response formatting for downstream tool usage.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-030"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "STORY-FEAT4-032": {
+      "story_id": "STORY-FEAT4-032",
+      "title": "Create Unit and Integration Tests for Provider Detail Service",
+      "description": "Develop tests covering NPI API interaction (mocked), parsing logic, error handling, and facade-level integration to ensure reliable provider detail retrieval.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "STORY-FEAT4-030",
+        "STORY-FEAT4-031"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing provider detail tests found; must create new test module under backend/tests/"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

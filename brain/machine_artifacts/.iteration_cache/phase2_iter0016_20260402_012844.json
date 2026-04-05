@@ -1,0 +1,44 @@
+{
+  "assignment_id": "EVAL-F5-STORIES",
+  "iteration": 16,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added frontend rendering story to complete API/UI coverage for explainability layer.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F5-S54",
+      "value": "Explainability UI Rendering in Chat",
+      "note": "Complete API/UI layer with frontend consumption",
+      "iteration": 16
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F5-S54": {
+      "story_id": "EVAL-F5-S54",
+      "title": "Explainability UI Rendering in Chat",
+      "description": "Update frontend MessageBubble rendering to display explainability metadata (source, meaning, limitations) in a structured, readable format within chat responses, ensuring clarity without overwhelming the user.",
+      "parent_feature": "EVAL-F5",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-F5-S52"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

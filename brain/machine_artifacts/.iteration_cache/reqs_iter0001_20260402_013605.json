@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-004-001",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must include an 'explainability' field in the FastAPI JSON response when the Evaluate Care endpoint is invoked.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-004-002",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must ensure the 'explainability' field contains an array of measure-level objects matching the schema defined in EVAL-EXPLAIN-ST-001.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-004-003",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must propagate the explainability payload from evaluate_care_facade.py through main.py without transformation or data loss.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-004-004",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must update the tool_router response contract to include the explainability field in tool outputs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-004-005",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must ensure backward compatibility by returning a valid response even if the client does not consume the explainability field.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-004-006",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must return explainability data only when scoring results are present in the response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-004-007",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must return an empty explainability array if no measure-level data is available from the facade.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-004-008",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must return a 500 error response if the explainability payload cannot be serialized into valid JSON.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-004-009",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must log an error when the explainability payload is missing despite successful scoring execution.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-004-010",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must ensure the explainability payload structure is deterministic and consistent across identical requests.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-004-011",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must ensure that LLM-facing tool responses include the explainability payload in a structured, non-freeform JSON format.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-004-012",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must prevent the LLM from altering or hallucinating explainability values by only passing through backend-generated data.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-004-013",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must ensure the explainability payload is accessible to downstream chat rendering logic without additional parsing beyond standard JSON decoding.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-004-014",
+      "story_id": "EVAL-EXPLAIN-ST-004",
+      "requirement": "The system must include all required fields (measure_id, raw_value, normalized_score, weight, contribution_to_final_score) in each explainability object returned via the API.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

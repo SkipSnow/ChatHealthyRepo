@@ -1,0 +1,49 @@
+{
+  "assignment_id": "SHARED-F-2-STORIES",
+  "iteration": 25,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing API and integration stories to meet minimum and complete coverage.",
+  "epics": {},
+  "features": {},
+  "stories": {
+    "SHARED-F-2-S75": {
+      "story_id": "SHARED-F-2-S75",
+      "title": "Consent API Endpoints and Contract Exposure",
+      "description": "Expose consent framework via FastAPI endpoints for capturing consent decisions, querying current consent tier, and updating consent state. Ensure strict Pydantic validation and alignment with tool_router usage patterns.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S70",
+        "SHARED-F-2-S73"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py"
+    },
+    "SHARED-F-2-S76": {
+      "story_id": "SHARED-F-2-S76",
+      "title": "Integration with Lead Capture and Unknown Question Services",
+      "description": "Integrate consent enforcement into lead capture and unknown question flows, ensuring Tier 2 consent is required before identifiable data storage and that de-identification is applied otherwise.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S73"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "assignment_id": "PHASE-2-EVAL-TRAVEL-BURDEN",
+  "iteration": 18,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added required stories for EVAL-TRAVEL-BURDEN.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-TRAVEL-BURDEN-S1",
+      "value": "Added schema/contract story",
+      "note": "Feature had zero stories",
+      "iteration": 18
+    },
+    {
+      "path": "stories.EVAL-TRAVEL-BURDEN-S2",
+      "value": "Added core logic story",
+      "note": "Feature had zero stories",
+      "iteration": 18
+    },
+    {
+      "path": "stories.EVAL-TRAVEL-BURDEN-S3",
+      "value": "Added API integration story",
+      "note": "Feature had zero stories",
+      "iteration": 18
+    },
+    {
+      "path": "stories.EVAL-TRAVEL-BURDEN-S4",
+      "value": "Added facade integration story",
+      "note": "Feature had zero stories",
+      "iteration": 18
+    },
+    {
+      "path": "stories.EVAL-TRAVEL-BURDEN-S5",
+      "value": "Added test suite story",
+      "note": "Feature had zero stories",
+      "iteration": 18
+    }
+  ],
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "EVAL-TRAVEL-BURDEN-S1",
+      "title": "Define Travel Burden Schema and Contract",
+      "description": "Define structured schema for travel distance and duration including origin, destination, distance_miles, duration_minutes, and fallback states when routing fails.",
+      "parent_feature": "EVAL-TRAVEL-BURDEN",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (_get_travel_info)"
+    },
+    {
+      "story_id": "EVAL-TRAVEL-BURDEN-S2",
+      "title": "Implement Travel Distance and Duration Logic",
+      "description": "Implement core logic to call Google Routes API, compute distance and duration between user location and trial sites, and normalize results into defined schema.",
+      "parent_feature": "EVAL-TRAVEL-BURDEN",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRAVEL-BURDEN-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (_get_travel_info)"
+    },
+    {
+      "story_id": "EVAL-TRAVEL-BURDEN-S3",
+      "title": "Handle Multi-Site Trial Travel Computation",
+      "description": "Extend travel logic to iterate across multiple trial locations, compute travel burden per site, and return ranked or aggregated results.",
+      "parent_feature": "EVAL-TRAVEL-BURDEN",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRAVEL-BURDEN-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-TRAVEL-BURDEN-S4",
+      "title": "Expose Travel Burden via Evaluate Care Facade",
+      "description": "Integrate travel burden data into evaluate_care_facade so clinical trial responses include distance and time information for each location.",
+      "parent_feature": "EVAL-TRAVEL-BURDEN",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRAVEL-BURDEN-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-TRAVEL-BURDEN-S5",
+      "title": "Unit and Integration Tests for Travel Burden",
+      "description": "Create unit tests for travel computation logic and integration tests validating end-to-end flow from clinical trial search to travel burden output.",
+      "parent_feature": "EVAL-TRAVEL-BURDEN",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-TRAVEL-BURDEN-S4"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

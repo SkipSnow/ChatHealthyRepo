@@ -1,0 +1,17 @@
+{
+  "stories": [
+    {
+      "story_id": "MAINT-BRAIN-S5",
+      "title": "Standardize Audit Logging and Traceability for GPTReader",
+      "description": "Implement consistent audit logging across GPTReader operations including request metadata, manifest references, response size, truncation events, and error states to ensure full traceability and alignment with Brain audit expectations.",
+      "parent_feature": "MAINT-BRAIN",
+      "sprint": 3,
+      "dependencies": [
+        "MAINT-BRAIN-S1",
+        "MAINT-BRAIN-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; brain/BusinessArtifacts/gpt_reader_qa_report.pdf"
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-004",
+  "iteration": 10,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Refined existing stories for clarity, enforcement boundaries, and non-duplication alignment with prior Brain audit patterns.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-004-S1.description",
+      "value": "Clarified MongoDB enforcement (collection-level + repository guard) and explicit field list for audit schema.",
+      "note": "Tighten contract to prevent ambiguity",
+      "iteration": 10
+    },
+    {
+      "path": "stories.BL-0.1.4-004-S2.description",
+      "value": "Added deterministic ordering guarantee and idempotency handling for repeated writes.",
+      "note": "Improve core logic robustness",
+      "iteration": 10
+    },
+    {
+      "path": "stories.BL-0.1.4-004-S3.description",
+      "value": "Expanded instrumentation scope to include external API adapters and ensured correlation_id propagation via request context.",
+      "note": "Close observability gaps",
+      "iteration": 10
+    },
+    {
+      "path": "stories.BL-0.1.4-004-S4.description",
+      "value": "Clarified access control as backend-internal միայն and added pagination constraints.",
+      "note": "Prevent misuse and control scope",
+      "iteration": 10
+    },
+    {
+      "path": "stories.BL-0.1.4-004-S5.description",
+      "value": "Expanded tamper scenarios to include partial chain corruption and concurrent write race conditions.",
+      "note": "Strengthen validation coverage",
+      "iteration": 10
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-004-S1",
+      "title": "Adopt Audit Log Schema and Append-Only Contract (Align with Brain)",
+      "description": "Align debug_logger output to a standardized audit schema (timestamp, actor, action_type, tool_name, payload metadata, correlation_id, previous_hash, current_hash). Enforce append-only via dedicated MongoDB collection (no update/delete permissions) and repository-layer guards that reject mutation attempts. Define write-once semantics and access constraints.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py; ASSUMPTION: Brain audit schema standard exists; GAP: formal schema mapping spec"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S2",
+      "title": "Append-Only Logging Engine with Hash Chaining",
+      "description": "Implement audit logging engine with deterministic hash chaining (previous_hash → current_hash), strict ordering guarantees, and idempotent write handling. Enforce insert-only persistence through a dedicated abstraction layer.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S3",
+      "title": "Audit Instrumentation Across Tooling and Services",
+      "description": "Instrument tool_router, safety_service, provider_search_service, clinical_trials_service, and external API adapters to emit structured audit events. Ensure consistent correlation_id propagation across request lifecycle via shared context.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S4",
+      "title": "Internal Audit Log Read API with Integrity Verification",
+      "description": "Implement backend-internal read/query interface for audit logs with filters (correlation_id, time range, action_type), pagination, and optional full-chain hash verification. Restrict access to internal services only.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S2"
+      ],
+      "size": "S",
+      "evidence": "GAP: No existing read/query interface in debug_logger"
+    },
+    {
+      "story_id": "BL-0.1.4-004-S5",
+      "title": "Audit Logging Test Suite and Tamper Detection",
+      "description": "Extend test_debug_logger to validate append-only enforcement, hash chain continuity, concurrent write ordering, and tamper scenarios (altered, deleted, reordered, and partially corrupted chains). Include integration tests from tool_router through persistence.",
+      "parent_feature": "BL-0.1.4-004",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-004-S2",
+        "BL-0.1.4-004-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py"
+    }
+  ]
+}

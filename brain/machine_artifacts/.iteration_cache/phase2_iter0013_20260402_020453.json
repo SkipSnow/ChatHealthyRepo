@@ -1,0 +1,115 @@
+{
+  "assignment_id": "FEAT-5-STORIES",
+  "iteration": 13,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added stories for schema contracts, core routing logic hardening, API exposure, tests, and integration.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-5-S47",
+      "value": "Add tool schema registry and contract enforcement",
+      "note": "Covers schema/contract gap",
+      "iteration": 13
+    },
+    {
+      "path": "stories.FEAT-5-S48",
+      "value": "Harden core routing decision logic",
+      "note": "Extends core logic coverage",
+      "iteration": 13
+    },
+    {
+      "path": "stories.FEAT-5-S49",
+      "value": "Expose tool routing via API boundary",
+      "note": "Covers API layer",
+      "iteration": 13
+    },
+    {
+      "path": "stories.FEAT-5-S50",
+      "value": "Comprehensive unit and edge case tests",
+      "note": "Expands test coverage",
+      "iteration": 13
+    },
+    {
+      "path": "stories.FEAT-5-S51",
+      "value": "End-to-end integration with agent loop",
+      "note": "Ensures system integration",
+      "iteration": 13
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "FEAT-5-S47",
+      "title": "Tool Schema Registry and Contract Enforcement",
+      "description": "Create a centralized registry mapping tool names to Pydantic schemas and enforce strict validation contracts before dispatch, ensuring consistency across all tool models.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S48",
+      "title": "Core Tool Routing Decision Logic Hardening",
+      "description": "Enhance routing logic to deterministically select tools based on allowlist membership and tool_use blocks, including fallback handling when multiple or ambiguous tool calls are present.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S47"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S49",
+      "title": "Tool Router API Boundary Integration",
+      "description": "Integrate the tool router with the FastAPI entrypoint to ensure validated tool calls flow cleanly between the agent loop and backend services, including standardized request/response structures.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S48"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S50",
+      "title": "Tool Router Unit and Edge Case Test Coverage",
+      "description": "Expand unit tests to cover allowlist enforcement, schema validation failures, malformed tool_use blocks, and multi-tool scenarios.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S47",
+        "FEAT-5-S48"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S51",
+      "title": "End-to-End Tool Routing Integration with Agent Loop",
+      "description": "Validate full integration of tool routing within the Claude agentic loop, ensuring tool selection, validation, execution, and response propagation function correctly across real conversation flows.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S49"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py; Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

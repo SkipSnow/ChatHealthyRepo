@@ -1,0 +1,114 @@
+{
+  "assignment_id": "PHASE-2-BL-0.1.4-001",
+  "iteration": 15,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories created for Server-Side Scope Enforcement aligned to tool_router allowlist dispatch.",
+  "change_log": [
+    {
+      "path": "stories.BL-0.1.4-001-S1",
+      "value": "Added schema/contract story for scope enforcement",
+      "note": "Feature had no stories",
+      "iteration": 15
+    },
+    {
+      "path": "stories.BL-0.1.4-001-S2",
+      "value": "Added core logic enforcement story",
+      "note": "Feature had no stories",
+      "iteration": 15
+    },
+    {
+      "path": "stories.BL-0.1.4-001-S3",
+      "value": "Added integration with tool_router",
+      "note": "Feature had no stories",
+      "iteration": 15
+    },
+    {
+      "path": "stories.BL-0.1.4-001-S4",
+      "value": "Added API/error handling exposure story",
+      "note": "Feature had no stories",
+      "iteration": 15
+    },
+    {
+      "path": "stories.BL-0.1.4-001-S5",
+      "value": "Added unit and integration tests story",
+      "note": "Feature had no stories",
+      "iteration": 15
+    }
+  ],
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "BL-0.1.4-001-S1",
+      "title": "Define Scope Enforcement Schema and Allowlist Contract",
+      "description": "Define a strict allowlist schema for tool access including tool name, permitted scopes, and validation rules. Ensure compatibility with existing Pydantic tool models and enforce contract validation before execution.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S2",
+      "title": "Implement Core Scope Enforcement Logic",
+      "description": "Implement backend logic to validate incoming tool calls against the defined allowlist and scope rules. Reject any tool invocation that falls outside permitted scope boundaries before reaching domain services.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S3",
+      "title": "Integrate Scope Enforcement into Tool Router Dispatch Flow",
+      "description": "Embed scope validation into the existing tool_router dispatch pipeline so that all Anthropic tool_use calls are intercepted and validated prior to execution. Ensure no bypass paths exist.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S4",
+      "title": "Standardize Scope Violation Error Handling and API Response",
+      "description": "Define and return consistent error responses for scope violations, including safe messaging to the LLM and logging for debugging. Ensure no sensitive system details are exposed.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    },
+    {
+      "story_id": "BL-0.1.4-001-S5",
+      "title": "Unit and Integration Tests for Scope Enforcement",
+      "description": "Create tests validating that allowed tool calls succeed and out-of-scope calls are blocked. Include edge cases such as malformed inputs, unauthorized tool names, and bypass attempts through crafted tool_use payloads.",
+      "parent_feature": "BL-0.1.4-001",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-001-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

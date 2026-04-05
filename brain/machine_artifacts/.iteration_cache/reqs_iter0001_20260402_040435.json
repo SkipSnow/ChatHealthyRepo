@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-PI-UX-REQ-001",
+      "story_id": "EVAL-CT-PI-UX-S4",
+      "requirement": "The system must retrieve PI credibility data from the backend response payload via evaluate_care_facade before rendering the trial scorecard.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PI-UX-REQ-002",
+      "story_id": "EVAL-CT-PI-UX-S4",
+      "requirement": "The system must bind the backend PI data fields to the frontend schema defined in EVAL-CT-PI-UX-S1 without transformation errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PI-UX-REQ-003",
+      "story_id": "EVAL-CT-PI-UX-S4",
+      "requirement": "The system must render PI credibility data when a complete payload (all expected fields present) is returned.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PI-UX-REQ-004",
+      "story_id": "EVAL-CT-PI-UX-S4",
+      "requirement": "The system must safely render partial PI data when one or more non-critical fields are missing without causing UI failure.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PI-UX-REQ-005",
+      "story_id": "EVAL-CT-PI-UX-S4",
+      "requirement": "The system must display a fallback message when PI data is null or absent in the backend response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PI-UX-REQ-006",
+      "story_id": "EVAL-CT-PI-UX-S4",
+      "requirement": "The system must not render the PI credibility component when the PI data object is undefined or empty.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PI-UX-REQ-007",
+      "story_id": "EVAL-CT-PI-UX-S4",
+      "requirement": "The system must handle backend API errors (e.g., 4xx/5xx) by displaying a non-blocking fallback state for PI credibility.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PI-UX-REQ-008",
+      "story_id": "EVAL-CT-PI-UX-S4",
+      "requirement": "The system must ensure that PI data binding does not break or delay rendering of other trial scorecard components.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PI-UX-REQ-009",
+      "story_id": "EVAL-CT-PI-UX-S4",
+      "requirement": "The system must validate the PI data payload structure against the defined schema before attempting to render.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PI-UX-REQ-010",
+      "story_id": "EVAL-CT-PI-UX-S4",
+      "requirement": "The system must log an error event when PI data is missing, malformed, or fails schema validation.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PI-UX-REQ-011",
+      "story_id": "EVAL-CT-PI-UX-S4",
+      "requirement": "The system must prevent runtime crashes caused by null or undefined PI data references during rendering.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PI-UX-REQ-012",
+      "story_id": "EVAL-CT-PI-UX-S4",
+      "requirement": "The system must display default placeholder values for optional PI fields when they are missing but the object exists.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

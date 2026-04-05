@@ -1,0 +1,82 @@
+{
+  "assignment_id": "SHARED-F-2-STORIES",
+  "iteration": 37,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "High",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added missing core logic, API integration, and cross-service integration coverage for Consent Framework.",
+  "change_log": [
+    {
+      "path": "stories.SHARED-F-2-S112",
+      "value": "Core consent tier decision engine implementation",
+      "note": "Add core logic layer missing from prior iteration",
+      "iteration": 37
+    },
+    {
+      "path": "stories.SHARED-F-2-S113",
+      "value": "Consent API exposure via tool router",
+      "note": "Add API layer integration",
+      "iteration": 37
+    },
+    {
+      "path": "stories.SHARED-F-2-S114",
+      "value": "Cross-service integration with lead capture and unknown question flows",
+      "note": "Ensure system-wide enforcement of consent",
+      "iteration": 37
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": [
+    {
+      "story_id": "SHARED-F-2-S112",
+      "title": "Consent Tier Decision Engine (Core Logic)",
+      "description": "Implement the core decision engine inside ConsentService that enforces two-tier HIPAA consent rules, including gating of identifiable data storage, triggering de-identification for Tier 1, and allowing full persistence only for explicit Tier 2 consent.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S109",
+        "SHARED-F-2-S110"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; architecture/refactor_design_arch001"
+    },
+    {
+      "story_id": "SHARED-F-2-S113",
+      "title": "Consent API and Tool Router Integration",
+      "description": "Expose consent framework functionality through FastAPI endpoints and integrate with the tool_router to ensure all consent-related actions are validated, routed, and enforced before any downstream tool execution or data persistence.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S110",
+        "SHARED-F-2-S112"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    {
+      "story_id": "SHARED-F-2-S114",
+      "title": "Consent Enforcement Integration Across Services",
+      "description": "Integrate ConsentService with lead_capture, unknown_question_service, and debug_logger to ensure consistent enforcement of consent tiers across all data entry points, including blocking or transforming data when consent requirements are not met.",
+      "parent_feature": "SHARED-F-2",
+      "sprint": 2,
+      "dependencies": [
+        "SHARED-F-2-S112"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py; Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py"
+    }
+  ],
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-401",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must map provider score responses from EVAL-SCORE-PROV into the frontend explainability schema defined in EVAL-EXPLAIN-UX-S1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-402",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must map clinical trial score responses from EVAL-SCORE-CT into the frontend explainability schema defined in EVAL-EXPLAIN-UX-S1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-403",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must map explainability breakdown data from EVAL-EXPLAIN into measures, weights, and contributions in the frontend schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-404",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must normalize differing backend field names into consistent frontend schema keys.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-405",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must construct a single unified explainability payload combining score and breakdown data when both are available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-406",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must preserve numeric precision of scores, weights, and contributions during mapping.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-407",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must handle missing measure lists by returning an empty array in the frontend schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-408",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must handle missing contribution values by defaulting them to null without breaking the schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-409",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must omit invalid or non-numeric measure values from the mapped output.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-410",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must ensure that the mapped payload conforms to the TypeScript interface defined in EVAL-EXPLAIN-UX-S1.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-411",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must gracefully handle partial backend responses by populating available fields without throwing runtime errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-412",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must return a minimal valid explainability payload when only overall score data is available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-413",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must return a minimal valid explainability payload when only breakdown data is available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-414",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must log mapping errors for malformed backend responses without interrupting frontend rendering.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-EXPLAIN-UX-415",
+      "story_id": "EVAL-EXPLAIN-UX-S4",
+      "requirement": "The system must ensure deterministic mapping such that identical backend inputs produce identical frontend outputs.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

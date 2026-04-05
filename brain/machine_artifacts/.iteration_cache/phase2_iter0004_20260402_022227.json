@@ -1,0 +1,53 @@
+{
+  "stories": [
+    {
+      "story_id": "GPTR-F-002-S14",
+      "title": "Token Expiration Enforcement and TTL Index",
+      "description": "Implement expiration enforcement using expires_at field and MongoDB TTL index to automatically remove expired tokens. Ensure validation logic rejects expired tokens even before TTL cleanup.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S9"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/gpt_reader.py; GAP: No expiration or TTL-based cleanup currently implemented for tokens"
+    },
+    {
+      "story_id": "GPTR-F-002-S15",
+      "title": "Token Issuance Endpoint and Contract",
+      "description": "Create secure endpoint/service for issuing new bearer tokens with defined scope, expiration, and hashing before storage. Ensure contract aligns with schema and downstream validation.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S9"
+      ],
+      "size": "M",
+      "evidence": "Code/DataPipelines/auth.py; Code/Shared/brain_auth.py; GAP: No standardized token issuance contract exists"
+    },
+    {
+      "story_id": "GPTR-F-002-S16",
+      "title": "Token Audit Logging and Traceability",
+      "description": "Implement audit logging for token lifecycle events including issuance, rotation, revocation, and validation failures. Logs must include token_id, event type, timestamp, and actor (system/admin).",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S10",
+        "GPTR-F-002-S11"
+      ],
+      "size": "S",
+      "evidence": "Code/DataPipelines/gpt_reader.py; Code/Shared/cost_guard.py; GAP: No centralized audit trail for token lifecycle events"
+    },
+    {
+      "story_id": "GPTR-F-002-S17",
+      "title": "Rotation Policy Configuration",
+      "description": "Define configurable rotation policy (e.g., max token age, rotation interval, chain length limits) and enforce within rotation service logic.",
+      "parent_feature": "GPTR-F-002",
+      "sprint": 1,
+      "dependencies": [
+        "GPTR-F-002-S10"
+      ],
+      "size": "S",
+      "evidence": "brain/machine_artifacts/content/sprint_plan.json:backlog_0_1_4_perplexity; GAP: No formal rotation policy defined"
+    }
+  ]
+}

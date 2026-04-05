@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CONF-REQ-001",
+      "story_id": "EVAL-CONF-ST-005",
+      "requirement": "The system must validate that the confidence score calculation returns a normalized value between 0 and 1 for valid complete input data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-002",
+      "story_id": "EVAL-CONF-ST-005",
+      "requirement": "The system must verify that completeness, recency, and agreement components are each included in the confidence calculation output.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-003",
+      "story_id": "EVAL-CONF-ST-005",
+      "requirement": "The system must confirm that increasing missing data reduces the completeness component score in unit tests.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-004",
+      "story_id": "EVAL-CONF-ST-005",
+      "requirement": "The system must confirm that older data timestamps reduce the recency component score in unit tests.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-005",
+      "story_id": "EVAL-CONF-ST-005",
+      "requirement": "The system must confirm that higher variance across measures reduces the agreement component score in unit tests.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-006",
+      "story_id": "EVAL-CONF-ST-005",
+      "requirement": "The system must validate that the final confidence score changes when any individual component (completeness, recency, agreement) is altered.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-007",
+      "story_id": "EVAL-CONF-ST-005",
+      "requirement": "The system must handle missing input data without crashing and return a valid confidence score with reduced completeness.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-008",
+      "story_id": "EVAL-CONF-ST-005",
+      "requirement": "The system must handle stale data inputs and reflect reduced recency in the computed confidence score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-009",
+      "story_id": "EVAL-CONF-ST-005",
+      "requirement": "The system must handle conflicting measures and reflect reduced agreement in the computed confidence score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-010",
+      "story_id": "EVAL-CONF-ST-005",
+      "requirement": "The system must include the confidence object in evaluation API responses for providers when requested.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-011",
+      "story_id": "EVAL-CONF-ST-005",
+      "requirement": "The system must include the confidence object in evaluation API responses for clinical trials when requested.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-012",
+      "story_id": "EVAL-CONF-ST-005",
+      "requirement": "The system must ensure the confidence object in API responses conforms to the schema defined in EVAL-CONF-ST-001.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-013",
+      "story_id": "EVAL-CONF-ST-005",
+      "requirement": "The system must ensure that API responses without confidence logic (feature disabled or unavailable) do not break existing response contracts.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-014",
+      "story_id": "EVAL-CONF-ST-005",
+      "requirement": "The system must return deterministic confidence scores for identical input datasets across repeated test runs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CONF-REQ-015",
+      "story_id": "EVAL-CONF-ST-005",
+      "requirement": "The system must ensure integration tests validate that confidence scores are serialized and returned in JSON responses without null fields when data is present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

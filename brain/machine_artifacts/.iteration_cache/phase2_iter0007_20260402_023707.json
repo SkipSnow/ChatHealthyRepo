@@ -1,0 +1,86 @@
+{
+  "assignment_id": "MAINT-CONSENT-STORIES",
+  "iteration": 7,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Added required stories for MAINT-CONSENT feature covering schema, logic, API integration, and testing.",
+  "change_log": [
+    {
+      "path": "stories",
+      "value": "Added 4 stories for MAINT-CONSENT",
+      "note": "Phase 2 requirement: minimum 3 stories",
+      "iteration": 7
+    }
+  ],
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "MAINT-CONSENT-S1",
+      "title": "Consent Schema and Contract Corrections",
+      "description": "Define and fix inconsistencies in two-tier consent schema including Tier 1 vs Tier 2 flags, consent timestamps, and de-identification markers to ensure alignment across ConsentService and LeadService.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature; Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py"
+    },
+    {
+      "story_id": "MAINT-CONSENT-S2",
+      "title": "Fix Core Two-Tier Consent Logic and Edge Cases",
+      "description": "Resolve defects in ConsentService including incorrect tier escalation, failure paths when consent is partially granted, and improper handling of de-identified vs identifiable data transitions.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-CONSENT-S1"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py; brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature"
+    },
+    {
+      "story_id": "MAINT-CONSENT-S3",
+      "title": "Consent Flow API and Tool Router Integration Fixes",
+      "description": "Ensure consent state is correctly propagated through tool_router and exposed consistently to downstream services (lead capture, unknown question handling) including fixing missing or stale consent state in requests.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-CONSENT-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py"
+    },
+    {
+      "story_id": "MAINT-CONSENT-S4",
+      "title": "Consent Framework Test Suite and Edge Case Validation",
+      "description": "Implement unit and integration tests covering tier transitions, rejection paths, duplicate consent attempts, and de-identification compliance to prevent regression.",
+      "parent_feature": "MAINT-CONSENT",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-CONSENT-S2",
+        "MAINT-CONSENT-S3"
+      ],
+      "size": "M",
+      "evidence": "brain/machine_artifacts/content/sprint_plan.json::consent_framework_feature; Code/ConversationalUX/FindCareChat/backend/tests/"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "MAINT-CONSENT",
+        "likelihood": "Moderate",
+        "impact": "High",
+        "mitigation": "Focus fixes strictly within existing consent service and validation layers without expanding scope."
+      }
+    ],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

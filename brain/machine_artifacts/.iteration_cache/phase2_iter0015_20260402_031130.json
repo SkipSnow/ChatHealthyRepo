@@ -1,0 +1,35 @@
+{
+  "assignment_id": "BRAND-001-STORIES",
+  "iteration": 15,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Refined existing stories to anchor to concrete system components (manifest generator, CI workflows) and reduce ambiguity. No new stories created.",
+  "change_log": [
+    {
+      "path": "stories.BRAND-001-S2.description",
+      "value": "Build a scanning engine that traverses project artifacts using the generated project manifest (manifest_generator output) and detects violations of brand naming rules. Include normalization, pattern matching, and violation reporting.",
+      "note": "Ground core logic in existing manifest system",
+      "iteration": 15
+    },
+    {
+      "path": "stories.BRAND-001-S2.evidence",
+      "value": "brain/machine_artifacts/content/sprint_plan.json::backlog_brand_audit + Code/Shared/ops/manifest_generator.py",
+      "note": "Add concrete implementation evidence",
+      "iteration": 15
+    },
+    {
+      "path": "stories.BRAND-001-S3.description",
+      "value": "Provide an internal API endpoint and developer-facing report that lists brand violations, file locations, and suggested corrections. Ensure compatibility with existing CI/CD workflows and dev pipeline outputs.",
+      "note": "Clarify integration target",
+      "iteration": 15
+    },
+    {
+      "path": "stories.BRAND-001-S5.evidence",
+      "value": "brain/machine_artifacts/content/sprint_plan.json::backlog_brand_audit + .github/workflows/",
+      "note": "Tie CI/CD integration to actual workflows",
+      "iteration": 15
+    }
+  ]
+}

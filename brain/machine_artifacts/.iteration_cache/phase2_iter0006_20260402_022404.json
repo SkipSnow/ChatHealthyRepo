@@ -1,0 +1,64 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-CT-MEASURE-1-S1",
+      "title": "Define Trial Phase Score Schema and Contract",
+      "description": "Define a normalized schema for trial phase quality including fields: phase_enum (I, II, III, IV, UNKNOWN), phase_score (numeric), and explanation text for downstream consumers.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-MEASURE-1-S2",
+      "title": "Implement Trial Phase Scoring Logic",
+      "description": "Implement deterministic scoring logic mapping normalized trial phases to quality scores (e.g., Phase IV highest, Phase I lowest, UNKNOWN default) within clinical_trials_service.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-MEASURE-1-S5"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    {
+      "story_id": "EVAL-CT-MEASURE-1-S3",
+      "title": "Expose Trial Phase Quality via Evaluate Care Facade",
+      "description": "Integrate trial phase scoring into evaluate_care_facade so that each clinical trial result includes phase_enum, score, and explanation in the response payload.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-MEASURE-1-S2",
+        "EVAL-F-001"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "EVAL-CT-MEASURE-1-S4",
+      "title": "Unit Tests for Trial Phase Normalization and Scoring",
+      "description": "Create unit tests validating phase extraction normalization (I–IV, UNKNOWN) and correct score assignment across all phase values including edge cases and missing data.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-MEASURE-1-S2",
+        "EVAL-CT-MEASURE-1-S5"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    },
+    {
+      "story_id": "EVAL-CT-MEASURE-1-S6",
+      "title": "End-to-End Integration of Trial Phase Quality in Clinical Trial Results",
+      "description": "Validate end-to-end flow from ClinicalTrials.gov ingestion through normalization, scoring, and facade response to ensure trial phase quality is consistently present and correctly formatted.",
+      "parent_feature": "EVAL-CT-MEASURE-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-MEASURE-1-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  ]
+}

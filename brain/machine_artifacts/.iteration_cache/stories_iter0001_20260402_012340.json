@@ -1,0 +1,68 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-CRED-001",
+      "title": "Define credential completeness schema and scoring contract",
+      "description": "Create data model and scoring contract for provider credential completeness including fields: degrees, licenses, taxonomy codes, and completeness score (0-1 or 0-100). Define weighting logic and normalization rules for missing vs partial data based on NPI response structure.",
+      "parent_feature": "EVAL-P-MEASURE-CREDENTIALS",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (NPI Registry CMS API returns credential and taxonomy fields)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-CRED-002",
+      "title": "Implement credential completeness scoring logic",
+      "description": "Build backend logic to compute completeness score using NPI data fields (credential, taxonomy, license). Handle nulls, multiple entries, and edge cases (e.g., empty taxonomy array). Output normalized score and component breakdown.",
+      "parent_feature": "EVAL-P-MEASURE-CREDENTIALS",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CRED-001"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (provides raw NPI credential and taxonomy data inputs)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-CRED-003",
+      "title": "Expose credential completeness via Evaluate Care facade",
+      "description": "Integrate scoring logic into evaluate_care_facade so that provider evaluation responses include credential completeness score and supporting fields for downstream UX or explanation layers.",
+      "parent_feature": "EVAL-P-MEASURE-CREDENTIALS",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CRED-002"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (central orchestration point for provider evaluation responses)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-CRED-004",
+      "title": "Unit tests for credential completeness scoring",
+      "description": "Create unit tests covering scoring logic including full completeness, partial completeness, and missing data scenarios. Validate deterministic scoring and edge case handling.",
+      "parent_feature": "EVAL-P-MEASURE-CREDENTIALS",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CRED-002"
+      ],
+      "size": "S",
+      "evidence": "GAP: No existing tests for provider credential scoring; existing backend test patterns in backend/tests/ validate approach",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-CRED-005",
+      "title": "Integration test with live NPI data structure",
+      "description": "Test end-to-end flow from provider_detail_service through scoring logic to facade output using realistic NPI API responses to ensure compatibility and correct field extraction.",
+      "parent_feature": "EVAL-P-MEASURE-CREDENTIALS",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CRED-003"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py (live NPI integration point); backend/tests/ patterns for integration testing",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

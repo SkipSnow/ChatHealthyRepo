@@ -1,0 +1,205 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-001",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must render a phase label (e.g., Phase I, II, III, IV) within the MessageBubble scorecard UI when phase data is present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-002",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must display the plain-language explanation corresponding to the phase directly beneath or adjacent to the phase label.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-003",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must display the phase score contribution value as part of the scorecard UI.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-004",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must visually group the phase label, explanation, and score contribution as a single measure within the MessageBubble.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-005",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must render phase information using the structured data contract defined in EVAL-CT-PHASE-UX-S1.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-006",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must correctly render all supported phase values (I, II, III, IV) without formatting errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-007",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must preserve consistency with existing MessageBubble styling and layout conventions.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-008",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must render phase content in a markdown-compatible format supported by MessageBubble.tsx.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-009",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must position the phase measure in a deterministic order relative to other scorecard measures.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-010",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must ensure the phase score contribution is numerically aligned with the overall score representation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-011",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must not render the phase section if no phase data is provided by the upstream logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-012",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must display a fallback text indicating 'Phase not available' if the phase field is null but the measure is expected.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-013",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must sanitize and safely render all phase-related text to prevent UI rendering or injection issues.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-014",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must ensure that long explanation text wraps correctly within the MessageBubble without overflow or layout breakage.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-015",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must render the phase measure within 100ms of MessageBubble render time under normal conditions.",
+      "source": "architecture_constraint",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-016",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must ensure the LLM-generated explanation text from S2 is displayed exactly as provided without truncation.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-017",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must ensure the LLM-generated explanation text is human-readable and contains no raw codes or backend identifiers.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-018",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must ensure the LLM-generated explanation text corresponds semantically to the displayed phase label.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-019",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must ensure the LLM-generated explanation text avoids medical jargon beyond a consumer-friendly level.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-020",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must ensure the LLM-generated explanation text length is between 1 and 3 sentences.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-021",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must ensure the LLM-generated explanation text does not contain conflicting statements about trial safety or effectiveness.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-022",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must ensure the LLM-generated explanation text is deterministic for the same phase input within a session.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-023",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must ensure the LLM-generated explanation text does not include disclaimers unrelated to phase meaning.",
+      "source": "feature",
+      "priority": "nice-to-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-024",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must handle an unexpected phase value by rendering a generic explanation and not breaking the UI.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-025",
+      "story_id": "EVAL-CT-PHASE-UX-S3",
+      "requirement": "The system must handle missing explanation text from S2 by rendering a default explanation tied to the phase label.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

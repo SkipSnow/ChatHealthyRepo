@@ -1,0 +1,62 @@
+{
+  "assignment_id": "FEAT-4-STORIES",
+  "iteration": 36,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing core logic and external integration coverage stories for FEAT-4.",
+  "change_log": [
+    {
+      "path": "stories.FEAT-4-STORY-21",
+      "value": "Implement NPI Registry Lookup Core Logic",
+      "note": "Core backend logic not explicitly captured",
+      "iteration": 36
+    },
+    {
+      "path": "stories.FEAT-4-STORY-22",
+      "value": "Construct External Provider Links (State Boards, Research URLs)",
+      "note": "External link generation separated for clarity and testability",
+      "iteration": 36
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "FEAT-4-STORY-21": {
+      "story_id": "FEAT-4-STORY-21",
+      "title": "Implement NPI Registry Lookup Core Logic",
+      "description": "Build core service logic to query CMS NPI Registry API, parse provider details (name, taxonomy, status, addresses), and normalize into internal schema with error handling for missing or invalid NPIs.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-17"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "FEAT-4-STORY-22": {
+      "story_id": "FEAT-4-STORY-22",
+      "title": "Construct External Provider Links (State Boards, Research URLs)",
+      "description": "Generate external links for provider validation including state medical board lookup URLs (DE, MS, VA) and research site references, ensuring consistent formatting and compatibility with URL validation safeguards.",
+      "parent_feature": "FEAT-4",
+      "sprint": 2,
+      "dependencies": [
+        "FEAT-4-STORY-21"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

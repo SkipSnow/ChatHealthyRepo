@@ -1,0 +1,55 @@
+{
+  "stories": {
+    "GOV-F-004-S109": {
+      "story_id": "GOV-F-004-S109",
+      "title": "Audit Storage Collection & Indexing",
+      "description": "Create dedicated MongoDB audit collection with required indexes (trace_id, timestamp, actor, action) and write path optimized for high-throughput append-only inserts.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S104",
+        "GOV-F-004-S105"
+      ],
+      "size": "S",
+      "evidence": "Code/Shared/ChatHealthyMongoUtilities.py (Mongo patterns); Code/DataPipelines/gpt_reader.py (audit logging usage); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S110": {
+      "story_id": "GOV-F-004-S110",
+      "title": "Trace ID Propagation Middleware",
+      "description": "Implement middleware to generate and propagate trace_id across FastAPI requests, tool_router flows, and Brain runner executions to ensure end-to-end audit correlation.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S104"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (request lifecycle); Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (execution flow); Code/Shared/brain_runner.py (orchestration); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S111": {
+      "story_id": "GOV-F-004-S111",
+      "title": "Sensitive Data Redaction in Audit Logs",
+      "description": "Ensure audit payloads store references or redacted content only, integrating with existing de-identification and consent services to prevent PHI leakage in logs.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S104",
+        "GOV-F-004-S106"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py (de-identification); Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (logging patterns); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    },
+    "GOV-F-004-S112": {
+      "story_id": "GOV-F-004-S112",
+      "title": "Audit Logging Failure Handling & Fallback",
+      "description": "Implement non-blocking audit logging with retry and fallback mechanisms to ensure primary system operations are not disrupted by logging failures while preserving eventual audit consistency.",
+      "parent_feature": "GOV-F-004",
+      "sprint": 2,
+      "dependencies": [
+        "GOV-F-004-S101",
+        "GOV-F-004-S109"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py (logging resilience patterns); Code/Shared/cost_guard.py (non-blocking tracking); RECORD sprint_plan/backlog_0_1_4_perplexity BL-0.1.4-004"
+    }
+  }
+}

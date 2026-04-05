@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-001",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must render triage explanation content before any quality-related content in the MessageBubble component.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-002",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must display recruiting status as the first triage element when present in the triage data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-003",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must display condition match as the second triage element when present in the triage data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-004",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must display a clear pass or fail indicator based on the triage result flag.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-005",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must render human-readable explanation text associated with the triage result.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-006",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must preserve ordering of triage elements consistently across all rendered MessageBubble instances.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-007",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must not render quality metrics before triage elements when both are present in the same response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-008",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must render triage content correctly within the MessageBubble component when integrated through ChatWindow.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-009",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must handle missing recruiting status by omitting that field without breaking layout or rendering errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-010",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must handle missing condition match by omitting that field while still rendering remaining triage elements.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-011",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must display a fallback message when explanation text is missing from the triage data.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-012",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must not crash or throw rendering errors when the entire triage object is null or undefined.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-013",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must render pass/fail indicators consistently across multiple trials within the same chat session.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-014",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must ensure that triage rendering logic is covered by unit tests validating individual field behavior.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-TRIAGE-UX-015",
+      "story_id": "EVAL-CT-TRIAGE-UX-S4",
+      "requirement": "The system must ensure that triage rendering is covered by integration tests validating end-to-end display within chat responses.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-BOARD-003-001",
+      "story_id": "EVAL-BOARD-ST-003",
+      "requirement": "The system must include a 'board_certification' object in the provider evaluation response payload returned by evaluate_care_facade.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-003-002",
+      "story_id": "EVAL-BOARD-ST-003",
+      "requirement": "The system must populate the 'board_certification' object using the scoring output produced by the core logic implemented in EVAL-BOARD-ST-002.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-003-003",
+      "story_id": "EVAL-BOARD-ST-003",
+      "requirement": "The system must preserve the schema structure defined in EVAL-BOARD-ST-001 when exposing board certification data in the facade response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-003-004",
+      "story_id": "EVAL-BOARD-ST-003",
+      "requirement": "The system must include at minimum the fields certifications, relevance_score, and confidence in the board_certification object if available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-003-005",
+      "story_id": "EVAL-BOARD-ST-003",
+      "requirement": "The system must include the board_certification measure alongside other provider evaluation measures without removing or altering existing fields in the response payload.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-003-006",
+      "story_id": "EVAL-BOARD-ST-003",
+      "requirement": "The system must ensure the board_certification data is serializable and compatible with downstream JSON consumers.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-003-007",
+      "story_id": "EVAL-BOARD-ST-003",
+      "requirement": "The system must return a null or empty board_certification object when no certification data is available instead of omitting the field.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-003-008",
+      "story_id": "EVAL-BOARD-ST-003",
+      "requirement": "The system must not throw an error if the board certification scoring logic returns missing or partial fields.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-003-009",
+      "story_id": "EVAL-BOARD-ST-003",
+      "requirement": "The system must gracefully handle failures in upstream board certification scoring by returning the provider evaluation response without the board_certification data populated.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-003-010",
+      "story_id": "EVAL-BOARD-ST-003",
+      "requirement": "The system must ensure that inclusion of board_certification does not increase the response latency of evaluate_care_facade beyond acceptable existing thresholds.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-003-011",
+      "story_id": "EVAL-BOARD-ST-003",
+      "requirement": "The system must expose board_certification data in a consistent location within the response payload for all provider evaluations.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-BOARD-003-012",
+      "story_id": "EVAL-BOARD-ST-003",
+      "requirement": "The system must ensure that downstream consumers (e.g., chat/UI) can access the board_certification field without additional transformation logic.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

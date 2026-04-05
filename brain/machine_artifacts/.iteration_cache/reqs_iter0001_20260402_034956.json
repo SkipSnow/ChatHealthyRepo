@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-001",
+      "story_id": "EVAL-CT-PHASE-UX-S2",
+      "requirement": "The system must map raw phase value 'I' to a predefined consumer-friendly explanation string.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-002",
+      "story_id": "EVAL-CT-PHASE-UX-S2",
+      "requirement": "The system must map raw phase value 'II' to a predefined consumer-friendly explanation string.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-003",
+      "story_id": "EVAL-CT-PHASE-UX-S2",
+      "requirement": "The system must map raw phase value 'III' to a predefined consumer-friendly explanation string.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-004",
+      "story_id": "EVAL-CT-PHASE-UX-S2",
+      "requirement": "The system must map raw phase value 'IV' to a predefined consumer-friendly explanation string.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-005",
+      "story_id": "EVAL-CT-PHASE-UX-S2",
+      "requirement": "The system must normalize raw phase values into a standardized label format (e.g., 'Phase I', 'Phase II', 'Phase III', 'Phase IV').",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-006",
+      "story_id": "EVAL-CT-PHASE-UX-S2",
+      "requirement": "The system must compute a normalized score contribution value based on the phase according to a deterministic mapping.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-007",
+      "story_id": "EVAL-CT-PHASE-UX-S2",
+      "requirement": "The system must ensure that higher phases (III/IV) produce greater or equal score contributions than lower phases (I/II).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-008",
+      "story_id": "EVAL-CT-PHASE-UX-S2",
+      "requirement": "The system must output interpretation results in the data contract defined by EVAL-CT-PHASE-UX-S1.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-009",
+      "story_id": "EVAL-CT-PHASE-UX-S2",
+      "requirement": "The system must include both explanation text and score contribution fields in the interpretation output.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-010",
+      "story_id": "EVAL-CT-PHASE-UX-S2",
+      "requirement": "The system must produce consistent interpretation outputs for identical input phase values across multiple executions.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-011",
+      "story_id": "EVAL-CT-PHASE-UX-S2",
+      "requirement": "The system must handle lowercase or variant inputs (e.g., 'i', 'ii', 'phase iii') by normalizing them to valid phase values before interpretation.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-012",
+      "story_id": "EVAL-CT-PHASE-UX-S2",
+      "requirement": "The system must return a fallback explanation indicating 'phase information unavailable or unknown' when the input phase value is missing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-013",
+      "story_id": "EVAL-CT-PHASE-UX-S2",
+      "requirement": "The system must return a fallback explanation indicating 'unrecognized phase value' when the input phase value is not one of the supported phases (I, II, III, IV).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-014",
+      "story_id": "EVAL-CT-PHASE-UX-S2",
+      "requirement": "The system must assign a neutral or zero score contribution when the phase value is missing or unrecognized.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-PHASE-REQ-015",
+      "story_id": "EVAL-CT-PHASE-UX-S2",
+      "requirement": "The system must ensure that all explanation strings are plain-language and do not contain clinical jargon beyond basic terms like 'safety' or 'effectiveness'.",
+      "source": "epic_goal",
+      "priority": "should-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

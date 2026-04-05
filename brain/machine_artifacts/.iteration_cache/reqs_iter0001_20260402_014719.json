@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-SPC-003-REQ-001",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must invoke the specialty match scoring logic for each provider included in the Evaluate Care response.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-002",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must include a specialty_match object in the provider evaluation response conforming to the schema defined in EVAL-SPC-001.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-003",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must populate specialty_match.requested_specialty using the normalized user input passed into the evaluation flow.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-004",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must populate specialty_match.matched_nucc_codes using outputs from the specialty scoring logic.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-005",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must include a specialty_match.score field with a numeric value between 0 and 1 for each provider.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-006",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must include specialty_match.explanation metadata describing how the score was derived (e.g., exact, partial, inferred match).",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-007",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must preserve backward compatibility by not removing or altering existing fields in the Evaluate Care response.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-008",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must integrate specialty scoring without increasing Evaluate Care facade response latency beyond acceptable thresholds defined by existing service behavior.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-009",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must ensure that specialty_match is computed using the same provider data used in provider detail lookup within the facade.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-010",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must handle multiple providers in a single request and return a distinct specialty_match object for each provider.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-011",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must gracefully handle missing or null provider specialty data by returning a specialty_match.score of 0 and an explanation indicating no data available.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-012",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must handle failures in the specialty scoring logic by returning a specialty_match object with score set to 0 and an explanation indicating scoring failure without breaking the overall response.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-013",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must ensure deterministic scoring output for identical inputs within the same execution context.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-014",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must ensure that specialty_match scoring reflects weighted logic outputs from EVAL-SPC-002 (exact, partial, inferred) without modification in the facade layer.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-SPC-003-REQ-015",
+      "story_id": "EVAL-SPC-003",
+      "requirement": "The system must structure the response so that specialty_match is included in all evaluation orchestration paths that return provider data.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

@@ -1,0 +1,125 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-001",
+      "story_id": "EVAL-CT-STATUS-002",
+      "requirement": "The system must map clinical trial status 'RECRUITING' to the highest normalized score defined in the schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-002",
+      "story_id": "EVAL-CT-STATUS-002",
+      "requirement": "The system must map 'ACTIVE_NOT_RECRUITING' to a lower score than 'RECRUITING' but higher than all closed or inactive statuses.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-003",
+      "story_id": "EVAL-CT-STATUS-002",
+      "requirement": "The system must map 'COMPLETED' status to a lower score than all active statuses.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-004",
+      "story_id": "EVAL-CT-STATUS-002",
+      "requirement": "The system must map 'TERMINATED' status to the lowest possible score among defined statuses.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-005",
+      "story_id": "EVAL-CT-STATUS-002",
+      "requirement": "The system must map 'UNKNOWN' or missing status values to a default low score defined in the schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-006",
+      "story_id": "EVAL-CT-STATUS-002",
+      "requirement": "The system must ensure all computed status scores are normalized within the range defined by the schema (e.g., 0 to 1).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-007",
+      "story_id": "EVAL-CT-STATUS-002",
+      "requirement": "The system must produce deterministic scores such that identical input statuses always yield identical output scores.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-008",
+      "story_id": "EVAL-CT-STATUS-002",
+      "requirement": "The system must compute a status score for every clinical trial record returned by clinical_trials_service.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-009",
+      "story_id": "EVAL-CT-STATUS-002",
+      "requirement": "The system must not alter or remove existing filtering logic for 'RECRUITING' trials while adding scoring logic.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-010",
+      "story_id": "EVAL-CT-STATUS-002",
+      "requirement": "The system must derive the score solely from the API-provided status field without introducing non-deterministic or external factors.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-011",
+      "story_id": "EVAL-CT-STATUS-002",
+      "requirement": "The system must handle unexpected status values by mapping them to the 'UNKNOWN' category score without throwing runtime errors.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-012",
+      "story_id": "EVAL-CT-STATUS-002",
+      "requirement": "The system must handle null or missing status fields by assigning the 'UNKNOWN' score and continuing processing.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-013",
+      "story_id": "EVAL-CT-STATUS-002",
+      "requirement": "The system must execute status-to-score mapping in constant time per record (no iterative or probabilistic scoring logic).",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-014",
+      "story_id": "EVAL-CT-STATUS-002",
+      "requirement": "The system must ensure scoring logic is implemented as a single centralized mapping function within clinical_trials_service.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-STATUS-REQ-015",
+      "story_id": "EVAL-CT-STATUS-002",
+      "requirement": "The system must return the computed score as a numeric value attached to each trial object in the service layer output.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

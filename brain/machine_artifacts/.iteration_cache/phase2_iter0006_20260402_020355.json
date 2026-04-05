@@ -1,0 +1,71 @@
+{
+  "assignment_id": "FEAT-5-STORIES",
+  "iteration": 6,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added missing core logic and allowlist enforcement stories to complete feature coverage.",
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "FEAT-5-S19",
+      "title": "Allowlist Enforcement Logic",
+      "description": "Implement strict allowlist validation inside tool_router to ensure only explicitly registered tools can be executed, rejecting any unknown or unauthorized tool calls before dispatch.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    {
+      "story_id": "FEAT-5-S20",
+      "title": "Pydantic Validation Execution Pipeline",
+      "description": "Build the runtime validation pipeline that applies Pydantic schemas to incoming tool inputs, handles validation errors gracefully, and ensures only validated payloads reach domain services.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S16"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/tool_models/"
+    },
+    {
+      "story_id": "FEAT-5-S21",
+      "title": "Tool Dispatch Execution Layer",
+      "description": "Implement the core dispatch mechanism that maps validated tool requests to the correct facade or domain service methods and returns structured responses to the agent loop.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S19",
+        "FEAT-5-S20"
+      ],
+      "size": "L",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py; Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py; Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    {
+      "story_id": "FEAT-5-S22",
+      "title": "Anthropic Tool Use Block Parsing",
+      "description": "Implement parsing logic for Anthropic tool_use blocks, extracting tool name, arguments, and correlation with chat history to support correct routing and execution.",
+      "parent_feature": "FEAT-5",
+      "sprint": 1,
+      "dependencies": [
+        "FEAT-5-S19"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

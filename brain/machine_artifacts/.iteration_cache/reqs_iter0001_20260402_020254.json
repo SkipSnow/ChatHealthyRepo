@@ -1,0 +1,101 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-CT-SPONSOR-REQ-001",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-002",
+      "requirement": "The system must map lead_sponsor.agency_class value 'NIH' to a predefined high credibility score within the range 0 to 1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-REQ-002",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-002",
+      "requirement": "The system must map lead_sponsor.agency_class value 'Industry' to a predefined credibility score within the range 0 to 1 that is lower than NIH.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-REQ-003",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-002",
+      "requirement": "The system must map lead_sponsor.agency_class value 'Other' to a predefined credibility score within the range 0 to 1 that is lower than Industry.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-REQ-004",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-002",
+      "requirement": "The system must infer 'Academic' sponsor type when agency_class is not 'NIH' or 'Industry' and the sponsor name matches known academic patterns or classifications.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-REQ-005",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-002",
+      "requirement": "The system must assign a deterministic credibility score for inferred 'Academic' sponsors within the range 0 to 1.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-REQ-006",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-002",
+      "requirement": "The system must return the same credibility_score for identical sponsor input data across repeated executions.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-REQ-007",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-002",
+      "requirement": "The system must include collaborator influence by adjusting the base credibility_score when one or more collaborators are present.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-REQ-008",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-002",
+      "requirement": "The system must increase the credibility_score when at least one collaborator has agency_class 'NIH'.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-REQ-009",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-002",
+      "requirement": "The system must ensure the final credibility_score remains bounded between 0 and 1 after applying collaborator adjustments.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-REQ-010",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-002",
+      "requirement": "The system must handle missing lead_sponsor data by assigning a default fallback credibility_score within the range 0 to 1.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-REQ-011",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-002",
+      "requirement": "The system must handle unknown or unsupported agency_class values by assigning a fallback credibility_score categorized as lowest confidence.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-CT-SPONSOR-REQ-012",
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-002",
+      "requirement": "The system must process collaborator lists with multiple entries without failure and incorporate their influence deterministically into the final score.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

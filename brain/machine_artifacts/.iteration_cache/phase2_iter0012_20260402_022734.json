@@ -1,0 +1,16 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-CT-M2-S6",
+      "title": "Handle Missing and Inconsistent Enrollment Status Data",
+      "description": "Implement fallback handling for trials with missing, null, or inconsistent enrollment status values by assigning a default normalized status (e.g., UNKNOWN) and ensuring downstream systems do not break on incomplete data.",
+      "parent_feature": "EVAL-CT-MEASURE-2",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-CT-M2-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  ]
+}

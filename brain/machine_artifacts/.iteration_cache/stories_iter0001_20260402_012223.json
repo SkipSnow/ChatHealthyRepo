@@ -1,0 +1,55 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-SPC-001",
+      "title": "Define Specialty Match Score schema and contract",
+      "description": "Create a Pydantic model and internal schema for specialty match scoring output, including fields for requested specialty, matched NUCC codes, match confidence score (0-1), and explanation metadata. Ensure compatibility with existing provider search and evaluation flows.",
+      "parent_feature": "EVAL-P-MEASURE-SPECIALTY",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py (existing Pydantic patterns); Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py (NUCC taxonomy outputs)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-SPC-002",
+      "title": "Implement specialty match scoring logic",
+      "description": "Extend specialty_service or create evaluation module to compute alignment score between user-requested specialty/condition and provider NUCC taxonomy. Use existing regex + vector expansion pipeline and assign weighted scoring based on exact match, partial match, and inferred relevance.",
+      "parent_feature": "EVAL-P-MEASURE-SPECIALTY",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py (dual-pipeline matching logic already implemented)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-SPC-003",
+      "title": "Expose specialty score via Evaluate Care facade",
+      "description": "Integrate specialty match scoring into evaluate_care_facade so that provider evaluation responses include specialty alignment score and supporting metadata. Ensure compatibility with existing provider detail lookup and evaluation orchestration.",
+      "parent_feature": "EVAL-P-MEASURE-SPECIALTY",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-SPC-001",
+        "EVAL-SPC-002"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py (evaluation orchestration entry point)",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-SPC-004",
+      "title": "Unit and integration tests for specialty scoring",
+      "description": "Create unit tests for scoring logic (exact, partial, no match cases) and integration tests validating end-to-end flow through facade. Validate score consistency and edge cases (multiple specialties, ambiguous queries).",
+      "parent_feature": "EVAL-P-MEASURE-SPECIALTY",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-SPC-002",
+        "EVAL-SPC-003"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ (existing test patterns); Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py (logic under test)",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

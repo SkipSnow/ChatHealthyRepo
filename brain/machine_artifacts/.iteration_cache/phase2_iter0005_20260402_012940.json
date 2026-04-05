@@ -1,0 +1,90 @@
+{
+  "assignment_id": "PHASE-2-MAINT-MAPS-STORIES",
+  "iteration": 5,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "MAINT-MAPS stories defined per required breakdown.",
+  "change_log": [],
+  "epics": [],
+  "features": [],
+  "stories": [
+    {
+      "story_id": "MAINT-MAPS-S1",
+      "title": "Map Data Schema and Marker Contract",
+      "description": "Define frontend data contract for rendering providers on map including latitude, longitude, provider name, specialty, and identifier. Ensure compatibility with provider search outputs.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Website/architecture.html (frontend mapping capability referenced in manifest)"
+    },
+    {
+      "story_id": "MAINT-MAPS-S2",
+      "title": "Map Rendering Core Logic",
+      "description": "Implement core logic to initialize map component, center based on provider results, and render provider markers using the defined schema.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S1"
+      ],
+      "size": "M",
+      "evidence": "Website/architecture.html (frontend mapping capability referenced in manifest)"
+    },
+    {
+      "story_id": "MAINT-MAPS-S3",
+      "title": "Map UI Integration in Find Care Flow",
+      "description": "Integrate map component into existing frontend alongside provider search results, ensuring synchronized updates when search results change.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S2"
+      ],
+      "size": "M",
+      "evidence": "Website/architecture.html (frontend mapping capability referenced in manifest)"
+    },
+    {
+      "story_id": "MAINT-MAPS-S4",
+      "title": "Provider Interaction and Marker Details",
+      "description": "Enable user interaction with map markers including click-to-view provider summary (name, specialty, location) and highlight corresponding list item.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S3"
+      ],
+      "size": "M",
+      "evidence": "Website/architecture.html (frontend mapping capability referenced in manifest)"
+    },
+    {
+      "story_id": "MAINT-MAPS-S5",
+      "title": "Map Rendering Tests and Integration Validation",
+      "description": "Create unit and integration tests validating marker rendering, map initialization, and synchronization with provider results.",
+      "parent_feature": "MAINT-MAPS",
+      "sprint": 2,
+      "dependencies": [
+        "MAINT-MAPS-S3"
+      ],
+      "size": "S",
+      "evidence": "Website/architecture.html (frontend mapping capability referenced in manifest)"
+    }
+  ],
+  "requirements": [],
+  "sprint_capability_map": [],
+  "risk_matrix": {
+    "per_feature": [
+      {
+        "feature_id": "MAINT-MAPS",
+        "likelihood": "Low",
+        "impact": "Moderate",
+        "mitigation": "Use established frontend map libraries and limit scope to basic marker rendering."
+      }
+    ],
+    "per_measure": []
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "stories": {
+    "EVAL-PROVIDER-QUALITY-S1": {
+      "story_id": "EVAL-PROVIDER-QUALITY-S1",
+      "title": "Define Provider Quality Snapshot Schema",
+      "description": "Define a structured schema for provider quality snapshot including credential, specialty, license state, status, enumeration date, and address fields returned from NPI data, including field types, null handling, and naming conventions.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "GAP: No explicit schema contract exists for provider quality snapshot; must define based on provider_detail_service.py output fields"
+    },
+    "EVAL-PROVIDER-QUALITY-S2": {
+      "story_id": "EVAL-PROVIDER-QUALITY-S2",
+      "title": "Implement Provider Quality Extraction and Normalization Logic",
+      "description": "Extract provider quality fields from NPI registry response within provider_detail_service and normalize values (e.g., credential formatting, address structuring, status standardization), including handling of missing or partial data.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py"
+    },
+    "EVAL-PROVIDER-QUALITY-S3": {
+      "story_id": "EVAL-PROVIDER-QUALITY-S3",
+      "title": "Expose Provider Quality Snapshot via EvaluateCare API",
+      "description": "Integrate normalized provider quality snapshot into evaluate_care_facade and ensure it is included in FastAPI responses with strict adherence to the defined schema contract for downstream consumption.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py; Code/ConversationalUX/FindCareChat/backend/main.py"
+    },
+    "EVAL-PROVIDER-QUALITY-S4": {
+      "story_id": "EVAL-PROVIDER-QUALITY-S4",
+      "title": "Provider Quality Snapshot Test Suite",
+      "description": "Implement unit tests for extraction and normalization logic and integration tests validating end-to-end flow from NPI API response through provider_detail_service and evaluate_care_facade to API output.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests"
+    },
+    "EVAL-PROVIDER-QUALITY-S5": {
+      "story_id": "EVAL-PROVIDER-QUALITY-S5",
+      "title": "Render Provider Quality Snapshot in Chat UI",
+      "description": "Update frontend rendering logic to display provider quality snapshot fields in a structured and readable format within chat messages, ensuring compatibility with Markdown rendering and existing message components.",
+      "parent_feature": "EVAL-PROVIDER-QUALITY",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-PROVIDER-QUALITY-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx"
+    }
+  }
+}

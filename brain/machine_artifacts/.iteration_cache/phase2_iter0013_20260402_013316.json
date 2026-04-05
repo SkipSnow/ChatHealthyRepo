@@ -1,0 +1,114 @@
+{
+  "assignment_id": "PHASE-2-MAINT-DIST-STORIES",
+  "iteration": 13,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "MAINT-DIST stories defined per required breakdown (schema, logic, API, tests, integration).",
+  "change_log": [
+    {
+      "path": "stories.MAINT-DIST-S1",
+      "value": "Added schema and contract story",
+      "note": "Establish distance input/output structure",
+      "iteration": 13
+    },
+    {
+      "path": "stories.MAINT-DIST-S2",
+      "value": "Added core logic story",
+      "note": "Implement distance calculation using coordinates",
+      "iteration": 13
+    },
+    {
+      "path": "stories.MAINT-DIST-S3",
+      "value": "Added API exposure story",
+      "note": "Expose distance computation via service/facade",
+      "iteration": 13
+    },
+    {
+      "path": "stories.MAINT-DIST-S4",
+      "value": "Added test suite story",
+      "note": "Validate correctness and edge cases",
+      "iteration": 13
+    },
+    {
+      "path": "stories.MAINT-DIST-S5",
+      "value": "Added integration story",
+      "note": "Integrate with provider and clinical trial flows",
+      "iteration": 13
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "MAINT-DIST-S1": {
+      "story_id": "MAINT-DIST-S1",
+      "title": "Define Distance Calculation Schema and Contract",
+      "description": "Define input (origin/destination coordinates) and output (distance, duration if available, units) schema for distance computation aligned with existing Google Routes usage.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (Google Routes distance logic present)"
+    },
+    "MAINT-DIST-S2": {
+      "story_id": "MAINT-DIST-S2",
+      "title": "Implement Core Distance Calculation Logic",
+      "description": "Implement reusable backend service to compute distance between two coordinate pairs using Google Routes API or equivalent logic already present in clinical trials service.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (Google Routes travel distance+duration)"
+    },
+    "MAINT-DIST-S3": {
+      "story_id": "MAINT-DIST-S3",
+      "title": "Expose Distance Calculation via Service Interface",
+      "description": "Expose distance calculation through a shared domain service or facade so it can be reused by provider search and clinical trials workflows.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "MAINT-DIST-S4": {
+      "story_id": "MAINT-DIST-S4",
+      "title": "Distance Calculation Unit and Edge Case Tests",
+      "description": "Create unit tests validating correct distance computation, handling of invalid/missing coordinates, and consistency with Google Routes responses.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ (existing backend test patterns)"
+    },
+    "MAINT-DIST-S5": {
+      "story_id": "MAINT-DIST-S5",
+      "title": "Integrate Distance Logic into Clinical Trials and Provider Flows",
+      "description": "Refactor existing clinical trials distance usage to call the shared distance service and enable reuse for provider search ranking or display.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

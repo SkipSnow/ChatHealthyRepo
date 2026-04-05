@@ -1,0 +1,91 @@
+{
+  "assignment_id": "PHASE-2-MAINT-DIST-STORIES",
+  "iteration": 16,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Low",
+  "gate_recommendation": "auto",
+  "issues": [],
+  "notes": "Added resiliency story to complete coverage without duplicating existing concepts.",
+  "change_log": [
+    {
+      "path": "stories.MAINT-DIST-S5",
+      "value": "Add fallback and error handling for distance calculation",
+      "note": "Completes core logic with resiliency without duplicating S2",
+      "iteration": 16
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "MAINT-DIST-S1": {
+      "story_id": "MAINT-DIST-S1",
+      "title": "Define Distance Calculation Schema and Contract",
+      "description": "Define input/output contract for distance calculation including coordinates (lat/long), units (miles/km), and response structure (distance, duration if available). Align with existing Pydantic model patterns.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "MAINT-DIST-S2": {
+      "story_id": "MAINT-DIST-S2",
+      "title": "Implement Core Distance Calculation Logic",
+      "description": "Implement backend logic to compute distance between two coordinate pairs using Google Routes logic or fallback calculation. Ensure consistency with existing clinical trials distance computation.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (Google Routes travel distance+duration)"
+    },
+    "MAINT-DIST-S3": {
+      "story_id": "MAINT-DIST-S3",
+      "title": "Integrate Distance Logic into Services and Facade",
+      "description": "Integrate distance calculation into relevant domain services (e.g., provider search or clinical trials) and expose via existing facades so distance is included in responses.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "MAINT-DIST-S4": {
+      "story_id": "MAINT-DIST-S4",
+      "title": "Distance Calculation Unit and Integration Tests",
+      "description": "Create unit tests for distance calculations (edge cases, invalid inputs, unit conversions) and integration tests validating end-to-end flow through services and facade.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S2",
+        "MAINT-DIST-S3"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/"
+    },
+    "MAINT-DIST-S5": {
+      "story_id": "MAINT-DIST-S5",
+      "title": "Distance Calculation Fallback and Error Handling",
+      "description": "Implement fallback logic (e.g., Haversine formula) when Google Routes API fails or is unavailable, including timeout handling, invalid coordinate handling, and graceful degradation of duration data.",
+      "parent_feature": "MAINT-DIST",
+      "sprint": 1,
+      "dependencies": [
+        "MAINT-DIST-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (external API dependency implies need for fallback)"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

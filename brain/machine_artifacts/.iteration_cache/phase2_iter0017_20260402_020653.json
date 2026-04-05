@@ -1,0 +1,107 @@
+{
+  "assignment_id": "EVAL-F-1-STORIES",
+  "iteration": 17,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories refined for clearer contract boundaries, routing integration, and degradation handling.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-F-001-S4.evidence",
+      "value": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py + Code/ConversationalUX/FindCareChat/backend/application/tool_router.py",
+      "note": "Explicitly include tool_router as integration point",
+      "iteration": 17
+    },
+    {
+      "path": "stories.EVAL-F-001-S2.description",
+      "value": "Implement backend service to query ClinicalTrials.gov with recruiting filter, normalize and map API response into structured schema, extract trial locations and eligibility summaries, enforce consistent field presence, and handle partial or missing data gracefully.",
+      "note": "Strengthened normalization and consistency requirement",
+      "iteration": 17
+    },
+    {
+      "path": "stories.EVAL-F-001-S3.description",
+      "value": "Integrate Google Routes to compute travel distance and duration from user location to trial sites, append enrichment to each trial location, include fallback behavior when routing or user location is unavailable, and ensure no blocking of core results.",
+      "note": "Clarified non-blocking enrichment requirement",
+      "iteration": 17
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-F-001-S1": {
+      "story_id": "EVAL-F-001-S1",
+      "title": "Define Clinical Trials Search Schema and Contract",
+      "description": "Define request/response schema for clinical trials search including condition, location, recruiting status filter, structured trial fields (id, title, phase, status, locations), eligibility summary, normalized location structure, and optional travel enrichment flag.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py"
+    },
+    "EVAL-F-001-S2": {
+      "story_id": "EVAL-F-001-S2",
+      "title": "Implement ClinicalTrials.gov Search Logic",
+      "description": "Implement backend service to query ClinicalTrials.gov with recruiting filter, normalize and map API response into structured schema, extract trial locations and eligibility summaries, enforce consistent field presence, and handle partial or missing data gracefully.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-F-001-S3": {
+      "story_id": "EVAL-F-001-S3",
+      "title": "Add Travel Distance and Time Enrichment",
+      "description": "Integrate Google Routes to compute travel distance and duration from user location to trial sites, append enrichment to each trial location, include fallback behavior when routing or user location is unavailable, and ensure no blocking of core results.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S1",
+        "EVAL-F-001-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py"
+    },
+    "EVAL-F-001-S4": {
+      "story_id": "EVAL-F-001-S4",
+      "title": "Expose Clinical Trials Search via Evaluate Care Facade",
+      "description": "Expose clinical trials search through evaluate_care_facade and tool_router, ensuring Pydantic-validated inputs, Anthropic tool-use compliance, and structured outputs (including optional travel enrichment) are returned to the chat layer.",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S1",
+        "EVAL-F-001-S2",
+        "EVAL-F-001-S3"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py + Code/ConversationalUX/FindCareChat/backend/application/tool_router.py"
+    },
+    "EVAL-F-001-S5": {
+      "story_id": "EVAL-F-001-S5",
+      "title": "Unit and Integration Tests for Clinical Trials Search",
+      "description": "Create unit tests for schema validation and service logic, plus integration tests covering facade invocation, tool routing, mocked ClinicalTrials.gov API interaction, and travel enrichment including degraded paths (no results, partial data, routing failure).",
+      "parent_feature": "EVAL-F-1",
+      "sprint": 1,
+      "dependencies": [
+        "EVAL-F-001-S2",
+        "EVAL-F-001-S3",
+        "EVAL-F-001-S4"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing test file for clinical trials; must be created under backend/tests/"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

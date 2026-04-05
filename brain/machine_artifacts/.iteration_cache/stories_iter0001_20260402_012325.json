@@ -1,0 +1,55 @@
+{
+  "stories": [
+    {
+      "story_id": "EVAL-CT-SPONSOR-SCHEMA-001",
+      "title": "Define sponsor credibility schema and score contract",
+      "description": "Create data schema and scoring contract for sponsor credibility including sponsor_type (NIH, Industry, Academic, Other), normalized credibility_score (0-1), and explanation fields. Ensure compatibility with existing clinical_trials_service outputs and facade response models.",
+      "parent_feature": "EVAL-CT-MEASURE-SPONSOR",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py — sponsor metadata (lead_sponsor, collaborator, agency_class) available for mapping; Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py — existing Pydantic models to extend",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-CT-SPONSOR-LOGIC-002",
+      "title": "Implement sponsor credibility scoring logic",
+      "description": "Build scoring function that maps ClinicalTrials.gov sponsor agency_class values (NIH, Industry, Other, Academic if inferred) to weighted credibility scores. Include deterministic mapping, fallback handling for missing/unknown sponsors, and collaborator influence rules.",
+      "parent_feature": "EVAL-CT-MEASURE-SPONSOR",
+      "sprint": 2,
+      "dependencies": [
+        "EVAL-CT-SPONSOR-SCHEMA-001"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py — provides sponsor metadata fields (lead_sponsor.agency_class, collaborators) required for scoring",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-CT-SPONSOR-API-003",
+      "title": "Expose sponsor credibility in evaluation API",
+      "description": "Integrate sponsor credibility score into Evaluate Care facade response for clinical trials. Ensure the score and explanation are included in the response payload returned to the chat layer.",
+      "parent_feature": "EVAL-CT-MEASURE-SPONSOR",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-CT-SPONSOR-LOGIC-002"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py — orchestrates clinical trial evaluation responses and is integration point for new measure",
+      "status": "proposed"
+    },
+    {
+      "story_id": "EVAL-CT-SPONSOR-TEST-004",
+      "title": "Unit and integration tests for sponsor credibility scoring",
+      "description": "Write unit tests for scoring logic across sponsor types and edge cases (missing sponsor, multiple collaborators). Add integration test validating presence of sponsor credibility in API response.",
+      "parent_feature": "EVAL-CT-MEASURE-SPONSOR",
+      "sprint": 3,
+      "dependencies": [
+        "EVAL-CT-SPONSOR-API-003"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ — existing test suite patterns for service and facade testing; clinical_trials_service integration tested indirectly",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

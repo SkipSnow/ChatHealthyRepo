@@ -1,0 +1,119 @@
+{
+  "assignment_id": "EVAL-WEIGHTS-STORIES",
+  "iteration": 12,
+  "timestamp": "2026-04-02T00:00:00Z",
+  "risk": "Moderate",
+  "gate_recommendation": "proceed_with_warning",
+  "issues": [],
+  "notes": "Stories created for EVAL-WEIGHTS covering schema, logic, API/UI, integration, and tests.",
+  "change_log": [
+    {
+      "path": "stories.EVAL-WEIGHTS-S1",
+      "value": "Added schema and contract story",
+      "note": "Initial story creation for feature",
+      "iteration": 12
+    },
+    {
+      "path": "stories.EVAL-WEIGHTS-S2",
+      "value": "Added weighting logic story",
+      "note": "Core computation required",
+      "iteration": 12
+    },
+    {
+      "path": "stories.EVAL-WEIGHTS-S3",
+      "value": "Added API/UI story",
+      "note": "User interaction layer",
+      "iteration": 12
+    },
+    {
+      "path": "stories.EVAL-WEIGHTS-S4",
+      "value": "Added integration story",
+      "note": "Connect to scoring engines",
+      "iteration": 12
+    },
+    {
+      "path": "stories.EVAL-WEIGHTS-S5",
+      "value": "Added test suite story",
+      "note": "Validation coverage",
+      "iteration": 12
+    }
+  ],
+  "epics": {},
+  "features": {},
+  "stories": {
+    "EVAL-WEIGHTS-S1": {
+      "story_id": "EVAL-WEIGHTS-S1",
+      "title": "Define Weighting Schema and Persistence Contract",
+      "description": "Define data model for user-adjustable weights across quality measures, including defaults, bounds, and persistence format for reuse across sessions.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [],
+      "size": "M",
+      "evidence": "GAP: No weighting schema or persistence model exists"
+    },
+    "EVAL-WEIGHTS-S2": {
+      "story_id": "EVAL-WEIGHTS-S2",
+      "title": "Implement Weighted Scoring Logic",
+      "description": "Extend scoring calculation to apply user-defined weights to individual measures and recompute composite scores deterministically.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-SCORE-PROV",
+        "EVAL-SCORE-CT"
+      ],
+      "size": "L",
+      "evidence": "GAP: Existing scoring engines do not support dynamic weighting"
+    },
+    "EVAL-WEIGHTS-S3": {
+      "story_id": "EVAL-WEIGHTS-S3",
+      "title": "Expose Weight Adjustment API and UI Controls",
+      "description": "Create backend endpoints and frontend controls to allow users to adjust weights (e.g., sliders or inputs) and trigger score recalculation.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S1",
+        "EVAL-WEIGHTS-S2"
+      ],
+      "size": "L",
+      "evidence": "GAP: No API or UI exists for weight adjustment"
+    },
+    "EVAL-WEIGHTS-S4": {
+      "story_id": "EVAL-WEIGHTS-S4",
+      "title": "Integrate Weighting into Evaluate Care Facade",
+      "description": "Integrate weighting inputs into evaluate_care_facade so both provider and clinical trial evaluations return recalculated scores based on user preferences.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S2",
+        "EVAL-SCORE-PROV",
+        "EVAL-SCORE-CT"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py"
+    },
+    "EVAL-WEIGHTS-S5": {
+      "story_id": "EVAL-WEIGHTS-S5",
+      "title": "Weighting Logic Unit and Integration Tests",
+      "description": "Create unit tests for weighting calculations and integration tests validating end-to-end score changes when weights are adjusted.",
+      "parent_feature": "EVAL-WEIGHTS",
+      "sprint": 4,
+      "dependencies": [
+        "EVAL-WEIGHTS-S2",
+        "EVAL-WEIGHTS-S4"
+      ],
+      "size": "M",
+      "evidence": "GAP: No existing tests for weighting behavior"
+    }
+  },
+  "requirements": {},
+  "sprint_capability_map": {},
+  "risk_matrix": {
+    "per_feature": {},
+    "per_measure": {}
+  },
+  "content_requests": [],
+  "usage": {
+    "tokens_in": 0,
+    "tokens_out": 0
+  }
+}

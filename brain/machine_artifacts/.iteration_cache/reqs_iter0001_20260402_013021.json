@@ -1,0 +1,117 @@
+{
+  "requirements": [
+    {
+      "req_id": "EVAL-REQ-CT-TEST-001",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must produce identical composite scores for the same clinical trial input across repeated executions.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TEST-002",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must validate that composite scores change deterministically when a single measure value is modified.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TEST-003",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must verify that all configured measure weights are applied exactly as defined in the scoring schema.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TEST-004",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must confirm that the sum of weighted measures equals the final composite score within an acceptable precision tolerance.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TEST-005",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must validate normalization logic by ensuring all individual measure scores fall within the defined normalized range.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TEST-006",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must successfully compute scores for clinical trial records containing all required measures (happy path).",
+      "source": "epic_goal",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TEST-007",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must integrate with clinical_trials_service outputs and produce a scored result for each returned trial.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TEST-008",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must validate that the scoring engine preserves trial identifiers and core metadata from clinical_trials_service in the output.",
+      "source": "architecture_constraint",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TEST-009",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must confirm that contributing measure breakdowns are included alongside the composite score in test outputs.",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TEST-010",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must handle missing optional measures by applying default or fallback logic without failing (exception path).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TEST-011",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must handle completely missing required measures by returning a controlled failure or null score response (exception path).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TEST-012",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must validate that scores remain within the defined global score bounds (e.g., 0 to 1 or 0 to 100).",
+      "source": "feature",
+      "priority": "must-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TEST-013",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must verify that different clinical trials with distinct measure inputs produce non-identical composite scores.",
+      "source": "feature",
+      "priority": "should-have",
+      "status": "proposed"
+    },
+    {
+      "req_id": "EVAL-REQ-CT-TEST-014",
+      "story_id": "EVAL-CT-SCORE-TEST-001",
+      "requirement": "The system must validate that scoring results are consistent when invoked through both direct scoring logic and via evaluate_care_facade integration.",
+      "source": "architecture_constraint",
+      "priority": "must-have",
+      "status": "proposed"
+    }
+  ],
+  "content_requests": []
+}

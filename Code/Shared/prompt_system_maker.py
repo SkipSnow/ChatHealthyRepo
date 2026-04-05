@@ -46,6 +46,29 @@ class PromptSystemMaker:
         return Path("brain")
 
     # ------------------------------------------------------------------
+    # Brain reader — reads records from collection JSONs
+    # Source: brain/machine_artifacts/{collection}.json -> records[]
+    # ------------------------------------------------------------------
+    def read_collection(self, collection: str) -> list[dict]:
+        """Read all records from a brain collection JSON."""
+        path = self._brain / "machine_artifacts" / "content" / f"{collection}.json"
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data.get("records", [])
+        except Exception as exc:
+            _log.warning("Failed to read collection '%s': %s", collection, exc)
+            return []
+
+    def read_record(self, collection: str, record_id: str) -> dict:
+        """Read a specific record from a brain collection by _record_id."""
+        for record in self.read_collection(collection):
+            if record.get("_record_id") == record_id:
+                return record
+        _log.warning("Record '%s' not found in collection '%s'", record_id, collection)
+        return {}
+
+    # ------------------------------------------------------------------
     # Emergency keywords
     # Source: brain/machine_artifacts/emergency_keywords.json
     # ------------------------------------------------------------------
@@ -54,7 +77,7 @@ class PromptSystemMaker:
         if self._emergency_keywords is not None:
             return self._emergency_keywords
 
-        path = self._brain / "machine_artifacts" / "emergency_keywords.json"
+        path = self._brain / "machine_artifacts" / "content" / "emergency_keywords.json"
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -234,6 +257,12 @@ class PromptSystemMaker:
             f"mental health, or any sensitive topic — search immediately. Do NOT ask unnecessary clarifying "
             f"questions that could feel intrusive or judgmental. Never express surprise, hesitation, or "
             f"moral commentary. The user's healthcare needs are valid. Search first, support always.",
+
+            f"RULE 9 — PAGINATION: The find_providers tool returns total_count and a page of results. "
+            f"ALWAYS tell the user: 'Here are the first N of TOTAL providers.' Then ask: "
+            f"'Would you like to see more?' NEVER dump all results. NEVER set a high limit. "
+            f"The system handles pagination — your job is to present the first page and ask. "
+            f"Do NOT suggest external directories. The data is in our system.",
         ]
 
         if follow_up_check:

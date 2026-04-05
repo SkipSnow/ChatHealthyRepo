@@ -1,0 +1,50 @@
+{
+  "stories": {
+    "BL-0.1.4-008-S1": {
+      "story_id": "BL-0.1.4-008-S1",
+      "title": "Define Rate Limiting Policy Schema and Configuration Contract",
+      "description": "Define a configurable rate limiting schema including request limits, time windows, and client identification strategy (IP, session, or API key). Ensure compatibility with FastAPI middleware patterns and centralized configuration.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (FastAPI app structure for middleware insertion); Code/Shared/cost_guard.py (pattern for centralized limits); ASSUMPTION: No existing rate limit schema; GAP required"
+    },
+    "BL-0.1.4-008-S2": {
+      "story_id": "BL-0.1.4-008-S2",
+      "title": "Implement Rate Limiting Middleware Logic",
+      "description": "Implement backend middleware to enforce rate limits per client using the defined schema. Track request counts, enforce thresholds, and return appropriate HTTP 429 responses when limits are exceeded.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S1"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (middleware injection point); Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py (IP/session tracking patterns); ASSUMPTION: No middleware exists; GAP required"
+    },
+    "BL-0.1.4-008-S3": {
+      "story_id": "BL-0.1.4-008-S3",
+      "title": "Integrate Rate Limiting into API Request Pipeline",
+      "description": "Integrate the rate limiting middleware into all inbound API routes, ensuring compatibility with tool_router dispatch and existing request lifecycle handling.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S2"
+      ],
+      "size": "S",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py (central request dispatch); Code/ConversationalUX/FindCareChat/backend/main.py (API routing); ASSUMPTION: No global interception layer currently enforces limits; GAP required"
+    },
+    "BL-0.1.4-008-S4": {
+      "story_id": "BL-0.1.4-008-S4",
+      "title": "Rate Limiting Unit and Integration Tests",
+      "description": "Create unit and integration tests to validate rate limiting behavior, including threshold enforcement, reset windows, and multi-client isolation.",
+      "parent_feature": "BL-0.1.4-008",
+      "sprint": 2,
+      "dependencies": [
+        "BL-0.1.4-008-S2"
+      ],
+      "size": "M",
+      "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py (testing patterns); Code/DataPipelines/tests/test_pipeline_worker_base.py (integration testing patterns); ASSUMPTION: No existing rate limit tests; GAP required"
+    }
+  }
+}
