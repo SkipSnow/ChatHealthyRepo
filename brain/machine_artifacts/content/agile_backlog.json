@@ -15946,6 +15946,36 @@
           ]
         },
         {
+          "feature_id": "SDT-OAUTH",
+          "name": "OAuth 2.0 Social Authentication",
+          "epic_id": "EPIC-6",
+          "layer": "infrastructure",
+          "capability": "Security",
+          "description": "OAuth 2.0 with PKCE for end-user authentication. Three social identity providers: Google, Facebook, Apple. Layered protocol: authorization code flow with PKCE, ID token validation, session management. Users sign in with existing accounts — no password to manage. Required for EvaluateCare premium tier and Discuss Care sessions.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": [
+            {"story_id": "SDT-OAUTH-001", "title": "Google OAuth 2.0 provider", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SDT-OAUTH-001-REQ-001", "requirement": "Google sign-in via OAuth 2.0 authorization code flow with PKCE", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SDT-OAUTH-002", "title": "Facebook OAuth 2.0 provider", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SDT-OAUTH-002-REQ-001", "requirement": "Facebook sign-in via OAuth 2.0 authorization code flow", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SDT-OAUTH-003", "title": "Apple Sign In provider", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SDT-OAUTH-003-REQ-001", "requirement": "Apple Sign In via OAuth 2.0 with JWT ID token validation", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SDT-OAUTH-005", "title": "GitHub OAuth 2.0 provider", "size": "S", "status": "accepted", "requirements": [
+              {"req_id": "SDT-OAUTH-005-REQ-001", "requirement": "GitHub sign-in via OAuth 2.0 for developer community engagement", "priority": "should-have", "status": "accepted"}
+            ]},
+            {"story_id": "SDT-OAUTH-004", "title": "Session management and token lifecycle", "size": "L", "status": "accepted", "requirements": [
+              {"req_id": "SDT-OAUTH-004-REQ-001", "requirement": "Secure session tokens with HttpOnly cookies, SameSite=Strict", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SDT-OAUTH-004-REQ-002", "requirement": "Token refresh without re-authentication", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SDT-OAUTH-004-REQ-003", "requirement": "Logout invalidates session on all devices", "priority": "should-have", "status": "accepted"}
+            ]}
+          ]
+        },
+        {
           "feature_id": "SDT-VNET",
           "name": "Azure VNet Integration",
           "epic_id": "EPIC-6",
