@@ -12,7 +12,7 @@ on:
       - 'Code/ConversationalUX/ChatHealthyWhoAmIChat/me/**'
       - 'Code/Shared/ChatHealthyMongoUtilities.py'
       - 'Code/Shared/prompt_system_maker.py'
-      - 'brain/machine_artifacts/content/emergency_keywords.json'
+      - 'brain/machine_artifacts/emergency_keywords.json'
       - '.github/workflows/deploy-findcare-backend.yml'
 
 jobs:
@@ -94,8 +94,8 @@ jobs:
           cp Code/Shared/prompt_system_maker.py hf_space/
 
           # Brain artifacts needed at runtime
-          mkdir -p hf_space/brain/machine_artifacts/content
-          cp brain/machine_artifacts/content/emergency_keywords.json hf_space/brain/machine_artifacts/content/
+          mkdir -p hf_space/brain/machine_artifacts
+          cp brain/machine_artifacts/emergency_keywords.json hf_space/brain/machine_artifacts/
 
           # UAT report tool
           mkdir -p hf_space/ops

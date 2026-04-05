@@ -7,7 +7,7 @@ import json, os
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 
-with open("brain/machine_artifacts/business_plan.json", "r", encoding="utf-8") as f:
+with open("brain/machine_artifacts/document_type_json/biz_arch_investor_v2.json", "r", encoding="utf-8") as f:
     data = json.load(f)
 
 DIAGRAM_DIR = "brain/BusinessArtifacts/diagrams"

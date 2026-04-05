@@ -3,7 +3,7 @@
   Copyright © 2026 Skip Snow. All rights reserved.
   Licensed under the FindCare Evaluation License (FEL-1.0).
 
-  Coded by Claude Opus 4.6 (Anthropic).
+  Coded by Claude Sonnet 4.6 (Anthropic).
   Developed in collaboration with ChatGPT (OpenAI).
 -->
 <html lang="en">
@@ -74,11 +74,11 @@
 
     .arch-body h2 {
       font-family: 'DM Serif Display', serif;
-      font-size: 1.4rem;
+      font-size: 1.15rem;
       color: var(--teal);
-      margin: 40px 0 12px;
-      padding-bottom: 8px;
-      border-bottom: 3px solid var(--teal);
+      margin: 36px 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--teal-mid);
     }
     .arch-body h2:first-child { margin-top: 0; }
 
@@ -91,17 +91,10 @@
       margin: 24px 0 8px;
     }
 
-    .arch-body h4 {
-      font-size: 0.92rem;
-      font-weight: 500;
-      color: var(--ink);
-      margin: 16px 0 6px;
-    }
-
     .arch-body p { font-size: 0.92rem; line-height: 1.7; color: var(--ink); margin-bottom: 10px; }
     .arch-body p:last-child { margin-bottom: 0; }
-    .arch-body ul, .arch-body ol { margin: 6px 0 10px 20px; font-size: 0.92rem; line-height: 1.7; }
-    .arch-body ul li, .arch-body ol li { margin-bottom: 4px; }
+    .arch-body ul { margin: 6px 0 10px 20px; font-size: 0.92rem; line-height: 1.7; }
+    .arch-body ul li { margin-bottom: 4px; }
 
     /* ── Tables ─────────────────────────────────────── */
     .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 12px 0; }
@@ -140,33 +133,18 @@
     .d-box small  { display: block; font-size: 0.78rem; color: var(--ink-soft); margin-top: 2px; }
     .d-box-wide   { min-width: 220px; }
     .d-box-narrow { min-width: 110px; }
+    .d-box-deprecated { background: #fdf3f2; border-color: var(--warn); }
+    .d-box-deprecated strong { color: var(--warn); }
+    .d-box-deprecated small  { color: #a94436; }
 
     .d-vline { width: 2px; background: var(--ink); margin: 0 auto; height: 16px; }
     .d-hbar  { height: 2px; background: var(--ink); margin: 0 auto; }
     .d-row { display: flex; justify-content: center; gap: 32px; margin-top: 0; }
     .d-col { display: flex; flex-direction: column; align-items: center; }
 
-    /* flow steps */
+    /* flow steps (consent diagram) */
     .flow-step { border: 2px solid var(--ink); padding: 8px 14px; margin: 4px 0 0; font-size: 0.88rem; border-radius: 2px; }
     .flow-yes  { margin: 4px 0 8px 28px; border-left: 3px solid var(--teal); padding-left: 12px; font-size: 0.82rem; color: var(--ink-soft); }
-
-    /* ── Governance callout ─────────────────────────── */
-    .gov-id { display: inline-block; background: var(--ink); color: #fff; border-radius: 3px; padding: 1px 7px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; vertical-align: middle; margin-right: 4px; }
-    .gov-permanent { color: var(--teal); font-weight: 500; font-size: 0.78rem; }
-
-    /* ── Component diagram boxes ────────────────────── */
-    .comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
-    .comp-box { border: 2px solid var(--ink); border-radius: var(--radius); padding: 14px 18px; background: #fff; }
-    .comp-box h4 { margin: 0 0 4px; font-size: 0.92rem; }
-    .comp-box p { font-size: 0.82rem; margin: 0; color: var(--ink-soft); line-height: 1.5; }
-    .comp-box.devops { border-style: dashed; }
-    @media (max-width: 600px) { .comp-grid { grid-template-columns: 1fr; } }
-
-    /* ── Capability badge ───────────────────────────── */
-    .cap-badge { display: inline-block; border-radius: 3px; padding: 1px 8px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; vertical-align: middle; margin-left: 4px; }
-    .cap-live { background: var(--teal); color: #fff; }
-    .cap-road { background: var(--accent); color: #fff; }
-    .cap-concept { background: var(--ink-soft); color: #fff; }
 
     /* ── Footer ─────────────────────────────────────── */
     footer { border-top: 1px solid var(--border); background: var(--surface); }
@@ -212,9 +190,9 @@
   <main>
 
     <div class="page-header">
-      <p class="eyebrow">Enterprise Architecture Document</p>
-      <h1>ChatHealthy.ai &mdash; Architecture</h1>
-      <p class="effective">April 2026 &nbsp;&middot;&nbsp; &copy; 2026 Skip Snow. All rights reserved. &nbsp;&middot;&nbsp; <a href="https://www.chathealthy.ai" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none;">chathealthy.ai</a> &nbsp;&middot;&nbsp; <a href="https://github.com/SkipSnow/ChatHealthyRepo" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none;">GitHub</a></p>
+      <p class="eyebrow">Technical Reference</p>
+      <h1>Architecture Overview</h1>
+      <p class="effective">March 2026 &nbsp;·&nbsp; &copy; 2026 Skip Snow &nbsp;·&nbsp; <span style="color:#0b7a75;font-weight:500;">Green = Roadmap</span> &nbsp;·&nbsp; <span style="font-weight:500;">Black = Live</span> &nbsp;·&nbsp; <a href="https://www.chathealthy.ai" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none;">chathealthy.ai</a> &nbsp;·&nbsp; <a href="https://github.com/SkipSnow/ChatHealthyRepo" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none;">GitHub</a></p>
     </div>
 
     <div class="arch-body">
@@ -222,826 +200,1088 @@
       <nav class="toc" aria-label="Table of contents">
         <h3>Contents</h3>
         <ol>
-          <li><a href="#vision">Vision and Mission</a></li>
-          <li><a href="#portfolio">Portfolio View &mdash; Epics and Capabilities</a></li>
-          <li><a href="#governance">Governance Constraints (GOV-001 &ndash; GOV-012)</a></li>
-          <li><a href="#four-app">Four-Application Architecture (GOV-005)</a></li>
-          <li><a href="#integration">Integration Patterns</a></li>
-          <li><a href="#data-flow">Data Flow &mdash; AI Translates, System Answers</a></li>
-          <li><a href="#tech-stack">Technology Stack</a></li>
-          <li><a href="#hosting">Hosting Architecture</a></li>
-          <li><a href="#security">Security Posture</a></li>
+          <li><a href="#repositories">Repositories &amp; Source Files</a></li>
+          <li><a href="#product-vision">Product Vision</a></li>
+          <li><a href="#infrastructure">Components</a></li>
+          <li><a href="#website">Website — Static Layer (Cloudflare)</a></li>
+          <li><a href="#three-app">Three-Application Architecture</a></li>
+          <li><a href="#session-routing">Session and Routing Model</a></li>
+          <li><a href="#chat-component">Chat Component Design</a></li>
+          <li><a href="#workflow">Example Workflows</a></li>
           <li><a href="#data-privacy">Data and Privacy</a></li>
-          <li><a href="#pipeline">Data Pipeline Architecture</a></li>
-          <li><a href="#brain">The Brain &mdash; AI-Native SDLC</a></li>
-          <li><a href="#models">AI Models and Cost Projections</a></li>
-          <li><a href="#deferred">Deferred Items</a></li>
+          <li><a href="#devops">DevOps</a></li>
+          <li><a href="#pipeline-architecture">Data Pipeline Architecture</a></li>
+          <li><a href="#environment">Environment &amp; Data Model</a></li>
+          <li><a href="#networking">Networking</a></li>
+          <li><a href="#models">AI Models &amp; Cost at Scale</a></li>
+          <li><a href="#deferred">Deferred</a></li>
+
         </ol>
         <ul style="margin:8px 0 0 18px; font-size:0.88rem; line-height:1.9; list-style:disc;">
           <li><strong>Designs:</strong>
             <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('chat-app-design.html'),('Chat App Design'));return false;" style="color:var(--teal); text-decoration:none;">Chat App Design</a>
             &nbsp;&middot;&nbsp;
-            <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('provider-data-load.html'),('Provider Data Load'));return false;" style="color:var(--teal); text-decoration:none;">Provider Data Load</a>
+            <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('provider-data-load.html'),('Provider Data Load'));return false;" style="color:var(--teal); text-decoration:none;">Provider Data Load &amp; County Enrichment</a>
             &nbsp;&middot;&nbsp;
             <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('embedding-design.html'),('Embedding Design'));return false;" style="color:var(--teal); text-decoration:none;">Embedding Design</a>
             &nbsp;&middot;&nbsp;
-            <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('ops-manager-design.html'),('Ops Manager Design'));return false;" style="color:var(--teal); text-decoration:none;">Pipeline Ops Manager</a>
+            <a href="#devops" style="color:var(--teal); text-decoration:none;">DevOps &amp; Build Promotion</a>
           </li>
           <li><strong>Roadmap:</strong>
-            <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('roadmap.html'),('Roadmap'));return false;" style="color:var(--teal); text-decoration:none;">Product Roadmap</a>
+            <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('roadmap.html'),('Roadmap'));return false;" style="color:var(--teal); text-decoration:none;">ChatHealthy.ai Product Roadmap</a>
+          </li>
+          <li><strong>Sample Performance Tuning:</strong>
+            <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('load-perf-report.html'),('Provider Load Performance'));return false;" style="color:var(--teal); text-decoration:none;">Provider Load Performance Analysis</a>
           </li>
         </ul>
       </nav>
 
-      <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 1: VISION AND MISSION                   -->
-      <!-- ═══════════════════════════════════════════════ -->
-      <h2 id="vision">1. Vision and Mission</h2>
+      <!-- 0. REPOSITORIES & SOURCE FILES -->
+      <h2 id="repositories">0. Repositories &amp; Source Files</h2>
 
+      <h3>Git Repositories</h3>
+      <table>
+        <tr><th>Repository</th><th>Purpose</th><th>URL</th></tr>
+        <tr><td><strong>ChatHealthyRepo</strong></td><td>Monorepo — all production code, pipelines, website, brain</td><td><a href="https://github.com/SkipSnow/ChatHealthyRepo">github.com/SkipSnow/ChatHealthyRepo</a></td></tr>
+        <tr><td><strong>ChatHealthyWebSite</strong></td><td>Production website deploy target (Cloudflare Pages auto-deploy)</td><td><a href="https://github.com/SkipSnow/ChatHealthyWebSite">github.com/SkipSnow/ChatHealthyWebSite</a></td></tr>
+        <tr><td><strong>ChatHealthyLabRepo</strong></td><td>Lab &amp; experiments (notebooks, prototypes)</td><td><a href="https://github.com/SkipSnow/ChatHealthyLabRepo">github.com/SkipSnow/ChatHealthyLabRepo</a></td></tr>
+      </table>
+
+      <h3>App 2 — Chat Application (FindCareChat)</h3>
+      <table>
+        <tr><th>File</th><th>Description</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/backend/main.py" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/backend/main.py</code></a></td><td>FastAPI backend — all tools, safety system, LLM orchestration, provider search, static file serving</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/backend/Dockerfile" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/backend/Dockerfile</code></a></td><td>Multi-stage Docker build: Node (React) + Python (FastAPI) in one container</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/backend/requirements.txt" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/backend/requirements.txt</code></a></td><td>Python dependencies</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/backend/build.txt" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/backend/build.txt</code></a></td><td>Build number — injected by CI at deploy time</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx</code></a></td><td>React chat UI — state machine, think timer, stop button, rate limit retry</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx</code></a></td><td>Message rendering — user/assistant/error styling, markdown, metadata</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/frontend/src/App.tsx" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/frontend/src/App.tsx</code></a></td><td>React root component</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/frontend/vite.config.ts" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/frontend/vite.config.ts</code></a></td><td>Vite build configuration</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/FindCareChat/frontend/public/_redirects" style="color:var(--teal);"><code>Code/ConversationalUX/FindCareChat/frontend/public/_redirects</code></a></td><td>SPA routing fallback for Cloudflare Pages</td></tr>
+      </table>
+
+      <h3>App 2 — Legacy Chatbot (ChatHealthyWhoAmIChat)</h3>
+      <table>
+        <tr><th>File</th><th>Description</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/ChatHealthyWhoAmIChat/app.py" style="color:var(--teal);"><code>Code/ConversationalUX/ChatHealthyWhoAmIChat/app.py</code></a></td><td>Gradio About Us chatbot — production, active until FindCare replaces it</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/ChatHealthyWhoAmIChat/me/" style="color:var(--teal);"><code>Code/ConversationalUX/ChatHealthyWhoAmIChat/me/</code></a></td><td>Context files — summary.txt, PDFs (LinkedIn, business plan), anthropic_principles.txt</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/ConversationalUX/ChatHealthyWhoAmIChat/tests/" style="color:var(--teal);"><code>Code/ConversationalUX/ChatHealthyWhoAmIChat/tests/</code></a></td><td>Unit tests (mocked) and E2E tests (real systems)</td></tr>
+      </table>
+
+      <h3>App 3 — Data Pipelines</h3>
+      <table>
+        <tr><th>File</th><th>Description</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/function_app.py" style="color:var(--teal);"><code>Code/DataPipelines/function_app.py</code></a></td><td>Azure Function App entry — HTTP router, task dispatch</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/provider_load_manager.py" style="color:var(--teal);"><code>Code/DataPipelines/provider_load_manager.py</code></a></td><td>FullProviderPipeline orchestrator — 8-step durable workflow</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/provider_worker.py" style="color:var(--teal);"><code>Code/DataPipelines/provider_worker.py</code></a></td><td>Fan-out worker — processes provider batches in parallel</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/county_enrichment_job.py" style="color:var(--teal);"><code>Code/DataPipelines/county_enrichment_job.py</code></a></td><td>6-pass county enrichment (ZIP crosswalk, Census geocoder, Google Maps, NPPES)</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/embedding_worker.py" style="color:var(--teal);"><code>Code/DataPipelines/embedding_worker.py</code></a></td><td>Vector embedding pipeline — OpenAI text-embedding-3-small, idempotent</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/copy_to_frontend.py" style="color:var(--teal);"><code>Code/DataPipelines/copy_to_frontend.py</code></a></td><td>CopyToFrontEnd — moves enriched data from DataPipelines to FrontEnd cluster</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/load_specialty_data.py" style="color:var(--teal);"><code>Code/DataPipelines/load_specialty_data.py</code></a></td><td>NUCC taxonomy loader — SpecialtyMetaData collection</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/icd10_loader.py" style="color:var(--teal);"><code>Code/DataPipelines/icd10_loader.py</code></a></td><td>ICD-10 code loader</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/atlas_cluster_manager.py" style="color:var(--teal);"><code>Code/DataPipelines/atlas_cluster_manager.py</code></a></td><td>MongoDB Atlas autoscale — scale clusters before/after heavy jobs</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/zip_county_crosswalk_loader.py" style="color:var(--teal);"><code>Code/DataPipelines/zip_county_crosswalk_loader.py</code></a></td><td>HUD ZIP-to-county crosswalk loader</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/discrepancy_reporter.py" style="color:var(--teal);"><code>Code/DataPipelines/discrepancy_reporter.py</code></a></td><td>Data quality reports — provider load discrepancies</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/auth.py" style="color:var(--teal);"><code>Code/DataPipelines/auth.py</code></a></td><td>API key authentication for pipeline endpoints</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/DataPipelines/blob_client.py" style="color:var(--teal);"><code>Code/DataPipelines/blob_client.py</code></a></td><td>Azure Blob Storage client wrapper</td></tr>
+      </table>
+
+      <h3>Shared</h3>
+      <table>
+        <tr><th>File</th><th>Description</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/ChatHealthyMongoUtilities.py" style="color:var(--teal);"><code>Code/Shared/ChatHealthyMongoUtilities.py</code></a></td><td>MongoDB lazy connection manager — used by all apps</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/brain_loop.py" style="color:var(--teal);"><code>Code/Shared/brain_loop.py</code></a></td><td>Brain Loop 0.1 — assignment CRUD, review pack, UAT orchestration</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/brain_runner.py" style="color:var(--teal);"><code>Code/Shared/brain_runner.py</code></a></td><td>Brain runner — executes GPT/Claude assignments via API</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/brain_auth.py" style="color:var(--teal);"><code>Code/Shared/brain_auth.py</code></a></td><td>Brain API key authentication</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/machine_brain.py" style="color:var(--teal);"><code>Code/Shared/machine_brain.py</code></a></td><td>Machine Brain context loader</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/Code/Shared/cost_guard.py" style="color:var(--teal);"><code>Code/Shared/cost_guard.py</code></a></td><td>Token usage tracking and budget enforcement</td></tr>
+      </table>
+
+      <h3>CI/CD Workflows</h3>
+      <table>
+        <tr><th>File</th><th>Trigger</th><th>Target</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/.github/workflows/deploy-findcare-backend.yml" style="color:var(--teal);"><code>.github/workflows/deploy-findcare-backend.yml</code></a></td><td>Push to dev (backend/ or frontend/)</td><td>HuggingFace Space: dev_ChatHealthyAIChatWindow</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/.github/workflows/deploy-findcare-website-dev.yml" style="color:var(--teal);"><code>.github/workflows/deploy-findcare-website-dev.yml</code></a></td><td>Push to dev (Website/)</td><td>Cloudflare Pages: chathealthy-website-dev</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/.github/workflows/deploy-hf.yml" style="color:var(--teal);"><code>.github/workflows/deploy-hf.yml</code></a></td><td>Push to main (ChatHealthyWhoAmIChat/)</td><td>HuggingFace Space: ChatHealthyWhoAmIChat</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/.github/workflows/deploy-pipelines.yml" style="color:var(--teal);"><code>.github/workflows/deploy-pipelines.yml</code></a></td><td>Push to main (DataPipelines/)</td><td>Azure Function App: FindCare-AI</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/.github/workflows/test.yml" style="color:var(--teal);"><code>.github/workflows/test.yml</code></a></td><td>Push to main / PR</td><td>Unit tests</td></tr>
+      </table>
+
+      <h3>Brain</h3>
+      <table>
+        <tr><th>File</th><th>Description</th></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/brain/assignment_queue.json" style="color:var(--teal);"><code>brain/assignment_queue.json</code></a></td><td>Assignment backlog — tasks for GPT, Claude, and Dev</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/brain/assurance_results.json" style="color:var(--teal);"><code>brain/assurance_results.json</code></a></td><td>GPT deliverables — review packs, UAT test suites, legal docs</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/brain/budget_config.json" style="color:var(--teal);"><code>brain/budget_config.json</code></a></td><td>Token budget limits per model</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/brain/execution_state.json" style="color:var(--teal);"><code>brain/execution_state.json</code></a></td><td>Brain runner execution state</td></tr>
+        <tr><td><a href="https://github.com/SkipSnow/ChatHealthyRepo/blob/dev/brain/" style="color:var(--teal);"><code>brain/</code></a></td><td>Structured context for GPT assignments (legal, etc.)</td></tr>
+      </table>
+
+      <!-- 1 -->
+      <h2 id="product-vision">1. Product Vision</h2>
       <p>
-        <strong>Vision:</strong> ChatHealthy.ai provides the data, tools, and an AI-enlightened space to empower
-        regular people to prevail over the broken healthcare system. Whatever a person's circumstances might be,
-        they deserve the best possible care, at the best value. ChatHealthy.ai gives them the platform to get it.
+        ChatHealthy / FindCare is a unified healthcare discovery platform that turns fragmented
+        public data into an AI based knowledge system. A continuously updated
+        data pipeline ingests national provider datasets, normalizes and enriches them with
+        geographic intelligence (ZIP → county → state), and organizes the result into structured
+        collections and vectorized knowledge layers.
       </p>
       <p>
-        <strong>Mission:</strong> Help people make better healthcare decisions together.
+        On top of this foundation, domain-specific AI agents guide users to meaningful healthcare
+        queries — finding specialists by geography, understanding provider distribution, exploring
+        care options — with precise, quantitative, and explainable answers. Users engage through
+        a dynamic interface where healthcare data is visual, navigable, and actionable, supporting
+        everything from high-level regional insights to individual care decisions.
       </p>
       <p>
-        ChatHealthy is not cloud-native &mdash; it is <strong>AI-native</strong>. Every architectural
+        The goal is to democratize healthcare intelligence — making complex provider ecosystems
+        understandable and useful for real-world decision-making.
+      </p>
+      <p>
+        ChatHealthy is not cloud-native — it is <strong>AI-native</strong>. Every architectural
         decision, from data pipeline design to the conversational interface, is made with AI as
         the primary runtime, not an add-on.
       </p>
-      <p>
-        <strong>Core Principle:</strong> <em>"The model may suggest. The system must decide."</em> &mdash;
-        Token prediction is not truth. All AI-generated output is probabilistic language, not verified fact.
-        No system behavior may treat model output as authoritative truth.
-      </p>
 
-      <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 2: PORTFOLIO VIEW                       -->
-      <!-- ═══════════════════════════════════════════════ -->
-      <h2 id="portfolio">2. Portfolio View &mdash; Epics and Capabilities</h2>
-
-      <p>The platform is organized into business capabilities delivered through portfolio epics. Each capability represents a distinct value stream for the consumer.</p>
-
-      <h3>Business Capabilities</h3>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Capability</th><th>Description</th><th>Status</th></tr>
-          <tr>
-            <td><strong>FindCare</strong></td>
-            <td>Find providers, specialties, clinical trials. Navigate the healthcare system. 100% free forever &mdash; this is the funnel.</td>
-            <td><span class="cap-badge cap-live">LIVE &mdash; DE, MS</span></td>
-          </tr>
-          <tr>
-            <td><strong>EvaluateCare</strong></td>
-            <td>Provider quality scoring, credentials analysis, clinical trial matching, comparative ratings. Deterministic composite scoring engine with auditable trace.</td>
-            <td><span class="cap-badge cap-road">ALPHA &mdash; v0.1.4</span></td>
-          </tr>
-          <tr>
-            <td><strong>DiscussCare</strong></td>
-            <td>Multi-participant AI-assisted healthcare collaboration. Consumers invite family, friends, and caregivers into a shared session with multiple AI models. All participants have access to all healthcare tools.</td>
-            <td><span class="cap-badge cap-concept">CONCEPT &mdash; Beta</span></td>
-          </tr>
-          <tr>
-            <td><strong>The Brain</strong></td>
-            <td>AI-native SDLC operating system. Governance, prompts, plans, assignments, audit trails, manifests. Governs how the product gets built &mdash; not customer-facing.</td>
-            <td><span class="cap-badge cap-live">LIVE</span></td>
-          </tr>
-        </table>
-      </div>
-
-      <h3>Portfolio Epics</h3>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Epic</th><th>Name</th><th>Scope</th><th>Status</th></tr>
-          <tr>
-            <td><strong>EPIC-1</strong></td>
-            <td>Evaluate Care v0.1.4</td>
-            <td>Provider quality scoring engine, deterministic composite scoring, provider detail enrichment. Features: EVAL-SCORE-PROV (scoring schema, core logic, integration, tests).</td>
-            <td>Active</td>
-          </tr>
-          <tr>
-            <td><strong>EPIC-2</strong></td>
-            <td>Maintenance</td>
-            <td>GOV-011 compliance (system-built summary messages), filter panel UX, SIT migration to Playwright, database index tuning across all environments.</td>
-            <td>Active</td>
-          </tr>
-        </table>
-      </div>
-
-      <h3>Three-Component Product Architecture</h3>
-      <p>The product is three business components. All three share the same data layer, the same tool router, and the same governance rules. The Brain is the fourth application but serves DevOps, not customers.</p>
-      <div class="table-wrap">
-        <table>
-          <tr><th>#</th><th>Component</th><th>Revenue Model</th><th>Pricing</th></tr>
-          <tr><td>1</td><td><strong>Find Care</strong> &mdash; find providers, specialties, navigate the system</td><td>Free funnel</td><td>FREE &mdash; 100% free forever</td></tr>
-          <tr><td>2</td><td><strong>Evaluate Care</strong> &mdash; clinical trials, provider credentials, quality metrics</td><td>Paywall (post-trust)</td><td>FREE now, premium later</td></tr>
-          <tr><td>3</td><td><strong>Discuss Care</strong> &mdash; multi-participant AI-assisted healthcare collaboration</td><td>Token markup</td><td>Premium AI model usage fees</td></tr>
-        </table>
-      </div>
-
-      <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 3: GOVERNANCE                           -->
-      <!-- ═══════════════════════════════════════════════ -->
-      <h2 id="governance">3. Governance Constraints (GOV-001 &ndash; GOV-012)</h2>
-
-      <p>Governance policies are permanent unless explicitly marked temporary. They override convenience, speed, and model capability. Enforcement is mandatory before production release.</p>
-
-      <div class="table-wrap">
-        <table>
-          <tr><th style="width:90px;">ID</th><th style="width:220px;">Name</th><th>Policy Summary</th><th style="width:80px;">Status</th></tr>
-          <tr>
-            <td><span class="gov-id">GOV-001</span></td>
-            <td>Provider Neutrality</td>
-            <td>No revenue from health plans, insurance companies, PBMs, providers, or pharma. Revenue limited to consumer subscriptions and technology vendor partnerships. Neutrality is a core product principle.</td>
-            <td><span class="gov-permanent">Permanent</span></td>
-          </tr>
-          <tr>
-            <td><span class="gov-id">GOV-002</span></td>
-            <td>Single-Tenant Architecture</td>
-            <td>Single-tenant by design. Multi-tenancy is a healthcare anti-pattern. Each deployment has isolated data.</td>
-            <td><span class="gov-permanent">Permanent</span></td>
-          </tr>
-          <tr>
-            <td><span class="gov-id">GOV-003</span></td>
-            <td>Public By Default</td>
-            <td>All code, architecture, and design docs are public. Nothing is marked confidential. Copyright &copy; Skip Snow.</td>
-            <td style="color:var(--accent);font-weight:500;font-size:0.78rem;">Temporary</td>
-          </tr>
-          <tr>
-            <td><span class="gov-id">GOV-004</span></td>
-            <td>HIPAA Consent Framework</td>
-            <td>Two-tier consent flow: (1) verbatim transcript, (2) de-identified summary, (3) contact-only if both declined. Safety audit trail stored without consent as operational record.</td>
-            <td><span class="gov-permanent">Permanent</span></td>
-          </tr>
-          <tr>
-            <td><span class="gov-id">GOV-005</span></td>
-            <td>Four-Application Boundary</td>
-            <td>Exactly four applications in two categories. Product: Static Website, Chat Window, Data Pipelines. DevOps: The Brain. Integration only via prescribed patterns. No application may bypass boundaries.</td>
-            <td><span class="gov-permanent">Permanent</span></td>
-          </tr>
-          <tr>
-            <td><span class="gov-id">GOV-006</span></td>
-            <td>Real System Testing</td>
-            <td>End-to-end tests use real systems (MongoDB, Anthropic, OpenAI). No mocks in e2e. Test data tagged <code>testdata=true</code>, persisted in dev database (no teardown).</td>
-            <td><span class="gov-permanent">Permanent</span></td>
-          </tr>
-          <tr>
-            <td><span class="gov-id">GOV-007</span></td>
-            <td>Deploy Authorization</td>
-            <td>Dev deploys freely. Production requires explicit Boss sign-off. Staging authorized by GPT (Architect). QA-to-prod authorized by Boss only. No workarounds.</td>
-            <td><span class="gov-permanent">Permanent</span></td>
-          </tr>
-          <tr>
-            <td><span class="gov-id">GOV-008</span></td>
-            <td>Business Artifacts Gate</td>
-            <td>No production release without: QA Report PDF with GPT release gate approval, IP License Agreement, Business Model. These are business documents, not engineering artifacts.</td>
-            <td><span class="gov-permanent">Permanent</span></td>
-          </tr>
-          <tr>
-            <td><span class="gov-id">GOV-009</span></td>
-            <td>Role In System Prompt</td>
-            <td>Every AI agent role definition must be in the system prompt, never in the user prompt. System prompt is authoritative for agent identity. User prompt contains only the assignment payload.</td>
-            <td><span class="gov-permanent">Permanent</span></td>
-          </tr>
-          <tr>
-            <td><span class="gov-id">GOV-010</span></td>
-            <td>Zero Data Exposure</td>
-            <td>Chat interface must NEVER expose stored user data regardless of prompt phrasing. No record counts, no aggregations, no transcripts. Adversarial extraction tests required on every release.</td>
-            <td><span class="gov-permanent">Permanent</span></td>
-          </tr>
-          <tr>
-            <td><span class="gov-id">GOV-011</span></td>
-            <td>AI Translates, System Answers</td>
-            <td><strong>"Only facts can answer a user question."</strong> AI turns user language into structured signals. The system answers using real data, not guesses. System-generated content takes precedence. User-facing output uses the user's own language, not professional terminology.</td>
-            <td><span class="gov-permanent">Permanent</span></td>
-          </tr>
-          <tr>
-            <td><span class="gov-id">GOV-012</span></td>
-            <td>Environment Isolation</td>
-            <td>Data moves only within its environment chain: dev &rarr; staging &rarr; prod. No cross-environment copies. No backward migration. Only Boss can authorize deviation.</td>
-            <td><span class="gov-permanent">Permanent</span></td>
-          </tr>
-        </table>
-      </div>
-
-      <h3>GOV-011 Implementation Standards</h3>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Standard</th><th>Rule</th><th>Enforcement</th></tr>
-          <tr>
-            <td>GOV-011-STD-001<br/>System Content Precedence</td>
-            <td>When both the system and the AI produce output, system-generated content takes precedence. Redundant AI content is stripped. System summary, counts, links, and metadata are authoritative.</td>
-            <td>A small model (Haiku) strips redundant summary/pagination language from AI response when a system <code>summary_message</code> exists.</td>
-          </tr>
-          <tr>
-            <td>GOV-011-STD-002<br/>User Terms Over Professional Terms</td>
-            <td>All user-facing output uses the user's own language. If the user says "shrinks", the system says "shrinks" &mdash; not "psychiatrists". AI may translate internally for query resolution.</td>
-            <td><code>summary_message</code> built from user's original message (<code>body.message</code>), not from the LLM's translated tool parameters.</td>
-          </tr>
-        </table>
-      </div>
-
-      <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 4: FOUR-APPLICATION ARCHITECTURE        -->
-      <!-- ═══════════════════════════════════════════════ -->
-      <h2 id="four-app">4. Four-Application Architecture (GOV-005)</h2>
-
-      <p>The system is exactly four applications in two categories. Boundaries are strict. Integration only via prescribed patterns.</p>
-
-      <div class="comp-grid">
-        <div class="comp-box">
-          <h4>App 1 &mdash; Static Website</h4>
-          <p><strong>Cloudflare Pages</strong><br/>
-          Static HTML, CSS, JavaScript. No business logic, no LLM calls, no database access. Embeds App 2 via iframe. That is the only coupling.</p>
-        </div>
-        <div class="comp-box">
-          <h4>App 2 &mdash; Chat Window</h4>
-          <p><strong>HuggingFace Docker Space / Azure</strong><br/>
-          React + FastAPI. All business logic: provider search, clinical trials, safety system, lead capture, AI orchestration. Claude Sonnet 4.6 for chat; GPT-4.1-mini for safety.</p>
-        </div>
-        <div class="comp-box">
-          <h4>App 3 &mdash; Data Pipelines</h4>
-          <p><strong>Azure Functions</strong><br/>
-          8-step durable orchestrator. Provider load, county enrichment (6-pass), vector embeddings, specialty/ICD-10 loaders. Monthly cadence.</p>
-        </div>
-        <div class="comp-box devops">
-          <h4>App 4 &mdash; The Brain (DevOps)</h4>
-          <p><strong>Local + Azure (Public)</strong><br/>
-          AI-native SDLC operating system. Governance, assignments, audit trails, manifests, prompts. GPTReader API for read-only access. Not customer-facing.</p>
-        </div>
-      </div>
-
-      <h3>Component Diagram</h3>
-
+      <!-- 2 -->
+      <h2 id="infrastructure">2. Components</h2>
       <div class="diagram" style="overflow-x:auto;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="760" height="480" font-family="'DM Sans',sans-serif" font-size="11" fill="#0d1117">
+        <svg xmlns="http://www.w3.org/2000/svg" width="760" height="455" font-family="'DM Sans',sans-serif" font-size="11" fill="#0d1117">
           <defs>
             <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
               <path d="M1,1 L1,6 L7,3 Z" fill="#0d1117"/>
             </marker>
           </defs>
 
-          <!-- Package boundary: Product Applications -->
-          <rect x="12" y="75" width="460" height="395" fill="none" stroke="#0d1117" stroke-width="1.5" stroke-dasharray="8,4"/>
-          <text x="20" y="90" font-style="italic" font-size="10" fill="#4a5568">&#171;subsystem&#187;</text>
-          <text x="20" y="103" font-size="11" font-weight="bold" fill="#0d1117">ChatHealthy Product (GOV-005)</text>
+          <!-- Package boundary: subsystem ChatHealthy Platform -->
+          <rect x="12" y="80" width="443" height="370" fill="none" stroke="#0d1117" stroke-width="1.5" stroke-dasharray="8,4"/>
+          <text x="20" y="95" font-style="italic" font-size="10" fill="#4a5568">&#171;subsystem&#187;</text>
+          <text x="20" y="108" font-size="11" font-weight="bold" fill="#0d1117">ChatHealthy Platform</text>
 
-          <!-- User Browser -->
-          <rect x="250" y="10" width="200" height="45" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+          <!-- Row 1: User Browser (x=280, y=10, w=200, h=45) -->
+          <rect x="280" y="10" width="200" height="45" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+          <rect x="461" y="14" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="457" y="17" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="457" y="22" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
           <text x="350" y="27" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;actor&#187;</text>
           <text x="350" y="41" text-anchor="middle" font-size="11" font-weight="bold">User Browser</text>
 
-          <!-- App 1: Website -->
-          <rect x="22" y="110" width="170" height="55" fill="white" stroke="#0d1117" stroke-width="1.5"/>
-          <text x="107" y="128" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;App 1&#187;</text>
-          <text x="107" y="141" text-anchor="middle" font-size="11" font-weight="bold">Static Website</text>
-          <text x="107" y="154" text-anchor="middle" font-size="9" fill="#4a5568">Cloudflare Pages</text>
+          <!-- Row 2 left: Website (x=22, y=90, w=170, h=55) -->
+          <rect x="22" y="90" width="170" height="55" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+          <rect x="173" y="94" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="169" y="97" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="169" y="102" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="100" y="104" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;component&#187;</text>
+          <text x="100" y="117" text-anchor="middle" font-size="11" font-weight="bold">Website</text>
+          <text x="100" y="130" text-anchor="middle" font-size="9" fill="#4a5568">Cloudflare Pages &#183; static HTML</text>
 
-          <!-- App 2: Chat Window -->
-          <rect x="250" y="110" width="210" height="55" fill="white" stroke="#0d1117" stroke-width="1.5"/>
-          <text x="355" y="128" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;App 2&#187;</text>
-          <text x="355" y="141" text-anchor="middle" font-size="11" font-weight="bold">Chat Window</text>
-          <text x="355" y="154" text-anchor="middle" font-size="9" fill="#4a5568">React + FastAPI &#183; HuggingFace</text>
+          <!-- Row 2 middle: Chat App (x=247, y=90, w=182, h=55) -->
+          <rect x="247" y="90" width="182" height="55" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+          <rect x="410" y="94" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="406" y="97" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="406" y="102" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="334" y="104" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;component&#187;</text>
+          <text x="334" y="117" text-anchor="middle" font-size="11" font-weight="bold">Chat App</text>
+          <text x="334" y="130" text-anchor="middle" font-size="9" fill="#4a5568">HuggingFace Docker Space</text>
 
-          <!-- LLM APIs (external) -->
-          <rect x="510" y="110" width="230" height="55" fill="white" stroke="#0d1117" stroke-width="1.5" stroke-dasharray="5,3"/>
-          <text x="625" y="128" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;external&#187;</text>
-          <text x="625" y="141" text-anchor="middle" font-size="11" font-weight="bold">LLM APIs</text>
-          <text x="625" y="154" text-anchor="middle" font-size="9" fill="#4a5568">Anthropic &#183; OpenAI</text>
+          <!-- Row 2 right: LLM APIs (x=483, y=90, w=255, h=55, dashed) -->
+          <rect x="483" y="90" width="255" height="55" fill="white" stroke="#0d1117" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <rect x="719" y="94" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="715" y="97" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="715" y="102" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="604" y="104" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;external component&#187;</text>
+          <text x="604" y="117" text-anchor="middle" font-size="11" font-weight="bold">LLM APIs</text>
+          <text x="604" y="130" text-anchor="middle" font-size="9" fill="#4a5568">Anthropic &#183; OpenAI &#183; Groq</text>
 
-          <!-- App 3: Data Pipelines -->
-          <rect x="250" y="220" width="210" height="55" fill="white" stroke="#0d1117" stroke-width="1.5"/>
-          <text x="355" y="238" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;App 3&#187;</text>
-          <text x="355" y="251" text-anchor="middle" font-size="11" font-weight="bold">Data Pipelines</text>
-          <text x="355" y="264" text-anchor="middle" font-size="9" fill="#4a5568">Azure Functions &#183; 8-step orchestrator</text>
+          <!-- Row 3 left: Data Pipeline (x=247, y=205, w=200, h=60) -->
+          <rect x="247" y="205" width="200" height="60" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+          <rect x="428" y="209" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="424" y="212" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="424" y="217" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="340" y="219" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;component&#187;</text>
+          <text x="340" y="232" text-anchor="middle" font-size="11" font-weight="bold">Data Pipeline</text>
+          <text x="340" y="246" text-anchor="middle" font-size="9" fill="#4a5568">Azure Functions</text>
+          <text x="340" y="257" text-anchor="middle" font-size="9" fill="#4a5568">8-step Durable orchestrator</text>
 
-          <!-- External data sources -->
-          <rect x="510" y="220" width="230" height="55" fill="white" stroke="#0d1117" stroke-width="1.5" stroke-dasharray="5,3"/>
-          <text x="625" y="238" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;external&#187;</text>
-          <text x="625" y="251" text-anchor="middle" font-size="11" font-weight="bold">Public Data Sources</text>
-          <text x="625" y="264" text-anchor="middle" font-size="9" fill="#4a5568">CMS NPPES &#183; Census &#183; Google Maps</text>
+          <!-- Row 3 right: US Census Geocoder (x=512, y=200, w=235, h=40, dashed) -->
+          <rect x="512" y="200" width="235" height="40" fill="white" stroke="#0d1117" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <rect x="728" y="204" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="724" y="207" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="724" y="212" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="622" y="213" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;external component&#187;</text>
+          <text x="622" y="228" text-anchor="middle" font-size="11" font-weight="bold">US Census Geocoder API</text>
 
-          <!-- MongoDB DataPipelines -->
-          <rect x="250" y="330" width="210" height="48" fill="white" stroke="#0d1117" stroke-width="1.5"/>
-          <text x="355" y="348" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;datastore&#187;</text>
-          <text x="355" y="361" text-anchor="middle" font-size="11" font-weight="bold">MongoDB Atlas &mdash; DataPipelines</text>
-          <text x="355" y="372" text-anchor="middle" font-size="9" fill="#4a5568">pipeline R/W &#183; batch processing</text>
+          <!-- Row 3 right: Google Maps Geocoding (x=512, y=244, w=235, h=40, dashed) -->
+          <rect x="512" y="244" width="235" height="40" fill="white" stroke="#0d1117" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <rect x="728" y="248" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="724" y="251" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="724" y="256" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="622" y="257" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;external component&#187;</text>
+          <text x="622" y="272" text-anchor="middle" font-size="11" font-weight="bold">Google Maps Geocoding API</text>
 
-          <!-- MongoDB FrontEnd -->
-          <rect x="250" y="395" width="210" height="48" fill="white" stroke="#0d1117" stroke-width="1.5"/>
-          <text x="355" y="413" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;datastore&#187;</text>
-          <text x="355" y="426" text-anchor="middle" font-size="11" font-weight="bold">MongoDB Atlas &mdash; FrontEnd</text>
-          <text x="355" y="437" text-anchor="middle" font-size="9" fill="#4a5568">runtime reads &#183; always on</text>
+          <!-- Row 3 right: NPPES CMS Registry (x=512, y=288, w=235, h=40, dashed) -->
+          <rect x="512" y="288" width="235" height="40" fill="white" stroke="#0d1117" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <rect x="728" y="292" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="724" y="295" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="724" y="300" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="622" y="301" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;external component&#187;</text>
+          <text x="622" y="316" text-anchor="middle" font-size="11" font-weight="bold">NPPES CMS Registry</text>
 
-          <!-- App 4: The Brain (DevOps, outside product boundary) -->
-          <rect x="22" y="330" width="190" height="55" fill="white" stroke="#0d1117" stroke-width="1.5" stroke-dasharray="5,3"/>
-          <text x="117" y="348" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;App 4 &#8212; DevOps&#187;</text>
-          <text x="117" y="361" text-anchor="middle" font-size="11" font-weight="bold">The Brain</text>
-          <text x="117" y="374" text-anchor="middle" font-size="9" fill="#4a5568">AI-Native SDLC &#183; Local + Azure</text>
+          <!-- Row 4: MongoDB Atlas DataPipelines (x=247, y=325, w=210, h=52) -->
+          <rect x="247" y="325" width="210" height="52" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+          <rect x="438" y="329" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="434" y="332" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="434" y="337" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="350" y="339" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;datastore&#187;</text>
+          <text x="350" y="352" text-anchor="middle" font-size="11" font-weight="bold">MongoDB Atlas DataPipelines</text>
+          <text x="350" y="365" text-anchor="middle" font-size="9" fill="#4a5568">ChatHealthyDataPipelines &#183; pipeline R/W</text>
 
-          <!-- Arrows -->
-          <!-- User -> Website: HTTP -->
-          <line x1="310" y1="55" x2="140" y2="110" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
-          <text x="200" y="78" text-anchor="middle" font-size="9" fill="#4a5568">HTTP</text>
+          <!-- Row 5: MongoDB Atlas FrontEnd (x=247, y=393, w=210, h=48) -->
+          <rect x="247" y="393" width="210" height="48" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+          <rect x="438" y="397" width="15" height="11" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="434" y="400" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <rect x="434" y="405" width="6" height="3" fill="white" stroke="#0d1117" stroke-width="1"/>
+          <text x="350" y="407" text-anchor="middle" font-style="italic" font-size="9" fill="#4a5568">&#171;datastore&#187;</text>
+          <text x="350" y="420" text-anchor="middle" font-size="11" font-weight="bold">MongoDB Atlas FrontEnd</text>
+          <text x="350" y="433" text-anchor="middle" font-size="9" fill="#4a5568">ChatHealthyFrontEnd &#183; runtime reads</text>
 
-          <!-- User -> Chat App: HTTP -->
-          <line x1="350" y1="55" x2="355" y2="110" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <!-- A: User Browser -> Website: HTTP -->
+          <line x1="330" y1="55" x2="117" y2="90" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="200" y="75" text-anchor="middle" font-size="9" fill="#4a5568">HTTP</text>
 
-          <!-- Website -> Chat App: iframe -->
-          <line x1="192" y1="138" x2="250" y2="138" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
-          <text x="221" y="132" text-anchor="middle" font-size="9" fill="#4a5568">iframe</text>
+          <!-- B: Website -> Chat App: iframe embed -->
+          <line x1="192" y1="119" x2="247" y2="119" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="220" y="113" text-anchor="middle" font-size="9" fill="#4a5568">iframe embed</text>
 
-          <!-- Chat App -> LLM APIs: HTTPS -->
-          <line x1="460" y1="138" x2="510" y2="138" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
-          <text x="485" y="132" text-anchor="middle" font-size="9" fill="#4a5568">HTTPS</text>
+          <!-- C: Chat App -> LLM APIs: HTTPS -->
+          <line x1="429" y1="119" x2="483" y2="119" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="456" y="113" text-anchor="middle" font-size="9" fill="#4a5568">HTTPS</text>
 
-          <!-- Chat App -> Pipelines: POST /api/Router -->
-          <line x1="355" y1="165" x2="355" y2="220" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
-          <text x="305" y="195" text-anchor="middle" font-size="9" fill="#4a5568">POST /api/Router</text>
+          <!-- D: Chat App -> Data Pipeline: POST /api/Router -->
+          <line x1="338" y1="145" x2="347" y2="205" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="305" y="178" text-anchor="middle" font-size="9" fill="#4a5568">POST /api/Router</text>
 
-          <!-- Pipelines -> External Data -->
-          <line x1="460" y1="248" x2="510" y2="248" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
-          <text x="485" y="242" text-anchor="middle" font-size="9" fill="#4a5568">APIs</text>
+          <!-- E: Data Pipeline -> US Census Geocoder: batch geocoding -->
+          <line x1="447" y1="235" x2="512" y2="220" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="492" y="222" text-anchor="middle" font-size="9" fill="#4a5568">batch geocoding</text>
 
-          <!-- Pipelines -> MongoDB DataPipelines -->
-          <line x1="355" y1="275" x2="355" y2="330" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
-          <text x="325" y="305" text-anchor="middle" font-size="9" fill="#4a5568">R/W</text>
+          <!-- F: Data Pipeline -> Google Maps: geocoding -->
+          <line x1="447" y1="235" x2="512" y2="264" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="492" y="256" text-anchor="middle" font-size="9" fill="#4a5568">geocoding</text>
 
-          <!-- MongoDB DataPipelines -> MongoDB FrontEnd -->
-          <line x1="355" y1="378" x2="355" y2="395" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
-          <text x="310" y="390" text-anchor="middle" font-size="9" fill="#4a5568">CopyToFrontEnd</text>
+          <!-- G: Data Pipeline -> NPPES CMS Registry: NPI lookup -->
+          <line x1="447" y1="235" x2="512" y2="308" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="472" y="285" text-anchor="middle" font-size="9" fill="#4a5568">NPI lookup</text>
 
-          <!-- Brain -> Pipelines: GPTReader API -->
-          <line x1="212" y1="357" x2="250" y2="357" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
-          <text x="231" y="351" text-anchor="middle" font-size="9" fill="#4a5568">GPTReader</text>
+          <!-- H: Data Pipeline -> MongoDB DataPipelines: R/W -->
+          <line x1="347" y1="265" x2="352" y2="325" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="315" y="298" text-anchor="middle" font-size="9" fill="#4a5568">R/W</text>
 
-          <!-- Chat App -> MongoDB FrontEnd -->
-          <line x1="310" y1="165" x2="280" y2="395" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
-          <text x="265" y="280" text-anchor="middle" font-size="9" fill="#4a5568">reads</text>
+          <!-- I: MongoDB DataPipelines -> MongoDB FrontEnd: CopyToFrontEnd -->
+          <line x1="352" y1="377" x2="352" y2="393" stroke="#0d1117" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+          <text x="310" y="389" text-anchor="middle" font-size="9" fill="#4a5568">CopyToFrontEnd</text>
 
         </svg>
       </div>
       <div style="display:flex;gap:20px;flex-wrap:wrap;margin:8px 0 16px;font-size:0.82rem;">
-        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--ink);background:#fff;border-radius:2px;flex-shrink:0;"></span>Internal Application</div>
-        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px dashed var(--ink);background:#fff;border-radius:2px;flex-shrink:0;"></span>External / DevOps</div>
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--ink);background:#fff;border-radius:2px;flex-shrink:0;"></span>Active</div>
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--warn);background:#fdf3f2;border-radius:2px;flex-shrink:0;"></span>Deprecated</div>
       </div>
-
-      <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 5: INTEGRATION PATTERNS                 -->
-      <!-- ═══════════════════════════════════════════════ -->
-      <h2 id="integration">5. Integration Patterns</h2>
-
-      <p>Application boundaries are enforced by GOV-005. Only three integration patterns are permitted:</p>
-
-      <div class="table-wrap">
-        <table>
-          <tr><th>Pattern</th><th>From &rarr; To</th><th>Mechanism</th><th>Purpose</th></tr>
-          <tr>
-            <td><strong>iframe embed</strong></td>
-            <td>App 1 &rarr; App 2</td>
-            <td>HTML <code>&lt;iframe&gt;</code> element on the static website loads the Chat Window</td>
-            <td>Decouple frontend presentation from application logic. Website is pure static HTML with zero backend.</td>
-          </tr>
-          <tr>
-            <td><strong>HTTP POST /api/Router</strong></td>
-            <td>App 2 &rarr; App 3</td>
-            <td>Authenticated HTTP POST with task payload. Returns <code>202 Accepted</code> immediately. Work executes asynchronously via Azure Durable Functions.</td>
-            <td>Trigger pipeline operations (provider load, enrichment, embedding) from the chat application or administrative tooling.</td>
-          </tr>
-          <tr>
-            <td><strong>GPTReader API</strong></td>
-            <td>App 4 (Brain) &rarr; App 3</td>
-            <td>Read-only Azure Function endpoint. Authenticated, audited, 27/27 SIT pass. Returns brain context as JSON.</td>
-            <td>Allow the AI-native SDLC (Brain) to read project context through the pipeline infrastructure without direct database access.</td>
-          </tr>
-        </table>
-      </div>
-
-      <h3>Prohibited Patterns</h3>
-      <ul>
-        <li>Direct database access across application boundaries</li>
-        <li>Shared in-process state between applications</li>
-        <li>Any integration pattern not listed above</li>
-      </ul>
-
-      <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 6: DATA FLOW                            -->
-      <!-- ═══════════════════════════════════════════════ -->
-      <h2 id="data-flow">6. Data Flow &mdash; AI Translates, System Answers (GOV-011)</h2>
-
-      <p>This is the fundamental data flow for every user interaction. The AI's role is translation (natural language to structured intent). The system's role is resolution (query real data, apply rules, return bounded results). The AI must never generate answers from its own knowledge when system data exists.</p>
-
-      <div class="diagram">
-        <div class="diagram-inner">
-          <div class="d-center"><div class="d-box d-box-wide"><strong>User Message</strong><small>"Find me a cardiologist in Delaware"</small></div></div>
-          <div class="d-down">&darr; <span style="font-size:0.78rem;color:var(--ink-soft);">AI translates natural language to structured intent</span></div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>AI Translation Layer</strong><small>Claude extracts: specialty="cardiologist" &middot; state="DE"<br/>Selects tool: find_providers</small></div></div>
-          <div class="d-down">&darr; <span style="font-size:0.78rem;color:var(--ink-soft);">structured parameters passed to system</span></div>
-          <div class="d-center"><div class="d-box d-box-wide" style="border-color:var(--teal);"><strong>System Resolution Layer</strong><small>MongoDB query: SpecialtyMetaData &rarr; taxonomy codes &rarr; providers collection<br/>Deterministic &middot; auditable &middot; no AI involvement</small></div></div>
-          <div class="d-down">&darr; <span style="font-size:0.78rem;color:var(--ink-soft);">real data returned</span></div>
-          <div class="d-center"><div class="d-box d-box-wide" style="border-color:var(--teal);"><strong>System-Built Summary</strong><small>summary_message built from user's original words + real data counts<br/>GOV-011-STD-002: "shrinks" not "psychiatrists"</small></div></div>
-          <div class="d-down">&darr; <span style="font-size:0.78rem;color:var(--ink-soft);">system content takes precedence (GOV-011-STD-001)</span></div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>Response to User</strong><small>System summary + provider cards + inline components<br/>AI adds only non-redundant conversational context</small></div></div>
+      <h3>Google Maps — Two Use Cases</h3>
+      <p><strong>Use case 1 — Provider finder (realized):</strong> The chat layer renders an
+      interactive provider map using the Google Maps JavaScript API with a dark base theme.
+      County polygons are filled by enrichment status using the
+      <code style="color:#1a7a3c;font-weight:600;">county_fips</code> field written by the
+      county enrichment pipeline. Marker clusters show individual provider locations driven by
+      <code style="color:#1a7a3c;font-weight:600;">practice_address.lat</code> and
+      <code style="color:#1a7a3c;font-weight:600;">practice_address.lng</code>.
+      Clicking a marker opens a provider card inline in the chat session.</p>
+      <p><strong>Use case 2 — Pipeline coverage map (not yet realized):</strong> An admin view
+      showing county-level enrichment quality across the US. County polygons are shaded by
+      <code style="color:#1a7a3c;font-weight:600;">county.source</code> bucket — same
+      <code style="color:#1a7a3c;font-weight:600;">county_fips</code> join — to surface geocoder
+      failures and out-of-scope concentrations at a glance. Planned for the monitoring
+      hardening phase.</p>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;align-items:flex-start;">
+        <div style="background:#0d1117;border:1px solid #2d3748;border-radius:6px;padding:16px 20px;min-width:200px;">
+          <div style="font-size:0.75rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#718096;margin-bottom:10px;">Map Key</div>
+          <div style="display:flex;flex-direction:column;gap:7px;font-size:0.82rem;">
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:2px;background:#0b7a75;flex-shrink:0;"></span><span style="color:#e2e8f0;">ZIP crosswalk matched</span></div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:2px;background:#d0eeec;flex-shrink:0;"></span><span style="color:#e2e8f0;">Census geocoder matched</span></div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:2px;background:#e6f4f3;flex-shrink:0;"></span><span style="color:#e2e8f0;">Billing address matched</span></div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:2px;background:#c0392b;flex-shrink:0;"></span><span style="color:#e2e8f0;">Geocoder failed</span></div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:2px;background:#4a5568;flex-shrink:0;"></span><span style="color:#e2e8f0;">Out of scope</span></div>
+            <div style="display:flex;align-items:center;gap:8px;"><span style="width:14px;height:14px;border-radius:2px;background:#2d3748;border:1px solid #4a5568;flex-shrink:0;"></span><span style="color:#e2e8f0;">Unenriched</span></div>
+          </div>
+        </div>
+        <div style="font-size:0.85rem;line-height:1.7;color:var(--ink-soft);max-width:480px;padding-top:4px;">
+          The dark base map keeps provider data visually dominant. County fill opacity is
+          set to 0.6 so roads and labels remain legible. Clicking a county opens a
+          summary panel showing provider count and enrichment coverage.
+          The map is rendered client-side — no server round-trip after initial data load.
         </div>
       </div>
 
-      <h3>System Roles (AI Governance Policy)</h3>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Layer</th><th>Role</th><th>Constraints</th></tr>
-          <tr>
-            <td><strong>AI Model</strong></td>
-            <td>Translate user language into structured signals. Suggest possible mappings. Generate explanations.</td>
-            <td>Must NOT make final decisions. Must NOT introduce facts outside system data. Must NOT be treated as source of truth.</td>
-          </tr>
-          <tr>
-            <td><strong>Data Layer</strong></td>
-            <td>Single source of truth. All factual, auditable information from verified public or consented sources.</td>
-            <td>All outputs must trace back here. No model-generated data may overwrite or augment it.</td>
-          </tr>
-          <tr>
-            <td><strong>Decision Layer</strong></td>
-            <td>Apply rules, mappings, and scoring. Determine bounded outputs. Enforce constraints and guardrails.</td>
-            <td>Must be deterministic or explainable. Must be auditable. Must NOT defer authority to the model.</td>
-          </tr>
-          <tr>
-            <td><strong>Explanation Layer</strong></td>
-            <td>Present results in clear, user-friendly language. Describe signals and reasoning used.</td>
-            <td>Must reflect actual system logic. Must NOT fabricate justification. Must NOT imply certainty where none exists.</td>
-          </tr>
-        </table>
-      </div>
-
-      <p><strong>Final statement:</strong> <em>"Fluency is not evidence. Models assist. Systems decide. Data grounds truth."</em></p>
-
-      <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 7: TECHNOLOGY STACK                     -->
-      <!-- ═══════════════════════════════════════════════ -->
-      <h2 id="tech-stack">7. Technology Stack</h2>
-
-      <div class="table-wrap">
-        <table>
-          <tr><th>Layer</th><th>Technology</th><th>Purpose</th></tr>
-          <tr><td>Frontend</td><td>React + shadcn/ui + Vite</td><td>Chat interface with inline maps, charts, provider cards</td></tr>
-          <tr><td>Backend API</td><td>FastAPI (Python)</td><td>API routes, tool definitions, session management</td></tr>
-          <tr><td>AI &mdash; Chat</td><td>Claude Sonnet 4.6 (Anthropic)</td><td>Main conversation, tool calling, response generation</td></tr>
-          <tr><td>AI &mdash; Safety</td><td>GPT-4.1-mini (OpenAI)</td><td>Emergency detection &mdash; vendor diversity for safety-critical function</td></tr>
-          <tr><td>AI &mdash; Utility</td><td>Claude Haiku 4.5 (Anthropic)</td><td>Query expansion, summarization, de-identification</td></tr>
-          <tr><td>AI &mdash; Embeddings</td><td>text-embedding-3-small/large (OpenAI)</td><td>Provider and specialty vector search (1536 dims)</td></tr>
-          <tr><td>Router</td><td>Claude tool selection</td><td>Intent routing &mdash; Claude's tool selection IS the router; no separate service</td></tr>
-          <tr><td>Database</td><td>MongoDB Atlas (M10&ndash;M200 autoscale)</td><td>Two clusters: FrontEnd (always on) and DataPipelines (on demand)</td></tr>
-          <tr><td>Vector Search</td><td>MongoDB Atlas Vector Search</td><td>cosine similarity, 1536 dims, <code>provider_vector_index</code></td></tr>
-          <tr><td>Pipelines</td><td>Azure Functions (Python 3.12)</td><td>Durable orchestrator &mdash; 8-step provider pipeline</td></tr>
-          <tr><td>Pipeline Agents</td><td>CrewAI</td><td>Multi-agent coordination with multi-LLM support</td></tr>
-          <tr><td>Storage</td><td>Azure Blob Storage</td><td>Binary artifacts, pipeline working files</td></tr>
-          <tr><td>Frontend Hosting</td><td>Cloudflare Pages</td><td>Static website &mdash; free tier, global CDN</td></tr>
-          <tr><td>Compute Hosting</td><td>HuggingFace Docker Space</td><td>Chat Window container (migrating to Azure App Service)</td></tr>
-          <tr><td>CI/CD</td><td>GitHub Actions</td><td>Path-filtered deployments per application</td></tr>
-          <tr><td>IDE</td><td>Cursor / VS Code + Claude Code</td><td>AI-assisted development</td></tr>
-        </table>
-      </div>
-
-      <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 8: HOSTING ARCHITECTURE                 -->
-      <!-- ═══════════════════════════════════════════════ -->
-      <h2 id="hosting">8. Hosting Architecture</h2>
-
-      <p>CFO directive: Cloudflare Pages for ALL frontend (free). Azure only for compute. No Azure Static Web Apps.</p>
-
-      <div class="table-wrap">
-        <table>
-          <tr><th>Application</th><th>Host</th><th>Domain</th><th>Deploy Trigger</th></tr>
-          <tr>
-            <td>App 1 &mdash; Static Website (dev)</td>
-            <td>Cloudflare Pages</td>
-            <td>dev.chathealthy.ai</td>
-            <td>Push to dev (Website/ path filter)</td>
-          </tr>
-          <tr>
-            <td>App 1 &mdash; Static Website (prod)</td>
-            <td>Cloudflare Pages</td>
-            <td>chathealthy.ai</td>
-            <td>git subtree push to ChatHealthyWebSite repo</td>
-          </tr>
-          <tr>
-            <td>App 2 &mdash; Chat Window (dev)</td>
-            <td>HuggingFace Docker Space</td>
-            <td>dev_ChatHealthyAIChatWindow</td>
-            <td>Push to dev (backend/ or frontend/ path filter)</td>
-          </tr>
-          <tr>
-            <td>App 3 &mdash; Data Pipelines</td>
-            <td>Azure Function App</td>
-            <td>FindCare-AI</td>
-            <td>Push to main (DataPipelines/ path filter)</td>
-          </tr>
-          <tr>
-            <td>App 4 &mdash; The Brain</td>
-            <td>Local + Azure</td>
-            <td>&mdash;</td>
-            <td>GPTReader API on Azure Functions</td>
-          </tr>
-        </table>
-      </div>
-
-      <h3>Repositories</h3>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Repository</th><th>Purpose</th><th>URL</th></tr>
-          <tr><td><strong>ChatHealthyRepo</strong></td><td>Monorepo &mdash; all production code, pipelines, website, brain</td><td><a href="https://github.com/SkipSnow/ChatHealthyRepo" style="color:var(--teal);">github.com/SkipSnow/ChatHealthyRepo</a></td></tr>
-          <tr><td><strong>ChatHealthyWebSite</strong></td><td>Production website deploy target (Cloudflare Pages auto-deploy)</td><td><a href="https://github.com/SkipSnow/ChatHealthyWebSite" style="color:var(--teal);">github.com/SkipSnow/ChatHealthyWebSite</a></td></tr>
-          <tr><td><strong>ChatHealthyLabRepo</strong></td><td>Lab and experiments (notebooks, prototypes)</td><td><a href="https://github.com/SkipSnow/ChatHealthyLabRepo" style="color:var(--teal);">github.com/SkipSnow/ChatHealthyLabRepo</a></td></tr>
-        </table>
-      </div>
-
-      <h3>Networking</h3>
-      <p>The DataPipelines Function App runs inside a dedicated Azure Virtual Network. Outbound connections to MongoDB Atlas route through VNet peering &mdash; traffic stays on Azure backbone.</p>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Resource</th><th>Value</th></tr>
-          <tr><td>VNet</td><td>ChatHealthy-VNet &middot; 10.0.0.0/16 &middot; East US 2</td></tr>
-          <tr><td>Subnet</td><td>functions-subnet &middot; 10.0.1.0/24 &middot; Microsoft.Web/serverFarms delegation</td></tr>
-          <tr><td>Atlas Peering</td><td>192.168.248.0/21 &harr; 10.0.0.0/16</td></tr>
-        </table>
-      </div>
-
-      <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 9: SECURITY POSTURE                     -->
-      <!-- ═══════════════════════════════════════════════ -->
-      <h2 id="security">9. Security Posture</h2>
-
-      <p><strong>ChatHealthy.ai is NOT a HIPAA covered entity and is NOT subject to HIPAA regulations.</strong> We are a consumer navigation platform, not a healthcare provider or business associate. However, we voluntarily adopt enterprise-grade security standards to protect user data.</p>
-
-      <p style="background:var(--teal-light);border:1px solid var(--teal-mid);border-radius:var(--radius);padding:12px 16px;margin:16px 0;font-size:0.92rem;line-height:1.6;">
-        <em>"We are not required to protect your data. We choose to. And we do it better than the ones who are required to."</em>
+      <!-- 3 -->
+      <h2 id="website">3. Website — Static Layer (Cloudflare)</h2>
+      <p>
+        The <code>Website/</code> directory is served as static pages by Cloudflare at
+        <strong>www.chathealthy.ai</strong>. It contains no server-side code — all behavior is
+        plain HTML, CSS, and vanilla JavaScript.
       </p>
 
-      <h3>Voluntary Security Certification Path</h3>
+      <h3>Pages</h3>
       <div class="table-wrap">
         <table>
-          <tr><th>Standard</th><th>What</th><th>Why</th></tr>
-          <tr>
-            <td><strong>HITRUST CSF</strong></td>
-            <td>Healthcare-specific security framework. Gold standard for health tech. Maps to HIPAA, NIST, ISO 27001.</td>
-            <td>Healthcare buyers require it. Proves we exceed HIPAA without being subject to it.</td>
-          </tr>
-          <tr>
-            <td><strong>SOC 2 Type II</strong></td>
-            <td>Independent audit of security controls over 6&ndash;12 months. Trust Services Criteria.</td>
-            <td>Enterprise table stakes. Proves operational security, not just policy.</td>
-          </tr>
-          <tr>
-            <td><strong>NIST SP 800-171</strong></td>
-            <td>DOD standard for Controlled Unclassified Information. 110 security controls.</td>
-            <td>Direct path to FedRAMP. If VA or DOD wants ChatHealthy, we are ready.</td>
-          </tr>
-          <tr>
-            <td><strong>Annual Pen Test</strong></td>
-            <td>Third-party security audit. Published results.</td>
-            <td>Transparency. We publish what hospitals hide.</td>
-          </tr>
+          <tr><th>File</th><th>Purpose</th></tr>
+          <tr><td>index.html</td><td>Main landing page. Embeds the HuggingFace chat space via iframe. Contains navigation, footer, and the slide-in panel.</td></tr>
+          <tr><td>privacy.html</td><td>Privacy Policy. Loads standalone or inside the panel iframe.</td></tr>
+          <tr><td>terms.html</td><td>Terms of Use. Same dual-mode design as privacy.html.</td></tr>
+          <tr><td>architecture.html</td><td>This document. Technical architecture reference. Same dual-mode design.</td></tr>
+          <tr><td>chat-app-design.html</td><td>Chat application design — system prompt, tools, safety, provider search, UI/UX</td></tr>
         </table>
       </div>
 
-      <h3>Security Disclosure</h3>
-      <p>Every session and every document discloses: (1) We are not subject to HIPAA. (2) We voluntarily maintain audited security at enterprise healthcare standards. (3) Even if a participant happens to be a licensed provider, the platform remains a consumer tool and does not create a provider-patient relationship.</p>
+      <h3>Non-Modal Slide-In Panel</h3>
+      <p>
+        Pages open inside a slide-in panel anchored to the right edge of the viewport.
+        The chat iframe remains alive underneath — the panel is not modal and does not block interaction.
+        Each page detects whether it is loaded inside the panel (via <code>window !== window.top</code>)
+        and adds an <code>in-panel</code> class to <code>&lt;body&gt;</code>, which reveals Close buttons
+        and hides the page header.
+      </p>
 
-      <h3>Safety System <span style="display:inline-block;background:#c0392b;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">LIVE &mdash; MANDATED</span></h3>
-      <p>Safety detection is a hard system invariant. It executes before every message &mdash; before any model call, before any tool. False positives are acceptable; false negatives are not.</p>
+      <h3>Iframe Recursion Prevention</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Mechanism</th><th>Where</th><th>Effect</th></tr>
+          <tr><td>No <code>openPanel()</code> calls</td><td>All panel-loaded pages</td><td>Panel pages cannot trigger another panel — tested by the unit suite</td></tr>
+          <tr><td><code>target="_top"</code> on logo links</td><td>All panel-loaded page headers</td><td>Logo click navigates the top window, not the iframe</td></tr>
+          <tr><td><code>window !== window.top</code> JS check</td><td>Inline script on each page</td><td>Hides header and adds <code>in-panel</code> class when loaded in iframe</td></tr>
+        </table>
+      </div>
+
+      <!-- 4 -->
+      <h2 id="three-app">4. Three-Application Architecture</h2>
+
+      <h3>App 1 — Static Website (Cloudflare)</h3>
+      <p>Static HTML, CSS, and JavaScript only. No business logic, no LLM calls, no database access. Embeds App 2 via iframe. That is the only coupling.</p>
+
+      <h3>App 2 — Chat Window (HuggingFace)</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+          <tr><td>Frontend</td><td>React + shadcn/ui</td><td>Chat interface; inline maps, charts, provider cards</td></tr>
+          <tr><td>Backend</td><td>FastAPI (Python)</td><td>API routes, tool definitions, session management</td></tr>
+          <tr><td>Router</td><td>Claude tool selector</td><td>Intent routing — Claude's tool selection IS the router; no separate routing service</td></tr>
+          <tr><td>AI — Chat</td><td>Claude Sonnet 4.6 (Anthropic)</td><td>Main conversation, tool calling, response generation</td></tr>
+          <tr><td>AI — Utility</td><td>Claude Haiku 4.5 (Anthropic)</td><td>Safety classification, summarization, de-identification</td></tr>
+          <tr><td>Hosting</td><td>HuggingFace Docker Space</td><td>Container-based, free tier available</td></tr>
+          <tr style="color:#0b7a75;"><td>Maps</td><td>Google Maps</td><td><strong>Roadmap.</strong> Provider location display — interactive map rendered inline in the chat response showing provider pins, distances, and directions</td></tr>
+        </table>
+      </div>
+
+      <h3>App 3 — Data Management &amp; Pipelines (Azure Functions)</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Component</th><th>Technology</th><th>Purpose</th></tr>
+          <tr><td>Orchestration</td><td>CrewAI</td><td>Multi-agent coordination; multi-LLM support</td></tr>
+          <tr><td>Runtime</td><td>Azure Function App</td><td>Pay-per-use; Python 3.12.10</td></tr>
+          <tr><td>Library</td><td>ChatHealthyLib.pipelines</td><td>Core pipeline logic</td></tr>
+          <tr><td>Trigger</td><td>API call from App 2</td><td>Invoked when complex workflow needed</td></tr>
+        </table>
+      </div>
+
+      <p>
+        <strong>Why CrewAI?</strong> Multi-LLM support — each agent can use the best model for its task.
+        No single vendor lock-in; models are swapped as the landscape evolves.
+      </p>
+
+      <!-- 5 -->
+      <h2 id="session-routing">5. Session and Routing Model</h2>
+      <div class="diagram">
+        <div class="diagram-inner">
+          <div class="d-center"><div class="d-box d-box-wide"><strong>User Message</strong><small>"Find me an oncologist near me"</small></div></div>
+          <div class="d-down">↓</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Router — Claude Tool Selector</strong><small>Claude selects the appropriate tool — that selection IS the routing decision</small></div></div>
+          <div class="d-vline"></div>
+          <div class="d-hbar" style="width:65%"></div>
+          <div class="d-row" style="margin-top:0;">
+            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow" style="border-color:var(--teal);color:var(--teal);"><strong>Find Care</strong><small>providers, cost</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>Research</strong><small>trials, symptoms</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow"><strong>About App</strong><small>transparency</small></div></div>
+            <div class="d-col"><div class="d-vline"></div><div class="d-box d-box-narrow" style="border-color:var(--teal);color:var(--teal);"><strong>Transcript</strong><small>export for doc</small></div></div>
+          </div>
+          <div class="d-hbar" style="width:65%"></div>
+          <div class="d-vline"></div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Response + Inline Components</strong><small>Text · Google Maps · Chart · Cards · Download button</small></div></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin:8px 0 16px;font-size:0.82rem;">
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--ink);background:#fff;border-radius:2px;flex-shrink:0;"></span>Active</div>
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--teal);background:#fff;border-radius:2px;flex-shrink:0;"></span>Planned</div>
+      </div>
+      <p>
+        The user never sees the routing. Every intent path stays within the same conversation thread.
+        The session transcript is a first-class output — users can download and share it with their doctor.
+      </p>
+
+      <!-- 6 -->
+      <h2 id="chat-component">6. Chat Component Design</h2>
+      <p style="background:var(--teal-light);border:1px solid var(--teal-mid);border-radius:var(--radius);padding:10px 16px;margin-bottom:14px;font-size:0.92rem;">
+        <strong>Full specification:</strong> <a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('chat-app-design.html'),('Chat App Design'));return false;" style="color:var(--teal);text-decoration:none;font-weight:500;">Chat App Design Document</a>
+      </p>
+      <p>
+        App 2 is React + FastAPI hosted on a HuggingFace Docker Space. The AI engine is Claude Sonnet 4.6 via the Anthropic SDK.
+      </p>
+
+      <h3>Router and Tool-Calling Agent</h3>
+      <p>The chat backend runs a <strong>Claude Sonnet 4.6</strong> tool-calling agent. Claude Haiku is used for safety classification, summarization, and de-identification. The Router has no separate service — Claude's tool selection is the routing decision. Tools are registered in the FastAPI backend and invoked by Claude during conversation. The system prompt is minimal (~700 tokens); context loads on demand through tool results only.</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Tool</th><th>Route (intent)</th><th>Purpose</th><th>Status</th></tr>
+          <tr><td><code>find_providers</code></td><td>FindCare</td><td>Query providers by specialty and state (DE, MS)</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>find_specialty_codes</code></td><td>FindCare</td><td>Look up NUCC taxonomy codes for a specialty or condition</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>search_clinical_trials</code></td><td>FindCare</td><td>Query ClinicalTrials.gov for recruiting trials</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>get_skip_snow_context</code></td><td>About Skip</td><td>Load founder background on demand (summary + LinkedIn, ~2k tokens)</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>get_chathealthy_context</code></td><td>About ChatHealthy</td><td>Load company context on demand (business plan + Anthropic principles, ~6k tokens)</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>record_user_details</code></td><td>Lead capture</td><td>Save contact details and HIPAA-consent transcript to MongoDB</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>record_unknown_question</code></td><td>Unknown</td><td>Log unhandled questions for review</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+          <tr><td><code>commitSignificantActivity</code></td><td>Any</td><td>Record custom activity to MongoDB</td><td><span style="color:#0b7a75;font-weight:600;">LIVE</span></td></tr>
+        </table>
+      </div>
+
+      <h3>FindCare — Provider Search <span style="display:inline-block;background:#0b7a75;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">LIVE — DE, MS</span></h3>
+      <p>The LLM calls <code>find_providers</code> when the user asks to find a doctor or specialist. The tool performs a two-step MongoDB lookup: specialty name to NUCC taxonomy codes (SpecialtyMetaData collection), then taxonomy codes plus state to provider records (providers).</p>
+      <div class="diagram">
+        <div class="diagram-inner">
+          <div class="d-center"><div class="d-box d-box-wide"><strong>User</strong><small>"Find a cardiologist in Delaware"</small></div></div>
+          <div class="d-down">↓</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>LLM extracts intent</strong><small>specialty="cardiologist" · state="DE"</small></div></div>
+          <div class="d-down">↓ calls find_providers()</div>
+          <div style="display:flex;justify-content:center;gap:80px;margin:4px 0;">
+            <div style="width:2px;background:var(--ink);height:16px;"></div>
+            <div style="width:2px;background:var(--ink);height:16px;"></div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:32px;margin:0 0 4px;">
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div class="d-box d-box-narrow"><strong>State: DE or MS</strong></div>
+              <div style="width:2px;background:var(--ink);height:12px;"></div>
+              <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:200px;"><strong>Specialty lookup</strong><small>SpecialtyMetaData → taxonomy codes</small></div>
+              <div style="width:2px;background:var(--ink);height:12px;"></div>
+              <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:200px;"><strong>Provider query</strong><small>providers · state + taxonomy codes</small></div>
+              <div style="width:2px;background:var(--ink);height:12px;"></div>
+              <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:200px;"><strong>Provider list returned</strong><small>name · address · NPI</small></div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div class="d-box d-box-narrow"><strong>Other state</strong></div>
+              <div style="width:2px;background:var(--ink);height:12px;"></div>
+              <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:200px;"><strong>Structured decline</strong><small>Acknowledges request · explains DE/MS scope · not an error</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3>Safety System <span style="display:inline-block;background:#c0392b;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">LIVE — MANDATED</span></h3>
+      <p>Safety detection is a hard system invariant. It executes before every message — before any model call, before any tool. False positives are acceptable; false negatives are not. Policy authority: Skip Snow.</p>
       <div class="diagram" style="border-color:var(--warn);">
         <div class="diagram-inner">
           <div class="d-center"><div class="d-box d-box-wide" style="border-color:var(--warn);"><strong>User Message</strong></div></div>
-          <div class="d-down" style="color:var(--warn);">&darr; first &mdash; before everything</div>
-          <div class="d-center"><div class="d-box d-box-wide" style="border-color:var(--warn);color:var(--warn);"><strong>Dual Safety Detection</strong><small>Keyword match (rule-based) + GPT-4.1-mini semantic check<br/>EITHER signal triggers escalation</small></div></div>
+          <div class="d-down" style="color:var(--warn);">↓ first — before everything</div>
+          <div class="d-center"><div class="d-box d-box-wide" style="border-color:var(--warn);color:var(--warn);"><strong>Dual Safety Detection</strong><small>Keyword match (rule-based) + Haiku semantic check — EITHER signal triggers escalation</small></div></div>
           <div style="display:flex;justify-content:center;gap:80px;margin:4px 0;">
             <div style="width:2px;background:var(--warn);height:16px;"></div>
             <div style="width:2px;background:var(--ink);height:16px;"></div>
           </div>
           <div style="display:flex;justify-content:center;gap:32px;margin:0 0 4px;">
             <div style="display:flex;flex-direction:column;align-items:center;">
-              <div class="d-box d-box-narrow" style="border-color:var(--warn);color:var(--warn);"><strong>Emergency</strong></div>
+              <div class="d-box d-box-narrow" style="border-color:var(--warn);color:var(--warn);"><strong>Emergency signal</strong></div>
               <div style="width:2px;background:var(--warn);height:12px;"></div>
-              <div class="d-box d-box-wide" style="border-color:var(--warn);color:var(--warn);font-size:0.82rem;min-width:220px;"><strong>Hard Stop &mdash; IP locked 1 hour</strong><small>Fixed response only &middot; no model call &middot; no tools</small></div>
+              <div class="d-box d-box-wide" style="border-color:var(--warn);color:var(--warn);font-size:0.82rem;min-width:220px;"><strong>Hard Stop — IP locked 1 hour</strong><small>Fixed response only · no model call · no tools · all subsequent messages locked</small></div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:center;">
               <div class="d-box d-box-narrow"><strong>Safe</strong></div>
               <div style="width:2px;background:var(--ink);height:12px;"></div>
-              <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:220px;"><strong>Normal flow</strong><small>Intent routing &rarr; tool calls &rarr; response</small></div>
+              <div class="d-box d-box-wide" style="font-size:0.82rem;min-width:220px;"><strong>Normal flow</strong><small>Intent routing → tool calls → response</small></div>
             </div>
           </div>
         </div>
       </div>
       <p>
-        <strong>Fixed response</strong> (hardcoded &mdash; no variation):
+        <strong>Fixed response</strong> (hardcoded — no variation allowed):
         <em>"This may be a medical emergency. Call 911 or go to the nearest emergency room immediately. Do not wait."</em>
       </p>
+      <p>
+        <strong>Failure default:</strong> if safety detection errors or times out, the system escalates — it does not continue.
+      </p>
 
-      <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 10: DATA AND PRIVACY                    -->
-      <!-- ═══════════════════════════════════════════════ -->
-      <h2 id="data-privacy">10. Data and Privacy</h2>
+      <h3>IP Emergency Lock</h3>
+      <p>
+        When a safety trigger fires, the source IP is locked for one hour. Every subsequent message
+        from that IP returns the fixed emergency response regardless of content. The lock is held
+        in process memory and does not survive a container restart; DB persistence is planned.
+      </p>
+      <p>
+        An admin backdoor clears the lock. The backdoor key is stored in the
+        <code>ADMIN_UNLOCK_KEY</code> environment variable. The unlock command is the exact string
+        <code>UNLOCK:&lt;key&gt;</code> (case-insensitive, must be the entire message).
+        The key value is not documented here; it is set in deployment environment secrets.
+      </p>
 
-      <h3>HIPAA Consent Flow (GOV-004)</h3>
+      <h3>Environment Variables — App 2</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Variable</th><th>Purpose</th><th>Notes</th></tr>
+          <tr><td><code>OPENAI_API_KEY</code></td><td>Chat agent (gpt-4o-mini)</td><td>Required</td></tr>
+          <tr><td><code>Anthropic_API_KEY</code></td><td>Safety classifier (Haiku) + summarizer</td><td>Required</td></tr>
+          <tr><td><code>MONGO_connectionString</code></td><td>MongoDB Atlas connection</td><td>Required</td></tr>
+          <tr><td><code>ADMIN_UNLOCK_KEY</code></td><td>Emergency lock backdoor — clears a locked IP</td><td>Value not documented. Set in deployment secrets.</td></tr>
+        </table>
+      </div>
+
+      <!-- 7 -->
+      <h2 id="workflow">7. Example Workflows</h2>
+
+      <h3>Clinical Trial Research <span style="display:inline-block;background:#0b7a75;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">LIVE</span></h3>
+      <div class="diagram">
+        <div class="diagram-inner">
+          <div class="d-center"><div class="d-box d-box-wide"><strong>User</strong><small>"I have stage 3 pancreatic cancer. Find me trials."</small></div></div>
+          <div class="d-down">↓</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>App 2 — Chat Window</strong><small>LLM calls search_clinical_trials tool</small></div></div>
+          <div class="d-down">↓ direct HTTP</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>ClinicalTrials.gov API</strong><small>v2 · recruiting trials · condition + location filter</small></div></div>
+          <div class="d-down">↓ trial cards returned</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>App 2 — LLM formats and presents inline</strong><small>Trial cards · eligibility criteria · direct links</small></div></div>
+        </div>
+      </div>
+
+      <h3>FindCare — Symptom to Provider <span style="display:inline-block;background:#f0a500;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">ROADMAP</span></h3>
+      <p style="font-size:0.85rem;color:#4a5568;margin-bottom:12px;"><em>Provider search (find_providers) is live for Delaware and Mississippi — see Chat Component Design. Full triage flow — symptom intake through in-network provider list — is roadmap.</em></p>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin:0 0 8px;font-size:0.82rem;">
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--teal);background:#fff;border-radius:2px;flex-shrink:0;"></span>Planned</div>
+      </div>
+      <div class="diagram" style="border-color:#0b7a75;">
+        <div class="diagram-inner">
+          <div class="d-center"><div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;"><strong>User describes symptom</strong><small>"My left abdomen has sharp pain that gets worse when I jump"</small></div></div>
+          <div class="d-down" style="color:#0b7a75;">↓</div>
+          <div class="d-center"><div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;"><strong>LLM Clinical Triage</strong><small>Urgent vs Non-Critical — reason across symptoms, follow-up Qs</small></div></div>
+          <div style="display:flex;justify-content:center;margin:4px 0;">
+            <div style="width:2px;background:#0b7a75;height:16px;margin:0 60px;"></div>
+            <div style="width:2px;background:#0b7a75;height:16px;margin:0 60px;"></div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:48px;">
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div class="d-box d-box-narrow" style="border-color:#0b7a75;color:#0b7a75;"><strong>Urgent</strong></div>
+              <div style="width:2px;background:#0b7a75;height:12px;"></div>
+              <div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;min-width:180px;"><strong>Emergency Guidance</strong><small>Call 911 · nearest ER · do not drive</small></div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div class="d-box d-box-narrow" style="border-color:#0b7a75;color:#0b7a75;"><strong>Non-Critical</strong></div>
+              <div style="width:2px;background:#0b7a75;height:12px;"></div>
+              <div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;min-width:180px;"><strong>Clinical Summary</strong><small>"Here's what might be going on…"</small></div>
+              <div style="width:2px;background:#0b7a75;height:12px;"></div>
+              <div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;min-width:180px;"><strong>Care Options</strong><small>"Can I give you some care options?"</small></div>
+              <div style="width:2px;background:#0b7a75;height:12px;"></div>
+              <div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;min-width:180px;"><strong>Insurance Capture</strong><small>"What insurance do you have?" · check InsuranceNetworkCache · fetch live if stale</small></div>
+              <div style="width:2px;background:#0b7a75;height:12px;"></div>
+              <div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;min-width:180px;"><strong>Provider List</strong><small>In-network · out-of-network · provider names + locations</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8 -->
+      <h2 id="data-privacy">8. Data and Privacy</h2>
+
+      <h3>HIPAA Consent Flow</h3>
       <div class="diagram">
         <div class="diagram-inner">
           <div class="flow-step"><strong>Q1:</strong> "May we save a verbatim transcript of this conversation with your contact details?"</div>
-          <div class="flow-yes">Yes &rarr; Store full chat history (PII intact, consent exchange included as evidence)</div>
+          <div class="flow-yes">Yes → Store full chat history (PII intact, consent exchange included as evidence)</div>
           <div class="flow-step"><strong>Q2 (if Q1 declined):</strong> "May we save a de-identified summary instead?"</div>
-          <div class="flow-yes">Yes &rarr; LLM summarizes &rarr; deIdentify() scrubs PII &rarr; stored in notes field only</div>
-          <div class="flow-step">Neither consented &rarr; Contact fields only; no history stored</div>
+          <div class="flow-yes">Yes → LLM summarizes → deIdentify() scrubs PII → stored in notes field only</div>
+          <div class="flow-step">Neither consented → Contact fields only; no history stored</div>
           <div class="flow-step" style="margin-top:8px;">Unknown questions always de-identified and recorded regardless of consent</div>
         </div>
       </div>
 
-      <h3>MongoDB Atlas &mdash; Database Architecture</h3>
-      <p>Two dedicated clusters with distinct roles. Security enforced at the cluster level. Environment naming convention: <code>{env}_DatabaseName</code>.</p>
+      <h3>MongoDB Lead Record Schema</h3>
       <div class="table-wrap">
         <table>
-          <tr><th>Cluster</th><th>Purpose</th><th>Availability</th></tr>
-          <tr>
-            <td><strong>ChatHealthyFrontEnd</strong></td>
-            <td>Runtime reads (providers, specialties, chat tools) + admin data (brain loop, backlog, leads, unknown questions)</td>
-            <td>Always on</td>
-          </tr>
-          <tr>
-            <td><strong>ChatHealthyDataPipelines</strong></td>
-            <td>Batch writes only &mdash; provider load, enrichment, embeddings. Never holds admin or operational data.</td>
-            <td>Started manually before each run, stopped when done</td>
-          </tr>
+          <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+          <tr><td>email</td><td>string</td><td>User contact</td></tr>
+          <tr><td>name</td><td>string</td><td>User contact</td></tr>
+          <tr><td>notes</td><td>string</td><td>De-identified summary if consent_summary=true</td></tr>
+          <tr><td>reason_for_contact</td><td>string</td><td>Extracted by AI</td></tr>
+          <tr><td>consent_verbatim</td><td>boolean</td><td>Explicit verbatim consent</td></tr>
+          <tr><td>consent_summary</td><td>boolean / null</td><td>Explicit summary consent</td></tr>
+          <tr><td>chat_history</td><td>array</td><td>Present only if consent_verbatim=true</td></tr>
+          <tr><td>datetime</td><td>ISO string</td><td>Record creation timestamp</td></tr>
+          <tr><td>testdata</td><td>boolean</td><td>true for automated test records only</td></tr>
         </table>
       </div>
 
+      <!-- 9 -->
+      <h2 id="devops">9. DevOps</h2>
       <div class="table-wrap">
         <table>
-          <tr><th>Database</th><th>Collections</th><th>Cluster</th><th style="font-size:0.8rem;">Notes</th></tr>
-          <tr>
-            <td><code>Users</code></td>
-            <td><code>users</code> (includes prospects)</td>
-            <td>FrontEnd</td>
-            <td style="font-size:0.8rem;">PII &mdash; restricted access</td>
-          </tr>
-          <tr>
-            <td><code>DeidentifiedSessions</code></td>
-            <td><code>sessions</code>, <code>unknown_questions</code></td>
-            <td>FrontEnd</td>
-            <td style="font-size:0.8rem;">No PII &mdash; broader read access</td>
-          </tr>
-          <tr>
-            <td><code>PublicHealthData</code></td>
-            <td><code>providers</code>, <code>ICD10Codes</code>, <code>SpecialtyMetaData</code>, <code>ZipCountyCrosswalk</code></td>
-            <td>FrontEnd</td>
-            <td style="font-size:0.8rem;">100% public data from CMS and US Census</td>
-          </tr>
-          <tr>
-            <td><code>FindCareAdmin</code></td>
-            <td>pipeline metadata, incidents, product catalog</td>
-            <td>FrontEnd</td>
-            <td style="font-size:0.8rem;">Internal ops</td>
-          </tr>
-          <tr>
-            <td><code>PublicHealthData</code></td>
-            <td><code>providers</code> (with embeddings), enrichment working data</td>
-            <td>DataPipelines</td>
-            <td style="font-size:0.8rem;">Pipeline working area. Atlas Vector Search index on <code>embedding</code> field.</td>
-          </tr>
-          <tr>
-            <td><code>admin</code></td>
-            <td><code>DataLoadMetadata</code>, <code>PipelineDiscrepancyReport</code>, <code>DataSourceRegistry</code></td>
-            <td>DataPipelines</td>
-            <td style="font-size:0.8rem;">Pipeline operations metadata</td>
-          </tr>
+          <tr><th>Concern</th><th>Tool</th><th>Detail</th></tr>
+          <tr><td>Source control</td><td>GitHub</td><td>SkipSnow/findCare · SkipSnow/ChatHealthyDataPipeline</td></tr>
+          <tr><td>App deploy (FindCare)</td><td>GitHub Actions</td><td>Push to dev → deploy to HuggingFace Space (path filter: Code/ConversationalUX/**)</td></tr>
+          <tr><td>App deploy (Gradio)</td><td>GitHub Actions</td><td>Push to main → rsync to HuggingFace Space (path filter: Code/ConversationalUX/ChatHealthyWhoAmIChat/**)</td></tr>
+          <tr><td>Pipeline deploy</td><td>GitHub Actions</td><td>Push to main → deploy to Azure Function App (path filter: Code/DataPipelines/**)</td></tr>
+          <tr><td>Website deploy</td><td>Cloudflare</td><td>Website/ served as static pages — no build step</td></tr>
+          <tr><td>Website tests</td><td>Playwright + pytest</td><td>Website/tests/ — 32 browser-driven tests</td></tr>
+          <tr><td>App unit tests</td><td>pytest (mocked)</td><td>Code/ConversationalUX/…/tests/test_record_user_details.py</td></tr>
+          <tr><td>App e2e tests</td><td>pytest (real systems)</td><td>Code/ConversationalUX/…/tests/test_e2e_record_user_details.py</td></tr>
+          <tr><td>Secrets</td><td>GitHub Secrets</td><td>HF_TOKEN, OPENAI_API_KEY, Anthropic_API_KEY, MONGO_connectionString, SPARKMAIL_API_KEY, NOTIFICATION_FROM_EMAIL, NOTIFICATION_TO_EMAIL, AZURE_FUNCTION_APP_NAME, AZURE_FUNCTION_PUBLISH_PROFILE</td></tr>
+          <tr><td>IDE</td><td>Cursor / VS Code + Claude Code</td><td>Claude Code for all AI-assisted development</td></tr>
         </table>
       </div>
 
-      <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 11: PIPELINE ARCHITECTURE               -->
-      <!-- ═══════════════════════════════════════════════ -->
-      <h2 id="pipeline">11. Data Pipeline Architecture</h2>
+      <!-- 10 -->
+      <h2 id="pipeline-architecture">10. Data Pipeline Architecture</h2>
 
-      <p>Public health data (providers, specialties, ICD-10, procedures, prescriptions) is loaded and enriched by App 3 on a monthly cadence. All pipeline tasks follow the Async Durable Orchestrator pattern: <code>202 &rarr; reserve &rarr; poll &rarr; work &rarr; release (finally) &rarr; pause if last</code>.</p>
+      <p>Public health data (providers, specialties, ICD-10, procedures, prescriptions) is loaded
+      and enriched by App 3 on a monthly cadence. The pipeline is triggered manually via POST to
+      <code>/api/Router</code>. The MongoDB Atlas cluster (<strong>ChatHealthyDataPipelines</strong>)
+      is started manually before each run. A health check at pipeline start pings the cluster,
+      emails the admin, and fails fast if it is unreachable — no workers are launched against a
+      down cluster.</p>
 
-      <h3>FullProviderPipeline &mdash; 8-Step Orchestrator</h3>
+      <h3>FullProviderPipeline &#8212; Current Implementation (8 Steps)</h3>
+      <p>All steps run sequentially. Pass <code>start_step</code> (1&#8211;8) in the payload to resume
+      from any step without re-running prior completed work. Default: full run from Step 1.</p>
       <div class="diagram">
         <div class="diagram-inner">
-          <div class="d-center"><div class="d-box d-box-wide"><strong>FullProviderPipeline</strong><small>POST /api/Router &middot; returns 202</small></div></div>
-          <div class="d-down">&darr; Step 1</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>MongoDB Health Check</strong><small>ping cluster &middot; email admin &middot; fail fast</small></div></div>
-          <div class="d-down">&darr; Step 2</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>LoadProviderData</strong><small>~8.9M NPI records &middot; 32-worker fan-out</small></div></div>
-          <div class="d-down">&darr; Steps 3&ndash;7</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment (5 passes)</strong><small>ZIP crosswalk &rarr; Census Geocoder &rarr; Google Maps &rarr; NPPES</small></div></div>
-          <div class="d-down">&darr; Step 8</div>
-          <div class="d-center"><div class="d-box d-box-wide"><strong>Generate Embeddings</strong><small>OpenAI text-embedding-3-small &middot; 1536 dims &middot; idempotent</small></div></div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>FullProviderPipeline Orchestrator</strong><small>POST /api/Router &#183; ChatHealthyTask: FullProviderPipeline</small></div></div>
+          <div class="d-down">&#8595; Step 1</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>MongoDB Health Check</strong><small>ping cluster &#183; SparkPost email to admin + fail fast if unreachable</small></div></div>
+          <div class="d-down">&#8595; Step 2</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>LoadProviderData</strong><small>~8.9M NPI records &#183; 32-worker fan-out &#183; ETag skip guard on download &#183; blob skip guard on CSV extraction</small></div></div>
+          <div class="d-down">&#8595; Step 3</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 1</strong><small>ZIP crosswalk + out_of_scope classification &#183; mark inactive/foreign/deactivated/ZIP-state-mismatch as out_of_scope with reason sub-field &#183; updateMany &#183; ~40K distinct ZIPs</small></div></div>
+          <div class="d-down">&#8595; Step 4</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 2</strong><small>Census Geocoder, practice address &#183; batch 500 addresses &#183; fan-out workers</small></div></div>
+          <div class="d-down">&#8595; Step 5</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 3</strong><small>Census Geocoder, billing address &#183; retry for geocoder_failed &#183; batch 500 addresses</small></div></div>
+          <div class="d-down">&#8595; Step 6</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 4</strong><small>Google Maps Geocoding API &#183; requires google_maps_enabled=true &#183; paid API</small></div></div>
+          <div class="d-down">&#8595; Step 7</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 6</strong><small>NPPES CMS Registry lookup &#183; free &#183; NPI-based &#183; ~5 req/s &#183; optional states filter</small></div></div>
+          <div class="d-down">&#8595; Step 8</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Generate Embeddings + Create Atlas Vector Search Index</strong><small>requires embedding_enabled=true &#183; OpenAI text-embedding-3-small &#183; 1536 dims &#183; all meaningful fields &#183; idempotent &#183; provider_vector_index</small></div></div>
         </div>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin:8px 0 16px;font-size:0.82rem;">
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--ink);background:#fff;border-radius:2px;flex-shrink:0;"></span>Active</div>
+      </div>
+      <h3>Data Sources (current and planned)</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Dataset</th><th>Task</th><th>Status</th></tr>
+          <tr><td>NPPES NPI providers</td><td>FullProviderPipeline / LoadProviderData</td><td>Live</td></tr>
+          <tr><td>Provider taxonomy / specialties</td><td>LoadSpecialtyData</td><td>Live</td></tr>
+          <tr><td>ICD-10-CM diagnosis codes</td><td>LoadICD10</td><td>Live</td></tr>
+          <tr><td>Procedure codes (CPT/HCPCS)</td><td>LoadProcedureCodes</td><td>Planned — Tuesday 2026-03-24</td></tr>
+          <tr><td>CMS Medicare Part D prescriptions</td><td>LoadPrescriptionData</td><td>Planned — Tuesday 2026-03-24</td></tr>
+          <tr><td>HUD ZIP→county crosswalk</td><td>Loaded as prerequisite</td><td>Live</td></tr>
+          <tr><td style="color:#0b7a75;">InsuranceNetworkCache (payer API)</td><td style="color:#0b7a75;">Opportunistic — fetched on-demand during FindCare conversation</td><td style="color:#0b7a75;">Roadmap — MVP</td></tr>
+        </table>
       </div>
 
       <h3>Multi-Pass Enrichment Pattern</h3>
+      <p>Pipeline enrichment applies three escalating tiers. Records that cannot be resolved by a cheaper tier advance to the next. Only the minimum necessary tier runs for each record.</p>
       <div class="table-wrap">
         <table>
           <tr><th>Tier</th><th>Method</th><th>Cost</th></tr>
-          <tr><td><strong>1 &mdash; Data</strong></td><td>Bulk resolution from structured datasets &mdash; ZIP crosswalk, Census Geocoder, address fallbacks</td><td>Lowest</td></tr>
-          <tr><td><strong>2 &mdash; Web</strong></td><td>Targeted web search by NPI, then by provider name + state</td><td>Medium</td></tr>
-          <tr><td><strong>3 &mdash; AI</strong></td><td>Research agent &mdash; reasons across multiple sources for unresolved records</td><td>Highest</td></tr>
+          <tr><td><strong>1 — Data</strong></td><td>Bulk resolution from authoritative structured datasets — ZIP crosswalk, Census Geocoder, address fallbacks</td><td>Lowest</td></tr>
+          <tr><td><strong>2 — Web</strong></td><td>Targeted web search by NPI, then by provider name + state</td><td>Medium</td></tr>
+          <tr><td><strong>3 — AI</strong></td><td>Research agent — reasons across multiple sources for records data and web cannot resolve</td><td>Highest</td></tr>
+        </table>
+      </div>
+      <p>County enrichment is the first pipeline to implement this pattern. The same three-tier approach applies to any enrichment concern across the platform.</p>
+
+      <h3>Opportunistic Insurance Enrichment <span style="display:inline-block;background:#f0a500;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">ROADMAP — MVP</span></h3>
+      <p style="font-size:0.85rem;color:#4a5568;margin-bottom:10px;"><em>Not yet implemented. Insurance network data is expensive to fetch live — this pattern fetches once, persists with a TTL, and serves from cache on repeat queries.</em></p>
+      <p style="font-size:0.92rem;line-height:1.7;">Insurance network data is queried during the FindCare conversation flow when the user provides their payer and plan. The response is cached in MongoDB with a TTL. On repeat queries within the TTL window, the cached data is served without a live API call (<em>cache-and-trust</em>). After TTL expiry, the cache is refreshed on next access.</p>
+      <div class="diagram" style="border-color:#0b7a75;">
+        <div class="diagram-inner">
+          <div class="d-center"><div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;"><strong>User provides insurance payer + plan</strong><small>e.g. "I'm on Aetna HMO"</small></div></div>
+          <div class="d-down" style="color:#0b7a75;">↓</div>
+          <div class="d-center"><div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;"><strong>Check InsuranceNetworkCache</strong><small>MongoDB lookup by payer + plan + provider NPI</small></div></div>
+          <div style="display:flex;justify-content:center;margin:4px 0;">
+            <div style="width:2px;background:#0b7a75;height:16px;margin:0 48px;"></div>
+            <div style="width:2px;background:#0b7a75;height:16px;margin:0 48px;"></div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:48px;">
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div class="d-box d-box-narrow" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;"><strong>Fresh (within TTL)</strong></div>
+              <div style="width:2px;background:#0b7a75;height:12px;"></div>
+              <div class="d-box" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;min-width:160px;"><strong>Serve from cache</strong><small>no API call</small></div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;">
+              <div class="d-box d-box-narrow" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;"><strong>Stale or missing</strong></div>
+              <div style="width:2px;background:#0b7a75;height:12px;"></div>
+              <div class="d-box" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;min-width:160px;"><strong>Fetch live from payer API</strong></div>
+              <div style="width:2px;background:#0b7a75;height:12px;"></div>
+              <div class="d-box" style="border-color:#0b7a75;color:#0b7a75;font-size:0.82rem;min-width:160px;"><strong>Persist with TTL (30–90 days)</strong></div>
+            </div>
+          </div>
+          <div style="width:2px;background:#0b7a75;height:16px;margin:0 auto;"></div>
+          <div class="d-center"><div class="d-box d-box-wide" style="border-color:#0b7a75;color:#0b7a75;"><strong>In-network / out-of-network result</strong><small>returned to FindCare conversation flow</small></div></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin:8px 0 12px;font-size:0.82rem;">
+        <div style="display:flex;align-items:center;gap:7px;"><span style="width:14px;height:14px;border:2px solid var(--teal);background:#fff;border-radius:2px;flex-shrink:0;"></span>Planned</div>
+      </div>
+      <div class="table-wrap" style="margin-top:12px;">
+        <table>
+          <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+          <tr><td>payer_id</td><td>string</td><td>Payer identifier (e.g. "aetna")</td></tr>
+          <tr><td>plan_id</td><td>string</td><td>Specific plan within payer</td></tr>
+          <tr><td>provider_npi</td><td>string</td><td>Provider NPI — links to PublicHealthData.providers</td></tr>
+          <tr><td>in_network</td><td>boolean</td><td>Whether provider is in-network for this plan</td></tr>
+          <tr><td>fetched_at</td><td>ISO string</td><td>Timestamp of live fetch</td></tr>
+          <tr><td>expires_at</td><td>ISO string</td><td>TTL — MongoDB TTL index expires document</td></tr>
+          <tr><td>source</td><td>string</td><td>API or data source used for fetch</td></tr>
         </table>
       </div>
 
-      <h3>Data Sources</h3>
+      <h3>ICD-10 → Specialty → Provider Research Agent <span style="display:inline-block;background:#f0a500;color:#fff;border-radius:3px;padding:1px 8px;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;vertical-align:middle;margin-left:6px;">ROADMAP — MVP</span></h3>
+      <p style="font-size:0.85rem;color:#4a5568;margin-bottom:10px;"><em>Not yet implemented. Pipeline agent that enriches the knowledge base with ICD-10 → specialty → prescribing pattern relationships.</em></p>
+      <p style="font-size:0.92rem;line-height:1.7;">Given a diagnosis code (ICD-10-CM), the research agent identifies relevant medical specialties, surfaces providers who treat that condition, and analyzes prescribing patterns from CMS Part D data. This enriched knowledge layer powers the FindCare symptom → care options path.</p>
+
+      <h3>Pipeline Exception Handling Framework</h3>
+      <p>All pipeline row-processing workers extend <code>PipelineWorkerBase</code>, a Gang of Four
+      Template Method base class. The base class owns the processing loop, all exception catching
+      and logging, and the <code>row_errors</code> accumulator. Worker subclasses implement data
+      processing logic only — they do not catch exceptions or log errors. A <code>fail_on_row_error</code>
+      flag (default <code>False</code>) controls whether a single bad row abends the job or is
+      logged, recorded, and skipped. See the
+      <a href="/provider-data-load.html#exception-handling">Provider Data Load design doc §4b</a>
+      for full detail.</p>
+
+      <h3>Two-Cluster Architecture (planned)</h3>
+      <p>Pipeline and runtime workloads will be separated into two Atlas clusters to prevent bulk
+      write operations from impacting app query performance. Collection swap and CopyToRuntime
+      are deferred (see Section 12):</p>
       <div class="table-wrap">
         <table>
-          <tr><th>Dataset</th><th>Pipeline Task</th><th>Status</th></tr>
-          <tr><td>NPPES NPI providers</td><td>FullProviderPipeline / LoadProviderData</td><td><span class="cap-badge cap-live">LIVE</span></td></tr>
-          <tr><td>Provider taxonomy / specialties</td><td>LoadSpecialtyData</td><td><span class="cap-badge cap-live">LIVE</span></td></tr>
-          <tr><td>ICD-10-CM diagnosis codes</td><td>LoadICD10</td><td><span class="cap-badge cap-live">LIVE</span></td></tr>
-          <tr><td>HUD ZIP&rarr;county crosswalk</td><td>Loaded as prerequisite</td><td><span class="cap-badge cap-live">LIVE</span></td></tr>
-          <tr><td>Procedure codes (CPT/HCPCS)</td><td>LoadProcedureCodes</td><td><span class="cap-badge cap-road">PLANNED</span></td></tr>
-          <tr><td>CMS Medicare Part D prescriptions</td><td>LoadPrescriptionData</td><td><span class="cap-badge cap-road">PLANNED</span></td></tr>
+          <tr><th>Cluster</th><th>Purpose</th></tr>
+          <tr><td><strong>ChatHealthyFrontEnd</strong></td><td>Always on. App reads (providers, specialties, chat tools) + all admin data: prod_Brain (brain loop), prod_Backlog (product backlog), AboutUs (leads, unknown questions).</td></tr>
+          <tr><td><strong>ChatHealthyDataPipelines</strong></td><td>Started manually before each pipeline run, stopped when done. Batch writes only — provider load, enrichment, embeddings. Never holds admin or operational data.</td></tr>
         </table>
       </div>
 
-      <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 12: THE BRAIN                           -->
-      <!-- ═══════════════════════════════════════════════ -->
-      <h2 id="brain">12. The Brain &mdash; AI-Native SDLC</h2>
+      <!-- 11 -->
+      <h2 id="environment">11. Environment &amp; Data Model</h2>
 
-      <p>The Brain is an end-to-end automated but attended native AI SDLC with gateways and governance. It is public (GOV-003) but not customer-facing. It is the unpublished 4th component of the architecture.</p>
+      <h3>MongoDB Atlas — ChatHealthyDev Project</h3>
+      <p>Two dedicated clusters, each with a distinct role. Security and access are enforced at the cluster level.</p>
 
-      <h3>Operational Components</h3>
+      <table style="width:100%; border-collapse:collapse; font-size:0.9rem; margin:16px 0;">
+        <thead>
+          <tr style="background:#f4f4f4;">
+            <th style="text-align:left; padding:8px; border:1px solid #ddd; width:16%;">Database</th>
+            <th style="text-align:left; padding:8px; border:1px solid #ddd; width:28%;">Collections</th>
+            <th style="text-align:left; padding:8px; border:1px solid #ddd; width:18%;">Cluster</th>
+            <th style="text-align:left; padding:8px; border:1px solid #ddd; width:38%; font-size:0.8rem;">Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:8px; border:1px solid #ddd;"><code>Users</code></td>
+            <td style="padding:8px; border:1px solid #ddd;"><code>users</code> (includes prospects)</td>
+            <td style="padding:8px; border:1px solid #ddd;">ChatHealthyFrontEnd</td>
+            <td style="padding:8px; border:1px solid #ddd; font-size:0.8rem;">PII — restricted access</td>
+          </tr>
+          <tr style="background:#fafafa;">
+            <td style="padding:8px; border:1px solid #ddd;"><code>DeidentifiedSessions</code></td>
+            <td style="padding:8px; border:1px solid #ddd;"><code>sessions</code>, <code>unknown_questions</code></td>
+            <td style="padding:8px; border:1px solid #ddd;">ChatHealthyFrontEnd</td>
+            <td style="padding:8px; border:1px solid #ddd; font-size:0.8rem;">No PII — broader read access</td>
+          </tr>
+          <tr>
+            <td style="padding:8px; border:1px solid #ddd;"><code>PublicHealthData</code></td>
+            <td style="padding:8px; border:1px solid #ddd;"><code>providers</code>, <code>ICD10Codes</code>, <code>SpecialtyMetaData</code>, <code>ZipCountyCrosswalk</code> (runtime reads)</td>
+            <td style="padding:8px; border:1px solid #ddd;">ChatHealthyFrontEnd</td>
+            <td style="padding:8px; border:1px solid #ddd; font-size:0.8rem;">100% public data sourced from CMS and US Census — no special security required</td>
+          </tr>
+          <tr style="background:#fafafa;">
+            <td style="padding:8px; border:1px solid #ddd;"><code>FindCareAdmin</code></td>
+            <td style="padding:8px; border:1px solid #ddd;">pipeline metadata, incidents, product catalog</td>
+            <td style="padding:8px; border:1px solid #ddd;">ChatHealthyFrontEnd</td>
+            <td style="padding:8px; border:1px solid #ddd; font-size:0.8rem;">Internal ops — admin access only</td>
+          </tr>
+          <tr>
+            <td style="padding:8px; border:1px solid #ddd;"><code>Labs</code></td>
+            <td style="padding:8px; border:1px solid #ddd;">experiments</td>
+            <td style="padding:8px; border:1px solid #ddd;">ChatHealthyFrontEnd</td>
+            <td style="padding:8px; border:1px solid #ddd; font-size:0.8rem;">Dev experiments — no production data</td>
+          </tr>
+          <tr style="background:#fafafa;">
+            <td style="padding:8px; border:1px solid #ddd;"><code>PublicHealthData</code></td>
+            <td style="padding:8px; border:1px solid #ddd;"><code>providers</code> (with <code>embedding</code> float[1536] after Step 5), enrichment working data, <code>ICD10Codes</code>, <code>SpecialtyMetaData</code>, <code>ZipCountyCrosswalk</code></td>
+            <td style="padding:8px; border:1px solid #ddd;">ChatHealthyDataPipelines</td>
+            <td style="padding:8px; border:1px solid #ddd; font-size:0.8rem;">100% public data — pipeline working area. Atlas Vector Search index <code>provider_vector_index</code> (cosine, 1536 dims) on <code>embedding</code> field.</td>
+          </tr>
+          <tr>
+            <td style="padding:8px; border:1px solid #ddd;"><code>admin</code></td>
+            <td style="padding:8px; border:1px solid #ddd;"><code>DataLoadMetadata</code>, <code>PipelineDiscrepancyReport</code>, <code>DataSourceRegistry</code></td>
+            <td style="padding:8px; border:1px solid #ddd;">ChatHealthyDataPipelines</td>
+            <td style="padding:8px; border:1px solid #ddd; font-size:0.8rem;">Pipeline operations metadata</td>
+          </tr>
+          <tr style="background:#fafafa;">
+            <td style="padding:8px; border:1px solid #ddd; color:#0b7a75;"><code>PublicHealthData</code></td>
+            <td style="padding:8px; border:1px solid #ddd; color:#0b7a75;"><code>InsuranceNetworkCache</code></td>
+            <td style="padding:8px; border:1px solid #ddd; color:#0b7a75;">ChatHealthyFrontEnd</td>
+            <td style="padding:8px; border:1px solid #ddd; font-size:0.8rem; color:#0b7a75;"><strong>Roadmap — MVP.</strong> Payer network cache — keyed by payer + plan + provider NPI. TTL index expires stale entries (30–90 days). Written by App 2 on demand; read by FindCare conversation flow.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Database Users</h3>
+      <ul>
+        <li><strong>PipelineUser</strong> — read/write on ChatHealthyDataPipelines; write access to ChatHealthyFrontEnd for collection swap</li>
+        <li><strong>FrontEndUser</strong> — read-only on ChatHealthyFrontEnd; used by the chat app</li>
+      </ul>
+
+      <!-- 12 -->
+      <h2 id="networking">12. Networking</h2>
+      <p>
+        The DataPipelines Function App runs inside a dedicated Azure Virtual Network.
+        Outbound connections to MongoDB Atlas route through the VNet via peering — traffic
+        stays on Azure backbone and never traverses the public internet.
+      </p>
+
+      <div class="diagram">
+        <div class="diagram-inner">
+          <div class="d-center"><div class="d-box d-box-wide"><strong>Azure Function App</strong><small>DevPipelineManagmentService · East US 2</small></div></div>
+          <div class="d-down">↓ outbound VNet integration</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>functions-subnet</strong><small>10.0.1.0/24 · inside ChatHealthy-VNet (10.0.0.0/16)</small></div></div>
+          <div class="d-down">↓ VNet peering</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>MongoDB Atlas peering endpoint</strong><small>Atlas container 192.168.248.0/21</small></div></div>
+          <div class="d-down">↓</div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>ChatHealthyDataPipelines cluster</strong><small>East US 2 · M10 – M200 autoscale</small></div></div>
+        </div>
+      </div>
+
+      <h3>VNet Configuration</h3>
       <div class="table-wrap">
         <table>
-          <tr><th>Component</th><th>Technology</th><th>Status</th></tr>
-          <tr><td>Governance</td><td>JSON (brain/machine_artifacts/content/governance.json)</td><td>Live &mdash; GOV-001 through GOV-012</td></tr>
-          <tr><td>Assignments</td><td>JSON (brain/machine_artifacts/content/work_log.json)</td><td>Live &mdash; structured work queue</td></tr>
-          <tr><td>Agile Backlog</td><td>JSON (brain/machine_artifacts/content/agile_backlog.json)</td><td>Live &mdash; epics, features, stories, requirements</td></tr>
-          <tr><td>Audit</td><td>JSON + PDF (brain/machine_artifacts/, brain/BusinessArtifacts/)</td><td>Live &mdash; SIT reports, QA reports, UAT sign-offs</td></tr>
-          <tr><td>Manifest</td><td>JSON (brain/manifest/project_manifest.json)</td><td>Live &mdash; every code file catalogued</td></tr>
-          <tr><td>GPTReader</td><td>Azure Function (Code/DataPipelines/gpt_reader.py)</td><td>Live &mdash; read-only, authenticated, 27/27 SIT</td></tr>
-          <tr><td>Brain Runner</td><td>Python (Code/Shared/brain_runner.py)</td><td>Live &mdash; executes GPT/Claude assignments via API</td></tr>
-          <tr><td>Cost Guard</td><td>Python (Code/Shared/cost_guard.py)</td><td>Live &mdash; token budget enforcement</td></tr>
+          <tr><th>Resource</th><th>Value</th></tr>
+          <tr><td>VNet name</td><td>ChatHealthy-VNet</td></tr>
+          <tr><td>Address space</td><td>10.0.0.0/16</td></tr>
+          <tr><td>Region</td><td>East US 2</td></tr>
+          <tr><td>Resource group</td><td>FindCareDataPipelines-Dev</td></tr>
+          <tr><td>Subnet</td><td>functions-subnet · 10.0.1.0/24 · Microsoft.Web/serverFarms delegation</td></tr>
         </table>
       </div>
 
-      <h3>Roles</h3>
+      <h3>Atlas VNet Peering</h3>
       <div class="table-wrap">
         <table>
-          <tr><th>Role</th><th>Agent</th><th>Authority</th></tr>
-          <tr><td><strong>Boss</strong></td><td>Skip Snow (Founder/CEO)</td><td>Final authority on all gates. Directs all work. Owns UAT sign-off.</td></tr>
-          <tr><td><strong>Architect</strong></td><td>GPT (gpt-5.3)</td><td>Plans, reviews, gates staging deploys. Every prompt includes governance policies.</td></tr>
-          <tr><td><strong>Engineer</strong></td><td>Claude (claude-opus-4-6)</td><td>Executes code, tests, deploys. Enforces governance before acting.</td></tr>
+          <tr><th>Item</th><th>Value</th></tr>
+          <tr><td>Atlas container CIDR</td><td>192.168.248.0/21</td></tr>
+          <tr><td>Peered VNet</td><td>ChatHealthy-VNet (10.0.0.0/16)</td></tr>
+          <tr><td>Status</td><td>Initiated — confirm AVAILABLE in Atlas portal before locking down IP allowlist</td></tr>
         </table>
       </div>
 
-      <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 13: AI MODELS AND COST                  -->
-      <!-- ═══════════════════════════════════════════════ -->
-      <h2 id="models">13. AI Models and Cost Projections</h2>
+      <h3>IP Allowlist (plan)</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Cluster</th><th>Current</th><th>Target</th></tr>
+          <tr><td>ChatHealthyDataPipelines</td><td>0.0.0.0/0 (temporary)</td><td>10.0.0.0/16 (VNet only) once peering is AVAILABLE</td></tr>
+          <tr><td>ChatHealthyFrontEnd</td><td>0.0.0.0/0 (temporary)</td><td>HuggingFace egress IPs · VNet CIDR for pipeline writes</td></tr>
+        </table>
+      </div>
+
+      <!-- 13 -->
+      <h2 id="models">13. AI Models &amp; Cost at Scale</h2>
 
       <h3>Active Models</h3>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Function</th><th>Model</th><th>Vendor</th><th>Cost/1M users/yr</th><th>% Spend</th></tr>
-          <tr><td>Main chat (conversation, tool calls)</td><td><strong>Claude Sonnet 4.6</strong></td><td>Anthropic</td><td>$7,391,250</td><td>97.3%</td></tr>
-          <tr><td>Safety classifier (emergency)</td><td><strong>GPT-4.1-mini</strong></td><td>OpenAI</td><td>$83,220</td><td>1.1%</td></tr>
-          <tr><td>Query expansion (specialty search)</td><td>Claude Haiku 4.5</td><td>Anthropic</td><td>$49,275</td><td>0.6%</td></tr>
-          <tr><td>Summarization (consent tier 2)</td><td>Claude Haiku 4.5</td><td>Anthropic</td><td>$10,950</td><td>0.1%</td></tr>
-          <tr><td>De-identification (Safe Harbor)</td><td>Claude Haiku 4.5</td><td>Anthropic</td><td>$41,610</td><td>0.5%</td></tr>
-          <tr><td>Provider vector search</td><td>text-embedding-3-large</td><td>OpenAI</td><td>$2,847</td><td>0.04%</td></tr>
-          <tr><td>Specialty vector search</td><td>text-embedding-3-small</td><td>OpenAI</td><td>$219</td><td>&lt;0.01%</td></tr>
-        </table>
-      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Function</th>
+            <th>Model</th>
+            <th>Vendor</th>
+            <th>Tokens (in/out)</th>
+            <th>Cost/1M users/year</th>
+            <th>% of AI Spend</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Main chat (conversation, tool calls, responses)</td>
+            <td><strong>Claude Sonnet 4.6</strong></td>
+            <td>Anthropic</td>
+            <td>2000 / 500 per query</td>
+            <td>$7,391,250</td>
+            <td>97.3%</td>
+          </tr>
+          <tr>
+            <td>Safety classifier (emergency detection)</td>
+            <td><strong>GPT-4.1-mini</strong></td>
+            <td>OpenAI</td>
+            <td>300 / 20 per query</td>
+            <td>$83,220</td>
+            <td>1.1%</td>
+          </tr>
+          <tr>
+            <td>Query expansion (specialty search)</td>
+            <td>Claude Haiku 4.5</td>
+            <td>Anthropic</td>
+            <td>200 / 50 per search</td>
+            <td>$49,275</td>
+            <td>0.6%</td>
+          </tr>
+          <tr>
+            <td>Summarization (consent tier 2)</td>
+            <td>Claude Haiku 4.5</td>
+            <td>Anthropic</td>
+            <td>500 / 100 per session</td>
+            <td>$10,950</td>
+            <td>0.1%</td>
+          </tr>
+          <tr>
+            <td>De-identification (HIPAA Safe Harbor)</td>
+            <td>Claude Haiku 4.5</td>
+            <td>Anthropic</td>
+            <td>800 / 600 per session</td>
+            <td>$41,610</td>
+            <td>0.5%</td>
+          </tr>
+          <tr>
+            <td>URL content verification</td>
+            <td>Claude Haiku 4.5</td>
+            <td>Anthropic</td>
+            <td>400 / 30 per check</td>
+            <td>$15,056</td>
+            <td>0.2%</td>
+          </tr>
+          <tr>
+            <td>Provider vector search</td>
+            <td>text-embedding-3-large</td>
+            <td>OpenAI</td>
+            <td>200 / 0 per search</td>
+            <td>$2,847</td>
+            <td>0.04%</td>
+          </tr>
+          <tr>
+            <td>Specialty vector search</td>
+            <td>text-embedding-3-small</td>
+            <td>OpenAI</td>
+            <td>100 / 0 per search</td>
+            <td>$219</td>
+            <td>0.003%</td>
+          </tr>
+        </tbody>
+      </table>
 
-      <p><strong>Total AI cost per 1M users/year:</strong> $7,594,427 &mdash; <strong>$7.59/user/year</strong> ($0.63/user/month)</p>
+      <p style="margin-top:12px;"><strong>Total AI cost per 1M users/year:</strong> $7,594,427 &mdash; <strong>$7.59/user/year</strong> ($0.63/user/month)</p>
+      <p><strong>Total operating cost (incl. staff + infra):</strong> $8,987,020 &mdash; <strong>$8.99/user/year</strong> ($0.75/user/month)</p>
 
       <h3>Vendor Diversity Strategy</h3>
-      <p>Safety-critical functions (emergency detection) run on OpenAI (GPT-4.1-mini). Main conversation runs on Anthropic (Sonnet 4.6). Single-vendor dependency is unacceptable for a healthcare safety system.</p>
+      <p>Safety-critical functions (emergency detection) run on OpenAI (GPT-4.1-mini). Main conversation runs on Anthropic (Sonnet 4.6). If either vendor experiences an outage, the other function continues independently. This is a deliberate architectural decision &mdash; single-vendor dependency is unacceptable for a healthcare safety system.</p>
 
-      <h3>Cost Projections</h3>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Users</th><th>AI Cost/Year</th><th>Staff</th><th>Infrastructure</th><th>Total</th><th>Per User/Year</th></tr>
+      <h3>Rejected Models</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Vendor</th>
+            <th>Evaluated For</th>
+            <th>Outcome</th>
+            <th>Rationale</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Claude Haiku 4.5</td>
+            <td>Anthropic</td>
+            <td>Safety classifier</td>
+            <td style="color:var(--warn);"><strong>REJECTED</strong></td>
+            <td>False positive on provider name lookup (&ldquo;Ms. Opeyemi Kemiki Dada&rdquo; triggered emergency). Unreliable classification on edge cases. Replaced by GPT-4.1-mini which correctly classifies information requests.</td>
+          </tr>
+          <tr>
+            <td>Claude Sonnet 4.6</td>
+            <td>Anthropic</td>
+            <td>Safety classifier</td>
+            <td style="color:var(--warn);"><strong>REJECTED</strong></td>
+            <td>Functional but 3x cost of Haiku ($1.3M/year per 1M users). Same vendor as main chat &mdash; no diversity benefit. GPT-4.1-mini is 2.5x cheaper than Haiku AND provides vendor diversity.</td>
+          </tr>
+          <tr>
+            <td>Claude Opus 4.6</td>
+            <td>Anthropic</td>
+            <td>Safety classifier</td>
+            <td style="color:var(--warn);"><strong>REJECTED</strong></td>
+            <td>Prohibitive cost: $6.6M/year per 1M users for safety alone. No justification for reasoning-class model on a binary classification task.</td>
+          </tr>
+          <tr>
+            <td>GPT-4o</td>
+            <td>OpenAI</td>
+            <td>Safety classifier</td>
+            <td>Considered</td>
+            <td>Functional but $1.04M/year per 1M users. GPT-4.1-mini at $83K provides equivalent classification quality for this task at 12x lower cost.</td>
+          </tr>
+          <tr>
+            <td>GPT-4o-mini</td>
+            <td>OpenAI</td>
+            <td>Safety classifier</td>
+            <td>Considered</td>
+            <td>Cheapest option ($62K/year) but older architecture than GPT-4.1-mini. GPT-4.1-mini chosen for better classification on edge cases at marginal cost increase.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Projected Cost per Million Users</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Users</th>
+            <th>AI Cost/Year</th>
+            <th>Staff</th>
+            <th>Infrastructure</th>
+            <th>Total Operating</th>
+            <th>Per User/Year</th>
+          </tr>
+        </thead>
+        <tbody>
           <tr><td>1M</td><td>$7.6M</td><td>$1.3M</td><td>$56K</td><td>$9.0M</td><td>$8.99</td></tr>
           <tr><td>2M</td><td>$15.2M</td><td>$1.3M</td><td>$100K</td><td>$16.6M</td><td>$8.31</td></tr>
           <tr><td>5M</td><td>$38.0M</td><td>$2.0M</td><td>$200K</td><td>$40.2M</td><td>$8.04</td></tr>
           <tr><td>10M</td><td>$75.9M</td><td>$3.5M</td><td>$400K</td><td>$79.8M</td><td>$7.98</td></tr>
-        </table>
-      </div>
-      <p style="font-size:0.85rem;color:var(--ink-soft);">Assumptions: 3 logins/month, 15 queries/session, 20% trigger provider search, 5% trigger URL verify, 2% trigger consent flow. LLM costs historically dropping ~50% year-over-year.</p>
+        </tbody>
+      </table>
+      <p style="margin-top:8px; font-size:0.88rem; color:var(--ink-soft);">Assumptions: 3 logins/month, 15 queries/session, 20% trigger provider search, 5% trigger URL verify, 2% trigger consent flow. Staff scales from 3 ($350K + benefits each) to ~8 at 10M. LLM costs assumed constant &mdash; historically dropping ~50% year-over-year.</p>
 
-      <!-- ═══════════════════════════════════════════════ -->
-      <!-- SECTION 14: DEFERRED                            -->
-      <!-- ═══════════════════════════════════════════════ -->
-      <h2 id="deferred">14. Deferred Items</h2>
-
+      <h3>Usage Assumptions</h3>
       <ul>
-        <li><strong>CopyToRuntime + Blue-Green Collection Swap</strong> &mdash; fan-out copy of <code>providers</code> to <code>providers_new</code> on FrontEnd cluster, then atomic rename swap.</li>
-        <li><strong>Migrate Chat Window off HuggingFace &rarr; Azure App Service</strong> &mdash; HuggingFace has 60s request timeout, spaces sleep on inactivity, free-tier compute insufficient for production.</li>
-        <li><strong>User authentication and cross-session persistence</strong></li>
-        <li><strong>FHIR / EMR integration</strong> &mdash; future phase</li>
-        <li><strong>Enterprise security hardening</strong> &mdash; fine-grained PAT, Azure Key Vault, OIDC federation, GPG-signed commits</li>
-        <li><strong>Multi-location provider aggregation</strong> &mdash; NPPES has one practice address per NPI; payer directory data would reveal all billing locations</li>
-        <li><strong>Production MongoDB cluster</strong> &mdash; currently dev only</li>
-        <li><strong>Data deletion agent</strong> &mdash; Azure Function with email verification, MongoDB deletion, confirmation</li>
+        <li>3 logins per user per month</li>
+        <li>15 queries per session</li>
+        <li>Every query: 1 safety check (GPT-4.1-mini) + 1 main chat (Sonnet 4.6)</li>
+        <li>20% of queries trigger provider search (1 query expansion + 1 embedding)</li>
+        <li>5% of queries trigger URL Guardian AI verification</li>
+        <li>2% of sessions trigger consent flow (1 summarize + 1 de-identify)</li>
+      </ul>
+
+      <h2 id="deferred">14. Deferred</h2>
+      <ul>
+        <li><strong>CopyToRuntime + Blue-Green Collection Swap</strong> — fan-out copy of <code>providers</code> → <code>providers_new</code> on ChatHealthyFrontEnd cluster, then atomic rename swap. Until implemented, runtime reads are served from the DataPipelines cluster.</li>
+        <li><strong>Cluster manager agent</strong> — dedicated agent/service to start/stop the DataPipelines cluster on a schedule, fully decoupled from the pipeline itself. Current approach: manual.</li>
+        <li><strong>Idle monitor re-enable</strong> — auto-pause the DataPipelines cluster when idle. Disabled because it fired mid-pipeline run. Requires a pipeline lock mechanism before re-enabling.</li>
+        <li><strong>Multi-location provider aggregation</strong> — NPPES has one practice address per individual NPI. Supplementing with payer directory data would reveal all locations where a provider bills (see RESEARCH-001).</li>
+        <li>FHIR / EMR integration — Layer 2, future phase</li>
+        <li>User authentication and cross-session persistence</li>
+        <li>Production MongoDB cluster (currently dev only)</li>
+        <li>MongoDB connection pooling design</li>
+        <li>Data deletion agent — Azure Function with email verification, MongoDB deletion, confirmation email</li>
+        <li><strong>Migrate Layer 1 off HuggingFace → Azure Static Web Apps.</strong> HuggingFace has a 60-second request timeout (too short for multi-agent workflows), spaces sleep on inactivity, and free-tier compute is undersized for production. Azure Static Web Apps places the React frontend on Azure CDN and the FastAPI backend as an Azure Function — same infrastructure already running DataPipelines, single vendor, single deploy pipeline. HuggingFace stays live until Layer 1 is replaced.</li>
+        <li><strong>Enterprise security hardening.</strong> Current setup uses workstation-cached GitHub credentials and manually managed secrets in Azure portal — acceptable for solo dev, insufficient for enterprise customers. Pre-sales blockers: fine-grained GitHub PAT or SSH key with passphrase; Azure Key Vault for secrets management; GitHub Actions OIDC federation replacing long-lived secrets; GPG-signed commits for verifiable audit trail; separation of deploy and dev credentials.</li>
       </ul>
 
     </div>
@@ -1062,7 +1302,7 @@
 
   <footer>
     <div class="footer-inner">
-      <span class="footer-copy"><a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener">&copy; 2026 Skip Snow. All rights reserved.</a></span>
+      <span class="footer-copy"><a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener">&copy; 2026 Skip Snow</a></span>
       <span class="footer-copy"><a href="#" onclick="(window.parent.openPanel||function(u){window.open(u,'_blank')})(('roadmap.html'),('Roadmap'));return false;">Product Roadmap</a></span>
     </div>
   </footer>

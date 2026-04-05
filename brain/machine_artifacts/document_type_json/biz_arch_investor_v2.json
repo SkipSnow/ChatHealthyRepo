@@ -1,0 +1,290 @@
+{
+  "vision": "ChatHealthy.ai provides the data, tools, and an AI-enlightened space to empower regular people to prevail over the broken healthcare system. Whatever a person's circumstances might be, they deserve the best possible care, at the best value. ChatHealthy.ai gives them the platform to get it. By presenting and evaluating care options but never giving medical advice, the platform allows families, individuals, and friends to collaborate with the most powerful AI models in order to choose the best provider they can have.",
+  "mission": "Help people make better healthcare decisions together.",
+  "executive_summary": "Healthcare is the largest consumer market in the world, yet the individual remains the least empowered participant. Decisions are fragmented across search, opaque quality data, and isolated conversations with no coordination. The result is predictable: overpayment, underperformance, and preventable harm. ChatHealthy.ai exists because this gap is not a feature of the system \u2014 it is the system\u2019s failure point.\n\nChatHealthy.ai unifies the healthcare decision process into a single consumer-controlled environment: find care, evaluate it with real quality signals, and decide collaboratively with people and AI. This is not another point solution. It is the decision layer sitting above the entire healthcare system, where choices are actually made. Once this layer exists, control shifts from institutions to individuals.\n\nThe business model follows the control point. We own the decision room. AI companies, not patients, pay to participate in it. As healthcare decisions become AI-assisted and collaborative by default, ChatHealthy.ai becomes the gateway through which those decisions flow. This is not a feature set. It is inevitable infrastructure.",
+  "components": {
+    "find_care": {
+      "description": "The entry point to the healthcare system, redesigned for clarity and control. Users discover providers, specialties, and care pathways without friction or bias.",
+      "capabilities": [
+        "Provider and specialty discovery",
+        "Navigation of care pathways",
+        "Geographic and access-based filtering",
+        "Integrated entry into evaluation and discussion"
+      ],
+      "pricing": "Free forever",
+      "role": "Top-of-funnel acquisition and trust layer. Establishes ChatHealthy.ai as the default starting point for any healthcare decision."
+    },
+    "evaluate_care": {
+      "description": "Transforms fragmented public and clinical data into clear, consumer-comprehensible quality signals using proprietary AI synthesis.",
+      "capabilities": [
+        "Clinical trials discovery and matching",
+        "Provider credential analysis",
+        "Quality signal aggregation and interpretation",
+        "Comparative provider evaluation"
+      ],
+      "pricing": "Free initially, with premium paid tiers for advanced insights and deeper analysis",
+      "role": "Trust engine. Converts raw data into decision-grade intelligence and establishes defensible intellectual property.",
+      "patent_concept": {
+        "claim": "Method for synthesizing healthcare provider quality signals using large language models to produce consumer-comprehensible provider assessments",
+        "signals": [
+          "NPI data",
+          "board certifications",
+          "disciplinary actions",
+          "malpractice history",
+          "patient outcomes",
+          "clinical trial participation",
+          "prescription patterns",
+          "CMS quality scores",
+          "state licensing records"
+        ],
+        "innovation": "All signals are public. LLMs exist. The method of combining them for consumer healthcare navigation is novel.",
+        "next_steps": [
+          "GPT patent search",
+          "Provisional patent draft in Discuss Care beta session (Boss + Claude + GPT + patent lawyer)",
+          "Patent attorney files and negotiates"
+        ],
+        "first_use_case_for_discuss_care": "Drafting the provisional patent IS the beta test of the product."
+      }
+    },
+    "discuss_care": {
+      "description": "A real-time, multi-participant decision environment where individuals bring family, caregivers, and multiple AI models into a single structured conversation.",
+      "capabilities": [
+        "Multi-human, multi-AI shared sessions",
+        "Invite-based collaboration with no account friction",
+        "AI model selection and competition within the same session",
+        "Shared tools across participants (search, evaluation, trials)",
+        "Persistent sessions with exportable transcripts",
+        "Shared research bot for autonomous analysis",
+        "Consent-based participation and governance controls"
+      ],
+      "pricing": "Premium via AI token usage markup; users pay only when they choose advanced AI participation",
+      "role": "The control point of the platform. Where decisions are made, value is captured, and revenue is generated.",
+      "features": [
+        {
+          "id": "DC-01",
+          "feature": "Shared Chat Session",
+          "description": "Multiple humans in one conversation with AI assistance"
+        },
+        {
+          "id": "DC-02",
+          "feature": "Invite System",
+          "description": "User sends invite link to friends, family, caregivers. No account required."
+        },
+        {
+          "id": "DC-03",
+          "feature": "Multi-Model AI",
+          "description": "Multiple AI models participate in the same session (Claude, GPT, etc.), each with access to all tools"
+        },
+        {
+          "id": "DC-04",
+          "feature": "Shared Tool Access",
+          "description": "All participants (human and AI) can trigger provider search, clinical trials, specialty identification, provider detail"
+        },
+        {
+          "id": "DC-05",
+          "feature": "Healthcare Guardrails",
+          "description": "Conversations constrained to healthcare navigation. Same safety filter, emergency detection, scope rules."
+        },
+        {
+          "id": "DC-06",
+          "feature": "Session Transcript",
+          "description": "Exportable transcript for sharing with doctors, care teams"
+        },
+        {
+          "id": "DC-07",
+          "feature": "Consent per Participant",
+          "description": "Each participant manages their own consent tier independently"
+        },
+        {
+          "id": "DC-08",
+          "feature": "Participant Roles",
+          "description": "Session creator (host), invited participant (peer). No admin/enterprise roles."
+        },
+        {
+          "id": "DC-09",
+          "feature": "Real-Time Collaboration",
+          "description": "All participants see messages and AI responses live"
+        },
+        {
+          "id": "DC-10",
+          "feature": "Session Persistence",
+          "description": "Sessions survive disconnects, resumable by invite link"
+        },
+        {
+          "id": "DC-14",
+          "feature": "Shared Research Bot",
+          "description": "Any participant or component can dispatch a research bot to gather information. Shared object across all three components and pipelines. Bot runs autonomously, returns findings to the session. Dispatched by consensus or individual request. All bot work incurs a fee."
+        },
+        {
+          "id": "DC-15",
+          "feature": "Licensed Provider Detection and Compliance Disclosure",
+          "description": "If a participant identifies as or is detected as a licensed healthcare provider, the system triggers automatic compliance disclosure: (1) ChatHealthy.ai is not subject to HIPAA, (2) This session does not create a provider-patient relationship, (3) Security standards disclosed (HITRUST/DOD/SOC2). All participants must acknowledge before session continues. Consent re-confirmed."
+        }
+      ],
+      "floor_control": [
+        {
+          "id": "DC-01",
+          "feature": "Shared Chat Session",
+          "description": "Multiple humans in one conversation with AI assistance"
+        },
+        {
+          "id": "DC-02",
+          "feature": "Invite System",
+          "description": "User sends invite link to friends, family, caregivers. No account required."
+        },
+        {
+          "id": "DC-03",
+          "feature": "Multi-Model AI",
+          "description": "Multiple AI models participate in the same session (Claude, GPT, etc.), each with access to all tools"
+        },
+        {
+          "id": "DC-04",
+          "feature": "Shared Tool Access",
+          "description": "All participants (human and AI) can trigger provider search, clinical trials, specialty identification, provider detail"
+        },
+        {
+          "id": "DC-05",
+          "feature": "Healthcare Guardrails",
+          "description": "Conversations constrained to healthcare navigation. Same safety filter, emergency detection, scope rules."
+        },
+        {
+          "id": "DC-06",
+          "feature": "Session Transcript",
+          "description": "Exportable transcript for sharing with doctors, care teams"
+        },
+        {
+          "id": "DC-07",
+          "feature": "Consent per Participant",
+          "description": "Each participant manages their own consent tier independently"
+        },
+        {
+          "id": "DC-08",
+          "feature": "Participant Roles",
+          "description": "Session creator (host), invited participant (peer). No admin/enterprise roles."
+        },
+        {
+          "id": "DC-09",
+          "feature": "Real-Time Collaboration",
+          "description": "All participants see messages and AI responses live"
+        },
+        {
+          "id": "DC-10",
+          "feature": "Session Persistence",
+          "description": "Sessions survive disconnects, resumable by invite link"
+        },
+        {
+          "id": "DC-14",
+          "feature": "Shared Research Bot",
+          "description": "Any participant or component can dispatch a research bot to gather information. Shared object across all three components and pipelines. Bot runs autonomously, returns findings to the session. Dispatched by consensus or individual request. All bot work incurs a fee."
+        },
+        {
+          "id": "DC-15",
+          "feature": "Licensed Provider Detection and Compliance Disclosure",
+          "description": "If a participant identifies as or is detected as a licensed healthcare provider, the system triggers automatic compliance disclosure: (1) ChatHealthy.ai is not subject to HIPAA, (2) This session does not create a provider-patient relationship, (3) Security standards disclosed (HITRUST/DOD/SOC2). All participants must acknowledge before session continues. Consent re-confirmed."
+        }
+      ]
+    }
+  },
+  "value_chain": "The consumer orchestrates the entire experience. They move fluidly between finding care, evaluating options, and discussing decisions in a single environment. This is not a linear funnel but a dynamic loop, where discovery, analysis, and collaboration reinforce each other. ChatHealthy.ai does not replace providers \u2014 it positions the consumer above them, in control of the decision process.",
+  "revenue_model": {
+    "streams": [
+      "AI token markup on premium model usage within Discuss Care",
+      "AI vendor access fees to participate in decision sessions",
+      "Future premium subscriptions for advanced evaluation insights"
+    ],
+    "ai_reseller_positioning": "ChatHealthy.ai operates as the decision-layer marketplace for AI in healthcare. Users choose which models participate; AI vendors pay for access to those moments. This mirrors the Apple model: control the environment, monetize participation.",
+    "economic_logic": "Healthcare decisions represent the highest-value context for AI deployment. Being present at the moment a family chooses a provider or treatment has measurable economic value. ChatHealthy.ai captures that value by owning the environment where those decisions occur."
+  },
+  "moat": {
+    "barriers": [
+      {
+        "name": "Regulatory Willingness",
+        "description": "AI vendors avoid FDA classification and HIPAA compliance. They need someone else to own the healthcare room."
+      },
+      {
+        "name": "Governance Framework",
+        "description": "Multi-AI safety, consent, floor control, moderation. Nobody else has this."
+      },
+      {
+        "name": "Data + Network",
+        "description": "Provider, trial, and quality signals compound over time. Takes years to build."
+      },
+      {
+        "name": "Consumer Trust",
+        "description": "Years to build, seconds to lose. Trust is the ultimate barrier."
+      },
+      {
+        "name": "Patent",
+        "description": "LLM-based synthesis of provider quality signals. Method patent pending."
+      },
+      {
+        "name": "IP Protection & Trade Secrets",
+        "description": "Proprietary algorithms, data processing methods, and governance frameworks."
+      }
+    ]
+  },
+  "security_positioning": {
+    "principle": "ChatHealthy.ai is not required to meet HIPAA standards. It chooses to exceed them.",
+    "approach": "Security is treated as a product feature and trust driver, not a compliance obligation.",
+    "certifications_path": [
+      "HITRUST CSF certification",
+      "SOC 2 Type II compliance",
+      "NIST SP 800-171 alignment",
+      "Annual third-party penetration testing with published results"
+    ],
+    "differentiation": "Healthcare incumbents are frequently breached despite regulatory requirements. ChatHealthy.ai positions voluntary, transparent security as a competitive advantage."
+  },
+  "governance": {
+    "rules": [
+      "No providers in decision sessions; collaboration remains consumer-led",
+      "All sessions explicitly disclose non-HIPAA status and security posture",
+      "No creation of provider-patient relationships within the platform"
+    ],
+    "disclosures": [
+      "ChatHealthy.ai is not a HIPAA-covered entity",
+      "Enterprise-grade security is voluntarily maintained",
+      "Participation does not establish clinical or legal relationships"
+    ]
+  },
+  "marketing_positioning": {
+    "headlines": [
+      "We are not required to protect your data. We choose to.",
+      "The healthcare platform that protects your data better than your hospital does",
+      "Make healthcare decisions like you make every other important decision \u2014 together"
+    ],
+    "uses": [
+      "Consumer trust acquisition through transparency",
+      "Investor narrative around voluntary security and control",
+      "Enterprise credibility despite non-HIPAA positioning",
+      "Clear differentiation from legacy healthcare systems"
+    ]
+  },
+  "competitive_landscape": {
+    "positioning": "The healthcare navigation market is dominated by platforms that earn revenue from the providers they claim to evaluate. ChatHealthy.ai is the only platform built entirely on the consumer side of the table.",
+    "incumbents": [
+      {
+        "name": "Yelp Health",
+        "problem": "Earns revenue from sponsored listings. Providers who pay appear first. Consumer trust is the product being sold."
+      },
+      {
+        "name": "ZocDoc",
+        "problem": "Charges providers for patient bookings. The platform is a referral engine disguised as a search tool."
+      },
+      {
+        "name": "Healthgrades",
+        "problem": "Revenue from provider advertising and hospital partnerships. Ratings influenced by who pays."
+      },
+      {
+        "name": "Angies List",
+        "problem": "Merged with HomeAdvisor. Lead generation model. Providers pay for leads. Consumer is the product."
+      }
+    ],
+    "the_gap": "Every incumbent earns money from the care chain -- providers, hospitals, or payers. This creates a structural conflict of interest. The consumer cannot trust a platform that is paid by the people it is supposed to evaluate.",
+    "our_position": "ChatHealthy.ai will never take money from providers, hospitals, payers, pharmaceutical companies, PBMs, or any entity in the care delivery or payment chain. This is not a guideline. It is governance policy GOV-001, permanent and non-negotiable. Our revenue comes exclusively from consumers (token premiums) and technology partners (AI vendor capital). This is our moat. No incumbent can match it without destroying their business model."
+  },
+  "investment_thesis": "ChatHealthy.ai sits at the intersection of two shifts: consumers'  thwarted desire to control healthcare decisions and AI's new capability to participate in those decisions. The company captures value by providing consumers a platform they are willing to pay for. ChatHealthy.ai is already a product, now it must become a brand. Built upon an impartial platform finding objectivity through objectivity because it can see the intricate patterns in the immense amount of data and help the consumer make decisions based on facts. Investors back a platform becoming the default interface to navigate the purposefully opaque American Healthcare system. Monetization comes when the brand can sustain its growth behind a pay gate. ChatHealthy.ai is the place people come to find care, evaluate care, and discuss care with loved ones and AI.",
+  "timeline": {
+    "source_of_truth": "Website/roadmap.html",
+    "note": "All milestone dates are maintained in the roadmap. This document renders from that source. Do not duplicate dates here."
+  }
+}

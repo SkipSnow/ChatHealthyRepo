@@ -21,7 +21,7 @@ import os
 import time
 
 from pymongo import MongoClient
-from copy_to_frontend import _create_frontend_vector_index, _create_specialty_vector_index, verify_frontend_indexes
+from copy_to_frontend import _create_frontend_vector_index
 
 BATCH_SIZE = 5_000
 
@@ -125,23 +125,11 @@ def run_promote_data(config: dict) -> dict:
             result = _copy_collection(client, from_db, to_db, coll_name, query)
             results.append(result)
 
-            # Create vector search indexes after copying
+            # Create vector search index after copying providers
             if coll_name == "providers":
-                log.info("Creating provider vector index on %s.providers", to_db)
+                log.info("Creating vector search index on %s.providers", to_db)
                 idx_result = _create_frontend_vector_index(client, to_db)
                 results.append(idx_result)
-            if coll_name == "SpecialtyMetaData":
-                log.info("Creating specialty vector index on %s.SpecialtyMetaData", to_db)
-                idx_result = _create_specialty_vector_index(client, to_db)
-                results.append(idx_result)
-
-        # DR-016: Verify all required indexes exist after promotion
-        log.info("Verifying frontend indexes on %s...", to_db)
-        verify = verify_frontend_indexes(client, to_db)
-        if not verify["passed"]:
-            log.error("INDEX VERIFICATION FAILED: %s", verify["missing"])
-            raise RuntimeError(f"Promotion blocked — missing indexes: {verify['missing']}")
-        log.info("Index verification PASSED: %s", verify["indexes"])
 
     finally:
         client.close()
@@ -156,5 +144,4 @@ def run_promote_data(config: dict) -> dict:
         "to": to_db,
         "collections": results,
         "total_copied": total_copied,
-        "index_verification": "passed",
     }

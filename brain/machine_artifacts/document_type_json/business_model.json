@@ -1,0 +1,221 @@
+{
+  "title": "ChatHealthy FindCare - Business Model",
+  "version": "1.0",
+  "date": "2026-03-28",
+  "approved_by": "Skip Snow (Founder/CEO)",
+
+  "company": {
+    "name": "ChatHealthy.AI",
+    "product": "FindCare",
+    "founder": "Skip Snow",
+    "founder_background": "Enterprise healthcare (Humana)",
+    "stage": "Alpha (v0.1.2)",
+    "founding_year": 2026,
+    "entity_type": "Sole proprietorship (IP licensing pending - LEG Q4)",
+    "website": "chathealthy.ai",
+    "repo": "github.com/SkipSnow/ChatHealthyRepo",
+    "public_by_default": true
+  },
+
+  "product": {
+    "description": "AI-native consumer healthcare navigation chatbot. Users describe needs in natural language, system finds providers, identifies specialties, discovers clinical trials, and handles lead capture with HIPAA-compliant consent.",
+    "supported_states": ["DE", "MS"],
+    "expansion_plan": "National",
+    "data_sources": ["NPI Registry (8.5M providers)", "NUCC Taxonomy", "ClinicalTrials.gov API"],
+    "features": [
+      "Provider Search (vector + regex, city/county/state filters)",
+      "Specialty Identification (NUCC + AI query expansion)",
+      "Clinical Trials Search (ClinicalTrials.gov)",
+      "About ChatHealthy / Founder Q&A",
+      "Safety Filter (dual-trigger: keywords + AI classifier)",
+      "Lead Capture (follow-up offer, duplicate detection)",
+      "HIPAA Consent Flow (two-tier: verbatim/de-identified/contact-only)",
+      "Provider Detail (Healthgrades, Zocdoc, NPI Registry)",
+      "URL Guardian (validate + defang broken links, AI content verification)",
+      "Chat UX (think timer, stop button, markdown, emergency lock)",
+      "Blob Storage Infrastructure (admin, lifecycle-managed brain)",
+      "Validated Provider Web Research (NPI API lookup + link validation)",
+      "Unanswerable Question Handling (record + de-identify)",
+      "Markdown Table Rendering (GFM tables in chat)"
+    ]
+  },
+
+  "technology": {
+    "architecture": "Three-application: Website (Cloudflare), Chat (HuggingFace/Azure), DataPipelines (Azure Functions)",
+    "frontend": "React + TypeScript (Cloudflare Pages, free)",
+    "backend": "FastAPI on Python",
+    "hosting_current": "HuggingFace Spaces (Docker)",
+    "hosting_target": "Azure App Service (portability designed, Sprint 2)",
+    "models": {
+      "main_chat": {"model": "claude-sonnet-4-6", "vendor": "Anthropic", "role": "Conversation, intent routing, tool calls"},
+      "safety_classifier": {"model": "gpt-4.1-mini", "vendor": "OpenAI", "role": "Emergency detection on every message"},
+      "utility": {"model": "claude-haiku-4-5", "vendor": "Anthropic", "role": "Query expansion, summarization, de-identification, URL verification"},
+      "embeddings_large": {"model": "text-embedding-3-large", "vendor": "OpenAI", "role": "Provider vector search"},
+      "embeddings_small": {"model": "text-embedding-3-small", "vendor": "OpenAI", "role": "Specialty vector search"}
+    },
+    "database": "MongoDB Atlas (FrontEnd cluster: always-on, DataPipelines cluster: on-demand)",
+    "blob_storage": "Azure Blob Storage (admin, dev-brain, provider-data, chathealthy-public-data)",
+    "vendor_diversity": "Safety classifier on OpenAI (GPT-4.1-mini), main chat on Anthropic (Sonnet). If one vendor goes down, safety still works."
+  },
+
+  "unit_economics": {
+    "staff": {
+      "headcount": 3,
+      "cash_comp": 1050000,
+      "benefits": 286125,
+      "fully_loaded": 1336125,
+      "note": "3 employees at $350K base + 27.3% benefits burden ($95,375/employee)"
+    },
+    "per_million_users_annual": {
+      "total_operating_cost": 8987020,
+      "staff_cost": 1336125,
+      "total_it_cost": 7650895,
+      "llm_ai_cost": 7594427,
+      "infrastructure_cost": 56468,
+      "staff_percentage": 14.9,
+      "ai_percentage": 84.5,
+      "infrastructure_percentage": 0.6
+    },
+    "per_user": {
+      "annual": 8.99,
+      "monthly": 0.75,
+      "note": "Includes staff + IT. IT-only: $7.65/year, $0.64/month"
+    },
+    "cost_breakdown": {
+      "main_chat_sonnet": {"annual_per_1m": 7391250, "percentage": 97.3},
+      "safety_gpt41mini": {"annual_per_1m": 83220, "percentage": 1.1},
+      "query_expansion_haiku": {"annual_per_1m": 49275, "percentage": 0.6},
+      "embeddings": {"annual_per_1m": 3066, "percentage": 0.04},
+      "url_verify_haiku": {"annual_per_1m": 15056, "percentage": 0.2},
+      "summarize_deidentify_haiku": {"annual_per_1m": 52560, "percentage": 0.7},
+      "azure_compute_storage": {"annual_per_1m": 22176, "percentage": 0.3},
+      "mongodb_atlas": {"annual_per_1m": 26400, "percentage": 0.3},
+      "other_infra": {"annual_per_1m": 7892, "percentage": 0.1}
+    },
+    "usage_assumptions": {
+      "logins_per_month": 3,
+      "queries_per_session": 15,
+      "monthly_queries_per_1m_users": 45000000,
+      "annual_queries_per_1m_users": 540000000,
+      "provider_search_rate": 0.20,
+      "url_verify_rate": 0.05,
+      "consent_flow_rate": 0.02
+    }
+  },
+
+  "revenue_model": {
+    "primary_streams": [
+      {
+        "stream": "Consumer Subscriptions",
+        "description": "Direct-to-consumer monthly subscription for premium healthcare navigation",
+        "pricing_tiers": [
+          {"price": 4.99, "gross_margin_incl_staff": 85.0},
+          {"price": 7.99, "gross_margin_incl_staff": 90.6},
+          {"price": 9.99, "gross_margin_incl_staff": 92.5},
+          {"price": 14.99, "gross_margin_incl_staff": 95.0}
+        ]
+      },
+      {
+        "stream": "Healthcare SaaS Vendor Licensing",
+        "description": "License ChatHealthy navigation engine to healthcare technology vendors who serve health plans, providers, PBMs. The SaaS vendor pays ChatHealthy. ChatHealthy has no direct financial relationship with care-chain entities.",
+        "compliance": "GOV-001 compliant - revenue from technology partner, not care-chain entity"
+      },
+      {
+        "stream": "Freemium",
+        "description": "Free tier for user acquisition, premium features for subscribers",
+        "purpose": "Lower barrier to entry, build user base, convert to paid"
+      }
+    ],
+    "prohibited_revenue_sources": [
+      "Health plans / insurance companies",
+      "Provider organizations",
+      "PBMs (pharmacy benefit managers)",
+      "Pharmaceutical companies",
+      "Any entity in the care delivery or payment chain"
+    ],
+    "exit_strategy": {
+      "description": "Acquisition by healthcare SaaS vendor, competitor, insurance company, or technology company. GOV-001 constrains operating revenue, not exit. Acquirer buys the technology, user base, and proprietary data.",
+      "acquirer_types": ["Healthcare SaaS vendors", "Health tech competitors", "Insurance companies", "Technology companies"],
+      "key_assets": ["Proprietary navigation engine", "User base + engagement data", "De-identified aggregate health navigation dataset", "Brain Loop AI collaboration framework", "Trust-based brand (neutrality)"]
+    }
+  },
+
+  "competitive_analysis": {
+    "moat": {
+      "type": "Trust-based governance moat",
+      "description": "ChatHealthy's governance policies (neutrality, single-tenant, transparency) are business decisions that competitors won't make because they conflict with revenue optimization. Neutrality means no referral fees. These constraints build user trust that monetization-first platforms cannot replicate.",
+      "components": [
+        "Provider neutrality (GOV-001) - no care-chain revenue = unbiased recommendations",
+        "Proprietary provider quality scoring from user interactions (over time)",
+        "De-identified aggregate health navigation data (unique dataset)",
+        "Brain Loop AI collaboration framework (development methodology advantage)",
+        "First-mover in AI-native healthcare navigation (vs AI bolted onto existing platforms)"
+      ]
+    },
+    "competitors": [
+      {"name": "Zocdoc", "differentiator": "Provider-paid marketplace. ChatHealthy is neutral."},
+      {"name": "Healthgrades", "differentiator": "Advertising-driven. ChatHealthy has no ads."},
+      {"name": "Doctor on Demand", "differentiator": "Telemedicine, not navigation. Different segment."},
+      {"name": "Google Health", "differentiator": "General search, not specialized. No HIPAA consent flow."}
+    ]
+  },
+
+  "risk_assessment": {
+    "risks": [
+      {
+        "risk": "Consumer adoption doesn't scale",
+        "severity": "High",
+        "mitigation": "SaaS vendor partnerships for indirect B2B revenue + exit/acquisition as fallback",
+        "status": "mitigated"
+      },
+      {
+        "risk": "LLM vendor concentration (97% on Anthropic Sonnet)",
+        "severity": "High",
+        "mitigation": "Safety on OpenAI (vendor diversity). Portability refactoring (Sprint 2) enables model swapping. LLM costs dropping ~50% YoY.",
+        "status": "partially_mitigated"
+      },
+      {
+        "risk": "Regulatory/HIPAA compliance gaps",
+        "severity": "High",
+        "mitigation": "Two-tier consent flow implemented. 4 pending legal questions tracked. Legal review before beta.",
+        "status": "in_progress"
+      },
+      {
+        "risk": "Single founder execution capacity",
+        "severity": "Medium",
+        "mitigation": "AI-assisted development (Claude + ChatGPT). Brain Loop autonomous collaboration. Hire after funding.",
+        "status": "accepted"
+      },
+      {
+        "risk": "Weak moat - competitors replicate AI features",
+        "severity": "Medium",
+        "mitigation": "Governance-as-moat (trust). Proprietary data over time. First-mover advantage.",
+        "status": "mitigated"
+      },
+      {
+        "risk": "Public-by-default exposes IP",
+        "severity": "Low",
+        "mitigation": "Temporary policy (GOV-003). Revisit when funding secured. Copyright retained.",
+        "status": "accepted"
+      }
+    ]
+  },
+
+  "investor_pitch": {
+    "narrative": "ChatHealthy is the only AI-native healthcare navigation platform that refuses revenue from the care chain. Our governance policies - neutrality, single-tenant, transparency - are our competitive moat. Users trust us because we have no incentive to bias recommendations. Dual-path growth: consumer subscriptions for direct revenue, SaaS vendor licensing for scale, acquisition for exit.",
+    "key_metrics_needed": [
+      "100K+ active users (prove demand)",
+      "Resolved HIPAA compliance questions (remove investor blockers)",
+      "At least one healthcare SaaS vendor partnership (prove B2B model)",
+      "User retention and engagement data (prove value)"
+    ],
+    "ask": "Seed funding to scale from alpha (2 states) to beta (10+ states), hire engineering + compliance team, execute SaaS vendor partnerships."
+  },
+
+  "timeline": {
+    "alpha_v012": {"date": "2026-03-31", "milestone": "12 features, DE + MS, manual UAT"},
+    "beta_v05": {"date": "2026-Q3", "milestone": "10+ states, automated tests, ErrorBoundary, portability refactoring, maps"},
+    "production_v10": {"date": "2026-Q4", "milestone": "National coverage, SaaS vendor partnership, investor-ready"},
+    "series_a": {"date": "2027-H1", "milestone": "100K users, proven B2B model, regulatory compliance complete"}
+  }
+}

@@ -1,15 +1,13 @@
 // Copyright (c) 2026 Skip Snow. All rights reserved.
 // Licensed under the FindCare Evaluation License (FEL-1.0).
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import MessageBubble from './MessageBubble'
-import { useGUIManager } from './GUIManager'
 
 export interface Message {
   role: 'user' | 'assistant'
   content: string
   isError?: boolean
-  isSummary?: boolean
   thinkSeconds?: number
   tokensIn?: number
   build?: string
@@ -38,175 +36,11 @@ export default function ChatWindow() {
   const [abandonCount, setAbandonCount] = useState(0)
   const [continueCount, setContinueCount] = useState(0)
 
-  // GUI Manager — non-chat controls (pagination, future widgets)
-  const gui = useGUIManager()
-  // Pagination: when direction changes (forward/back click from control frame), fetch directly
-  useEffect(() => {
-    const dir = (gui.pagination as any).direction
-    if (!dir || !gui.pagination.visible || !gui.pagination.searchParams) return
-
-    const afterNpi = dir === 'forward' ? gui.pagination.lastNpi : gui.getBeforeNpi()
-    const prevPageEnd = gui.pagination.pageEnd
-    const prevPageStart = gui.pagination.pageStart
-    const pageSize = gui.pagination.pageSize
-
-    // Compute new page position from current state
-    const newPageStart = dir === 'forward' ? prevPageEnd + 1 : Math.max(1, prevPageStart - pageSize)
-
-    const params = {
-      ...gui.pagination.searchParams,
-      after_npi: afterNpi || undefined,
-      limit: pageSize,
-    }
-
-    setIsLoading(true)
-    fetch(`${API_URL}/search`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (data.providers && data.providers.length > 0) {
-          const newPageEnd = newPageStart + data.providers.length - 1
-          const text = data.providers.map((p: any) =>
-            `**${p.name}**\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
-          ).join('\n\n')
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: `**Records ${newPageStart}\u2013${newPageEnd} of ${gui.pagination.totalCount}:**\n\n${text}`,
-          }])
-          gui.showPagination(
-            gui.pagination.totalCount, newPageStart, newPageEnd,
-            data.first_npi, data.last_npi, gui.pagination.searchParams, pageSize,
-          )
-        }
-        setIsLoading(false)
-      })
-      .catch(() => {
-        setMessages(prev => [...prev, { role: 'assistant', content: '**Error:** Could not fetch records.', isError: true }])
-        setIsLoading(false)
-      })
-  }, [(gui.pagination as any).direction, gui.pagination.npiHistory.length])
-
-  // Filter apply — user selected specializations from left panel
-  useEffect(() => {
-    gui.onFilterApply((codes: string[], params: any) => {
-      const searchParams = { ...params, specialty_codes: codes }
-      // Remove specialty_query — we have exact codes now
-      delete searchParams.specialty_query
-      setIsLoading(true)
-      fetch(`${API_URL}/search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...searchParams, limit: 25 }),
-      })
-        .then(r => r.json())
-        .then(data => {
-          if (data.providers && data.providers.length > 0) {
-            const resultText = data.providers.map((p: any) =>
-              `**${p.name}**\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
-            ).join('\n\n')
-            const newMessages: Message[] = [{
-              role: 'assistant',
-              content: `**Filtered results — ${data.total_count} providers found:**\n\n${resultText}`,
-            }]
-            if (data.summary_message) {
-              newMessages.push({
-                role: 'assistant',
-                content: data.summary_message,
-                isSummary: true,
-              } as Message)
-            }
-            setMessages(prev => [...prev, ...newMessages])
-            // Boss design: filtered results show pagination controls immediately
-            if (data.has_more) {
-              gui.showPagination(
-                data.total_count, 1, data.count,
-                data.first_npi, data.last_npi, searchParams, data.count,
-              )
-            }
-            // Also store in pending for next-page action link
-            pendingPaginationRef.current = {
-              totalCount: data.total_count,
-              lastNpi: data.last_npi,
-              searchParams,
-              pageSize: data.count,
-              pageEnd: data.count,
-            }
-          } else {
-            setMessages(prev => [...prev, {
-              role: 'assistant',
-              content: 'No providers found matching the selected specializations.',
-            }])
-          }
-          setIsLoading(false)
-        })
-        .catch(() => {
-          setMessages(prev => [...prev, { role: 'assistant', content: '**Error:** Could not apply filter.', isError: true }])
-          setIsLoading(false)
-        })
-    })
-  }, [])
-
-  // FC-RESULT-MSG: handle action links from system summary message
-  const fetchNextPageRef = useRef<() => void>(() => {})
-  useEffect(() => {
-    fetchNextPageRef.current = () => {
-      const pp = pendingPaginationRef.current
-      if (!pp) return
-      pendingPaginationRef.current = null
-      setIsLoading(true)
-      const pageStart = pp.pageEnd + 1
-      fetch(`${API_URL}/search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...pp.searchParams, after_npi: pp.lastNpi, limit: pp.pageSize }),
-      })
-        .then(r => r.json())
-        .then(data => {
-          if (data.providers && data.providers.length > 0) {
-            const pageEnd = pageStart + data.providers.length - 1
-            const resultText = data.providers.map((p: any) =>
-              `**${p.name}**\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
-            ).join('\n\n')
-            setMessages(prev => [...prev, {
-              role: 'assistant',
-              content: `**Records ${pageStart}\u2013${pageEnd} of ${pp.totalCount}:**\n\n${resultText}`,
-            }])
-            gui.showPagination(pp.totalCount, pageStart, pageEnd,
-              data.first_npi, data.last_npi, pp.searchParams, pp.pageSize)
-          }
-          setIsLoading(false)
-        })
-        .catch(() => {
-          setMessages(prev => [...prev, { role: 'assistant', content: '**Error:** Could not fetch more results.', isError: true }])
-          setIsLoading(false)
-        })
-    }
-  })
-  useEffect(() => {
-    function handleAction(event: MessageEvent) {
-      const msg = event.data
-      if (!msg || typeof msg !== 'object') return
-      if (msg.type === 'gui:highlight-filter') {
-        window.parent.postMessage({ type: 'gui:event', action: 'highlight-filter' }, '*')
-      } else if (msg.type === 'gui:next-page') {
-        fetchNextPageRef.current()
-      }
-    }
-    window.addEventListener('message', handleAction)
-    return () => window.removeEventListener('message', handleAction)
-  }, [])
-
   // Refs — avoid stale closures in async callbacks
   const messagesRef = useRef<Message[]>([LOADING_MESSAGE])
   useEffect(() => { messagesRef.current = messages }, [messages])
   const backendEnvRef = useRef<string>('prod')
   const pendingRetryRef = useRef<{ message: string; history: any[]; startTime: number } | null>(null)
-  const pendingPaginationRef = useRef<{
-    totalCount: number; lastNpi: string; searchParams: any; pageSize: number; pageEnd: number
-  } | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
   // Fetch welcome message dynamically from server — no static defaults
@@ -367,41 +201,6 @@ export default function ChatWindow() {
       }])
       if (data.emergency) setIsLocked(true)
       if (data.response === 'Session unlocked.') setIsLocked(false)
-
-      // Store pagination state silently — no controls yet.
-      // Controls appear only when user says "yes" and we fetch page 2.
-      if (data.pagination?.total_count > 0 && data.pagination?.has_more) {
-        pendingPaginationRef.current = {
-          totalCount: data.pagination.total_count,
-          lastNpi: data.pagination.last_npi,
-          searchParams: data.pagination.search_params,
-          pageSize: data.pagination.count,
-          pageEnd: data.pagination.count,  // first page ends at count (e.g., 25)
-        }
-      }
-
-      // Show filter panel if specialization options returned
-      if (data.pagination?.specialization_options?.length > 1) {
-        gui.showFilterPanel(data.pagination.specialization_options, data.pagination.search_params)
-      }
-
-      // FC-RESULT-MSG / GOV-011: system-built summary message replaces LLM summary
-      if (data.pagination?.summary_message) {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: data.pagination.summary_message,
-          isSummary: true,
-        } as Message])
-      }
-
-      // Clinical trials summary — same GOV-011 pattern
-      if (data.trials?.summary_message) {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: data.trials.summary_message,
-          isSummary: true,
-        } as Message])
-      }
     }
 
     setIsLoading(false)
@@ -412,57 +211,6 @@ export default function ChatWindow() {
     e?.preventDefault()
     const text = input.trim()
     if (!text || !canSubmit) return
-
-    // If there's a pending pagination and user responds, fetch page 2 directly (no LLM)
-    if (pendingPaginationRef.current) {
-      const pp = pendingPaginationRef.current
-      pendingPaginationRef.current = null
-      setMessages(prev => [...prev, { role: 'user', content: text }])
-      setInput('')
-      setIsLoading(true)
-
-      // Page position tracked by frontend — backend just returns records
-      const pageStart = pp.pageEnd + 1
-
-      fetch(`${API_URL}/search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...pp.searchParams,
-          after_npi: pp.lastNpi,
-          limit: pp.pageSize,
-        }),
-      })
-        .then(r => r.json())
-        .then(data => {
-          if (data.providers && data.providers.length > 0) {
-            const pageEnd = pageStart + data.providers.length - 1
-            const resultText = data.providers.map((p: any) =>
-              `**${p.name}**\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
-            ).join('\n\n')
-            setMessages(prev => [...prev, {
-              role: 'assistant',
-              content: `**Records ${pageStart}\u2013${pageEnd} of ${pp.totalCount}:**\n\n${resultText}`,
-            }])
-            // NOW show controls — user opted in, second page is on screen
-            console.log('[ChatWindow] Calling showPagination', { totalCount: pp.totalCount, pageStart, pageEnd })
-            gui.showPagination(
-              pp.totalCount, pageStart, pageEnd,
-              data.first_npi, data.last_npi, pp.searchParams, pp.pageSize,
-            )
-          }
-          setIsLoading(false)
-        })
-        .catch(() => {
-          setMessages(prev => [...prev, { role: 'assistant', content: '**Error:** Could not fetch more results.', isError: true }])
-          setIsLoading(false)
-        })
-      return
-    }
-
-    // Hide pagination when user sends a new non-pagination message
-    // Filter panel stays open — user may still want to refine
-    gui.hidePagination()
 
     const historyForBackend = messagesRef.current
       .filter(m => (m.role === 'user' || m.role === 'assistant')
@@ -486,7 +234,7 @@ export default function ChatWindow() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: 800, margin: '0 auto', width: '100%' }}>
-      {envBanner && window.parent === window && (
+      {envBanner && (
         <div style={{ background: envBanner.env === 'local' ? '#d97706' : '#dc2626', color: '#fff', textAlign: 'center', padding: '4px 8px', fontSize: 13, fontWeight: 600, letterSpacing: '0.03em' }}>
           {envBanner.env.toUpperCase()} — Build {envBanner.build} — {envBanner.version}
         </div>
@@ -584,8 +332,6 @@ export default function ChatWindow() {
           </div>
         </div>
       )}
-
-      {/* Control frame lives on the static parent page — React pushes via postMessage */}
 
       <form onSubmit={handleSend} style={{ padding: '16px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: 8 }}>
         <input

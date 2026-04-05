@@ -16,13 +16,9 @@ const sanitizeSchema = {
   attributes: {
     ...defaultSchema.attributes,
     span: [['className', 'state-name']],
-    a: [...(defaultSchema.attributes?.a || []), 'target', 'rel', 'href'],
+    a: [...(defaultSchema.attributes?.a || []), 'target', 'rel'],
     th: ['align'],
     td: ['align'],
-  },
-  protocols: {
-    ...defaultSchema.protocols,
-    href: [...(defaultSchema.protocols?.href || []), '#action'],
   },
 }
 
@@ -35,16 +31,6 @@ const linkTarget = ({ node }: any) => ({
 export default function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user'
   const isError = message.isError === true
-
-  const handleActionLink = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-    e.preventDefault()
-    const action = href.replace('#action:', '')
-    if (action === 'filter') {
-      window.postMessage({ type: 'gui:highlight-filter' }, '*')
-    } else if (action === 'next-page') {
-      window.postMessage({ type: 'gui:next-page' }, '*')
-    }
-  }
 
   return (
     <div style={{
@@ -70,20 +56,7 @@ export default function MessageBubble({ message }: { message: Message }) {
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
             components={{
-              a: ({ node, ...props }) => {
-                const href = props.href || ''
-                if (href.startsWith('#action:')) {
-                  return (
-                    <a
-                      {...props}
-                      href={href}
-                      onClick={(e) => handleActionLink(e, href)}
-                      style={{ color: '#2563eb', cursor: 'pointer', textDecoration: 'underline' }}
-                    />
-                  )
-                }
-                return <a {...props} target="_blank" rel="noopener noreferrer" />
-              },
+              a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
               table: ({ node, ...props }) => <table {...props} style={{ borderCollapse: 'collapse', width: '100%', margin: '8px 0', fontSize: 13, tableLayout: 'auto' }} />,
               th: ({ node, ...props }) => <th {...props} style={{ border: '1px solid #d1d5db', padding: '6px 12px', background: '#f3f4f6', fontWeight: 600, textAlign: 'left', whiteSpace: 'nowrap' }} />,
               td: ({ node, children, ...props }) => {

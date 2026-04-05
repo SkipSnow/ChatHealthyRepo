@@ -1,0 +1,21 @@
+{
+  "document": "Revocable Intellectual Property License Agreement",
+  "version": "DRAFT v11",
+  "date": "2026-03-29",
+  "status": "Approved for licensed legal review",
+  "approved_by": "Boss",
+  "reviewer": "Paralegal (external)",
+  "gpt_iterations": 11,
+  "file": "brain/ip_license_agreement_draft_v11.pdf",
+  "key_terms": {
+    "licensor": "Harvey (Skip) Snow",
+    "licensee": "ChatHealthy.AI (Delaware entity)",
+    "license_type": "Revocable (exclusivity not specified)",
+    "revocation_notice": "5 days written",
+    "scope": "Code, architecture, design documents, data, business plans, and other trade secrets",
+    "jurisdiction": "Delaware",
+    "fel_license": "FEL-1.0 (non-standard, in Git repo)",
+    "trade_secrets": "NDA clause included",
+    "severability": "Standard boilerplate"
+  }
+}

@@ -27,7 +27,7 @@
       --accent:     #f0a500;
       --border:     #d8e2e1;
       --radius:     6px;
-      --max-w:      100%;
+      --max-w:      1160px;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -42,38 +42,13 @@
     body {
       display: flex;
       flex-direction: column;
-      min-height: 100%;
-    }
-
-    /* ── Content area with side panels ────────────── */
-    .content-row {
-      flex: 1;
-      display: flex;
-      min-height: 0;
-    }
-
-    .side-panel {
-      width: 20%;
-      transition: width 0.3s ease;
-      overflow: hidden;
-    }
-
-    .side-panel.expanded {
-      width: 40%;
-    }
-
-    .center-column {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
+      min-height: 100vh;
     }
 
     /* ── Header ────────────────────────────────────── */
     header {
       position: sticky;
       top: 0;
-      height: 6%;
       z-index: 100;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
@@ -84,7 +59,7 @@
       max-width: var(--max-w);
       margin: 0 auto;
       padding: 0 24px;
-      height: 100%;
+      height: 64px;
       display: flex;
       align-items: center;
       gap: 40px;
@@ -290,6 +265,8 @@
       border-radius: var(--radius);
       overflow: hidden;
       box-shadow: 0 2px 12px rgba(11,122,117,0.08);
+      /* Fills available vertical space; minimum sensible height on phone */
+      min-height: clamp(420px, 70dvh, 800px);
       position: relative;
       background: #f7fbfa;
     }
@@ -329,28 +306,17 @@
 
     .frame-loading p { font-size: 0.85rem; color: var(--ink-soft); }
 
-    /* Frame labels — visible in non-prod only */
-    .frame-label { display: none; }
-    body.env-local .frame-label,
-    body.env-dev .frame-label,
-    body.env-qa .frame-label { display: inline; }
-
-
     /* ── Footer ────────────────────────────────────── */
     footer {
       border-top: 1px solid var(--border);
       background: var(--surface);
-      height: 4%;
     }
 
     .footer-inner {
       max-width: var(--max-w);
       margin: 0 auto;
-      padding: 0 clamp(12px, 4vw, 24px);
+      padding: 16px clamp(12px, 4vw, 24px);
       width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
     }
 
     .footer-links {
@@ -418,7 +384,7 @@
       top: 0;
       right: 0;
       width: min(520px, 100vw);
-      height: 100%;
+      height: 100vh;
       background: var(--surface);
       border-left: 1px solid var(--border);
       box-shadow: -4px 0 24px rgba(11,122,117,0.10);
@@ -514,18 +480,6 @@
       .menu-toggle { display: flex; align-items: center; justify-content: center; }
       .panel-resize-handle,
       .legal-panel-expand { display: none; }
-      /* Mobile: hide side panels, filter becomes modal overlay */
-      .side-panel { display: none !important; }
-      .side-panel.mobile-filter-open {
-        display: flex !important;
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        width: 100% !important;
-        z-index: 1000;
-        background: rgba(255,255,255,0.98);
-        padding: 16px;
-        overflow-y: auto;
-      }
     }
 
     /* Phone: tighten footer to 2×2 grid */
@@ -561,7 +515,6 @@
       <nav class="header-nav">
         <button type="button" class="nav-coming-soon" data-tip="You are already home">Home</button>
         <button type="button" onclick="openPanel('products.html','Products &amp; Services')">Products &amp; Services</button>
-        <button type="button" id="qaReportNav" style="display:none" onclick="openQAReport()">QA Report</button>
       </nav>
 
       <!-- Hamburger (visible on mobile only) -->
@@ -606,229 +559,44 @@
     <iframe id="legalPanelFrame" src="" title="Legal document" tabindex="0"></iframe>
   </div>
 
-  <!-- ══ ENVIRONMENT BANNER — full width, below header ══ -->
-  <div id="envBanner" style="display:none;background:#d97706;color:#fff;text-align:center;padding:4px 8px;font-size:13px;font-weight:600;letter-spacing:0.03em;width:100%;"></div>
-  <script>
-    (function() {
-      var host = window.location.hostname;
-      var isLocal = host === 'localhost' || host === '127.0.0.1';
-      var env = isLocal ? 'LOCAL'
-        : host.indexOf('dev.') === 0 ? 'DEV'
-        : host.indexOf('qa.') === 0 ? 'QA'
-        : '';
-      if (env) {
-        var banner = document.getElementById('envBanner');
-        banner.textContent = env;
-        banner.style.display = 'block';
-        if (env !== 'LOCAL') banner.style.background = '#dc2626';
-        // Fetch build/version from backend (same URL as iframe)
-        var healthUrl;
-        if (isLocal) {
-          healthUrl = 'http://localhost:8000/health';
-        } else {
-          var org = 'skipsnow';
-          var base = 'chathealthyspace';
-          var sn = env === 'prod' ? base : env + '-' + base;
-          healthUrl = 'https://' + org + '-' + sn + '.hf.space/health';
-        }
-        fetch(healthUrl).then(function(r) { return r.json(); }).then(function(d) {
-          banner.textContent = env + ' \u2014 Build ' + (d.build || '?') + ' \u2014 ' + (d.version || '?');
-        }).catch(function() {});
-      }
-    })();
-  </script>
-
   <!-- ══ MAIN — chat embed ════════════════════════════ -->
   <main>
     <span class="chat-label">Chat with Find Care AI</span>
 
-    <div class="content-row">
-      <!-- Left panel — 1% prod, 20% non-prod for dev visibility -->
-      <div class="side-panel" id="leftPanel" style="background:rgb(225,225,255);border-right:1px solid #d8e2e1;display:flex;align-items:center;justify-content:center;">
-        <span class="frame-label" style="color:#8888cc;font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;">LEFT PANEL</span>
+    <div class="chat-frame-wrapper">
+
+      <!-- Loading placeholder -->
+      <div class="frame-loading" id="frameLoading">
+        <div class="spinner"></div>
+        <p>Loading Find Care AI…</p>
       </div>
 
-      <!-- Center column — chat + controls -->
-      <div class="center-column">
-        <!-- Chat iframe -->
-        <div class="chat-frame-wrapper">
-          <div class="frame-loading" id="frameLoading">
-            <div class="spinner"></div>
-            <p>Loading Find Care AI…</p>
-          </div>
-          <iframe
-            id="coreChatFrame"
-            src=""
-            title="Find Care — CoreChatUX"
-            allow="microphone; clipboard-write"
-            loading="lazy"
-            onload="document.getElementById('frameLoading').classList.add('hidden')"
-          ></iframe>
-        </div>
+      <!--
+        CoreChatUX iframe URL resolved at runtime from chatConfig.
+        Hostname determines environment: dev/qa/prod.
+      -->
+      <iframe
+        id="coreChatFrame"
+        src=""
+        title="Find Care — CoreChatUX"
+        allow="microphone; clipboard-write"
+        loading="lazy"
+        onload="document.getElementById('frameLoading').classList.add('hidden')"
+      ></iframe>
+      <script>
+        (function() {
+          var host = window.location.hostname;
+          var env = host.indexOf('dev.') === 0 ? 'dev' : host.indexOf('qa.') === 0 ? 'qa' : 'prod';
+          // Naming convention: {org}-{env_prefix}-{base}.hf.space
+          var org = 'skipsnow';
+          var base = 'chathealthyspace';
+          var spaceName = env === 'prod' ? base : env + '-' + base;
+          document.getElementById('coreChatFrame').src = 'https://' + org + '-' + spaceName + '.hf.space';
+        })();
+      </script>
 
-        <!-- Control Frame — outside the iframe wrapper, visible canvas -->
-        <div id="guiControlFrame" style="height:7%;overflow:hidden;transition:all 0.2s ease;border-top:1px solid #d8e2e1;background:#fafaf9;display:flex;align-items:center;justify-content:center;">
-          <span class="frame-label" style="color:#ccc;font-size:9px;">CONTROL FRAME</span>
-        </div>
-      </div> <!-- /center-column -->
-
-      <!-- Right panel — 1%, expands for leaf pages -->
-      <div class="side-panel" id="rightPanel" style="background:#f5f5f4;border-left:1px solid #d8e2e1;display:flex;align-items:center;justify-content:center;">
-        <span class="frame-label" style="color:#ccc;font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;">RIGHT PANEL</span>
-      </div>
-    </div> <!-- /content-row -->
+    </div>
   </main>
-
-  <!-- Scripts for iframe URL and control frame postMessage -->
-  <script>
-    (function() {
-      var host = window.location.hostname;
-      var isLocal = host === 'localhost' || host === '127.0.0.1';
-      var env = isLocal ? 'local'
-        : host.indexOf('dev.') === 0 ? 'dev'
-        : host.indexOf('qa.') === 0 ? 'qa'
-        : 'prod';
-      document.body.classList.add('env-' + env);
-
-      // Build iframe URL from environment — single source of truth
-      var src;
-      if (isLocal) {
-        src = 'http://localhost:5173';
-      } else {
-        var org = 'skipsnow';
-        var base = 'chathealthyspace';
-        var spaceName = env === 'prod' ? base : env + '-' + base;
-        src = 'https://' + org + '-' + spaceName + '.hf.space';
-      }
-
-      // QA Report — dev/QA only
-      if (env !== 'prod') {
-        document.getElementById('qaReportNav').style.display = '';
-      }
-      window._hfBaseUrl = src;
-      window.openQAReport = function() {
-        openPanel(src + '/qa-report', 'QA Report — v0.1.4');
-      };
-
-      // Retry loading iframe — wait 3s between attempts, max 10 tries
-      var iframe = document.getElementById('coreChatFrame');
-      var maxRetries = 60;  // 60 × 10s = 10 min — HF Space can take 2-3 min to restart
-      var attempt = 0;
-      function tryLoad() {
-        attempt++;
-        iframe.src = src;
-        iframe.onerror = function() {
-          if (attempt < maxRetries) {
-            console.log('[iframe] Load attempt ' + attempt + ' failed, retrying in 10s...');
-            setTimeout(tryLoad, 10000);
-          } else {
-            console.error('[iframe] Failed to load after ' + maxRetries + ' attempts');
-          }
-        };
-      }
-      tryLoad();
-    })();
-
-    (function() {
-      var frame = document.getElementById('guiControlFrame');
-      var chatFrame = document.getElementById('coreChatFrame');
-
-      window.addEventListener('message', function(event) {
-        if (!chatFrame || !chatFrame.contentWindow) return;
-        if (event.source !== chatFrame.contentWindow) return;
-
-        var msg = event.data;
-        if (!msg || typeof msg !== 'object') return;
-
-        console.log('[ControlFrame] Received message:', msg.type);
-        if (msg.type === 'gui:render') {
-          frame.innerHTML = msg.html || '';
-          var actions = frame.querySelectorAll('[data-gui-action]');
-          for (var i = 0; i < actions.length; i++) {
-            (function(el) {
-              var tag = el.tagName.toLowerCase();
-              var eventType = (tag === 'select') ? 'change' : 'click';
-              el.addEventListener(eventType, function() {
-                chatFrame.contentWindow.postMessage({
-                  type: 'gui:event',
-                  action: el.getAttribute('data-gui-action'),
-                  value: (tag === 'select') ? el.value : (el.getAttribute('data-gui-value') || '')
-                }, '*');
-              });
-            })(actions[i]);
-          }
-        }
-
-        if (msg.type === 'gui:clear') {
-          frame.innerHTML = '<span class="frame-label" style="color:#ccc;font-size:9px;">CONTROL FRAME</span>';
-        }
-
-        // Filter panel — renders in left panel
-        var leftPanel = document.getElementById('leftPanel');
-        if (msg.type === 'gui:filter') {
-          // Reset centering styles so filter content can flex and scroll
-          leftPanel.style.alignItems = 'stretch';
-          leftPanel.style.justifyContent = 'stretch';
-          leftPanel.style.overflow = 'hidden';
-          // Mobile: show as fullscreen overlay
-          if (window.innerWidth <= 600) {
-            leftPanel.classList.add('mobile-filter-open');
-          }
-          leftPanel.innerHTML = msg.html || '';
-          // Store search params for filter-apply
-          leftPanel.dataset.searchParams = msg.searchParams || '{}';
-          // Attach handlers
-          var filterActions = leftPanel.querySelectorAll('[data-gui-action]');
-          for (var j = 0; j < filterActions.length; j++) {
-            (function(el) {
-              var tag = el.tagName.toLowerCase();
-              if (el.getAttribute('data-gui-action') === 'filter-apply') {
-                el.addEventListener('click', function() {
-                  var checked = [];
-                  leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]:checked').forEach(function(cb) {
-                    checked.push(cb.getAttribute('data-gui-value'));
-                  });
-                  chatFrame.contentWindow.postMessage({
-                    type: 'gui:event',
-                    action: 'filter-apply',
-                    value: JSON.stringify(checked),
-                    searchParams: leftPanel.dataset.searchParams
-                  }, '*');
-                });
-              }
-              if (el.getAttribute('data-gui-action') === 'toggle-all') {
-                el.addEventListener('click', function() {
-                  var boxes = leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]');
-                  var checkedCount = leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]:checked').length;
-                  var majority = checkedCount > boxes.length / 2;
-                  var newState = !majority;
-                  boxes.forEach(function(cb) { cb.checked = newState; });
-                  el.textContent = newState ? 'Uncheck All' : 'Check All';
-                });
-              }
-            })(filterActions[j]);
-          }
-        }
-
-        if (msg.type === 'gui:event' && msg.action === 'highlight-filter') {
-          // Flash the filter panel to draw attention
-          leftPanel.style.transition = 'background 0.3s';
-          leftPanel.style.background = '#fffbcc';
-          setTimeout(function() { leftPanel.style.background = 'rgb(225,225,255)'; }, 800);
-          setTimeout(function() { leftPanel.style.background = '#fffbcc'; }, 1100);
-          setTimeout(function() { leftPanel.style.background = 'rgb(225,225,255)'; }, 1400);
-        }
-
-        if (msg.type === 'gui:filter-clear') {
-          leftPanel.style.alignItems = 'center';
-          leftPanel.style.justifyContent = 'center';
-          leftPanel.style.overflow = 'hidden';
-          leftPanel.classList.remove('mobile-filter-open');
-          leftPanel.innerHTML = '<span class="frame-label" style="color:#8888cc;font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;">LEFT PANEL</span>';
-        }
-      });
-    })();
-  </script>
 
   <!-- ══ FOOTER ═══════════════════════════════════════ -->
   <footer>

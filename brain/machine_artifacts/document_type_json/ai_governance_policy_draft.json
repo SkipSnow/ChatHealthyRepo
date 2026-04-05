@@ -1,0 +1,115 @@
+{
+  "title": "ChatHealthy AI Governance Policy",
+  "version": "0.1",
+  "status": "DRAFT",
+  "owner": "Skip Snow",
+  "date": "2026-03-29",
+  "source": "Boss-authored, GPT-collaborated",
+
+  "policy_core": "The model may suggest. The system must decide.",
+
+  "core_principle": "Token prediction ≠ truth. All AI-generated output is probabilistic language, not verified fact. No system behavior may treat model output as authoritative truth.",
+
+  "system_roles": {
+    "ai_model": {
+      "role": "Translate user language into structured signals, suggest possible mappings, generate explanations",
+      "constraints": [
+        "MUST NOT make final decisions",
+        "MUST NOT introduce new facts outside system data",
+        "MUST NOT be treated as a source of truth"
+      ]
+    },
+    "data_layer": {
+      "role": "Single source of truth. All factual, auditable information. Derived from verified public or consented sources.",
+      "constraints": [
+        "All outputs must trace back to this layer",
+        "No model-generated data may overwrite or augment it"
+      ]
+    },
+    "decision_layer": {
+      "role": "Apply rules, mappings, and scoring. Determine bounded outputs. Enforce constraints and guardrails.",
+      "constraints": [
+        "MUST be deterministic or explainable",
+        "MUST be auditable",
+        "MUST NOT defer decision authority to the model"
+      ]
+    },
+    "explanation_layer": {
+      "role": "Present results in clear, user-friendly language. Describe signals and reasoning used.",
+      "constraints": [
+        "MUST reflect actual system logic",
+        "MUST NOT fabricate justification",
+        "MUST NOT imply certainty where none exists"
+      ]
+    }
+  },
+
+  "decision_authority_rule": "The model may suggest. The system must decide. Any output affecting user guidance MUST pass through validation against known taxonomy or rules, constraint to allowed output space, and system-level selection logic. Direct model-to-user decision output is prohibited.",
+
+  "fact_vs_interpretation": {
+    "facts": "Must originate from the data layer. Must be traceable and verifiable.",
+    "derived_signals": "May be computed (rankings, scores). Must be documented and explainable.",
+    "interpretations": "Must be clearly framed as guidance, not truth. Must include rationale and limitations.",
+    "prohibited": [
+      "Rankings presented as facts",
+      "Scores presented as objective truth",
+      "Model outputs presented as verified conclusions"
+    ]
+  },
+
+  "ontology_policy": {
+    "rule": "Standard ontologies (e.g., SNOMED) are READ-ONLY. Used for normalization, not decision-making.",
+    "prohibited": [
+      "Modify ontology structures",
+      "Derive decisions through deep graph traversal",
+      "Replace system logic with ontology reasoning"
+    ],
+    "principle": "Ontology provides meaning. System provides action."
+  },
+
+  "output_constraints": {
+    "requirements": [
+      "Bounded (limited set of options, not open-ended)",
+      "Explainable (include rationale)",
+      "Non-authoritative (no absolute claims)"
+    ],
+    "required_patterns": [
+      "Based on your input…",
+      "Relevant options include…",
+      "This does not replace professional medical advice…"
+    ],
+    "prohibited_patterns": [
+      "You should…",
+      "This is the best…",
+      "The AI determined…"
+    ]
+  },
+
+  "risk_control": {
+    "must": [
+      "Avoid outcome prediction",
+      "Avoid clinical diagnosis",
+      "Escalate uncertainty when confidence is low",
+      "Default to safety in ambiguous scenarios"
+    ],
+    "high_impact_outputs": [
+      "Constrained",
+      "Explainable",
+      "Reversible (no irreversible system effects)"
+    ]
+  },
+
+  "logging": {
+    "must_log": [
+      "User input",
+      "Model suggestions",
+      "Final system decisions",
+      "Rationale provided"
+    ],
+    "purpose": "Enable audit, support refinement, ensure accountability"
+  },
+
+  "enforcement": "Any component violating this policy must be corrected before production release. This policy overrides convenience, speed, and model capability.",
+
+  "final_statement": "Fluency is not evidence. Models assist. Systems decide. Data grounds truth."
+}

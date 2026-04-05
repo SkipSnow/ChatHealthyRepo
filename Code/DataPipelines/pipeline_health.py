@@ -19,7 +19,6 @@ Environment variables:
 import logging
 import os
 
-import requests
 from pymongo import MongoClient
 from sparkpost import SparkPost
 
@@ -49,36 +48,6 @@ def send_admin_notification(subject: str, text: str) -> None:
         logging.info("Admin notification sent to %s: %s", to_email, subject)
     except Exception as exc:
         logging.error("SparkPost send failed: %s", exc)
-
-
-def send_pushover(title: str, message: str) -> None:
-    """Send a push notification via Pushover.
-
-    Logs a warning and returns silently if credentials are not configured.
-
-    Environment variables:
-        PUSHOVER_TOKEN      Application API token
-        PUSHOVER_USER_KEY   Recipient user key
-    """
-    token = os.environ.get("PUSHOVER_TOKEN")
-    user_key = os.environ.get("PUSHOVER_USER_KEY")
-
-    if not (token and user_key):
-        logging.warning("Pushover notification skipped — credentials not configured.")
-        return
-
-    try:
-        resp = requests.post(
-            "https://api.pushover.net/1/messages.json",
-            data={"token": token, "user": user_key, "title": title, "message": message},
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            logging.info("Pushover sent: %s", title)
-        else:
-            logging.error("Pushover failed (%d): %s", resp.status_code, resp.text)
-    except Exception as exc:
-        logging.error("Pushover send failed: %s", exc)
 
 
 def check_mongo_health(config: dict = None) -> dict:

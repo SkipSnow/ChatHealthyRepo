@@ -28,7 +28,7 @@ import random
 import time
 
 import openai
-from county_enrichment_job import _build_states_filter
+from county_enrichment_job import _build_states_query
 from pipeline_worker_base import PipelineWorkerBase
 from provider_embedding import render, project, should_embed
 from pymongo import MongoClient, UpdateOne
@@ -55,8 +55,6 @@ JITTER_MAX_DEFAULT = 5.0                        # max startup jitter seconds; ov
 # should_embed() is still called per-document as the authoritative gate.
 _EMBED_PREFILTER = {
     "county.reason": {"$nin": ["no_address", "zip_state_mismatch"]},
-    "bad_data.flagged": {"$ne": True},
-    "out_of_scope.flagged": {"$ne": True},
 }
 
 
@@ -91,10 +89,10 @@ class EmbeddingWorker(PipelineWorkerBase):
     def __init__(self, config: dict):
         super().__init__(config)
         self.worker_id = config["worker_id"]
-        self.provider_collection = config.get(
-            "provider_collection", "dev_PublicHealthData.providers"
+        self.staging_collection = config.get(
+            "staging_collection", "dev_PublicHealthData.providers"
         )
-        self._states_filter = _build_states_filter(config)  # BUG-PIPE-001: strict, raises if missing
+        self._states_query = _build_states_query(config)  # {} if no filter
         self._batch_size = config.get("embed_batch_size", EMBED_BATCH_SIZE)
         self._jitter_max = config.get("embed_initial_jitter", JITTER_MAX_DEFAULT)
 
@@ -123,7 +121,7 @@ class EmbeddingWorker(PipelineWorkerBase):
     # ── PipelineWorkerBase overrides ──────────────────────────────────────────
 
     def _pipeline_open(self) -> None:
-        db_name, coll_name = self.provider_collection.split(".", 1)
+        db_name, coll_name = self.staging_collection.split(".", 1)
         self._collection = _get_mongo()[db_name][coll_name]
         self._oai_client = _get_openai()
 
@@ -137,7 +135,7 @@ class EmbeddingWorker(PipelineWorkerBase):
             "worker_id": self.worker_id,
             "embedding": {"$exists": False},
             **_EMBED_PREFILTER,
-            **self._states_filter,
+            **self._states_query,
         }
         self._total = self._collection.count_documents(query)
         logging.info("EmbeddingWorker %d: %d docs to embed", self.worker_id, self._total)

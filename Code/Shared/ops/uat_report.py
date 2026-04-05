@@ -203,9 +203,7 @@ def build_uat_welcome(get_db_fn=None) -> str:
     lines.append("\n**Bug Classifications:** " + " | ".join(f"**{k}**: {v}" for k, v in BUG_CLASSIFICATIONS.items()))
     lines.append("\n**Enhancement Classifications:** " + " | ".join(f"**{k}**: {v}" for k, v in ENHANCEMENT_CLASSIFICATIONS.items()))
     lines.append(
-        "\n*Boss: mark Done (Y/DEF/FAIL/OOS), tally bugs and features as you test. Note type codes in chat.*"
-    "\n*Y = passed | DEF = deferred to future release | FAIL = failed | OOS = out of scope for this release*"
-    "\n*Every requirement must carry exactly one label. No requirement may be left blank.*"
+        "\n*Boss: mark Done (Y/DEF/FAIL), tally bugs and features as you test. Note type codes in chat.*"
     )
 
     return "\n".join(lines)

@@ -26,9 +26,6 @@ from typing import Optional
 
 _REPO_ROOT  = Path(__file__).parent.parent.parent
 _BRAIN_DIR  = _REPO_ROOT / "brain"
-_TOKEN_USAGE = _BRAIN_DIR / "machine_artifacts" / "content" / "token_usage.json"
-
-# Legacy paths — kept for backward compatibility
 _USAGE_LOG  = _BRAIN_DIR / "usage_log.json"
 _BUDGET_CFG = _BRAIN_DIR / "budget_config.json"
 
@@ -41,72 +38,19 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _read_collection() -> dict:
-    """Read the token_usage Brain pseudo collection."""
-    with open(_TOKEN_USAGE, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def _write_collection(data: dict) -> None:
-    """Write the token_usage Brain pseudo collection."""
-    with open(_TOKEN_USAGE, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-
-
-def _get_budget_config() -> dict:
-    """Get budget config from Brain collection."""
-    coll = _read_collection()
-    for r in coll.get("records", []):
-        if r.get("_record_id") == "budget_config":
-            return r
-    return {"limits": {"per_assignment_usd": 5, "daily_usd": 50, "monthly_usd": 500},
-            "models": {}, "alert_threshold_pct": 80, "hard_stop_on_exceed": False}
-
-
-def _get_usage_log() -> dict:
-    """Get usage log record from Brain collection."""
-    coll = _read_collection()
-    for r in coll.get("records", []):
-        if r.get("_record_id") == "usage_log":
-            return r
-    return {"_record_id": "usage_log", "entries": []}
-
-
-def _save_usage_log(log: dict) -> None:
-    """Save usage log back to Brain collection."""
-    coll = _read_collection()
-    for i, r in enumerate(coll.get("records", [])):
-        if r.get("_record_id") == "usage_log":
-            coll["records"][i] = log
-            _write_collection(coll)
-            return
-    # Not found — append
-    coll.setdefault("records", []).append(log)
-    coll["record_count"] = len(coll["records"])
-    _write_collection(coll)
-
-
-# Legacy helpers for backward compat
 def _read(path: Path) -> dict:
-    if path == _BUDGET_CFG:
-        return _get_budget_config()
-    if path == _USAGE_LOG:
-        return _get_usage_log()
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def _write(path: Path, data: dict) -> None:
-    if path == _USAGE_LOG:
-        _save_usage_log(data)
-        return
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
 def _cost_usd(model: str, tokens_in: int, tokens_out: int) -> float:
-    cfg = _get_budget_config()
-    pricing = cfg.get("models", {}).get(model)
+    cfg = _read(_BUDGET_CFG)
+    pricing = cfg["models"].get(model)
     if not pricing:
         return 0.0
     return (tokens_in / 1_000_000 * pricing["input_per_1m"] +
@@ -156,14 +100,12 @@ def log_usage(
         "cost_usd":      round(cost, 6),
         "assignment_id": assignment_id,
     }
-    # Add vendor from budget config
-    cfg = _get_budget_config()
-    model_info = cfg.get("models", {}).get(model, {})
-    entry["vendor"] = model_info.get("vendor", "unknown")
+    log = _read(_USAGE_LOG)
+    log["entries"].append(entry)
+    _write(_USAGE_LOG, log)
 
-    log = _get_usage_log()
-    log.setdefault("entries", []).append(entry)
-    _save_usage_log(log)
+    # Check alert threshold
+    cfg = _read(_BUDGET_CFG)
     if assignment_id:
         asn_total = sum(
             e["cost_usd"] for e in log["entries"]

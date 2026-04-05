@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from blob_client import get_blob_service
 from bson import ObjectId
 from pipeline_worker_base import PipelineWorkerBase
-from pymongo import MongoClient, InsertOne, ReplaceOne
+from pymongo import MongoClient, InsertOne
 
 _mongo: MongoClient | None = None
 
@@ -228,28 +228,11 @@ class ProviderWorker(PipelineWorkerBase):
         self.load_id = config["load_id"]
         self.metadata_id = config["metadata_id"]
         self.batch_size = config.get("batch_size", 10_000)
-        self.provider_collection = config.get(
-            "provider_collection", "dev_PublicHealthData.providers"
+        self.staging_collection = config.get(
+            "staging_collection", "dev_PublicHealthData.providers"
         )
         self.metadata_collection = config.get("metadata_collection", "admin.DataLoadMetadata")
         self.blob_container = config.get("blob_container", "provider-data")
-
-        # BUG-PIPE-001: state filter is REQUIRED for all pipeline steps
-        states = config.get("states")
-        if not states:
-            raise ValueError("BUG-PIPE-001: states parameter is REQUIRED. Cannot load all records.")
-        if isinstance(states, list):
-            self._allowed_states = set(s.upper() for s in states)
-        elif isinstance(states, dict):
-            self._allowed_states = set(s.upper() for s in states.get("list", []))
-        else:
-            raise ValueError(f"BUG-PIPE-001: invalid states format: {states}")
-        if not self._allowed_states:
-            raise ValueError("BUG-PIPE-001: states list is empty. Cannot load all records.")
-        self._skipped_states = 0
-
-        # ENH-PIPE-001: incremental mode — replace_one with upsert instead of insert
-        self._incremental = config.get("incremental", False)
 
         # State initialised in _pipeline_open(); set to safe defaults so
         # _pipeline_close() is always safe to call even if _pipeline_open()
@@ -282,7 +265,7 @@ class ProviderWorker(PipelineWorkerBase):
         stream = blob_client.download_blob(offset=self.start_byte, length=length)
         self._reader = csv.reader(_iter_lines(stream, stop_after=stop_after))
 
-        db_name, coll_name = self.provider_collection.split(".", 1)
+        db_name, coll_name = self.staging_collection.split(".", 1)
         self._collection = _get_mongo_client()[db_name][coll_name]
 
         self._npi_idx = self.header.index("NPI") if "NPI" in self.header else None
@@ -312,42 +295,13 @@ class ProviderWorker(PipelineWorkerBase):
             )
 
         doc = _normalize_row(self.header, row)
-
-        # BUG-PIPE-001: skip records not in allowed states
-        state = (doc.get("practice_address") or {}).get("state", "").upper()
-        if state not in self._allowed_states:
-            self._skipped_states += 1
-            return
-
         record_id = self.worker_id * MAX_ROWS_PER_WORKER + self._local_index
         doc["load_id"] = self.load_id
         doc["record_id"] = record_id
         doc["worker_id"] = self.worker_id
         doc["county"] = {"fips": None}  # stub — enriched by county_enrichment_job
 
-        if self._incremental:
-            # ENH-PIPE-001: replace_one with upsert — force re-enrichment and re-evaluation
-            doc["bad_data"] = None       # force re-evaluation by mark_out_of_scope_fn
-            doc["out_of_scope"] = None   # force re-evaluation by mark_out_of_scope_fn
-            npi = doc.get("npi")
-
-            # ENH-PIPE-002 / PIPE-INC-002: deactivated records in incremental files
-            # get out_of_scope flag instead of being deleted. Log NPI for audit.
-            if doc.get("npi_deactivation_date") and not doc.get("npi_reactivation_date"):
-                doc["out_of_scope"] = {"flagged": True, "reason": "deactivated"}
-                logging.info(
-                    "ENH-PIPE-002: deactivated NPI=%s flagged out_of_scope (incremental)",
-                    npi or "unknown",
-                )
-
-            if npi:
-                self._batch.append(ReplaceOne({"npi": npi}, doc, upsert=True))
-                logging.debug("ENH-PIPE-001: incremental replace_one for NPI=%s", npi)
-            else:
-                self._batch.append(InsertOne(doc))
-        else:
-            self._batch.append(InsertOne(doc))
-
+        self._batch.append(InsertOne(doc))
         self._local_index += 1
         self._num_records += 1
 
@@ -386,9 +340,9 @@ class ProviderWorker(PipelineWorkerBase):
 
         self._update_status(12, None, num_records=self._num_records)
         logging.info(
-            "Worker %d: processed=%d inserted=%d skipped_state=%d failed=%d %.1fs (%.1f rows/s)",
-            self.worker_id, rows_processed, self._num_records, self._skipped_states,
-            len(self.row_errors), duration, rows_per_second,
+            "Worker %d: processed=%d inserted=%d failed=%d %.1fs (%.1f rows/s)",
+            self.worker_id, rows_processed, self._num_records, len(self.row_errors),
+            duration, rows_per_second,
         )
         return {
             "worker_id": self.worker_id,

@@ -1,0 +1,68 @@
+{
+  "title": "ChatHealthy Corporate Business Governance Policies",
+  "version": "1.0",
+  "effective_date": "2026-03-28",
+  "approved_by": "Skip Snow (Founder/CEO)",
+
+  "roles": ["Boss (final authority)", "Claude (engineer)", "GPT (architect)"],
+
+  "policies": [
+    {
+      "id": "GOV-001",
+      "name": "Provider Neutrality",
+      "policy": "ChatHealthy does not accept revenue from, partner with, or enter into financial relationships with health plans, insurance companies, payer networks, provider organizations, PBMs (pharmacy benefit managers), or pharmaceutical companies. The platform must remain neutral across all entities in the care delivery and payment chain. Revenue sources are limited to: (1) consumer subscriptions, and (2) healthcare SaaS/technology vendor partnerships. No entity that delivers, pays for, or intermediates healthcare may be a source of ChatHealthy revenue.",
+      "rationale": "Neutrality is a core product principle and a competitive moat. Users must trust that provider recommendations are based on clinical relevance and proximity, not financial relationships. Any revenue from care-chain entities would create real or perceived bias that destroys the product's value proposition.",
+      "status": "permanent"
+    },
+    {
+      "id": "GOV-002",
+      "name": "Single-Tenant Architecture",
+      "policy": "ChatHealthy is single-tenant by design. Multi-tenancy is a healthcare anti-pattern and must never be proposed or implemented. Each deployment serves one organization with isolated data.",
+      "rationale": "Healthcare data isolation is a compliance requirement and a trust requirement. Multi-tenancy introduces data leakage risk that is unacceptable in healthcare.",
+      "status": "permanent"
+    },
+    {
+      "id": "GOV-003",
+      "name": "Public By Default (Temporary)",
+      "policy": "All code, architecture documents, and design docs are public. Nothing is marked confidential. Copyright remains with Skip Snow.",
+      "rationale": "Pre-funding transparency builds trust and enables AI-assisted development with full context. This policy will be revisited when external funding is secured or proprietary IP requires protection.",
+      "status": "temporary",
+      "review_trigger": "External funding secured or IP licensing agreement executed"
+    },
+    {
+      "id": "GOV-004",
+      "name": "HIPAA Consent Framework",
+      "policy": "User data collection follows a two-tier consent flow: (1) verbatim transcript with explicit consent, (2) de-identified summary with explicit consent, (3) contact-only if both declined. Safety audit trail is stored without consent as an operational record. Pending legal review items tracked in brain/pending_legal_questions.json.",
+      "rationale": "HIPAA compliance is non-negotiable. The two-tier flow gives users control while enabling business analytics on de-identified data.",
+      "status": "permanent"
+    },
+    {
+      "id": "GOV-005",
+      "name": "Three-Application Boundary",
+      "policy": "The system is exactly three applications: (1) Static Website on Cloudflare, (2) Chat Window on HuggingFace/Azure, (3) Data Pipelines on Azure Functions. Boundaries are strict. Integration only via prescribed patterns (iframe for App1-App2, HTTP POST /api/Router for App2-App3). No application may bypass these boundaries.",
+      "rationale": "Separation of concerns, independent scaling, and clear ownership. Each app has a single deployment pipeline and a single hosting provider.",
+      "status": "permanent"
+    },
+    {
+      "id": "GOV-006",
+      "name": "Real System Testing",
+      "policy": "End-to-end tests use real systems (MongoDB, Anthropic, OpenAI, SparkPost). No mocks in e2e tests. Unit tests may use mocks. Test data is tagged with testdata=true and persisted in the dev database (no teardown).",
+      "rationale": "Mock-based tests masked a production migration failure in a prior project. Real system tests catch integration issues that mocks cannot.",
+      "status": "permanent"
+    },
+    {
+      "id": "GOV-007",
+      "name": "Deploy Authorization",
+      "policy": "Dev branch deploys freely without approval. Production/main branch requires explicit Boss sign-off. No workarounds, no force-push to main. Staging deploy authorized by GPT (Enterprise Architect). QA-to-prod authorized by Boss only.",
+      "rationale": "Production is the revenue environment. Every production deploy must be a conscious decision.",
+      "status": "permanent"
+    },
+    {
+      "id": "GOV-008",
+      "name": "Business Artifacts Gate",
+      "policy": "No release to production without completed business artifacts. Required artifacts per release: (1) QA Report PDF with GPT release gate approval, (2) IP License Agreement (current, signed), (3) Business Model (current version). These are business documents, not engineering artifacts. Stored in Azure admin container. Boss owns the checklist.",
+      "rationale": "A release is a business event, not just a code event. Business readiness must be demonstrated alongside technical readiness.",
+      "status": "permanent"
+    }
+  ]
+}

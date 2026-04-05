@@ -23,8 +23,6 @@ __pycache__/
 
 # DataPipelines HTTP test file — contains bearer token and instance URLs
 Code/DataPipelines/api-tests.http
-Code/*.http
-*.http
 
 # DataPipelines local-only files
 Code/DataPipelines/pipeline_files.json

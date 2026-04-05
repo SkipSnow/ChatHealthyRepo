@@ -169,7 +169,7 @@ Available in brain/BusinessArtifacts/:
 ## DELIVERABLES
 
 When we reach agreement, the final design must produce THREE artifacts:
-1. **JSON** -- machine artifact (brain/machine_artifacts/architecture/refactor_design_arch001.json)
+1. **JSON** -- machine artifact (brain/machine_artifacts/document_type_json/refactor_design_arch001.json)
 2. **PDF** -- business artifact (brain/BusinessArtifacts/refactor_design_arch001.pdf)
 3. **Word document** -- with architecture DIAGRAMS (component diagram, dependency diagram, file tree)
 

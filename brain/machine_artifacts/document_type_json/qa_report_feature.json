@@ -1,0 +1,64 @@
+{
+  "feature": "QA Report (Human Testing Mode)",
+  "feature_id": 13,
+  "status": "implemented",
+  "description": "Self-documenting UAT test report rendered as the welcome splash when HUMAN_TESTING=true. Provides real-time visibility into test progress, bugs, and enhancements during a test cycle.",
+
+  "requirements": [
+    {
+      "id": "QA-REQ-001",
+      "requirement": "QA Report header with two summary tables: build range (start/end/count) and scenario summary (total/passed/deferred/failed/to-test)",
+      "status": "implemented"
+    },
+    {
+      "id": "QA-REQ-002",
+      "requirement": "Feature tracking table with columns: #, Feature, Done (Y/DEF/FAIL/blank), Bugs Fixed, Feat Impl",
+      "status": "implemented"
+    },
+    {
+      "id": "QA-REQ-003",
+      "requirement": "Done column statuses: Y (passed), DEF (deferred), FAIL (failed), blank (untested). Only Boss can set these during UAT.",
+      "status": "implemented"
+    },
+    {
+      "id": "QA-REQ-004",
+      "requirement": "Repeating header row every 7 features for readability",
+      "status": "implemented"
+    },
+    {
+      "id": "QA-REQ-005",
+      "requirement": "Notes section showing all features with notes (bugs, enhancements, deferrals, failures)",
+      "status": "implemented"
+    },
+    {
+      "id": "QA-REQ-006",
+      "requirement": "Auto-incrementing build number on each server restart",
+      "status": "implemented"
+    },
+    {
+      "id": "QA-REQ-007",
+      "requirement": "HUMAN_TESTING flag in .env toggles test mode. Production override: if ENV_PREFIX=prod, test mode is always false (commented out, activate when ENV_PREFIX routing is live).",
+      "status": "implemented"
+    },
+    {
+      "id": "QA-REQ-008",
+      "requirement": "Frontend fetches /welcome from API (not hardcoded). Supports dynamic welcome content.",
+      "status": "implemented"
+    },
+    {
+      "id": "QA-REQ-009",
+      "requirement": "GFM markdown table rendering with bordered cells (remark-gfm + rehype-sanitize whitelist)",
+      "status": "implemented"
+    },
+    {
+      "id": "QA-REQ-010",
+      "requirement": "Start build and end build tracked in header. Builds Tested count computed automatically.",
+      "status": "implemented"
+    }
+  ],
+
+  "governance": {
+    "uat_signoff_rule": "Only Boss can mark features as pass, fail, or deferred. Claude documents bugs and implements fixes but does not change UAT status.",
+    "production_override": "HUMAN_TESTING is always false in production regardless of env var setting."
+  }
+}
