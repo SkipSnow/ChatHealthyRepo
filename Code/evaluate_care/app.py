@@ -15,12 +15,8 @@ from pydantic import BaseModel, Field
 # Add evaluate_care to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from models import (
-    ProviderQualityInput, ProviderQualityOutput,
-    ClinicalTrialQualityInput, ClinicalTrialQualityOutput,
-    ExplanationOutput,
-)
-from scoring_engine import ScoringEngine
+from evaluate_care.models import ScoringRequest, ScoringResponse
+from evaluate_care.scoring_engine import ScoringEngine
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger("evaluate_care")
@@ -48,24 +44,41 @@ def health():
 # ── Provider Scoring ────────────────────────────────────────
 
 class ScoreProviderRequest(BaseModel):
-    measures: dict = Field(..., description="Provider measure values keyed by measure name")
-    weights: dict = Field(default_factory=dict, description="Optional weight overrides")
+    provider_id: str = Field(..., description="Provider NPI or ID")
+    measures: list[dict] = Field(..., description="List of {name, value} measure inputs")
 
 @app.post("/score/provider")
 def score_provider(body: ScoreProviderRequest):
-    result = _engine.score_provider(body.measures, body.weights or None)
-    return result
+    from evaluate_care.models import MeasureInput
+    measure_inputs = []
+    for m in body.measures:
+        # Auto-route: numeric → value, non-numeric → raw_value
+        val = m.get("value")
+        if isinstance(val, (int, float, bool)):
+            measure_inputs.append(MeasureInput(name=m["name"], value=float(val) if not isinstance(val, bool) else (1.0 if val else 0.0), raw_value=val))
+        else:
+            measure_inputs.append(MeasureInput(name=m["name"], raw_value=val))
+    result = _engine.score_provider(body.provider_id, measure_inputs)
+    return result.model_dump()
 
 # ── Clinical Trial Scoring ──────────────────────────────────
 
 class ScoreTrialRequest(BaseModel):
-    measures: dict = Field(..., description="Trial measure values keyed by measure name")
-    weights: dict = Field(default_factory=dict, description="Optional weight overrides")
+    trial_id: str = Field(..., description="Clinical trial NCT ID")
+    measures: list[dict] = Field(..., description="List of {name, value} measure inputs")
 
 @app.post("/score/trial")
 def score_trial(body: ScoreTrialRequest):
-    result = _engine.score_trial(body.measures, body.weights or None)
-    return result
+    from evaluate_care.models import MeasureInput
+    measure_inputs = []
+    for m in body.measures:
+        val = m.get("value")
+        if isinstance(val, (int, float, bool)):
+            measure_inputs.append(MeasureInput(name=m["name"], value=float(val) if not isinstance(val, bool) else (1.0 if val else 0.0), raw_value=val))
+        else:
+            measure_inputs.append(MeasureInput(name=m["name"], raw_value=val))
+    result = _engine.score_clinical_trial(body.trial_id, measure_inputs)
+    return result.model_dump()
 
 # ── Explanation ─────────────────────────────────────────────
 
@@ -74,7 +87,7 @@ class ExplainRequest(BaseModel):
 
 @app.post("/explain")
 def explain(body: ExplainRequest):
-    from explainability import explain_score
+    from evaluate_care.explainability import explain_score
     return explain_score(body.score_output)
 
 # ── Run ─────────────────────────────────────────────────────
@@ -83,4 +96,4 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", "8001"))
     _log.info("EvaluateCare starting on port %d", port)
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run("evaluate_care.app:app", host="0.0.0.0", port=port)
