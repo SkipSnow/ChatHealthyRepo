@@ -46,4 +46,7 @@ Code/ConversationalUX/FindCareChat/backend/static/
 # Business artifacts — confidential, local only
 brain/BusinessArtifacts/
 
+# Local SSL certs — never commit
+Code/Shared/ops/certs/
+
 
