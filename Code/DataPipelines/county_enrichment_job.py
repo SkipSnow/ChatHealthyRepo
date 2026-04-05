@@ -1526,9 +1526,11 @@ def county_enrichment_pass6_nppes_orchestrator_fn(context):
     config  = {**config, "load_id": load_id}
 
     states        = config.get("states")
-    if states and states.get("list"):
+    if states and isinstance(states, dict) and states.get("list"):
         mode         = states.get("mode", "include")
         states_label = f" ({mode}: {', '.join(states['list'])})"
+    elif states and isinstance(states, list):
+        states_label = f" (include: {', '.join(states)})"
     else:
         states_label = ""
 
