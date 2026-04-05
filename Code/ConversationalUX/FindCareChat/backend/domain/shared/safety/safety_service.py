@@ -137,7 +137,7 @@ class SafetyService:
 
     def try_admin_unlock(self, message: str, ip: str) -> bool:
         """Attempt admin unlock with secret key."""
-        if not self._admin_unlock_key or self._admin_unlock_key not in message:
+        if not self._admin_unlock_key or self._admin_unlock_key.lower() not in message.lower():
             return False
         col = self._safety_collection()
         if col is None:
