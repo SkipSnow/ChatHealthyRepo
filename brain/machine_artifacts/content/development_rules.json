@@ -179,6 +179,12 @@
       "date": "2026-04-04"
     },
     {
+      "id": "BUG-PIPE-007",
+      "rule": "BUG: ensure_postload_indexes_activity fails with DuplicateKeyError on load_record_unique index. Root cause TBD — drop() should clear indexes, but post-load index creation finds duplicate load_id + record_id combinations. May be stale data from prior run or worker record_id collision.",
+      "incident": "Pipeline failed at post-load index step twice. Data loads correctly (state filter confirmed working). Index creation fails.",
+      "date": "2026-04-04"
+    },
+    {
       "id": "DR-019",
       "rule": "All SIT testing must be against the full parent page (dev.chathealthy.ai), never the HF Space iframe in isolation. The parent page is the product. The iframe is a component. Test the product.",
       "incident": "SIT tests were passing against the iframe but missing bugs visible on the full page — sideways filter text, missing banner build number, filter panel not rendering. These were only visible in the parent page context.",
