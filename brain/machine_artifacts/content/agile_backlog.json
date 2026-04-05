@@ -15970,6 +15970,28 @@
           "stories": []
         }
       ]
+    },
+    {
+      "epic_id": "EPIC-7",
+      "name": "Performance Management",
+      "capacity": "",
+      "goal": "Manage system performance across all components — monitoring, baselines, targets, and remediation",
+      "definition_of_done": "All performance targets met and monitored",
+      "status": "active",
+      "features": [
+        {
+          "feature_id": "PERF-HISTORY",
+          "name": "The History of Healthcare",
+          "epic_id": "EPIC-7",
+          "layer": "content",
+          "capability": "FindCare",
+          "description": "",
+          "priority": "MEDIUM",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": []
+        }
+      ]
     }
   ],
   "sprint_map": [
