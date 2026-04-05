@@ -179,6 +179,12 @@
       "date": "2026-04-04"
     },
     {
+      "id": "BUG-PIPE-008",
+      "rule": "BUG: Load workers insert duplicate NPI records. 70,000 duplicates found. Same worker_id, same record_id — exact duplicate rows. Root cause: bulk_write batch flushed twice, or worker retried after partial success. Fix: investigate worker retry logic in PipelineWorkerBase.",
+      "incident": "npi_unique index creation failed because 70K NPIs had 2 copies each. Dedup required before enrichment.",
+      "date": "2026-04-04"
+    },
+    {
       "id": "BUG-PIPE-007",
       "rule": "BUG: ensure_postload_indexes_activity fails with DuplicateKeyError on load_record_unique index. Root cause TBD — drop() should clear indexes, but post-load index creation finds duplicate load_id + record_id combinations. May be stale data from prior run or worker record_id collision.",
       "incident": "Pipeline failed at post-load index step twice. Data loads correctly (state filter confirmed working). Index creation fails.",
