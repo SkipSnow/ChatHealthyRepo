@@ -15968,6 +15968,9 @@
             {"story_id": "SDT-OAUTH-005", "title": "GitHub OAuth 2.0 provider", "size": "S", "status": "accepted", "requirements": [
               {"req_id": "SDT-OAUTH-005-REQ-001", "requirement": "GitHub sign-in via OAuth 2.0 for developer community engagement", "priority": "should-have", "status": "accepted"}
             ]},
+            {"story_id": "SDT-OAUTH-006", "title": "Microsoft OAuth 2.0 provider", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SDT-OAUTH-006-REQ-001", "requirement": "Microsoft sign-in via OAuth 2.0 with Azure AD / Microsoft Entra ID", "priority": "must-have", "status": "accepted"}
+            ]},
             {"story_id": "SDT-OAUTH-004", "title": "Session management and token lifecycle", "size": "L", "status": "accepted", "requirements": [
               {"req_id": "SDT-OAUTH-004-REQ-001", "requirement": "Secure session tokens with HttpOnly cookies, SameSite=Strict", "priority": "must-have", "status": "accepted"},
               {"req_id": "SDT-OAUTH-004-REQ-002", "requirement": "Token refresh without re-authentication", "priority": "must-have", "status": "accepted"},
