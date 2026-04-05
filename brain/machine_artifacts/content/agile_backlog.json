@@ -15866,6 +15866,33 @@
       ]
     },
     {
+      "epic_id": "EPIC-8",
+      "name": "Safety",
+      "capacity": "",
+      "goal": "Protect users in crisis — emergency detection, IP lockout, admin unlock, audit trail",
+      "definition_of_done": "Safety system fully tested with boolean requirements, all edge cases covered",
+      "status": "active",
+      "features": [
+        {
+          "feature_id": "SAFETY-LOCKOUT",
+          "name": "Emergency Lockout System",
+          "epic_id": "EPIC-8",
+          "layer": "backend",
+          "capability": "Safety",
+          "description": "Dual-trigger emergency detection (keyword + AI classifier). IP-based lockout on emergency. Admin unlock with shared secret. De-identified audit trail of all safety events.",
+          "priority": "CRITICAL",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": [
+            {"story_id": "SAFETY-UNLOCK-001", "title": "Admin unlock with shared secret", "size": "S", "status": "accepted", "requirements": [
+              {"req_id": "SAFETY-UNLOCK-001-REQ-001", "requirement": "Admin can unlock a locked IP by entering the unlock code in the chat. The code is stored in the ADMIN_UNLOCK_KEY environment variable, never in code.", "priority": "must-have", "status": "implemented"},
+              {"req_id": "SAFETY-UNLOCK-001-REQ-002", "requirement": "The unlock code comparison must be case-insensitive. 'unlock$123' and 'UNLOCK$123' and 'Unlock$123' must all work.", "priority": "must-have", "status": "implemented"}
+            ]}
+          ]
+        }
+      ]
+    },
+    {
       "epic_id": "EPIC-6",
       "name": "Secure Distributed Topology",
       "capacity": "",
