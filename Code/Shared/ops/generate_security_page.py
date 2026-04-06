@@ -95,6 +95,11 @@ def main():
           <td>{escape(status)}</td>
         </tr>\n"""
 
+    # Component handoff
+    handoff = sec_record.get("component_handoff", {})
+    handoff_desc = escape(handoff.get("description", ""))
+    handoff_svg = handoff.get("website_svg", "").replace("Website/", "")
+
     # Local security controls
     local_controls = ""
     for ctrl in sec_record.get("local_security_architecture", {}).get("security_controls", []):
@@ -272,7 +277,15 @@ def main():
     <ul>
 {deployed_controls}    </ul>
 
-    <h2>3. EPIC-4 Security Features</h2>
+    <h2>3. Component Handoff — Security in Action</h2>
+
+    <p>{handoff_desc}</p>
+
+    <div class="diagram-container">
+      <img src="{handoff_svg}" alt="FindCare to EvaluateCare Handoff Sequence Diagram" />
+    </div>
+
+    <h2>4. EPIC-4 Security Features</h2>
 
     <div class="table-wrap">
       <table>
@@ -280,7 +293,7 @@ def main():
 {epic4_rows}      </table>
     </div>
 
-    <h2>4. NIST SP 800-171 Compliance</h2>
+    <h2>5. NIST SP 800-171 Compliance</h2>
 
     <p>{escape(nist.get('applicability', ''))}</p>
 
@@ -290,13 +303,13 @@ def main():
 {nist_rows}      </table>
     </div>
 
-    <h2>5. HITRUST CSF v11 Compliance</h2>
+    <h2>6. HITRUST CSF v11 Compliance</h2>
 
     <p>{escape(hitrust.get('applicability', ''))}</p>
 
 {hitrust_html}
 
-    <h2>6. CUI Readiness</h2>
+    <h2>7. CUI Readiness</h2>
 
     <p>{escape(cui.get('description', ''))}</p>
 

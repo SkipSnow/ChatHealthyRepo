@@ -33,6 +33,12 @@
         },
         "website": "Website/security-architecture.html"
       },
+      "component_handoff": {
+        "title": "FindCare → EvaluateCare Provider Evaluation Handoff",
+        "description": "Sample inter-component handoff demonstrating the security architecture in action. FindCare returns providers, user opts into evaluation, FindCare builds a handoff payload (chat history, provider list, user DB reference for paid users only, encrypted cookie stats) and sends it to EvaluateCare over mTLS. EvaluateCare resolves user context, scores providers against quality signals, and paints the chat screen via postMessage. This flow exercises mTLS, SecretManager, cookie encryption, conditional DB access, and the GOV-011 principle (AI translates, system answers).",
+        "diagram_svg": "brain/machine_artifacts/diagrams/rendered/findcare_evalcare_handoff_sequence.svg",
+        "website_svg": "Website/Images/findcare_evalcare_handoff_sequence.svg"
+      },
       "local_security_architecture": {
         "description": "The local development environment mirrors production security boundaries. All inter-service communication uses mutual TLS — Caddy acts as the single entry point, terminating TLS for consumers and enforcing mTLS for service-to-service traffic. No service binds directly to a consumer-accessible port without Caddy mediation. Three backend services (FindCare :8000, EvaluateCare :8001, Shared Services :8002) communicate exclusively through mTLS-authenticated channels. The SecretManager component in Shared Services authenticates to Azure Key Vault using an x509 certificate registered with Azure AD. The private key resides on local disk in a directory excluded from git. At startup, SecretManager fetches all credentials (MongoDB connection strings, API keys, mTLS certificates) from Key Vault and serves them to FindCare and EvaluateCare over mTLS. No service holds API keys or connection strings in its own configuration, environment variables, or code. The encrypted secure cookie (AES-256, HttpOnly, Secure, SameSite=Strict) tracks visit frequency and query patterns with a 90-day auto-delete TTL. The admin website is gated behind basic authentication locally, addressing Perplexity audit finding F-13 (architecture docs publicly accessible).",
         "security_controls": [
