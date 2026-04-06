@@ -1,7 +1,7 @@
 {
   "title": "Prompt Log Protocol",
   "_record_id": "prompt_log_protocol",
-  "version": "1.0",
+  "version": "1.1",
   "date": "2026-04-05",
   "description": "Operational protocol for how actors write to prompt_log.json. Loaded by the brain boot process.",
   "story": "BIZOPS-CHATLOG-001",
@@ -27,6 +27,13 @@
       "Grooming deletes utterances where timestamp_utc < now_utc - 24h.",
       "Grooming does not renumber remaining utterances.",
       "Groom operation must be idempotent: repeated execution produces identical state."
+    ],
+    "enforcement": [
+      "Logging is enforced by Claude Code hooks, not by Claude's discipline.",
+      "UserPromptSubmit hook fires on every user message and appends to prompt_log.json.",
+      "Stop hook fires when Claude finishes responding and appends Claude's response from the transcript.",
+      "Hooks are configured in .claude/settings.json and run automatically outside Claude's control.",
+      "Hook script: Code/Shared/ops/prompt_log_hook.py"
     ],
     "actor_rules": [
       "Actor is an open vocabulary: Skip, Claude, GPT, or any future participant.",
