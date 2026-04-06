@@ -1,0 +1,44 @@
+{
+  "title": "Prompt Log Protocol",
+  "_record_id": "prompt_log_protocol",
+  "version": "1.0",
+  "date": "2026-04-05",
+  "description": "Operational protocol for how actors write to prompt_log.json. Loaded by the brain boot process.",
+  "story": "BIZOPS-CHATLOG-001",
+  "feature": "OPS-AGENT-COMMS",
+  "epic": "EPIC-5: ChatHealthyOperations",
+  "protocol": {
+    "write_rules": [
+      "At session start, read prompt_log.json. Determine next utterance number: max(existing utterances) + 1, or 1 if empty.",
+      "After every user prompt: append an utterance with role=user and actor identifying who sent it (e.g. Skip).",
+      "After every assistant response: append an utterance with role=assistant and actor identifying who responded (e.g. Claude, GPT).",
+      "Write each utterance immediately after it occurs. Do not batch.",
+      "If the write fails, continue the conversation. Record failure in application log."
+    ],
+    "content_rules": [
+      "Text only — never write binary, base64, or images. Replace with [binary content omitted].",
+      "Tool results exceeding 500 chars truncated to first 500 chars + [truncated — N chars].",
+      "System-reminder content (tags and their contents) excluded from the log.",
+      "Credential redaction is NOT handled by prompt_log. See EPIC-4: Security."
+    ],
+    "grooming_rules": [
+      "Claude does not groom, renumber, or delete utterances.",
+      "BizOps agent (Azure Function) owns grooming.",
+      "Grooming deletes utterances where timestamp_utc < now_utc - 24h.",
+      "Grooming does not renumber remaining utterances.",
+      "Groom operation must be idempotent: repeated execution produces identical state."
+    ],
+    "actor_rules": [
+      "Actor is an open vocabulary: Skip, Claude, GPT, or any future participant.",
+      "Actor values must match regex: ^[A-Za-z0-9_ -]{1,50}$",
+      "New actors are added as they join the discourse. No controlled vocabulary gate."
+    ],
+    "timestamp_rules": [
+      "Every utterance has both timestamp_pst and timestamp_utc.",
+      "Grooming decisions use timestamp_utc only. timestamp_pst is for display.",
+      "timestamp_utc format: YYYY-MM-DDTHH:MM:SSZ",
+      "timestamp_pst format: YYYY-MM-DDTHH:MM:SS±HH:MM"
+    ]
+  },
+  "publish": false
+}

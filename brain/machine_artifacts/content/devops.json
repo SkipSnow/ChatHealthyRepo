@@ -141,6 +141,43 @@
       "_record_id": "support_tickets",
       "_source_file": "support_tickets.json",
       "publish": false
+    },
+    {
+      "title": "ChatHealthyBIZOperations Infrastructure",
+      "description": "Azure resource group and local infrastructure for BizOps agent communications (EPIC-5, Feature 2: OPS-AGENT-COMMS).",
+      "version": "0.1",
+      "date": "2026-04-05",
+      "resource_group": "ChatHealthyBIZOperations",
+      "region": "eastus2",
+      "azure_resources": {
+        "function_app": {
+          "name": "TBD",
+          "runtime": "python",
+          "plan": "Consumption",
+          "purpose": "BizOps long-running agent — grooms chatLog, accepts heartbeats, sends alerts"
+        },
+        "storage_account": {
+          "name": "TBD",
+          "purpose": "Required by Function App"
+        },
+        "application_insights": {
+          "name": "TBD",
+          "purpose": "Monitoring for BizOps agent"
+        }
+      },
+      "local_resources": {
+        "caddy": {
+          "purpose": "Single open-source web server — handles multiple domains, mTLS, reverse proxy to local services",
+          "port": "TBD"
+        },
+        "heartbeat_service": {
+          "purpose": "Pings Azure agent every 30 min, broadcasts current public IP",
+          "interval_minutes": 30
+        }
+      },
+      "_record_id": "bizops_infrastructure",
+      "_source_file": "bizops_infrastructure.json",
+      "publish": false
     }
   ]
 }

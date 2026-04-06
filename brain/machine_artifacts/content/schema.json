@@ -124,6 +124,12 @@
       ],
       "produces_artifact": false,
       "biz_artifact_folder": null
+    },
+    "prompt_log": {
+      "path": "brain/machine_artifacts/content/prompt_log.json",
+      "purpose": "Rolling 24h conversation log — every prompt and response",
+      "produces_artifact": false,
+      "retention": "24_hours"
     }
   },
   "entity_types": [
