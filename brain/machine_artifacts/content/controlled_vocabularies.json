@@ -1,6 +1,6 @@
 {
   "collection": "controlled_vocabularies",
-  "description": "Governed controlled vocabularies used across the ChatHealthy.ai system. Each vocabulary has a definition, members with definitions, and implementation traceability.",
+  "description": "Governed controlled vocabularies used across the ChatHealthy.ai system. Each vocabulary has a definition, members with definitions, and implementation traceability. Engineering operating rules (claude_operating_rules.xlsx, Version 4) are the authoritative standard per GOV-007 (Engineering Rules Are Standards). Vocabularies that duplicate v4 rules have been removed.",
   "vocabularies": [
     {
       "vocabulary_id": "CV-001",
@@ -37,26 +37,13 @@
       }
     },
     {
-      "vocabulary_id": "CV-003",
-      "name": "operating_modes",
-      "definition": "Claude's operating modes that govern behavior during attended and unattended sessions. Mode is set by Boss at session start. Default is Idiot Mode.",
-      "members": [
-        {"value": "unattended", "definition": "Do anything required to complete the task except embed credentials, secrets, or API keys unless explicitly instructed."},
-        {"value": "normal", "definition": "Standard Claude Code behavior. Use best judgment. Never break a rule."},
-        {"value": "idiot_mode", "definition": "Step-by-step confirmation required. Decompose multi-instruction messages by intent not punctuation. Execute one thing, report, ask for next instruction."}
-      ],
-      "invoked_by": {
-        "source_files": [],
-        "stories": []
-      }
-    },
-    {
       "vocabulary_id": "CV-004",
       "name": "commit_prefixes",
-      "definition": "Required prefixes on all git commit messages to indicate whether Boss was present during the work.",
+      "definition": "Required prefixes on all git commit messages to indicate Claude's operating mode during the work.",
       "members": [
-        {"value": "[Attended]", "definition": "Boss was present and directing the work during this commit."},
-        {"value": "[Unattended]", "definition": "Claude was working independently without Boss present."}
+        {"value": "[Normal Mode]", "definition": "Claude operating in Normal mode -- standard behavior, best judgment, never break a rule."},
+        {"value": "[Unattended Mode]", "definition": "Claude operating in Unattended mode -- autonomous, may terminate hung jobs, no secrets unless instructed."},
+        {"value": "[Idiot Mode]", "definition": "Claude operating in Idiot mode -- step-by-step confirmation, one unit at a time."}
       ],
       "invoked_by": {
         "source_files": [],
@@ -83,23 +70,6 @@
           {"file": "Code/ConversationalUX/FindCareChat/backend/main.py", "function": "qa_report_submit", "note": "QA report dropdown options"}
         ],
         "stories": ["DEVOPS-QA-001", "DEVOPS-QA-002"]
-      }
-    },
-    {
-      "vocabulary_id": "CV-006",
-      "name": "environment_names",
-      "definition": "Environment prefixes used for database naming ({env}_DatabaseName) and deployment targeting.",
-      "members": [
-        {"value": "dev", "definition": "Development environment. Deploys freely. Used for active development and debugging."},
-        {"value": "qa", "definition": "Quality assurance environment. GPT authorizes promotion from dev. Used for SIT and UAT."},
-        {"value": "prod", "definition": "Production environment. Boss only authorizes promotion from QA. Revenue environment."}
-      ],
-      "invoked_by": {
-        "source_files": [
-          {"file": "Code/DataPipelines/function_app.py", "function": "multiple", "note": "ENV_PREFIX routing"},
-          {"file": "Code/ConversationalUX/FindCareChat/backend/main.py", "function": "multiple", "note": "_ENV_PREFIX database routing"}
-        ],
-        "stories": []
       }
     }
   ]
