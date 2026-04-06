@@ -16138,8 +16138,8 @@
       "epic_id": "EPIC-4",
       "name": "Security",
       "capacity": "",
-      "goal": "Resolve all Cloudflare security findings and establish enterprise security posture",
-      "definition_of_done": "All Cloudflare Security Insights resolved or risk-accepted",
+      "goal": "Eliminate all bearer tokens and .env secrets. Establish PKI-based credential management via Azure Key Vault. Resolve all Cloudflare findings. Zero plaintext secrets in any environment.",
+      "definition_of_done": "All secrets in Key Vault, all auth via x509 or Managed Identity, all Cloudflare findings resolved, no .env files with credentials in any deployed environment",
       "status": "active",
       "due_date": "2099-09-09",
       "features": [
@@ -16165,6 +16165,233 @@
             {"story_id": "SEC-CF-009", "title": "Enable Always Use HTTPS on mail.chathealthy.ai", "severity": "Moderate", "subject": "mail.chathealthy.ai", "scan_date": "2026-04-01", "size": "S", "status": "accepted", "requirements": [{"req_id": "SEC-CF-009-REQ-001", "requirement": "Always Use HTTPS enabled", "priority": "must-have", "status": "accepted"}]},
             {"story_id": "SEC-CF-010", "title": "Enable HSTS on mail.chathealthy.ai", "severity": "Moderate", "subject": "mail.chathealthy.ai", "scan_date": "2026-04-01", "size": "S", "status": "accepted", "requirements": [{"req_id": "SEC-CF-010-REQ-001", "requirement": "HSTS enabled with max-age >= 31536000", "priority": "must-have", "status": "accepted"}]},
             {"story_id": "SEC-CF-011", "title": "Enable TLS encryption on mail.chathealthy.ai", "severity": "Moderate", "subject": "mail.chathealthy.ai", "scan_date": "2026-04-01", "type": "Compliance violation", "size": "S", "status": "accepted", "requirements": [{"req_id": "SEC-CF-011-REQ-001", "requirement": "TLS encryption enabled, minimum TLS 1.2", "priority": "must-have", "status": "accepted"}]}
+          ]
+        },
+        {
+          "feature_id": "SEC-KEYVAULT",
+          "name": "Azure Key Vault Provisioning",
+          "epic_id": "EPIC-4",
+          "layer": "infrastructure",
+          "capability": "Security",
+          "description": "Provision Azure Key Vault in ChatHealthySecurity resource group. Store all production secrets. No bearer tokens — auth via x509 cert or Managed Identity only.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "diagram_ref": "local_architecture_component.puml — Azure — ChatHealthySecurity package",
+          "stories": [
+            {"story_id": "SEC-KV-001", "title": "Create Azure Key Vault", "size": "S", "status": "accepted", "requirements": [
+              {"req_id": "SEC-KV-001-REQ-001", "requirement": "Azure Key Vault exists in ChatHealthySecurity resource group in eastus2 region", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-KV-001-REQ-002", "requirement": "Key Vault access policy denies all access by default (zero-trust)", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-KV-001-REQ-003", "requirement": "Key Vault soft-delete and purge protection are enabled", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SEC-KV-002", "title": "Store all production secrets in Key Vault", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-KV-002-REQ-001", "requirement": "MongoDB frontend cluster connection string is stored in Key Vault as a secret", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-KV-002-REQ-002", "requirement": "MongoDB pipeline cluster connection string is stored in Key Vault as a secret", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-KV-002-REQ-003", "requirement": "Anthropic API key is stored in Key Vault as a secret", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-KV-002-REQ-004", "requirement": "OpenAI API key is stored in Key Vault as a secret", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-KV-002-REQ-005", "requirement": "SparkPost API key is stored in Key Vault as a secret", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-KV-002-REQ-006", "requirement": "HuggingFace tokens are stored in Key Vault as secrets", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-KV-002-REQ-007", "requirement": "OAuth client secrets (Google, Facebook, Apple, Microsoft, GitHub) are stored in Key Vault as secrets", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-KV-002-REQ-008", "requirement": "Admin unlock key (ADMIN_UNLOCK_KEY) is stored in Key Vault as a secret", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SEC-KV-003", "title": "Store mTLS certificates in Key Vault", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-KV-003-REQ-001", "requirement": "mTLS service certificates for FindCare, EvaluateCare, and Shared Services are stored in Key Vault as certificates", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-KV-003-REQ-002", "requirement": "Certificate rotation can be performed in Key Vault without service downtime (dual-cert acceptance window)", "priority": "must-have", "status": "accepted"}
+            ]}
+          ]
+        },
+        {
+          "feature_id": "SEC-CERTAUTH-REMOTE",
+          "name": "x509 Certificate Authentication — Remote (dev/qa/prod)",
+          "epic_id": "EPIC-4",
+          "layer": "infrastructure",
+          "capability": "Security",
+          "description": "All non-Azure services (HuggingFace Spaces) authenticate to Key Vault via x509 certificate registered with Azure AD. One certificate per Space. No bearer tokens.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "diagram_ref": "local_architecture_component.puml — HuggingFace package → Azure Key Vault (red x509 lines)",
+          "stories": [
+            {"story_id": "SEC-CERT-R-001", "title": "Azure AD app registration with certificate credential", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-CERT-R-001-REQ-001", "requirement": "Azure AD app registration exists for ChatHealthy service authentication", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-R-001-REQ-002", "requirement": "App registration uses certificate credential, not client secret", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-R-001-REQ-003", "requirement": "App registration has Key Vault Secrets User role on the Key Vault", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SEC-CERT-R-002", "title": "FindCare HF Spaces authenticate via x509", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-CERT-R-002-REQ-001", "requirement": "FindCare dev Space authenticates to Key Vault using x509 certificate, not bearer token", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-R-002-REQ-002", "requirement": "FindCare qa Space authenticates to Key Vault using x509 certificate", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-R-002-REQ-003", "requirement": "FindCare prod Space authenticates to Key Vault using x509 certificate", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-R-002-REQ-004", "requirement": "Private key is stored in HF Space Secrets, never in code or git", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SEC-CERT-R-003", "title": "EvaluateCare HF Spaces authenticate via x509", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-CERT-R-003-REQ-001", "requirement": "EvaluateCare dev Space authenticates to Key Vault using x509 certificate", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-R-003-REQ-002", "requirement": "EvaluateCare qa Space authenticates to Key Vault using x509 certificate", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-R-003-REQ-003", "requirement": "EvaluateCare prod Space authenticates to Key Vault using x509 certificate", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-R-003-REQ-004", "requirement": "Private key is stored in HF Space Secrets, never in code or git", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SEC-CERT-R-004", "title": "Shared Services HF Spaces authenticate via x509", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-CERT-R-004-REQ-001", "requirement": "Shared Services dev Space authenticates to Key Vault using x509 certificate", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-R-004-REQ-002", "requirement": "Shared Services qa Space authenticates to Key Vault using x509 certificate", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-R-004-REQ-003", "requirement": "Shared Services prod Space authenticates to Key Vault using x509 certificate", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-R-004-REQ-004", "requirement": "Private key is stored in HF Space Secrets, never in code or git", "priority": "must-have", "status": "accepted"}
+            ]}
+          ]
+        },
+        {
+          "feature_id": "SEC-CERTAUTH-LOCAL",
+          "name": "x509 Certificate Authentication — Local (Skip's PC)",
+          "epic_id": "EPIC-4",
+          "layer": "infrastructure",
+          "capability": "Security",
+          "description": "Local development authenticates to Azure Key Vault via x509 certificate. Private key stored on local machine, never in git. Replaces all .env files containing secrets.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "diagram_ref": "local_architecture_component.puml — SecretManager in Shared Services → Azure Key Vault (red x509 line)",
+          "stories": [
+            {"story_id": "SEC-CERT-L-001", "title": "Local x509 certificate for Key Vault auth", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-CERT-L-001-REQ-001", "requirement": "x509 certificate generated for local development use", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-L-001-REQ-002", "requirement": "Public cert registered with Azure AD app registration", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-L-001-REQ-003", "requirement": "Private key stored in a local directory excluded from git (.gitignore)", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-L-001-REQ-004", "requirement": "SecretManager on localhost:8002 authenticates to Key Vault using the local x509 certificate", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-L-001-REQ-005", "requirement": "No .env file containing API keys, connection strings, or secrets exists in any directory tracked by git", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SEC-CERT-L-002", "title": "Eliminate all local .env secret files", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-CERT-L-002-REQ-001", "requirement": "Code/ConversationalUX/FindCareChat/backend/.env no longer contains any API keys or connection strings", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-L-002-REQ-002", "requirement": "Code/DataPipelines/.env no longer contains any API keys or connection strings", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-L-002-REQ-003", "requirement": "All services retrieve secrets from SecretManager at startup, not from local environment variables", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-CERT-L-002-REQ-004", "requirement": "git log shows no committed .env files containing secrets (git history clean or secrets rotated)", "priority": "must-have", "status": "accepted"}
+            ]}
+          ]
+        },
+        {
+          "feature_id": "SEC-MANAGED-ID",
+          "name": "Managed Identity — Azure Functions",
+          "epic_id": "EPIC-4",
+          "layer": "infrastructure",
+          "capability": "Security",
+          "description": "Azure Functions authenticate to Key Vault via Managed Identity. Zero credentials — Azure handles auth internally. Most secure option for Azure-hosted resources.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "diagram_ref": "local_architecture_component.puml — Azure Functions → Azure Key Vault (green Managed Identity line)",
+          "stories": [
+            {"story_id": "SEC-MI-001", "title": "Enable Managed Identity on Azure Function Apps", "size": "S", "status": "accepted", "requirements": [
+              {"req_id": "SEC-MI-001-REQ-001", "requirement": "System-assigned Managed Identity is enabled on ChatHealthyDataPipelines Function App", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-MI-001-REQ-002", "requirement": "System-assigned Managed Identity is enabled on ChatHealthyBIZOperations Function App", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-MI-001-REQ-003", "requirement": "Managed Identity has Key Vault Secrets User role on the Key Vault", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-MI-001-REQ-004", "requirement": "Azure Function App retrieves all secrets from Key Vault at startup using Managed Identity, not environment variables", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-MI-001-REQ-005", "requirement": "No connection strings or API keys are stored in Azure Function App application settings", "priority": "must-have", "status": "accepted"}
+            ]}
+          ]
+        },
+        {
+          "feature_id": "SEC-SECRETMGR",
+          "name": "SecretManager Component (Shared Services)",
+          "epic_id": "EPIC-4",
+          "layer": "backend",
+          "capability": "Security",
+          "description": "SecretManager in Shared Services (:8002) is the single source for all credentials. Fetches from Key Vault, serves to FindCare and EvaluateCare over mTLS. No service holds keys directly. Resolves BL-0.1.4-002 (Bearer Token Lifecycle Management).",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "diagram_ref": "local_architecture_component.puml — SecretManager in Shared Services package",
+          "audit_ref": "BL-0.1.4-002 (Perplexity backlog)",
+          "stories": [
+            {"story_id": "SEC-SM-001", "title": "SecretManager fetches secrets from Key Vault", "size": "L", "status": "accepted", "requirements": [
+              {"req_id": "SEC-SM-001-REQ-001", "requirement": "SecretManager component exists in Shared Services and is accessible via SharedServicesFacade", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-SM-001-REQ-002", "requirement": "SecretManager authenticates to Key Vault using x509 certificate (local and HF) or Managed Identity (Azure)", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-SM-001-REQ-003", "requirement": "SecretManager caches secrets in memory with configurable TTL (default 1 hour)", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-SM-001-REQ-004", "requirement": "SecretManager returns secrets only to authenticated callers over mTLS", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-SM-001-REQ-005", "requirement": "SecretManager never writes secrets to disk, logs, or stdout", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SEC-SM-002", "title": "FindCare retrieves secrets from SecretManager", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-SM-002-REQ-001", "requirement": "FindCare requests MongoDB connection string from SecretManager over mTLS at startup", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-SM-002-REQ-002", "requirement": "FindCare requests Anthropic API key from SecretManager over mTLS at startup", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-SM-002-REQ-003", "requirement": "FindCare requests OpenAI API key from SecretManager over mTLS at startup", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-SM-002-REQ-004", "requirement": "FindCare holds zero API keys or connection strings in its own config, environment, or code", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SEC-SM-003", "title": "EvaluateCare retrieves secrets from SecretManager", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-SM-003-REQ-001", "requirement": "EvaluateCare requests MongoDB connection string from SecretManager over mTLS at startup", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-SM-003-REQ-002", "requirement": "EvaluateCare holds zero API keys or connection strings in its own config, environment, or code", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SEC-SM-004", "title": "ChatHealthyMongoUtilities uses SecretManager for connection strings", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-SM-004-REQ-001", "requirement": "ChatHealthyMongoUtilities receives connection strings from SecretManager, never from environment variables or .env files", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-SM-004-REQ-002", "requirement": "ENV_PREFIX routing (dev/qa/prod) still works — SecretManager returns the correct connection string for the active environment", "priority": "must-have", "status": "accepted"}
+            ]}
+          ]
+        },
+        {
+          "feature_id": "SEC-NETWORK",
+          "name": "Azure Network Security — Subnet, Firewall, Private Endpoints",
+          "epic_id": "EPIC-4",
+          "layer": "infrastructure",
+          "capability": "Security",
+          "description": "Azure VNet with subnet isolation, Azure Firewall, and private endpoints to all external services (HuggingFace Spaces, MongoDB Atlas, Key Vault). No public internet exposure for service-to-service traffic. Overrides and supersedes EPIC-6 SDT-VNET if contradictions exist.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "diagram_ref": "local_architecture_component.puml — Azure environments",
+          "stories": [
+            {"story_id": "SEC-NET-001", "title": "Azure VNet and subnet provisioning", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-NET-001-REQ-001", "requirement": "Azure VNet exists in eastus2 with address space sufficient for all ChatHealthy services", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-NET-001-REQ-002", "requirement": "Separate subnet exists for Azure Functions (ChatHealthyDataPipelines)", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-NET-001-REQ-003", "requirement": "Separate subnet exists for Azure Functions (ChatHealthyBIZOperations)", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-NET-001-REQ-004", "requirement": "Separate subnet exists for private endpoints", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-NET-001-REQ-005", "requirement": "Network Security Groups (NSGs) restrict traffic between subnets to only required ports and protocols", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SEC-NET-002", "title": "Azure Firewall", "size": "L", "status": "accepted", "requirements": [
+              {"req_id": "SEC-NET-002-REQ-001", "requirement": "Azure Firewall deployed in the VNet", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-NET-002-REQ-002", "requirement": "All outbound traffic from Azure Functions routes through the firewall", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-NET-002-REQ-003", "requirement": "Firewall rules allow only required destinations: MongoDB Atlas, Anthropic API, OpenAI API, HuggingFace, SparkPost", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-NET-002-REQ-004", "requirement": "All other outbound traffic is denied by default", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-NET-002-REQ-005", "requirement": "Firewall logs all allowed and denied traffic for audit", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SEC-NET-003", "title": "Private endpoint — MongoDB Atlas", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-NET-003-REQ-001", "requirement": "Azure Private Endpoint connects to MongoDB Atlas frontend cluster over private link, not public internet", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-NET-003-REQ-002", "requirement": "Azure Private Endpoint connects to MongoDB Atlas pipeline cluster over private link", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-NET-003-REQ-003", "requirement": "MongoDB Atlas IP access list restricts access to VNet private endpoint and Skip's PC public IP only", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SEC-NET-004", "title": "Private endpoint — Azure Key Vault", "size": "S", "status": "accepted", "requirements": [
+              {"req_id": "SEC-NET-004-REQ-001", "requirement": "Azure Private Endpoint connects to Key Vault, Key Vault public access disabled", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-NET-004-REQ-002", "requirement": "Key Vault is accessible only from the VNet private endpoint and authorized x509 certificate holders", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SEC-NET-005", "title": "Private connectivity — HuggingFace Spaces", "size": "L", "status": "accepted", "requirements": [
+              {"req_id": "SEC-NET-005-REQ-001", "requirement": "HuggingFace Spaces connect to Azure Key Vault via private endpoint or IP-restricted access", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-NET-005-REQ-002", "requirement": "HuggingFace Spaces connect to MongoDB Atlas via IP-allowlisted or private peered path", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-NET-005-REQ-003", "requirement": "Service-to-service traffic between HuggingFace Spaces (FindCare ↔ EvaluateCare ↔ Shared Services) uses mTLS regardless of network path", "priority": "must-have", "status": "accepted"}
+            ]}
+          ]
+        },
+        {
+          "feature_id": "SEC-MTLS",
+          "name": "mTLS Service-to-Service Authentication",
+          "epic_id": "EPIC-4",
+          "layer": "infrastructure",
+          "capability": "Security",
+          "description": "All service-to-service communication uses mutual TLS. Certificates stored in Key Vault. Caddy terminates and enforces mTLS locally. Cross-references EPIC-6 SDT-FC-001, SDT-EC-001, SDT-PIPE-001.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "diagram_ref": "local_architecture_component.puml — red mTLS lines between services",
+          "stories": [
+            {"story_id": "SEC-MTLS-001", "title": "mTLS between FindCare and EvaluateCare", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-MTLS-001-REQ-001", "requirement": "FindCare presents a client certificate when calling EvaluateCare", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-MTLS-001-REQ-002", "requirement": "EvaluateCare rejects requests without a valid client certificate", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-MTLS-001-REQ-003", "requirement": "Certificates are fetched from Key Vault at service startup, not stored on disk", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SEC-MTLS-002", "title": "mTLS between FindCare and Shared Services", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-MTLS-002-REQ-001", "requirement": "FindCare presents a client certificate when calling Shared Services", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-MTLS-002-REQ-002", "requirement": "Shared Services rejects requests without a valid client certificate", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SEC-MTLS-003", "title": "mTLS between EvaluateCare and Shared Services", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-MTLS-003-REQ-001", "requirement": "EvaluateCare presents a client certificate when calling Shared Services", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-MTLS-003-REQ-002", "requirement": "Shared Services rejects requests without a valid client certificate", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "SEC-MTLS-004", "title": "Caddy enforces mTLS locally", "size": "M", "status": "accepted", "requirements": [
+              {"req_id": "SEC-MTLS-004-REQ-001", "requirement": "Caddy Caddyfile configures mTLS for routes to :8001 and :8002", "priority": "must-have", "status": "accepted"},
+              {"req_id": "SEC-MTLS-004-REQ-002", "requirement": "Direct HTTP requests to :8001 or :8002 bypassing Caddy are rejected", "priority": "must-have", "status": "accepted"}
+            ]}
           ]
         }
       ]
