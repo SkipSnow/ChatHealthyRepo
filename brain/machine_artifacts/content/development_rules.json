@@ -159,6 +159,12 @@
       "rule": "The admin.manifest must include all MongoDB collections — not just files. Every database and collection on the frontend cluster must be inventoried in the manifest alongside the file inventory. The manifest is the single source of truth for what exists in the system.",
       "incident": "Manifest snapshot_20260330 contained 196 file entries but zero MongoDB collection entries. Collections were undocumented, making it impossible to verify system completeness from the manifest alone.",
       "date": "2026-04-05"
+    },
+    {
+      "id": "BUG-ROADMAP-001",
+      "rule": "BUG (HIGH): Roadmap milestones in business_plan.json are disconnected date/label pairs with no references to epics, features, or definition of done. The roadmap generator (generate_roadmap_page.py) must draw milestone descriptions, scope, and acceptance criteria from agile_backlog.json — not from hand-written labels. Each milestone must reference its epic_ids and derive its content from the brain. Current state: milestone says 'Alpha launch' but doesn't say what's in it.",
+      "incident": "Roadmap milestones added to business_plan.json without epic_refs or traceability. Discovered during v4-021 roadmap generator work.",
+      "date": "2026-04-06"
     }
   ]
 }
