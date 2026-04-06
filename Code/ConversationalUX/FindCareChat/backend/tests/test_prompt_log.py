@@ -453,6 +453,44 @@ class TestTR21:
         assert next_num == 1
 
 
+# ── TR22: Hook enforcement ───────────────────────────────────────────
+
+
+class TestTR22:
+    """TR22: Prompt logging enforced by Claude Code hooks, not by
+    Claude's discipline. Hooks configured in .claude/settings.json."""
+
+    def test_hook_settings_exist(self):
+        settings_path = PROJECT_ROOT / ".claude" / "settings.json"
+        assert settings_path.exists(), ".claude/settings.json not found"
+
+    def test_hook_settings_has_user_prompt_submit(self):
+        settings_path = PROJECT_ROOT / ".claude" / "settings.json"
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+        assert "UserPromptSubmit" in data.get("hooks", {}), "UserPromptSubmit hook not configured"
+
+    def test_hook_settings_has_stop(self):
+        settings_path = PROJECT_ROOT / ".claude" / "settings.json"
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+        assert "Stop" in data.get("hooks", {}), "Stop hook not configured"
+
+    def test_hook_script_exists(self):
+        hook_path = PROJECT_ROOT / "Code" / "Shared" / "ops" / "prompt_log_hook.py"
+        assert hook_path.exists(), "prompt_log_hook.py not found"
+
+    def test_hook_script_handles_user_prompt(self):
+        """Verify hook script can process a UserPromptSubmit event."""
+        hook_path = PROJECT_ROOT / "Code" / "Shared" / "ops" / "prompt_log_hook.py"
+        source = hook_path.read_text(encoding="utf-8")
+        assert "handle_user_prompt_submit" in source
+
+    def test_hook_script_handles_stop(self):
+        """Verify hook script can process a Stop event."""
+        hook_path = PROJECT_ROOT / "Code" / "Shared" / "ops" / "prompt_log_hook.py"
+        source = hook_path.read_text(encoding="utf-8")
+        assert "handle_stop" in source
+
+
 # ── Schema Validation ────────────────────────────────────────────────
 
 
