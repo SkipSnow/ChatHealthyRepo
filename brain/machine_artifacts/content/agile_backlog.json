@@ -16782,6 +16782,58 @@
           ]
         }
       ]
+    },
+    {
+      "feature_id": "UX-MOBILE",
+      "name": "Mobile Phone Support — Galaxy and iPhone 14+",
+      "epic_id": "EPIC-9",
+      "layer": "frontend",
+      "capability": "UX",
+      "description": "Full mobile support for Samsung Galaxy and iPhone 14 forward. Hamburger navigation on all pages, responsive layouts, touch-friendly controls. ChatHealthy.ai must be fully usable on a phone — not a degraded experience.",
+      "priority": "HIGH",
+      "status": "accepted",
+      "accepted_by": "Boss",
+      "supported_devices": ["Samsung Galaxy (S21+)", "iPhone 14", "iPhone 15", "iPhone 16"],
+      "stories": [
+        {"story_id": "UX-MOB-001", "title": "Hamburger navigation on all static pages", "size": "M", "status": "implemented", "requirements": [
+          {"req_id": "UX-MOB-001-REQ-001", "requirement": "Every static HTML page except index.html has a hamburger menu visible at viewport width <= 600px", "priority": "must-have", "status": "implemented"},
+          {"req_id": "UX-MOB-001-REQ-002", "requirement": "Hamburger menu opens a nav drawer with links to Home, Architecture, Security, Products, Roadmap, Privacy, Terms", "priority": "must-have", "status": "implemented"},
+          {"req_id": "UX-MOB-001-REQ-003", "requirement": "Hamburger menu is hidden on desktop (viewport width > 600px)", "priority": "must-have", "status": "implemented"}
+        ]},
+        {"story_id": "UX-MOB-002", "title": "Home link at bottom of every page (mobile)", "size": "S", "status": "implemented", "requirements": [
+          {"req_id": "UX-MOB-002-REQ-001", "requirement": "Every static HTML page has a 'Back to ChatHealthy.ai' link visible at bottom on mobile", "priority": "must-have", "status": "implemented"},
+          {"req_id": "UX-MOB-002-REQ-002", "requirement": "Bottom home link is hidden on desktop", "priority": "must-have", "status": "implemented"}
+        ]},
+        {"story_id": "UX-MOB-003", "title": "Chat window responsive on Galaxy and iPhone 14+", "size": "M", "status": "accepted", "requirements": [
+          {"req_id": "UX-MOB-003-REQ-001", "requirement": "Chat iframe fills available viewport height on Galaxy S21 (360x800 viewport)", "priority": "must-have", "status": "accepted"},
+          {"req_id": "UX-MOB-003-REQ-002", "requirement": "Chat iframe fills available viewport height on iPhone 14 (390x844 viewport)", "priority": "must-have", "status": "accepted"},
+          {"req_id": "UX-MOB-003-REQ-003", "requirement": "Chat input field is visible above the mobile keyboard when focused", "priority": "must-have", "status": "accepted"},
+          {"req_id": "UX-MOB-003-REQ-004", "requirement": "Provider result cards are readable without horizontal scrolling on 360px width", "priority": "must-have", "status": "accepted"}
+        ]},
+        {"story_id": "UX-MOB-004", "title": "Pagination controls touch-friendly", "size": "S", "status": "accepted", "requirements": [
+          {"req_id": "UX-MOB-004-REQ-001", "requirement": "Pagination buttons have minimum 44x44px touch target (Apple HIG)", "priority": "must-have", "status": "accepted"},
+          {"req_id": "UX-MOB-004-REQ-002", "requirement": "Max 5 rows per page on mobile (design.json responsive spec)", "priority": "must-have", "status": "accepted"}
+        ]},
+        {"story_id": "UX-MOB-005", "title": "Playwright SIT tests on mobile viewports", "size": "M", "status": "accepted", "requirements": [
+          {"req_id": "UX-MOB-005-REQ-001", "requirement": "Playwright SIT suite includes Galaxy S21 viewport (360x800) test configuration", "priority": "must-have", "status": "accepted"},
+          {"req_id": "UX-MOB-005-REQ-002", "requirement": "Playwright SIT suite includes iPhone 14 viewport (390x844) test configuration", "priority": "must-have", "status": "accepted"},
+          {"req_id": "UX-MOB-005-REQ-003", "requirement": "All mobile SIT tests run against dev.chathealthy.ai (DR-019), not individual pages", "priority": "must-have", "status": "accepted"}
+        ]}
+      ]
+    },
+    {
+      "feature_id": "UX-NATIVE-APPS",
+      "name": "Native Mobile Apps — Apple App Store and Google Play",
+      "epic_id": "EPIC-9",
+      "layer": "frontend",
+      "capability": "UX",
+      "description": "Publish ChatHealthy.ai as a native app on Apple App Store (iOS) and Google Play Store (Android). PWA wrapper or React Native shell around the existing web experience. Due before November 2026.",
+      "priority": "HIGH",
+      "status": "accepted",
+      "accepted_by": "Boss",
+      "due_date": "2026-10-31",
+      "roadmap_date": "2026-10",
+      "stories": []
     }
   ],
   "sprint_map": [
