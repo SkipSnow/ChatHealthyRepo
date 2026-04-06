@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Skip Snow. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# prompt_log_hook.py — Claude Code hook that appends utterances to prompt_log.json.
+# conversation_log_hook.py — Claude Code hook that appends utterances to conversation_log.json.
 #
 # Called automatically by Claude Code on UserPromptSubmit and Stop events.
 # This is the enforcement mechanism for BR1 — Claude cannot forget to log.
@@ -21,7 +21,7 @@ from pathlib import Path
 # Resolve paths
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
-PROMPT_LOG_PATH = PROJECT_ROOT / "brain" / "machine_artifacts" / "content" / "prompt_log.json"
+PROMPT_LOG_PATH = PROJECT_ROOT / "brain" / "machine_artifacts" / "content" / "conversation_log.json"
 
 MAX_CONTENT_LEN = 500
 SYSTEM_REMINDER_PATTERN = re.compile(r"<system-reminder>.*?</system-reminder>", re.DOTALL)
@@ -31,8 +31,8 @@ def load_log() -> dict:
     if PROMPT_LOG_PATH.exists():
         return json.loads(PROMPT_LOG_PATH.read_text(encoding="utf-8"))
     return {
-        "collection": "prompt_log",
-        "path": "brain/machine_artifacts/content/prompt_log.json",
+        "collection": "conversation_log",
+        "path": "brain/machine_artifacts/content/conversation_log.json",
         "purpose": "Rolling 24h conversation log — every prompt and response. This is an operational log, not a compliance or regulatory audit log.",
         "produces_artifact": False,
         "retention": "24_hours",
