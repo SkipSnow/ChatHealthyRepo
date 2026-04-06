@@ -31,10 +31,13 @@ package "Skip's PC (localhost)" as env_local <<physical>> #EEEEFF {
   component [Caddy\nReverse Proxy\nTLS + mTLS\nRoute dispatch] as caddy
 
   package "Frontend Services" as local_fe {
-    component [Public Website\n:80 → Caddy\nWebsite/ static] as website
+    component [Public Website\n:80 + :443 → Caddy\nWebsite/ static\nHTTPS enforced] as website
     component [Admin Website\n:443 → Caddy\nAuth-gated (F-13)] as admin_site
     component [React App\n:5173 Vite\nChatWindow\nGUIManager] as react
-    component [Secure Cookie Mgr\nEncrypted visit tracker\nVisit count + query count\n90-day TTL] as cookie
+    package "Single Cookie (zero tracking cookies)" as cookie_pkg {
+      component [Secure Cookie\nHttpOnly, Secure\nSameSite=Strict\nAES-256 encrypted\n90-day TTL auto-delete] as cookie
+      component [Visit Tracker\nIP visit count (n)\nPer-visit query count (y)\nArray of {date, queries}] as cookie_visits
+    }
   }
 
   package "FindCare Service (:8000)" as local_fc {
@@ -183,7 +186,7 @@ website --> react : "iframe\n(DR-011)"
 ' ═══════════════════════════════════════════════════
 
 react --> fc_orch : "POST /chat"
-cookie --> fc_gw : "Cookie ref"
+cookie_visits --> fc_gw : "Cookie ref\n(encrypted)"
 
 fc_orch --> fc_router
 fc_router --> fc_facade
@@ -195,6 +198,7 @@ ec_orch --> ec_facade
 ec_facade --> ec_ctx
 ec_facade --> ec_score
 ec_orch -[#red]-> ss_facade : "<<mTLS>>\nsafety, lead"
+ec_facade -[#red]-> fc_facade : "<<mTLS>>\nProvider location\n(cross-facade call)"
 
 ss_facade --> ss_safety
 ss_facade --> ss_consent
@@ -232,7 +236,7 @@ claude -[#orange]-> mongo_fe : "admin DB\n(direct)"
 
 fc_orch -[#purple]-> api_claude : "Chat + tools"
 fc_prov -[#purple]-> api_embed : "Embeddings"
-fc_safety -[#purple]-> api_safety : "Safety classify"
+ss_safety -[#purple]-> api_safety : "Safety classify"
 
 ' ═══════════════════════════════════════════════════
 '  CONNECTIONS — Local → Azure
@@ -270,5 +274,14 @@ cf_dns .[#lightblue,dashed].> cf_admin
 hf_fc_prod -[#orange]-> mongo_fe
 hf_ec_prod -[#orange]-> mongo_fe
 hf_ss_prod -[#orange]-> mongo_fe
+
+note bottom of cookie_pkg
+  **Zero tracking cookies.**
+  One encrypted visit cookie only.
+  No analytics cookies, no ad cookies,
+  no third-party cookies.
+  Site analytics via Cloudflare Web Analytics
+  (server-side, no client cookie).
+end note
 
 @enduml
