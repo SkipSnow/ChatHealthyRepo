@@ -15585,6 +15585,310 @@
                   "label": ""
                 }
               ]
+            },
+            {
+              "story_id": "PIPE-LC-004",
+              "title": "BUG-PIPE-005: full_provider_pipeline_orchestrator must try/finally release reservation",
+              "description": "full_provider_pipeline_orchestrator reserves the pipeline cluster. If any activity throws between reserve and release, the reservation is never released and the cluster runs indefinitely. All work steps must be wrapped in try/finally with release_reservation_activity in the finally block.",
+              "parent_feature": "PIPE-LIFECYCLE",
+              "sprint": 6,
+              "dependencies": ["PIPE-LC-002"],
+              "size": "M",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-LC-004-REQ-001",
+                  "story_id": "PIPE-LC-004",
+                  "requirement": "full_provider_pipeline_orchestrator must wrap all steps between register_reservation_activity and release_reservation_activity in try/finally. The finally block must always call release_reservation_activity. Boolean test: inject exception in any enrichment pass → reservation count == 0 after orchestrator exits.",
+                  "source": "Bug: cluster left running after FullProviderPipeline failure",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "PIPE-LC-005",
+              "title": "BUG-PIPE-006: provider_load_orchestrator must try/finally release reservation",
+              "description": "provider_load_orchestrator reserves the pipeline cluster. If any activity throws between reserve and release, the reservation is never released and the cluster runs indefinitely. All work steps must be wrapped in try/finally with release_reservation_activity in the finally block.",
+              "parent_feature": "PIPE-LIFECYCLE",
+              "sprint": 6,
+              "dependencies": [],
+              "size": "M",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-LC-005-REQ-001",
+                  "story_id": "PIPE-LC-005",
+                  "requirement": "provider_load_orchestrator must wrap all steps between register_reservation_activity and release_reservation_activity in try/finally. The finally block must always call release_reservation_activity. Boolean test: inject exception in load step → reservation count == 0 after orchestrator exits.",
+                  "source": "Bug: cluster left running after LoadProviderData failure",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "PIPE-LC-006",
+              "title": "BUG-PIPE-007: copy_to_frontend_orchestrator must try/finally release reservation",
+              "description": "copy_to_frontend_orchestrator reserves the pipeline cluster. If any activity throws between reserve and release, the reservation is never released and the cluster runs indefinitely. All work steps must be wrapped in try/finally with release_reservation_activity in the finally block.",
+              "parent_feature": "PIPE-LIFECYCLE",
+              "sprint": 6,
+              "dependencies": [],
+              "size": "M",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-LC-006-REQ-001",
+                  "story_id": "PIPE-LC-006",
+                  "requirement": "copy_to_frontend_orchestrator must wrap all steps between register_reservation_activity and release_reservation_activity in try/finally. The finally block must always call release_reservation_activity. Boolean test: inject exception in partition step → reservation count == 0 after orchestrator exits.",
+                  "source": "Bug: cluster left running after CopyToFrontEnd failure",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "PIPE-LC-007",
+              "title": "BUG-PIPE-008: migrate_environment_orchestrator must try/finally release reservation",
+              "description": "migrate_environment_orchestrator reserves the pipeline cluster. If any activity throws between reserve and release, the reservation is never released and the cluster runs indefinitely. All work steps must be wrapped in try/finally with release_reservation_activity in the finally block.",
+              "parent_feature": "PIPE-LIFECYCLE",
+              "sprint": 6,
+              "dependencies": [],
+              "size": "M",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-LC-007-REQ-001",
+                  "story_id": "PIPE-LC-007",
+                  "requirement": "migrate_environment_orchestrator must wrap all steps between register_reservation_activity and release_reservation_activity in try/finally. The finally block must always call release_reservation_activity. Boolean test: inject exception in migrate step → reservation count == 0 after orchestrator exits.",
+                  "source": "Bug: cluster left running after MigrateEnvironment failure",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "PIPE-LC-008",
+              "title": "snapshot_collection_orchestrator must not manage cluster reservations",
+              "description": "snapshot_collection_orchestrator does not own a cluster lifecycle. It must never call register_reservation_activity or release_reservation_activity. If it needs a running cluster, the caller is responsible for the reservation.",
+              "parent_feature": "PIPE-LIFECYCLE",
+              "sprint": 6,
+              "dependencies": [],
+              "size": "S",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-LC-008-REQ-001",
+                  "story_id": "PIPE-LC-008",
+                  "requirement": "snapshot_collection_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep snapshot_collection_orchestrator for 'reservation' → zero matches.",
+                  "source": "Duty segregation: only cluster-reserving pipelines manage reservations",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "PIPE-LC-009",
+              "title": "county_enrichment_orchestrator must not manage cluster reservations",
+              "description": "county_enrichment_orchestrator is a sub-orchestrator called by full_provider_pipeline_orchestrator which owns the reservation. It must never call register_reservation_activity or release_reservation_activity.",
+              "parent_feature": "PIPE-LIFECYCLE",
+              "sprint": 6,
+              "dependencies": [],
+              "size": "S",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-LC-009-REQ-001",
+                  "story_id": "PIPE-LC-009",
+                  "requirement": "county_enrichment_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_orchestrator_fn for 'reservation' → zero matches.",
+                  "source": "Duty segregation: parent orchestrator owns reservation",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "PIPE-LC-010",
+              "title": "county_enrichment_pass1_orchestrator must not manage cluster reservations",
+              "description": "Sub-orchestrator called by county_enrichment_orchestrator. Parent owns reservation.",
+              "parent_feature": "PIPE-LIFECYCLE",
+              "sprint": 6,
+              "dependencies": [],
+              "size": "S",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-LC-010-REQ-001",
+                  "story_id": "PIPE-LC-010",
+                  "requirement": "county_enrichment_pass1_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_pass1_orchestrator_fn for 'reservation' → zero matches.",
+                  "source": "Duty segregation: parent orchestrator owns reservation",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "PIPE-LC-011",
+              "title": "county_enrichment_pass2_orchestrator must not manage cluster reservations",
+              "description": "Sub-orchestrator called by county_enrichment_orchestrator. Parent owns reservation.",
+              "parent_feature": "PIPE-LIFECYCLE",
+              "sprint": 6,
+              "dependencies": [],
+              "size": "S",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-LC-011-REQ-001",
+                  "story_id": "PIPE-LC-011",
+                  "requirement": "county_enrichment_pass2_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_pass2_orchestrator_fn for 'reservation' → zero matches.",
+                  "source": "Duty segregation: parent orchestrator owns reservation",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "PIPE-LC-012",
+              "title": "county_enrichment_pass3_orchestrator must not manage cluster reservations",
+              "description": "Sub-orchestrator called by county_enrichment_orchestrator. Parent owns reservation.",
+              "parent_feature": "PIPE-LIFECYCLE",
+              "sprint": 6,
+              "dependencies": [],
+              "size": "S",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-LC-012-REQ-001",
+                  "story_id": "PIPE-LC-012",
+                  "requirement": "county_enrichment_pass3_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_pass3_orchestrator_fn for 'reservation' → zero matches.",
+                  "source": "Duty segregation: parent orchestrator owns reservation",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "PIPE-LC-013",
+              "title": "county_enrichment_pass4_orchestrator must not manage cluster reservations",
+              "description": "Sub-orchestrator called by county_enrichment_orchestrator. Parent owns reservation.",
+              "parent_feature": "PIPE-LIFECYCLE",
+              "sprint": 6,
+              "dependencies": [],
+              "size": "S",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-LC-013-REQ-001",
+                  "story_id": "PIPE-LC-013",
+                  "requirement": "county_enrichment_pass4_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_pass4_orchestrator_fn for 'reservation' → zero matches.",
+                  "source": "Duty segregation: parent orchestrator owns reservation",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "PIPE-LC-014",
+              "title": "county_enrichment_pass6_nppes_orchestrator must not manage cluster reservations",
+              "description": "Sub-orchestrator called by county_enrichment_orchestrator. Parent owns reservation.",
+              "parent_feature": "PIPE-LIFECYCLE",
+              "sprint": 6,
+              "dependencies": [],
+              "size": "S",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-LC-014-REQ-001",
+                  "story_id": "PIPE-LC-014",
+                  "requirement": "county_enrichment_pass6_nppes_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_pass6_nppes_orchestrator_fn for 'reservation' → zero matches.",
+                  "source": "Duty segregation: parent orchestrator owns reservation",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "PIPE-LC-015",
+              "title": "ClusterLifecycleManager.release must auto-pause when zero reservations remain",
+              "description": "When the last reservation is released, ClusterLifecycleManager.release() must send a pause request to Atlas. This is the single place that decides when to pause — no orchestrator should pause directly.",
+              "parent_feature": "PIPE-LIFECYCLE",
+              "sprint": 6,
+              "dependencies": [],
+              "size": "S",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-LC-015-REQ-001",
+                  "story_id": "PIPE-LC-015",
+                  "requirement": "When release() removes the last reservation for a cluster, it must call _send_pause(cluster_name). Boolean test: release last reservation → Atlas API receives PATCH {paused: true}.",
+                  "source": "Boss directive: zero reservations = cluster must pause",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "PIPE-LC-015-REQ-002",
+                  "story_id": "PIPE-LC-015",
+                  "requirement": "No orchestrator may call _send_pause or pause_cluster directly. Only ClusterLifecycleManager.release() and force_release_all() may pause. Boolean test: grep all orchestrator functions for 'pause' → zero matches.",
+                  "source": "Duty segregation: ops manager owns pause, not pipelines",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
+            },
+            {
+              "story_id": "PIPE-LC-016",
+              "title": "BUG-PIPE-009: ClusterLifecycleManager.reserve() must not block with sleep",
+              "description": "reserve() calls time.sleep() in a loop for up to 10 minutes inside a Durable Functions activity. Activities must complete quickly. Wake and poll must be separated: reserve() sends wake + registers reservation and returns immediately. The orchestrator polls via check_cluster_state_activity + create_timer.",
+              "parent_feature": "PIPE-LIFECYCLE",
+              "sprint": 6,
+              "dependencies": [],
+              "size": "M",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "PIPE-LC-016-REQ-001",
+                  "story_id": "PIPE-LC-016",
+                  "requirement": "ClusterLifecycleManager.reserve() must NOT call time.sleep(). It must send the wake request and register the reservation, then return immediately. Boolean test: reserve() completes in under 5 seconds.",
+                  "source": "Durable Functions anti-pattern: blocking sleep in activity",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                },
+                {
+                  "req_id": "PIPE-LC-016-REQ-002",
+                  "story_id": "PIPE-LC-016",
+                  "requirement": "Every orchestrator that reserves a cluster must poll for IDLE via check_cluster_state_activity after calling register_reservation_activity. The orchestrator owns poll timing via create_timer, not the manager. Boolean test: grep each reserving orchestrator for check_cluster_state_activity → at least one match.",
+                  "source": "Duty segregation: ops manager wakes, orchestrator polls",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": ""
+                }
+              ]
             }
           ]
         },

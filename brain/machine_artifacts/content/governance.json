@@ -219,11 +219,24 @@
           "policy": "Data may only move within its environment chain: dev pipeline → dev frontend, staging pipeline → staging frontend, prod pipeline → prod frontend. No cross-environment copies (e.g., dev → prod, staging → dev). Within the pipeline cluster, data promotes forward only: dev → staging → prod via MigrateEnvironment. No backward migration. No shortcuts. Only Boss can authorize a deviation from this policy — not GPT, not Claude, not any automated process.",
           "rationale": "Environment isolation is a healthcare compliance requirement. Cross-environment data movement creates audit gaps, breaks reproducibility, and risks exposing test data in production or production data in dev. The forward-only promotion chain ensures every dataset in staging was proven in dev, and every dataset in prod was proven in staging.",
           "status": "permanent"
+        },
+        {
+          "id": "GOV-013",
+          "name": "Design For Today",
+          "policy": "We design for today, not the future. It is a fundamental principle of AI-created applications that can be refactored on a dime if the brain's records are rigorously groomed, refactored, and enhanced to increase the usefulness of the brain to function as per design. Speculative architecture, premature abstractions, and designing for hypothetical future requirements are prohibited. Build what is needed now. Refactor when the future actually arrives.",
+          "statements": [
+            {
+              "id": "GOV-013-STD-001",
+              "statement": "The brain's records must be rigorously groomed, refactored, and enhanced to increase the usefulness of the brain to function as per design."
+            }
+          ],
+          "rationale": "AI collapses the cost of refactoring from weeks to hours. The traditional justification for upfront design — that change is expensive — no longer holds. Speculative architecture is waste. Brain rigor (governance, traceability, tests, groomed records) is what makes cheap refactoring safe. Without rigor, this policy fails.",
+          "status": "permanent"
         }
       ],
       "_record_id": "corporate_governance",
       "_source_file": "corporate_governance.json",
-      "description": "GOV-001 through GOV-012. Provider neutrality, single-tenant, public-by-default, Boss sign-off, role-in-system-prompt, zero user data exposure, AI translates / system answers, environment isolation.",
+      "description": "GOV-001 through GOV-013. Provider neutrality, single-tenant, public-by-default, Boss sign-off, role-in-system-prompt, zero user data exposure, AI translates / system answers, environment isolation, design for today.",
       "publish": false
     },
     {

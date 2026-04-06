@@ -16,7 +16,7 @@ from typing import Optional
 
 _log = logging.getLogger("findcare.provider_search")
 
-SUPPORTED_STATES = {"DE", "MS", "VA"}
+SUPPORTED_STATES = {"CA", "DE", "MS", "VA"}
 DEFAULT_LIMIT = 25  # F-10: raised from 10
 
 # HACK ASN-4AFBDA: static FIPS-to-county seed

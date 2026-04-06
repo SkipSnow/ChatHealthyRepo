@@ -1,10 +1,10 @@
 {
   "collection": "external_audits",
-  "record_count": 2,
+  "record_count": 3,
   "records": [
     {
       "title": "External Audit Registry",
-      "description": "Index of all external audits. Currently: EXT-AUDIT-001 (Perplexity, March 2026).",
+      "description": "Index of all external audits. EXT-AUDIT-001 (Perplexity, March 2026), EXT-AUDIT-002 (Perplexity, April 2026 — prompt_log design).",
       "audits": [
         {
           "audit_id": "EXT-AUDIT-001",
@@ -29,10 +29,193 @@
           },
           "overall_assessment": "Architecturally sound, engineering quality exceeds expectations for pre-alpha. Primary risks are strategic and legal, not technical. Three highest-priority items: (1) tool registry to close globals() security gap, (2) legal counsel on FDA/clinical decision support boundary, (3) lock architecture docs behind NDA before Alpha.",
           "status": "received"
+        },
+        {
+          "audit_id": "EXT-AUDIT-002",
+          "title": "BIZOPS-CHATLOG-001 prompt_log Design Audit",
+          "auditor": "Perplexity",
+          "date": "2026-04-05",
+          "version_audited": "pre-build",
+          "scope": "Design and requirements only — BIZOPS-CHATLOG-001 prompt_log feature. No code or runtime artifacts.",
+          "documents_reviewed": 1,
+          "findings": {
+            "strengths": 1,
+            "observations": 1,
+            "minor_gaps": 5,
+            "moderate_gaps": 4,
+            "accepted_risks": 1,
+            "total": 12
+          },
+          "overall_assessment": "Plausible and generally sound design. Moderate clarity and governance gaps to address in Phase 2 GPT review.",
+          "status": "received"
         }
       ],
       "_record_id": "external_audit_registry",
       "_source_file": "external_audit_registry.json",
+      "publish": false
+    },
+    {
+      "audit_id": "EXT-AUDIT-002",
+      "title": "BIZOPS-CHATLOG-001 prompt_log Design Audit",
+      "auditor": "Perplexity",
+      "date": "2026-04-05",
+      "version_audited": "pre-build",
+      "scope": "Design and requirements only — BIZOPS-CHATLOG-001 prompt_log feature under OPS-AGENT-COMMS. No code, infrastructure, or runtime artifacts reviewed.",
+      "documents_reviewed": 1,
+      "findings": {
+        "strengths": 1,
+        "observations": 1,
+        "minor_gaps": 5,
+        "moderate_gaps": 4,
+        "accepted_risks": 1,
+        "total": 12
+      },
+      "overall_assessment": "Plausible and generally sound design. Append-only model, actor attribution, and dual timestamps match standard audit-log patterns. Moderate clarity and governance gaps around time semantics, immutability controls, truncation policy, credential-handling responsibility, and operational visibility into grooming behavior. Gaps should be addressed in next design iteration before implementation.",
+      "executive_summary": "The prompt_log requirements form a plausible and generally sound design for solving ephemeral Claude sessions and missing short-term conversation audit trails. The specification contains moderate clarity and governance gaps that do not render the design unworkable but should be addressed before implementation begins.",
+      "findings_detail": [
+        {
+          "id": "PL-F01",
+          "category": "problem_statement",
+          "severity": "strength",
+          "title": "Problem statement is strong and well scoped",
+          "detail": "The problem statement clearly articulates the current defect: Claude sessions are ephemeral, conversation history is not persisted, and there is no audit trail or substrate for downstream grooming, summarization, or automation. The proposed solution is directly responsive and matches common audit-log patterns.",
+          "action_required": false
+        },
+        {
+          "id": "PL-F02",
+          "category": "retention",
+          "severity": "observation",
+          "title": "Efficacy depends on 24-hour horizon being sufficient",
+          "detail": "For compliance, incident reconstruction, or longitudinal model-behavior analysis, 24 hours is short by typical audit-log norms. For ChatHealthy's current stage, this is an accepted risk.",
+          "recommendation": "Document that prompt_log is a short-term operational log, not a regulatory audit log. Plan a follow-on story for long-horizon archival.",
+          "action_required": false
+        },
+        {
+          "id": "PL-F03",
+          "category": "data_model",
+          "severity": "minor_gap",
+          "title": "Roles vs. actors are well distinguished but not fully formalized",
+          "detail": "The spec lists actor and role fields but does not define allowed values, casing rules, or a registry process. Inconsistent actor/role strings reduce usefulness for analytics.",
+          "recommendation": "Add a requirement that actor values must be drawn from a documented registry or canonical naming convention.",
+          "action_required": true,
+          "priority": "phase_2"
+        },
+        {
+          "id": "PL-F04",
+          "category": "time_semantics",
+          "severity": "moderate_gap",
+          "title": "Time semantics and authority are under-specified",
+          "detail": "The spec does not state which timestamp field is used for grooming, how daylight savings time is handled, or whether 'older than 24 hours' is inclusive or exclusive at the boundary.",
+          "recommendation": "Amend TR12-TR15 to state explicitly that grooming is based on timestamp_utc, with a precise rule ('delete utterances where timestamp_utc < now_utc - 24h'), and treat timestamp_pst as convenience rendering only.",
+          "action_required": true,
+          "priority": "phase_2"
+        },
+        {
+          "id": "PL-F05",
+          "category": "immutability",
+          "severity": "moderate_gap",
+          "title": "Append-only guarantees are conceptually strong but not tied to specific controls",
+          "detail": "TR8 and TR14 specify append-only, but requirements do not describe any control that enforces immutability at the store level nor how drift would be detected.",
+          "recommendation": "Add a technical requirement stating the underlying collection must either be technically append-only or support a separate corrections record while preserving originals.",
+          "action_required": true,
+          "priority": "phase_2"
+        },
+        {
+          "id": "PL-F06",
+          "category": "content_exclusion",
+          "severity": "minor_gap",
+          "title": "Binary-exclusion rule is clear but silently dropping content is a risk",
+          "detail": "Silent discarding creates a risk that interactions referencing attachments are partially represented with no indication that key context was missing.",
+          "recommendation": "Refine TR9/TR11 to allow a short marker such as '[binary content omitted]' alongside textual content.",
+          "action_required": true,
+          "priority": "phase_2"
+        },
+        {
+          "id": "PL-F07",
+          "category": "security",
+          "severity": "moderate_gap",
+          "title": "Credential-handling requirement is inconsistent between TR10 and clarified scope",
+          "detail": "TR10 states credentials are redacted, but Boss clarified security is handled in a separate epic. Leaving TR10 in the spec while treating credential handling as out-of-scope will confuse future reviewers.",
+          "recommendation": "Either remove TR10 and reference the security epic, or keep TR10 with a cross-reference that credential redaction is enforced via shared middleware owned by the security epic.",
+          "action_required": true,
+          "priority": "phase_2"
+        },
+        {
+          "id": "PL-F08",
+          "category": "content_exclusion",
+          "severity": "minor_gap",
+          "title": "Tool-result truncation policy is under-specified",
+          "detail": "TR11 does not state whether the first 500 characters are kept, whether summaries can replace full content, or whether both retained prefix and length of omission must be logged.",
+          "recommendation": "Clarify TR11: (a) truncation is strictly by prefix, (b) summaries are not permitted, (c) logged message must include standard marker.",
+          "action_required": true,
+          "priority": "phase_2"
+        },
+        {
+          "id": "PL-F09",
+          "category": "content_exclusion",
+          "severity": "minor_gap",
+          "title": "System-reminder exclusion rule conflicts slightly with 'no visible chars excluded' principle",
+          "detail": "The spec does not clearly distinguish between internal non-visible system reminders and user-visible system messages.",
+          "recommendation": "Refine TR16 to specify that only system-reminder content not rendered to any actor UI is excluded.",
+          "action_required": true,
+          "priority": "phase_2"
+        },
+        {
+          "id": "PL-F10",
+          "category": "schema",
+          "severity": "minor_gap",
+          "title": "Collection-level metadata is thin",
+          "detail": "TR17 and TR18 are vague about where and how metadata lives. Without stricter documentation, future contributors may fail to keep schema and operational behavior synchronized.",
+          "recommendation": "Expand TR17/TR18 to require specific path/location for schema.json, explicit mapping between retention and Azure Function schedule, and a short prompt log protocol document.",
+          "action_required": true,
+          "priority": "phase_2"
+        },
+        {
+          "id": "PL-F11",
+          "category": "architecture",
+          "severity": "accepted_risk",
+          "title": "Current brain implementation (Mongo + JSON + scripts) is a known but material architecture risk",
+          "detail": "The hybrid 'one collection plus files' arrangement is common in very early-stage projects but does not represent a clean data architecture for a scaling product.",
+          "recommendation": "Record as known architecture debt. Plan a separate 'Brain Data Architecture' initiative once BIZOPS-CHATLOG-001 is stable.",
+          "action_required": false
+        },
+        {
+          "id": "PL-F12",
+          "category": "governance",
+          "severity": "moderate_gap",
+          "title": "No explicit logging of grooming failures or gaps",
+          "detail": "There is no explicit requirement that grooming failures or communication gaps be logged. Without a trace, it is difficult to distinguish 'no conversations in last 24 hours' from 'grooming silently misbehaved.'",
+          "recommendation": "Add a requirement that the grooming Azure Function write a minimal operational summary to prompt_log (as an OpsAgent actor) or a sibling collection, including counts of deleted utterances and any errors encountered.",
+          "action_required": true,
+          "priority": "phase_2"
+        }
+      ],
+      "clarification_record": [
+        {"q": "Should the audit consider only internal consistency, or also efficacy and architectural fit?", "a": "Both. The audit must consider whether the plan effectively addresses the stated problem."},
+        {"q": "Is the current brain implementation (Mongo + JSON + scripts) in scope?", "a": "Known gap and accepted risk for an 8-day-old enterprise; cite but do not treat as blocking flaw."},
+        {"q": "Which timestamp is authoritative and who owns the 24-hour window?", "a": "Timestamp in the record is authoritative. Azure Function App owns 24-hour retention behavior."},
+        {"q": "Should lost utterances be treated as a hard failure?", "a": "Utterances should not be lost in principle, but detecting gaps is hard; accepted risk."},
+        {"q": "Are concurrent writes a concern?", "a": "No. Boss talks to Claude and GPT sequentially; concurrency is an implementation detail."},
+        {"q": "How should binaries be handled?", "a": "Binary objects may be silently dropped; no hard error required."},
+        {"q": "Is credential redaction in scope for this feature?", "a": "No. Security is handled in a separate epic."},
+        {"q": "For long tool results, how strict is the 500-character rule?", "a": "Use judgment. Business prefers no redaction, but truncation acceptable where necessary."},
+        {"q": "How are actor and role defined?", "a": "Actors are humans or components; roles are functional stances."},
+        {"q": "How should mixed system-reminder and user content be handled?", "a": "Anything visible to the actor after control is handed over should not be excluded."},
+        {"q": "How does schema.json relate to grooming?", "a": "Schema JSON defines collections; grooming is owned by the Azure Function."}
+      ],
+      "risk_summary": {
+        "strengths": 1,
+        "observations": 1,
+        "minor_gaps": 5,
+        "moderate_gaps": 4,
+        "accepted_risks": 1,
+        "total_findings": 12,
+        "action_items_phase_2": 10,
+        "no_action_required": 2
+      },
+      "_record_id": "external_audit_prompt_log_v1",
+      "_source_file": "external_audit_prompt_log_v1.json",
+      "description": "Perplexity design audit of BIZOPS-CHATLOG-001 prompt_log: 12 findings, 0 critical, 4 moderate gaps, 5 minor gaps, 1 strength. Design validated with gaps to address in Phase 2.",
       "publish": false
     },
     {
