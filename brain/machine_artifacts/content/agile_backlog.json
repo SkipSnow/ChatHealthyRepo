@@ -16466,7 +16466,7 @@
           "status": "accepted",
           "accepted_by": "Boss",
           "stories": [
-            {"story_id": "SDT-FC-001", "title": "mTLS for service-to-service communication", "size": "M", "status": "accepted", "requirements": [
+            {"story_id": "SDT-FC-001", "title": "mTLS for service-to-service communication", "size": "M", "status": "accepted", "implementation_ref": "Detailed design and implementation owned by EPIC-4 SEC-MTLS-001 and SEC-MTLS-002", "requirements": [
               {"req_id": "SDT-FC-001-REQ-001", "requirement": "FindCare authenticates to EvaluateCare via mutual TLS certificate, not bearer token", "priority": "must-have", "status": "accepted"}
             ]}
           ]
@@ -16482,7 +16482,7 @@
           "status": "accepted",
           "accepted_by": "Boss",
           "stories": [
-            {"story_id": "SDT-EC-001", "title": "mTLS for service-to-service communication", "size": "M", "status": "accepted", "requirements": [
+            {"story_id": "SDT-EC-001", "title": "mTLS for service-to-service communication", "size": "M", "status": "accepted", "implementation_ref": "Detailed design and implementation owned by EPIC-4 SEC-MTLS-001 and SEC-MTLS-003", "requirements": [
               {"req_id": "SDT-EC-001-REQ-001", "requirement": "EvaluateCare authenticates to FindCare and Pipeline via mutual TLS certificate", "priority": "must-have", "status": "accepted"}
             ]}
           ]
@@ -16542,9 +16542,10 @@
           "epic_id": "EPIC-6",
           "layer": "infrastructure",
           "capability": "Security",
-          "description": "Azure Function App and MongoDB Atlas behind VNet. Restrict public access. Private endpoints for storage and database.",
+          "description": "SUPERSEDED by EPIC-4 SEC-NETWORK (2026-04-06). VNet, subnets, firewall, and private endpoints are now owned by EPIC-4 Security. This feature is retained for traceability only.",
           "priority": "HIGH",
-          "status": "accepted",
+          "status": "superseded",
+          "superseded_by": "SEC-NETWORK",
           "accepted_by": "Boss",
           "stories": []
         },

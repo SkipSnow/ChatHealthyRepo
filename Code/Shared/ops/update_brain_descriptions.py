@@ -133,6 +133,6 @@ for rel_path in sorted(tracked):
     except:
         size, content_hash = 0, ""
     manifest.append({"project_path": rel_path, "size": size, "content_hash": content_hash})
-with open("brain/manifest/project_manifest.json", "w", encoding="utf-8") as f:
+with open("brain/machine_artifacts/content/project_manifest.json", "w", encoding="utf-8") as f:
     json.dump(manifest, f, indent=2)
 print(f"Manifest: {len(manifest)} files")

@@ -144,7 +144,7 @@
     "timeout_minutes": 10,
     "title": "Brain integrity validation",
     "description": "Validate all brain file cross-references after restructure...",
-    "scope": ["brain/manifest/project_manifest.json", "brain/machine_artifacts/..."]
+    "scope": ["brain/machine_artifacts/content/project_manifest.json", "brain/machine_artifacts/..."]
   },
   "manifest_entry_structure": {
     "category": "Business",

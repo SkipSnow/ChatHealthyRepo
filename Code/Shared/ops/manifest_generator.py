@@ -72,7 +72,7 @@ class ManifestGenerator:
         "brain/machine_artifacts/.iteration_cache/": "Epic planning iteration cache. GPT and Claude working artifacts. Cleaned after planning cycle.",
         "brain/BusinessArtifacts/": "Business gate artifacts — QA reports, IP agreements, investor docs, UAT reports.",
         "brain/BusinessArtifacts/diagrams/": "Business architecture diagrams — component, moat, revenue, compliance.",
-        "brain/manifest/": "Project manifest — every file cataloged with capabilities and descriptions.",
+        "brain/machine_artifacts/content/": "Project manifest — every file cataloged with capabilities and descriptions.",
         "Code/": "All production code. Three applications + shared.",
         "Code/ConversationalUX/": "App 2 — Chat Window. React frontend + FastAPI backend.",
         "Code/ConversationalUX/FindCareChat/": "FindCare chat application. Active development.",
@@ -152,7 +152,7 @@ class ManifestGenerator:
             return f"Business artifact: {name} ({ext})"
 
         # Brain manifest
-        if rel_path.startswith("brain/manifest/"):
+        if rel_path.startswith("brain/machine_artifacts/content/"):
             return "Project manifest — file catalog with capabilities"
 
         # Brain code

@@ -51,7 +51,7 @@ ARTIFACT_TYPE_MAP = {
     "brain/machine_artifacts/document_type_json/": "MachineArtifact",
     "brain/machine_artifacts/document_type_md/": "MachineArtifact",
     "brain/machine_artifacts/document_type_py/": "Tool",
-    "brain/manifest/": "Manifest",
+    "brain/machine_artifacts/content/": "Manifest",
     "archive/": "Archive",
     "Code/ConversationalUX/FindCareChat/": "SourceCode",
     "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/": "RuntimeContext",

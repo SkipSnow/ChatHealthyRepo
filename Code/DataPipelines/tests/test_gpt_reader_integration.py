@@ -38,7 +38,7 @@ class TestR4_Authentication(unittest.TestCase):
     """R4: Bearer token authentication, separate from Router token."""
 
     def test_valid_token_accepted(self):
-        status, resp = gpt_call({"action": "ReadArtifact", "project_path": "brain/manifest/project_manifest.json"})
+        status, resp = gpt_call({"action": "ReadArtifact", "project_path": "brain/machine_artifacts/content/project_manifest.json"})
         self.assertNotEqual(status, 401)
 
     def test_invalid_token_rejected(self):
@@ -361,7 +361,7 @@ class TestGPTWorkflow(unittest.TestCase):
         # Step 1: GPT reads manifest
         status, manifest_resp = gpt_call({
             "action": "ReadArtifact",
-            "project_path": "brain/manifest/project_manifest.json"
+            "project_path": "brain/machine_artifacts/content/project_manifest.json"
         })
         self.assertEqual(status, 200, "GPT should be able to read the manifest")
         manifest = json.loads(manifest_resp["content"])
