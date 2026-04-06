@@ -12,14 +12,25 @@
 import os
 import sys
 import logging
+import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 _log = logging.getLogger("shared_services")
 
 app = FastAPI(title="ChatHealthy.ai Shared Services", version="0.1.4")
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)
+    elapsed = round((time.time() - start) * 1000)
+    _log.info("%s %s → %d (%dms) from %s",
+              request.method, request.url.path, response.status_code, elapsed,
+              request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown"))
+    return response
 
 app.add_middleware(
     CORSMiddleware,
