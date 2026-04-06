@@ -1,0 +1,274 @@
+@startuml ChatHealthy_Local_Component_Architecture
+!theme plain
+title ChatHealthy.ai — Target Local Component Architecture\nEPIC-6: Secure Distributed Topology\n2026-04-06\nAll components grouped by physical deployment environment
+
+skinparam componentStyle rectangle
+skinparam backgroundColor white
+skinparam linetype ortho
+
+skinparam component {
+  BackgroundColor #F5F5F5
+  BorderColor #333333
+  FontSize 10
+}
+skinparam package {
+  FontSize 12
+  BorderThickness 2
+}
+skinparam database {
+  BackgroundColor #E8E8E8
+  BorderColor #444444
+}
+
+actor "Consumer\n(Browser)" as user
+
+' ═══════════════════════════════════════════════════
+'  ENV 1: SKIP'S PC (localhost)
+' ═══════════════════════════════════════════════════
+
+package "Skip's PC (localhost)" as env_local <<physical>> #EEEEFF {
+
+  component [Caddy\nReverse Proxy\nTLS + mTLS\nRoute dispatch] as caddy
+
+  package "Frontend Services" as local_fe {
+    component [Public Website\n:80 → Caddy\nWebsite/ static] as website
+    component [Admin Website\n:443 → Caddy\nAuth-gated (F-13)] as admin_site
+    component [React App\n:5173 Vite\nChatWindow\nGUIManager] as react
+    component [Secure Cookie Mgr\nEncrypted visit tracker\nVisit count + query count\n90-day TTL] as cookie
+  }
+
+  package "FindCare Service (:8000)" as local_fc {
+    component [ChatOrchestrator\nLLM loop] as fc_orch
+    component [ToolRouter\nPydantic + allowlist] as fc_router
+    component [FindCareFacade] as fc_facade
+    component [ProviderSearchService] as fc_prov
+    component [SpecialtyService] as fc_spec
+    component [EvalCare Gateway\nBuilds handoff payload] as fc_gw
+  }
+
+  package "EvaluateCare Service (:8001)" as local_ec {
+    component [EvalCare Orchestrator\nReceives handoff] as ec_orch
+    component [EvaluateCareFacade] as ec_facade
+    component [UserContextResolver\nCookie + DB reader] as ec_ctx
+    component [ScoringEngine\nProvider quality\nClinical trial scoring] as ec_score
+    component [ScreenPainter\nFormats eval view\npostMessage to chat] as ec_paint
+  }
+
+  package "Shared Services (:8002)" as local_shared {
+    component [SharedServicesFacade] as ss_facade
+    component [SafetyService\n+ EmergencyDetector] as ss_safety
+    component [ConsentService\nTwo-tier HIPAA] as ss_consent
+    component [LeadService\nContact capture] as ss_lead
+    component [UnknownQuestionService\nDe-identified logging\n(UAT Feature 12)] as ss_unknown
+    component [AboutService\nStatic content] as ss_about
+    component [URLGuardian\nDual-mode validation] as ss_url
+    component [ChatHealthyMongoUtilities\nConnection management\nENV_PREFIX routing\nBuild counter] as ss_mongo_util
+    component [SecretManager\nSingle source for all credentials\nLocal: x509 cert → Key Vault\nAzure: Managed Identity → Key Vault\nHF: x509 cert → Key Vault\nNo bearer tokens anywhere\n(BL-0.1.4-002 fix)] as ss_secrets
+  }
+
+  package "The Brain — App 4 (DevOps)" as local_brain {
+    component [Claude Code CLI\nDev Manager] as claude
+    component [brain/machine_artifacts/\n22 JSON collections] as brain_disk
+    component [Heartbeat Service\nPings Azure 30 min\nBroadcasts public IP] as heartbeat
+    component [Ops Scripts\nstart_local.bat\nkill_dev_servers.ps1] as ops
+  }
+}
+
+' ═══════════════════════════════════════════════════
+'  ENV 2: MONGODB ATLAS
+' ═══════════════════════════════════════════════════
+
+package "MongoDB Atlas" as env_mongo <<physical>> #FFF8E8 {
+  database [Frontend Cluster\nChatHealthyFrontEnd\n24/7 uptime\nadmin DB (brain)\ndev_*/qa_*/prod_*\nProviders, Safety\nLeads, UserAccounts] as mongo_fe
+  database [Pipeline Cluster\nChatHealthyDataPipelines\nOn-demand\nZERO admin state\n(DR-020)] as mongo_pipe
+}
+
+' ═══════════════════════════════════════════════════
+'  ENV 3: HUGGINGFACE
+' ═══════════════════════════════════════════════════
+
+package "HuggingFace" as env_hf <<physical>> #F0FFF0 {
+  package "FindCare Spaces" as hf_fc {
+    component [Dev — FindCare\nport 7860] as hf_fc_dev
+    component [QA — FindCare\nport 7860] as hf_fc_qa
+    component [Prod — FindCare\nport 7860] as hf_fc_prod
+  }
+  package "EvaluateCare Spaces" as hf_ec {
+    component [Dev — EvalCare\nport 7860] as hf_ec_dev
+    component [QA — EvalCare\nport 7860] as hf_ec_qa
+    component [Prod — EvalCare\nport 7860] as hf_ec_prod
+  }
+  package "Shared Services Spaces" as hf_ss {
+    component [Dev — Shared\nport 7860] as hf_ss_dev
+    component [QA — Shared\nport 7860] as hf_ss_qa
+    component [Prod — Shared\nport 7860] as hf_ss_prod
+  }
+}
+
+' ═══════════════════════════════════════════════════
+'  ENV 4: CLOUDFLARE
+' ═══════════════════════════════════════════════════
+
+package "Cloudflare" as env_cf <<physical>> #F5FFF5 {
+  component [Pages — Public\nchathealthy.ai\ndev.chathealthy.ai\nqa.chathealthy.ai] as cf_pages
+  component [Pages — Admin\nadmin.chathealthy.ai\n+ Cloudflare Access\nAuthenticated] as cf_admin
+  component [DNS + SSL\nFree TLS\nDDoS protection] as cf_dns
+}
+
+' ═══════════════════════════════════════════════════
+'  ENV 5: AZURE — DATA PIPELINES
+' ═══════════════════════════════════════════════════
+
+package "Azure — ChatHealthyDataPipelines" as env_az_pipe <<physical>> #FFF0F0 {
+  component [Function App\nDurable Functions\nPipeline orchestrator\nVNet integrated] as az_func
+  component [Blob Storage\nSource data files\nNPI, CMS, state] as az_blob
+}
+
+' ═══════════════════════════════════════════════════
+'  ENV 6: AZURE — BIZOPS
+' ═══════════════════════════════════════════════════
+
+package "Azure — ChatHealthyBIZOperations" as env_az_biz <<physical>> #FFF0F5 {
+  component [BizOps Function App\nAgent: groom, alert\nAccepts heartbeats] as az_bizops
+  component [Application Insights\nMonitoring] as az_insights
+}
+
+package "Azure — ChatHealthySecurity" as env_az_sec <<physical>> #FFE8E8 {
+  component [Azure Key Vault\nAll production secrets\n---\nAuth: x509 cert (non-Azure)\nManaged Identity (Azure)\nNo bearer tokens\nPublic access disabled] as az_keyvault
+
+  package "Azure VNet" as az_vnet {
+    component [Azure Firewall\nAll outbound through FW\nAllow: Mongo, Anthropic,\nOpenAI, HF, SparkPost\nDeny all else\nAudit logging] as az_fw
+    component [Private Endpoint\n→ Key Vault] as pe_kv
+    component [Private Endpoint\n→ MongoDB Atlas\n(frontend + pipeline)] as pe_mongo
+    component [Subnet:\nDataPipelines] as subnet_pipe
+    component [Subnet:\nBIZOperations] as subnet_biz
+    component [Subnet:\nPrivate Endpoints] as subnet_pe
+  }
+}
+
+' ═══════════════════════════════════════════════════
+'  ENV 7: ANTHROPIC
+' ═══════════════════════════════════════════════════
+
+package "Anthropic" as env_anthropic <<physical>> #F8F0FF {
+  component [Claude Sonnet API\nChat completions\nTool use] as api_claude
+}
+
+' ═══════════════════════════════════════════════════
+'  ENV 8: OPENAI
+' ═══════════════════════════════════════════════════
+
+package "OpenAI" as env_openai <<physical>> #FFF8F0 {
+  component [text-embedding-3-small\n1536 dimensions\nVector search] as api_embed
+  component [GPT-4.1-mini\nSafety classifier\nDual-trigger OR] as api_safety
+}
+
+' ═══════════════════════════════════════════════════
+'  CONNECTIONS — User → Local
+' ═══════════════════════════════════════════════════
+
+user --> caddy
+
+caddy --> website : "/"
+caddy --> admin_site : "/admin"
+caddy --> react : ":5173"
+caddy --> fc_orch : ":8000"
+caddy -[#red]-> ec_orch : ":8001\n<<mTLS>>"
+caddy -[#red]-> ss_facade : ":8002\n<<mTLS>>"
+
+website --> react : "iframe\n(DR-011)"
+
+' ═══════════════════════════════════════════════════
+'  CONNECTIONS — Local internal
+' ═══════════════════════════════════════════════════
+
+react --> fc_orch : "POST /chat"
+cookie --> fc_gw : "Cookie ref"
+
+fc_orch --> fc_router
+fc_router --> fc_facade
+fc_facade --> fc_prov
+fc_facade --> fc_spec
+fc_orch -[#red]-> ss_facade : "<<mTLS>>\nsafety, consent,\nlead, unknown,\nabout, URL"
+
+ec_orch --> ec_facade
+ec_facade --> ec_ctx
+ec_facade --> ec_score
+ec_orch -[#red]-> ss_facade : "<<mTLS>>\nsafety, lead"
+
+ss_facade --> ss_safety
+ss_facade --> ss_consent
+ss_facade --> ss_lead
+ss_facade --> ss_unknown
+ss_facade --> ss_about
+ss_facade --> ss_url
+ss_facade --> ss_secrets
+ss_facade --> ss_mongo_util
+ss_mongo_util --> ss_secrets : "conn strings"
+
+fc_gw -[#red,bold]-> ec_orch : "<<mTLS>>\nchat_history +\nuser_db_ref +\ncookie_stats +\nproviders"
+
+ec_orch --> ec_ctx
+ec_orch --> ec_score
+ec_orch --> ec_paint
+ec_paint -[#blue,bold]-> react : "postMessage\ngui:eval-render"
+
+claude --> brain_disk
+
+' ═══════════════════════════════════════════════════
+'  CONNECTIONS — Local → MongoDB Atlas
+' ═══════════════════════════════════════════════════
+
+ss_mongo_util -[#orange]-> mongo_fe : "All DB access\nProviders, Safety,\nLeads, UserAccounts,\nUnknown questions"
+
+fc_prov --> ss_mongo_util : "Providers\nSpecialty"
+ec_ctx --> ss_mongo_util : "UserAccounts\n(paid only)"
+ec_score --> ss_mongo_util : "Quality data"
+claude -[#orange]-> mongo_fe : "admin DB\n(direct)"
+
+' ═══════════════════════════════════════════════════
+'  CONNECTIONS — Local → AI APIs
+' ═══════════════════════════════════════════════════
+
+fc_orch -[#purple]-> api_claude : "Chat + tools"
+fc_prov -[#purple]-> api_embed : "Embeddings"
+fc_safety -[#purple]-> api_safety : "Safety classify"
+
+' ═══════════════════════════════════════════════════
+'  CONNECTIONS — Local → Azure
+' ═══════════════════════════════════════════════════
+
+heartbeat -[#gray]-> az_bizops : "IP + status"
+ss_secrets -[#red]-> az_keyvault : "<<x509 cert>>\nAzure AD cert auth\nPrivate key local"
+
+' ═══════════════════════════════════════════════════
+'  CONNECTIONS — Azure → MongoDB
+' ═══════════════════════════════════════════════════
+
+az_func --> subnet_pipe : "VNet integrated"
+subnet_pipe --> az_fw : "Outbound"
+az_func --> az_blob : "Source files"
+az_func -[#darkgreen]-> pe_kv : "<<Managed Identity>>"
+pe_kv --> az_keyvault
+pe_mongo -[#orange]-> mongo_fe : "Private link"
+pe_mongo -[#orange]-> mongo_pipe : "Private link"
+subnet_pipe --> pe_mongo : "DB access"
+az_bizops --> subnet_biz : "VNet integrated"
+subnet_biz --> az_fw : "Outbound"
+hf_fc_prod -[#red]-> az_keyvault : "<<x509 cert>>\nAzure AD cert auth"
+hf_ec_prod -[#red]-> az_keyvault : "<<x509 cert>>\nAzure AD cert auth"
+hf_ss_prod -[#red]-> az_keyvault : "<<x509 cert>>\nAzure AD cert auth"
+mongo_pipe .[#gray,dashed].> mongo_fe : "CopyToFrontEnd"
+
+' ═══════════════════════════════════════════════════
+'  CONNECTIONS — Prod: Cloudflare → HuggingFace
+' ═══════════════════════════════════════════════════
+
+cf_pages .[#lightblue,dashed].> hf_fc_prod : "iframe (prod)"
+cf_dns .[#lightblue,dashed].> cf_pages
+cf_dns .[#lightblue,dashed].> cf_admin
+hf_fc_prod -[#orange]-> mongo_fe
+hf_ec_prod -[#orange]-> mongo_fe
+hf_ss_prod -[#orange]-> mongo_fe
+
+@enduml

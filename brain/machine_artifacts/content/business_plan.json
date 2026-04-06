@@ -1,6 +1,6 @@
 {
   "collection": "business_plan",
-  "record_count": 8,
+  "record_count": 9,
   "records": [
     {
       "title": "ChatHealthy.ai — Business Architecture",
@@ -1311,6 +1311,158 @@
         ]
       },
       "system_prompt_token_count": null
+    },
+    {
+      "_record_id": "founder_profile",
+      "title": "Founder Profile — Skip Snow",
+      "description": "Structured founder identity, career timeline, and personal context. Source of truth for all 'about the founder' content across the system.",
+      "publish": false,
+      "identity": {
+        "legal_name": "Harvey Snow",
+        "known_as": "Skip Snow",
+        "dob": "1959-04-03",
+        "location": "Los Angeles, CA",
+        "relocated_from": "New York City",
+        "relocated_year": 2000,
+        "email": "skip.snow@gmail.com",
+        "phone": "646-408-8999",
+        "linkedin": "linkedin.com/in/skipsnow",
+        "github": "github.com/SkipSnow/ChatHealthyRepo",
+        "personal_site": "skipsnow.net"
+      },
+      "roles": ["Entrepreneur", "Software Engineer", "Data Scientist", "Artist"],
+      "personal": {
+        "relationship_status": "Single",
+        "prior_salary": "$350K — left to pursue AI executive path",
+        "food": "Loves all foods; not fond of Indian desserts ('pasty and bland')",
+        "art": "Outsider artist — oil on linen, exhibited work. Studio assistant to Jean-Michel Basquiat and other well-known artists."
+      },
+      "founding_narrative": "chatHealthy.ai is based on the assumption that one can use public data and questions about the healthcare system, and even biology, and add value for consumers and companies by building solutions that together allow consumers to navigate and deal with their health in a more holistic manner, despite the systemic brokenness of the way the American culture deals with healthcare.",
+      "company": {
+        "name": "ChatHealthy.ai LLC",
+        "state_of_incorporation": "Delaware",
+        "founded": "2026-03-26"
+      },
+      "career": [
+        {
+          "org": "Humana",
+          "title": "Enterprise Architect (Contractor)",
+          "dates": "2022-09 to 2026-03",
+          "duration": "3 years 7 months",
+          "domain": "payer",
+          "scale": "$117B org, $9B business units, $250MM IT programs",
+          "work": "Re-architected IAM infrastructure. Led enterprise-wide data quality initiatives across Medicare, Commercial, and Specialty lines. Managed portfolio architecture for Group, Specialty, and Producer business units."
+        },
+        {
+          "org": "Anthem, Inc.",
+          "title": "Director, Solution Management",
+          "dates": "2020-05 to 2022-09",
+          "duration": "2 years 5 months",
+          "domain": "payer",
+          "scale": "60-person organization",
+          "work": "Directed organization eliminating $1.2B of compliance risk. Contributed to enterprise AI strategy. Coordinated IT-to-business value delivery for Anthem California IT portfolio."
+        },
+        {
+          "org": "Prospect Medical Holdings, Inc.",
+          "title": "Acting Principal Enterprise Architect",
+          "dates": "2019-02 to 2019-11",
+          "duration": "10 months",
+          "domain": "provider",
+          "scale": "$3B healthcare system, 5 states, 30K doctors",
+          "work": "Acting chief architect for system owning hospitals, care management company, and health insurance company. Led application portfolio management using Ardoq."
+        },
+        {
+          "org": "HIPAA Box Inc.",
+          "title": "CEO & Founder",
+          "dates": "2009-04 to 2019-01",
+          "duration": "9 years 10 months",
+          "domain": "startup",
+          "scale": "Raised $275K, team of 20",
+          "work": "Next-generation HIPAA compliance solution for healthcare data safety and security. Won hospital and clinic market mind share. Also consulted for IMS Health, LexisNexis, Johnson & Johnson, Zappos.com, Edmunds.com, SICK Inc.",
+          "outcome": "Failed. Misjudged the storage market. Over-focused on technology innovation. Faulty leadership.",
+          "lesson": "Many lessons learned. This failure directly informs ChatHealthy.ai's governance-first, market-first approach."
+        },
+        {
+          "org": "Forrester Research",
+          "title": "Senior Analyst, Healthcare Software",
+          "dates": "2013-10 to 2015-03",
+          "duration": "1 year 6 months",
+          "domain": "research",
+          "work": "Published syndicated research on telehealth, cognitive computing, insurance industry capabilities, big data, IoT, security. Advised clients on strategy. Interfaced with journalists. Conducted research on population management and global health market. Helped triple healthcare research revenue."
+        },
+        {
+          "org": "Alliance Global Services",
+          "title": "Consultant",
+          "dates": "2011-01 to 2013-05",
+          "duration": "2 years 5 months",
+          "domain": "consulting",
+          "work": "Independent contractor."
+        },
+        {
+          "org": "Kaiser Permanente",
+          "title": "VP, Information and Technology Architecture",
+          "dates": "2007 to 2009",
+          "duration": "2 years",
+          "domain": "provider",
+          "scale": "Multi-billion dollar infrastructure upgrade",
+          "work": "Managed care delivery, infrastructure, facilities, remote monitoring, and security architecture domains. Managed three executive directors and staff. Formulated architecture strategy. Advocated for cloud adoption. Voting member of Application Portfolio Management steering committee."
+        },
+        {
+          "org": "Citigroup",
+          "title": "SVP of Enterprise Architecture",
+          "dates": "2004-02 to 2007-02",
+          "duration": "3 years 1 month",
+          "domain": "financial services",
+          "work": "Chief architect for SOA. Accelerated SOAP and REST adoption via Technology Leadership Counsel. Introduced machine learning to global KYC database project (Patriot Act). Chaired Architecture Round Table."
+        },
+        {
+          "org": "Mphasis",
+          "title": "Senior Architect",
+          "dates": "2003 to 2004",
+          "duration": "1 year",
+          "domain": "consulting",
+          "work": "Managed 60-person team on two continents. Multi-million dollar JP Morgan Chase project — chase.com migration and Documentum CM implementation. On time, within budget."
+        },
+        {
+          "org": "Citibank Online",
+          "title": "Vice President, Internet Architect",
+          "dates": "1999 to 2003",
+          "duration": "4 years",
+          "domain": "financial services",
+          "work": "Managed global Portal Infrastructure and Architecture group. Designed global portal for Citigroup Consumer Portals. Legacy back-end integrations. J2EE strategic vision. Vendor contract negotiation. Large offshore team management."
+        },
+        {
+          "org": "Lehman Brothers",
+          "title": "Senior Programmer",
+          "dates": "1998 to 1999",
+          "duration": "1 year",
+          "domain": "financial services",
+          "work": "Designed and developed online brokerage application for high net worth customers."
+        },
+        {
+          "org": "GSCC",
+          "title": "Programmer",
+          "dates": "1996 to 1997",
+          "duration": "1 year",
+          "domain": "financial services",
+          "work": "Transitioned org from VAX/Pascal to Oracle/C++/CORBA. Built billing system. Defined communications framework between legacy environment, Oracle, and data feeds using CORBA."
+        }
+      ],
+      "education": [
+        {"institution": "NYU", "subject": "C++ Certificate", "dates": "1995-02 to 1995-06"},
+        {"institution": "NYU / Indiana University", "subject": "Drama, General Studies"},
+        {"institution": "Udemy", "subject": "Python Master Class", "dates": "2024-04 to 2024-05"},
+        {"institution": "Udemy", "subject": "AI Engineering", "dates": "2025-09"},
+        {"institution": "Udemy", "subject": "Kubernetes Administration", "dates": "2025-08 to 2025-11"}
+      ],
+      "competency_domains": [
+        "Enterprise application portfolio management",
+        "IT governance and enterprise architecture frameworks",
+        "Healthcare payer/provider/startup operations",
+        "AI/ML engineering and agentic automation",
+        "Large-scale data quality and modernization programs"
+      ],
+      "why_this_founder": "Has sat inside the payer system (Humana, Anthem), run provider architecture (Prospect, Kaiser), written the research (Forrester), built and failed a healthcare startup (HIPAA Box), and worked at the intersection of enterprise tech and finance (Citigroup, Lehman). Understands from the inside why the system withholds quality information, how the data is structured, where it is publicly available, and what it takes to assemble it for consumers."
     }
   ]
 }

@@ -234,6 +234,67 @@
       "rationale": "Neutrality requires transparency. We earn trust by choosing to be secure, not by being compelled. This avoids HIPAA regulatory burden while exceeding the security expectations of healthcare buyers.",
       "status": "permanent",
       "scope": "All applications"
+    },
+    {
+      "id": "GOV-014",
+      "name": "Founding Philosophical Alignment",
+      "source": "Anthropic co-founder conversation (YouTube, 2024-12-20)",
+      "source_url": "https://www.youtube.com/watch?v=om2lIWXLLN4",
+      "status": "permanent",
+      "description": "Principles Boss identified as articulating many of his goals for ChatHealthy. Adopted as philosophical DNA — not Anthropic's rules, but ideas that resonate with the ChatHealthy mission.",
+      "principles": [
+        {
+          "id": 1,
+          "principle": "Safety and capability are inseparable",
+          "chathealthy_application": "Emergency detection, scope boundaries, and safety filters ship with every feature — not retrofitted."
+        },
+        {
+          "id": 2,
+          "principle": "Bet against consensus when the evidence warrants it",
+          "chathealthy_application": "The healthcare industry says quality transparency is impossible for consumers. The data says otherwise."
+        },
+        {
+          "id": 3,
+          "principle": "Simple things work surprisingly well",
+          "chathealthy_application": "GOV-013: Design for today. No speculative architecture. Refactor when the future arrives."
+        },
+        {
+          "id": 4,
+          "principle": "Take the risk seriously before others do",
+          "chathealthy_application": "Safety-first architecture from day one. HITRUST/SOC2 path chosen voluntarily, not under compulsion."
+        },
+        {
+          "id": 5,
+          "principle": "Publish constantly",
+          "chathealthy_application": "Open roadmap, public architecture pages, transparent governance. Shift the field by showing the work."
+        },
+        {
+          "id": 6,
+          "principle": "Build for the long-term mission, not near-term validation",
+          "chathealthy_application": "Pre-revenue by design. Trust before monetization. Patient capital, not quick exits."
+        },
+        {
+          "id": 7,
+          "principle": "Interpretability is foundational",
+          "chathealthy_application": "GOV-011: AI translates, system answers. Explainable outputs, traceable decisions, auditable logic."
+        },
+        {
+          "id": 8,
+          "principle": "The goal is beneficial AI for humanity",
+          "chathealthy_application": "GOV-001: Provider neutrality. No care-chain revenue. Consumer-first, always."
+        },
+        {
+          "id": 9,
+          "principle": "Language models as an alignment tool",
+          "chathealthy_application": "Multi-model brain — Claude + GPT — each constrained by governance. The models serve the system, not the reverse."
+        },
+        {
+          "id": 10,
+          "principle": "Human supervision is a phase, not the end state",
+          "chathealthy_application": "Man-in-the-middle today, autonomous agents tomorrow. Architecture designed for the transition."
+        }
+      ],
+      "publish": false
     }
   ]
 }

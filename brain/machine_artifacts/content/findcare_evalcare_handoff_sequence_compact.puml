@@ -1,0 +1,92 @@
+@startuml FindCare_EvaluateCare_Handoff_Compact
+!theme plain
+title FindCare → EvaluateCare Handoff Sequence\n2026-04-06
+
+skinparam backgroundColor white
+skinparam maxMessageSize 200
+
+actor "Consumer" as user
+participant "React\n(:5173)" as react
+participant "Cookie\n(encrypted)" as cookie
+participant "FindCare\n(:8000)" as fc
+participant "EvalCare\n(:8001)" as ec
+database "MongoDB\nFrontend" as db
+participant "Claude\nAPI" as llm
+
+== 1. Provider Search ==
+
+user -> react : "Find cardiologist in VA"
+react -> fc : POST /chat
+fc -> llm : Chat + tool_call
+llm -> fc : find_providers({specialty, state})
+fc -> db : Vector search Providers
+db -> fc : 25 providers
+fc -> llm : Tool result
+llm -> fc : "Here are 25 cardiologists..."
+fc -> react : {message, providers[], total: 347}
+
+react -> cookie : Read visit cookie
+note right of cookie
+  Encrypted, HttpOnly, Secure
+  {visits: [{date, queries}...]}
+  Auto-delete if > 90 days
+end note
+cookie -> react : {visit_count: 3, queries: 11}
+react -> cookie : Increment current queries
+
+react -> user : Display providers
+
+== 2. Offer Evaluation ==
+
+react -> user : "Evaluate these providers\nagainst what we know?"
+user -> react : "Yes"
+
+== 3. Build Handoff ==
+
+react -> react : Build payload
+
+alt Paid User (OAuth authenticated)
+  react -> react : user_db_ref = "usr_8a3f..."
+else Anonymous User
+  react -> react : user_db_ref = null
+end
+
+react -> fc : POST /evaluate-handoff\n{chat_history, providers,\n user_db_ref, cookie_stats}
+
+== 4. FindCare → EvaluateCare (mTLS) ==
+
+fc -> fc : Validate + decrypt cookie
+fc -[#red]> ec : POST /evaluate/providers <<mTLS>>\n{chat_history, providers,\n user_db_ref, cookie_stats,\n question_summary}
+
+== 5. EvaluateCare Processes ==
+
+alt Paid user (user_db_ref != null)
+  ec -> db : Read user record
+  db -> ec : {insurance, location, prefs}
+end
+
+ec -> ec : Parse cookie:\n3 visits, 11 queries
+
+loop Each provider
+  ec -> db : Read quality signals for NPI
+  db -> ec : {certs, scores, actions}
+  ec -> ec : ScoringEngine.score()
+end
+
+ec -> ec : Rank by composite score
+
+== 6. Paint Screen ==
+
+ec -> ec : ScreenPainter formats:\n1. Ranked provider list\n2. Question summary\n3. Known user facts
+
+ec -[#blue]> react : {type: "eval-render",\n ranked_providers,\n question_summary,\n user_facts}
+
+react -> user : Evaluation displayed:\n- Ranked cards + scores\n- "Why evaluate" summary\n- User context sidebar
+
+note over user, ec
+  GOV-011: AI translated intent.
+  System answered with real data.
+  All facts from data layer.
+end note
+
+@enduml

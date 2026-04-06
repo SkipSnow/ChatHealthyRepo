@@ -1,28 +1,80 @@
-My name is Skip Snow. I'm an entrepreneur, software engineer, data scientist, and an artist. I'm originally from New York City, but moved to Los Angeles in 2000.
-I love all foods, but I'm not fond of Indian deserts; I find them 'paisty and bland'. I'm single but hope to find the one, once again. 
-I just quite my 350K job to become an AI exec, and I anticipate it will be a bit of a journey, perhaps ending up with me being part of a thriving Start up. 
-My legal name is Harvey Snow and I was born on 4/3/1959
+## About Me
+My name is Skip Snow. My legal name is Harvey Snow and I was born on 4/3/1959. I'm an entrepreneur, software engineer, data scientist, and an artist. I'm originally from New York City, but moved to Los Angeles in 2000.
+I love all foods, but I'm not fond of Indian desserts; I find them 'pasty and bland'. I'm single but hope to find the one, once again.
+I left my $350K job to become an AI exec, and I anticipate it will be a bit of a journey, perhaps ending up with me being part of a thriving startup.
+I'm also an outsider artist — oil on linen, exhibited work. I was a studio assistant to Jean-Michel Basquiat and other well-known artists. The founder of a company built to disrupt a system that resists transparency should probably not think like the system does.
 
-chatHealthy.ai is an idea. It is based on the assumption that one can use public data and questions about the healthcare 
-system, and even biology, and add value for consumers and companies by building 
-solutions that together allow consumers to navigate and deal with their health in a more holistic manner, despite the
- systemic brokenness of the way the American culture deals with healthcare.
+## Contact
+- Email: skip.snow@gmail.com
+- Phone: 646-408-8999
+- LinkedIn: linkedin.com/in/skipsnow
+- GitHub: github.com/SkipSnow/ChatHealthyRepo
+- Personal site: skipsnow.net
 
-An AI fundamental document that I think articulate many of my goals founding 'Chat Healthy' 
-can be found in the Anthropic founders roundtable discussion from You Tube published on 12/20/2024 (https://www.youtube.com/watch?v=om2lIWXLLN4). 
+## ChatHealthy.ai
+chatHealthy.ai LLC is a Delaware LLC, officially founded on March 26, 2026.
 
-Short summary of experience in the following areas:
-1. Enterprise application portfolio management:
-◦ Kaiser Permanente (VP Technical Architecture 2007-2009): I was a voting member of the Application Portfolio Management steering committee.
-◦ Forrester Research (Senior Analyst 2013-2015): Often advised large enterprises on how to rationalize and transform their 
-application portfolio. Published reference architecture for CIOs to use as guidance.
-◦ Prospect Medical (2019-2020)
-▪ Led application portfolio management for this $4 BB enterprise, reported to CIO. Title was ‘Chief Portfolio Architect’ (Used Ardoq for this work)
-◦ Humana (Enterprise Architect 2022-2026): Managed the portfolio architecture from an enterprise perspective for the Group,
- Specialty, and Producer business units. Accountable to manage the portfolios of a nine billion dollar set of 
- businesses with IT programs of up to $250MM over multiple years. Led the architecture for 3 major programs of modernization.
-2. Leadership in IT governance and enterprise applications:
-◦ I have been working in this area as a professional since 2006 starting at Citigroup. Led data and 
-IT governance initiatives, sat on committees, and engaged with engineers, architects, SMEs and executives 
-rom business and IT in modernization and rationalization programs, as well as created and maintained EA frameworks, 
-and policies, standards, and operating procedures. I have a deep understanding of how ideal IT governance should work.
+chatHealthy.ai is a consumer healthcare navigation platform that uses artificial intelligence to tell individuals not just where they can seek reimbursable care — but which of their available options delivers the highest quality care. It does this using only publicly available data, assembled and reasoned over by an agentic AI system that understands each consumer's unique context: their insurance, location, access to transportation, and health situation.
+
+This is disruptive by design. Insurance companies, healthcare providers, and pharmaceutical companies have a structural incentive to keep both quality and cost information opaque. Consumers today make some of the most consequential decisions of their lives — which doctor to see, which hospital to use, which treatment path to pursue — with almost no actionable information. chatHealthy.ai changes that.
+
+The platform consists of three components:
+- Find Care — find providers, specialties, navigate the system. Free forever. This is the funnel.
+- Evaluate Care — clinical trials, provider credentials, quality metrics. Trust builder. Free now, paywall post-trust.
+- Discuss Care — multi-participant AI-assisted healthcare collaboration. Revenue engine. Premium token markup + vendor partnerships.
+
+Mission: Help people make better healthcare decisions together.
+
+chatHealthy.ai is intentionally designed as a one-person company with an agentic operational footprint. This is not a limitation — it is a structural competitive advantage and a proof of concept for what the AI moment makes possible. The founder architects, supervises, and directs — the agents execute.
+
+Revenue model: No care-chain revenue (GOV-001: Provider Neutrality). Revenue from AI token markup in Discuss Care sessions and AI vendor partnerships. AI companies pay to participate in high-value healthcare decision contexts. Users retain control and pay only for optional premium AI engagement.
+
+## Career
+- Humana (2022-2026): Enterprise Architect. $117B org, $9B business units, $250MM IT programs. Re-architected IAM infrastructure. Led data quality across Medicare, Commercial, and Specialty lines.
+- Anthem (2020-2022): Director, Solution Management. Directed 60-person organization eliminating $1.2B of compliance risk. Contributed to enterprise AI strategy.
+- Prospect Medical Holdings (2019): Acting Principal Enterprise Architect. $3B healthcare system, 5 states, 30K doctors. Hospitals, care management, and health insurance.
+- HIPAA Box Inc. (2009-2019): CEO & Founder. Raised $275K, team of 20. Next-gen HIPAA compliance for healthcare data. Won hospital and clinic market mind share. Failed — misjudged the storage market, over-focused on technology innovation. Many lessons learned. Faulty leadership acknowledged. This failure directly informs ChatHealthy.ai's governance-first, market-first approach.
+- Forrester Research (2013-2015): Senior Analyst, Healthcare Software. Published research on telehealth, cognitive computing, big data, IoT, security. Advised enterprises on strategy. Helped triple healthcare research revenue.
+- Alliance Global Services (2011-2013): Independent contractor/consultant.
+- Kaiser Permanente (2007-2009): VP, Information and Technology Architecture. Care delivery, infrastructure, facilities, remote monitoring, security architecture. Managed three executive directors. Formulated architecture strategy for multi-billion dollar infrastructure upgrade. Voting member of Application Portfolio Management steering committee.
+- Citigroup (2004-2007): SVP of Enterprise Architecture. Chief architect for SOA. Introduced machine learning to global KYC database project (Patriot Act). Chaired Architecture Round Table.
+- Mphasis (2003-2004): Senior Architect. 60-person team, two continents. JP Morgan Chase chase.com migration and Documentum CM. On time, within budget.
+- Citibank Online (1999-2003): VP, Internet Architect. Global Portal Infrastructure and Architecture. Citigroup Consumer Portals. J2EE strategic vision. Offshore team management.
+- Lehman Brothers (1998-1999): Senior Programmer. Online brokerage for high net worth customers.
+- GSCC (1996-1997): Programmer. VAX/Pascal to Oracle/C++/CORBA migration. Billing system. CORBA communications framework.
+
+Consulting clients include: IMS Health, LexisNexis, Johnson & Johnson, Zappos.com, Edmunds.com, SICK Inc.
+
+## Education
+- NYU: C++ Certificate (1995)
+- NYU / Indiana University: Drama, General Studies
+- Udemy: Python Master Class (2024)
+- Udemy: AI Engineering (2025)
+- Udemy: Kubernetes Administration (2025)
+
+## Core Competencies
+- Enterprise application portfolio management
+- IT governance and enterprise architecture frameworks
+- Healthcare payer/provider/startup operations
+- AI/ML engineering and agentic automation
+- Large-scale data quality and modernization programs
+
+## Why This Founder
+I have sat inside the payer system at Humana and Anthem. I have run the architecture of a multi-state provider system at Prospect and Kaiser. I have written the research on healthcare AI at Forrester. I have built and failed a healthcare startup. I understand — from the inside — why the system withholds quality information from consumers, how the data is structured, where it is publicly available, and what it would take to assemble it into something consumers can use.
+
+## Founding Principles
+An AI fundamental document that articulates many of my goals founding ChatHealthy can be found in the Anthropic founders roundtable discussion from YouTube published on 12/20/2024 (https://www.youtube.com/watch?v=om2lIWXLLN4).
+
+1. Safety and capability are inseparable — Emergency detection, scope boundaries, and safety filters ship with every feature.
+2. Bet against consensus when the evidence warrants it — The healthcare industry says quality transparency is impossible for consumers. The data says otherwise.
+3. Simple things work surprisingly well — Design for today. No speculative architecture. Refactor when the future arrives.
+4. Take the risk seriously before others do — Safety-first architecture from day one. HITRUST/SOC2 path chosen voluntarily.
+5. Publish constantly — Open roadmap, public architecture pages, transparent governance.
+6. Build for the long-term mission, not near-term validation — Pre-revenue by design. Trust before monetization.
+7. Interpretability is foundational — AI translates, system answers. Explainable outputs, traceable decisions.
+8. The goal is beneficial AI for humanity — Provider neutrality. No care-chain revenue. Consumer-first, always.
+9. Language models as an alignment tool — Multi-model brain (Claude + GPT), each constrained by governance.
+10. Human supervision is a phase, not the end state — Man-in-the-middle today, autonomous agents tomorrow.
+
+---
+This file is auto-generated from the ChatHealthy.ai brain (business_plan.json founder_profile record, policies.json GOV-014). Do not edit directly — changes will be overwritten at next boot reconciliation (v4-020).

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<!--
+  Copyright (c) 2026 Skip Snow. All rights reserved.
+  Licensed under the FindCare Evaluation License (FEL-1.0).
+
+  Coded by Claude Opus 4.6 (Anthropic).
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Security Architecture — ChatHealthy.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --ink:        #0d1117;
+      --ink-soft:   #4a5568;
+      --surface:    #ffffff;
+      --teal:       #0b7a75;
+      --teal-light: #e6f4f3;
+      --teal-mid:   #d0eeec;
+      --accent:     #f0a500;
+      --warn:       #c0392b;
+      --border:     #d8e2e1;
+      --radius:     6px;
+      --max-w:      1160px;
+      --content-w:  860px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    header { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: 0 1px 6px rgba(11,122,117,0.06); }
+    .header-inner { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+    .logo-mark { width: 32px; height: 32px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; }
+    .logo-mark svg { width: 18px; height: 18px; fill: white; }
+    .logo-text { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--teal); letter-spacing: -0.01em; }
+    .logo-text span { color: var(--accent); }
+
+    main { flex: 1; max-width: var(--max-w); width: 100%; margin: 0 auto; padding: clamp(20px,4vw,48px) clamp(16px,4vw,24px); }
+
+    .page-header { border-bottom: 2px solid var(--teal-mid); padding-bottom: 20px; margin-bottom: 36px; }
+    .page-header .eyebrow { font-size: 0.72rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 6px; }
+    .page-header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(1.5rem,4vw,2.25rem); color: var(--ink); line-height: 1.15; margin-bottom: 8px; }
+    .page-header .effective { font-size: 0.82rem; color: var(--ink-soft); }
+
+    .arch-body { max-width: var(--content-w); }
+    .arch-body h2 { font-family: 'DM Serif Display', serif; font-size: 1.4rem; color: var(--teal); margin: 40px 0 12px; padding-bottom: 8px; border-bottom: 3px solid var(--teal); }
+    .arch-body h2:first-child { margin-top: 0; }
+    .arch-body h3 { font-size: 0.88rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); margin: 24px 0 8px; }
+    .arch-body p { font-size: 0.92rem; line-height: 1.7; color: var(--ink); margin-bottom: 10px; }
+    .arch-body ul, .arch-body ol { margin: 6px 0 10px 20px; font-size: 0.92rem; line-height: 1.7; }
+    .arch-body ul li, .arch-body ol li { margin-bottom: 4px; }
+
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 12px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 480px; }
+    th { background: var(--ink); color: #fff; padding: 8px 12px; text-align: left; font-weight: 500; font-size: 0.82rem; letter-spacing: 0.03em; }
+    td { border: 1px solid var(--border); padding: 8px 12px; vertical-align: top; line-height: 1.5; }
+    tr:nth-child(even) td { background: var(--teal-light); }
+
+    .diagram-container {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fafafa;
+      padding: 16px;
+      margin: 16px 0;
+      overflow: hidden;
+    }
+    .diagram-container img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .control-badge {
+      display: inline-block;
+      background: var(--teal-light);
+      border: 1px solid var(--teal-mid);
+      border-radius: 3px;
+      padding: 2px 8px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--teal);
+      margin-right: 4px;
+      margin-bottom: 4px;
+    }
+
+    .compliance-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin: 12px 0;
+      background: #fff;
+    }
+    .compliance-card h4 {
+      font-size: 0.92rem;
+      font-weight: 500;
+      color: var(--teal);
+      margin-bottom: 8px;
+    }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 16px 24px; text-align: center; font-size: 0.78rem; color: var(--ink-soft); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="/">
+      <div class="logo-mark"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 14.5v-2h2v2h-2Zm0-4v-5h2v5h-2Z"/></svg></div>
+      <div class="logo-text">chat<span>Healthy</span>.ai</div>
+    </a>
+  </div>
+</header>
+
+<main>
+  <div class="page-header">
+    <div class="eyebrow">EPIC-4: Security</div>
+    <h1>Security Architecture</h1>
+    <div class="effective">PKI, Key Vault, and Zero-Trust Credential Management &mdash; April 6, 2026</div>
+  </div>
+
+  <div class="arch-body">
+
+    <h2>1. Local Security Architecture</h2>
+
+    <div class="diagram-container">
+      <img src="Images/security_architecture_local.svg" alt="Local Security Architecture Diagram" />
+    </div>
+
+    <p>The local development environment mirrors production security boundaries. All inter-service communication uses mutual TLS &mdash; Caddy acts as the single entry point, terminating TLS for consumers and enforcing mTLS for service-to-service traffic. No service binds directly to a consumer-accessible port without Caddy mediation.</p>
+
+    <p>Three backend services (FindCare :8000, EvaluateCare :8001, Shared Services :8002) communicate exclusively through mTLS-authenticated channels. The <strong>SecretManager</strong> component in Shared Services authenticates to Azure Key Vault using an x509 certificate registered with Azure AD. The private key resides on local disk in a directory excluded from git. At startup, SecretManager fetches all credentials (MongoDB connection strings, API keys, mTLS certificates) from Key Vault and serves them to FindCare and EvaluateCare over mTLS. No service holds API keys or connection strings in its own configuration, environment variables, or code.</p>
+
+    <p>The encrypted secure cookie (AES-256, HttpOnly, Secure, SameSite=Strict) tracks visit frequency and query patterns with a 90-day auto-delete TTL. The admin website is gated behind basic authentication locally, addressing Perplexity audit finding F-13 (architecture docs publicly accessible).</p>
+
+    <h3>Local Security Controls</h3>
+    <ul>
+      <li>mTLS on all inter-service communication</li>
+      <li>x509 certificate authentication to Key Vault (no bearer tokens)</li>
+      <li>Private key never in git (.gitignore enforced)</li>
+      <li>SecretManager: in-memory only, never writes secrets to disk or logs</li>
+      <li>Caddy rejects direct port access &mdash; all traffic through proxy</li>
+      <li>Admin site auth-gated (Perplexity F-13 fix)</li>
+      <li>Cookie: AES-256 encrypted, HttpOnly, Secure, SameSite=Strict, 90-day TTL</li>
+      <li>DR-009: zombie process cleanup before port binding</li>
+    </ul>
+
+    <h2>2. Deployed Security Architecture</h2>
+
+    <div class="diagram-container">
+      <img src="Images/security_architecture_deployed.svg" alt="Deployed Security Architecture Diagram" />
+    </div>
+
+    <p>The deployed architecture eliminates all bearer tokens from the credential chain. HuggingFace Spaces (9 spaces: 3 services &times; 3 environments) authenticate to Azure Key Vault using x509 certificates registered with Azure AD &mdash; each Space holds one certificate (the private key in HF Secrets) instead of six API keys. Azure Functions authenticate to Key Vault via Managed Identity, which requires zero credentials &mdash; Azure handles authentication internally through the instance metadata service. This is the most secure authentication mechanism available on Azure.</p>
+
+    <p>Azure Key Vault is FedRAMP High authorized, HIPAA BAA eligible, and uses FIPS 140-2 Level 2 validated HSMs for key storage. Public access to Key Vault is disabled &mdash; access is restricted to Azure VNet private endpoints and authorized x509 certificate holders.</p>
+
+    <p>The Azure VNet provides network isolation with separate subnets for DataPipelines, BIZOperations, and private endpoints. An Azure Firewall enforces deny-all default egress, allowing only explicitly listed destinations (MongoDB Atlas, Anthropic, OpenAI, HuggingFace, SparkPost). All firewall traffic is logged for audit. MongoDB Atlas clusters are accessible only via Azure Private Endpoints and Skip&rsquo;s static IP &mdash; no public internet exposure.</p>
+
+    <p>Cloudflare provides TLS termination, HSTS, DDoS protection, and Cloudflare Access for the admin site. All inter-service traffic between HuggingFace Spaces uses mTLS with certificates fetched from Key Vault at startup.</p>
+
+    <h3>Deployed Security Controls</h3>
+    <ul>
+      <li>Zero bearer tokens &mdash; all auth via x509 cert or Managed Identity</li>
+      <li>Azure Key Vault: FedRAMP High, HIPAA BAA, FIPS 140-2 Level 2</li>
+      <li>Key Vault public access disabled &mdash; private endpoint only for Azure resources</li>
+      <li>Azure Firewall: deny-all default, explicit allowlist, audit logging</li>
+      <li>VNet subnet isolation with NSG per subnet</li>
+      <li>Private endpoints: Key Vault and MongoDB Atlas never on public internet</li>
+      <li>MongoDB IP allowlist: VNet private endpoint + Skip&rsquo;s IP only</li>
+      <li>Cloudflare: TLS 1.2 minimum, HSTS, Bot Fight Mode, DDoS protection</li>
+      <li>Cloudflare Access: admin site authenticated</li>
+      <li>mTLS between all HuggingFace Spaces</li>
+      <li>Managed Identity for Azure Functions (zero credentials)</li>
+      <li>HF Spaces: one x509 cert per Space instead of six API keys</li>
+    </ul>
+
+    <h2>3. NIST SP 800-171 Compliance</h2>
+
+    <p>NIST SP 800-171 Rev 2 defines the security requirements for protecting Controlled Unclassified Information (CUI) in nonfederal systems. Compliance is required under DFARS 252.204-7012 for DoD contractors and covers TRICARE health data for military beneficiaries. The following controls are satisfied by this architecture.</p>
+
+    <h3>3.1 Access Control</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Control</th><th>Requirement</th><th>How Satisfied</th></tr>
+        <tr><td><span class="control-badge">3.1.1</span></td><td>Limit system access to authorized users</td><td>mTLS client certificates restrict service-to-service access. Key Vault access policies limit secret retrieval to registered certificates and Managed Identities.</td></tr>
+        <tr><td><span class="control-badge">3.1.2</span></td><td>Limit system access to authorized transactions and functions</td><td>ToolRouter allowlist restricts tool execution (F-05 fix). SharedServicesFacade exposes only defined methods.</td></tr>
+        <tr><td><span class="control-badge">3.1.3</span></td><td>Control the flow of CUI</td><td>Azure Firewall deny-all default with explicit allowlist. Private endpoints prevent CUI from traversing public internet. MongoDB IP allowlist.</td></tr>
+        <tr><td><span class="control-badge">3.1.13</span></td><td>Employ cryptographic mechanisms to protect confidentiality of remote access</td><td>mTLS on all inter-service. TLS 1.2 minimum on Cloudflare. x509 cert auth to Key Vault.</td></tr>
+      </table>
+    </div>
+
+    <h3>3.5 Identification and Authentication</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Control</th><th>Requirement</th><th>How Satisfied</th></tr>
+        <tr><td><span class="control-badge">3.5.1</span></td><td>Identify system users, processes, and devices</td><td>x509 certificates identify each service. Managed Identity identifies Azure Functions. CAC/PKI identifies TRICARE beneficiaries (future).</td></tr>
+        <tr><td><span class="control-badge">3.5.2</span></td><td>Authenticate users, processes, and devices</td><td>mTLS mutual authentication. x509 cert auth to Azure AD. Managed Identity for Azure Functions. OAuth 2.0 with PKCE for end users.</td></tr>
+        <tr><td><span class="control-badge">3.5.3</span></td><td>Use multifactor authentication</td><td>Cloudflare MFA enforced. OAuth social login inherits provider MFA. CAC/PKI: hardware token + PIN (inherent MFA).</td></tr>
+        <tr><td><span class="control-badge">3.5.10</span></td><td>Store and transmit only cryptographically-protected passwords</td><td>No passwords in the system. All auth is certificate-based or Managed Identity. API keys in Key Vault (FIPS 140-2 L2 HSM), transmitted only over mTLS.</td></tr>
+      </table>
+    </div>
+
+    <h3>3.13 System and Communications Protection</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Control</th><th>Requirement</th><th>How Satisfied</th></tr>
+        <tr><td><span class="control-badge">3.13.1</span></td><td>Monitor, control, and protect communications at external boundaries</td><td>Azure Firewall at VNet boundary. Cloudflare WAF at public boundary. mTLS at service boundary.</td></tr>
+        <tr><td><span class="control-badge">3.13.5</span></td><td>Implement subnetworks for publicly accessible components</td><td>Azure VNet with separate subnets for DataPipelines, BIZOperations, and Private Endpoints. NSG per subnet.</td></tr>
+        <tr><td><span class="control-badge">3.13.8</span></td><td>Implement cryptographic mechanisms to prevent unauthorized disclosure during transmission</td><td>mTLS on all inter-service traffic. TLS 1.2 minimum. x509 cert auth &mdash; private keys never transmitted.</td></tr>
+        <tr><td><span class="control-badge">3.13.11</span></td><td>Employ FIPS-validated cryptography</td><td>Azure Key Vault uses FIPS 140-2 Level 2 validated HSMs. AES-256 for cookie encryption.</td></tr>
+      </table>
+    </div>
+
+    <h2>4. HITRUST CSF v11 Compliance</h2>
+
+    <p>HITRUST CSF is the gold standard security framework for health technology. It maps to HIPAA, NIST, and ISO 27001 and is required by healthcare enterprise buyers. The following domains are satisfied by this architecture.</p>
+
+    <h3>01 &mdash; Information Security Management Program</h3>
+    <div class="compliance-card">
+      <h4><span class="control-badge">01.a</span> Information Security Management Program</h4>
+      <p>The Brain (App 4) functions as the ISMS &mdash; governance policies (GOV-001 through GOV-014), operating rules (v4-001 through v4-020), risk acceptance register, external audit registry, and continuous improvement KPIs.</p>
+    </div>
+
+    <h3>05 &mdash; Access Control</h3>
+    <div class="compliance-card">
+      <h4><span class="control-badge">05.a</span> Business requirement for access control</h4>
+      <p>Zero-trust: all services authenticate via mTLS. Key Vault access requires x509 cert or Managed Identity. MongoDB requires VNet PE or IP allowlist.</p>
+    </div>
+    <div class="compliance-card">
+      <h4><span class="control-badge">05.d</span> Password management</h4>
+      <p>No passwords in system. Certificate-based auth eliminates password lifecycle entirely.</p>
+    </div>
+    <div class="compliance-card">
+      <h4><span class="control-badge">05.i</span> Policy on use of network services</h4>
+      <p>Azure Firewall deny-all default. NSG per subnet. Only explicitly allowed destinations.</p>
+    </div>
+
+    <h3>06 &mdash; Cryptography</h3>
+    <div class="compliance-card">
+      <h4><span class="control-badge">06.d</span> Cryptographic controls</h4>
+      <p>mTLS (TLS 1.2+), AES-256 cookie encryption, FIPS 140-2 L2 HSM in Key Vault, x509 certificate auth. No custom cryptography &mdash; all industry-standard.</p>
+    </div>
+    <div class="compliance-card">
+      <h4><span class="control-badge">06.f</span> Key management</h4>
+      <p>Azure Key Vault is the single key management system. Certificate rotation via dual-cert acceptance window. Secrets cached in-memory with TTL. Keys never on disk except local dev private key (.gitignore).</p>
+    </div>
+
+    <h3>09 &mdash; Communications and Operations Management</h3>
+    <div class="compliance-card">
+      <h4><span class="control-badge">09.m</span> Network controls</h4>
+      <p>Azure VNet with subnets, NSGs, firewall. Private endpoints for Key Vault and MongoDB. Cloudflare DDoS and WAF for public surface.</p>
+    </div>
+    <div class="compliance-card">
+      <h4><span class="control-badge">09.ab</span> Monitoring system use</h4>
+      <p>Azure Firewall audit logs. Key Vault access logs. MongoDB audit. Application Insights. Safety system audit trail.</p>
+    </div>
+
+    <h3>10 &mdash; Information Systems Acquisition, Development, and Maintenance</h3>
+    <div class="compliance-card">
+      <h4><span class="control-badge">10.a</span> Security requirements analysis and specification</h4>
+      <p>EPIC-4 Security with 8 features, 27 stories, 70+ boolean testable requirements. Perplexity external audits. GOV-007 engineering rules as binding standards.</p>
+    </div>
+    <div class="compliance-card">
+      <h4><span class="control-badge">10.f</span> Technical review after platform changes</h4>
+      <p>Three-environment promotion (dev, qa, prod). QA gate requires GPT sign-off. Production requires Boss sign-off (GOV-007). Full regression after every architecture change.</p>
+    </div>
+
+    <h2>5. TRICARE Readiness</h2>
+
+    <p>This architecture supports CUI-level protection sufficient for TRICARE military beneficiary health data. TRICARE data is Controlled Unclassified Information (CUI), not classified. FedRAMP High + NIST 800-171 is the prescribed protection standard for CUI.</p>
+
+    <h3>Architecture Supports</h3>
+    <ul>
+      <li>CAC/PKI authentication via x509 (same mechanism as service auth)</li>
+      <li>In-memory only processing of soldier identity &mdash; never persisted to disk</li>
+      <li>FIPS 140-2 Level 2 cryptography via Key Vault HSM</li>
+      <li>DFARS 252.204-7012 compliance via NIST 800-171 control satisfaction</li>
+      <li>FedRAMP High authorization of all Azure components</li>
+    </ul>
+
+    <h3>Requires Before Deployment</h3>
+    <ul>
+      <li>Formal ATO (Authority to Operate) from Defense Health Agency</li>
+      <li>Legal review by DoD healthcare contracts attorney</li>
+      <li>Potential upgrade to Azure Government (IL4) depending on DHA assessment</li>
+    </ul>
+
+  </div>
+</main>
+
+<footer>
+  &copy; 2026 Skip Snow. All rights reserved.
+</footer>
+
+</body>
+</html>

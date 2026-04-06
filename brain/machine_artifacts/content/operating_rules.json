@@ -103,6 +103,11 @@
       "id": "v4-019",
       "title": "Contradiction and duplicate check before creation",
       "rule": "Before creating any new rule, requirement, story, feature, epic, or roadmap item, search all existing items for contradictions or duplicates. If a contradiction or duplicate is found, escalate to Skip Snow before proceeding. This rule applies when loading the brain and when inserting or updating any rule. Implies a tool or function for rule insertion that enforces this gate."
+    },
+    {
+      "id": "v4-020",
+      "title": "Boot reconciliation — WhoAmI context",
+      "rule": "At every boot, after loading the brain, reconcile the contents of Code/ConversationalUX/ChatHealthyWhoAmIChat/me/summary.txt with the brain's current state. The brain is the source of truth. The me/ directory is a consumer of the brain, not a peer. If the brain's founder_profile (business_plan.json), founding principles (GOV-014 in policies.json), business plan, or company facts have changed, regenerate summary.txt to reflect the current brain state. Report any drift to Skip Snow. Do not modify brain records to match the me/ file — always flow brain to me/, never the reverse."
     }
   ]
 }
