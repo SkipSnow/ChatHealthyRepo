@@ -876,8 +876,7 @@
       "company": {
         "name": "ChatHealthy.AI",
         "product": "FindCare",
-        "founder": "Skip Snow",
-        "founder_background": "Enterprise healthcare (Humana)",
+        "founder_ref": "See _record_id: founder_profile in this collection for canonical founder data",
         "stage": "Alpha (v0.1.2)",
         "founding_year": 2026,
         "entity_type": "Sole proprietorship (IP licensing pending - LEG Q4)",

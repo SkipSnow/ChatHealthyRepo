@@ -1,8 +1,8 @@
 {
-  "title": "Brain Collection Schema — v0.1.4",
-  "version": "0.1.4",
-  "date": "2026-04-01",
-  "description": "Defines the 10 brain collections, their record types, and artifact generation rules.",
+  "title": "Brain Collection Schema — v0.1.5",
+  "version": "0.1.5",
+  "date": "2026-04-06",
+  "description": "Defines all brain collections in brain/machine_artifacts/content/, their record types, and artifact generation rules. All brain content is JSON. Diagrams live in brain/machine_artifacts/diagrams/.",
   "collections": {
     "governance": {
       "path": "brain/machine_artifacts/governance/",
@@ -126,10 +126,77 @@
       "biz_artifact_folder": null
     },
     "prompt_log": {
-      "path": "brain/machine_artifacts/content/prompt_log.json",
+      "path": "brain/machine_artifacts/content/conversation_log.json",
       "purpose": "Rolling 24h conversation log — every prompt and response",
       "produces_artifact": false,
       "retention": "24_hours"
+    },
+    "agile_backlog": {
+      "path": "brain/machine_artifacts/content/agile_backlog.json",
+      "purpose": "All epics, features, stories, and boolean testable requirements",
+      "produces_artifact": false
+    },
+    "policies": {
+      "path": "brain/machine_artifacts/content/policies.json",
+      "purpose": "All corporate and governance policies (GOV-001 through GOV-014)",
+      "produces_artifact": true,
+      "artifact_format": "pdf"
+    },
+    "operating_rules": {
+      "path": "brain/machine_artifacts/content/operating_rules.json",
+      "purpose": "Binding engineering operating rules (v4-001 through v4-020). Compliance mandatory per GOV-007.",
+      "produces_artifact": false
+    },
+    "development_rules": {
+      "path": "brain/machine_artifacts/content/development_rules.json",
+      "purpose": "Incident-driven lessons learned. Orphan rules not yet promoted to operating_rules v4.",
+      "produces_artifact": false
+    },
+    "controlled_vocabularies": {
+      "path": "brain/machine_artifacts/content/controlled_vocabularies.json",
+      "purpose": "Governed controlled vocabularies used across the system",
+      "produces_artifact": false
+    },
+    "emergency_keywords": {
+      "path": "brain/machine_artifacts/content/emergency_keywords.json",
+      "purpose": "Config-driven keyword list for SafetyService EmergencyDetector",
+      "produces_artifact": false
+    },
+    "design": {
+      "path": "brain/machine_artifacts/content/design.json",
+      "purpose": "Feature-level design documents (drug mapping, county enrichment, agent framework, GUI layout)",
+      "produces_artifact": false
+    },
+    "security": {
+      "path": "brain/machine_artifacts/content/security.json",
+      "purpose": "Security architecture design, NIST 800-171 and HITRUST CSF compliance mappings, CUI readiness",
+      "produces_artifact": true,
+      "artifact_format": "pdf"
+    },
+    "prompts": {
+      "path": "brain/machine_artifacts/content/prompts.json",
+      "purpose": "All system and user prompts for GPT and Claude agent assignments. Registered per GOV-009.",
+      "produces_artifact": false
+    },
+    "risk_acceptance": {
+      "path": "brain/machine_artifacts/content/risk_acceptance.json",
+      "purpose": "Formal risk acceptance register. Every deviation from policy requires Boss sign-off recorded here.",
+      "produces_artifact": false
+    },
+    "token_usage": {
+      "path": "brain/machine_artifacts/content/token_usage.json",
+      "purpose": "Silent cost tracking. All token costs by epic, model, and date.",
+      "produces_artifact": false
+    },
+    "unrealized_ideas": {
+      "path": "brain/machine_artifacts/content/unrealized_ideas.json",
+      "purpose": "Ideas from Boss not yet in the backlog. Tracked here first, promoted when prioritized.",
+      "produces_artifact": false
+    },
+    "project_manifest": {
+      "path": "brain/machine_artifacts/content/project_manifest.json",
+      "purpose": "Every file in the project catalogued with capabilities, descriptions, and content hashes. Also synced to MongoDB admin.manifest.",
+      "produces_artifact": false
     }
   },
   "entity_types": [

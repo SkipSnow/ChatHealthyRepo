@@ -406,7 +406,7 @@
     "description": ""
   },
   {
-    "project_path": "brain/manifest/project_manifest.json",
+    "project_path": "brain/machine_artifacts/content/project_manifest.json",
     "size": 52898,
     "content_hash": "9f1275c43c2e0864",
     "entity_type": "file",

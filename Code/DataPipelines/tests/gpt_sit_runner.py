@@ -62,7 +62,7 @@ def run_all_tests() -> list:
 
     # R4: Auth — valid token
     start = time.time()
-    status, resp = gpt_call({"action": "ReadArtifact", "project_path": "brain/manifest/project_manifest.json"})
+    status, resp = gpt_call({"action": "ReadArtifact", "project_path": "brain/machine_artifacts/content/project_manifest.json"})
     ms = int((time.time() - start) * 1000)
     results.append(test_result("R4", "Valid token accepted", status != 401, f"Status: {status}", ms))
 
@@ -263,7 +263,7 @@ def run_all_tests() -> list:
 
     # Full GPT workflow simulation
     start = time.time()
-    s1, manifest_resp = gpt_call({"action": "ReadArtifact", "project_path": "brain/manifest/project_manifest.json"})
+    s1, manifest_resp = gpt_call({"action": "ReadArtifact", "project_path": "brain/machine_artifacts/content/project_manifest.json"})
     if s1 == 200:
         m = json.loads(manifest_resp["content"])
         gov = [e for e in m if "corporate_governance" in e.get("project_path", "")]

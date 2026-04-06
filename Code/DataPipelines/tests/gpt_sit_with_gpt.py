@@ -134,7 +134,7 @@ def execute_command(raw: dict) -> dict:
     # Nothing worked
     return {
         "error": "Could not parse your command.",
-        "example_read": {"action": "ReadArtifact", "project_path": "brain/manifest/project_manifest.json"},
+        "example_read": {"action": "ReadArtifact", "project_path": "brain/machine_artifacts/content/project_manifest.json"},
         "example_query": {"action": "Query", "database": "dev_PublicHealthData", "collection": "SpecialtyMetaData", "query": {}, "limit": 5},
         "example_auth_fail": {"action": "ReadArtifact", "project_path": "test", "token": "wrong-token"},
         "other_actions": ["check_env", "write_mongo_test", "query_mongo_direct", "submit_report"],
@@ -170,12 +170,12 @@ def _build_system_prompt(governance: dict) -> str:
             "Do NOT submit until you have attempted every testable requirement. Early submission is a testing failure.",
         ],
         "how_to_send_commands": {
-            "read_artifact": {"action": "ReadArtifact", "project_path": "brain/manifest/project_manifest.json"},
+            "read_artifact": {"action": "ReadArtifact", "project_path": "brain/machine_artifacts/content/project_manifest.json"},
             "query": {"action": "Query", "database": "dev_PublicHealthData", "collection": "SpecialtyMetaData", "query": {}, "limit": 5},
             "auth_test_bad_token": {"action": "ReadArtifact", "project_path": "test", "token": "wrong-token"},
             "auth_test_empty_token": {"action": "ReadArtifact", "project_path": "test", "token": ""},
             "path_traversal": {"action": "ReadArtifact", "project_path": "../../etc/passwd"},
-            "stale_snapshot": {"action": "ReadArtifact", "project_path": "brain/manifest/project_manifest.json", "manifest_snapshot_id": "snapshot_fake_stale"},
+            "stale_snapshot": {"action": "ReadArtifact", "project_path": "brain/machine_artifacts/content/project_manifest.json", "manifest_snapshot_id": "snapshot_fake_stale"},
             "check_env": {"action": "check_env", "keys": ["MONGO_READONLY_FRONTEND", "MONGO_READONLY_PIPELINE"]},
             "write_test": {"action": "write_mongo_test", "connection": "MONGO_READONLY_FRONTEND", "database": "admin", "collection": "test"},
             "direct_mongo": {"action": "query_mongo_direct", "connection": "MONGO_FRONTEND_connectionString", "database": "admin", "collection": "gpt_reader_audit", "query": {}, "limit": 3},
@@ -438,7 +438,7 @@ def main():
                 **result,
                 "_WARNING": f"You have sent {repeat_count + 1} commands with the same error. CHANGE YOUR APPROACH. "
                             "Send the GPTReader payload directly, e.g.: "
-                            '{"action": "ReadArtifact", "project_path": "brain/manifest/project_manifest.json"}'
+                            '{"action": "ReadArtifact", "project_path": "brain/machine_artifacts/content/project_manifest.json"}'
             }, default=str)
             repeat_count = 0  # Reset so it warns again if still stuck
         else:
