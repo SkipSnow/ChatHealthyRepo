@@ -90,6 +90,31 @@ def explain(body: ExplainRequest):
     from evaluate_care.explainability import explain_score
     return explain_score(body.score_output)
 
+# ── Evaluate Providers (stub — FindCare handoff) ──────────
+
+class EvaluateProvidersRequest(BaseModel):
+    providers: list[dict] = Field(..., description="List of provider records from FindCare")
+    chat_history: list[dict] = Field(default=[], description="Full chat history")
+    question_summary: str = Field(default="", description="Why the user needs evaluation")
+
+@app.post("/evaluate/providers")
+def evaluate_providers(body: EvaluateProvidersRequest):
+    """Stub — accepts provider list from FindCare facade and returns
+    provider names, specialty, and NPI for display. No scoring logic yet."""
+    results = []
+    for p in body.providers:
+        results.append({
+            "name": p.get("name", "Unknown"),
+            "specialty": p.get("specialty", p.get("primary_specialty", "Unknown")),
+            "npi": p.get("npi", "Unknown"),
+        })
+    return {
+        "status": "stub",
+        "evaluated_providers": results,
+        "question_summary": body.question_summary or "Provider evaluation requested",
+        "note": "Scoring engine not yet implemented — displaying provider identity only",
+    }
+
 # ── Run ─────────────────────────────────────────────────────
 
 if __name__ == "__main__":

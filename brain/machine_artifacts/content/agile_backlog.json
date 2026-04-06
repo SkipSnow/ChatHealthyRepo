@@ -16739,6 +16739,13 @@
             {"story_id": "UX-CTRL-002", "title": "Responsive rows per page", "size": "S", "status": "accepted", "requirements": [
               {"req_id": "UX-CTRL-002-REQ-001", "requirement": "PC displays max 20 rows per page", "priority": "must-have", "status": "accepted"},
               {"req_id": "UX-CTRL-002-REQ-002", "requirement": "Mobile displays max 5 rows per page", "priority": "must-have", "status": "accepted"}
+            ]},
+            {"story_id": "UX-CTRL-003", "title": "EvaluateCare trigger button in control frame", "size": "M", "status": "implemented", "requirements": [
+              {"req_id": "UX-CTRL-003-REQ-001", "requirement": "An 'Evaluate these providers' button appears in guiControlFrame when provider search results are displayed", "priority": "must-have", "status": "implemented"},
+              {"req_id": "UX-CTRL-003-REQ-002", "requirement": "Button is rendered via postMessage (gui:render) alongside pagination controls", "priority": "must-have", "status": "implemented"},
+              {"req_id": "UX-CTRL-003-REQ-003", "requirement": "Clicking the button sends the current provider list to EvaluateCare /evaluate/providers via the facade", "priority": "must-have", "status": "implemented"},
+              {"req_id": "UX-CTRL-003-REQ-004", "requirement": "EvaluateCare stub response paints provider names, specialty, and NPI onto the chat screen", "priority": "must-have", "status": "implemented"},
+              {"req_id": "UX-CTRL-003-REQ-005", "requirement": "Button disappears when user sends a new chat message (same lifecycle as pagination controls)", "priority": "must-have", "status": "accepted"}
             ]}
           ]
         },

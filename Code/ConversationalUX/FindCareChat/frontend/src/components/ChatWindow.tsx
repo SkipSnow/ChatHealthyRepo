@@ -68,6 +68,7 @@ export default function ChatWindow() {
       .then(r => r.json())
       .then(data => {
         if (data.providers && data.providers.length > 0) {
+          lastProvidersRef.current = data.providers  // Store for EvaluateCare handoff
           const newPageEnd = newPageStart + data.providers.length - 1
           const text = data.providers.map((p: any) =>
             `**${p.name}**\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
@@ -207,7 +208,57 @@ export default function ChatWindow() {
   const pendingPaginationRef = useRef<{
     totalCount: number; lastNpi: string; searchParams: any; pageSize: number; pageEnd: number
   } | null>(null)
+  const lastProvidersRef = useRef<any[]>([])  // Store last provider results for EvaluateCare handoff
   const abortControllerRef = useRef<AbortController | null>(null)
+
+  // EvaluateCare handoff — triggered by "Evaluate these providers" button in control frame
+  const EVALCARE_URL = import.meta.env.VITE_EVALCARE_URL ?? 'http://localhost:8001'
+  useEffect(() => {
+    gui.onEvaluateProviders(() => {
+      const providers = lastProvidersRef.current
+      if (!providers || providers.length === 0) return
+
+      setIsLoading(true)
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: '**Evaluating providers...**',
+      }])
+
+      fetch(`${EVALCARE_URL}/evaluate/providers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          providers,
+          question_summary: `Provider evaluation requested — ${providers.length} providers`,
+        }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.evaluated_providers) {
+            const evalText = data.evaluated_providers.map((p: any, i: number) =>
+              `**${i + 1}. ${p.name}**\nSpecialty: ${p.specialty}\nNPI: ${p.npi}`
+            ).join('\n\n')
+            setMessages(prev => {
+              // Remove the "Evaluating..." message
+              const filtered = prev.filter(m => m.content !== '**Evaluating providers...**')
+              return [...filtered, {
+                role: 'assistant',
+                content: `**EvaluateCare — Provider Evaluation:**\n\n${data.question_summary}\n\n${evalText}\n\n*${data.note}*`,
+              }]
+            })
+          }
+          setIsLoading(false)
+        })
+        .catch(err => {
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: `**Error:** Could not reach EvaluateCare service. ${err}`,
+            isError: true,
+          }])
+          setIsLoading(false)
+        })
+    })
+  }, [])
 
   // Fetch welcome message dynamically from server — no static defaults
   useEffect(() => {
@@ -378,6 +429,19 @@ export default function ChatWindow() {
           pageSize: data.pagination.count,
           pageEnd: data.pagination.count,  // first page ends at count (e.g., 25)
         }
+        // Fetch first page of structured providers for EvaluateCare handoff
+        fetch(`${API_URL}/search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...data.pagination.search_params, limit: data.pagination.count }),
+        })
+          .then(r => r.json())
+          .then(searchData => {
+            if (searchData.providers) {
+              lastProvidersRef.current = searchData.providers
+            }
+          })
+          .catch(() => {})  // silent — providers stored for evaluate handoff only
       }
 
       // Show filter panel if specialization options returned
