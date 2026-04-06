@@ -214,7 +214,20 @@ def _handle_tool_calls(tool_use_blocks, messages):
 # ---------------------------------------------------------------------------
 # FastAPI
 # ---------------------------------------------------------------------------
+import time as _time_mod
+
 app = FastAPI(title="ChatHealthy FindCare API")
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = _time_mod.time()
+    response = await call_next(request)
+    elapsed = round((_time_mod.time() - start) * 1000)
+    _log.info("REQUEST %s %s → %d (%dms) from %s",
+              request.method, request.url.path, response.status_code, elapsed,
+              request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown"))
+    return response
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://chathealthy.ai", "https://www.chathealthy.ai", "https://dev.chathealthy.ai"],

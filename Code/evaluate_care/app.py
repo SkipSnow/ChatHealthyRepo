@@ -18,10 +18,23 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from evaluate_care.models import ScoringRequest, ScoringResponse
 from evaluate_care.scoring_engine import ScoringEngine
 
-logging.basicConfig(level=logging.INFO)
+import time
+from fastapi import Request
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 _log = logging.getLogger("evaluate_care")
 
 app = FastAPI(title="ChatHealthy.ai EvaluateCare", version="0.1.4")
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)
+    elapsed = round((time.time() - start) * 1000)
+    _log.info("%s %s → %d (%dms) from %s",
+              request.method, request.url.path, response.status_code, elapsed,
+              request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown"))
+    return response
 
 app.add_middleware(
     CORSMiddleware,
