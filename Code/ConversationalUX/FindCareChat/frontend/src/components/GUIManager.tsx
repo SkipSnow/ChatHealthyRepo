@@ -36,6 +36,23 @@ function sendToParent(type: string, payload: any = {}) {
   }
 }
 
+function renderEvaluateButtonHTML(): string {
+  return `
+    <button data-gui-action="evaluate-providers"
+      style="padding:8px 20px;border-radius:5px;font-size:13px;font-weight:600;
+        font-family:system-ui,sans-serif;cursor:pointer;color:#fff;
+        background:linear-gradient(180deg,#0b9a94,#0b7a75);border:none;
+        border-bottom:3px solid #065a56;
+        box-shadow:0 2px 4px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.15);
+        transition:all 0.08s ease;user-select:none;margin-left:16px;"
+      onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='inset 0 2px 4px rgba(0,0,0,0.2)'"
+      onmouseup="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.15)'"
+      onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 4px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.15)'"
+      title="Send these providers to EvaluateCare for quality evaluation"
+    >Evaluate These Providers</button>
+  `
+}
+
 function renderPaginationHTML(state: PaginationState): string {
   const canBack = state.pageStart > 1
   const canForward = state.pageEnd < state.totalCount
@@ -79,6 +96,7 @@ function renderPaginationHTML(state: PaginationState): string {
         title="${canForward ? 'Show next records' : 'You are at the end'}"
         ${canForward ? `onmousedown="${pressDown}" onmouseup="${pressUp}" onmouseleave="${pressUp}"` : 'disabled'}
       >Forward &raquo;</button>
+      ${renderEvaluateButtonHTML()}
     </div>
   `
 }
@@ -87,6 +105,8 @@ function renderPaginationHTML(state: PaginationState): string {
 
 // Ref for filter apply callback — set by ChatWindow
 const filterApplyCallbackRef = { current: null as ((codes: string[], params: any) => void) | null }
+// Ref for evaluate providers callback — set by ChatWindow
+const evaluateCallbackRef = { current: null as (() => void) | null }
 
 export function useGUIManager() {
   const [pagination, setPagination] = useState<PaginationState>({
@@ -121,6 +141,11 @@ export function useGUIManager() {
             history.pop()  // remove current
             return { ...prev, npiHistory: history, direction: 'back' } as any
           })
+          break
+        case 'evaluate-providers':
+          if (evaluateCallbackRef.current) {
+            evaluateCallbackRef.current()
+          }
           break
         case 'filter-apply':
           // User applied filter — store selected codes for ChatWindow to pick up
@@ -211,6 +236,9 @@ export function useGUIManager() {
     hideFilterPanel,
     onFilterApply: (cb: (codes: string[], params: any) => void) => {
       filterApplyCallbackRef.current = cb
+    },
+    onEvaluateProviders: (cb: () => void) => {
+      evaluateCallbackRef.current = cb
     },
   }
 }
