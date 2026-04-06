@@ -1,31 +1,8 @@
 {
   "collection": "governance",
-  "description": "Governance records: risk acceptance, sign-offs, and corporate cadence. Policies have been moved to policies.json. Engineering operating rules are in operating_rules.json.",
-  "record_count": 3,
+  "description": "Governance records: sign-offs and corporate cadence. Policies in policies.json. Operating rules in operating_rules.json. Risk acceptances in risk_acceptance.json.",
+  "record_count": 2,
   "records": [
-    {
-      "title": "Risk Acceptance Register",
-      "description": "Formal risks accepted by Boss. RISK-001: competitor trademarks in investor materials.",
-      "entries": [
-        {
-          "id": "RISK-001",
-          "date": "2026-03-31",
-          "title": "Competitor trademark usage in investor materials",
-          "description": "Business architecture investor document includes branded text representations of Yelp, ZocDoc, Healthgrades, and Angi in the competitive landscape section. These are trademark-protected brand names and visual identities.",
-          "risk": "Trademark holders may object to their brand being used in a competitive positioning document without permission.",
-          "claude_warning": "Claude advised that actual logos could not be used due to copyright. Boss overruled: 'Yes you can. Let them sue me. I accept the risk.'",
-          "boss_decision": "ACCEPTED",
-          "accepted_by": "Boss (Skip Snow, CEO)",
-          "rationale": "The competitive landscape section requires naming incumbents by name to make the positioning credible for investors. Fair use in comparative context.",
-          "mitigation": "Text-based brand representations only (no actual logo files). Used in private investor materials, not public marketing.",
-          "build": "265",
-          "artifact": "brain/BusinessArtifacts/biz_arch_investor_v2.pdf"
-        }
-      ],
-      "_record_id": "risk_acceptance_register",
-      "_source_file": "risk_acceptance_register.json",
-      "publish": false
-    },
     {
       "feature": "Safety Filter (dual-trigger, IP lock, audit)",
       "feature_id": 5,
