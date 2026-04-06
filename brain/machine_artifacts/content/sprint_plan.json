@@ -1,6 +1,33 @@
 {
   "collection": "sprint_plan",
   "record_count": 7,
+  "daily_punch_list": {
+    "description": "Today's work plan and tomorrow's. Agreed between Boss and Claude at end of session or start of next. Not a backlog. Not a bug tracker. Just what we are doing next.",
+    "date": "2026-04-05",
+    "today": [
+      {
+        "item": "Completed provider file build via pipeline",
+        "status": "done",
+        "session": "earlier session (pre-conversation_log)"
+      },
+      {
+        "item": "Built local deployment architecture (not yet tested)",
+        "status": "done",
+        "session": "earlier session (pre-conversation_log)"
+      },
+      {
+        "item": "Promoted v0.1.3.1 to staging",
+        "status": "done",
+        "session": "earlier session (pre-conversation_log)"
+      },
+      {
+        "item": "Brain consolidation — 36 → 21 JSONs, policies + operating rules extracted, contradictions resolved",
+        "status": "done",
+        "session": "this session"
+      }
+    ],
+    "tomorrow": []
+  },
   "records": [
     {
       "backlog_version": "brain_0.1.4_prep",
