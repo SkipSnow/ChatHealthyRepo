@@ -7491,7 +7491,9 @@
           "description": "Aggregate patient ratings from external sources to produce a normalized reputation score for providers.",
           "evidence": "ASSUMPTION: No ratings ingestion pipeline exists in current manifest; GAP: external ratings API integration or dataset ingestion required",
           "priority": "LOW",
-          "status": "accepted",
+          "status": "deferred",
+          "deferred_to": "beta",
+          "defer_reason": "Commodity measure. No differentiation. Killed for alpha.",
           "accepted_by": "Claude",
           "backend_dependencies": [],
           "stories": [
@@ -12982,7 +12984,9 @@
           "description": "Determine whether a provider is accepting new patients as a quality/accessibility signal.",
           "evidence": "ASSUMPTION: NPI or provider datasets may include acceptance flags or can be inferred; suggested by Claude. GAP: verify data availability in provider dataset.",
           "priority": "MEDIUM",
-          "status": "accepted",
+          "status": "deferred",
+          "deferred_to": "beta",
+          "defer_reason": "Depends on Humana FHIR API access. Out of scope for alpha. Revisit when BISO provides API key.",
           "accepted_by": "Claude",
           "backend_dependencies": [],
           "stories": [
