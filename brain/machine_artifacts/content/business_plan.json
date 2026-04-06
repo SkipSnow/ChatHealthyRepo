@@ -1,13 +1,13 @@
 {
   "collection": "business_plan",
-  "record_count": 6,
+  "record_count": 8,
   "records": [
     {
-      "title": "ChatHealthy.ai \u2014 Business Architecture",
+      "title": "ChatHealthy.ai — Business Architecture",
       "subtitle": "Find Care. Evaluate Care. Discuss Care.",
       "version": "1.0",
       "date": "2026-03-31",
-      "executive_summary": "ChatHealthy.ai is a consumer-first healthcare navigation platform structured around a simple but underbuilt reality: people must find care, evaluate options, and make decisions\u2014often with others. Existing solutions fragment this journey across search engines, provider directories, ratings sites, and disconnected conversations. ChatHealthy integrates these steps into a single architecture designed for clarity, trust, and decision support.\n\nThe platform consists of three tightly coupled components. Find Care provides free, high-quality provider discovery. Evaluate Care builds trust through structured analysis of provider quality and clinical options. Discuss Care introduces a new category: multi-participant, AI-assisted healthcare decision-making. This final component transforms passive research into active collaboration, where families and caregivers make decisions together with AI support.\n\nThe business model aligns with governance constraints: no care-chain revenue. Instead, ChatHealthy monetizes through premium AI usage and AI vendor partnerships. AI companies pay to participate in high-value healthcare decision contexts, while users retain control and pay only for optional premium AI engagement. The result is a platform that owns the healthcare decision room without compromising neutrality.",
+      "executive_summary": "ChatHealthy.ai is a consumer-first healthcare navigation platform structured around a simple but underbuilt reality: people must find care, evaluate options, and make decisions—often with others. Existing solutions fragment this journey across search engines, provider directories, ratings sites, and disconnected conversations. ChatHealthy integrates these steps into a single architecture designed for clarity, trust, and decision support.\n\nThe platform consists of three tightly coupled components. Find Care provides free, high-quality provider discovery. Evaluate Care builds trust through structured analysis of provider quality and clinical options. Discuss Care introduces a new category: multi-participant, AI-assisted healthcare decision-making. This final component transforms passive research into active collaboration, where families and caregivers make decisions together with AI support.\n\nThe business model aligns with governance constraints: no care-chain revenue. Instead, ChatHealthy monetizes through premium AI usage and AI vendor partnerships. AI companies pay to participate in high-value healthcare decision contexts, while users retain control and pay only for optional premium AI engagement. The result is a platform that owns the healthcare decision room without compromising neutrality.",
       "mission": "Help people make better healthcare decisions together.",
       "components": {
         "find_care": {
@@ -564,7 +564,7 @@
     {
       "vision": "ChatHealthy.ai provides the data, tools, and an AI-enlightened space to empower regular people to prevail over the broken healthcare system. Whatever a person's circumstances might be, they deserve the best possible care, at the best value. ChatHealthy.ai gives them the platform to get it. By presenting and evaluating care options but never giving medical advice, the platform allows families, individuals, and friends to collaborate with the most powerful AI models in order to choose the best provider they can have.",
       "mission": "Help people make better healthcare decisions together.",
-      "executive_summary": "Healthcare is the largest consumer market in the world, yet the individual remains the least empowered participant. Decisions are fragmented across search, opaque quality data, and isolated conversations with no coordination. The result is predictable: overpayment, underperformance, and preventable harm. ChatHealthy.ai exists because this gap is not a feature of the system \u2014 it is the system\u2019s failure point.\n\nChatHealthy.ai unifies the healthcare decision process into a single consumer-controlled environment: find care, evaluate it with real quality signals, and decide collaboratively with people and AI. This is not another point solution. It is the decision layer sitting above the entire healthcare system, where choices are actually made. Once this layer exists, control shifts from institutions to individuals.\n\nThe business model follows the control point. We own the decision room. AI companies, not patients, pay to participate in it. As healthcare decisions become AI-assisted and collaborative by default, ChatHealthy.ai becomes the gateway through which those decisions flow. This is not a feature set. It is inevitable infrastructure.",
+      "executive_summary": "Healthcare is the largest consumer market in the world, yet the individual remains the least empowered participant. Decisions are fragmented across search, opaque quality data, and isolated conversations with no coordination. The result is predictable: overpayment, underperformance, and preventable harm. ChatHealthy.ai exists because this gap is not a feature of the system — it is the system’s failure point.\n\nChatHealthy.ai unifies the healthcare decision process into a single consumer-controlled environment: find care, evaluate it with real quality signals, and decide collaboratively with people and AI. This is not another point solution. It is the decision layer sitting above the entire healthcare system, where choices are actually made. Once this layer exists, control shifts from institutions to individuals.\n\nThe business model follows the control point. We own the decision room. AI companies, not patients, pay to participate in it. As healthcare decisions become AI-assisted and collaborative by default, ChatHealthy.ai becomes the gateway through which those decisions flow. This is not a feature set. It is inevitable infrastructure.",
       "components": {
         "find_care": {
           "description": "The entry point to the healthcare system, redesigned for clarity and control. Users discover providers, specialties, and care pathways without friction or bias.",
@@ -748,7 +748,7 @@
           ]
         }
       },
-      "value_chain": "The consumer orchestrates the entire experience. They move fluidly between finding care, evaluating options, and discussing decisions in a single environment. This is not a linear funnel but a dynamic loop, where discovery, analysis, and collaboration reinforce each other. ChatHealthy.ai does not replace providers \u2014 it positions the consumer above them, in control of the decision process.",
+      "value_chain": "The consumer orchestrates the entire experience. They move fluidly between finding care, evaluating options, and discussing decisions in a single environment. This is not a linear funnel but a dynamic loop, where discovery, analysis, and collaboration reinforce each other. ChatHealthy.ai does not replace providers — it positions the consumer above them, in control of the decision process.",
       "revenue_model": {
         "streams": [
           "AI token markup on premium model usage within Discuss Care",
@@ -813,7 +813,7 @@
         "headlines": [
           "We are not required to protect your data. We choose to.",
           "The healthcare platform that protects your data better than your hospital does",
-          "Make healthcare decisions like you make every other important decision \u2014 together"
+          "Make healthcare decisions like you make every other important decision — together"
         ],
         "uses": [
           "Consumer trust acquisition through transparency",
@@ -860,7 +860,7 @@
     },
     {
       "title": "Business Plan Cost Analysis Results",
-      "status": "placeholder \u2014 referenced by assignment_queue.json, not yet populated",
+      "status": "placeholder — referenced by assignment_queue.json, not yet populated",
       "created": "2026-03-29",
       "results": [],
       "_record_id": "bizplan_cost_analysis_results",
@@ -1208,7 +1208,7 @@
       "publish": true
     },
     {
-      "title": "Staffing & Cost Analysis \u2014 ChatHealthy.ai Development Equivalency",
+      "title": "Staffing & Cost Analysis — ChatHealthy.ai Development Equivalency",
       "record_type": "cost_analysis",
       "collection": "business_plan",
       "date": "2026-03-30",
@@ -1240,6 +1240,77 @@
       "_source_file": "staffing_cost_analysis.json",
       "description": "Perplexity: staffing equivalency. Startup=$1.5M/9mo, Enterprise=$7M/18mo, AI-native=2wks. Maps to staffing_cost_comparison.docx.",
       "publish": false
+    },
+    {
+      "_record_id": "valuation_pre_money",
+      "title": "Pre-Money Valuation and Advisor Equity",
+      "date": "2026-04-02",
+      "source": "Boss + GPT collaboration",
+      "valuation": {
+        "pre_money": 10000000,
+        "currency": "USD",
+        "basis": "Working system, not idea-stage"
+      },
+      "advisor_equity": {
+        "grant_value": 5000,
+        "percentage": 0.0005,
+        "display": "0.05%",
+        "positioning": "Clean, standard, credible for advisors"
+      },
+      "justification": [
+        "Not pre-product: Find Care works, Evaluate Care works, The Brain exists",
+        "Real system architecture: deterministic outputs, boolean requirements, governed SDLC",
+        "Massive market + clear wedge: healthcare decision layer, Evaluate Care is first proof point",
+        "No traction yet (honest): no users, no revenue, founder-dependent"
+      ],
+      "why_10M": [
+        "High enough to signal this is real",
+        "Low enough to avoid credibility loss",
+        "Easy math for advisor grants (0.05% per $5K)",
+        "Leaves room to step up later (15-25M after traction)"
+      ],
+      "pitch_line": "We are valuing the company at $10M pre-money based on a working system. I am offering $5K in equity for advisory participation.",
+      "description": "Pre-money valuation $10M. Advisor equity 0.05% per $5K. Working system justification.",
+      "publish": false
+    },
+    {
+      "_record_id": "funding_test_result",
+      "title": "Funding Amount Research Result",
+      "date": "2026-04-02",
+      "funding_answer": {
+        "amount": 1500000,
+        "date": "2026-07-31",
+        "sources_found": [
+          {
+            "collection": "sprint_plan",
+            "record_id": "sprint_plan_v013",
+            "value": "Seed Funding Close — $1.5M on 2026-07-31"
+          },
+          {
+            "collection": "architecture",
+            "record_id": "component_discuss_care",
+            "value": "AI vendors contribute capital ($1.5M seed)"
+          },
+          {
+            "collection": "business_plan",
+            "record_id": "staffing_cost_analysis",
+            "value": "Startup=$1.5M/9mo; Enterprise=$7M/18mo"
+          }
+        ],
+        "conflicts": [
+          {
+            "value": "$7,000,000 over 18 months",
+            "source": "business_plan.staffing_cost_analysis",
+            "note": "Enterprise scenario differs from $1.5M seed target"
+          },
+          {
+            "value": "$1,500,000 over 9 months",
+            "source": "business_plan.staffing_cost_analysis",
+            "note": "Timeline differs; not explicitly tied to funding milestone date"
+          }
+        ]
+      },
+      "system_prompt_token_count": null
     }
   ]
 }

@@ -1,27 +1,9 @@
 {
   "_record_id": "development_rules",
   "title": "Development Rules — Learned the Hard Way",
-  "description": "Rules created from mistakes. Each rule exists because Claude did something stupid. Read before every session.",
+  "description": "Incident log of lessons learned. Engineering operating rules (claude_operating_rules.xlsx, Version 4) are the authoritative standard per GOV-007 (Engineering Rules Are Standards). Rules in this file that are superseded by v4 have been removed. Remaining entries are either orphan lessons not yet promoted to v4 or bug records.",
   "publish": false,
   "rules": [
-    {
-      "id": "DR-001",
-      "rule": "Never create a database or environment without checking devops.json for the naming convention first.",
-      "incident": "Created staging_PublicHealthData instead of qa_PublicHealthData. Environments are dev/qa/prod, not dev/staging/prod.",
-      "date": "2026-04-02"
-    },
-    {
-      "id": "DR-002",
-      "rule": "Never drop a collection without explicit Boss authorization. State the cluster, database, and collection name and get confirmation.",
-      "incident": "Dropped dev_PublicHealthData.providers on the frontend cluster during cleanup without realizing it was the only copy the chat app could read from.",
-      "date": "2026-04-02"
-    },
-    {
-      "id": "DR-003",
-      "rule": "Never hack around the pipeline software. If the software cannot do the job, fix the software.",
-      "incident": "Tried batching curl calls by state, swapping connection strings for local testing, and other workarounds instead of building the proper pipeline task.",
-      "date": "2026-04-02"
-    },
     {
       "id": "DR-004",
       "rule": "When a pattern is established, apply it everywhere in the same commit. Do not build a correct pattern then forget to use it 10 minutes later.",
@@ -29,21 +11,9 @@
       "date": "2026-04-02"
     },
     {
-      "id": "DR-005",
-      "rule": "Never kill a running job without Boss authorization.",
-      "incident": "Killed running MigrateEnvironment orchestrator without asking. Boss did not authorize it.",
-      "date": "2026-04-02"
-    },
-    {
       "id": "DR-006",
       "rule": "State is not a valid partition boundary for data operations. Record count or _id range is the correct boundary.",
       "incident": "Chunked CopyToFrontEnd by state. CA has 500K records, WY has 5K. Chunks were wildly uneven. Boss had to explain why this was wrong.",
-      "date": "2026-04-02"
-    },
-    {
-      "id": "DR-007",
-      "rule": "Know which cluster you are operating on before every database operation. Name the cluster, database, and collection explicitly.",
-      "incident": "Confused pipeline cluster and frontend cluster operations multiple times. Tried to copy cross-cluster when same-cluster was needed.",
       "date": "2026-04-02"
     },
     {
@@ -89,27 +59,9 @@
       "date": "2026-04-03"
     },
     {
-      "id": "DR-014",
-      "rule": "Commit before every test cycle. The build number must increment with every code change Boss tests. No uncommitted code during UAT.",
-      "incident": "Boss saw Build 255 throughout the session while testing new code. Build number was stale because changes were not committed.",
-      "date": "2026-04-03"
-    },
-    {
-      "id": "DR-015",
-      "rule": "Update bugs and feature tree before every commit. The brain must reflect the current state of the code at every commit boundary.",
-      "incident": "Brain records (bugs, features, stories) were not updated alongside code changes, causing brain state to drift from actual system state.",
-      "date": "2026-04-03"
-    },
-    {
       "id": "DR-016",
       "rule": "Vector search indexes must be verified on every environment promotion (dev→qa, qa→prod). Required indexes on frontend cluster: provider_vector_index on providers, specialty_vector_index on SpecialtyMetaData. Promotion must fail if indexes are missing.",
       "incident": "Indexes were missing on dev and prod frontend clusters. Specialty filter returned empty results. Boss had to find the problem and manually pause the pipeline cluster.",
-      "date": "2026-04-03"
-    },
-    {
-      "id": "DR-017",
-      "rule": "Every code path that depends on infrastructure (index, collection, env var, API endpoint) must include the creation/verification of that infrastructure in the same commit. Ship the dependency with the consumer. Never write code that uses an index without writing the code that creates it.",
-      "incident": "specialty_service.py referenced specialty_vector_index but no pipeline code ever created it. The consumer shipped without the dependency. Index never existed on any environment.",
       "date": "2026-04-03"
     },
     {
@@ -197,10 +149,16 @@
       "date": "2026-04-03"
     },
     {
-      "id": "DR-018",
-      "rule": "Infrastructure tasks require inventory before execution. Grep the entire codebase for all consumers of the resource type before building the dependency list. Do not assume scope from memory. Complete the full list, then execute.",
-      "incident": "Boss said 'build the indexes.' Claude built provider_vector_index only because copy_to_frontend.py had a function for it. Missed specialty_vector_index because it did not search for all $vectorSearch references in the codebase first.",
-      "date": "2026-04-03"
+      "id": "DR-020",
+      "rule": "The pipeline cluster (ChatHealthyDataPipelines) stores ZERO administrative or devops state. All admin, devops, manifest, governance, and brain state lives on the frontend cluster (ChatHealthyFrontEnd). At session startup, only query the frontend cluster for brain data. Never attempt to connect to the pipeline cluster for brain/admin/devops data — even when the pipeline cluster is running.",
+      "incident": "Session startup attempted to query both clusters. The pipeline cluster has no brain collections and may be paused. All administrative state is on the frontend cluster.",
+      "date": "2026-04-05"
+    },
+    {
+      "id": "DR-021",
+      "rule": "The admin.manifest must include all MongoDB collections — not just files. Every database and collection on the frontend cluster must be inventoried in the manifest alongside the file inventory. The manifest is the single source of truth for what exists in the system.",
+      "incident": "Manifest snapshot_20260330 contained 196 file entries but zero MongoDB collection entries. Collections were undocumented, making it impossible to verify system completeness from the manifest alone.",
+      "date": "2026-04-05"
     }
   ]
 }
