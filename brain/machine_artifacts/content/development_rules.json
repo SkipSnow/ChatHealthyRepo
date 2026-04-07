@@ -203,6 +203,12 @@
       "date": "2026-04-07"
     },
     {
+      "id": "UAT-UX-001",
+      "rule": "PASS: Timer + Stop button in guiControlFrame. Styled container with teal text, raised Stop button. Boss signed off for alpha 2026-04-07.",
+      "incident": "Boss tested on localhost, approved timer display and Stop button UX.",
+      "date": "2026-04-07"
+    },
+    {
       "id": "BUG-UX-003",
       "rule": "BUG FIXED: Stop button left orphaned in chat area when timer moved to control frame. Timer and Stop button are a unit — both must move together. Fixed by removing thinking bubble from chat and rendering both timer + Stop in guiControlFrame.",
       "incident": "Boss caught Stop button floating alone in chat area after timer was moved to control frame. Timer showed in control frame but Stop stayed in the chat.",

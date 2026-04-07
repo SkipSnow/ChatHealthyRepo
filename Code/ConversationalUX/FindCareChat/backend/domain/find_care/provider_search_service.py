@@ -347,20 +347,25 @@ class FindCareService:
             try:
                 meta_coll = db[f"{self._env}_PublicHealthData"]["SpecialtyMetaData"]
                 for doc in meta_coll.find({"Code": {"$in": specialty_codes}},
-                                           {"Code": 1, "Display Name": 1, "_id": 0}):
+                                           {"Code": 1, "Display Name": 1, "can_prescribe": 1, "homeopathic": 1, "_id": 0}):
                     specialization_options.append({
                         "code": doc.get("Code", ""),
                         "name": doc.get("Display Name", ""),
+                        "can_prescribe": doc.get("can_prescribe", False),
+                        "homeopathic": doc.get("homeopathic", False),
                     })
             except Exception:
                 pass
 
-            # Classify specialties as prescriber/homeopathic (cached, one-time GPT call)
+            # Rank specialties by relevance to the user's query (GPT-4.1-mini)
             try:
-                from domain.find_care.specialty_classifier import classify_specialties
-                specialization_options = classify_specialties(specialization_options, db=db)
-            except Exception as _cls_err:
-                _log.warning("Specialty classification failed: %s", _cls_err)
+                from domain.find_care.specialty_ranker import rank_specialties
+                specialization_options = rank_specialties(
+                    specialization_options,
+                    query=specialty_query or "",
+                )
+            except Exception as _rank_err:
+                _log.warning("Specialty ranking failed (returning unranked): %s", _rank_err)
 
             # Build filtered search term from selected specialty names
             selected_names = [o["name"] for o in specialization_options if o.get("name")]
