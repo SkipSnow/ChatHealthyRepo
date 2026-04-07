@@ -320,7 +320,7 @@ function renderFilterHTML(options: any[], prescribersChecked: boolean = true, ho
     border-bottom:1px solid #f0f0f0;cursor:pointer;`.replace(/\n\s+/g, '')
 
   const items = options.map(opt =>
-    `<label style="${itemStyle}" title="${opt.code}">
+    `<label style="${itemStyle}" title="${opt.code}" data-spec-code="${opt.code}" data-can-prescribe="${opt.can_prescribe || false}" data-homeopathic="${opt.homeopathic || false}">
       <input type="checkbox" data-gui-action="filter-toggle" data-gui-value="${opt.code}" checked
         style="accent-color:#0b7a75;width:14px;height:14px;" />
       <span style="color:#374151;">${opt.name}</span>
@@ -333,18 +333,25 @@ function renderFilterHTML(options: any[], prescribersChecked: boolean = true, ho
 
   return `
     <div data-filter-panel style="display:flex;flex-direction:column;height:100%;font-family:system-ui,sans-serif;">
-      <table style="width:100%;border-bottom:1px solid #d8e2e1;border-collapse:collapse;">
+      <table style="width:100%;border-bottom:1px solid #d8e2e1;border-collapse:collapse;font-family:system-ui,sans-serif;">
         <tr>
-          <td style="padding:6px 10px;font-size:11px;font-weight:600;color:#0b7a75;text-transform:uppercase;letter-spacing:0.05em;vertical-align:top;">
+          <td style="padding:4px 10px;font-size:11px;font-weight:600;color:#0b7a75;text-transform:uppercase;letter-spacing:0.05em;">
             Filter by Specialty
           </td>
-          <td style="padding:4px 10px;vertical-align:middle;">
-            <label style="font-size:10px;color:#374151;display:flex;align-items:center;gap:4px;cursor:pointer;padding:1px 0;">
+          <td style="padding:4px 10px;text-align:right;">
+            <label style="font-size:10px;color:#374151;display:inline-flex;align-items:center;gap:4px;cursor:pointer;">
               <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="prescribers" ${prescribersChecked ? 'checked' : ''}
                 style="accent-color:#0b7a75;width:12px;height:12px;" />
               Prescribers only
             </label>
-            <label style="font-size:10px;color:#374151;display:flex;align-items:center;gap:4px;cursor:pointer;padding:1px 0;">
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 10px 4px;">
+            <span id="filterCounts" style="font-size:9px;color:#9ca3af;">${options.length} specialties</span>
+          </td>
+          <td style="padding:0 10px 4px;text-align:right;">
+            <label style="font-size:10px;color:#374151;display:inline-flex;align-items:center;gap:4px;cursor:pointer;">
               <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="homeopathic" ${homeopathicChecked ? 'checked' : ''}
                 style="accent-color:#0b7a75;width:12px;height:12px;" />
               Homeopathic only

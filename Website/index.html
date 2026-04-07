@@ -851,20 +851,26 @@
               if (el.getAttribute('data-gui-action') === 'filter-provider-type') {
                 el.addEventListener('change', function() {
                   var val = el.getAttribute('data-gui-value');
-                  if (val === 'prescribers') {
-                    chatFrame.contentWindow.postMessage({
-                      type: 'gui:event',
-                      action: 'prescribers-only-toggle',
-                      value: el.checked ? 'true' : 'false'
-                    }, '*');
-                  }
-                  if (val === 'homeopathic') {
-                    chatFrame.contentWindow.postMessage({
-                      type: 'gui:event',
-                      action: 'homeopathic-only-toggle',
-                      value: el.checked ? 'true' : 'false'
-                    }, '*');
-                  }
+                  // Filter specialty items directly in DOM — no re-render, no handler loss
+                  var prescCb = leftPanel.querySelector('input[data-gui-value="prescribers"]');
+                  var homeoCb = leftPanel.querySelector('input[data-gui-value="homeopathic"]');
+                  var prescOn = prescCb ? prescCb.checked : false;
+                  var homeoOn = homeoCb ? homeoCb.checked : false;
+                  var items = leftPanel.querySelectorAll('label[data-spec-code]');
+                  var shown = 0;
+                  var hidden = 0;
+                  items.forEach(function(item) {
+                    var canPresc = item.getAttribute('data-can-prescribe') === 'true';
+                    var isHomeo = item.getAttribute('data-homeopathic') === 'true';
+                    var show = true;
+                    if (prescOn && !canPresc) show = false;
+                    if (homeoOn && !isHomeo) show = false;
+                    item.style.display = show ? '' : 'none';
+                    if (show) shown++; else hidden++;
+                  });
+                  // Update count display
+                  var countEl = leftPanel.querySelector('#filterCounts');
+                  if (countEl) countEl.textContent = shown + ' shown, ' + hidden + ' filtered';
                 });
               }
             })(filterActions[j]);
