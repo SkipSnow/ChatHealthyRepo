@@ -206,6 +206,7 @@ export function useGUIManager() {
 
             const html = renderFilterHTML(
               options.length > 0 ? options : cachedFilterOptions.current,
+              0,
               isPrescribers,
               isHomeopathic,
             )
@@ -280,8 +281,8 @@ export function useGUIManager() {
     cachedSearchParams.current = searchParams
     cachedFilterState.prescribers = true
     cachedFilterState.homeopathic = false
-    // Render ALL items — parent will hide non-prescribers via DOM after inject
-    const html = renderFilterHTML(options, true, false)
+    const totalProviders = searchParams?.total_count || 0
+    const html = renderFilterHTML(options, totalProviders, true, false)
     sendToParent('gui:filter', { html, searchParams: JSON.stringify(searchParams), applyInitialFilter: true })
   }, [])
 
@@ -311,8 +312,11 @@ export function useGUIManager() {
   }
 }
 
-function renderFilterHTML(options: any[], prescribersChecked: boolean = true, homeopathicChecked: boolean = false): string {
+function renderFilterHTML(options: any[], totalProviders: number = 0, prescribersChecked: boolean = true, homeopathicChecked: boolean = false): string {
   if (!options.length) return ''
+
+  const prescCount = options.filter(o => o.can_prescribe).length
+  const homeoCount = options.filter(o => o.homeopathic).length
 
   const items = options.map(opt =>
     `<div style="display:block;padding:5px 10px;border-bottom:1px solid #eee;" data-spec-code="${opt.code}" data-can-prescribe="${opt.can_prescribe || false}" data-homeopathic="${opt.homeopathic || false}">
@@ -326,21 +330,23 @@ function renderFilterHTML(options: any[], prescribersChecked: boolean = true, ho
 
   return `
     <div data-filter-panel style="display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:#fff;">
-      <div style="padding:8px 10px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0b7a75;background:#f8fffe;">
-        <div>
-          <div style="font-size:11px;font-weight:700;color:#0b7a75;text-transform:uppercase;letter-spacing:0.05em;">Filter by Specialty</div>
-          <div id="filterCounts" style="font-size:9px;color:#6b7280;margin-top:2px;">${options.length} specialties</div>
+      <div style="padding:8px 10px;border-bottom:2px solid #0b7a75;background:#f8fffe;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11px;font-weight:700;color:#0b7a75;text-transform:uppercase;letter-spacing:0.05em;">Filter by Specialty</span>
+          <span id="filterCounts" style="font-size:9px;color:#6b7280;">
+            ${totalProviders > 0 ? totalProviders.toLocaleString() + ' providers &middot; ' : ''}${options.length} types &middot; <span id="filterShowing">${prescribersChecked ? prescCount : options.length}</span> showing
+          </span>
         </div>
-        <div style="display:flex;flex-direction:column;gap:3px;">
+        <div style="display:flex;gap:12px;margin-top:4px;">
           <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;">
             <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="prescribers" ${prescribersChecked ? 'checked' : ''}
               style="accent-color:#0b7a75;width:13px;height:13px;" />
-            Prescribers only
+            Prescribers only (${prescCount})
           </label>
           <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;">
             <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="homeopathic" ${homeopathicChecked ? 'checked' : ''}
               style="accent-color:#0b7a75;width:13px;height:13px;" />
-            Homeopathic only
+            Homeopathic only (${homeoCount})
           </label>
         </div>
       </div>
