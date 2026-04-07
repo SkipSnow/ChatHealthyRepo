@@ -316,53 +316,40 @@ export function useGUIManager() {
 function renderFilterHTML(options: any[], prescribersChecked: boolean = true, homeopathicChecked: boolean = false): string {
   if (!options.length) return ''
 
-  const itemStyle = `padding:6px 8px;display:flex;align-items:center;gap:8px;font-size:12px;
-    border-bottom:1px solid #f0f0f0;cursor:pointer;`.replace(/\n\s+/g, '')
-
   const items = options.map(opt =>
-    `<label style="${itemStyle}" title="${opt.code}" data-spec-code="${opt.code}" data-can-prescribe="${opt.can_prescribe || false}" data-homeopathic="${opt.homeopathic || false}">
-      <input type="checkbox" data-gui-action="filter-toggle" data-gui-value="${opt.code}" checked
-        style="accent-color:#0b7a75;width:14px;height:14px;" />
-      <span style="color:#374151;">${opt.name}</span>
-    </label>`
+    `<div style="display:block;padding:5px 10px;border-bottom:1px solid #eee;" data-spec-code="${opt.code}" data-can-prescribe="${opt.can_prescribe || false}" data-homeopathic="${opt.homeopathic || false}">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;line-height:1.3;">
+        <input type="checkbox" data-gui-action="filter-toggle" data-gui-value="${opt.code}" checked
+          style="accent-color:#0b7a75;width:14px;height:14px;flex-shrink:0;" />
+        <span style="color:#1f2937;">${opt.name}</span>
+      </label>
+    </div>`
   ).join('')
 
-  const toggleLabel = 'Uncheck All'
-  const toggleStyle = `padding:6px 8px;display:flex;align-items:center;gap:8px;font-size:11px;
-    border-bottom:2px solid #d8e2e1;cursor:pointer;color:#0b7a75;font-weight:600;`.replace(/\n\s+/g, '')
-
   return `
-    <div data-filter-panel style="display:flex;flex-direction:column;height:100%;font-family:system-ui,sans-serif;">
-      <table style="width:100%;border-bottom:1px solid #d8e2e1;border-collapse:collapse;font-family:system-ui,sans-serif;">
-        <tr>
-          <td style="padding:4px 10px;font-size:11px;font-weight:600;color:#0b7a75;text-transform:uppercase;letter-spacing:0.05em;">
-            Filter by Specialty
-          </td>
-          <td style="padding:4px 10px;text-align:right;">
-            <label style="font-size:10px;color:#374151;display:inline-flex;align-items:center;gap:4px;cursor:pointer;">
-              <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="prescribers" ${prescribersChecked ? 'checked' : ''}
-                style="accent-color:#0b7a75;width:12px;height:12px;" />
-              Prescribers only
-            </label>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:0 10px 4px;">
-            <span id="filterCounts" style="font-size:9px;color:#9ca3af;">${options.length} specialties</span>
-          </td>
-          <td style="padding:0 10px 4px;text-align:right;">
-            <label style="font-size:10px;color:#374151;display:inline-flex;align-items:center;gap:4px;cursor:pointer;">
-              <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="homeopathic" ${homeopathicChecked ? 'checked' : ''}
-                style="accent-color:#0b7a75;width:12px;height:12px;" />
-              Homeopathic only
-            </label>
-          </td>
-        </tr>
-      </table>
-      <div style="${toggleStyle}">
+    <div data-filter-panel style="display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:#fff;">
+      <div style="padding:8px 10px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0b7a75;background:#f8fffe;">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#0b7a75;text-transform:uppercase;letter-spacing:0.05em;">Filter by Specialty</div>
+          <div id="filterCounts" style="font-size:9px;color:#6b7280;margin-top:2px;">${options.length} specialties</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="prescribers" ${prescribersChecked ? 'checked' : ''}
+              style="accent-color:#0b7a75;width:13px;height:13px;" />
+            Prescribers only
+          </label>
+          <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="homeopathic" ${homeopathicChecked ? 'checked' : ''}
+              style="accent-color:#0b7a75;width:13px;height:13px;" />
+            Homeopathic only
+          </label>
+        </div>
+      </div>
+      <div style="padding:4px 10px;display:flex;align-items:center;border-bottom:1px solid #e5e7eb;background:#fafafa;">
         <button data-gui-action="toggle-all"
-          style="background:none;border:1px solid #0b7a75;border-radius:3px;padding:3px 10px;
-          font-size:11px;color:#0b7a75;cursor:pointer;font-weight:600;">${toggleLabel}</button>
+          style="background:none;border:1px solid #0b7a75;border-radius:3px;padding:2px 10px;
+          font-size:10px;color:#0b7a75;cursor:pointer;font-weight:600;">Uncheck All</button>
       </div>
       <div style="max-height:390px;overflow-y:auto;overflow-x:hidden;">
         ${items}
