@@ -308,25 +308,31 @@ function renderFilterHTML(options: { code: string; name: string; classification:
 
   return `
     <div data-filter-panel style="display:flex;flex-direction:column;height:100%;font-family:system-ui,sans-serif;">
-      <div style="padding:8px 10px;display:flex;justify-content:space-between;align-items:center;
-        border-bottom:1px solid #d8e2e1;">
-        <span style="font-size:11px;font-weight:600;color:#0b7a75;text-transform:uppercase;letter-spacing:0.05em;">
-          Filter by Specialty
-        </span>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
-          <label style="font-size:10px;color:#374151;display:flex;align-items:center;gap:4px;cursor:pointer;">
-            <input type="checkbox" data-gui-action="filter-prescribers" ${prescribersChecked ? 'checked' : ''}
-              style="accent-color:#0b7a75;width:12px;height:12px;" />
-            Prescribers only
-          </label>
-          <label style="font-size:10px;color:#9ca3af;display:flex;align-items:center;gap:4px;cursor:not-allowed;"
-            title="Unimplemented">
-            <input type="checkbox" data-gui-action="filter-homeopathic" disabled
-              style="accent-color:#ccc;width:12px;height:12px;" />
-            Homeopathic only
-          </label>
-        </div>
-      </div>
+      <table style="width:100%;border-bottom:1px solid #d8e2e1;border-collapse:collapse;">
+        <tr>
+          <td style="padding:6px 10px;font-size:11px;font-weight:600;color:#0b7a75;text-transform:uppercase;letter-spacing:0.05em;vertical-align:top;">
+            Filter by Specialty
+          </td>
+          <td style="padding:4px 10px;vertical-align:middle;">
+            <label style="font-size:10px;color:#374151;display:flex;align-items:center;gap:4px;cursor:pointer;padding:1px 0;">
+              <input type="radio" name="provider-type" value="prescribers" data-gui-action="filter-provider-type" ${prescribersChecked ? 'checked' : ''}
+                style="accent-color:#0b7a75;width:12px;height:12px;" />
+              Prescribers only
+            </label>
+            <label style="font-size:10px;color:#9ca3af;display:flex;align-items:center;gap:4px;cursor:not-allowed;padding:1px 0;"
+              title="Unimplemented">
+              <input type="radio" name="provider-type" value="homeopathic" data-gui-action="filter-provider-type" disabled
+                style="accent-color:#ccc;width:12px;height:12px;" />
+              Homeopathic only
+            </label>
+            <label style="font-size:10px;color:#374151;display:flex;align-items:center;gap:4px;cursor:pointer;padding:1px 0;">
+              <input type="radio" name="provider-type" value="all" data-gui-action="filter-provider-type" ${!prescribersChecked ? 'checked' : ''}
+                style="accent-color:#0b7a75;width:12px;height:12px;" />
+              All providers
+            </label>
+          </td>
+        </tr>
+      </table>
       <div style="${toggleStyle}">
         <button data-gui-action="toggle-all"
           style="background:none;border:1px solid #0b7a75;border-radius:3px;padding:3px 10px;
