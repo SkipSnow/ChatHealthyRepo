@@ -56,6 +56,11 @@
       width: 20%;
       transition: width 0.3s ease;
       overflow: hidden;
+      max-height: 100%;
+    }
+    .side-panel.filter-active {
+      overflow-y: auto;
+      overflow-x: hidden;
     }
 
     .side-panel.expanded {
@@ -759,6 +764,36 @@
           }
         }
 
+        // Timer — shows elapsed time in left side of control frame during LLM response
+        if (msg.type === 'gui:timer') {
+          var timerEl = document.getElementById('guiTimer');
+          if (!timerEl) {
+            frame.style.justifyContent = 'flex-start';
+            frame.style.paddingLeft = '12px';
+            frame.style.gap = '10px';
+            frame.innerHTML = '<span id="guiTimer" style="font-size:12px;color:#9ca3af;font-weight:500;min-width:40px;">Thinking\u2026</span>'
+              + '<button id="guiTimerStop" style="background:none;border:1px solid #d1d5db;border-radius:4px;padding:2px 10px;font-size:11px;color:#9ca3af;cursor:pointer;">Stop</button>';
+            document.getElementById('guiTimerStop').addEventListener('click', function() {
+              chatFrame.contentWindow.postMessage({ type: 'gui:event', action: 'stop-thinking' }, '*');
+            });
+            timerEl = document.getElementById('guiTimer');
+          }
+          timerEl.textContent = 'Thinking\u2026 ' + msg.seconds + 's';
+        }
+
+        if (msg.type === 'gui:timer-clear') {
+          var timerEl = document.getElementById('guiTimer');
+          if (timerEl) {
+            timerEl.remove();
+            frame.style.justifyContent = 'center';
+            frame.style.paddingLeft = '';
+            // Restore default if nothing else is in the frame
+            if (!frame.querySelector('[data-gui-action]')) {
+              frame.innerHTML = '<span class="frame-label" style="color:#ccc;font-size:9px;">CONTROL FRAME</span>';
+            }
+          }
+        }
+
         if (msg.type === 'gui:clear') {
           frame.innerHTML = '<span class="frame-label" style="color:#ccc;font-size:9px;">CONTROL FRAME</span>';
         }
@@ -769,7 +804,7 @@
           // Reset centering styles so filter content can flex and scroll
           leftPanel.style.alignItems = 'stretch';
           leftPanel.style.justifyContent = 'stretch';
-          leftPanel.style.overflow = 'hidden';
+          leftPanel.classList.add('filter-active');
           // Mobile: show as fullscreen overlay
           if (window.innerWidth <= 600) {
             leftPanel.classList.add('mobile-filter-open');
@@ -788,10 +823,12 @@
                   leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]:checked').forEach(function(cb) {
                     checked.push(cb.getAttribute('data-gui-value'));
                   });
+                  var prescribersOnly = leftPanel.querySelector('input[data-gui-action="filter-prescribers"]');
                   chatFrame.contentWindow.postMessage({
                     type: 'gui:event',
                     action: 'filter-apply',
                     value: JSON.stringify(checked),
+                    prescribers_only: prescribersOnly ? prescribersOnly.checked : false,
                     searchParams: leftPanel.dataset.searchParams
                   }, '*');
                 });
@@ -804,6 +841,17 @@
                   var newState = !majority;
                   boxes.forEach(function(cb) { cb.checked = newState; });
                   el.textContent = newState ? 'Uncheck All' : 'Check All';
+                });
+              }
+              if (el.getAttribute('data-gui-action') === 'filter-prescribers') {
+                el.addEventListener('change', function() {
+                  var isChecked = el.checked;
+                  // Tell React to re-filter the specialty list
+                  chatFrame.contentWindow.postMessage({
+                    type: 'gui:event',
+                    action: 'prescribers-only-toggle',
+                    value: isChecked ? 'true' : 'false'
+                  }, '*');
                 });
               }
             })(filterActions[j]);
@@ -822,7 +870,7 @@
         if (msg.type === 'gui:filter-clear') {
           leftPanel.style.alignItems = 'center';
           leftPanel.style.justifyContent = 'center';
-          leftPanel.style.overflow = 'hidden';
+          leftPanel.classList.remove('filter-active');
           leftPanel.classList.remove('mobile-filter-open');
           leftPanel.innerHTML = '<span class="frame-label" style="color:#8888cc;font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;">LEFT PANEL</span>';
         }

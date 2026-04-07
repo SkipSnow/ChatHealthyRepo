@@ -165,6 +165,66 @@
       "rule": "BUG (HIGH): Roadmap milestones in business_plan.json are disconnected date/label pairs with no references to epics, features, or definition of done. The roadmap generator (generate_roadmap_page.py) must draw milestone descriptions, scope, and acceptance criteria from agile_backlog.json — not from hand-written labels. Each milestone must reference its epic_ids and derive its content from the brain. Current state: milestone says 'Alpha launch' but doesn't say what's in it.",
       "incident": "Roadmap milestones added to business_plan.json without epic_refs or traceability. Discovered during v4-021 roadmap generator work.",
       "date": "2026-04-06"
+    },
+    {
+      "id": "BUG-LOAD-001",
+      "rule": "SHOW STOPPER — SPRINT BLOCKER — DUE 2026-04-09: Delaware provider load is incomplete. Root cause: CopyToFrontEnd copied only 2,843 of 25,591 DE providers from pipeline cluster to frontend cluster. Pipeline cluster load is correct. Fix CopyToFrontEnd. dev_PublicHealthData.providers contains only 2,843 DE providers. CMS Part D prescriber data alone has 3,505 DE NPIs. Delaware should have ~26,000 providers. The NPPES load ran with 32 workers across the full CSV but only captured a fraction of DE records. Root cause TBD — may be a CopyToFrontEnd issue (pipeline cluster has full set, frontend got partial) or a load partition issue. All downstream work (enrichment, embedding, scoring) is invalid until the full DE dataset is loaded.",
+      "incident": "Boss asked 'Delaware only has 2,843 providers?' during data quality review. CMS Part D had 3,505 DE prescribers — more than our total provider count. Expected ~26K based on population ratio and CMS records. CA has ~1.1M prescribers; DE should scale proportionally to ~26K total providers.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-LOAD-002",
+      "rule": "SHOW STOPPER — ALPHA RELEASE BLOCKER: The question 'how many providers are there in DE' must give a correct answer. If the database has 2,843 and the real answer is ~26,000, the system is giving wrong data to users. This is a GOV-011 violation — the system must answer using real data, not incomplete data. The provider count must match the NPPES source of truth before any state goes to production.",
+      "incident": "Data quality review revealed the count was wrong. System would have told users DE has 2,843 providers when the real number is ~26,000. Discovered same session as BUG-LOAD-001.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-LOAD-003",
+      "rule": "BUG (DESIGN): Source data files in blob storage must NEVER be deleted after loading. The raw NPPES CSV, CMS Part D CSV, OIG LEIE CSV, and SAM exclusion CSV must remain in blob storage until replaced by the next full load. These files are the source of truth for data quality reconciliation — pipeline count must match source count must match frontend count. Deletion breaks the audit chain.",
+      "incident": "During BUG-LOAD-001 investigation, needed to count DE records in the raw NPPES CSV to verify pipeline cluster count (25,591). The file existed only because it hadn't been cleaned up yet. If it had been deleted, there would be no way to verify the load was correct without re-downloading 10.6GB from CMS.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-LEGAL-001",
+      "rule": "BUG (SPRINT BLOCKER — DUE THIS SPRINT): CPT codes CANNOT be used in any consumer-facing feature. UMLS license Category 3 restricts CPT to internal use only (research, development, statistical analysis). Public display requires a separate AMA commercial license. Before alpha: (1) audit all user-facing output for CPT codes, (2) remove or block any CPT display, (3) add copyright/attribution banner for UMLS-derived content, (4) notify NLM in writing before launch, (5) geo-fence US-only vocabularies.",
+      "incident": "GPT Enterprise Architect review of UMLS license (2026-04-07) identified CPT Category 3 restriction as incompatible with consumer-facing product. Also identified pre-alpha compliance requirements for SNOMED CT, ICD-10-CM, LOINC attribution.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-UX-001",
+      "rule": "BUG: 'find me a kids doc in VA' produces stuck response 'Thinking... Ok No'. Chat never completes. Either safety check, consent flow, or backend timeout is intercepting and the UI doesn't recover. User sees a dead chat. Must investigate: (1) is 'kids' triggering safety? (2) is there a consent prompt that the UI doesn't render? (3) is the backend timing out?",
+      "incident": "Headless browser dry run on dev.chathealthy.ai — query submitted, chat showed 'Thinking... Ok No' and never progressed. Left panel stayed empty. No provider results rendered.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-UX-002",
+      "rule": "BUG: Left panel has overflowY:hidden — filter content cannot scroll. When specialty filter loads with more options than fit in the panel height, user cannot scroll to see all options. Fix: set overflowY:auto on #leftPanel when filter content is present.",
+      "incident": "Headless browser inspection showed #leftPanel scrollHeight=863 clientHeight=863 overflowY=hidden. Confirmed by Boss as known broken scroll bar.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-UX-003",
+      "rule": "BUG FIXED: Stop button left orphaned in chat area when timer moved to control frame. Timer and Stop button are a unit — both must move together. Fixed by removing thinking bubble from chat and rendering both timer + Stop in guiControlFrame.",
+      "incident": "Boss caught Stop button floating alone in chat area after timer was moved to control frame. Timer showed in control frame but Stop stayed in the chat.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-UX-004",
+      "rule": "BUG FIXED: Prescriber toggle checkbox re-rendered as checked when specialty list updated. When user unchecked 'Prescribers only', the list re-render reset the checkbox to checked. Fixed by passing prescribersChecked state into renderFilterHTML.",
+      "incident": "Boss unchecked prescribers only, list didn't change. Root cause: re-render of filter HTML reset checkbox state.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-SEC-001",
+      "rule": "BUG (PRE-ALPHA REQUIREMENT): HuggingFace Spaces still use bearer tokens for authentication. Security architecture (EPIC-4) requires zero bearer tokens — all auth via x509 certificates registered with Azure Key Vault. Perplexity external audit (EXT-AUDIT-001) flagged the security model. Must migrate dev HF Spaces from bearer tokens to x509 cert auth before alpha. Each Space gets its own cert. SecretManager fetches certs from Key Vault at startup.",
+      "incident": "Boss flagged during local HTTPS/PKI setup that HF Spaces still use bearer tokens. Perplexity audit had major concerns about security model. Local dev now has proper PKI with individual certs per service, but deployed architecture hasn't caught up.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "DR-022",
+      "rule": "Never run embedding generation against the frontend cluster. Embeddings are generated on the pipeline cluster and copied to the frontend via CopyToFrontEnd. The frontend cluster is for serving user queries, not for expensive batch operations.",
+      "incident": "During DE data quality work, re-embedded 2,843 providers directly on the frontend cluster. Wasted $2 on incomplete data and ran batch OpenAI calls against the production-serving cluster.",
+      "date": "2026-04-07"
     }
   ]
 }

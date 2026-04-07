@@ -1,12 +1,20 @@
 # ChatHealthy.ai — Local Development Caddyfile
 # Routes all traffic through single entry point with TLS + mTLS
+# Each service has its own certificate for proper PKI identity.
+#
+# PKI Chain:
+#   CA:             ChatHealthy Local CA (ca.crt/ca.key)
+#   Website:        CN=localhost         (localhost.crt/key)     :443
+#   FindCare:       CN=findcare.local    (findcare.crt/key)     :8080
+#   EvaluateCare:   CN=evalcare.local    (evalcare.crt/key)     :8081  mTLS
+#   Shared Services:CN=shared.local      (shared.crt/key)       :8082  mTLS
 #
 # Ports:
-#   :80/:443 → Website/ static files
+#   :80/:443 → Website/ static files (localhost cert)
 #   :5173    → React frontend (Vite dev server, proxied)
-#   :8000    → FindCare backend
-#   :8001    → EvaluateCare backend (mTLS required)
-#   :8002    → Shared Services (mTLS required)
+#   :8080    → FindCare backend (findcare cert, no client auth)
+#   :8081    → EvaluateCare backend (evalcare cert, mTLS required)
+#   :8082    → Shared Services (shared cert, mTLS required)
 
 {
 	# Local dev — no automatic HTTPS, we manage our own certs
@@ -14,12 +22,13 @@
 	admin off
 }
 
-# ── Public Website (HTTP + HTTPS) ──────────────────────
+# ── Public Website (HTTP — redirect to HTTPS) ─────────
 :80 {
 	root * {$WEBSITE_ROOT:C:/chatHealthy/findCare/Website}
 	file_server
 }
 
+# ── Public Website (HTTPS — localhost cert) ────────────
 :443 {
 	tls {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/localhost.crt {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/localhost.key
 	root * {$WEBSITE_ROOT:C:/chatHealthy/findCare/Website}
@@ -31,14 +40,15 @@
 	reverse_proxy localhost:5173
 }
 
-# ── FindCare API (public-facing, no mTLS for consumers) ─
+# ── FindCare API (findcare cert, no client auth for consumers) ─
 :8080 {
+	tls {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/findcare.crt {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/findcare.key
 	reverse_proxy localhost:8000
 }
 
-# ── EvaluateCare API (mTLS required) ───────────────────
+# ── EvaluateCare API (evalcare cert, mTLS required) ────
 :8081 {
-	tls {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/localhost.crt {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/localhost.key {
+	tls {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/evalcare.crt {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/evalcare.key {
 		client_auth {
 			mode require_and_verify
 			trust_pool file {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/ca.crt
@@ -47,9 +57,9 @@
 	reverse_proxy localhost:8001
 }
 
-# ── Shared Services API (mTLS required) ────────────────
+# ── Shared Services API (shared cert, mTLS required) ───
 :8082 {
-	tls {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/localhost.crt {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/localhost.key {
+	tls {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/shared.crt {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/shared.key {
 		client_auth {
 			mode require_and_verify
 			trust_pool file {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/ca.crt

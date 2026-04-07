@@ -6706,13 +6706,13 @@
         },
         {
           "feature_id": "EVAL-WEIGHTS",
-          "name": "User-Adjustable Quality Weights",
+          "name": "User-Adjustable Quality Weights — Mixing Board",
           "epic_id": "EPIC-1",
           "layer": "both",
           "capability": "Shared",
-          "description": "Allows users to adjust importance of individual measures and recompute scores dynamically.",
-          "evidence": "ASSUMPTION: No current UI or backend support for dynamic weighting. GAP: requires parameterized scoring engine and frontend controls.",
-          "priority": "STRETCH",
+          "description": "Allows users to adjust importance of individual measures (cost, frequency, distance, experience) and recompute scores dynamically via slider controls in guiControlFrame. The 'mixing board' — multiple faders the user adjusts to express their priorities. System sets smart defaults based on inferred condition severity from drug + dosage. User overrides. Scoring engine recomputes in real-time. This is the alpha differentiator and the release path to prod.",
+          "evidence": "Cost measures (generic_ratio_band, on_label_band, frequency_band) are being built in PIPE-DQ-004. Indication-first data structure supports per-condition scoring. End-to-end path: data pipeline → scoring engine → mixing board UI → prod.",
+          "priority": "HIGH",
           "status": "accepted",
           "accepted_by": "Claude",
           "backend_dependencies": [],
@@ -16066,6 +16066,46 @@
                 {"req_id": "PIPE-DQ-003-REQ-004", "requirement": "If no license data, flag bad_data.reason=zip_state_mismatch_no_license", "priority": "must-have", "status": "accepted"},
                 {"req_id": "PIPE-DQ-003-REQ-005", "requirement": "If license doesn't resolve, flag bad_data.reason=zip_state_mismatch", "priority": "must-have", "status": "accepted"}
               ]
+            },
+            {
+              "story_id": "PIPE-DQ-004",
+              "title": "Prescriber classification flag on provider record",
+              "description": "Add can_prescribe field to provider record: {flagged: bool, method: 'taxonomy'|'organization', taxonomy_code: string}. Uses NUCC taxonomy code prefixes to classify providers by prescribing authority. Organizations are always non-prescribers. Individuals are classified by primary taxonomy code. FindCare uses this to inform users. EvaluateCare uses this to determine if prescription behavior scoring applies.",
+              "parent_feature": "PIPE-DATA-QUALITY",
+              "sprint": 7,
+              "dependencies": ["PIPE-DQ-001", "PIPE-DQ-002"],
+              "size": "M",
+              "status": "IN_PROGRESS",
+              "requirements": [
+                {"req_id": "PIPE-DQ-004-REQ-001", "requirement": "Provider record must have can_prescribe.flagged (boolean), can_prescribe.method (string), and can_prescribe.taxonomy_code (string)", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-DQ-004-REQ-002", "requirement": "Organizations (entity_type_code=2) must always be flagged can_prescribe=false with method=organization", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-DQ-004-REQ-003", "requirement": "Individuals classified by NUCC taxonomy prefix: 207/208/209/204 (physicians), 363L (NP), 363A (PA), 367 (CRNA/midwife), 122 (dentist), 213 (podiatrist), 174400000X (optometrist), 176 (CNM)", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-DQ-004-REQ-004", "requirement": "If no primary taxonomy exists, use first taxonomy code in array", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-DQ-004-REQ-005", "requirement": "mark_prescriber_fn must respect states filter (BUG-PIPE-001) and only classify providers without existing can_prescribe flag (idempotent)", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-DQ-004-REQ-006", "requirement": "FindCare search results must include can_prescribe flag so UI can display prescriber status", "priority": "must-have", "status": "TO_TEST"},
+                {"req_id": "PIPE-DQ-004-REQ-007", "requirement": "EvaluateCare must use can_prescribe flag to determine if prescription behavior scoring applies to a provider", "priority": "must-have", "status": "TO_TEST"},
+                {"req_id": "PIPE-DQ-004-REQ-008", "requirement": "Pytest must verify can_prescribe flag exists on all DE providers with correct classification", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-DQ-004-REQ-009", "requirement": "Prescriber pipeline must dual-write CMS Part D drug data to both provider_quality (EvaluateCare scoring) and providers.can_prescribe.drugs (FindCare filter + embedding)", "priority": "must-have", "status": "IN_PROGRESS"},
+                {"req_id": "PIPE-DQ-004-REQ-010", "requirement": "can_prescribe.drugs array contains molecule, brand_names, total_claims, total_beneficiaries, indications (FDA on-label), and icd10_codes per drug", "priority": "must-have", "status": "IN_PROGRESS"},
+                {"req_id": "PIPE-DQ-004-REQ-011", "requirement": "Provider embedding text must include can_prescribe flag and prescriber_drugs (molecules + indications + ICD-10 codes) for vector search", "priority": "must-have", "status": "IN_PROGRESS"},
+                {"req_id": "PIPE-DQ-004-REQ-012", "requirement": "FindCare left panel must have 'Prescribers only' checkbox filter that queries can_prescribe.flagged=true", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "PIPE-DQ-004-REQ-013", "requirement": "Each drug in can_prescribe.drugs must have brand_claims and generic_claims as hard counts (not percentages). brand_claims = claims where brand_name differs from generic_name. generic_claims = claims where brand_name matches generic_name.", "priority": "must-have", "status": "IN_PROGRESS"},
+                {"req_id": "PIPE-DQ-004-REQ-014", "requirement": "Provider record must have can_prescribe.generic_ratio_band (string, 5% bands: '0-5%' through '95-100%', 20 bands total) representing the provider-level percentage of all claims that are generic across all molecules.", "priority": "must-have", "status": "IN_PROGRESS"},
+                {"req_id": "PIPE-DQ-004-REQ-015", "requirement": "Provider record must have can_prescribe.on_label_band (string, 5% bands, 20 bands) representing the percentage of the provider's prescribing that matches FDA on-label indications based on taxonomy-to-ICD-10 alignment. National benchmark — computed across all providers, not per-provider.", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "PIPE-DQ-004-REQ-016", "requirement": "Provider embedding text must include generic_ratio_band and on_label_band for vector search clustering. Banding reduces cardinality from continuous floats to 20 discrete values for cleaner embedding clusters.", "priority": "must-have", "status": "IN_PROGRESS"},
+                {"req_id": "PIPE-DQ-004-REQ-017", "requirement": "Cost measures must include molecule-level generic ratio: for each molecule, compare this provider's brand vs generic ratio to the national average for that molecule. Band in 5% increments.", "priority": "must-have", "status": "IN_PROGRESS"},
+                {"req_id": "PIPE-DQ-004-REQ-018", "requirement": "Cost measures must include specialty-level generic percentile: compare this provider's overall generic ratio to all providers with the same primary taxonomy prefix. Band as percentile in 5% increments (20 bands). Oncologists benchmarked against oncologists, primary care against primary care.", "priority": "must-have", "status": "IN_PROGRESS"},
+                {"req_id": "PIPE-DQ-004-REQ-019", "requirement": "Overprescribing detection: flag providers whose total claim count per indication exceeds the 95th percentile for their specialty peers. Procedural rule in scoring engine, not embedded.", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "PIPE-DQ-004-REQ-020", "requirement": "Underprescribing detection: flag providers whose total claim count per indication falls below the 5th percentile for their specialty peers when the indication is a standard-of-care condition for that specialty. Procedural rule in scoring engine, not embedded.", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "PIPE-DQ-004-REQ-021", "requirement": "Local dev environment must have a single start_local.bat that boots all services: Caddy (HTTPS :443), Vite React (:5173), FindCare backend (:8000). Must kill zombies first (DR-009), verify all services, and report status.", "priority": "must-have", "status": "accepted"},
+                {"req_id": "FINDCARE-UX-001", "requirement": "Move the response timer display to the left-hand side of the control frame (guiControlFrame). Timer shows elapsed time during LLM response generation. Must be visible but not intrusive.", "priority": "should-have", "status": "accepted"},
+                {"req_id": "FINDCARE-UX-002", "requirement": "Filter panel scroll bar must work. Max 15 visible items, scroll for the rest. Panel uses top half of left panel — bottom half reserved for future controls (mixing board).", "priority": "must-have", "status": "accepted"},
+                {"req_id": "FINDCARE-UX-003", "requirement": "Prescribers only checkbox in filter header, right-aligned, default checked. When checked, specialty list shows only prescriber taxonomy codes. When unchecked, shows all specialties. Toggle is client-side — no server round-trip. Full list cached on client.", "priority": "must-have", "status": "accepted"},
+                {"req_id": "FINDCARE-UX-004", "requirement": "Homeopathic only checkbox in filter header, right-aligned, below prescribers. Disabled with tooltip 'Unimplemented' for alpha.", "priority": "should-have", "status": "accepted"},
+                {"req_id": "FINDCARE-UX-005", "requirement": "Filter specialty list must be sorted by most likely choices first (by provider count descending, not alphabetical).", "priority": "should-have", "status": "NOT_STARTED"},
+                {"req_id": "FINDCARE-UX-007", "requirement": "The full specialty options list must be cached in the browser after the first server response. All subsequent filter operations (prescriber toggle, check/uncheck, search within list) must operate on the cached list with zero server round-trips. Cache invalidated only on new search query.", "priority": "must-have", "status": "accepted"},
+                {"req_id": "FINDCARE-UX-006", "requirement": "start_local.bat must boot entire local dev environment: kill zombies, TypeScript compile check, Caddy HTTPS, Vite React, FindCare backend. Single command.", "priority": "must-have", "status": "accepted"}
+              ]
             }
           ]
         }
@@ -16396,6 +16436,68 @@
               {"req_id": "SEC-MTLS-004-REQ-001", "requirement": "Caddy Caddyfile configures mTLS for routes to :8001 and :8002", "priority": "must-have", "status": "accepted"},
               {"req_id": "SEC-MTLS-004-REQ-002", "requirement": "Direct HTTP requests to :8001 or :8002 bypassing Caddy are rejected", "priority": "must-have", "status": "accepted"}
             ]}
+          ]
+        }
+      ]
+    },
+    {
+      "epic_id": "EPIC-4-UMLS",
+      "name": "UMLS License Compliance",
+      "goal": "Ensure all UMLS-derived content meets license terms before alpha launch",
+      "status": "active",
+      "parent_epic": "EPIC-4",
+      "features": [
+        {
+          "feature_id": "UMLS-COMPLIANCE",
+          "name": "UMLS License Compliance — Pre-Alpha",
+          "epic_id": "EPIC-4",
+          "priority": "HIGH",
+          "status": "IN_PROGRESS",
+          "due": "2026-04-30",
+          "stories": [
+            {
+              "story_id": "UMLS-CPT-001",
+              "title": "Remove CPT codes from consumer-facing features",
+              "description": "CPT Category 3 restricts use to internal research/development only. Any CPT code display in user-facing UI must be removed or blocked. Separate AMA commercial license required for public use.",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {"req_id": "UMLS-CPT-001-REQ-001", "requirement": "Audit all user-facing output for CPT code exposure", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "UMLS-CPT-001-REQ-002", "requirement": "Remove or block CPT code display in FindCare and EvaluateCare UI", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "UMLS-CPT-001-REQ-003", "requirement": "CPT codes may be used internally for scoring but never shown to consumers", "priority": "must-have", "status": "NOT_STARTED"}
+              ]
+            },
+            {
+              "story_id": "UMLS-ATTR-001",
+              "title": "Display required copyright and attribution notices",
+              "description": "UMLS license requires copyright notices before user access to any UMLS-derived content. SNOMED CT, LOINC, and other sources have specific attribution text.",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {"req_id": "UMLS-ATTR-001-REQ-001", "requirement": "Display UMLS copyright notice before user accesses any UMLS-derived content", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "UMLS-ATTR-001-REQ-002", "requirement": "Display SNOMED CT attribution on all media containing SNOMED CT content", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "UMLS-ATTR-001-REQ-003", "requirement": "Display LOINC Regenstrief Institute copyright if LOINC codes are used", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "UMLS-ATTR-001-REQ-004", "requirement": "Do not imply NLM or source organizations endorse ChatHealthy", "priority": "must-have", "status": "NOT_STARTED"}
+              ]
+            },
+            {
+              "story_id": "UMLS-GEO-001",
+              "title": "Geo-fence US-only vocabularies",
+              "description": "ICD-10-CM (Category 4) and SNOMED CT US Edition are restricted to US use only. Must prevent non-US users from accessing features powered by these vocabularies.",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {"req_id": "UMLS-GEO-001-REQ-001", "requirement": "US-only vocabulary features must be geo-fenced to US users", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "UMLS-GEO-001-REQ-002", "requirement": "No raw or extractable UMLS vocabulary data exposed via API or UI", "priority": "must-have", "status": "NOT_STARTED"}
+              ]
+            },
+            {
+              "story_id": "UMLS-NLM-001",
+              "title": "NLM notification and annual reporting",
+              "description": "Must notify NLM before distributing any application using UMLS. Annual usage report due by January 30 each year.",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {"req_id": "UMLS-NLM-001-REQ-001", "requirement": "Notify NLM in writing before alpha launch", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "UMLS-NLM-001-REQ-002", "requirement": "Set up annual NLM usage report process due January 30", "priority": "must-have", "status": "NOT_STARTED"}
+              ]
+            }
           ]
         }
       ]
@@ -16914,6 +17016,142 @@
         "data_quality": "Moderate",
         "credibility": "Moderate",
         "mitigation": "Expose trace, normalization method, and completeness/confidence fields in API response to make data limitations explicit to consumers."
+      }
+    ]
+  },
+  "regression_tests": {
+    "epic_id": "EPIC-10",
+    "name": "Pipeline Regression Tests",
+    "goal": "Automated regression suite that catches data quality, load parity, and enrichment failures before they reach production. Every pipeline run must pass these tests.",
+    "status": "active",
+    "features": [
+      {
+        "feature_id": "REG-LOAD-PARITY",
+        "name": "Load Parity Check",
+        "epic_id": "EPIC-10",
+        "description": "Source file record count must match pipeline DB count must match frontend DB count per state. For both providers and provider_quality collections.",
+        "priority": "HIGH",
+        "status": "IN_PROGRESS",
+        "test_file": "Code/DataPipelines/tests/test_load_parity.py",
+        "stories": [
+          {
+            "story_id": "REG-PARITY-001",
+            "title": "Provider load parity: source CSV vs pipeline DB",
+            "requirements": [
+              {"req_id": "REG-PARITY-001-REQ-001", "requirement": "For every state in the pipeline DB, count must equal count in raw NPPES CSV in blob storage", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-PARITY-001-REQ-002", "requirement": "Test must fail and report which states are missing records and how many", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-PARITY-001-REQ-003", "requirement": "Frontend cluster count must equal pipeline cluster count per state", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-PARITY-001-REQ-004", "requirement": "Parity check must cover provider_quality collection count vs providers collection count for prescribers", "priority": "must-have", "status": "NOT_STARTED"}
+            ]
+          }
+        ]
+      },
+      {
+        "feature_id": "REG-DATA-QUALITY",
+        "name": "Data Quality Regression",
+        "epic_id": "EPIC-10",
+        "description": "Schema integrity, data flags, enrichment coverage, embedding completeness, prescriber classification. Tests run against live MongoDB.",
+        "priority": "HIGH",
+        "status": "IN_PROGRESS",
+        "test_file": "Code/DataPipelines/tests/test_data_quality_live.py",
+        "stories": [
+          {
+            "story_id": "REG-DQ-001",
+            "title": "Schema integrity tests",
+            "requirements": [
+              {"req_id": "REG-DQ-001-REQ-001", "requirement": "All providers must have required fields: npi, entity_type_code, practice_address, taxonomies, load_id, record_id, worker_id", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-001-REQ-002", "requirement": "NPI must be 10-digit string", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-001-REQ-003", "requirement": "entity_type_code must be '1' or '2'", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-001-REQ-004", "requirement": "Every provider must have at least one taxonomy code", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-001-REQ-005", "requirement": "No duplicate NPIs", "priority": "must-have", "status": "accepted"}
+            ]
+          },
+          {
+            "story_id": "REG-DQ-002",
+            "title": "Data quality flag tests",
+            "requirements": [
+              {"req_id": "REG-DQ-002-REQ-001", "requirement": "bad_data.reason values must be from CV-001 vocabulary", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-002-REQ-002", "requirement": "out_of_scope.reason values must be from CV-002 vocabulary", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-002-REQ-003", "requirement": "Providers with no address must be flagged bad_data", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-002-REQ-004", "requirement": "Deactivated providers without reactivation must be flagged out_of_scope", "priority": "must-have", "status": "accepted"}
+            ]
+          },
+          {
+            "story_id": "REG-DQ-003",
+            "title": "County enrichment tests",
+            "requirements": [
+              {"req_id": "REG-DQ-003-REQ-001", "requirement": "At least 95% of addressable providers must be county-enriched", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-003-REQ-002", "requirement": "county.fips must be 5-digit string matching state FIPS prefix", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-003-REQ-003", "requirement": "county.source must be from valid enum", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-003-REQ-004", "requirement": "Geocoder failure rate must be under 5%", "priority": "must-have", "status": "accepted"}
+            ]
+          },
+          {
+            "story_id": "REG-DQ-004",
+            "title": "Embedding tests",
+            "requirements": [
+              {"req_id": "REG-DQ-004-REQ-001", "requirement": "90%+ of providers must have embeddings", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-004-REQ-002", "requirement": "Embedding dimension must be 3072 (text-embedding-3-large)", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-004-REQ-003", "requirement": "embedding_model field must be present and correct", "priority": "must-have", "status": "accepted"}
+            ]
+          },
+          {
+            "story_id": "REG-DQ-005",
+            "title": "Prescriber classification tests",
+            "requirements": [
+              {"req_id": "REG-DQ-005-REQ-001", "requirement": "All providers must have can_prescribe flag", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-005-REQ-002", "requirement": "All organizations must be can_prescribe=false", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-005-REQ-003", "requirement": "Prescriber ratio must be between 15-50% for a typical state", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-005-REQ-004", "requirement": "can_prescribe must include method field (taxonomy or organization)", "priority": "must-have", "status": "accepted"}
+            ]
+          },
+          {
+            "story_id": "REG-DQ-006",
+            "title": "SpecialtyMetaData integrity tests",
+            "requirements": [
+              {"req_id": "REG-DQ-006-REQ-001", "requirement": "SpecialtyMetaData must have 800+ NUCC entries", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-006-REQ-002", "requirement": "All provider taxonomy codes must exist in SpecialtyMetaData", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-DQ-006-REQ-003", "requirement": "90%+ of SpecialtyMetaData must have embeddings", "priority": "must-have", "status": "accepted"}
+            ]
+          }
+        ]
+      },
+      {
+        "feature_id": "REG-VOCAB",
+        "name": "Controlled Vocabulary Regression",
+        "epic_id": "EPIC-10",
+        "description": "Verify controlled vocabularies structure, completeness, and code traceability.",
+        "priority": "HIGH",
+        "status": "accepted",
+        "test_file": "Code/DataPipelines/tests/test_data_quality.py",
+        "stories": [
+          {
+            "story_id": "REG-VOCAB-001",
+            "title": "Controlled vocabulary structure and code compliance",
+            "requirements": [
+              {"req_id": "REG-VOCAB-001-REQ-001", "requirement": "CV-001 bad_data_reasons must exist with all required members", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-VOCAB-001-REQ-002", "requirement": "CV-002 out_of_scope_reasons must exist with all required members", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-VOCAB-001-REQ-003", "requirement": "State filter must be mandatory (raises on missing or empty)", "priority": "must-have", "status": "accepted"},
+              {"req_id": "REG-VOCAB-001-REQ-004", "requirement": "All vocabularies must have invoked_by traceability", "priority": "must-have", "status": "accepted"}
+            ]
+          }
+        ]
+      },
+      {
+        "feature_id": "REG-PIPELINE-E2E",
+        "name": "Pipeline End-to-End Regression",
+        "epic_id": "EPIC-10",
+        "description": "Pipeline worker base contract, embedding worker, GPT reader integration.",
+        "priority": "MEDIUM",
+        "status": "accepted",
+        "test_files": [
+          "Code/DataPipelines/tests/test_pipeline_e2e.py",
+          "Code/DataPipelines/tests/test_pipeline_worker_base.py",
+          "Code/DataPipelines/tests/test_provider_embedding.py",
+          "Code/DataPipelines/tests/test_gpt_reader.py",
+          "Code/DataPipelines/tests/test_gpt_reader_integration.py"
+        ],
+        "stories": []
       }
     ]
   },

@@ -164,6 +164,7 @@ def enrich_all(env_prefix: str = "dev", states: list = None, batch_size: int = 1
 
     cursor = quality_coll.find({}, {"npi": 1, "measures.prescriber_behavior.drugs": 1})
     batch = []
+    provider_batch = []  # dual-write to providers.can_prescribe.drugs
     enriched = 0
     drugs_mapped = 0
     cache_hits = 0
@@ -232,16 +233,33 @@ def enrich_all(env_prefix: str = "dev", states: list = None, batch_size: int = 1
             }
 
         batch.append(UpdateOne({"npi": npi}, {"$set": update_fields}))
+
+        # Dual-write: update providers.can_prescribe.drugs with indications
+        # for FindCare filtering and embedding
+        if drugs:
+            provider_batch.append(UpdateOne(
+                {"npi": npi},
+                {"$set": {
+                    "can_prescribe.drugs": drugs,
+                    "can_prescribe.enriched_at": datetime.now(timezone.utc).isoformat(),
+                }},
+            ))
+
         enriched += 1
 
         if len(batch) >= batch_size:
             quality_coll.bulk_write(batch, ordered=False)
+            if provider_batch:
+                provider_coll.bulk_write(provider_batch, ordered=False)
+                provider_batch = []
             _log.info("Enriched %d / %d (drugs mapped: %d, cache hits: %d)",
                       enriched, total, drugs_mapped, cache_hits)
             batch = []
 
     if batch:
         quality_coll.bulk_write(batch, ordered=False)
+    if provider_batch:
+        provider_coll.bulk_write(provider_batch, ordered=False)
 
     _log.info("Enrichment complete: %d NPIs enriched, %d drugs mapped, %d cache hits",
               enriched, drugs_mapped, cache_hits)
