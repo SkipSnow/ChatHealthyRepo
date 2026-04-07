@@ -33,19 +33,19 @@ def run_pipeline(config: dict = None):
     config = config or {}
     env_prefix = config.get("env_prefix", "dev")
     states = config.get("states", ["DE"])
-    start_step = config.get("start_step", 1)
+    steps = config.get("steps", [1, 2, 3, 4])
 
     _log.info("=" * 60)
     _log.info("Prescriber Pipeline — %s", datetime.now(timezone.utc).isoformat())
     _log.info("Environment: %s", env_prefix)
     _log.info("States: %s", states)
-    _log.info("Start step: %d", start_step)
+    _log.info("Steps: %s", steps)
     _log.info("=" * 60)
 
     results = {}
 
     # ── Step 1: Fetch ──────────────────────────────────────────────────────
-    if start_step <= 1:
+    if 1 in steps:
         _log.info("")
         _log.info("─── Step 1: Fetch source data ───")
         from prescriber_data_fetcher import fetch_all
@@ -53,7 +53,7 @@ def run_pipeline(config: dict = None):
         _log.info("Fetch result: %s", results["fetch"])
 
     # ── Step 2: Load ───────────────────────────────────────────────────────
-    if start_step <= 2:
+    if 2 in steps:
         _log.info("")
         _log.info("─── Step 2: Load CMS Part D → provider_quality ───")
         from prescriber_load_worker import PrescriberLoadWorker
@@ -69,7 +69,7 @@ def run_pipeline(config: dict = None):
         _log.info("Load result: %s", results["load"])
 
     # ── Step 3: Enrich ─────────────────────────────────────────────────────
-    if start_step <= 3:
+    if 3 in steps:
         _log.info("")
         _log.info("─── Step 3: Enrich — indications, exclusions, location ───")
         from prescriber_enrichment_job import enrich_all
@@ -81,7 +81,7 @@ def run_pipeline(config: dict = None):
         _log.info("Enrich result: %s", results["enrich"])
 
     # ── Step 4: Embed ──────────────────────────────────────────────────────
-    if start_step <= 4:
+    if 4 in steps:
         _log.info("")
         _log.info("─── Step 4: Embed — drug/molecule vector search ───")
         results["embed"] = _embed_prescriber_data(env_prefix, states)
@@ -176,13 +176,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Prescriber Behavior Pipeline")
     parser.add_argument("--env", default="dev", help="Environment prefix (dev/qa/prod)")
     parser.add_argument("--states", default="DE", help="Comma-separated state codes")
-    parser.add_argument("--start-step", type=int, default=1, help="Start at step (1-4)")
+    parser.add_argument("--steps", default="1,2,3,4", help="Comma-separated step numbers to run (1=fetch, 2=load, 3=enrich, 4=embed)")
     args = parser.parse_args()
 
     config = {
         "env_prefix": args.env,
         "states": [s.strip() for s in args.states.split(",")],
-        "start_step": args.start_step,
+        "steps": [int(s.strip()) for s in args.steps.split(",")],
     }
 
     result = run_pipeline(config)

@@ -858,24 +858,24 @@ def prescriber_pipeline_orchestrator(context: df.DurableOrchestrationContext):
     config = context.get_input() or {}
     env_prefix = config.get("env_prefix", "dev")
     states = config.get("states", ["DE"])
-    start_step = config.get("start_step", 1)
+    steps = config.get("steps", [1, 2, 3])
 
     results = {}
 
     # Step 1: Fetch
-    if start_step <= 1:
+    if 1 in steps:
         results["fetch"] = yield context.call_activity(
             "prescriber_fetch_activity",
             {"env_prefix": env_prefix})
 
     # Step 2: Load
-    if start_step <= 2:
+    if 2 in steps:
         results["load"] = yield context.call_activity(
             "prescriber_load_activity",
             {"env_prefix": env_prefix, "states": states})
 
     # Step 3: Enrich
-    if start_step <= 3:
+    if 3 in steps:
         results["enrich"] = yield context.call_activity(
             "prescriber_enrich_activity",
             {"env_prefix": env_prefix, "states": states})
