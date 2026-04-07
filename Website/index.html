@@ -869,8 +869,8 @@
                     if (show) shown++; else hidden++;
                   });
                   // Update count display
-                  var countEl = leftPanel.querySelector('#filterCounts');
-                  if (countEl) countEl.textContent = shown + ' of ' + (shown + hidden) + ' specialties';
+                  var showingEl = leftPanel.querySelector('#filterShowing');
+                  if (showingEl) showingEl.textContent = shown;
                 });
               }
             })(filterActions[j]);
@@ -892,8 +892,8 @@
                   shown++;
                 }
               });
-              var countEl = leftPanel.querySelector('#filterCounts');
-              if (countEl) countEl.textContent = shown + ' of ' + (shown + hidden) + ' specialties';
+              var showingEl = leftPanel.querySelector('#filterShowing');
+              if (showingEl) showingEl.textContent = shown;
             }
           }
         }
