@@ -194,6 +194,72 @@ ASYNC_TASK_ORCHESTRATORS = {
     "PrescriberPipeline": "prescriber_pipeline_orchestrator",
 }
 
+# Pipeline step registry — valid steps per pipeline, with preconditions.
+# Used by Router to validate steps[] before dispatching.
+PIPELINE_STEP_REGISTRY = {
+    "PrescriberPipeline": {
+        "valid_steps": [1, 2, 3],
+        "step_names": {1: "fetch", 2: "load", 3: "enrich"},
+        "preconditions": {
+            2: {"requires_collection": "provider_quality", "min_docs": 0, "note": "Step 2 builds from providers — no precondition"},
+            3: {"requires_collection": "provider_quality", "min_docs": 1, "note": "Step 3 requires provider_quality records from step 2"},
+        },
+    },
+    "FullProviderPipeline": {
+        "valid_steps": [1, 2, 3, 4, 5, 6],
+        "step_names": {1: "download", 2: "load", 3: "county_pass1", 4: "county_pass2", 5: "county_pass3", 6: "embed"},
+        "preconditions": {},
+    },
+}
+
+
+def _validate_pipeline_steps(task: str, payload: dict) -> tuple:
+    """Validate steps[] array against pipeline registry. Returns (valid, error_response)."""
+    registry = PIPELINE_STEP_REGISTRY.get(task)
+    if not registry:
+        return True, None  # No registry entry — skip validation (legacy pipelines)
+
+    steps = payload.get("steps")
+    if steps is None:
+        return True, None  # No steps specified — run all (default behavior)
+
+    if not isinstance(steps, list):
+        return False, json_response({
+            "error": "InvalidStepError",
+            "message": "steps must be an array of integers",
+            "task": task,
+        }, 400)
+
+    valid_steps = registry["valid_steps"]
+    for s in steps:
+        if s not in valid_steps:
+            return False, json_response({
+                "error": "InvalidStepError",
+                "message": f"Step {s} does not exist in {task}. Valid steps: {valid_steps}",
+                "valid_steps": {str(k): v for k, v in registry["step_names"].items()},
+                "task": task,
+            }, 400)
+
+    # Check preconditions for requested steps
+    env_prefix = payload.get("env_prefix", "dev")
+    for s in steps:
+        precond = registry.get("preconditions", {}).get(s)
+        if precond and precond.get("min_docs", 0) > 0:
+            try:
+                from pipeline_db import get_db
+                coll_name = precond["requires_collection"]
+                count = get_db(env_prefix)[coll_name].count_documents({}, limit=1)
+                if count < precond["min_docs"]:
+                    return False, json_response({
+                        "error": "PreconditionError",
+                        "message": f"Step {s} ({registry['step_names'].get(s, '?')}) requires {coll_name} to have records. {precond.get('note', '')}",
+                        "task": task,
+                    }, 400)
+            except Exception as e:
+                logging.warning("Precondition check failed for step %d: %s", s, e)
+
+    return True, None
+
 
 def json_response(payload: dict, status_code: int) -> func.HttpResponse:
     return func.HttpResponse(
@@ -264,6 +330,10 @@ async def dev_pipeline_management(
 
         # Asynchronous path — start Durable orchestrator, return 202
         if task in ASYNC_TASK_ORCHESTRATORS:
+            # Validate steps if provided
+            valid, err_response = _validate_pipeline_steps(task, payload)
+            if not valid:
+                return err_response
             orchestrator_name = ASYNC_TASK_ORCHESTRATORS[task]
             instance_id = await client.start_new(orchestrator_name, None, payload)
             logging.info(
