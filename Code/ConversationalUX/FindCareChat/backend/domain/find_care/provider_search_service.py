@@ -355,6 +355,13 @@ class FindCareService:
             except Exception:
                 pass
 
+            # Classify specialties as prescriber/homeopathic (cached, one-time GPT call)
+            try:
+                from domain.find_care.specialty_classifier import classify_specialties
+                specialization_options = classify_specialties(specialization_options, db=db)
+            except Exception as _cls_err:
+                _log.warning("Specialty classification failed: %s", _cls_err)
+
             # Build filtered search term from selected specialty names
             selected_names = [o["name"] for o in specialization_options if o.get("name")]
             filtered_term = ", ".join(selected_names) if selected_names else f"{len(specialty_codes)} selected specialties"

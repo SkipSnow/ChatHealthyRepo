@@ -15,6 +15,18 @@
       "mitigation": "Text-based brand representations only (no actual logo files). Used in private investor materials, not public marketing.",
       "build": "265",
       "artifact": "brain/BusinessArtifacts/biz_arch_investor_v2.pdf"
+    },
+    {
+      "id": "RISK-002",
+      "date": "2026-04-07",
+      "title": "AI classification of specialty prescriber and homeopathic status",
+      "description": "GPT-4.1-mini classifies each NUCC specialty code as can_prescribe (yes/no) and homeopathic (yes/no). This is a GOV-011 exception — the AI is making a classification decision, not just translating user input. The classification is cached per specialty code and used to filter the FindCare specialty list.",
+      "risk": "AI may misclassify edge-case specialties. A wrong classification could hide relevant providers or show irrelevant ones.",
+      "claude_warning": "Claude flagged GOV-011 violation — AI is deciding, not the system. Boss authorized: the classification is cached, auditable, and correctable.",
+      "boss_decision": "ACCEPTED",
+      "accepted_by": "Boss (Skip Snow, CEO)",
+      "rationale": "The alternative is hardcoding 800+ specialty classifications manually, which is error-prone and unmaintainable. GPT-4.1-mini classification is faster, covers all specialties, and the cached result can be reviewed and corrected. The risk is low — misclassification of a specialty is a filter error, not a clinical error.",
+      "mitigation": "Cache result in MongoDB. Human-reviewable. Corrections override AI classification. Log which specialties were AI-classified vs manually corrected."
     }
   ]
 }
