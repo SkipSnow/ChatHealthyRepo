@@ -191,6 +191,7 @@ ASYNC_TASK_ORCHESTRATORS = {
     "SnapshotCollection": "snapshot_collection_orchestrator",
     "CopyToFrontEnd": "copy_to_frontend_orchestrator",
     "MigrateEnvironment": "migrate_environment_orchestrator",
+    "PrescriberPipeline": "prescriber_pipeline_orchestrator",
 }
 
 
@@ -841,3 +842,72 @@ def enrich_by_nppes_batch_activity(config: dict) -> dict:
 @app.activity_trigger(input_name="config")
 def enrichment_report_activity(config: dict) -> dict:
     return enrichment_report_fn(config)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRESCRIBER PIPELINE — CMS Part D + OIG LEIE + SAM.gov → provider_quality
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.orchestration_trigger(context_name="context")
+def prescriber_pipeline_orchestrator(context: df.DurableOrchestrationContext):
+    """Prescriber behavior pipeline — 3 steps, sequential.
+    Step 1: Fetch CMS Part D + OIG LEIE + SAM.gov → Blob Storage
+    Step 2: Load → provider_quality (left outer join from providers)
+    Step 3: Enrich → drug indications (LLM), exclusion flags, location
+    """
+    config = context.get_input() or {}
+    env_prefix = config.get("env_prefix", "dev")
+    states = config.get("states", ["DE"])
+    start_step = config.get("start_step", 1)
+
+    results = {}
+
+    # Step 1: Fetch
+    if start_step <= 1:
+        results["fetch"] = yield context.call_activity(
+            "prescriber_fetch_activity",
+            {"env_prefix": env_prefix})
+
+    # Step 2: Load
+    if start_step <= 2:
+        results["load"] = yield context.call_activity(
+            "prescriber_load_activity",
+            {"env_prefix": env_prefix, "states": states})
+
+    # Step 3: Enrich
+    if start_step <= 3:
+        results["enrich"] = yield context.call_activity(
+            "prescriber_enrich_activity",
+            {"env_prefix": env_prefix, "states": states})
+
+    return results
+
+
+@app.activity_trigger(input_name="config")
+def prescriber_fetch_activity(config: dict) -> dict:
+    """Step 1: Download CMS Part D + OIG LEIE + SAM.gov to blob storage."""
+    from prescriber_data_fetcher import fetch_all
+    return fetch_all(config)
+
+
+@app.activity_trigger(input_name="config")
+def prescriber_load_activity(config: dict) -> dict:
+    """Step 2: Load CMS Part D into provider_quality — left outer join from providers."""
+    from prescriber_load_worker import PrescriberLoadWorker
+    worker = PrescriberLoadWorker({
+        "env_prefix": config.get("env_prefix", "dev"),
+        "states": config.get("states", ["DE"]),
+        "batch_size": 500,
+    })
+    return worker.pipeline_execute()
+
+
+@app.activity_trigger(input_name="config")
+def prescriber_enrich_activity(config: dict) -> dict:
+    """Step 3: Enrich — drug indications, exclusion flags, location, taxonomy."""
+    from prescriber_enrichment_job import enrich_all
+    return enrich_all(
+        env_prefix=config.get("env_prefix", "dev"),
+        states=config.get("states", ["DE"]),
+        batch_size=100,
+    )
