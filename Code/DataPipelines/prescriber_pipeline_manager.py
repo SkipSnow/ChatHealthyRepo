@@ -101,11 +101,11 @@ def run_pipeline(config: dict = None):
 
 def _embed_prescriber_data(env_prefix: str, states: list):
     """Create text embeddings for drug/molecule search on provider_quality records."""
-    from pymongo import MongoClient, UpdateOne
+    from pymongo import UpdateOne
     from openai import OpenAI
+    from pipeline_db import get_db
 
-    mongo = MongoClient(os.environ["MONGO_connectionString"])
-    db = mongo[f"{env_prefix}_PublicHealthData"]
+    db = get_db(env_prefix)
     quality_coll = db["provider_quality"]
     oai = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 

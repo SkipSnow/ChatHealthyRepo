@@ -14,9 +14,10 @@ import logging
 import os
 from datetime import datetime, timezone
 
-from pymongo import MongoClient, UpdateOne
+from pymongo import UpdateOne
 from pipeline_worker_base import PipelineWorkerBase
 from blob_client import get_blob_service
+from pipeline_db import get_db
 
 _log = logging.getLogger("prescriber_load")
 
@@ -43,7 +44,6 @@ class PrescriberLoadWorker(PipelineWorkerBase):
         self.container = config.get("blob_container", "provider-data")
         self.batch_size = config.get("batch_size", 500)
 
-        self._mongo = None
         self._cms_by_npi = {}  # NPI → list of drug rows from CMS
         self._provider_cursor = None
         self._current_provider = None
@@ -52,18 +52,11 @@ class PrescriberLoadWorker(PipelineWorkerBase):
         self._npis_with_rx = 0
         self._batch = []
 
-    def _get_db(self):
-        if self._mongo is None:
-            self._mongo = MongoClient(os.environ["MONGO_connectionString"])
-        return self._mongo
-
     def _quality_collection(self):
-        db = self._get_db()
-        return db[f"{self.env_prefix}_PublicHealthData"]["provider_quality"]
+        return get_db(self.env_prefix)["provider_quality"]
 
     def _provider_collection(self):
-        db = self._get_db()
-        return db[f"{self.env_prefix}_PublicHealthData"]["providers"]
+        return get_db(self.env_prefix)["providers"]
 
     # ── PipelineWorkerBase contract ────────────────────────────────────────
 

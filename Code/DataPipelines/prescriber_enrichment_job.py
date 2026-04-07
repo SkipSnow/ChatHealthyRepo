@@ -16,32 +16,24 @@ import logging
 import os
 from datetime import datetime, timezone
 
-from pymongo import MongoClient, UpdateOne
+from pymongo import UpdateOne
 from blob_client import get_blob_service
+from pipeline_db import get_db
 
 _log = logging.getLogger("prescriber_enrichment")
-
-_mongo = None
-
-
-def _get_mongo():
-    global _mongo
-    if _mongo is None:
-        _mongo = MongoClient(os.environ["MONGO_connectionString"])
-    return _mongo
 
 
 # ── Drug Indication Cache ──────────────────────────────────────────────────
 
-def _get_cached_indication(db, env_prefix, drug_name):
+def _get_cached_indication(env_prefix, drug_name):
     """Check drug_indication_cache for existing mapping."""
-    coll = db[f"{env_prefix}_PublicHealthData"]["drug_indication_cache"]
+    coll = get_db(env_prefix)["drug_indication_cache"]
     return coll.find_one({"drug_name": drug_name.lower()}, {"_id": 0})
 
 
-def _cache_indication(db, env_prefix, drug_name, mapping):
+def _cache_indication(env_prefix, drug_name, mapping):
     """Store drug → indication → ICD-10 mapping in cache."""
-    coll = db[f"{env_prefix}_PublicHealthData"]["drug_indication_cache"]
+    coll = get_db(env_prefix)["drug_indication_cache"]
     coll.update_one(
         {"drug_name": drug_name.lower()},
         {"$set": {
@@ -158,8 +150,7 @@ def enrich_all(env_prefix: str = "dev", states: list = None, batch_size: int = 1
       5. Copy taxonomy + enumeration date from provider record
     """
     states = states or ["DE"]
-    mongo = _get_mongo()
-    db = mongo[f"{env_prefix}_PublicHealthData"]
+    db = get_db(env_prefix)
     quality_coll = db["provider_quality"]
     provider_coll = db["providers"]
 
@@ -187,13 +178,13 @@ def enrich_all(env_prefix: str = "dev", states: list = None, batch_size: int = 1
             if not molecule:
                 continue
 
-            cached = _get_cached_indication(db, env_prefix, molecule)
+            cached = _get_cached_indication(env_prefix, molecule)
             if cached:
                 indications = cached.get("mapping", [])
                 cache_hits += 1
             else:
                 indications = _llm_map_drug(molecule)
-                _cache_indication(db, env_prefix, molecule, indications)
+                _cache_indication(env_prefix, molecule, indications)
                 drugs_mapped += 1
 
             drug["indications"] = indications

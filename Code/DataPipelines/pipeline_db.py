@@ -1,0 +1,43 @@
+# Copyright (c) 2026 Skip Snow. All rights reserved.
+# Licensed under the FindCare Evaluation License (FEL-1.0).
+#
+# Pipeline DB — shared MongoDB access for all pipeline workers.
+# Module-level singleton (correct pattern for Azure Functions).
+# ENV_PREFIX routing — no hardcoded database names (Framework 1.1).
+
+import os
+import logging
+
+from pymongo import MongoClient
+
+_log = logging.getLogger("pipeline_db")
+
+_mongo: MongoClient | None = None
+
+
+def get_mongo() -> MongoClient:
+    """Get the shared MongoClient singleton for pipeline workers."""
+    global _mongo
+    if _mongo is None:
+        conn_str = os.environ.get("MONGO_connectionString")
+        if not conn_str:
+            raise RuntimeError("MONGO_connectionString not set")
+        _mongo = MongoClient(conn_str)
+        _log.info("MongoDB connected")
+    return _mongo
+
+
+def get_db(env_prefix: str = None):
+    """Get the PublicHealthData database with ENV_PREFIX routing."""
+    env_prefix = env_prefix or os.environ.get("ENV_PREFIX", "dev")
+    return get_mongo()[f"{env_prefix}_PublicHealthData"]
+
+
+def get_admin_db():
+    """Get the admin database (brain, manifests, registry)."""
+    return get_mongo()["admin"]
+
+
+def get_collection(collection_name: str, env_prefix: str = None):
+    """Get a collection with ENV_PREFIX routing."""
+    return get_db(env_prefix)[collection_name]
