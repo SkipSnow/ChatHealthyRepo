@@ -214,6 +214,10 @@ export default function ChatWindow() {
   // EvaluateCare handoff — triggered by "Evaluate these providers" button in control frame
   const EVALCARE_URL = import.meta.env.VITE_EVALCARE_URL ?? 'http://localhost:8001'
   useEffect(() => {
+    gui.onStopThinking(() => {
+      setThinkingDismissed(true)
+    })
+
     gui.onEvaluateProviders(() => {
       const providers = lastProvidersRef.current
       if (!providers || providers.length === 0) return
@@ -309,6 +313,10 @@ export default function ChatWindow() {
       setThinkSeconds(0)
       setShowTimeoutModal(false)
       setTimeoutMultiplier(1)
+      // Clear timer from control frame
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'gui:timer-clear' }, '*')
+      }
       return
     }
     const timer = setInterval(() => setThinkSeconds(s => s + 1), 1000)
@@ -341,6 +349,13 @@ export default function ChatWindow() {
 
   const showThinking = isLoading && !thinkingDismissed && retryCountdown === null
   const canSubmit = !isLoading || thinkingDismissed
+
+  // Send timer to parent control frame
+  useEffect(() => {
+    if (showThinking && thinkSeconds > 0 && window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'gui:timer', seconds: thinkSeconds }, '*')
+    }
+  }, [thinkSeconds, showThinking])
 
   function handleTimeoutContinue() {
     setContinueCount(c => c + 1)
@@ -561,38 +576,7 @@ export default function ChatWindow() {
           <MessageBubble key={i} message={m} />
         ))}
 
-        {showThinking && (
-          <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
-            <div style={{
-              padding: '10px 14px',
-              borderRadius: '18px 18px 18px 4px',
-              background: '#f9fafb',
-              border: '1px solid #e5e7eb',
-              fontSize: 14,
-              color: '#6b7280',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-            }}>
-              <span>Thinking… {thinkSeconds}s</span>
-              <button
-                onClick={() => setThinkingDismissed(true)}
-                style={{
-                  background: 'none',
-                  border: '1px solid #d1d5db',
-                  borderRadius: 4,
-                  padding: '2px 8px',
-                  fontSize: 12,
-                  color: '#9ca3af',
-                  cursor: 'pointer',
-                  lineHeight: 1.4,
-                }}
-              >
-                Stop
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Timer + Stop moved to parent control frame via gui:timer postMessage */}
 
         {retryCountdown !== null && (
           <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>

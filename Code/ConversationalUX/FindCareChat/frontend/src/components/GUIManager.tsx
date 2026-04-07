@@ -107,6 +107,19 @@ function renderPaginationHTML(state: PaginationState): string {
 const filterApplyCallbackRef = { current: null as ((codes: string[], params: any) => void) | null }
 // Ref for evaluate providers callback — set by ChatWindow
 const evaluateCallbackRef = { current: null as (() => void) | null }
+// Ref for stop thinking callback — set by ChatWindow
+const stopThinkingCallbackRef = { current: null as (() => void) | null }
+
+// Cache full specialty list for client-side prescriber toggle (no server round-trip)
+const cachedFilterOptions = { current: [] as { code: string; name: string; classification: string }[] }
+const cachedSearchParams = { current: null as any }
+
+// NUCC prescriber taxonomy prefixes — same as _PRESCRIBER_TAX_PREFIXES in county_enrichment_job.py
+const PRESCRIBER_TAX_PREFIXES = ['207', '208', '209', '204', '174400000X', '363L', '363A', '367', '122', '213', '176']
+
+function isPrescriberCode(code: string): boolean {
+  return PRESCRIBER_TAX_PREFIXES.some(p => code.startsWith(p))
+}
 
 export function useGUIManager() {
   const [pagination, setPagination] = useState<PaginationState>({
@@ -152,7 +165,31 @@ export function useGUIManager() {
           if (filterApplyCallbackRef.current) {
             const codes = JSON.parse(msg.value || '[]')
             const params = JSON.parse(msg.searchParams || '{}')
+            if (msg.prescribers_only) {
+              params.prescribers_only = true
+            }
             filterApplyCallbackRef.current(codes, params)
+          }
+          break
+        case 'stop-thinking':
+          // Stop button in control frame — dismiss thinking state
+          if (stopThinkingCallbackRef.current) {
+            stopThinkingCallbackRef.current()
+          }
+          break
+        case 'prescribers-only-toggle':
+          // Client-side filter — no server round-trip
+          if (cachedFilterOptions.current.length > 0) {
+            const prescribersOnly = msg.value === 'true'
+            const options = cachedFilterOptions.current
+            const display = prescribersOnly
+              ? options.filter(opt => isPrescriberCode(opt.code))
+              : options
+            const html = renderFilterHTML(display.length > 0 ? display : options, prescribersOnly)
+            sendToParent('gui:filter', {
+              html,
+              searchParams: JSON.stringify(cachedSearchParams.current || {}),
+            })
           }
           break
       }
@@ -215,8 +252,13 @@ export function useGUIManager() {
 
   const showFilterPanel = useCallback((options: { code: string; name: string; classification: string }[],
                                        searchParams: any) => {
-    // Send filter options to parent's left panel
-    const html = renderFilterHTML(options)
+    // Cache full list for client-side prescriber toggle
+    cachedFilterOptions.current = options
+    cachedSearchParams.current = searchParams
+    // Default: prescribers only = true, filter to prescriber codes
+    const filtered = options.filter(opt => isPrescriberCode(opt.code))
+    const display = filtered.length > 0 ? filtered : options
+    const html = renderFilterHTML(display, true)
     sendToParent('gui:filter', { html, searchParams: JSON.stringify(searchParams) })
   }, [])
 
@@ -240,10 +282,13 @@ export function useGUIManager() {
     onEvaluateProviders: (cb: () => void) => {
       evaluateCallbackRef.current = cb
     },
+    onStopThinking: (cb: () => void) => {
+      stopThinkingCallbackRef.current = cb
+    },
   }
 }
 
-function renderFilterHTML(options: { code: string; name: string; classification: string }[]): string {
+function renderFilterHTML(options: { code: string; name: string; classification: string }[], prescribersChecked: boolean = true): string {
   if (!options.length) return ''
 
   const itemStyle = `padding:6px 8px;display:flex;align-items:center;gap:8px;font-size:12px;
@@ -263,16 +308,31 @@ function renderFilterHTML(options: { code: string; name: string; classification:
 
   return `
     <div data-filter-panel style="display:flex;flex-direction:column;height:100%;font-family:system-ui,sans-serif;">
-      <div style="padding:8px 10px;font-size:11px;font-weight:600;color:#0b7a75;
-        border-bottom:1px solid #d8e2e1;text-transform:uppercase;letter-spacing:0.05em;">
-        Filter by Specialty
+      <div style="padding:8px 10px;display:flex;justify-content:space-between;align-items:center;
+        border-bottom:1px solid #d8e2e1;">
+        <span style="font-size:11px;font-weight:600;color:#0b7a75;text-transform:uppercase;letter-spacing:0.05em;">
+          Filter by Specialty
+        </span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+          <label style="font-size:10px;color:#374151;display:flex;align-items:center;gap:4px;cursor:pointer;">
+            <input type="checkbox" data-gui-action="filter-prescribers" ${prescribersChecked ? 'checked' : ''}
+              style="accent-color:#0b7a75;width:12px;height:12px;" />
+            Prescribers only
+          </label>
+          <label style="font-size:10px;color:#9ca3af;display:flex;align-items:center;gap:4px;cursor:not-allowed;"
+            title="Unimplemented">
+            <input type="checkbox" data-gui-action="filter-homeopathic" disabled
+              style="accent-color:#ccc;width:12px;height:12px;" />
+            Homeopathic only
+          </label>
+        </div>
       </div>
       <div style="${toggleStyle}">
         <button data-gui-action="toggle-all"
           style="background:none;border:1px solid #0b7a75;border-radius:3px;padding:3px 10px;
           font-size:11px;color:#0b7a75;cursor:pointer;font-weight:600;">${toggleLabel}</button>
       </div>
-      <div style="flex:1;overflow-y:auto;overflow-x:hidden;">
+      <div style="max-height:390px;overflow-y:auto;overflow-x:hidden;">
         ${items}
       </div>
       <div style="padding:6px 8px;border-top:1px solid #d8e2e1;">

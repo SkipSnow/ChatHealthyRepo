@@ -878,6 +878,119 @@ def mark_zip_state_mismatch_fn(config: dict) -> dict:
     }
 
 
+# ── NUCC taxonomy prefixes with prescribing authority ──────────────────────
+# These taxonomy code prefixes identify provider types that have independent
+# or delegated prescribing authority in all or most US states.
+_PRESCRIBER_TAX_PREFIXES = (
+    "207",   # Allopathic & Osteopathic Physicians (all subspecialties)
+    "208",   # Allopathic Physicians (continued)
+    "209",   # Allopathic Physicians (continued)
+    "204",   # Neuromusculoskeletal Medicine
+    "174400000X",  # Optometrist
+    "363L",  # Nurse Practitioner (all subtypes)
+    "363A",  # Physician Assistant (all subtypes)
+    "367",   # CRNA / Advanced Practice Midwife
+    "122",   # Dentists (all subtypes)
+    "213",   # Podiatrists
+    "176",   # Certified Nurse Midwife
+)
+
+
+def mark_prescriber_fn(config: dict) -> dict:
+    """PIPE-DQ-004: Classify providers by prescribing authority.
+
+    Sets can_prescribe: {flagged: bool, method: "taxonomy", taxonomy_code: "..."}
+    on every provider that does not already have the flag.
+
+    Classification logic:
+    - entity_type_code "2" (organizations) → can_prescribe = false
+    - entity_type_code "1" (individuals) → check primary taxonomy code
+      against _PRESCRIBER_TAX_PREFIXES. If primary is absent, check first
+      taxonomy code.
+
+    This flag is used by:
+    - FindCare: to inform users whether a provider can prescribe
+    - EvaluateCare: to determine if prescription behavior scoring applies
+
+    Called after mark_out_of_scope_fn and mark_zip_state_mismatch_fn.
+    """
+    collection = config.get("provider_collection", PROVIDERS_COLLECTION)
+    db_name, coll_name = collection.split(".", 1)
+    coll = _get_mongo_client()[db_name][coll_name]
+
+    sf = _build_states_filter(config)  # BUG-PIPE-001
+
+    # Only process providers without the flag
+    base_filter = {
+        "can_prescribe": {"$exists": False},
+        **sf,
+    }
+
+    total = coll.count_documents(base_filter)
+    logging.info("PIPE-DQ-004: %d providers need can_prescribe classification", total)
+
+    if total == 0:
+        return {"classified": 0, "prescribers": 0, "non_prescribers": 0}
+
+    ops = []
+    prescribers = 0
+    non_prescribers = 0
+
+    cursor = coll.find(
+        base_filter,
+        {"npi": 1, "entity_type_code": 1, "taxonomies": 1, "_id": 1},
+    )
+
+    for doc in cursor:
+        entity_type = doc.get("entity_type_code", "")
+
+        if entity_type == "2":
+            # Organizations cannot prescribe
+            can = False
+            tax_code = ""
+            method = "organization"
+        else:
+            # Individual: check primary taxonomy, fall back to first
+            taxonomies = doc.get("taxonomies", [])
+            primary = next((t for t in taxonomies if t.get("primary")), None)
+            tax_code = (primary or taxonomies[0] if taxonomies else {}).get("code", "")
+            can = any(tax_code.startswith(p) for p in _PRESCRIBER_TAX_PREFIXES)
+            method = "taxonomy"
+
+        ops.append(UpdateOne(
+            {"_id": doc["_id"]},
+            {"$set": {
+                "can_prescribe": {
+                    "flagged": can,
+                    "method": method,
+                    "taxonomy_code": tax_code,
+                },
+            }},
+        ))
+
+        if can:
+            prescribers += 1
+        else:
+            non_prescribers += 1
+
+        if len(ops) >= 1000:
+            coll.bulk_write(ops, ordered=False)
+            ops = []
+
+    if ops:
+        coll.bulk_write(ops, ordered=False)
+
+    logging.info(
+        "PIPE-DQ-004: classified %d providers — prescribers: %d, non-prescribers: %d",
+        prescribers + non_prescribers, prescribers, non_prescribers,
+    )
+    return {
+        "classified": prescribers + non_prescribers,
+        "prescribers": prescribers,
+        "non_prescribers": non_prescribers,
+    }
+
+
 _UNENRICHED_FILTER = {
     "county.fips": None,
     "county.source": {"$nin": ["geocoder_failed", "geocoder_no_address", "out_of_scope"]},

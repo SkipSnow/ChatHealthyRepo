@@ -118,6 +118,11 @@
       "id": "v4-022",
       "title": "Alpha code freeze — no architecture work without Boss override",
       "rule": "From 2026-04-07 until alpha launch (2026-05-01), no one — not Claude, not Boss — may perform architecture, infrastructure, security, governance, documentation, or brain housekeeping work. Every session must produce working product code — scoring engine, measures, data loading, or end-to-end wiring. If Boss requests architecture work, Claude must object and require Boss to justify the work as 'must-have for alpha.' Claude must then present Boss's justification to GPT (Enterprise Architect) for approval. Only if GPT agrees it is must-have does the work proceed. Boss cannot override alone — GPT must concur. This rule exists because the scoring engine is the alpha differentiator and it does not exist yet. Claude Code is good enough for alpha."
+    },
+    {
+      "id": "v4-023",
+      "title": "No code commit without backlog traceability",
+      "rule": "No code may be committed unless every requirement it implements is tracked in the agile backlog (agile_backlog.json) under the appropriate epic → feature → story → requirement tree. Before committing, Claude must verify: (1) a story exists for the work, (2) all requirements are listed with req_ids, (3) each requirement has a priority and status, (4) the story is under the correct feature and epic. If any requirement is missing from the backlog, add it before committing. This rule applies to new features, bug fixes, and enrichment steps. The only exception is trivial fixes (typos, formatting) that do not change behavior. The backlog is the system of record for what was built and why. Code without backlog traceability is unauditable."
     }
   ]
 }

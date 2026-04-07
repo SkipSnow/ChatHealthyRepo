@@ -241,6 +241,47 @@ def project(record: dict) -> dict:
     org_subpart = _clean(record.get("is_organization_subpart"))
     org_subpart = ("yes" if org_subpart == "Y" else "no") if org_subpart else None
 
+    # --- derived: prescriber status + drugs ---
+    can_prescribe_data = record.get("can_prescribe") or {}
+    can_prescribe_flag = "yes" if can_prescribe_data.get("flagged") else "no"
+    prescriber_drugs_text = None
+    generic_ratio_band = None
+    on_label_band = None
+    specialty_generic_percentile = None
+    if can_prescribe_data.get("flagged"):
+        cost_measures = can_prescribe_data.get("cost_measures") or {}
+        generic_ratio_band = cost_measures.get("generic_ratio_band")
+        on_label_band = cost_measures.get("on_label_band")
+        specialty_generic_percentile = cost_measures.get("specialty_generic_percentile")
+
+        # Build embedding text from pathology tree (preferred) or flat drugs
+        pathologies = cost_measures.get("pathologies", [])
+        if pathologies:
+            # Pathology-first: indication → ICD-10 → molecules
+            parts = []
+            for path in pathologies:
+                ind = path.get("indication", "")
+                codes = path.get("icd10_codes", [])
+                if ind:
+                    parts.append(f"{ind} ({', '.join(codes)})" if codes else ind)
+                for mol in path.get("molecules", []):
+                    parts.append(mol.get("molecule", ""))
+            prescriber_drugs_text = "; ".join(p for p in parts if p) or None
+        elif can_prescribe_data.get("drugs"):
+            # Fallback: flat drug list (before pathology tree is built)
+            drug_parts = []
+            for drug in can_prescribe_data["drugs"]:
+                molecule = drug.get("molecule", "")
+                if molecule:
+                    drug_parts.append(molecule)
+                for ind in drug.get("indications", []):
+                    indication = ind.get("indication", "")
+                    if indication:
+                        drug_parts.append(indication)
+                    for code in ind.get("icd10_codes", []):
+                        drug_parts.append(code)
+            prescriber_drugs_text = "; ".join(drug_parts) if drug_parts else None
+
     return {
         # --- identity ---
         "entity_type_label":        "individual" if is_indiv else "organization",
@@ -287,6 +328,12 @@ def project(record: dict) -> dict:
         "enumeration_date":         _clean(record.get("provider_enumeration_date")),
         "last_update_date":         _clean(record.get("last_update_date")),
         "certification_date":       _clean(record.get("certification_date")),
+        # --- prescriber ---
+        "can_prescribe":            can_prescribe_flag,
+        "generic_ratio_band":       generic_ratio_band,
+        "on_label_band":            on_label_band,
+        "specialty_generic_percentile": specialty_generic_percentile,
+        "prescriber_drugs":         prescriber_drugs_text,
     }
 
 
@@ -317,6 +364,11 @@ _INDIVIDUAL_FIELDS = [
     ("enumeration_date",          "enumeration_date"),
     ("last_update_date",          "last_update_date"),
     ("certification_date",        "certification_date"),
+    ("can_prescribe",             "can_prescribe"),
+    ("generic_ratio_band",        "generic_ratio_band"),
+    ("on_label_band",             "on_label_band"),
+    ("specialty_generic_percentile", "specialty_generic_percentile"),
+    ("prescriber_drugs",          "prescriber_drugs"),
 ]
 
 _ORGANIZATION_FIELDS = [
@@ -349,6 +401,8 @@ _ORGANIZATION_FIELDS = [
     ("enumeration_date",          "enumeration_date"),
     ("last_update_date",          "last_update_date"),
     ("certification_date",        "certification_date"),
+    ("can_prescribe",             "can_prescribe"),
+    ("prescriber_drugs",          "prescriber_drugs"),
 ]
 
 

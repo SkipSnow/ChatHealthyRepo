@@ -129,7 +129,75 @@
           "raised_by": "Claude Opus 4.6",
           "date_raised": "2026-03-28"
         }
-      ],
+      ]
+    },
+    {
+      "title": "UMLS Terminology Services License",
+      "status": "pending",
+      "applied": "2026-04-07",
+      "applicant": "Skip Snow",
+      "entity": "ChatHealthy.ai LLC",
+      "licensor": "U.S. National Library of Medicine (NLM)",
+      "scope": ["UMLS", "RxNorm", "SNOMED CT - US Edition", "LOINC", "MeSH", "CPT"],
+      "expected_approval": "within 3 business days (by 2026-04-10)",
+      "note": "NLM is reviewing the request. Once approved, email will be sent with access to UMLS Terminology Services (UTS) authentication. Required for crosswalk_builder.py UMLS integration (currently commented out). No cost. Annual usage report due each January.",
+      "blocks": "crosswalk_builder.py UMLS path — currently using DrugCentral as partial substitute (~60-70% coverage)",
+      "license_agreement": {
+        "document": "brain/BusinessArtifacts/UMLS_License_Agreement.pdf",
+        "version": "2025AB Release (11/2025)",
+        "licensor": "National Library of Medicine (NLM), Department of Health and Human Services",
+        "license_type": "Nonexclusive, non-transferable",
+        "cost": "No charges, usage fees, or royalties (Section 2)",
+        "key_terms": {
+          "grant": "Right to use UMLS Metathesaurus and incorporate its content in computer applications designed to improve access to biomedical information (Section 1)",
+          "distribution_restriction": "Prohibited from distributing UMLS or subsets EXCEPT as integral part of applications developed for a purpose other than redistribution (Section 3)",
+          "notification": "Must inform NLM prior to distributing any application using UMLS Metathesaurus (Section 4)",
+          "annual_report": "Within 30 days of end of calendar year, provide NLM brief report on usefulness of UMLS (Section 5)",
+          "no_warranty": "NLM makes no warranties express or implied. Licensee holds NLM free from liability (Section 6)",
+          "attribution": "Must acknowledge NLM as source, citing year and version. May NOT imply NLM endorses the product (Section 10)",
+          "copyright_notice_required": "Must display: 'Some material in the UMLS Metathesaurus is from copyrighted sources of the respective copyright holders...' before providing user access (Section 11a)",
+          "no_alteration": "Prohibited from altering UMLS content, but may include content from other sources alongside it (Section 11b)",
+          "source_identifiers": "Must include identifiers so original source vocabularies can be determined (Section 11c)",
+          "termination": "30 days written notice by either party. Failure to abide by terms is grounds for termination (Section 15)"
+        },
+        "source_restrictions_relevant_to_chathealthy": {
+          "ICD10CM": "Category 4 restrictions for US users — use restricted to US by employees/contractors/clients for healthcare, public health, research, educational, or statistical use. May distribute in US only, in combination with other UMLS content.",
+          "SNOMED_CT": "Appendix 2 SNOMED CT Affiliate License applies — perpetual worldwide non-exclusive license. May incorporate into Licensee Products. Must include SNOMED CT attribution notice. English law governs.",
+          "CPT": "Category 3 — internal use only for research, product development, statistical analysis. Expressly excludes routine patient data creation, public internet systems, publishing. Must display AMA copyright notice.",
+          "RxNorm": "Category 0 — general license terms only, no additional restrictions.",
+          "LOINC": "Must display Regenstrief Institute copyright notice. LOINC registered trademark.",
+          "MeSH": "Category 0 for English. Category 3 for translations."
+        },
+        "compliance_obligations": [
+          "Display copyright notice before user access to any UMLS-derived content",
+          "Submit annual usage report to NLM by January 30 each year",
+          "Notify NLM before distributing any application using UMLS",
+          "Include SNOMED CT attribution on all media containing SNOMED CT content",
+          "DO NOT use CPT codes in any consumer-facing product — Category 3 restricts to internal use only. Separate AMA commercial license required for public use.",
+          "Include LOINC Regenstrief copyright notice if LOINC codes are used",
+          "Do not alter UMLS content — may add our own alongside it",
+          "Do not imply NLM endorsement of ChatHealthy",
+          "Geo-fence US-only vocabularies (ICD-10-CM, SNOMED CT US) to US users only",
+          "Do not expose raw or extractable UMLS vocabulary data via API or UI"
+        ],
+        "gpt_review": {
+          "reviewed_by": "GPT-4.1 (Enterprise Architect)",
+          "date": "2026-04-07",
+          "verdict": "Approved with CPT restriction. RxNorm, ICD-10-CM, SNOMED CT US, LOINC, MeSH all usable for our crosswalk. CPT CANNOT be shown to consumers without separate AMA license.",
+          "pre_alpha_actions": [
+            "Remove CPT from all user-facing features or do not include",
+            "Add copyright/attribution banner before UMLS-derived content is displayed",
+            "Notify NLM in writing before alpha launch",
+            "Geo-fence US-only vocabularies to US users",
+            "Set up annual NLM usage report process (due January 30 each year)",
+            "Audit all search output to ensure no raw vocabulary extraction possible"
+          ]
+        }
+      }
+    },
+    {
+      "title": "Pending Legal Questions - FindCare v0.1.2+",
+      "status": "tracking",
       "_record_id": "pending_legal_questions",
       "_source_file": "pending_legal_questions.json",
       "description": "Open legal questions: FDA classification, DeepSeek disclosure, consent wording.",
