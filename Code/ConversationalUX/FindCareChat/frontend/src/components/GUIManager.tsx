@@ -274,14 +274,14 @@ export function useGUIManager() {
     }
   }, [])
 
-  const showFilterPanel = useCallback((options: { code: string; name: string; classification: string }[],
-                                       searchParams: any) => {
+  const showFilterPanel = useCallback((options: any[],
+                                       searchParams: any,
+                                       totalProviders: number = 0) => {
     // Cache full list for client-side filter toggles
     cachedFilterOptions.current = options
     cachedSearchParams.current = searchParams
     cachedFilterState.prescribers = true
     cachedFilterState.homeopathic = false
-    const totalProviders = searchParams?.total_count || 0
     const html = renderFilterHTML(options, totalProviders, true, false)
     sendToParent('gui:filter', { html, searchParams: JSON.stringify(searchParams), applyInitialFilter: true })
   }, [])
@@ -333,8 +333,8 @@ function renderFilterHTML(options: any[], totalProviders: number = 0, prescriber
       <div style="padding:8px 10px;border-bottom:2px solid #0b7a75;background:#f8fffe;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span style="font-size:11px;font-weight:700;color:#0b7a75;text-transform:uppercase;letter-spacing:0.05em;">Filter by Specialty</span>
-          <span id="filterCounts" style="font-size:9px;color:#6b7280;">
-            ${totalProviders > 0 ? totalProviders.toLocaleString() + ' providers &middot; ' : ''}${options.length} types &middot; <span id="filterShowing">${prescribersChecked ? prescCount : options.length}</span> showing
+          <span id="filterCounts" style="font-size:9px;color:#6b7280;line-height:1.4;">
+            ${totalProviders > 0 ? '<b>' + totalProviders.toLocaleString() + '</b> providers &middot; ' : ''}<b>${options.length}</b> types &middot; <b id="filterShowing">${prescribersChecked ? prescCount : options.length}</b> showing
           </span>
         </div>
         <div style="display:flex;gap:12px;margin-top:4px;">
