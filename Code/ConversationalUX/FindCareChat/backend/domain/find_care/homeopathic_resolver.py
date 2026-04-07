@@ -73,7 +73,7 @@ def resolve_homeopathic_specialties(
     )
 
     from anthropic import Anthropic
-    client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+    client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("Anthropic_API_KEY"))
 
     prompt = f"""A user searched for: "{query}"
 

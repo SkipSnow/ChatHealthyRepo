@@ -16116,7 +16116,8 @@
                 {"req_id": "FINDCARE-PED-006", "requirement": "Classification logic operates solely at specialty level, not provider-specific data.", "priority": "must-have", "status": "NOT_STARTED"},
                 {"req_id": "FINDCARE-PED-007", "requirement": "Multiple filters (prescribers_only, homeopathic_only, pediatric_applicability) must coexist without conflict.", "priority": "must-have", "status": "NOT_STARTED"},
                 {"req_id": "FINDCARE-PED-008", "requirement": "Maintain compatibility with existing NUCC taxonomy codes without modification.", "priority": "must-have", "status": "NOT_STARTED"},
-                {"req_id": "FINDCARE-PED-009", "requirement": "GPT-4.1-mini batch classifies all 883 specialties with pediatric_applicability. Cached in SpecialtyMetaData. Same pattern as can_prescribe + homeopathic.", "priority": "must-have", "status": "NOT_STARTED"}
+                {"req_id": "FINDCARE-PED-009", "requirement": "A commodity model batch classifies all 883 specialties with pediatric_applicability. Cached in SpecialtyMetaData. Same pattern as can_prescribe + homeopathic. Model selection: commodity (GPT-4.1-mini) for batch classification, reasoning (Claude Sonnet) for contextual per-query decisions.", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "FINDCARE-MODEL-001", "requirement": "Two-model strategy for specialty resolution: commodity model (GPT-4.1-mini) for non-homeopathic classification/ranking, reasoning model (Claude Sonnet 4.6) for homeopathic contextual medical relevance. Model selection is driven by scope — homeopathic context triggers the reasoning model. Each model has its own prompt optimized for its cognitive demand.", "priority": "must-have", "status": "accepted"}
               ]
             }
           ]
