@@ -44,6 +44,27 @@ def run_pipeline(config: dict = None):
 
     results = {}
 
+    # ── Step 0: Validate ───────────────────────────────────────────────────
+    if 0 in steps:
+        _log.info("")
+        _log.info("─── Step 0: Validate ───")
+        from pipeline_db import get_db
+        db = get_db(env_prefix)
+        state_filter = {"practice_address.state": {"$in": states}}
+        results["validate"] = {
+            "status": "valid",
+            "pipeline": "PrescriberPipeline",
+            "states": states,
+            "collections": {
+                "providers": db["providers"].count_documents(state_filter),
+                "provider_quality": db["provider_quality"].count_documents({}),
+                "drug_indication_cache": db["drug_indication_cache"].count_documents({}),
+            },
+        }
+        _log.info("Validate result: %s", results["validate"])
+        if steps == [0]:
+            return results
+
     # ── Step 1: Fetch ──────────────────────────────────────────────────────
     if 1 in steps:
         _log.info("")
