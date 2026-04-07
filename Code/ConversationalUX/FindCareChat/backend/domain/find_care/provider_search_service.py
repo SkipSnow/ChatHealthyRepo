@@ -357,9 +357,19 @@ class FindCareService:
             except Exception:
                 pass
 
-            # TODO: Rank specialties by relevance (GPT-4.1-mini) — disabled until tested
-            # from domain.find_care.specialty_ranker import rank_specialties
-            # specialization_options = rank_specialties(specialization_options, query=specialty_query or "")
+            # Add relevant homeopathic specialties for the filter panel
+            try:
+                from domain.find_care.homeopathic_resolver import resolve_homeopathic_specialties
+                existing = {o["code"] for o in specialization_options}
+                homeo_options = resolve_homeopathic_specialties(
+                    query=specialty_query or filtered_term,
+                    existing_codes=existing,
+                    db=db,
+                    env_prefix=self._env,
+                )
+                specialization_options.extend(homeo_options)
+            except Exception as _he:
+                _log.warning("Homeopathic resolver failed: %s", _he)
 
             # Build filtered search term from selected specialty names
             selected_names = [o["name"] for o in specialization_options if o.get("name")]
@@ -406,6 +416,22 @@ class FindCareService:
                     })
             except Exception:
                 pass
+
+            # Add relevant homeopathic specialties based on query context.
+            # GPT-mini evaluates each homeopathic specialty against the search
+            # query and returns strictly_compliant, loosely_compliant, or out_of_scope.
+            try:
+                from domain.find_care.homeopathic_resolver import resolve_homeopathic_specialties
+                existing_codes = {o["code"] for o in specialization_options}
+                homeo_options = resolve_homeopathic_specialties(
+                    query=specialty_query or "",
+                    existing_codes=existing_codes,
+                    db=db,
+                    env_prefix=self._env,
+                )
+                specialization_options.extend(homeo_options)
+            except Exception as _he:
+                _log.warning("Homeopathic resolver failed: %s", _he)
 
             # Step 3: Database answers — deterministic taxonomy query
             base_filter = {
