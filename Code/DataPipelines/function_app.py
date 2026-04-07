@@ -198,16 +198,17 @@ ASYNC_TASK_ORCHESTRATORS = {
 # Used by Router to validate steps[] before dispatching.
 PIPELINE_STEP_REGISTRY = {
     "PrescriberPipeline": {
-        "valid_steps": [1, 2, 3],
-        "step_names": {1: "fetch", 2: "load", 3: "enrich"},
+        "valid_steps": [0, 1, 2, 3, 4],
+        "step_names": {0: "validate", 1: "fetch", 2: "load", 3: "enrich", 4: "embed"},
         "preconditions": {
-            2: {"requires_collection": "provider_quality", "min_docs": 0, "note": "Step 2 builds from providers — no precondition"},
+            2: {"requires_collection": "providers", "min_docs": 1, "note": "Step 2 builds from providers — need provider data loaded first"},
             3: {"requires_collection": "provider_quality", "min_docs": 1, "note": "Step 3 requires provider_quality records from step 2"},
+            4: {"requires_collection": "provider_quality", "min_docs": 1, "note": "Step 4 requires enriched provider_quality from step 3"},
         },
     },
     "FullProviderPipeline": {
-        "valid_steps": [1, 2, 3, 4, 5, 6],
-        "step_names": {1: "download", 2: "load", 3: "county_pass1", 4: "county_pass2", 5: "county_pass3", 6: "embed"},
+        "valid_steps": [0, 1, 2, 3, 4, 5, 6],
+        "step_names": {0: "validate", 1: "download", 2: "load", 3: "county_pass1", 4: "county_pass2", 5: "county_pass3", 6: "embed"},
         "preconditions": {},
     },
 }
@@ -932,6 +933,14 @@ def prescriber_pipeline_orchestrator(context: df.DurableOrchestrationContext):
 
     results = {}
 
+    # Step 0: Validate — check preconditions, return status, don't execute
+    if 0 in steps:
+        results["validate"] = yield context.call_activity(
+            "prescriber_validate_activity",
+            {"env_prefix": env_prefix, "states": states, "steps": steps})
+        if steps == [0]:
+            return results
+
     # Step 1: Fetch
     if 1 in steps:
         results["fetch"] = yield context.call_activity(
@@ -951,6 +960,28 @@ def prescriber_pipeline_orchestrator(context: df.DurableOrchestrationContext):
             {"env_prefix": env_prefix, "states": states})
 
     return results
+
+
+@app.activity_trigger(input_name="config")
+def prescriber_validate_activity(config: dict) -> dict:
+    """Step 0: Validate — check preconditions, return collection counts."""
+    from pipeline_db import get_db
+    env_prefix = config.get("env_prefix", "dev")
+    states = config.get("states", ["DE"])
+    db = get_db(env_prefix)
+    state_filter = {"practice_address.state": {"$in": states}}
+    return {
+        "status": "valid",
+        "pipeline": "PrescriberPipeline",
+        "env_prefix": env_prefix,
+        "states": states,
+        "steps_requested": config.get("steps", []),
+        "collections": {
+            "providers": db["providers"].count_documents(state_filter),
+            "provider_quality": db["provider_quality"].count_documents({}),
+            "drug_indication_cache": db["drug_indication_cache"].count_documents({}),
+        },
+    }
 
 
 @app.activity_trigger(input_name="config")
