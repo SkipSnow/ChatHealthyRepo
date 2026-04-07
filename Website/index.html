@@ -870,10 +870,31 @@
                   });
                   // Update count display
                   var countEl = leftPanel.querySelector('#filterCounts');
-                  if (countEl) countEl.textContent = shown + ' shown, ' + hidden + ' filtered';
+                  if (countEl) countEl.textContent = shown + ' of ' + (shown + hidden) + ' specialties';
                 });
               }
             })(filterActions[j]);
+          }
+
+          // Apply initial filter if prescribers_only is default checked
+          if (msg.applyInitialFilter) {
+            var prescCb = leftPanel.querySelector('input[data-gui-value="prescribers"]');
+            if (prescCb && prescCb.checked) {
+              var items = leftPanel.querySelectorAll('[data-spec-code]');
+              var shown = 0;
+              var hidden = 0;
+              items.forEach(function(item) {
+                var canPresc = item.getAttribute('data-can-prescribe') === 'true';
+                if (!canPresc) {
+                  item.style.display = 'none';
+                  hidden++;
+                } else {
+                  shown++;
+                }
+              });
+              var countEl = leftPanel.querySelector('#filterCounts');
+              if (countEl) countEl.textContent = shown + ' of ' + (shown + hidden) + ' specialties';
+            }
           }
         }
 

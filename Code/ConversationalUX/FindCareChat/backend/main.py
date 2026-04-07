@@ -277,7 +277,6 @@ class SearchRequest(BaseModel):
     npi: Optional[str] = None
     specialty_codes: Optional[list[str]] = None
     after_npi: Optional[str] = None
-    prescribers_only: bool = False
     limit: int = 25
 
 @app.post("/search")
