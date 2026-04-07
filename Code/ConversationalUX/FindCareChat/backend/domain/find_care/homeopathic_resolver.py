@@ -30,7 +30,7 @@ def resolve_homeopathic_specialties(
     Returns list of homeopathic specialty options with relevance flags,
     excluding any codes already in existing_codes.
     """
-    if not query or not db:
+    if not query or db is None:
         return []
 
     # Load ALL specialties not already in the results — let GPT decide
@@ -76,39 +76,44 @@ def resolve_homeopathic_specialties(
     client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("Anthropic_API_KEY"))
 
     prompt = f"""A user searched for: "{query}"
+The user has CHECKED the "Homeopathic" filter. This means they WANT alternative/integrative medicine providers. They are actively looking for homeopathic, naturopathic, chiropractic, and other alternative care options.
 
-For each homeopathic/alternative medicine specialty below, evaluate whether it is relevant to this search.
+For each specialty below, evaluate: COULD this provider type treat the user's condition or population?
 
-Return ONLY a JSON object with key "specialties" containing an array.
-Each element must have:
-- "code": the NUCC code
-- "relevance": one of "strictly_compliant", "loosely_compliant", or "out_of_scope"
-- "reason": one sentence explanation
+IMPORTANT BIAS: The user wants alternative providers. Be INCLUSIVE, not exclusive.
+- A naturopath CAN treat children, adults, elderly — they treat all ages
+- An acupuncturist CAN treat musculoskeletal pain, anxiety, chronic conditions across all populations
+- A chiropractor CAN treat patients of any age unless explicitly adult-only or geriatric-only
+- A homeopath CAN treat any condition they practice for, regardless of patient demographics
+- Only mark out_of_scope if the specialty is TRULY irrelevant (e.g., a midwife for tennis elbow)
 
-Rules:
-- strictly_compliant: this specialty directly treats the condition or population the user is looking for
-- loosely_compliant: this specialty could plausibly treat the user's concern with a broader interpretation
-- out_of_scope: this specialty is not relevant to what the user is looking for
+Return ONLY a JSON object (no markdown, no code blocks) with key "specialties" containing an array.
+Each element: {{"code": "...", "relevance": "strictly_compliant|loosely_compliant|out_of_scope", "reason": "..."}}
 
 Specialties:
 {spec_list}"""
 
     try:
         resp = client.messages.create(
-            model="claude-sonnet-4-6",  # reasoning model for contextual medical relevance
-            max_tokens=2000,
-            system="You are a healthcare triage expert specializing in integrative and alternative medicine. Evaluate specialty relevance accurately. Return ONLY valid JSON, no other text.",
+            model="claude-sonnet-4-6",
+            max_tokens=4000,
+            system="You are a healthcare triage expert specializing in integrative and alternative medicine. The user has opted into homeopathic care — bias toward INCLUSION. Return ONLY valid JSON, no markdown code blocks.",
             messages=[
                 {"role": "user", "content": prompt},
             ],
         )
         raw = resp.content[0].text
-        # Extract JSON from response (Sonnet may wrap in markdown)
-        if raw.strip().startswith("{"):
-            result = json.loads(raw)
+        # Extract JSON — Sonnet wraps in ```json``` despite instructions
+        import re
+        cleaned = raw.strip()
+        if cleaned.startswith("```"):
+            cleaned = re.sub(r'^```json?\s*', '', cleaned)
+            cleaned = re.sub(r'```\s*$', '', cleaned)
+            cleaned = cleaned.strip()
+        if cleaned.startswith("{"):
+            result = json.loads(cleaned)
         else:
-            import re
-            match = re.search(r'\{.*\}', raw, re.DOTALL)
+            match = re.search(r'\{.*\}', cleaned, re.DOTALL)
             result = json.loads(match.group()) if match else {"specialties": []}
         items = result.get("specialties", [])
         _log.info("Homeopathic resolver: %d specialties evaluated for '%s'", len(items), query[:40])
@@ -124,7 +129,7 @@ Specialties:
     for doc in plausible:
         code = doc.get("Code", "")
         gpt_result = relevance_map.get(code, {})
-        relevance = gpt_result.get("relevance", "out_of_scope")
+        relevance = gpt_result.get("relevance") or gpt_result.get("classification", "out_of_scope")
 
         if relevance in ("strictly_compliant", "loosely_compliant"):
             options.append({
@@ -138,5 +143,5 @@ Specialties:
             })
 
     _log.info("Homeopathic resolver: %d of %d specialties relevant for '%s'",
-              len(options), len(homeo_docs), query[:40])
+              len(options), len(plausible), query[:40])
     return options
