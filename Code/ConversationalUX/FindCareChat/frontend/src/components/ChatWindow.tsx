@@ -461,7 +461,11 @@ export default function ChatWindow() {
 
       // Show filter panel if specialization options returned
       if (data.pagination?.specialization_options?.length > 1) {
-        gui.showFilterPanel(data.pagination.specialization_options, data.pagination.search_params)
+        gui.showFilterPanel(
+          data.pagination.specialization_options,
+          data.pagination.search_params,
+          data.pagination.total_count || 0,
+        )
       }
 
       // FC-RESULT-MSG / GOV-011: system-built summary message replaces LLM summary
