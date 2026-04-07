@@ -823,12 +823,13 @@
                   leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]:checked').forEach(function(cb) {
                     checked.push(cb.getAttribute('data-gui-value'));
                   });
-                  var prescribersOnly = leftPanel.querySelector('input[data-gui-action="filter-prescribers"]');
+                  var selectedRadio = leftPanel.querySelector('input[name="provider-type"]:checked');
+                  var prescribersOnly = selectedRadio && selectedRadio.value === 'prescribers';
                   chatFrame.contentWindow.postMessage({
                     type: 'gui:event',
                     action: 'filter-apply',
                     value: JSON.stringify(checked),
-                    prescribers_only: prescribersOnly ? prescribersOnly.checked : false,
+                    prescribers_only: prescribersOnly,
                     searchParams: leftPanel.dataset.searchParams
                   }, '*');
                 });
@@ -843,14 +844,13 @@
                   el.textContent = newState ? 'Uncheck All' : 'Check All';
                 });
               }
-              if (el.getAttribute('data-gui-action') === 'filter-prescribers') {
+              if (el.getAttribute('data-gui-action') === 'filter-provider-type') {
                 el.addEventListener('change', function() {
-                  var isChecked = el.checked;
-                  // Tell React to re-filter the specialty list
+                  var val = el.value;
                   chatFrame.contentWindow.postMessage({
                     type: 'gui:event',
                     action: 'prescribers-only-toggle',
-                    value: isChecked ? 'true' : 'false'
+                    value: val === 'prescribers' ? 'true' : 'false'
                   }, '*');
                 });
               }
