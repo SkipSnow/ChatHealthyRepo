@@ -117,7 +117,7 @@
     {
       "id": "v4-022",
       "title": "Alpha code freeze — no architecture work without Boss override",
-      "rule": "From 2026-04-07 until alpha launch (2026-05-01), Claude must not perform architecture, infrastructure, security, governance, documentation, or brain housekeeping work. Every session must produce working product code — scoring engine, measures, data loading, or end-to-end wiring. If Claude believes architecture work is necessary, Claude must state the objection and wait for Boss to explicitly override. Boss saying 'do it' or 'override' authorizes the work. No other form authorizes it. This rule exists because the scoring engine is the alpha differentiator and it does not exist yet."
+      "rule": "From 2026-04-07 until alpha launch (2026-05-01), no one — not Claude, not Boss — may perform architecture, infrastructure, security, governance, documentation, or brain housekeeping work. Every session must produce working product code — scoring engine, measures, data loading, or end-to-end wiring. If Boss requests architecture work, Claude must object and require Boss to justify the work as 'must-have for alpha.' Claude must then present Boss's justification to GPT (Enterprise Architect) for approval. Only if GPT agrees it is must-have does the work proceed. Boss cannot override alone — GPT must concur. This rule exists because the scoring engine is the alpha differentiator and it does not exist yet. Claude Code is good enough for alpha."
     }
   ]
 }
