@@ -72,14 +72,14 @@ def resolve_homeopathic_specialties(
         for d in plausible
     )
 
-    from openai import OpenAI
-    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    from anthropic import Anthropic
+    client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
     prompt = f"""A user searched for: "{query}"
 
 For each homeopathic/alternative medicine specialty below, evaluate whether it is relevant to this search.
 
-Return a JSON object with key "specialties" containing an array.
+Return ONLY a JSON object with key "specialties" containing an array.
 Each element must have:
 - "code": the NUCC code
 - "relevance": one of "strictly_compliant", "loosely_compliant", or "out_of_scope"
@@ -94,16 +94,22 @@ Specialties:
 {spec_list}"""
 
     try:
-        resp = client.chat.completions.create(
-            model="gpt-4.1",  # stronger model — contextual medical relevance requires nuance
-            response_format={"type": "json_object"},
+        resp = client.messages.create(
+            model="claude-sonnet-4-6",  # reasoning model for contextual medical relevance
             max_tokens=2000,
+            system="You are a healthcare triage expert specializing in integrative and alternative medicine. Evaluate specialty relevance accurately. Return ONLY valid JSON, no other text.",
             messages=[
-                {"role": "system", "content": "You are a healthcare triage expert specializing in integrative and alternative medicine. Evaluate specialty relevance accurately. Return valid JSON with structured output."},
                 {"role": "user", "content": prompt},
             ],
         )
-        result = json.loads(resp.choices[0].message.content)
+        raw = resp.content[0].text
+        # Extract JSON from response (Sonnet may wrap in markdown)
+        if raw.strip().startswith("{"):
+            result = json.loads(raw)
+        else:
+            import re
+            match = re.search(r'\{.*\}', raw, re.DOTALL)
+            result = json.loads(match.group()) if match else {"specialties": []}
         items = result.get("specialties", [])
         _log.info("Homeopathic resolver: %d specialties evaluated for '%s'", len(items), query[:40])
     except Exception as e:
