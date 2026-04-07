@@ -858,6 +858,13 @@
                       value: el.checked ? 'true' : 'false'
                     }, '*');
                   }
+                  if (val === 'homeopathic') {
+                    chatFrame.contentWindow.postMessage({
+                      type: 'gui:event',
+                      action: 'homeopathic-only-toggle',
+                      value: el.checked ? 'true' : 'false'
+                    }, '*');
+                  }
                 });
               }
             })(filterActions[j]);

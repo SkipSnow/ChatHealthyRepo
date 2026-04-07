@@ -110,15 +110,23 @@ const evaluateCallbackRef = { current: null as (() => void) | null }
 // Ref for stop thinking callback — set by ChatWindow
 const stopThinkingCallbackRef = { current: null as (() => void) | null }
 
-// Cache full specialty list for client-side prescriber toggle (no server round-trip)
-const cachedFilterOptions = { current: [] as { code: string; name: string; classification: string }[] }
+// Cache full specialty list for client-side filter toggles (no server round-trip)
+const cachedFilterOptions = { current: [] as any[] }
 const cachedSearchParams = { current: null as any }
+const cachedFilterState = { prescribers: true, homeopathic: false }
 
-// NUCC prescriber taxonomy prefixes — same as _PRESCRIBER_TAX_PREFIXES in county_enrichment_job.py
+// Filter helpers — use can_prescribe/homeopathic flags from DB when available,
+// fall back to taxonomy prefix check if flags missing (pre-migration data)
 const PRESCRIBER_TAX_PREFIXES = ['207', '208', '209', '204', '174400000X', '363L', '363A', '367', '122', '213', '176']
 
-function isPrescriberCode(code: string): boolean {
-  return PRESCRIBER_TAX_PREFIXES.some(p => code.startsWith(p))
+function isPrescriberOption(opt: any): boolean {
+  if ('can_prescribe' in opt) return opt.can_prescribe === true
+  return PRESCRIBER_TAX_PREFIXES.some(p => opt.code?.startsWith(p))
+}
+
+function isHomeopathicOption(opt: any): boolean {
+  if ('homeopathic' in opt) return opt.homeopathic === true
+  return false
 }
 
 export function useGUIManager() {
@@ -178,14 +186,29 @@ export function useGUIManager() {
           }
           break
         case 'prescribers-only-toggle':
+        case 'homeopathic-only-toggle':
           // Client-side filter — no server round-trip
           if (cachedFilterOptions.current.length > 0) {
-            const prescribersOnly = msg.value === 'true'
-            const options = cachedFilterOptions.current
-            const display = prescribersOnly
-              ? options.filter(opt => isPrescriberCode(opt.code))
-              : options
-            const html = renderFilterHTML(display.length > 0 ? display : options, prescribersOnly)
+            // Read current filter state from the message
+            const isPrescribers = msg.action === 'prescribers-only-toggle'
+              ? msg.value === 'true'
+              : cachedFilterState.prescribers
+            const isHomeopathic = msg.action === 'homeopathic-only-toggle'
+              ? msg.value === 'true'
+              : cachedFilterState.homeopathic
+
+            cachedFilterState.prescribers = isPrescribers
+            cachedFilterState.homeopathic = isHomeopathic
+
+            let options = cachedFilterOptions.current
+            if (isPrescribers) options = options.filter(opt => isPrescriberOption(opt))
+            if (isHomeopathic) options = options.filter(opt => isHomeopathicOption(opt))
+
+            const html = renderFilterHTML(
+              options.length > 0 ? options : cachedFilterOptions.current,
+              isPrescribers,
+              isHomeopathic,
+            )
             sendToParent('gui:filter', {
               html,
               searchParams: JSON.stringify(cachedSearchParams.current || {}),
@@ -255,10 +278,12 @@ export function useGUIManager() {
     // Cache full list for client-side prescriber toggle
     cachedFilterOptions.current = options
     cachedSearchParams.current = searchParams
-    // Default: prescribers only = true, filter to prescriber codes
-    const filtered = options.filter(opt => isPrescriberCode(opt.code))
+    // Default: prescribers only = true
+    cachedFilterState.prescribers = true
+    cachedFilterState.homeopathic = false
+    const filtered = options.filter(opt => isPrescriberOption(opt))
     const display = filtered.length > 0 ? filtered : options
-    const html = renderFilterHTML(display, true)
+    const html = renderFilterHTML(display, true, false)
     sendToParent('gui:filter', { html, searchParams: JSON.stringify(searchParams) })
   }, [])
 
@@ -288,7 +313,7 @@ export function useGUIManager() {
   }
 }
 
-function renderFilterHTML(options: { code: string; name: string; classification: string }[], prescribersChecked: boolean = true): string {
+function renderFilterHTML(options: any[], prescribersChecked: boolean = true, homeopathicChecked: boolean = false): string {
   if (!options.length) return ''
 
   const itemStyle = `padding:6px 8px;display:flex;align-items:center;gap:8px;font-size:12px;
@@ -319,10 +344,9 @@ function renderFilterHTML(options: { code: string; name: string; classification:
                 style="accent-color:#0b7a75;width:12px;height:12px;" />
               Prescribers only
             </label>
-            <label style="font-size:10px;color:#9ca3af;display:flex;align-items:center;gap:4px;cursor:not-allowed;padding:1px 0;"
-              title="Unimplemented">
-              <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="homeopathic" disabled
-                style="accent-color:#ccc;width:12px;height:12px;" />
+            <label style="font-size:10px;color:#374151;display:flex;align-items:center;gap:4px;cursor:pointer;padding:1px 0;">
+              <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="homeopathic" ${homeopathicChecked ? 'checked' : ''}
+                style="accent-color:#0b7a75;width:12px;height:12px;" />
               Homeopathic only
             </label>
           </td>
