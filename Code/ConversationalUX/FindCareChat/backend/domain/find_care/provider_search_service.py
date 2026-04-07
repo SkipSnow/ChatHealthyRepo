@@ -357,15 +357,9 @@ class FindCareService:
             except Exception:
                 pass
 
-            # Rank specialties by relevance to the user's query (GPT-4.1-mini)
-            try:
-                from domain.find_care.specialty_ranker import rank_specialties
-                specialization_options = rank_specialties(
-                    specialization_options,
-                    query=specialty_query or "",
-                )
-            except Exception as _rank_err:
-                _log.warning("Specialty ranking failed (returning unranked): %s", _rank_err)
+            # TODO: Rank specialties by relevance (GPT-4.1-mini) — disabled until tested
+            # from domain.find_care.specialty_ranker import rank_specialties
+            # specialization_options = rank_specialties(specialization_options, query=specialty_query or "")
 
             # Build filtered search term from selected specialty names
             selected_names = [o["name"] for o in specialization_options if o.get("name")]
@@ -402,11 +396,13 @@ class FindCareService:
                 meta_coll = db[f"{self._env}_PublicHealthData"]["SpecialtyMetaData"]
                 for doc in meta_coll.find({"Code": {"$in": codes}},
                                            {"Code": 1, "Classification": 1, "Specialization": 1,
-                                            "Display Name": 1, "_id": 0}):
+                                            "Display Name": 1, "can_prescribe": 1, "homeopathic": 1, "_id": 0}):
                     specialization_options.append({
                         "code": doc.get("Code", ""),
                         "name": doc.get("Display Name") or doc.get("Specialization") or doc.get("Classification", ""),
                         "classification": doc.get("Classification", ""),
+                        "can_prescribe": doc.get("can_prescribe", False),
+                        "homeopathic": doc.get("homeopathic", False),
                     })
             except Exception:
                 pass

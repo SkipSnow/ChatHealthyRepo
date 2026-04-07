@@ -44,27 +44,288 @@
       "assessment_date": "2026-04-04",
       "overall_score": "78% — Middle 30% band",
       "dimensions": [
-        {"dimension": "Governance & Policy", "band": "Top 5%", "score": 95, "kpis": ["Number of formal policies (currently 12)", "Policy violation count per sprint", "Time from policy creation to enforcement in code", "Audit findings resolved vs open"]},
-        {"dimension": "Architecture Documentation", "band": "Top 5%", "score": 95, "kpis": ["Docs updated in same commit as design change", "Architecture pages published and current", "Component diagram accuracy vs actual code", "Design doc coverage per feature"]},
-        {"dimension": "Traceability (Epic→Test)", "band": "Top 5%", "score": 95, "kpis": ["Percentage of code changes linked to a story", "Percentage of stories with boolean testable requirements", "Requirements with passing test cases", "Orphan code (code with no backlog item)"]},
-        {"dimension": "Delivery Velocity", "band": "Top 5%", "score": 95, "kpis": ["Builds per session", "Time from idea to deployed code", "Time from bug report to fix deployed", "Features shipped per sprint"]},
-        {"dimension": "SDLC Process Design", "band": "Top 5%", "score": 95, "kpis": ["Process steps documented and followed", "Gateway compliance rate", "Attended vs unattended build ratio", "Commit message quality (prefix, description)"]},
-        {"dimension": "Testing Tooling", "band": "Top 5%", "score": 95, "kpis": ["Playwright tests written vs features shipped", "Mobile device coverage (iPhone, Galaxy)", "Screenshot capture on failure rate", "SIT test pass rate"]},
-        {"dimension": "DevOps Design", "band": "Top 5%", "score": 95, "kpis": ["Pipeline steps with monitoring", "Promotion gate enforcement rate", "Build counter accuracy", "Deploy success rate"]},
-        {"dimension": "Code Quality", "band": "Top 5%", "score": 95, "kpis": ["Pydantic model coverage on tool inputs", "Functions over 50 lines count", "Files over 500 lines count", "Dead code ratio"]},
-        {"dimension": "Security Awareness", "band": "Top 20%", "score": 80, "kpis": ["Cloudflare findings open vs resolved", "Secrets in git history count", "MFA enforcement percentage", "TLS/HSTS coverage across domains"]},
-        {"dimension": "Testing Execution", "band": "Top 20%", "score": 80, "kpis": ["SIT test coverage vs total features", "Percentage of features with passing SIT before deploy", "Regression test coverage", "Time between code change and test execution"]},
-        {"dimension": "Pipeline Reliability", "band": "Top 20%", "score": 80, "kpis": ["Pipeline runs to completion rate", "Mean time to recover from pipeline failure", "Retry count per successful run", "State filter enforcement (records processed vs expected)"]},
-        {"dimension": "Data Architecture", "band": "Top 20%", "score": 80, "kpis": ["Collections on correct cluster percentage", "Index coverage for query patterns", "Embedding dimension accuracy", "Environment isolation violations"]},
-        {"dimension": "Requirements Accuracy", "band": "Middle 30%", "score": 60, "kpis": ["Boss corrections per feature", "Requirements changed after implementation started", "Features rebuilt due to wrong interpretation", "Clarifying questions asked before coding vs after"]},
-        {"dimension": "Design Decisions", "band": "Middle 30%", "score": 60, "kpis": ["Design reversals per session", "Components placed in wrong location count", "Ad hoc decisions without backlog item", "Design decisions made without asking Boss"]},
-        {"dimension": "Architecture Compliance", "band": "Bottom 50%", "score": 40, "kpis": ["ARCH-001 phases complete vs planned", "Code that violates documented architecture", "GOV-011 audit violations open", "Integration patterns used vs prescribed"]},
-        {"dimension": "Engineer Discipline", "band": "Bottom 50%", "score": 40, "kpis": ["Rules broken per session", "Infrastructure touched without authorization", "DR violations (DR-001 through DR-019)", "Times Boss had to correct same mistake twice"]},
-        {"dimension": "Unattended Operations", "band": "Bottom 50%", "score": 40, "kpis": ["Hours of reliable unattended operation", "Jobs monitored to completion without intervention", "Overnight tasks completed vs assigned", "Agent infrastructure uptime"]}
+        {
+          "dimension": "Governance & Policy",
+          "band": "Top 5%",
+          "score": 95,
+          "kpis": [
+            "Number of formal policies (currently 12)",
+            "Policy violation count per sprint",
+            "Time from policy creation to enforcement in code",
+            "Audit findings resolved vs open"
+          ]
+        },
+        {
+          "dimension": "Architecture Documentation",
+          "band": "Top 5%",
+          "score": 95,
+          "kpis": [
+            "Docs updated in same commit as design change",
+            "Architecture pages published and current",
+            "Component diagram accuracy vs actual code",
+            "Design doc coverage per feature"
+          ]
+        },
+        {
+          "dimension": "Traceability (Epic→Test)",
+          "band": "Top 5%",
+          "score": 95,
+          "kpis": [
+            "Percentage of code changes linked to a story",
+            "Percentage of stories with boolean testable requirements",
+            "Requirements with passing test cases",
+            "Orphan code (code with no backlog item)"
+          ]
+        },
+        {
+          "dimension": "Delivery Velocity",
+          "band": "Top 5%",
+          "score": 95,
+          "kpis": [
+            "Builds per session",
+            "Time from idea to deployed code",
+            "Time from bug report to fix deployed",
+            "Features shipped per sprint"
+          ]
+        },
+        {
+          "dimension": "SDLC Process Design",
+          "band": "Top 5%",
+          "score": 95,
+          "kpis": [
+            "Process steps documented and followed",
+            "Gateway compliance rate",
+            "Attended vs unattended build ratio",
+            "Commit message quality (prefix, description)"
+          ]
+        },
+        {
+          "dimension": "Testing Tooling",
+          "band": "Top 5%",
+          "score": 95,
+          "kpis": [
+            "Playwright tests written vs features shipped",
+            "Mobile device coverage (iPhone, Galaxy)",
+            "Screenshot capture on failure rate",
+            "SIT test pass rate"
+          ]
+        },
+        {
+          "dimension": "DevOps Design",
+          "band": "Top 5%",
+          "score": 95,
+          "kpis": [
+            "Pipeline steps with monitoring",
+            "Promotion gate enforcement rate",
+            "Build counter accuracy",
+            "Deploy success rate"
+          ]
+        },
+        {
+          "dimension": "Code Quality",
+          "band": "Top 5%",
+          "score": 95,
+          "kpis": [
+            "Pydantic model coverage on tool inputs",
+            "Functions over 50 lines count",
+            "Files over 500 lines count",
+            "Dead code ratio"
+          ]
+        },
+        {
+          "dimension": "Security Awareness",
+          "band": "Top 20%",
+          "score": 80,
+          "kpis": [
+            "Cloudflare findings open vs resolved",
+            "Secrets in git history count",
+            "MFA enforcement percentage",
+            "TLS/HSTS coverage across domains"
+          ]
+        },
+        {
+          "dimension": "Testing Execution",
+          "band": "Top 20%",
+          "score": 80,
+          "kpis": [
+            "SIT test coverage vs total features",
+            "Percentage of features with passing SIT before deploy",
+            "Regression test coverage",
+            "Time between code change and test execution"
+          ]
+        },
+        {
+          "dimension": "Pipeline Reliability",
+          "band": "Top 20%",
+          "score": 80,
+          "kpis": [
+            "Pipeline runs to completion rate",
+            "Mean time to recover from pipeline failure",
+            "Retry count per successful run",
+            "State filter enforcement (records processed vs expected)"
+          ]
+        },
+        {
+          "dimension": "Data Architecture",
+          "band": "Top 20%",
+          "score": 80,
+          "kpis": [
+            "Collections on correct cluster percentage",
+            "Index coverage for query patterns",
+            "Embedding dimension accuracy",
+            "Environment isolation violations"
+          ]
+        },
+        {
+          "dimension": "Requirements Accuracy",
+          "band": "Middle 30%",
+          "score": 60,
+          "kpis": [
+            "Boss corrections per feature",
+            "Requirements changed after implementation started",
+            "Features rebuilt due to wrong interpretation",
+            "Clarifying questions asked before coding vs after"
+          ]
+        },
+        {
+          "dimension": "Design Decisions",
+          "band": "Middle 30%",
+          "score": 60,
+          "kpis": [
+            "Design reversals per session",
+            "Components placed in wrong location count",
+            "Ad hoc decisions without backlog item",
+            "Design decisions made without asking Boss"
+          ]
+        },
+        {
+          "dimension": "Architecture Compliance",
+          "band": "Bottom 50%",
+          "score": 40,
+          "kpis": [
+            "ARCH-001 phases complete vs planned",
+            "Code that violates documented architecture",
+            "GOV-011 audit violations open",
+            "Integration patterns used vs prescribed"
+          ]
+        },
+        {
+          "dimension": "Engineer Discipline",
+          "band": "Bottom 50%",
+          "score": 40,
+          "kpis": [
+            "Rules broken per session",
+            "Infrastructure touched without authorization",
+            "DR violations (DR-001 through DR-019)",
+            "Times Boss had to correct same mistake twice"
+          ]
+        },
+        {
+          "dimension": "Unattended Operations",
+          "band": "Bottom 50%",
+          "score": 40,
+          "kpis": [
+            "Hours of reliable unattended operation",
+            "Jobs monitored to completion without intervention",
+            "Overnight tasks completed vs assigned",
+            "Agent infrastructure uptime"
+          ]
+        }
       ],
       "recommended_roadmap": {
         "epic": "Continuous — not an epic, a practice",
         "date_of_delivery": "Ongoing"
+      }
+    },
+    {
+      "id": "IDEA-006",
+      "author": "Boss",
+      "datetime": "2026-04-05T10:00:00Z",
+      "title": "Competitive Intelligence — Amigo AI Series A",
+      "source_url": "https://www.amigo.ai/blog/amigo-series-a",
+      "claude_conclusion": {
+        "analyst": "Claude Opus 4.6",
+        "date": "2026-04-05",
+        "verdict": "Not a competitor. Different market, different model, dubious claims. Boss spent 30 minutes on their site and confirms they have not cracked it.",
+        "summary": "Amigo AI raised $17.5M Series A (Madrona lead, Optum Ventures co-investor) on top of seed from General Catalyst and GSV Ventures. They build enterprise clinical AI agents sold to hospitals and clinics for workflow automation (intake, triage, chronic care, scheduling). CEO Ali Khokhar, CTO John Xing, 11-50 employees, NYC-based.",
+        "threat_to_chathealthy": "None. Amigo sells B2B to healthcare organizations — the same entities whose opacity ChatHealthy exists to counterbalance. ChatHealthy empowers consumers directly (GOV-001 Provider Neutrality). Completely different value chain position. If anything, Amigo making providers more efficient could increase the information asymmetry that ChatHealthy addresses.",
+        "skepticism_flags": [
+          "Claims 3M+ patient encounters with ZERO safety incidents — extraordinary claim with no independent verification",
+          "Claims 6-week concept-to-production deployment — enterprise healthcare doesn't move that fast",
+          "'100+ languages' for clinical AI is a liability claim, not a feature claim — clinical safety in 100 languages requires 100 languages of clinical validation",
+          "Optum Ventures investment means UnitedHealth Group alignment — the largest payer in the US backing a clinical workflow tool raises GOV-001 type concerns about neutrality",
+          "'No engineering required' for clinical AI deployment is marketing language that would not survive a HITRUST audit"
+        ],
+        "what_to_watch": "If Amigo pivots to consumer-facing or adds a patient portal with care comparison features, reassess. Their Optum relationship could give them distribution ChatHealthy cannot match in the enterprise channel — but that's not our channel."
+      },
+      "company_profile": {
+        "name": "Amigo AI (Amigo, Inc.)",
+        "founded": 2023,
+        "hq": "New York, NY",
+        "employees": "11-50",
+        "website": "https://amigo.ai",
+        "leadership": {
+          "ceo": "Ali Khokhar",
+          "cto": "John Xing",
+          "chief_medical_advisor": "Dr. Jay Shah",
+          "chief_of_staff": "Ashley Liu",
+          "head_of_design": "JiaJia Kong",
+          "gtm_lead": "Richard Wang"
+        }
+      },
+      "funding": {
+        "total_raised": "$17.5M",
+        "series_a": {
+          "amount": "$11M",
+          "date": "2026-03-10",
+          "lead": "Madrona",
+          "co_investors": ["Optum Ventures"]
+        },
+        "seed": {
+          "co_leads": ["General Catalyst", "GSV Ventures"],
+          "additional": ["Comma Capital", "Ride Ventures", "Coho Deeptech"]
+        }
+      },
+      "product": {
+        "category": "Enterprise clinical AI agent platform",
+        "target_market": "Hospitals, clinics, telehealth platforms, digital health companies",
+        "capabilities": [
+          "Intelligent intake and clinical triage",
+          "Chronic care management",
+          "24/7 virtual care delivery",
+          "Automated care plan generation",
+          "Voice AI for scheduling/patient calls",
+          "Outbound patient engagement",
+          "Care gap closure"
+        ],
+        "technical_claims": [
+          "Digital Residency training (millions of simulated scenarios, 100% safety pass rate)",
+          "Multi-layer context graphs (four-tier memory)",
+          "Real-time EHR integration",
+          "Available in 100+ languages",
+          "SOC 2, HIPAA, GDPR compliant"
+        ],
+        "claimed_metrics": {
+          "patient_encounters": "3M+",
+          "safety_incidents": 0,
+          "deployment_timeline": "6 weeks"
+        },
+        "customers": ["Eucalyptus", "Diverge Health", "The Care Clinic"]
+      },
+      "recommended_roadmap": {
+        "epic": "Competitive Intelligence — no action required",
+        "date_of_delivery": "N/A — monitoring only"
+      }
+    },
+    {
+      "id": "IDEA-005",
+      "author": "Boss",
+      "datetime": "2026-04-06T03:37:13Z",
+      "title": "Architecture-Compliant Code Enforcement",
+      "description": "No line of code can be written by Claude that is not in compliance with the enterprise business and technical architecture. The system must iterate towards that goal. This is not a hook problem — it is a discipline + audit problem. The architecture docs (policies.json, architecture.json, design.json) are authoritative. Claude must check compliance before writing code. GPT audits after. The gap between today and full enforcement narrows with every session, every audit, and every incident logged to development_rules.json.",
+      "recommended_roadmap": {
+        "epic": "Cross-cutting — applies to all epics",
+        "date_of_delivery": "Iterative — no end date, continuous improvement"
       }
     }
   ]

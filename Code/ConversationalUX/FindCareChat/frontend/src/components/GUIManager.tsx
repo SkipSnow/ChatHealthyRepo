@@ -275,16 +275,14 @@ export function useGUIManager() {
 
   const showFilterPanel = useCallback((options: { code: string; name: string; classification: string }[],
                                        searchParams: any) => {
-    // Cache full list for client-side prescriber toggle
+    // Cache full list for client-side filter toggles
     cachedFilterOptions.current = options
     cachedSearchParams.current = searchParams
-    // Default: prescribers only = true
     cachedFilterState.prescribers = true
     cachedFilterState.homeopathic = false
-    const filtered = options.filter(opt => isPrescriberOption(opt))
-    const display = filtered.length > 0 ? filtered : options
-    const html = renderFilterHTML(display, true, false)
-    sendToParent('gui:filter', { html, searchParams: JSON.stringify(searchParams) })
+    // Render ALL items — parent will hide non-prescribers via DOM after inject
+    const html = renderFilterHTML(options, true, false)
+    sendToParent('gui:filter', { html, searchParams: JSON.stringify(searchParams), applyInitialFilter: true })
   }, [])
 
   const hideFilterPanel = useCallback(() => {
