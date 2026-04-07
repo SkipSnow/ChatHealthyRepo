@@ -823,8 +823,8 @@
                   leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]:checked').forEach(function(cb) {
                     checked.push(cb.getAttribute('data-gui-value'));
                   });
-                  var selectedRadio = leftPanel.querySelector('input[name="provider-type"]:checked');
-                  var prescribersOnly = selectedRadio && selectedRadio.value === 'prescribers';
+                  var prescriberCb = leftPanel.querySelector('input[data-gui-value="prescribers"]');
+                  var prescribersOnly = prescriberCb ? prescriberCb.checked : false;
                   chatFrame.contentWindow.postMessage({
                     type: 'gui:event',
                     action: 'filter-apply',
@@ -846,12 +846,14 @@
               }
               if (el.getAttribute('data-gui-action') === 'filter-provider-type') {
                 el.addEventListener('change', function() {
-                  var val = el.value;
-                  chatFrame.contentWindow.postMessage({
-                    type: 'gui:event',
-                    action: 'prescribers-only-toggle',
-                    value: val === 'prescribers' ? 'true' : 'false'
-                  }, '*');
+                  var val = el.getAttribute('data-gui-value');
+                  if (val === 'prescribers') {
+                    chatFrame.contentWindow.postMessage({
+                      type: 'gui:event',
+                      action: 'prescribers-only-toggle',
+                      value: el.checked ? 'true' : 'false'
+                    }, '*');
+                  }
                 });
               }
             })(filterActions[j]);

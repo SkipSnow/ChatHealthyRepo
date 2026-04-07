@@ -315,20 +315,15 @@ function renderFilterHTML(options: { code: string; name: string; classification:
           </td>
           <td style="padding:4px 10px;vertical-align:middle;">
             <label style="font-size:10px;color:#374151;display:flex;align-items:center;gap:4px;cursor:pointer;padding:1px 0;">
-              <input type="radio" name="provider-type" value="prescribers" data-gui-action="filter-provider-type" ${prescribersChecked ? 'checked' : ''}
+              <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="prescribers" ${prescribersChecked ? 'checked' : ''}
                 style="accent-color:#0b7a75;width:12px;height:12px;" />
               Prescribers only
             </label>
             <label style="font-size:10px;color:#9ca3af;display:flex;align-items:center;gap:4px;cursor:not-allowed;padding:1px 0;"
               title="Unimplemented">
-              <input type="radio" name="provider-type" value="homeopathic" data-gui-action="filter-provider-type" disabled
+              <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="homeopathic" disabled
                 style="accent-color:#ccc;width:12px;height:12px;" />
               Homeopathic only
-            </label>
-            <label style="font-size:10px;color:#374151;display:flex;align-items:center;gap:4px;cursor:pointer;padding:1px 0;">
-              <input type="radio" name="provider-type" value="all" data-gui-action="filter-provider-type" ${!prescribersChecked ? 'checked' : ''}
-                style="accent-color:#0b7a75;width:12px;height:12px;" />
-              All providers
             </label>
           </td>
         </tr>
