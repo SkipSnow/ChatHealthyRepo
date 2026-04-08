@@ -19,6 +19,11 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Pre-deploy rule check (v4-017)
+        run: |
+          pip install pymongo python-dotenv
+          python Code/Shared/ops/tools/pre_deploy_rule_check.py website
+
       - name: Bump build counter
         env:
           MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}

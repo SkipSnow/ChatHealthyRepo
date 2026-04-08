@@ -538,22 +538,29 @@ def copy_to_frontend_orchestrator(context: df.DurableOrchestrationContext):
     chunks = partition.get("chunks", [])
     total = partition.get("total", 0)
 
-    # Step 6: Fan out — one worker per chunk
-    results = []
-    total_copied = 0
+    # Step 5.5: Pre-warm instances so each worker gets its own container
+    if chunks:
+        context.set_custom_status(f"Pre-warming {len(chunks)} instances")
+        yield context.call_activity("warm_instances_activity", {
+            "num_instances": min(len(chunks), 10),
+        })
+
+    # Step 6: Fan out — parallel workers, one per chunk
+    context.set_custom_status(f"Copying {total:,} providers across {len(chunks)} workers")
+    copy_tasks = []
     for chunk in chunks:
-        jn = chunk["job_number"]
-        context.set_custom_status(f"Worker {jn}/{len(chunks)} — {total_copied:,}/{total:,} copied")
-        r = yield context.call_activity("copy_chunk_activity", {
+        copy_tasks.append(context.call_activity("copy_chunk_activity", {
             "env_prefix": env_prefix,
             "collection": "providers",
-            "job_number": jn,
+            "job_number": chunk["job_number"],
             "start_id": chunk["start_id"],
             "end_id": chunk["end_id"],
-        })
-        copied = r.get("copied", 0)
-        total_copied += copied
-        results.append(r)
+        }))
+    results = yield context.task_all(copy_tasks)
+    total_copied = sum(r.get("copied", 0) for r in results)
+
+    # Step 6.5: Cool down instances
+    yield context.call_activity("cool_instances_activity", {})
 
     # Step 7: Create vector index
     context.set_custom_status("Creating vector search index")
