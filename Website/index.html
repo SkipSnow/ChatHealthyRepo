@@ -956,15 +956,16 @@
           }
         }
 
-        // Session GUID display in control frame
+        // Session GUID display below evaluate button in left panel
         if (msg.type === 'gui:session-display') {
           var sessionEl = document.getElementById('guiSessionId');
           if (!sessionEl) {
-            frame.style.justifyContent = 'flex-end';
-            frame.style.paddingRight = '12px';
-            frame.insertAdjacentHTML('beforeend',
-              '<span id="guiSessionId" style="font-size:9px;color:#9ca3af;font-family:monospace;"></span>');
-            sessionEl = document.getElementById('guiSessionId');
+            var evalBtn = leftPanel.querySelector('[data-gui-action="evaluate-providers"]');
+            if (evalBtn && evalBtn.parentElement) {
+              evalBtn.parentElement.insertAdjacentHTML('beforeend',
+                '<div id="guiSessionId" style="font-size:8px;color:#9ca3af;font-family:monospace;margin-top:4px;word-break:break-all;text-align:center;"></div>');
+              sessionEl = document.getElementById('guiSessionId');
+            }
           }
           if (sessionEl) sessionEl.textContent = msg.token;
         }
