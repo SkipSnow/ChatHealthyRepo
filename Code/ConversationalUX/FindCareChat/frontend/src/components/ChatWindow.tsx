@@ -242,6 +242,16 @@ export default function ChatWindow() {
         content: '**Evaluating providers...**',
       }])
 
+      // Show unencrypted token below the evaluate button
+      getSessionToken(API_URL).then(st => {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({
+            type: 'gui:session-display',
+            token: st.token || '',
+          }, '*')
+        }
+      })
+
       // Route through FindCare backend proxy (not browser → EvaluateCare direct)
       // FindCare backend forwards to EvaluateCare with mTLS in production
       getSessionToken(API_URL).then(sessionToken => {

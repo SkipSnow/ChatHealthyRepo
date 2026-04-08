@@ -31,7 +31,8 @@ def generate_session_token(origin: str = "FindCare") -> dict:
 
     Returns {origin, token, signature, created_at} — pass entire dict to client.
     """
-    token = f"CH_{uuid.uuid4().hex}"
+    now = datetime.now(timezone.utc)
+    token = f"CH_{now.strftime('%m%d%Y')}-{now.strftime('%H%M')}_{uuid.uuid4().hex}"
     created = datetime.now(timezone.utc).isoformat()
 
     # Load private key for signing
