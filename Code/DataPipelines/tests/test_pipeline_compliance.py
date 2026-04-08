@@ -144,14 +144,14 @@ class TestBlobStorageRequired:
 class TestPipelineStages:
     """v4-001E: 5-stage pipeline — Assemble, Process, Enrich, Embed, Ship."""
 
-    def test_overnight_pipeline_has_stages(self):
-        """overnight_pipeline.py must implement the 5-stage pattern."""
-        path = os.path.join(PIPELINE_DIR, "overnight_pipeline.py")
+    def test_prescriber_evaluate_care_pipeline_has_stages(self):
+        """prescriber_evaluate_care_pipeline.py must implement the 5-stage pattern."""
+        path = os.path.join(PIPELINE_DIR, "prescriber_evaluate_care_pipeline.py")
         if not os.path.exists(path):
-            pytest.skip("overnight_pipeline.py not found")
+            pytest.skip("prescriber_evaluate_care_pipeline.py not found")
         source = _read(path)
         for stage in ["step_1", "step_2", "step_3", "step_4", "step_5"]:
-            assert stage in source, f"overnight_pipeline.py missing {stage}"
+            assert stage in source, f"prescriber_evaluate_care_pipeline.py missing {stage}"
 
     def test_no_embed_on_frontend(self):
         """DR-022: No embedding code may reference the frontend cluster."""
@@ -256,12 +256,12 @@ class TestParityRequirements:
         has_parity = "parity" in source.lower() or "verify" in source.lower() or "match" in source.lower()
         assert has_count, "copy_to_frontend.py must count documents for parity"
 
-    def test_overnight_pipeline_has_parity(self):
-        """overnight_pipeline.py must include parity verification step."""
-        path = os.path.join(PIPELINE_DIR, "overnight_pipeline.py")
+    def test_prescriber_evaluate_care_pipeline_has_parity(self):
+        """prescriber_evaluate_care_pipeline.py must include parity verification step."""
+        path = os.path.join(PIPELINE_DIR, "prescriber_evaluate_care_pipeline.py")
         if not os.path.exists(path):
-            pytest.skip("overnight_pipeline.py not found")
+            pytest.skip("prescriber_evaluate_care_pipeline.py not found")
         source = _read(path)
         assert "parity" in source.lower() or "verify" in source.lower(), (
-            "overnight_pipeline.py must include parity verification"
+            "prescriber_evaluate_care_pipeline.py must include parity verification"
         )
