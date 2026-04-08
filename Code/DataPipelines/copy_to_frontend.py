@@ -51,8 +51,12 @@ def _copy_collection(src_db, dst_db, src_coll: str, dst_coll: str, query: dict =
         dst.drop()
     elif existing > 0 and q:
         # Filtered copy — delete only matching records, then append
-        logging.info("%s: deleting filtered records before copy (query: %s)", label, q)
-        dst.delete_many(q)
+        # Check if any matching records exist first (avoids full collection scan)
+        if dst.find_one(q) is not None:
+            logging.info("%s: deleting filtered records before copy (query: %s)", label, q)
+            dst.delete_many(q)
+        else:
+            logging.info("%s: no matching records to delete — appending", label)
 
     logging.info("%s: copying %s docs (filter: %s)", label, f"{total:,}", q or "none")
     cursor = src.find(q, batch_size=BATCH_SIZE, no_cursor_timeout=True)
