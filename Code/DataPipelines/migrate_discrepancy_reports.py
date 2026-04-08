@@ -94,11 +94,11 @@ def migrate() -> None:
     src_coll  = client[SRC[0]][SRC[1]]
     dest_coll = client[DEST[0]][DEST[1]]
 
-    docs = list(src_coll.find({}))
-    logging.info("Source has %d records.", len(docs))
+    total = src_coll.count_documents({})
+    logging.info("Source has %d records.", total)
 
     replaced = inserted = 0
-    for doc in docs:
+    for doc in src_coll.find({}):
         original_id = doc["_id"]
         job_name = _infer_job_name(doc)
         job_status = _infer_job_status(doc, job_name)
