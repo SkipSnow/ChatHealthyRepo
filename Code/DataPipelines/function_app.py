@@ -94,6 +94,8 @@ SYNC_TASK_HANDLERS = {
     "CheckMongoHealth": check_mongo_health,
     "StampEmbeddingVersion": stamp_embedding_version_fn,
     "PromoteData": run_promote_data,
+    "CopyToFrontEndSync": run_copy_to_frontend,
+    "VerifyParity": verify_parity,
 }
 
 # Ops Manager tasks — infrastructure only, no pipeline business logic
