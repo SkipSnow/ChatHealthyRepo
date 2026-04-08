@@ -204,7 +204,7 @@
     },
     {
       "id": "UAT-FILTER-001",
-      "rule": "PASS: Filter panel functionality signed off for alpha by Boss 2026-04-07. Prescriber toggle, homeopathic toggle (Sonnet resolver), specialty checkboxes, counts display, client-side caching, scroll bar — all functional. UX needs more work (layout, three-number labels, sort order) but functionality is approved.",
+      "rule": "PASS: Filter panel FUNCTIONALITY signed off for alpha by Boss 2026-04-07. Prescriber toggle, homeopathic toggle (Sonnet resolver), specialty checkboxes, counts display, client-side caching, scroll bar — all functional. UX NOT signed off — layout, three-number labels, sort order, and visual polish still need work.",
       "incident": "Boss tested on localhost after 11/11 Playwright regression pass. 96 specialties (59 pediatric + 37 homeopathic). Homeopathic resolver returns 38 relevant specialties via Claude Sonnet 4.6.",
       "date": "2026-04-07"
     },
