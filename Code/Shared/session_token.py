@@ -32,7 +32,11 @@ def generate_session_token(origin: str = "FindCare") -> dict:
     Returns {origin, token, signature, created_at} — pass entire dict to client.
     """
     now = datetime.now(timezone.utc)
-    token = f"CH_{now.strftime('%m%d%Y')}-{now.strftime('%H%M')}_{uuid.uuid4().hex}"
+    created_stamp = now.strftime('%m%d%Y%H%M')
+    guid = uuid.uuid4().hex
+    # Format: CH_{last_used}_{created}_{guid}
+    # Only created + guid are signed. Last_used is mutable (session keepalive).
+    token = f"CH_{created_stamp}_{created_stamp}_{guid}"
     created = datetime.now(timezone.utc).isoformat()
 
     # Load private key for signing
@@ -50,8 +54,8 @@ def generate_session_token(origin: str = "FindCare") -> dict:
     with open(key_path, "rb") as f:
         private_key = serialization.load_pem_private_key(f.read(), password=None)
 
-    # Sign the token + origin + timestamp
-    payload = f"{origin}:{token}:{created}".encode()
+    # Sign only origin + created_stamp + guid (immutable parts)
+    payload = f"{origin}:{created_stamp}:{guid}".encode()
     signature = private_key.sign(
         payload,
         padding.PKCS1v15(),
@@ -78,10 +82,16 @@ def verify_session_token(session: dict, expected_origin: str = "FindCare") -> bo
     origin = session.get("origin", "")
     token = session.get("token", "")
     sig_b64 = session.get("signature", "")
-    created = session.get("created_at", "")
 
     if origin != expected_origin or not token or not sig_b64:
         return False
+
+    # Extract created_stamp and guid from token: CH_{last_used}_{created}_{guid}
+    parts = token.split("_")
+    if len(parts) < 4:
+        return False
+    created_stamp = parts[2]  # second timestamp = created
+    guid = parts[3]           # guid
 
     # Load public cert
     cert_path = os.path.join(CERTS_DIR, f"{origin.lower()}.crt")
@@ -92,7 +102,8 @@ def verify_session_token(session: dict, expected_origin: str = "FindCare") -> bo
         cert = load_pem_x509_certificate(f.read())
 
     public_key = cert.public_key()
-    payload = f"{origin}:{token}:{created}".encode()
+    # Verify against the immutable parts only (origin + created + guid)
+    payload = f"{origin}:{created_stamp}:{guid}".encode()
     signature = base64.b64decode(sig_b64)
 
     try:
