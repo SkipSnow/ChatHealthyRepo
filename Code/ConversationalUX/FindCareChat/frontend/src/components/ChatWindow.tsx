@@ -266,6 +266,14 @@ export default function ChatWindow() {
                 type: 'gui:evaluate-result',
                 providers: data.evaluated_providers,
                 question: data.question_summary || '',
+                session_token: data.session_token || null,
+              }, '*')
+            }
+            // Show session GUID in control frame
+            if (window.parent && window.parent !== window && _sessionToken) {
+              window.parent.postMessage({
+                type: 'gui:session-display',
+                token: _sessionToken.token || '',
               }, '*')
             }
           }
