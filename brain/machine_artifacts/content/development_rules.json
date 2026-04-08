@@ -255,6 +255,12 @@
       "rule": "A design is not complete until it has: epic -> features -> stories -> requirements -> boolean pytestable test cases -> all green. No exceptions. The incident-to-rule-to-test cycle must close: every bug or audit finding traces to a rule violation or missing rule, every rule produces a boolean test, every test maps to a requirement, every requirement has a green pytest before the work is marked done.",
       "incident": "Pipeline v4: 11 audit findings existed because rules were documented but no tests enforced them. Raw requests.get, .readall(), hardcoded URLs, and local execution all violated existing rules but shipped because no pytest would have caught them at commit time.",
       "date": "2026-04-08"
+    },
+    {
+      "id": "DR-024",
+      "rule": "Every pytest must test every form of the thing being tested. A rename test must check the string, the filename, the imports, the comments, and the brain references. A memory fix test must assert bounded memory, not just API substitution. A compliance test must scan every file, not just one. Requirements must describe testable outcomes (e.g. \"must never hold more than 64KB in memory\"), not mechanisms (e.g. \"use streaming\").",
+      "incident": "Pipeline v4 rename: test checked for string \"PrescriberPipeline\" but missed the filename overnight_pipeline.py. OOM fix: test checked that .readall() was removed but did not check that b\"\".join(chunks) reassembled the same data in memory.",
+      "date": "2026-04-08"
     }
   ]
 }
