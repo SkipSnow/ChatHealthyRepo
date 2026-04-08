@@ -45,9 +45,14 @@ def _copy_collection(src_db, dst_db, src_coll: str, dst_coll: str, query: dict =
         logging.info("%s: already has %s docs — skipping", label, f"{existing:,}")
         return {"collection": label, "copied": 0, "skipped": True}
 
-    if existing > 0:
-        logging.info("%s: dropping destination (%s docs) before copy", label, f"{existing:,}")
+    if existing > 0 and not q:
+        # Full collection copy — drop and replace
+        logging.info("%s: dropping destination (%s docs) before full copy", label, f"{existing:,}")
         dst.drop()
+    elif existing > 0 and q:
+        # Filtered copy — delete only matching records, then append
+        logging.info("%s: deleting filtered records before copy (query: %s)", label, q)
+        dst.delete_many(q)
 
     logging.info("%s: copying %s docs (filter: %s)", label, f"{total:,}", q or "none")
     cursor = src.find(q, batch_size=BATCH_SIZE, no_cursor_timeout=True)
