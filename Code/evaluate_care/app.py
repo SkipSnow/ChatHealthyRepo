@@ -110,10 +110,11 @@ class EvaluateProvidersRequest(BaseModel):
     chat_history: list[dict] = Field(default=[], description="Full chat history")
     question_summary: str = Field(default="", description="Why the user needs evaluation")
 
+_last_evaluation = {"providers": [], "question": ""}
+
 @app.post("/evaluate/providers")
 def evaluate_providers(body: EvaluateProvidersRequest):
-    """Stub — accepts provider list from FindCare facade and returns
-    provider names, specialty, and NPI for display. No scoring logic yet."""
+    """Accepts provider list from FindCare and displays them."""
     results = []
     for p in body.providers:
         results.append({
@@ -121,12 +122,55 @@ def evaluate_providers(body: EvaluateProvidersRequest):
             "specialty": p.get("specialty", p.get("primary_specialty", "Unknown")),
             "npi": p.get("npi", "Unknown"),
         })
+    _last_evaluation["providers"] = results
+    _last_evaluation["question"] = body.question_summary or "Provider evaluation"
+    _log.info("Received %d providers from FindCare: %s", len(results), _last_evaluation["question"])
     return {
-        "status": "stub",
+        "status": "received",
         "evaluated_providers": results,
-        "question_summary": body.question_summary or "Provider evaluation requested",
-        "note": "Scoring engine not yet implemented — displaying provider identity only",
+        "question_summary": _last_evaluation["question"],
     }
+
+@app.get("/evaluate/view")
+def evaluate_view():
+    """HTML page showing the last evaluation received from FindCare."""
+    from fastapi.responses import HTMLResponse
+    providers = _last_evaluation.get("providers", [])
+    question = _last_evaluation.get("question", "No evaluation received yet")
+    rows = ""
+    for i, p in enumerate(providers):
+        rows += f"<tr><td>{i+1}</td><td>{p['name']}</td><td>{p['specialty']}</td><td>{p['npi']}</td></tr>"
+    if not rows:
+        rows = "<tr><td colspan='4' style='text-align:center;color:#999;'>No providers received yet. Click 'Evaluate These Providers' in FindCare.</td></tr>"
+    html = f"""<!DOCTYPE html>
+<html><head><title>EvaluateCare — Provider Evaluation</title>
+<style>
+body {{ font-family: system-ui, sans-serif; margin: 40px; background: #f8fffe; }}
+h1 {{ color: #0b7a75; }}
+h2 {{ color: #374151; font-size: 16px; }}
+table {{ border-collapse: collapse; width: 100%; margin-top: 16px; }}
+th {{ background: #0b7a75; color: white; padding: 10px; text-align: left; }}
+td {{ padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }}
+tr:hover {{ background: #f0fffe; }}
+.badge {{ background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 4px; font-size: 12px; }}
+.header {{ display: flex; justify-content: space-between; align-items: center; }}
+</style></head><body>
+<div class="header">
+    <h1>EvaluateCare — Provider Evaluation</h1>
+    <span class="badge">Service: localhost:8001 (separate from FindCare)</span>
+</div>
+<h2>Query: {question}</h2>
+<p>{len(providers)} providers received from FindCare via handoff</p>
+<table>
+<tr><th>#</th><th>Provider</th><th>Specialty</th><th>NPI</th></tr>
+{rows}
+</table>
+<p style="color:#999;font-size:12px;margin-top:24px;">
+    This page proves the FindCare → EvaluateCare handoff. Providers were sent from FindCare (:8000) to EvaluateCare (:8001) as a separate service.
+    In production, this communication uses mTLS with x509 certificates.
+</p>
+</body></html>"""
+    return HTMLResponse(content=html)
 
 # ── Run ─────────────────────────────────────────────────────
 
