@@ -203,6 +203,12 @@
       "date": "2026-04-07"
     },
     {
+      "id": "UAT-FILTER-001",
+      "rule": "PASS: Filter panel functionality signed off for alpha by Boss 2026-04-07. Prescriber toggle, homeopathic toggle (Sonnet resolver), specialty checkboxes, counts display, client-side caching, scroll bar — all functional. UX needs more work (layout, three-number labels, sort order) but functionality is approved.",
+      "incident": "Boss tested on localhost after 11/11 Playwright regression pass. 96 specialties (59 pediatric + 37 homeopathic). Homeopathic resolver returns 38 relevant specialties via Claude Sonnet 4.6.",
+      "date": "2026-04-07"
+    },
+    {
       "id": "BUG-BA-001",
       "rule": "BUG (BA): First number in filter header shows provider count (4,676) but should show total possible specialties (universe of all specialty types, not providers). Business analyst requirement error — the three numbers should be: (1) total specialty types in the universe, (2) types after filter switches applied, (3) types the user has checked. Provider count is useful but belongs elsewhere, not in position 1.",
       "incident": "Boss caught during UAT. The number 4,676 is providers, not specialties. The universe should be the total number of specialty types (e.g., 883 in NUCC), not how many providers matched.",
