@@ -33,7 +33,7 @@ from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
 from copy_to_frontend import (run_copy_to_frontend, snapshot_collection_fn, create_frontend_vector_index_fn,
                               partition_source, copy_chunk, drop_destination,
-                              migrate_small_collections, migrate_chunk)
+                              migrate_small_collections, migrate_chunk, verify_parity)
 from promote_data_fn import run_promote_data
 from gpt_reader import handle_gpt_reader
 from pipeline_health import check_mongo_health
@@ -554,12 +554,22 @@ def copy_to_frontend_orchestrator(context: df.DurableOrchestrationContext):
     except Exception:
         pass
 
-    # Step 8: Release reservation
+    # Step 8: Parity verification
+    context.set_custom_status("Verifying parity")
+    parity = yield context.call_activity("verify_parity_activity", {
+        "env_prefix": env_prefix,
+    })
+    parity_pass = parity.get("all_pass", False)
+    if not parity_pass:
+        context.set_custom_status(f"PARITY FAILURE — {parity}")
+        logging.error("CopyToFrontEnd parity check FAILED: %s", parity)
+
+    # Step 9: Release reservation
     context.set_custom_status("Releasing cluster")
     yield context.call_activity("release_reservation_activity", reservation)
 
     context.set_custom_status(f"Done — {total_copied:,} providers in {len(chunks)} chunks")
-    return {"status": "complete", "total_copied": total_copied, "chunks": len(chunks), "results": results}
+    return {"status": "complete", "total_copied": total_copied, "chunks": len(chunks), "results": results, "parity": parity}
 
 
 @app.orchestration_trigger(context_name="context")
@@ -708,6 +718,11 @@ def partition_source_activity(config: dict) -> dict:
 @app.activity_trigger(input_name="config")
 def copy_chunk_activity(config: dict) -> dict:
     return copy_chunk(config)
+
+
+@app.activity_trigger(input_name="config")
+def verify_parity_activity(config: dict) -> dict:
+    return verify_parity(config)
 
 
 @app.activity_trigger(input_name="config")

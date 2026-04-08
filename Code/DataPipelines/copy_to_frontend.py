@@ -25,6 +25,10 @@ BATCH_SIZE = 10_000
 # Source and destination DB names are built from env_prefix at runtime.
 _STATIC_COLLECTIONS = [
     ("SpecialtyMetaData", "SpecialtyMetaData"),
+    ("provider_quality", "provider_quality"),
+    ("ICD10Codes", "ICD10Codes"),
+    ("ZipCountyCrosswalk", "ZipCountyCrosswalk"),
+    ("drug_crosswalk_cache", "drug_crosswalk_cache"),
 ]
 
 
@@ -68,8 +72,17 @@ def _copy_collection(src_db, dst_db, src_coll: str, dst_coll: str, query: dict =
         cursor.close()
 
     elapsed = time.time() - start
+    # Parity verification — count destination and compare to source
+    dst_count = dst.count_documents({})
+    if dst_count != total:
+        logging.error(
+            "PARITY FAILURE %s: source=%s, destination=%s (expected %s)",
+            label, f"{total:,}", f"{dst_count:,}", f"{total:,}",
+        )
+    else:
+        logging.info("%s: PARITY OK — %s docs match", label, f"{dst_count:,}")
     logging.info("%s: done — %s docs in %.1f s", label, f"{copied:,}", elapsed)
-    return {"collection": label, "copied": copied}
+    return {"collection": label, "copied": copied, "source_count": total, "destination_count": dst_count, "parity": dst_count == total}
 
 
 def snapshot_collection_fn(config: dict) -> dict:
@@ -519,6 +532,73 @@ def copy_chunk(config: dict) -> dict:
         elapsed = time.time() - start_time
         logging.info("Worker %d: done — %s docs in %.1f s", job_number, f"{copied:,}", elapsed)
         return {"job_number": job_number, "copied": copied, "seconds": round(elapsed, 1)}
+    finally:
+        pipeline_client.close()
+        frontend_client.close()
+
+
+def verify_parity(config: dict) -> dict:
+    """Verify source and destination counts match for providers and all static collections.
+
+    config:
+        env_prefix — database prefix, e.g. "dev"
+        states     — list of states to verify (optional, verifies all if omitted)
+    """
+    pipeline_conn = os.environ.get("MONGO_connectionString")
+    frontend_conn = os.environ.get("MONGO_FRONTEND_connectionString")
+    if not pipeline_conn or not frontend_conn:
+        raise ValueError("Both MONGO_connectionString and MONGO_FRONTEND_connectionString required")
+
+    env_prefix = config.get("env_prefix", "dev")
+    db_name = f"{env_prefix}_PublicHealthData" if env_prefix else "PublicHealthData"
+    states = config.get("states")
+
+    pipeline_client = MongoClient(pipeline_conn, serverSelectionTimeoutMS=30_000)
+    frontend_client = MongoClient(frontend_conn, serverSelectionTimeoutMS=30_000)
+
+    results = []
+    all_pass = True
+    try:
+        src_db = pipeline_client[db_name]
+        dst_db = frontend_client[db_name]
+
+        # Check static collections
+        for src_coll, dst_coll in _STATIC_COLLECTIONS:
+            src_count = src_db[src_coll].count_documents({})
+            dst_count = dst_db[dst_coll].count_documents({})
+            match = src_count == dst_count
+            if not match:
+                all_pass = False
+            results.append({
+                "collection": dst_coll, "source": src_count,
+                "destination": dst_count, "parity": match,
+            })
+
+        # Check providers (per state if specified)
+        if states:
+            for state in states:
+                q = {"practice_address.state": state}
+                src_count = src_db["providers"].count_documents(q)
+                dst_count = dst_db["providers"].count_documents(q)
+                match = src_count == dst_count
+                if not match:
+                    all_pass = False
+                results.append({
+                    "collection": f"providers({state})", "source": src_count,
+                    "destination": dst_count, "parity": match,
+                })
+        else:
+            src_count = src_db["providers"].count_documents({})
+            dst_count = dst_db["providers"].count_documents({})
+            match = src_count == dst_count
+            if not match:
+                all_pass = False
+            results.append({
+                "collection": "providers", "source": src_count,
+                "destination": dst_count, "parity": match,
+            })
+
+        return {"all_pass": all_pass, "collections": results}
     finally:
         pipeline_client.close()
         frontend_client.close()
