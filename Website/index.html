@@ -848,6 +848,14 @@
                   el.textContent = newState ? 'Uncheck All' : 'Check All';
                 });
               }
+              if (el.getAttribute('data-gui-action') === 'evaluate-providers') {
+                el.addEventListener('click', function() {
+                  chatFrame.contentWindow.postMessage({
+                    type: 'gui:event',
+                    action: 'evaluate-providers'
+                  }, '*');
+                });
+              }
               if (el.getAttribute('data-gui-action') === 'filter-provider-type') {
                 el.addEventListener('change', function() {
                   var val = el.getAttribute('data-gui-value');

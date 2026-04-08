@@ -334,7 +334,7 @@ function renderFilterHTML(options: any[], totalProviders: number = 0, prescriber
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span style="font-size:11px;font-weight:700;color:#0b7a75;text-transform:uppercase;letter-spacing:0.05em;">Filter by Specialty</span>
           <span id="filterCounts" style="font-size:9px;color:#6b7280;line-height:1.4;">
-            ${totalProviders > 0 ? '<b>' + totalProviders.toLocaleString() + '</b> providers &middot; ' : ''}<b>${options.length}</b> types &middot; <b id="filterShowing">${prescribersChecked ? prescCount : options.length}</b> showing
+            <b>${options.length}</b> types &middot; <b id="filterShowing">${prescribersChecked ? prescCount : options.length}</b> showing
           </span>
         </div>
         <div style="display:flex;gap:12px;margin-top:4px;">
@@ -367,6 +367,14 @@ function renderFilterHTML(options: any[], totalProviders: number = 0, prescriber
           onmouseup="this.style.transform='';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.2)'"
           onmouseleave="this.style.transform='';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.2)'"
         >Apply Filter</button>
+        <button data-gui-action="evaluate-providers" style="width:100%;padding:6px;border-radius:4px;
+          border:none;background:linear-gradient(180deg,#d97706,#b45309);color:#fff;
+          font-size:12px;font-weight:600;cursor:pointer;margin-top:6px;
+          border-bottom:2px solid #92400e;box-shadow:0 1px 3px rgba(0,0,0,0.2);"
+          onmousedown="this.style.transform='translateY(1px)';this.style.boxShadow='none'"
+          onmouseup="this.style.transform='';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.2)'"
+          onmouseleave="this.style.transform='';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.2)'"
+        >Evaluate These Providers</button>
       </div>
     </div>
   `
