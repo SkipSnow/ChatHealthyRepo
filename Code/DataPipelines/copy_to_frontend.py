@@ -77,8 +77,8 @@ def _copy_collection(src_db, dst_db, src_coll: str, dst_coll: str, query: dict =
         cursor.close()
 
     elapsed = time.time() - start
-    # Parity verification — count destination and compare to source
-    dst_count = dst.count_documents({})
+    # Parity verification — use same query filter for filtered copies
+    dst_count = dst.count_documents(q) if q else dst.estimated_document_count()
     if dst_count != total:
         logging.error(
             "PARITY FAILURE %s: source=%s, destination=%s (expected %s)",
