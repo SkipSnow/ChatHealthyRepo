@@ -260,11 +260,11 @@ export default function ChatWindow() {
           if (data.evaluated_providers) {
             // Remove "Evaluating..." message
             setMessages(prev => prev.filter(m => m.content !== '**Evaluating providers...**'))
-            // Send to right panel via postMessage
+            // Send to right panel — use FULL provider data from FindCare, not stripped EvaluateCare response
             if (window.parent && window.parent !== window) {
               window.parent.postMessage({
                 type: 'gui:evaluate-result',
-                providers: data.evaluated_providers,
+                providers: lastProvidersRef.current,
                 question: data.question_summary || '',
                 session_token: data.session_token || null,
               }, '*')
