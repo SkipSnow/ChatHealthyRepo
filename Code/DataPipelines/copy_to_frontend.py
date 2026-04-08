@@ -39,7 +39,7 @@ def _copy_collection(src_db, dst_db, src_coll: str, dst_coll: str, query: dict =
     q = query or {}
 
     total = src.count_documents(q)
-    existing = dst.count_documents({})
+    existing = dst.estimated_document_count()  # instant, no collection scan
 
     if existing >= total and total > 0 and not q:
         logging.info("%s: already has %s docs — skipping", label, f"{existing:,}")
