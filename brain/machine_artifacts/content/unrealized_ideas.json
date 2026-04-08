@@ -327,6 +327,17 @@
         "epic": "Cross-cutting — applies to all epics",
         "date_of_delivery": "Iterative — no end date, continuous improvement"
       }
+    },
+    {
+      "id": "IDEA-007",
+      "author": "Boss",
+      "datetime": "2026-04-07T23:10:00Z",
+      "title": "Zero-Trust Component-to-Component Communication",
+      "description": "In a zero-trust environment, how do our four components (FindCare, EvaluateCare, Shared Services, Brain) authenticate and authorize communication with each other? Current: mTLS with per-service x509 certs for service identity. Missing: (1) service-level authorization — what can FindCare ask EvaluateCare to do? (2) request-level signing — can we verify a request wasn't tampered in transit even with TLS? (3) token-based session binding — tie a user's session across components without sharing state. (4) audit trail — every cross-component call logged with caller identity, action, timestamp. This is the foundation for HITRUST High with zero findings. Must decide the pattern before production: mTLS only, mTLS + JWT, mTLS + signed requests, or full service mesh.",
+      "recommended_roadmap": {
+        "epic": "EPIC-4 Security",
+        "date_of_delivery": "Before beta launch — must be in place for first external security audit"
+      }
     }
   ]
 }
