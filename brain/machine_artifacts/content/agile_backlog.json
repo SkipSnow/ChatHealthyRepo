@@ -16007,6 +16007,68 @@
           ]
         },
         {
+          "feature_id": "PIPE-BULLETPROOF",
+          "name": "Bulletproof ETL Process",
+          "epic_id": "EPIC-3",
+          "layer": "pipeline",
+          "capability": "DataOps",
+          "description": "ChatHealthy.ai needs a bulletproof ETL process that runs successfully 95% of the time given source files exist. Errors must alert Boss immediately. Design priorities in order: reliability, speed, cost. All architecture rules (technical + business) and engineering rules must be complied with.",
+          "priority": "CRITICAL",
+          "status": "IN_PROGRESS",
+          "accepted_by": "Boss",
+          "stories": [
+            {
+              "story_id": "PIPE-BP-001",
+              "title": "95% success rate SLA",
+              "description": "Pipeline must complete successfully 95% of the time when source files are available. Failures must be recoverable via checkpoint/restart without re-running completed steps.",
+              "status": "IN_PROGRESS",
+              "requirements": [
+                {"req_id": "PIPE-BP-001-REQ-001", "requirement": "Pipeline must complete end-to-end successfully 95% of runs when source files exist", "priority": "must-have", "status": "IN_PROGRESS"},
+                {"req_id": "PIPE-BP-001-REQ-002", "requirement": "Failed pipeline must resume from last successful checkpoint without re-running completed steps", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "PIPE-BP-001-REQ-003", "requirement": "Each pipeline step must report success/failure status with details", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-BP-001-REQ-004", "requirement": "Pipeline must validate source file integrity (SHA-256) before processing", "priority": "must-have", "status": "accepted"}
+              ]
+            },
+            {
+              "story_id": "PIPE-BP-002",
+              "title": "Fatal error alerting — continuous bell on Boss's machine",
+              "description": "Errors that are fatal must warn Skip Snow by ringing a bell continuously every 5 seconds on Skip's computer. Requires a persistent local service on Boss's machine that receives alert webhooks.",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {"req_id": "PIPE-BP-002-REQ-001", "requirement": "Fatal pipeline errors must trigger a continuous bell (every 5 seconds) on Skip Snow's local machine", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "PIPE-BP-002-REQ-002", "requirement": "A persistent local service must run on Skip's machine to receive alert webhooks and ring the bell", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "PIPE-BP-002-REQ-003", "requirement": "Bell continues until Skip acknowledges the alert", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "PIPE-BP-002-REQ-004", "requirement": "Alert must include pipeline name, step that failed, error message, and timestamp", "priority": "must-have", "status": "NOT_STARTED"}
+              ]
+            },
+            {
+              "story_id": "PIPE-BP-003",
+              "title": "Design priorities: reliability > speed > cost",
+              "description": "All pipeline design decisions must prioritize in this order: (1) reliability, (2) speed, (3) cost. A faster design that is less reliable is rejected. A cheaper design that is slower is acceptable only if reliability is not impacted.",
+              "status": "accepted",
+              "requirements": [
+                {"req_id": "PIPE-BP-003-REQ-001", "requirement": "Design priority order: reliability first, speed second, cost third", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-BP-003-REQ-002", "requirement": "No design decision may trade reliability for speed or cost", "priority": "must-have", "status": "accepted"}
+              ]
+            },
+            {
+              "story_id": "PIPE-BP-004",
+              "title": "Architecture and engineering rule compliance",
+              "description": "All pipeline code must comply with both technical and business architecture rules, and all engineering operating rules. Compliance is verified by pytest (test_pipeline_compliance.py).",
+              "status": "IN_PROGRESS",
+              "requirements": [
+                {"req_id": "PIPE-BP-004-REQ-001", "requirement": "All pipeline code must pass test_pipeline_compliance.py with zero violations", "priority": "must-have", "status": "IN_PROGRESS"},
+                {"req_id": "PIPE-BP-004-REQ-002", "requirement": "All downloads must use DataFetcherBase (v4-001D)", "priority": "must-have", "status": "IN_PROGRESS"},
+                {"req_id": "PIPE-BP-004-REQ-003", "requirement": "No file may be loaded entirely into memory (v4-001D)", "priority": "must-have", "status": "IN_PROGRESS"},
+                {"req_id": "PIPE-BP-004-REQ-004", "requirement": "All database names must use ENV_PREFIX (v4-001C)", "priority": "must-have", "status": "accepted"},
+                {"req_id": "PIPE-BP-004-REQ-005", "requirement": "Fan-out is mandatory for parallelizable work. Fan-in only when operation requires complete dataset, with documented justification.", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "PIPE-BP-004-REQ-006", "requirement": "Pipeline workloads execute on Azure Functions, not local machines (v4-001C)", "priority": "must-have", "status": "NOT_STARTED"},
+                {"req_id": "PIPE-BP-004-REQ-007", "requirement": "5-stage pipeline: Assemble, Process, Enrich, Embed, Ship. Sequential stages, parallel sub-steps (v4-001E)", "priority": "must-have", "status": "IN_PROGRESS"}
+              ]
+            }
+          ]
+        },
+        {
           "feature_id": "PIPE-DATA-QUALITY",
           "name": "Provider Data Quality — Bad Data and Out of Scope Flags",
           "epic_id": "EPIC-3",
