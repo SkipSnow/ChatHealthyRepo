@@ -66,14 +66,19 @@ def step_1_can_prescribe():
     for state in STATES:
         log.info("Processing %s...", state)
         result = mark_prescriber_fn({
-            "provider_collection": "{ENV_PREFIX}_PublicHealthData.providers",
+            "provider_collection": f"{ENV_PREFIX}_PublicHealthData.providers",
             "states": [state],
         })
         log.info("%s result: %s", state, result)
 
 
 def step_2_part_d_drugs():
-    """Load CMS Part D drugs for MS and VA."""
+    """Load CMS Part D drugs for MS and VA.
+
+    BUG-PIPE-009 fixes:
+    - Check if drugs already loaded before downloading
+    - Stream CSV line by line — never load entire file into memory
+    """
     log.info("=" * 60)
     log.info("STEP 2: Part D drug load for %s", STATES)
     log.info("=" * 60)
@@ -81,47 +86,94 @@ def step_2_part_d_drugs():
     from prescriber_load_worker import _group_drugs
     from pymongo import UpdateOne
 
+    coll = pipeline_client[f"{ENV_PREFIX}_PublicHealthData"]["providers"]
+
+    # Check if drugs already loaded for each state
+    states_needed = []
+    for state in STATES:
+        has_drugs = coll.count_documents({
+            "practice_address.state": state,
+            "can_prescribe.drugs": {"$exists": True},
+        })
+        total_prescribers = coll.count_documents({
+            "practice_address.state": state,
+            "can_prescribe.flagged": True,
+        })
+        if has_drugs > 0:
+            log.info("%s: %d/%d prescribers already have drugs — SKIPPING", state, has_drugs, total_prescribers)
+        else:
+            states_needed.append(state)
+            log.info("%s: no drugs loaded — will process", state)
+
+    if not states_needed:
+        log.info("All states already have Part D drugs — skipping download")
+        return
+
     url = "https://data.cms.gov/sites/default/files/2025-04/0d5915ce-002c-4d87-bde8-24ffb08bb6cc/MUP_DPR_RY25_P04_V10_DY23_NPIBN.csv"
 
-    log.info("Downloading CMS Part D CSV...")
+    log.info("Downloading and streaming CMS Part D CSV for %s...", states_needed)
     resp = requests.get(url, stream=True, timeout=600)
     resp.raise_for_status()
-    content = b""
-    for chunk in resp.iter_content(chunk_size=8 * 1024 * 1024):
-        content += chunk
-        if len(content) % (200 * 1024 * 1024) < 8 * 1024 * 1024:
-            log.info("  Downloaded %d MB...", len(content) // (1024 * 1024))
 
-    log.info("Download complete: %d MB. Parsing...", len(content) // (1024 * 1024))
-    text = content.decode("utf-8", errors="replace")
-    reader = csv.DictReader(io.StringIO(text))
+    # Stream line by line — never load entire file into memory
+    state_set = set(states_needed)
+    npis_by_state = {s: defaultdict(list) for s in states_needed}
+    header = None
+    line_buffer = ""
+    total_bytes = 0
+    rows_parsed = 0
 
-    state_set = set(STATES)
-    npis_by_state = {s: defaultdict(list) for s in STATES}
-
-    for row in reader:
-        state = (row.get("Prscrbr_State_Abrvtn") or "").strip().upper()
-        if state not in state_set:
+    for chunk in resp.iter_content(chunk_size=64 * 1024, decode_unicode=True):
+        if chunk is None:
             continue
-        npi = (row.get("Prscrbr_NPI") or "").strip()
-        if not npi:
-            continue
-        brand = (row.get("Brnd_Name") or "").strip()
-        generic = (row.get("Gnrc_Name") or "").strip()
-        try:
-            claims = int(row.get("Tot_Clms", 0))
-        except (ValueError, TypeError):
-            claims = 0
-        try:
-            benes = int(row.get("Tot_Benes", 0) or 0) if row.get("Tot_Benes", "").strip() not in ("", "*") else 0
-        except (ValueError, TypeError):
-            benes = 0
-        npis_by_state[state][npi].append({
-            "brand_name": brand,
-            "generic_name": generic,
-            "total_claims": claims,
-            "total_beneficiaries": benes,
-        })
+        line_buffer += chunk
+        total_bytes += len(chunk.encode("utf-8", errors="replace")) if isinstance(chunk, str) else len(chunk)
+
+        while "\n" in line_buffer:
+            line, line_buffer = line_buffer.split("\n", 1)
+            line = line.strip()
+            if not line:
+                continue
+
+            if header is None:
+                header = line.split(",")
+                continue
+
+            rows_parsed += 1
+            fields = line.split(",")
+            # Map by header position
+            row = {}
+            for i, h in enumerate(header):
+                if i < len(fields):
+                    row[h.strip().strip('"')] = fields[i].strip().strip('"')
+
+            state = (row.get("Prscrbr_State_Abrvtn") or "").strip().upper()
+            if state not in state_set:
+                continue
+            npi = (row.get("Prscrbr_NPI") or "").strip()
+            if not npi:
+                continue
+            brand = (row.get("Brnd_Name") or "").strip()
+            generic = (row.get("Gnrc_Name") or "").strip()
+            try:
+                claims = int(row.get("Tot_Clms", 0))
+            except (ValueError, TypeError):
+                claims = 0
+            try:
+                benes = int(row.get("Tot_Benes", 0) or 0) if row.get("Tot_Benes", "").strip() not in ("", "*") else 0
+            except (ValueError, TypeError):
+                benes = 0
+            npis_by_state[state][npi].append({
+                "brand_name": brand,
+                "generic_name": generic,
+                "total_claims": claims,
+                "total_beneficiaries": benes,
+            })
+
+        if total_bytes % (500 * 1024 * 1024) < 64 * 1024:
+            log.info("  Streamed %d MB, parsed %d rows...", total_bytes // (1024 * 1024), rows_parsed)
+
+    log.info("Stream complete: %d MB, %d rows parsed", total_bytes // (1024 * 1024), rows_parsed)
 
     coll = pipeline_client[f"{ENV_PREFIX}_PublicHealthData"]["providers"]
     for state in STATES:
