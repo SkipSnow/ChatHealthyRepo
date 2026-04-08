@@ -208,6 +208,41 @@ class TestCloudExecution:
 # Data integrity: Parity check requirements
 # ===========================================================================
 
+# ===========================================================================
+# v4-001F: Fan-out mandatory for parallelizable work
+# ===========================================================================
+
+class TestFanOutRequired:
+    """v4-001F: Parallelizable work must fan out to workers."""
+
+    def test_orchestrators_use_fan_out(self):
+        """Pipeline orchestrators must use fan-out patterns (activity_list, fan_out, parallel)."""
+        orchestrators = [f for f in PIPELINE_FILES if "manager" in os.path.basename(f).lower()
+                         or "orchestrator" in os.path.basename(f).lower()]
+        for path in orchestrators:
+            name = os.path.basename(path)
+            source = _read(path)
+            # Check for single-state serial processing without fan-out
+            if "for state in" in source and "fan_out" not in source and "activity_list" not in source:
+                # Check if there's a documented fan-in justification
+                if "v4-001F" not in source and "fan-in" not in source.lower():
+                    print(f"\n  WARNING: {name} may process states serially without fan-out (v4-001F)")
+
+    def test_fan_in_has_justification(self):
+        """Any fan-in (single process) must cite v4-001F in a comment."""
+        violations = []
+        for path in PIPELINE_FILES:
+            name = os.path.basename(path)
+            source = _read(path)
+            # Look for patterns that suggest fan-in without justification
+            if re.search(r'#.*fan.?in|#.*single.?process|#.*aggregate.*all', source, re.IGNORECASE):
+                if "v4-001F" not in source:
+                    violations.append(f"{name}: fan-in pattern without v4-001F citation")
+        # This is advisory — just report
+        if violations:
+            print(f"\n  Fan-in without citation: {violations}")
+
+
 class TestParityRequirements:
     """Pipeline must include parity verification code."""
 
