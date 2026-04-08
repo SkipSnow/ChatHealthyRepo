@@ -261,6 +261,12 @@
       "rule": "Every pytest must test every form of the thing being tested. A rename test must check the string, the filename, the imports, the comments, and the brain references. A memory fix test must assert bounded memory, not just API substitution. A compliance test must scan every file, not just one. Requirements must describe testable outcomes (e.g. \"must never hold more than 64KB in memory\"), not mechanisms (e.g. \"use streaming\").",
       "incident": "Pipeline v4 rename: test checked for string \"PrescriberPipeline\" but missed the filename overnight_pipeline.py. OOM fix: test checked that .readall() was removed but did not check that b\"\".join(chunks) reassembled the same data in memory.",
       "date": "2026-04-08"
+    },
+    {
+      "id": "DR-025",
+      "rule": "Never interrupt a pipeline job that is running as designed. But if you discover a bug in the running code, terminate the job immediately, deploy the fix, and rerun. The pipeline is idempotent — restarting with the fix is always faster than watching a broken job fail.",
+      "incident": "CopyToFrontEnd was stuck for 15+ minutes. Two deploys were blocked by the CI guard. Should have terminated immediately when the bug was identified, not waited for it to fail.",
+      "date": "2026-04-08"
     }
   ]
 }
