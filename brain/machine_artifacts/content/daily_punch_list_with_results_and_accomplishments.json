@@ -1,0 +1,77 @@
+{
+  "collection": "daily_punch_list",
+  "description": "Daily punch lists with results. Tracks what was planned, what was done, and what carried over. Source of truth for daily velocity and accountability.",
+  "entries": [
+    {
+      "date": "2026-04-07",
+      "mode": "Normal + Idiot",
+      "commits": 37,
+      "tonight_solo": {
+        "items": [
+          {"id": 1, "task": "Run quality pipeline on MS and VA (can_prescribe, Part D drugs, crosswalk, specialty normalization)", "status": "IN_PROGRESS"},
+          {"id": 2, "task": "CopyToFrontEnd — providers, SpecialtyMetaData, and provider_quality for DE, MS, CA, VA to frontend cluster", "status": "IN_PROGRESS"},
+          {"id": 3, "task": "Verify parity on all three collections across all four states", "status": "PENDING"}
+        ]
+      },
+      "tomorrow_plan": {
+        "date": "2026-04-08",
+        "items": [
+          {"id": 1, "task": "Deploy to dev.chathealthy.ai + configure PKI with Azure Key Vault", "status": "PENDING"},
+          {"id": 2, "task": "Test homeopathic resolver", "status": "PENDING"},
+          {"id": 3, "task": "Enhance Select providers to evaluate UX on FindCare (non-trivial)", "status": "PENDING"},
+          {"id": 4, "task": "Design and implement state handoff from FindCare to EvaluateCare", "status": "PENDING"},
+          {"id": 5, "task": "EvaluateCare scoring engine — wire real measures", "status": "PENDING"},
+          {"id": 6, "task": "SECURITY: mTLS on FindCare to EvaluateCare proxy + close HTTP port 80", "status": "PENDING"},
+          {"id": 7, "task": "End-to-end test: search, filter, evaluate, score, display", "status": "PENDING"}
+        ]
+      },
+      "completed_today": [
+        "Quality pipeline: crosswalk, cost measures, specialty normalization for DE",
+        "25,591 DE providers embedded on pipeline cluster (v0.3)",
+        "883 specialties classified (can_prescribe, homeopathic) via GPT-4.1-mini",
+        "SpecialtyMetaData copied to frontend with flags",
+        "Filter panel functionality: prescriber toggle, homeopathic toggle, scroll bar (UX not signed off)",
+        "Homeopathic resolver: Claude Sonnet 4.6, 37 specialties returned",
+        "Timer + Stop button in control frame (signed off)",
+        "start_local.bat: all services + TypeScript check + EvaluateCare",
+        "PKI certs per service with SANs",
+        "Session token: x509 signed, dual timestamp, obscured format (68 chars)",
+        "FindCare to EvaluateCare handoff: proxy, right panel, session verification",
+        "EvaluateCare server on :8001 with /evaluate/providers endpoint",
+        "UMLS license applied + GPT compliance review",
+        "Crosswalk builder: RxNorm + RxClass, no LLM, 929 molecules",
+        "EPIC-10 regression test framework",
+        "v4-023 (no code without backlog traceability), v4-024 (HF Space standards)",
+        "12 bugs found and fixed",
+        "HF spaces cleaned, QA paused",
+        "Two-model strategy: GPT-4.1-mini commodity, Claude Sonnet 4.6 reasoning",
+        "Specialty ranker built (disabled until tested)",
+        "IDEA-007: Zero-trust component communication logged"
+      ],
+      "open_items_carried": [
+        "BUG-LOAD-001: CopyToFrontEnd (fixing tonight)",
+        "Filter UX polish: three-number labels, sort order, layout",
+        "Homeopathic prompt template: two-step (mini extracts condition, Sonnet evaluates)",
+        "mTLS on FindCare to EvaluateCare production path"
+      ],
+      "bugs_logged": [
+        "BUG-LOAD-001: CopyToFrontEnd gap 2,843 vs 25,591 (SPRINT BLOCKER)",
+        "BUG-LOAD-002: Provider count query must give correct answer",
+        "BUG-LOAD-003: Source files must not be deleted from blob",
+        "BUG-UX-001: kids doc query stuck at Thinking (cold start)",
+        "BUG-UX-002: Left panel overflow hidden (FIXED)",
+        "BUG-UX-003: Stop button orphaned in chat (FIXED)",
+        "BUG-UX-004: Prescriber toggle re-render reset checkbox (FIXED)",
+        "BUG-BA-001: First number should be specialty types not providers",
+        "BUG-SEC-001: HF Spaces still use bearer tokens",
+        "BUG-LEGAL-001: CPT codes cannot be consumer-facing",
+        "DR-022: Never embed on frontend cluster",
+        "DR-023: No code without backlog traceability"
+      ],
+      "sign_offs": [
+        "UAT-UX-001: Timer + Stop button (Boss approved)",
+        "UAT-FILTER-001: Filter functionality (Boss approved, UX not approved)"
+      ]
+    }
+  ]
+}
