@@ -38,7 +38,7 @@ def _copy_collection(src_db, dst_db, src_coll: str, dst_coll: str, query: dict =
     label = src_coll if src_coll == dst_coll else f"{src_coll}→{dst_coll}"
     q = query or {}
 
-    total = src.count_documents(q)
+    total = src.count_documents(q) if q else src.estimated_document_count()
     existing = dst.estimated_document_count()  # instant, no collection scan
 
     if existing >= total and total > 0 and not q:
