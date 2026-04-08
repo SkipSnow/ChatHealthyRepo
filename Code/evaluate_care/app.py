@@ -108,6 +108,7 @@ def explain(body: ExplainRequest):
 class EvaluateProvidersRequest(BaseModel):
     providers: list[dict] = Field(..., description="List of provider records from FindCare")
     chat_history: list[dict] = Field(default=[], description="Full chat history")
+    session_token: dict | None = Field(default=None, description="Signed session token from FindCare")
     question_summary: str = Field(default="", description="Why the user needs evaluation")
 
 _last_evaluation = {"providers": [], "question": ""}
@@ -115,6 +116,22 @@ _last_evaluation = {"providers": [], "question": ""}
 @app.post("/evaluate/providers")
 def evaluate_providers(body: EvaluateProvidersRequest):
     """Accepts provider list from FindCare and displays them."""
+    # Verify session token
+    token_valid = False
+    token_origin = "unknown"
+    if body.session_token:
+        try:
+            import sys as _sys
+            _sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "Shared"))
+            os.environ.setdefault("CERTS_DIR", os.path.join(os.path.dirname(__file__), "..", "Shared", "ops", "certs"))
+            from session_token import verify_session_token
+            token_valid = verify_session_token(body.session_token, "FindCare")
+            token_origin = body.session_token.get("origin", "unknown")
+            _log.info("Session token: origin=%s valid=%s token=%s",
+                      token_origin, token_valid, body.session_token.get("token", "?")[:20])
+        except Exception as e:
+            _log.warning("Session token verification failed: %s", e)
+
     results = []
     for p in body.providers:
         results.append({
@@ -124,7 +141,8 @@ def evaluate_providers(body: EvaluateProvidersRequest):
         })
     _last_evaluation["providers"] = results
     _last_evaluation["question"] = body.question_summary or "Provider evaluation"
-    _log.info("Received %d providers from FindCare: %s", len(results), _last_evaluation["question"])
+    _log.info("Received %d providers from FindCare (token_valid=%s): %s",
+              len(results), token_valid, _last_evaluation["question"])
     return {
         "status": "received",
         "evaluated_providers": results,
