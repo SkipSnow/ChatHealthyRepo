@@ -53,17 +53,25 @@ echo    Vite started.
 echo.
 
 REM Start FindCare backend (uvicorn)
-echo [5/6] Starting FindCare backend (uvicorn on :8000)...
+echo [5/7] Starting FindCare backend (uvicorn on :8000)...
 start /B cmd /c "cd Code\ConversationalUX\FindCareChat\backend && python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload" >nul 2>&1
 timeout /t 3 /nobreak >nul
-echo    Backend started.
+echo    FindCare backend started.
+echo.
+
+REM Start EvaluateCare backend (uvicorn)
+echo [6/7] Starting EvaluateCare backend (uvicorn on :8001)...
+start /B cmd /c "cd Code && python -m uvicorn evaluate_care.app:app --host 0.0.0.0 --port 8001" >nul 2>&1
+timeout /t 3 /nobreak >nul
+echo    EvaluateCare backend started.
 echo.
 
 REM Verify
-echo [6/6] Verifying services...
+echo [7/7] Verifying services...
 curl -sk https://localhost/ >nul 2>&1 && echo    [OK] Website on https://localhost || echo    [FAIL] Website
 curl -s http://localhost:5173/ >nul 2>&1 && echo    [OK] React on http://localhost:5173 || echo    [FAIL] React
-curl -s http://localhost:8000/health >nul 2>&1 && echo    [OK] Backend on http://localhost:8000 || echo    [FAIL] Backend
+curl -s http://localhost:8000/health >nul 2>&1 && echo    [OK] FindCare on http://localhost:8000 || echo    [FAIL] FindCare
+curl -s http://localhost:8001/health >nul 2>&1 && echo    [OK] EvaluateCare on http://localhost:8001 || echo    [FAIL] EvaluateCare
 echo.
 
 echo ============================================
