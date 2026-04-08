@@ -541,6 +541,34 @@ def copy_chunk(config: dict) -> dict:
         frontend_client.close()
 
 
+def copy_providers_only(config: dict) -> dict:
+    """Copy ONLY providers (no static collections). Minimal overhead for large state copies."""
+    pipeline_conn = os.environ.get("MONGO_connectionString")
+    frontend_conn = os.environ.get("MONGO_FRONTEND_connectionString")
+    if not pipeline_conn or not frontend_conn:
+        raise ValueError("Both connection strings required")
+
+    env_prefix = config.get("env_prefix", "dev")
+    db_name = f"{env_prefix}_PublicHealthData" if env_prefix else "PublicHealthData"
+    states = config.get("states", [])
+    if not states:
+        return {"error": "states list required"}
+
+    query = {"practice_address.state": {"$in": states}}
+
+    pipeline_client = MongoClient(pipeline_conn, serverSelectionTimeoutMS=60_000)
+    frontend_client = MongoClient(frontend_conn, serverSelectionTimeoutMS=60_000)
+    try:
+        result = _copy_collection(
+            pipeline_client[db_name], frontend_client[db_name],
+            "providers", "providers", query=query,
+        )
+        return {"status": "complete", "result": result}
+    finally:
+        pipeline_client.close()
+        frontend_client.close()
+
+
 def verify_parity(config: dict) -> dict:
     """Verify source and destination counts match for providers and all static collections.
 
