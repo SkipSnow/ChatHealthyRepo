@@ -433,6 +433,54 @@ def health():
         _log.error("HEALTH CHECK: missing indexes — %s", idx_check["missing"])
     return result
 
+# ── Session token — signed with FindCare's x509 cert ──────────
+@app.get("/session")
+def get_session():
+    """Generate a signed session token for this browser session.
+    Client stores it in memory, passes it on cross-component calls."""
+    try:
+        import sys as _sys
+        _sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared"))
+        os.environ.setdefault("CERTS_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs"))
+        from session_token import generate_session_token
+        token = generate_session_token("FindCare")
+        return token
+    except Exception as e:
+        _log.warning("Session token generation failed: %s — returning unsigned", e)
+        import uuid
+        return {"origin": "FindCare", "token": f"CH_{uuid.uuid4().hex}", "signature": None, "signed": False}
+
+# ── Evaluate proxy — FindCare backend → EvaluateCare over mTLS ──
+class EvaluateRequest(BaseModel):
+    providers: list[dict] = []
+    session_token: Optional[dict] = None
+    question_summary: str = ""
+
+@app.post("/evaluate/providers")
+def evaluate_proxy(body: EvaluateRequest):
+    """Proxy evaluate call through FindCare → EvaluateCare.
+    In production: mTLS with FindCare client cert.
+    For alpha: direct HTTP to localhost:8001."""
+    import requests as _req
+    evalcare_url = os.getenv("EVALCARE_URL", "http://localhost:8001")
+    try:
+        resp = _req.post(
+            f"{evalcare_url}/evaluate/providers",
+            json={
+                "providers": body.providers,
+                "session_token": body.session_token,
+                "question_summary": body.question_summary,
+            },
+            timeout=10,
+            # TODO: Add mTLS client cert for production
+            # cert=("certs/findcare.crt", "certs/findcare.key"),
+            # verify="certs/ca.crt",
+        )
+        return resp.json()
+    except Exception as e:
+        _log.error("EvaluateCare proxy failed: %s", e)
+        return {"status": "error", "error": str(e)}
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, request: Request):
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (

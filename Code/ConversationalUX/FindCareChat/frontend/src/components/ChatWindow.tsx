@@ -24,10 +24,19 @@ const LOADING_MESSAGE: Message = {
   content: 'Loading...',
 }
 
-// Session token — ephemeral, in-memory only, dies with the tab.
-// TODO: Move generation to FindCare backend, encrypt before sending to client.
-// Client carries the opaque blob, EvaluateCare decrypts. For alpha: plaintext GUID.
-const SESSION_TOKEN = `CH_${crypto.randomUUID()}`
+// Session token — fetched from FindCare backend, signed with x509 cert.
+// Client carries the opaque signed blob, passes it on cross-component calls.
+let _sessionToken: any = null
+async function getSessionToken(apiUrl: string) {
+  if (_sessionToken) return _sessionToken
+  try {
+    const resp = await fetch(`${apiUrl}/session`)
+    _sessionToken = await resp.json()
+  } catch {
+    _sessionToken = { origin: 'FindCare', token: `CH_${crypto.randomUUID()}`, signed: false }
+  }
+  return _sessionToken
+}
 
 export default function ChatWindow() {
   const [messages, setMessages] = useState<Message[]>([LOADING_MESSAGE])
@@ -233,14 +242,18 @@ export default function ChatWindow() {
         content: '**Evaluating providers...**',
       }])
 
-      fetch(`${EVALCARE_URL}/evaluate/providers`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          providers,
-          session_token: SESSION_TOKEN,
-          question_summary: `Provider evaluation requested — ${providers.length} providers`,
-        }),
+      // Route through FindCare backend proxy (not browser → EvaluateCare direct)
+      // FindCare backend forwards to EvaluateCare with mTLS in production
+      getSessionToken(API_URL).then(sessionToken => {
+        return fetch(`${API_URL}/evaluate/providers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            providers,
+            session_token: sessionToken,
+            question_summary: `Provider evaluation requested — ${providers.length} providers`,
+          }),
+        })
       })
         .then(r => r.json())
         .then(data => {
