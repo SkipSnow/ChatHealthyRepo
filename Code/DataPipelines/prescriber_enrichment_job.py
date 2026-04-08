@@ -96,7 +96,10 @@ def _load_oig_exclusions(blob_name="oig_leie_latest.csv", container="provider-da
         blob_service = get_blob_service()
         blob_client = blob_service.get_blob_client(container, blob_name)
         stream = blob_client.download_blob()
-        content = stream.readall().decode("utf-8", errors="replace")
+        chunks = []
+        for chunk in stream.chunks():
+            chunks.append(chunk)
+        content = b"".join(chunks).decode("utf-8", errors="replace")
 
         excluded_npis = set()
         reader = csv.DictReader(io.StringIO(content))
@@ -120,7 +123,10 @@ def _load_sam_exclusions(blob_name="sam_exclusion_latest.csv", container="provid
         blob_service = get_blob_service()
         blob_client = blob_service.get_blob_client(container, blob_name)
         stream = blob_client.download_blob()
-        content = stream.readall().decode("utf-8", errors="replace")
+        chunks = []
+        for chunk in stream.chunks():
+            chunks.append(chunk)
+        content = b"".join(chunks).decode("utf-8", errors="replace")
 
         excluded_npis = set()
         reader = csv.DictReader(io.StringIO(content))

@@ -1,6 +1,6 @@
 {
   "collection": "architecture",
-  "record_count": 11,
+  "record_count": 14,
   "records": [
     {
       "title": "Discuss Care — Business Component Definition",
@@ -2965,6 +2965,1899 @@
       "_record_id": "bizops_infrastructure",
       "_source_file": "bizops_infrastructure.json",
       "publish": false
+    },
+    {
+      "_record_id": "pipeline_architecture_v2",
+      "title": "Pipeline Architecture v2 -- Consensus Design (Claude + GPT-4.1)",
+      "date": "2026-04-07",
+      "authors": [
+        "Claude Opus 4.6 (Principal Engineer)",
+        "GPT-4.1 (Enterprise Architect)"
+      ],
+      "status": "APPROVED_DESIGN",
+      "design_process": {
+        "method": "25-iteration adversarial design review",
+        "iterations": 25,
+        "model_used": "gpt-4.1",
+        "consensus_reached": true
+      },
+      "overview": "Comprehensive pipeline architecture for healthcare data processing. Addresses NPPES provider data (10.6GB), CMS Part D prescriber data (3.7GB), OIG/SAM exclusion lists, and molecule-to-indication crosswalk. Designed for Azure Functions (Durable), MongoDB Atlas, Azure Blob Storage.",
+      "priority_goals": [
+        "1. RELIABILITY -- pipeline must complete or resume from last checkpoint. No data loss. Parity verification mandatory.",
+        "2. SPEED -- parallel where possible. Fan-out per state. Download in parallel. Process in parallel.",
+        "3. COST -- minimize compute time on Azure Functions. Minimize MongoDB Atlas cluster uptime. Pause when not running."
+      ],
+      "architecture": {
+        "1_pipeline_topology": {
+          "description": "Two independent pipelines sharing infrastructure",
+          "provider_pipeline": "NPPES download -> partition -> load -> county enrichment (6 passes) -> embed -> ship",
+          "prescriber_evaluate_care_pipeline": "CMS Part D download -> load -> crosswalk enrichment -> OIG/SAM flags -> specialty normalization -> embed",
+          "shared_ship_step": "CopyToFrontEnd with parity verification"
+        },
+        "2_orchestration": {
+          "pattern": "Azure Durable Functions -- orchestrator/activity separation",
+          "top_level": "MasterPipelineOrchestrator sequences Provider then Prescriber",
+          "sub_orchestrators": "Each pipeline stage is a sub-orchestrator with fan-out/fan-in",
+          "deterministic_replay": "All I/O in activity functions only. Orchestrators are pure state machines.",
+          "checkpoint": "Automatic checkpoint at every yield (Durable Functions built-in)",
+          "start_step": "Resume from any stage via start_step parameter",
+          "v4_001": "Pipeline runs on Azure Functions, not local machines"
+        },
+        "3_download_layer": {
+          "pattern": "DataFetcherBase with ETag + SHA-256 guard",
+          "streaming": "Stream to Azure Blob Storage (ADLS Gen2), never full file in memory",
+          "parallel_downloads": "NPPES, CMS Part D, OIG, SAM, RxNorm fetched concurrently via task_all",
+          "blob_naming": "{source}_{version}.{ext}",
+          "resumable": "Range reads with checkpoint-aware logic; resume from last successful byte on failure",
+          "snapshot_manifest": "Pipeline-level manifest tracks all input files with ETag/SHA/version for consistency"
+        },
+        "4_processing_layer": {
+          "provider_load": {
+            "method": "Byte-aligned CSV partitioning -> N workers fan-out via task_all",
+            "default_workers": 32,
+            "partitioning": "Newline-aligned boundaries computed from blob byte ranges",
+            "idempotent": "Upsert by NPI, safe to re-run"
+          },
+          "prescriber_load": {
+            "method": "Streaming CSV reader with chunked reads",
+            "memory_safety": "Never load full file in memory. O(1) per-row memory. Hard process-level RAM quotas.",
+            "pre_ingest_dry_run": "Scan first N rows to estimate row width, cardinality, memory footprint. Refuse ingest or force chunking if risk detected.",
+            "chunking": "Adaptive chunk size (default 100MB or 100k rows, whichever first). Dynamic adjustment based on observed RAM usage."
+          },
+          "worker_pattern": "PipelineWorkerBase template method (Gang of Four) for all batch workers",
+          "chunk_state_machine": "Each chunk has explicit state: pending -> in_progress -> complete -> verified | failed"
+        },
+        "5_enrichment_layer": {
+          "county_enrichment": {
+            "passes": [
+              "Pass 1: ZIP-based bulk crosswalk (updateMany per ZIP, res_ratio >= 0.98)",
+              "Pass 2: Census Geocoder batch API (practice address)",
+              "Pass 3: Census Geocoder batch API (billing address)",
+              "Pass 4: Google Maps Geocoding (practice address, paid, optional)",
+              "Pass 5: Google Maps Geocoding (billing address, paid, optional)",
+              "Pass 6: NPPES public registry lookup by NPI"
+            ],
+            "fan_out": "Workers claim unclaimed records via atomic findAndModify with lease/heartbeat"
+          },
+          "crosswalk": {
+            "method": "RxNorm API -> molecule -> indication -> ICD-10 mapping",
+            "cache": "All lookups cached in drug_crosswalk_cache with TTL",
+            "deterministic": "Replaces LLM-based mapping. Auditable."
+          },
+          "exclusions": "OIG LEIE + SAM.gov NPI-level exclusion flag merge",
+          "specialty": "Peer benchmark computation with 5% bands",
+          "fault_tolerance": {
+            "circuit_breaker": "If API errors exceed threshold, skip non-critical enrichments. Log all skipped IDs.",
+            "dead_letter": "Irrecoverable records queued for scheduled retry",
+            "quota_aware": "Monitor API quota usage, pause/slow before hard quota hit",
+            "enrichment_status_field": "Every record carries enrichment_status field for downstream awareness"
+          }
+        },
+        "6_embedding_layer": {
+          "fan_out": "N workers, each claims unclaimed records via atomic findAndModify with lease",
+          "model": "text-embedding-3-large (3072d) for providers",
+          "rate_limiting": "Exponential backoff with jitter",
+          "DR_022": "Never embed on frontend cluster",
+          "version_stamping": "embedding_version + embedding_model on every record",
+          "vector_db_strategy": {
+            "current": "MongoDB Atlas Vector Search (pipeline cluster)",
+            "migration_path": "Evaluate external vector DB (Pinecone, Qdrant, Azure Cognitive Search) if RAM pressure exceeds 150%",
+            "monitoring": "Explicit RAM and performance monitoring with alerts for capacity/latency issues",
+            "offload": "Bulk upload to external vector DB, delete from MongoDB after confirmed upload"
+          }
+        },
+        "7_ship_layer": {
+          "method": "CopyToFrontEnd with staged collection pattern",
+          "staged_copy": "Write to staging collection (never live), verify all chunks, then atomic swap/rename",
+          "chunk_workers": "Partition source by _id ranges -> fan-out chunk workers across clusters",
+          "parity_verification": {
+            "count": "Source count == destination count",
+            "hash_spot_check": "Hash first/last 1000 records for integrity",
+            "field_sampling": "Random field-level spot checks"
+          },
+          "vector_indexes": "Create vector search indexes on frontend after copy",
+          "BUG_LOAD_001_fix": "Per-chunk transactional checkpointing. Never declare success until parity verified.",
+          "zero_downtime": "Collection swap pattern -- old collection available until new is verified"
+        },
+        "8_cluster_lifecycle": {
+          "manager": "ClusterLifecycleManager -- reserve -> wake -> poll IDLE -> work -> release -> pause",
+          "pipeline_cluster": "Paused when idle (cost saving)",
+          "frontend_cluster": "Runs 24/7",
+          "overdue_timer": "5-min check for overdue reservations + alerts",
+          "kill_switch": "Force-release for Boss"
+        },
+        "9_checkpoint_restart": {
+          "durable_functions": "Automatic checkpoint at every yield (built-in replay)",
+          "start_step": "Skip completed stages on restart",
+          "idempotent_activities": "ETag guards, upserts, deterministic chunk IDs",
+          "per_worker_metadata": "admin.DataLoadMetadata tracks each worker",
+          "chunk_level": "Per-chunk checkpointing with explicit state machine",
+          "commit_log": "Append-only log for multi-destination chunk promotions (deferred to 50-state scale)"
+        },
+        "10_environment_isolation": {
+          "GOV_012": "dev_ -> qa_ -> prod_ database prefixes",
+          "promotion": "Forward-only via $out aggregation (same cluster, no wire transfer)",
+          "connection_strings": "Environment-scoped, separate per deployment",
+          "read_only_prod": "Enforce read-only access on prod sources during testing"
+        },
+        "11_monitoring_observability": {
+          "step_status": "context.set_custom_status for step-level progress",
+          "row_errors": "PipelineDiscrepancyReport for row-level errors",
+          "reconciliation": "Expected vs actual record counts after every batch step",
+          "alerts": "SparkPost email on completion/failure",
+          "distributed_tracing": "OpenTelemetry for context propagation across pipeline stages",
+          "worker_heartbeats": "Each worker emits heartbeat; orchestrator kills/requeues expired workers",
+          "dashboards": "Operator dashboards for ingest backlog, throttle status, pipeline pauses"
+        },
+        "12_data_quality": {
+          "reconciliation": "After every batch step, not just at Ship",
+          "row_error_tracking": "PipelineWorkerBase accumulates row_errors",
+          "state_filter": "BUG-PIPE-001: mandatory state filter",
+          "stratified_sampling": "Audit samples edge cases (rare ZIPs, specialties, exclusions)",
+          "known_test_records": "Synthetic known-good/known-bad records injected every run",
+          "anomaly_detection": "Outlier detection on output distributions with alarms",
+          "schema_drift": "Abort pipeline on schema mismatch (with manual override for hotfixes)"
+        },
+        "13_security": {
+          "secrets": "Azure Key Vault / Function App settings, never hardcoded",
+          "rotation": "Automated secrets rotation with mid-run refresh hooks",
+          "audit": "All data access logged for compliance"
+        }
+      },
+      "parked_items": [
+        {
+          "topic": "External Vector DB vs MongoDB Atlas Vector Search",
+          "claude_position": "Keep MongoDB Atlas Vector Search for now. Current 1.3M providers with 3072d vectors is within Atlas M30 capacity if indexes are only on frontend cluster. The 199% RAM issue is because vector indexes were on the pipeline cluster (which is undersized). Moving to external DB adds operational complexity and cost for marginal benefit at current scale.",
+          "gpt_position": "Mandate external vector DB immediately. MongoDB Atlas Vector Search is not designed for massive, high-dimensional, write-heavy workloads. RAM pressure will only grow as states are added. Move to Pinecone, Qdrant, or Azure Cognitive Search now.",
+          "resolution": "PARKED. Monitor RAM on frontend cluster after pipeline cluster vector indexes are removed. If frontend cluster RAM exceeds 80%, evaluate external vector DB. Re-evaluate at 2M providers.",
+          "disagreement_count": 5
+        },
+        {
+          "topic": "Parquet as Canonical Intermediate Format vs Direct CSV-to-MongoDB",
+          "claude_position": "Adding Parquet as an intermediate format adds significant complexity (new dependencies, format conversion, Parquet writer/reader infrastructure) for a pipeline that currently processes 4 states. The CSV-to-MongoDB path works and is well-understood. Parquet makes sense at 10x scale.",
+          "gpt_position": "Parquet should be the canonical format from day one. It is natively splittable, schema-aware, columnar, and cloud-native. CSV is fragile (encoding, quoting, field splitting). Investment now prevents costly migration later.",
+          "resolution": "PARKED. Current pipeline continues with CSV-to-MongoDB. Add Parquet conversion as a future sprint item when scaling to all 50 states. Schema registry concept is adopted for metadata tracking regardless.",
+          "disagreement_count": 4
+        },
+        {
+          "topic": "Distributed Commit Log (CosmosDB) vs MongoDB-based Checkpointing",
+          "claude_position": "MongoDB admin collections are sufficient for checkpoint state. Adding CosmosDB as a commit log introduces a new service dependency, new cost, and new failure mode. The pipeline already uses Durable Functions for orchestration state.",
+          "gpt_position": "MongoDB is not designed for high-throughput, low-latency commit log workloads. CosmosDB or an append-only ADLS log provides stronger consistency guarantees and avoids circular dependency (checkpointing in the same DB being written to).",
+          "resolution": "PARKED. Keep MongoDB checkpointing for now. If checkpoint writes become a bottleneck or cause contention with data writes, evaluate ADLS append-only log as alternative. Durable Functions replay is the primary checkpoint mechanism.",
+          "disagreement_count": 3
+        },
+        {
+          "topic": "Schema Registry Service vs Schema-in-Code",
+          "claude_position": "A full schema registry service is over-engineering for 4 data sources (NPPES, CMS Part D, OIG, SAM) that change schemas at most annually. Schema validation in code (field count check, header match) is sufficient.",
+          "gpt_position": "A schema registry is essential for contract enforcement, drift detection, and automated compatibility testing. Even with few sources, schema drift is a real risk and causes silent data corruption.",
+          "resolution": "COMPROMISE. Implement lightweight schema validation in code (header match + field count + type checks). Store schema fingerprints (SHA-256) per batch in admin.DataLoadMetadata. Defer full registry service to all-50-states scale.",
+          "disagreement_count": 3
+        },
+        {
+          "topic": "Complexity vs Pragmatism",
+          "claude_position": "The architecture should be as simple as possible for current scale (1.3M providers, 4 states). Many GPT recommendations (multi-region active-active, ADLS Gen2 landing zones, distributed commit logs, schema registries) are appropriate for enterprise scale but premature for a startup processing 4 states.",
+          "gpt_position": "Building for scale from day one prevents costly rewrites. Healthcare data grows rapidly. The cost of retrofitting fault tolerance is higher than building it in.",
+          "resolution": "COMPROMISE. Adopt the core reliability patterns (chunked streaming, checkpoint/restart, parity verification, circuit breakers) now. Defer enterprise-scale infrastructure (multi-region, external vector DB, schema registry service, distributed commit log) to the all-50-states milestone.",
+          "disagreement_count": 4
+        }
+      ],
+      "consensus_decisions": [
+        "Streaming CSV processing with O(1) per-row memory for all files > 200MB",
+        "Byte-aligned partitioning for NPPES provider data with parallel workers",
+        "DataFetcherBase pattern with ETag + SHA-256 for download deduplication",
+        "Snapshot manifest tracking all input files for consistency",
+        "Chunk-level state machine (pending -> in_progress -> complete -> verified | failed)",
+        "Staged collection pattern for CopyToFrontEnd (never write to live collection)",
+        "Parity verification (count + hash spot checks) before declaring Ship success",
+        "Worker lease/heartbeat pattern for claiming records in enrichment and embedding",
+        "Circuit breaker pattern for external API enrichment",
+        "Exponential backoff with jitter for all external API calls",
+        "Dead-letter queues for irrecoverable enrichment failures",
+        "ClusterLifecycleManager for pipeline cluster pause/resume",
+        "Durable Functions replay as primary checkpoint mechanism",
+        "Per-worker metadata in admin.DataLoadMetadata",
+        "OpenTelemetry integration for distributed tracing",
+        "Known-good/known-bad test records injected per pipeline run",
+        "Stratified sampling in data quality audits (not just random)",
+        "Anomaly detection on output distributions",
+        "Environment isolation: dev_ -> qa_ -> prod_ (forward only)",
+        "DR-022: Never embed on frontend cluster",
+        "v4-001: Pipeline runs on Azure Functions, not local machines",
+        "Reconciliation after every batch step, not just at Ship",
+        "Schema fingerprint (SHA-256) stored per batch for drift detection",
+        "Pre-ingest dry run for new/large files to estimate resource needs",
+        "Hard process-level RAM quotas via cgroups or container limits"
+      ],
+      "bug_fixes": {
+        "BUG_LOAD_001": "CopyToFrontEnd partial copy fixed by: (1) staged collection pattern, (2) per-chunk checkpointing, (3) mandatory parity verification before swap",
+        "OOM_3_7GB": "CMS Part D OOM fixed by: (1) streaming CSV parser with O(1) per-row memory, (2) chunking to 100MB max, (3) hard process RAM quota, (4) pre-ingest dry run",
+        "RE_DOWNLOAD": "Fixed by DataFetcherBase ETag + SHA-256 guard + snapshot manifest",
+        "LOCAL_EXECUTION": "v4-001: Pipeline must run on Azure Functions. Local execution blocked by health check activity.",
+        "NO_PARALLEL": "Fixed by fan-out/fan-in pattern: parallel downloads, parallel workers, parallel enrichment",
+        "NO_CHECKPOINT": "Fixed by Durable Functions replay + start_step + per-chunk state machine",
+        "VECTOR_RAM_199": "Fixed by: (1) remove vector indexes from pipeline cluster, (2) vector indexes only on frontend cluster, (3) monitor RAM, evaluate external vector DB at 2M providers"
+      },
+      "iteration_summary": {
+        "iterations_1_5": "Established core architecture. GPT identified OOM, partial copy, and vector RAM as critical. Added streaming enforcement, staged copy pattern, worker heartbeats.",
+        "iterations_6_10": "Added circuit breaker pattern, dead-letter queues, quota-aware scheduling, schema drift detection, pre-ingest dry run, chunk-level state machine.",
+        "iterations_11_15": "Debated external vector DB vs Atlas (parked). Added distributed tracing (OpenTelemetry), known-good/known-bad test records, anomaly detection, stratified sampling.",
+        "iterations_16_20": "Debated Parquet canonical format (parked). Added commit log concept, two-phase commit for multi-destination. Claude pushed back on complexity; adopted pragmatic compromise.",
+        "iterations_21_25": "Final refinements. GPT flagged operational complexity as top concern. Agreed to defer enterprise-scale patterns to 50-state milestone. Finalized parked items list."
+      }
+    },
+    {
+      "_record_id": "pipeline_architecture_v3",
+      "title": "Pipeline Architecture v3 -- Final Canonical Design (Claude + GPT-4.1)",
+      "date": "2026-04-07",
+      "authors": [
+        "Claude Opus 4.6 (Principal Engineer)",
+        "GPT-4.1 (Enterprise Architect)"
+      ],
+      "status": "APPROVED_FINAL",
+      "design_process": {
+        "method": "25-iteration adversarial design review",
+        "iterations": 25,
+        "model_used": "gpt-4.1",
+        "consensus_reached": true
+      },
+      "overview": "v3 establishes Parquet as the canonical intermediate format, implements dual logging (ADLS commit log + MongoDB checkpoint), and mandates full reliability patterns. All previously parked items are resolved per Boss's direction. The pipeline is ready for 50-state scale, with explicit migration, rollback, and operational runbooks.",
+      "priority_goals": [
+        "1. RELIABILITY -- pipeline must complete or resume from last checkpoint. No data loss. Parity verification mandatory.",
+        "2. SPEED -- parallel where possible. Fan-out per state. Download in parallel. Process in parallel.",
+        "3. COST -- minimize compute time on Azure Functions. Minimize MongoDB Atlas cluster uptime. Pause when not running.",
+        "4. COMPLIANCE -- full audit trail, encryption at rest, RBAC, and PII minimization."
+      ],
+      "architecture": {
+        "1_pipeline_topology": {
+          "description": "Two independent pipelines sharing infrastructure",
+          "provider_pipeline": "NPPES download -> partition -> Parquet conversion -> load -> county enrichment (6 passes) -> embed -> ship",
+          "prescriber_evaluate_care_pipeline": "CMS Part D download -> Parquet conversion -> load -> crosswalk enrichment -> OIG/SAM flags -> specialty normalization -> embed",
+          "shared_ship_step": "CopyToFrontEnd with parity verification"
+        },
+        "2_orchestration": {
+          "pattern": "Azure Durable Functions -- orchestrator/activity separation",
+          "top_level": "MasterPipelineOrchestrator sequences Provider then Prescriber",
+          "sub_orchestrators": "Each pipeline stage is a sub-orchestrator with fan-out/fan-in",
+          "deterministic_replay": "All I/O in activity functions only. Orchestrators are pure state machines.",
+          "checkpoint": "Automatic checkpoint at every yield (Durable Functions built-in)",
+          "start_step": "Resume from any stage via start_step parameter",
+          "v4_001": "Pipeline runs on Azure Functions, not local machines"
+        },
+        "3_download_layer": {
+          "pattern": "DataFetcherBase with ETag + SHA-256 guard",
+          "streaming": "Stream to Azure Blob Storage (ADLS Gen2), never full file in memory",
+          "parallel_downloads": "NPPES, CMS Part D, OIG, SAM, RxNorm fetched concurrently via task_all",
+          "blob_naming": "{source}_{version}.{ext}",
+          "resumable": "Range reads with checkpoint-aware logic; resume from last successful byte on failure",
+          "snapshot_manifest": "Pipeline-level manifest tracks all input files with ETag/SHA/version for consistency"
+        },
+        "4_parquet_layer": {
+          "conversion": {
+            "input": "CSV files from ADLS Gen2",
+            "output": "Parquet files (zstd compression, 256MB target chunk size)",
+            "partitioning": "Partitioned by state and batch (e.g., nppes_CA_20260408_v1_part0001.parquet)",
+            "schema_tracking": "Schema fingerprint (SHA-256) and version stored in admin.SchemaFingerprints",
+            "file_format": "Parquet v2.0, zstd, UTF-8, nullable fields, logical types for dates/booleans"
+          },
+          "schema_evolution": {
+            "strategy": "Schema evolution via additive fields only; breaking changes abort pipeline with alert. Breaking changes require operator review. If override is needed, operator must document the schema diff and manually update downstream code/schema before resuming pipeline. Automated schema migration tooling is deferred until >10 data sources.",
+            "registry": "Lightweight: schema fingerprint + field/type check in code"
+          },
+          "parquet_storage": {
+            "container": "adls2://pipeline-data/parquet/",
+            "encryption": "Azure SSE by default; CMK optional"
+          },
+          "parquet_to_mongo_load": {
+            "method": "Streaming Parquet reader (pyarrow) with chunked ingest to MongoDB",
+            "memory_safety": "O(1) per-row memory, 256MB max per chunk",
+            "pre_ingest_dry_run": "Row count, schema fingerprint, and sample validation before load"
+          },
+          "partitioning_detail": {
+            "NPPES": "Partitioned by state (state_abbr), year (file_version), and optionally by first letter of NPI for large states. Example path: nppes/state=CA/year=2026/npi_prefix=A/part-0001.parquet",
+            "CMS_Part_D": "Partitioned by state (state_abbr), year (file_version). Example path: cms_partd/state=NY/year=2026/part-0001.parquet",
+            "OIG/SAM": "Single partition per source per year unless file size > 1GB, then partition by hash prefix of NPI.",
+            "crosswalk": "Partitioned by molecule or indication as needed for parallel enrichment."
+          },
+          "schema_validation": {
+            "fingerprinted_items": [
+              "1. Raw CSV header row (as loaded, before normalization)",
+              "2. Normalized schema object (ordered list of field names and types, e.g., [{name: 'npi', type: 'string'}, ...])"
+            ],
+            "fingerprint_algorithm": "SHA-256 (hex encoded, UTF-8 input)",
+            "storage": {
+              "admin.SchemaFingerprints": {
+                "fields": {
+                  "_id": "string (source_name + version or date)",
+                  "source_name": "string (e.g., 'NPPES', 'CMS_PartD')",
+                  "raw_header": "string[]",
+                  "normalized_schema": "object[] (ordered list of {name, type})",
+                  "raw_header_fingerprint": "string (SHA-256)",
+                  "normalized_schema_fingerprint": "string (SHA-256)",
+                  "created_at_utc": "ISO8601 string"
+                }
+              },
+              "admin.DataLoadMetadata": {
+                "fields": {
+                  "pipeline_name": "string",
+                  "run_id": "string",
+                  "source_name": "string",
+                  "batch_id": "string",
+                  "raw_header_fingerprint": "string (SHA-256)",
+                  "normalized_schema_fingerprint": "string (SHA-256)"
+                }
+              }
+            },
+            "on_fingerprint_mismatch": {
+              "default": "Hard abort pipeline step, raise alert to ops@chathealthy.ai, log event in commit log.",
+              "override": "Allow manual override via pipeline parameter (e.g., allow_schema_mismatch=true) for hotfixes. All overrides are logged and require explicit operator justification."
+            },
+            "validation_function_signature": "def validate_and_fingerprint_schema(raw_header: List[str], expected_normalized_schema: List[Dict[str, str]], allow_override: bool = False) -> Tuple[bool, str, str]"
+          },
+          "file_naming": {
+            "pattern": "{source}_{state}_{year}{month}{day}_v{version}_part{partition:04d}.parquet",
+            "examples": [
+              "nppes_CA_20260408_v1_part0001.parquet",
+              "cms_partd_NY_20260408_v2_part0003.parquet"
+            ],
+            "fields": {
+              "source": "nppes | cms_partd | oig | sam",
+              "state": "Two-letter state abbreviation or 'ALL' if not state-specific",
+              "year/month/day": "Ingest date (UTC)",
+              "version": "Monotonic version for re-ingests on same day",
+              "partition": "Zero-padded partition number"
+            }
+          },
+          "row_group_config": {
+            "target_bytes": 128000000,
+            "target_rows": 500000,
+            "rationale": "128MB row groups optimize for cloud read throughput and are compatible with Spark/Synapse. 500k rows is a secondary guard for variable-width records."
+          },
+          "compression": {
+            "codec": "zstd",
+            "rationale": "zstd offers better compression ratios and decompression speed than snappy or gzip, is natively supported by pyarrow, and is optimal for healthcare tabular data with moderate cardinality."
+          },
+          "schema_evolution_detail": {
+            "strategy": "Schema evolution is handled via Parquet's built-in support for optional columns. Each Parquet file stores the exact schema used for that batch in file metadata.",
+            "process": [
+              "1. On ingest, detect schema changes by comparing normalized schema fingerprint to previous batches.",
+              "2. If new columns are added, Parquet files include them as nullable fields.",
+              "3. If columns are dropped, they are omitted from new files; readers must handle missing fields as null.",
+              "4. All schema changes are logged in admin.SchemaFingerprints and referenced in the conversion manifest.",
+              "5. Downstream readers must use schema merging when reading multiple files across schema versions."
+            ],
+            "backward_compatibility": "Always prefer additive (new nullable columns) or reorder-tolerant changes. Breaking changes (type changes, column drops) require operator approval and are blocked by default."
+          },
+          "ParquetWriter_interface": {
+            "class_name": "ParquetWriter",
+            "methods": {
+              "__init__": {
+                "params": [
+                  "output_path: str",
+                  "schema: pyarrow.Schema",
+                  "compression: str = 'zstd'",
+                  "row_group_size_bytes: int = 128_000_000",
+                  "row_group_size_rows: int = 500_000"
+                ],
+                "description": "Initialize writer with output path, schema, and config."
+              },
+              "write_batch": {
+                "params": [
+                  "records: List[dict]"
+                ],
+                "description": "Append a batch of records. Splits into row groups as needed."
+              },
+              "finalize": {
+                "params": [],
+                "description": "Flush all buffers, close the Parquet file, and write manifest/metadata."
+              },
+              "get_schema_fingerprint": {
+                "params": [],
+                "returns": "str (SHA-256 of normalized schema)",
+                "description": "Return the schema fingerprint for this file."
+              }
+            },
+            "error_handling": {
+              "on_schema_mismatch": "Raise SchemaMismatchError and abort conversion unless allow_override is set.",
+              "on_io_error": "Retry up to 3 times with exponential backoff; log all failures to commit log and abort if persistent.",
+              "on_partial_write": "Write recovery marker and alert ops; do not proceed to downstream steps until resolved."
+            }
+          },
+          "data_flow": {
+            "1_download": "Raw CSVs downloaded and validated.",
+            "2_parquet_conversion": "CSV converted to Parquet (partitioned, compressed, fingerprinted). Parquet files are written to ADLS Gen2.",
+            "3_mongo_ingest": "Parquet files are read in streaming batches and loaded into MongoDB collections (e.g., prod_provider_raw, prod_prescriber_raw). All downstream pipeline steps (enrichment, embedding, ship) operate on MongoDB.",
+            "4_embedding": "Embedding step reads from MongoDB, not Parquet. This ensures all enrichment and normalization is complete and leverages MongoDB's query/filter capabilities.",
+            "5_ship": "CopyToFrontEnd and all parity verification operate on MongoDB collections."
+          },
+          "source_of_truth": {
+            "blob_storage": "Parquet in ADLS Gen2 is the immutable, auditable source of truth for raw and pre-processed data.",
+            "mongodb": "MongoDB is the mutable, queryable operational state for all active pipeline stages."
+          },
+          "reconciliation_strategy": {
+            "parquet_to_mongo": [
+              "After each Parquet-to-MongoDB load, record counts and schema fingerprints are compared.",
+              "A reconciliation manifest is written per batch: {parquet_row_count, mongo_row_count, parquet_fingerprint, mongo_fingerprint, batch_id, timestamp}.",
+              "If counts or fingerprints mismatch, pipeline aborts and alerts ops.",
+              "Spot-check hash of first/last 1000 records in both Parquet and MongoDB for integrity."
+            ]
+          },
+          "cold_start_recovery": {
+            "scenario": "If MongoDB is wiped or corrupted, pipeline can be rehydrated from Parquet in ADLS Gen2.",
+            "process": [
+              "1. Enumerate all Parquet files for the desired batch/date/partition.",
+              "2. Validate Parquet file integrity and schema fingerprints.",
+              "3. Replay Parquet-to-MongoDB load, reconstructing all raw collections.",
+              "4. Resume enrichment, embedding, and shipping as normal."
+            ],
+            "limitations": "Only data present in Parquet can be recovered. Downstream enrichment/embedding steps must be re-run unless their outputs are also checkpointed to Parquet (future enhancement)."
+          }
+        },
+        "5_processing_layer": {
+          "provider_load": {
+            "method": "Parquet partitioned ingest -> N workers fan-out via task_all",
+            "default_workers": 32,
+            "partitioning": "Parquet chunk boundaries (256MB target)",
+            "idempotent": "Upsert by NPI, safe to re-run"
+          },
+          "prescriber_load": {
+            "method": "Parquet chunked ingest",
+            "memory_safety": "O(1) per-row memory. Hard process-level RAM quotas.",
+            "pre_ingest_dry_run": "Scan Parquet schema and sample rows for validation. Refuse ingest or force chunking if risk detected.",
+            "chunking": "Adaptive chunk size (default 256MB or 100k rows, whichever first)."
+          },
+          "worker_pattern": "PipelineWorkerBase template method (Gang of Four) for all batch workers",
+          "chunk_state_machine": "Each chunk has explicit state: pending -> in_progress -> complete -> verified | failed"
+        },
+        "6_enrichment_layer": {
+          "county_enrichment": {
+            "passes": [
+              "Pass 1: ZIP-based bulk crosswalk (updateMany per ZIP, res_ratio >= 0.98)",
+              "Pass 2: Census Geocoder batch API (practice address)",
+              "Pass 3: Census Geocoder batch API (billing address)",
+              "Pass 4: Google Maps Geocoding (practice address, paid, optional)",
+              "Pass 5: Google Maps Geocoding (billing address, paid, optional)",
+              "Pass 6: NPPES public registry lookup by NPI"
+            ],
+            "fan_out": "Workers claim unclaimed records via atomic findAndModify with lease/heartbeat"
+          },
+          "crosswalk": {
+            "method": "RxNorm API -> molecule -> indication -> ICD-10 mapping",
+            "cache": "All lookups cached in drug_crosswalk_cache with TTL",
+            "deterministic": "Replaces LLM-based mapping. Auditable."
+          },
+          "exclusions": "OIG LEIE + SAM.gov NPI-level exclusion flag merge",
+          "specialty": "Peer benchmark computation with 5% bands",
+          "fault_tolerance": {
+            "circuit_breaker": "If API errors exceed threshold, skip non-critical enrichments. Log all skipped IDs.",
+            "dead_letter": "Irrecoverable records queued for scheduled retry",
+            "quota_aware": "Monitor API quota usage, pause/slow before hard quota hit",
+            "enrichment_status_field": "Every record carries enrichment_status field for downstream awareness"
+          }
+        },
+        "7_embedding_layer": {
+          "fan_out": "N workers, each claims unclaimed records via atomic findAndModify with lease",
+          "model": "text-embedding-3-large (3072d) for providers",
+          "rate_limiting": "Exponential backoff with jitter",
+          "DR_022": "Never embed on frontend cluster",
+          "version_stamping": "embedding_version + embedding_model + embedding_timestamp + parquet_version on every record",
+          "vector_db_strategy": {
+            "current": "MongoDB Atlas Vector Search (frontend cluster only)",
+            "monitoring": "Explicit RAM and performance monitoring with alerts for capacity/latency issues",
+            "offload": "Bulk upload to external vector DB deferred until RAM >80% or 2M providers",
+            "index_config": {
+              "index_type": "vectorSearch",
+              "fields": [
+                "embedding"
+              ],
+              "dimensions": 3072,
+              "similarity": "cosine",
+              "index_name": "embedding_3072d_cosine_v1"
+            },
+            "monitoring_plan": {
+              "RAM_monitoring": {
+                "metric": "Atlas cluster RAM utilization (frontend cluster)",
+                "thresholds": {
+                  "warning": "70%",
+                  "critical": "80%"
+                },
+                "action_on_threshold": [
+                  "Send alert to ops@chathealthy.ai",
+                  "Trigger autoscale evaluation",
+                  "Pause new vector writes if RAM > 90% until remediation"
+                ]
+              },
+              "index_health": {
+                "metric": "Index build status, query latency, and failed search operations",
+                "alerting": "Immediate alert if index build fails or search latency > 1s at p99"
+              },
+              "capacity_planning": {
+                "review_interval": "Monthly review of provider and vector counts vs RAM and storage utilization",
+                "reporting": "Dashboard and monthly report to CTO"
+              }
+            },
+            "scaling_guardrails": {
+              "max_providers": 2000000,
+              "max_vector_dim": 3072,
+              "max_index_RAM_utilization": "80% of cluster RAM",
+              "action_on_breach": [
+                "Trigger architecture review for external vector DB migration",
+                "Freeze new provider onboarding if RAM > 90% until scale-out or sharding is implemented"
+              ],
+              "sharding_plan": {
+                "shard_key": "provider_state",
+                "shard_strategy": "State-based sharding if provider count exceeds 2M or RAM exceeds 80%",
+                "shard_count_initial": 4
+              }
+            }
+          },
+          "data_flow": {
+            "read_path": "Embedding workers always read from MongoDB enriched collections, not Parquet.",
+            "write_path": "Embeddings written back to MongoDB records."
+          },
+          "re_embedding_strategy": {
+            "trigger": [
+              "Embedding model upgrade",
+              "Parquet source version change",
+              "Major enrichment logic change"
+            ],
+            "process": [
+              "Records are marked for re-embedding by setting embedding_status: 'pending_reembedding' in MongoDB.",
+              "Embedding workers query for embedding_status: 'pending_reembedding' to claim work.",
+              "Workers re-process and update embedding fields.",
+              "Log all re-embedding events to commit log."
+            ]
+          },
+          "commit_log_integration": {
+            "event_logging": [
+              "Each embedding completion (per chunk) emits commit log entry with pipeline, run, chunk, embedding_version/model, row_count, output_hash, otel_trace_id.",
+              "Re-embedding events include previous version and reason."
+            ]
+          }
+        },
+        "8_ship_layer": {
+          "method": "CopyToFrontEnd with staged collection pattern",
+          "read_path": "Reads from MongoDB embedded collection, not Parquet.",
+          "staged_copy": "Write to staging collection (never live), verify all chunks, then atomic swap/rename",
+          "chunk_workers": "Partition source by _id ranges -> fan-out chunk workers across clusters",
+          "parity_verification": {
+            "mongo_to_frontend": [
+              "Source count == destination count",
+              "Hash first/last 1000 records for integrity",
+              "Random field-level spot checks"
+            ],
+            "parquet_to_mongo": [
+              "Row count and schema fingerprint match between Parquet and MongoDB",
+              "Hash spot checks for sampled records"
+            ]
+          },
+          "vector_indexes": {
+            "timing": [
+              "After staging collection is promoted to live, trigger vector index creation",
+              "Monitor index build; queries routed to previous live collection until new index is ready"
+            ]
+          },
+          "zero_downtime": "Collection swap pattern -- old collection available until new is verified"
+        },
+        "9_dual_logging": {
+          "commit_log": {
+            "format": "Append-only JSONL blobs in adls2://pipeline-data/commit_logs/{pipeline_run_id}.jsonl",
+            "fields": [
+              "timestamp",
+              "pipeline_name",
+              "pipeline_run_id",
+              "stage",
+              "chunk_id",
+              "event_type",
+              "details (embedding_version, model, row_count, etc.)",
+              "otel_trace_id"
+            ],
+            "pii_policy": "No direct PII; error details redacted in prod",
+            "entry_schema": {
+              "type": "object",
+              "fields": {
+                "timestamp_utc": "ISO8601 string (e.g., 2026-04-08T15:23:01.123Z)",
+                "pipeline_name": "string (e.g., 'provider_pipeline')",
+                "pipeline_run_id": "string (UUID or monotonic run id)",
+                "stage": "string (e.g., 'enrichment', 'embedding', 'ship')",
+                "chunk_id": "string (unique chunk identifier, e.g., 'CA_2026_0001')",
+                "event_type": "string (e.g., 'chunk_complete', 'stage_start', 'stage_complete', 'parity_verified', 'error')",
+                "worker_id": "string (optional, worker UUID or hostname)",
+                "details": "object (arbitrary event-specific metadata, e.g., record counts, hash values, error messages)",
+                "schema_fingerprint": "string (SHA-256 of schema at time of event, for drift detection)",
+                "actor": "string (service principal, user, or orchestrator id)"
+              }
+            },
+            "path_structure": {
+              "base_container": "pipeline-logs",
+              "path_pattern": "commit_logs/{pipeline_name}/{year}/{month}/{day}/commitlog_{pipeline_run_id}.jsonl",
+              "example": "pipeline-logs/commit_logs/provider_pipeline/2026/04/08/commitlog_6a2f3b9e-8b2d-4e3a-9d1c-9e0c2f7b1a2e.jsonl",
+              "notes": [
+                "Each pipeline run writes to a single append blob (JSONL) for that run/date.",
+                "All events for the run are appended in order."
+              ]
+            },
+            "sample_entries": {
+              "chunk_completion": {
+                "timestamp_utc": "2026-04-08T15:23:01.123Z",
+                "pipeline_name": "provider_pipeline",
+                "pipeline_run_id": "6a2f3b9e-8b2d-4e3a-9d1c-9e0c2f7b1a2e",
+                "stage": "enrichment",
+                "chunk_id": "CA_2026_0001",
+                "event_type": "chunk_complete",
+                "worker_id": "worker-42",
+                "details": {
+                  "row_count": 31250,
+                  "duration_sec": 132,
+                  "error_count": 0,
+                  "output_hash": "c6e8f1a7..."
+                },
+                "schema_fingerprint": "b1e7a3d2...",
+                "actor": "pipeline-orchestrator",
+                "otel_trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+              },
+              "stage_transition": {
+                "timestamp_utc": "2026-04-08T15:00:00.000Z",
+                "pipeline_name": "provider_pipeline",
+                "pipeline_run_id": "6a2f3b9e-8b2d-4e3a-9d1c-9e0c2f7b1a2e",
+                "stage": "embedding",
+                "chunk_id": null,
+                "event_type": "stage_start",
+                "worker_id": null,
+                "details": {
+                  "previous_stage": "enrichment",
+                  "next_stage": "embedding"
+                },
+                "schema_fingerprint": "b1e7a3d2...",
+                "actor": "pipeline-orchestrator",
+                "otel_trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+              }
+            },
+            "querying": {
+              "primary_method": "Azure Synapse Analytics serverless SQL pool using OPENROWSET on ADLS Gen2 append blobs (JSONL).",
+              "alternative_methods": [
+                "Direct read via pyarrow or pandas using fsspec/adlfs for targeted queries.",
+                "Databricks or Spark cluster for large-scale analysis."
+              ],
+              "indexing_note": "For high-frequency queries, consider periodic ETL to a query-optimized store (e.g., Azure Data Explorer) in future."
+            },
+            "otel_integration": {
+              "correlation": "Each commit log entry includes an otel_trace_id field (OpenTelemetry trace context).",
+              "integration": [
+                "This enables cross-system correlation between pipeline events and distributed traces.",
+                "Operators can trace a chunk or stage event from the commit log to full distributed traces in the OpenTelemetry backend (e.g., Azure Monitor, Jaeger)."
+              ],
+              "best_practice": "All pipeline workers and orchestrators propagate the current OpenTelemetry trace context when emitting commit log entries."
+            }
+          },
+          "mongo_checkpoint": {
+            "collection": "admin.DataLoadMetadata",
+            "fields": [
+              "pipeline_name",
+              "pipeline_run_id",
+              "chunk_id",
+              "state",
+              "commit_log_ref",
+              "last_updated"
+            ],
+            "entry_schema": {
+              "type": "object",
+              "fields": {
+                "_id": "string (composite key: pipeline_name + run_id + chunk_id)",
+                "pipeline_name": "string",
+                "pipeline_run_id": "string",
+                "stage": "string",
+                "chunk_id": "string",
+                "worker_id": "string",
+                "state": "string (pending, in_progress, complete, verified, failed)",
+                "last_heartbeat_utc": "ISO8601 string",
+                "row_count": "integer (optional, for progress tracking)",
+                "error_info": "object (optional, error details if failed)",
+                "schema_fingerprint": "string (SHA-256, for drift detection)",
+                "updated_at_utc": "ISO8601 string"
+              }
+            },
+            "schema_v3": {
+              "collection": "admin.DataLoadMetadata",
+              "fields": {
+                "_id": "string (composite: {pipeline_name}_{pipeline_run_id}_{stage}_{chunk_id})",
+                "pipeline_name": "string (e.g., 'provider_pipeline')",
+                "pipeline_run_id": "string (UUID or monotonic run id)",
+                "stage": "string (e.g., 'provider_load', 'enrichment', 'embedding', 'ship')",
+                "chunk_id": "string (e.g., 'CA_2026_0001')",
+                "worker_id": "string (worker UUID or hostname)",
+                "state": "string (enum: 'pending', 'in_progress', 'complete', 'verified', 'failed')",
+                "row_count": "integer (optional, for progress tracking)",
+                "error_info": {
+                  "type": "object",
+                  "optional": true,
+                  "fields": {
+                    "error_type": "string",
+                    "error_message": "string",
+                    "stack_trace": "string"
+                  }
+                },
+                "schema_fingerprint": "string (SHA-256, for drift detection)",
+                "last_heartbeat_utc": "ISO8601 string",
+                "updated_at_utc": "ISO8601 string",
+                "commit_log_ref": "string (ADLS path to related commit log entry, e.g., 'commit_logs/provider_pipeline/2026/04/08/commitlog_...jsonl:12345')"
+              },
+              "indexes": [
+                {
+                  "fields": [
+                    "pipeline_name",
+                    "pipeline_run_id",
+                    "stage",
+                    "chunk_id"
+                  ],
+                  "unique": true
+                },
+                {
+                  "fields": [
+                    "state"
+                  ]
+                },
+                {
+                  "fields": [
+                    "worker_id"
+                  ]
+                }
+              ]
+            },
+            "sample_documents": {
+              "provider_load_worker": {
+                "_id": "provider_pipeline_6a2f3b9e-8b2d-4e3a-9d1c-9e0c2f7b1a2e_provider_load_CA_2026_0001",
+                "pipeline_name": "provider_pipeline",
+                "pipeline_run_id": "6a2f3b9e-8b2d-4e3a-9d1c-9e0c2f7b1a2e",
+                "stage": "provider_load",
+                "chunk_id": "CA_2026_0001",
+                "worker_id": "worker-17",
+                "state": "complete",
+                "row_count": 31250,
+                "schema_fingerprint": "b1e7a3d2...",
+                "last_heartbeat_utc": "2026-04-08T15:21:00.000Z",
+                "updated_at_utc": "2026-04-08T15:21:10.000Z",
+                "commit_log_ref": "commit_logs/provider_pipeline/2026/04/08/commitlog_6a2f3b9e-8b2d-4e3a-9d1c-9e0c2f7b1a2e.jsonl:12345"
+              },
+              "enrichment_worker": {
+                "_id": "provider_pipeline_6a2f3b9e-8b2d-4e3a-9d1c-9e0c2f7b1a2e_enrichment_CA_2026_0001",
+                "pipeline_name": "provider_pipeline",
+                "pipeline_run_id": "6a2f3b9e-8b2d-4e3a-9d1c-9e0c2f7b1a2e",
+                "stage": "enrichment",
+                "chunk_id": "CA_2026_0001",
+                "worker_id": "worker-42",
+                "state": "in_progress",
+                "row_count": 31250,
+                "schema_fingerprint": "b1e7a3d2...",
+                "last_heartbeat_utc": "2026-04-08T15:23:00.000Z",
+                "updated_at_utc": "2026-04-08T15:23:05.000Z",
+                "commit_log_ref": "commit_logs/provider_pipeline/2026/04/08/commitlog_6a2f3b9e-8b2d-4e3a-9d1c-9e0c2f7b1a2e.jsonl:23456"
+              }
+            },
+            "cross_reference": {
+              "mechanism": "Each checkpoint document includes a commit_log_ref field, which points to the ADLS path and line offset (or event id) of the corresponding commit log entry for the most recent state transition.",
+              "write_pattern": "When a worker transitions chunk state (e.g., completes a chunk), it writes the commit log entry first, then updates the checkpoint document with the commit_log_ref."
+            }
+          },
+          "sync_strategy": {
+            "write_order": [
+              "Write commit log entry first",
+              "On success, update MongoDB checkpoint with commit_log_ref"
+            ],
+            "failure_handling": [
+              "If commit log write fails: do not update checkpoint, retry",
+              "If checkpoint update fails: log to admin.CheckpointPending, alert ops, reconcile"
+            ]
+          },
+          "reconciliation_job": {
+            "schedule": "Every 15 minutes (Azure TimerTrigger)",
+            "steps": [
+              "Enumerate commit log events",
+              "Check for corresponding MongoDB checkpoint",
+              "If repair is possible (commit log entry is complete and checkpoint update succeeds), repair missing checkpoints.",
+              "If repair is not possible (e.g., commit log entry incomplete or checkpoint update fails after 3 retries), flag the chunk as 'irreconcilable' in admin.CheckpointPending and escalate to operator."
+            ]
+          },
+          "access_control": {
+            "rbac": "Azure RBAC: PipelineOps and ComplianceAudit groups (read); pipeline service principals (write)",
+            "audit": "All access logged via Azure Storage Analytics"
+          },
+          "retention": {
+            "commit_log": "365 days (90 days for any PII-containing events)",
+            "mongo_checkpoint": "90 days post-pipeline completion"
+          },
+          "reconciliation_query": {
+            "description": "Find all chunks that have a 'chunk_complete' event in the commit log but no corresponding checkpoint document in MongoDB.",
+            "steps": [
+              "1. Use Synapse or Spark to extract all chunk_id and pipeline_run_id from commit log entries where event_type = 'chunk_complete'.",
+              "2. Query admin.DataLoadMetadata for documents with matching pipeline_run_id and chunk_id, state='complete'.",
+              "3. Return all (pipeline_run_id, chunk_id) pairs present in the commit log but missing in MongoDB."
+            ],
+            "pseudo_sql": "SELECT c.pipeline_run_id, c.chunk_id FROM commit_log c WHERE c.event_type = 'chunk_complete' AND NOT EXISTS (SELECT 1 FROM admin.DataLoadMetadata m WHERE m.pipeline_run_id = c.pipeline_run_id AND m.chunk_id = c.chunk_id AND m.state = 'complete')"
+          },
+          "sync_strategy_detail": {
+            "write_order": [
+              "1. Write commit log entry to ADLS append blob (commit_logs/...).",
+              "2. On successful commit log write, update MongoDB checkpoint (admin.DataLoadMetadata) with commit_log_ref.",
+              "3. If MongoDB update fails after commit log write, retry up to 3 times with exponential backoff. If still failing, alert ops and mark chunk as 'checkpoint_pending' in a special admin.CheckpointPending collection."
+            ],
+            "failure_cases": {
+              "commit_log_write_fails_first": {
+                "action": "Do NOT update MongoDB checkpoint. Worker retries commit log write up to 3 times (with backoff). If still failing, chunk remains in 'in_progress' state and is picked up for retry by the reconciliation job."
+              },
+              "commit_log_write_succeeds_but_mongo_checkpoint_fails": {
+                "action": "Retry MongoDB checkpoint up to 3 times. If still failing, log to admin.CheckpointPending and alert ops. The reconciliation job will attempt to re-apply the checkpoint using the commit log as the source of truth."
+              }
+            }
+          },
+          "reconciliation_job_detail": {
+            "description": "A scheduled job (Azure Function TimerTrigger) runs every 15 minutes to compare commit log and checkpoint state.",
+            "steps": [
+              "1. Enumerate all 'chunk_complete' events in commit log for the last 24 hours.",
+              "2. For each, check for a corresponding 'complete' checkpoint in admin.DataLoadMetadata.",
+              "3. If commit log entry exists but no checkpoint, attempt to re-apply the checkpoint using the commit log details.",
+              "4. If checkpoint exists but no commit log entry, flag as 'commit_log_missing' in admin.CheckpointPending and alert ops.",
+              "5. All reconciliation actions are logged to admin.ReconciliationLog."
+            ]
+          },
+          "recovery_procedure": {
+            "commit_log_missing": {
+              "description": "Checkpoint exists but no commit log entry.",
+              "action": [
+                "1. Attempt to reconstruct the missing commit log entry from checkpoint and pipeline context.",
+                "2. Write reconstructed entry to commit log with a 'recovered' flag.",
+                "3. Alert ops for manual review if reconstruction is ambiguous."
+              ]
+            },
+            "checkpoint_missing": {
+              "description": "Commit log entry exists but no MongoDB checkpoint.",
+              "action": [
+                "1. Attempt to re-apply the checkpoint to MongoDB using commit log details.",
+                "2. If re-apply fails, alert ops and mark chunk as 'checkpoint_recovery_failed' in admin.CheckpointPending."
+              ]
+            }
+          }
+        },
+        "10_cluster_lifecycle": {
+          "manager": "ClusterLifecycleManager -- reserve -> wake -> poll IDLE -> work -> release -> pause",
+          "pipeline_cluster": "Paused when idle (cost saving)",
+          "frontend_cluster": "Runs 24/7",
+          "overdue_timer": "5-min check for overdue reservations + alerts",
+          "kill_switch": "Force-release for Boss"
+        },
+        "11_checkpoint_restart": {
+          "durable_functions": "Automatic checkpoint at every yield (built-in replay)",
+          "start_step": "Skip completed stages on restart",
+          "idempotent_activities": "ETag guards, upserts, deterministic chunk IDs",
+          "per_worker_metadata": "admin.DataLoadMetadata tracks each worker",
+          "chunk_level": "Per-chunk checkpointing with explicit state machine",
+          "commit_log": "Append-only log for all chunk promotions and critical events"
+        },
+        "12_environment_isolation": {
+          "GOV_012": "dev_ -> qa_ -> prod_ database prefixes",
+          "promotion": "Forward-only via $out aggregation (same cluster, no wire transfer)",
+          "connection_strings": "Environment-scoped, separate per deployment",
+          "read_only_prod": "Enforce read-only access on prod sources during testing"
+        },
+        "13_monitoring_observability": {
+          "metrics": [
+            "parquet_conversion_time_sec",
+            "parquet_file_size_bytes",
+            "parquet_row_count",
+            "parquet_schema_fingerprint",
+            "commit_log_size_bytes",
+            "commit_log_event_count",
+            "checkpoint_lag_sec",
+            "reconciliation_discrepancy_count",
+            "dead_letter_queue_depth",
+            "circuit_breaker_state",
+            "pipeline_sla_timer_sec"
+          ],
+          "step_status": "context.set_custom_status for step-level progress",
+          "row_errors": "PipelineDiscrepancyReport for row-level errors",
+          "reconciliation": "Expected vs actual record counts after every batch step",
+          "alerts": {
+            "P1_critical": {
+              "examples": [
+                "Pipeline abort or unhandled exception",
+                "SLA breach (run > 24h)",
+                "Data loss/corruption detected",
+                "Azure Blob Storage or MongoDB unavailable > 10 min"
+              ],
+              "recipients": [
+                "ops@chathealthy.ai",
+                "on-call engineer (PagerDuty)",
+                "CTO"
+              ],
+              "response_time": "15 min"
+            },
+            "P2_major": {
+              "examples": [
+                "Circuit breaker open for required enrichment",
+                "Dead letter queue depth > 1000",
+                "Repeated reconciliation failures",
+                "Worker heartbeat expired"
+              ],
+              "recipients": [
+                "ops@chathealthy.ai",
+                "on-call engineer"
+              ],
+              "response_time": "1 hour"
+            },
+            "P3_minor": {
+              "examples": [
+                "Schema drift (non-breaking)",
+                "Optional enrichment skipped",
+                "Storage usage > 80% threshold"
+              ],
+              "recipients": [
+                "ops@chathealthy.ai"
+              ],
+              "response_time": "1 business day"
+            }
+          },
+          "distributed_tracing": {
+            "OpenTelemetry": {
+              "parquet_conversion": {
+                "span_name": "parquet_conversion",
+                "attributes": [
+                  "pipeline_name",
+                  "pipeline_run_id",
+                  "source_file",
+                  "parquet_file_path",
+                  "row_count",
+                  "conversion_time_sec",
+                  "schema_fingerprint"
+                ],
+                "trace_context": "Propagated from orchestrator to all conversion workers"
+              }
+            }
+          },
+          "dashboards": {
+            "pipeline_overview": [
+              "Run status",
+              "Current stage and chunk progress",
+              "Elapsed time vs SLA"
+            ],
+            "parquet_health": [
+              "Conversion time per batch",
+              "File size, row count, schema fingerprint",
+              "Conversion errors/corruptions"
+            ],
+            "commit_log_and_checkpoint": [
+              "Commit log event count and size",
+              "Checkpoint lag",
+              "Reconciliation discrepancy count"
+            ],
+            "reliability_and_quality": [
+              "Dead letter queue depth",
+              "Circuit breaker state per API",
+              "Worker heartbeats and backlog"
+            ],
+            "data_quality": [
+              "Parity verification results",
+              "Schema drift alerts",
+              "Anomaly detection"
+            ]
+          }
+        },
+        "14_data_quality": {
+          "reconciliation": "After every batch step, not just at Ship",
+          "row_error_tracking": "PipelineWorkerBase accumulates row_errors",
+          "state_filter": "BUG-PIPE-001: mandatory state filter",
+          "stratified_sampling": "Audit samples edge cases (rare ZIPs, specialties, exclusions)",
+          "known_test_records": "Synthetic known-good/known-bad records injected every run",
+          "anomaly_detection": "Outlier detection on output distributions with alarms",
+          "schema_drift": "Abort pipeline on schema mismatch (with manual override for hotfixes)"
+        },
+        "15_security_compliance": {
+          "parquet_files_encryption": {
+            "encryption_at_rest": "Azure Storage Service Encryption (SSE) by default; CMK optional",
+            "in_transit": "All data transfers use HTTPS/TLS 1.2+"
+          },
+          "commit_log_pii": {
+            "pii_inclusion": "No direct PII in commit log; error details redacted in prod",
+            "retention_policy": "365 days (90 days for any PII-containing events)"
+          },
+          "commit_log_access_control": {
+            "rbac": "Azure RBAC: PipelineOps and ComplianceAudit groups (read); pipeline service principals (write)",
+            "audit": "All access logged via Azure Storage Analytics"
+          },
+          "audit_trail_and_compliance": {
+            "audit_trail_coverage": [
+              "All data access (read/write) to Parquet and commit log containers is logged",
+              "All pipeline stage transitions, chunk promotions, and operator overrides are recorded in the commit log",
+              "All admin actions are logged in admin.OperatorActions"
+            ],
+            "compliance_alignment": [
+              "HIPAA: Encryption, access logging, RBAC, PII minimization",
+              "SOC 2: Immutable audit trail, operator action logging, retention policies",
+              "GDPR/CCPA: Data subject access and deletion requests supported"
+            ]
+          }
+        },
+        "16_operational_runbooks": {
+          "pipeline_run_failure": [
+            "Alert ops@chathealthy.ai and on-call engineer on abort/exception",
+            "Review failure logs and checkpoints",
+            "Identify last successful chunk/stage",
+            "Run reconciliation to ensure no partial chunks marked complete",
+            "Remediate root cause",
+            "Resume pipeline from last successful stage/chunk",
+            "Log incident and update runbook if new failure mode discovered"
+          ],
+          "parquet_file_corruption": [
+            "Alert ops@chathealthy.ai and dashboard",
+            "Quarantine corrupted file",
+            "Diagnose (pyarrow validation, CRC, schema)",
+            "Re-convert CSV to Parquet if possible",
+            "Resume Parquet-to-MongoDB load",
+            "Escalate if source unavailable"
+          ],
+          "commit_log_checkpoint_disagreement": [
+            "Alert ops@chathealthy.ai and dashboard",
+            "Review admin.CheckpointPending and commit log",
+            "Re-apply checkpoint or reconstruct commit log",
+            "Escalate for manual review if automated recovery fails",
+            "Log all actions and update runbook"
+          ],
+          "sla": {
+            "completion_time": "24 hours from scheduled start",
+            "enforcement": [
+              "SLA timer starts at scheduled kickoff",
+              "Critical alert if not complete in 24h",
+              "All SLA breaches logged with root cause"
+            ],
+            "exceptions": [
+              "Force majeure (cloud outage, upstream data delay) documented and excluded"
+            ]
+          },
+          "runbooks_detail": {
+            "pipeline_run_failure": [
+              "1. Alert: Immediate email and dashboard alert to ops@chathealthy.ai and on-call engineer (PagerDuty integration) on any pipeline abort or unhandled exception.",
+              "2. Diagnosis: Operator reviews failure logs in admin.DataLoadMetadata and commit log for error context.",
+              "3. Checkpoint Review: Identify last successful chunk/stage from checkpoints.",
+              "4. Data Consistency: Run reconciliation query to ensure no partial chunks are marked complete.",
+              "5. Remediation: Address root cause (e.g., fix code, resolve quota, restart failed service).",
+              "6. Resume: Restart pipeline using start_step parameter at last successful stage/chunk.",
+              "7. Postmortem: Log incident in admin.IncidentLog and update runbook if new failure mode discovered."
+            ],
+            "parquet_file_corruption": [
+              "1. Alert: Immediate alert to ops@chathealthy.ai and dashboard if Parquet validation fails during load.",
+              "2. Quarantine: Move corrupted Parquet file to /corrupted/ partition in ADLS Gen2.",
+              "3. Diagnosis: Operator inspects file integrity (e.g., pyarrow validation, CRC check, schema mismatch).",
+              "4. Recovery: If possible, re-convert original CSV to Parquet and replace corrupted file.",
+              "5. Resume: Re-run Parquet-to-MongoDB load for affected partition.",
+              "6. Escalation: If original source is unavailable, escalate to data provider and document in admin.IncidentLog."
+            ],
+            "commit_log_checkpoint_disagreement": [
+              "1. Alert: Immediate alert to ops@chathealthy.ai and dashboard if reconciliation job detects mismatch.",
+              "2. Diagnosis: Operator reviews admin.CheckpointPending and commit log entries for affected chunk(s).",
+              "3. Recovery Path A (commit log exists, checkpoint missing): Re-apply checkpoint using commit log details.",
+              "4. Recovery Path B (checkpoint exists, commit log missing): Attempt to reconstruct and append missing commit log entry; flag as 'recovered'.",
+              "5. Manual Review: If automated recovery fails, escalate for manual operator intervention.",
+              "6. Documentation: Log all actions in admin.ReconciliationLog and update runbook if new scenario is found."
+            ]
+          },
+          "alerting_detail": {
+            "alerts_fired": [
+              "Pipeline abort or unhandled exception",
+              "Parquet file validation/corruption",
+              "Commit log / checkpoint mismatch",
+              "Circuit breaker open for required enrichment",
+              "Worker heartbeat expired",
+              "Health check failure (API, MongoDB, ADLS, backlog)"
+            ],
+            "recipients": [
+              "ops@chathealthy.ai (always)",
+              "On-call engineer (PagerDuty, for critical alerts)",
+              "CTO (daily summary and all SLA breaches)"
+            ]
+          },
+          "pipeline_sla_detail": {
+            "completion_time": "24 hours from scheduled start for all standard pipeline runs",
+            "enforcement": [
+              "SLA timer starts at scheduled pipeline kickoff (UTC).",
+              "If pipeline not complete within 24h, critical alert to CTO and ops.",
+              "All SLA breaches logged in admin.SLABreachLog with root cause and remediation."
+            ],
+            "exceptions": [
+              "Force majeure (cloud outage, upstream data delay) documented and excluded from SLA calculation."
+            ]
+          }
+        },
+        "17_edge_case_handling": {
+          "nppes_mid_month_correction": {
+            "detection": "Correction file detected by new ETag/SHA-256",
+            "ingest_behavior": [
+              "Treat as new pipeline run with incremented version",
+              "Versioned Parquet and MongoDB collections",
+              "Previous run's data archived"
+            ],
+            "operator_alert": "Alert ops@chathealthy.ai and dashboard; require operator approval to promote"
+          },
+          "cms_partd_file_format_change": {
+            "detection": "Schema fingerprint mismatch during pre-ingest dry run",
+            "ingest_behavior": [
+              "Pipeline aborts and alerts",
+              "Operator reviews schema diff",
+              "Override if compatible, code update if breaking"
+            ],
+            "operator_alert": "Immediate alert to ops@chathealthy.ai and CTO"
+          },
+          "pipeline_cluster_disk_full": {
+            "detection": "Health check detects <10% free disk",
+            "ingest_behavior": [
+              "Pipeline pauses new chunk processing",
+              "Alert ops@chathealthy.ai and on-call engineer",
+              "Resume when >20% free disk"
+            ],
+            "prevention": "Weekly storage audit and auto-prune"
+          },
+          "azure_blob_storage_regional_outage": {
+            "detection": "Health check fails to access ADLS Gen2 >5 min",
+            "ingest_behavior": [
+              "Pipeline enters 'paused' state",
+              "Alert ops@chathealthy.ai and on-call engineer",
+              "Retry every 10 min",
+              "Resume from last checkpoint"
+            ],
+            "operator_action": "Escalate if outage >2h"
+          },
+          "overlapping_pipeline_runs": {
+            "prevention": [
+              "Orchestrator enforces exclusive lock per pipeline_name and data version",
+              "New run queued or rejected if overlap detected"
+            ],
+            "allowed_overlap": [
+              "Runs on different data versions allowed, separate partitions",
+              "Operator review required before promoting overlapping runs"
+            ],
+            "operator_alert": "Alert ops@chathealthy.ai and dashboard if overlap attempted"
+          }
+        },
+        "18_cost_analysis": {
+          "adls_gen2_parquet_and_commit_log": {
+            "storage_volume": {
+              "parquet": "17GB (4 states, compressed)",
+              "commit_log": "1GB/month"
+            },
+            "monthly_cost": "$0.33/month (hot tier, current scale)",
+            "future_scale_projection": "$9.30/month at 50 states"
+          },
+          "csv_on_blob_baseline": {
+            "storage_volume": "42.4GB",
+            "monthly_cost": "$0.78/month"
+          },
+          "delta_parquet_vs_csv": {
+            "monthly_savings": "$0.45/month at current scale",
+            "operational_benefits": [
+              "Lower egress/read costs",
+              "Faster downstream processing",
+              "Reduced risk of schema/encoding errors"
+            ]
+          },
+          "mongodb_storage_impact": {
+            "current": "Raw collections retained for debugging",
+            "with_parquet": "Raw collections can be dropped after Parquet backup",
+            "storage_savings": "$60/month on M30 cluster"
+          },
+          "cosmosdb_commit_log_alternative": {
+            "monthly_cost": "$0.03/month at current scale",
+            "notes": "Operational overhead not justified vs ADLS append blobs"
+          }
+        },
+        "19_migration_path": {
+          "strategy": "Side-by-side (dual-write) migration",
+          "steps": [
+            "Enable Parquet conversion in parallel with CSV-to-MongoDB",
+            "Validate Parquet output (schema, row count, hash spot checks)",
+            "Run both v2 and v3 pipelines in parallel for 2 cycles",
+            "Monitor for discrepancies",
+            "Operator sign-off before cutover",
+            "Retire v2 after 30 days of stable v3 operation"
+          ],
+          "rollback_plan": {
+            "trigger": "v3 Parquet pipeline fails or is inconsistent",
+            "actions": [
+              "Revert to v2 (CSV-to-MongoDB only)",
+              "Retain all CSV and MongoDB raw collections for 60 days",
+              "Investigate and resolve root cause before retrying migration"
+            ]
+          },
+          "migration_window": {
+            "duration": "2-3 months",
+            "criteria_to_cutover": [
+              "No data loss/corruption in v3",
+              "All reconciliations show parity",
+              "Operator and CTO sign-off"
+            ]
+          },
+          "coexistence_notes": [
+            "Dual-write incurs minimal extra cost",
+            "Monitoring and alerting must cover both v2 and v3 during migration"
+          ]
+        },
+        "20_reliability_testing": {
+          "circuit_breaker_testing": {
+            "method": "Mock failure injection at API client layer",
+            "automation": "Nightly in dev/QA, pre-release in prod"
+          },
+          "checkpoint_restart_testing": {
+            "method": "Simulate worker/process termination mid-chunk",
+            "automation": "Nightly in dev/QA, weekly in prod"
+          },
+          "parquet_corruption_testing": {
+            "method": "Inject corrupted Parquet files into test partitions",
+            "automation": "Weekly in dev/QA, pre-release in prod"
+          },
+          "chaos_testing_schedule": {
+            "dev_qa": "Continuous (nightly)",
+            "prod": "Monthly, pre-release mandatory"
+          },
+          "dual_logging_reconciliation_testing": {
+            "method": "Inject artificial commit log or checkpoint write failures",
+            "automation": "Nightly in dev/QA, pre-release in prod"
+          },
+          "reporting": {
+            "all_failures": "Logged to admin.TestFailureLog",
+            "dashboard": "Reliability test status and coverage",
+            "alerts": "Critical test failures trigger immediate ops alert"
+          },
+          "testing_strategy_detail": {
+            "circuit_breaker_testing": {
+              "method": "Mock failure injection at the API client layer for each external API (Census, Google Maps, RxNorm, NPPES).",
+              "scenarios": [
+                "Inject HTTP 500/timeout for N consecutive calls to trigger breaker.",
+                "Verify breaker transitions to open, then half-open, then closed after reset timer and probe success.",
+                "Log all state transitions and assert correct alerting."
+              ],
+              "automation": "Nightly in dev/QA, before every release in prod."
+            },
+            "checkpoint_restart_testing": {
+              "method": "Simulate worker/process termination mid-chunk (SIGKILL or Azure Function scale-down).",
+              "scenarios": [
+                "Kill worker during chunk processing; verify orchestrator detects expired heartbeat and reassigns chunk.",
+                "Restart pipeline from arbitrary stage using start_step; verify no data loss and idempotent completion."
+              ],
+              "automation": "Nightly in dev/QA, weekly in prod."
+            },
+            "parquet_corruption_testing": {
+              "method": "Inject corrupted Parquet files (truncated, bad CRC, schema mismatch) into ADLS test partitions.",
+              "scenarios": [
+                "Attempt Parquet-to-MongoDB load from bad files; verify pipeline aborts, logs error, and alerts ops.",
+                "Test recovery by replacing with valid file and resuming pipeline."
+              ],
+              "automation": "Weekly in dev/QA, pre-release in prod."
+            },
+            "chaos_testing_schedule": {
+              "dev_qa": "Continuous (nightly automated chaos suite)",
+              "prod": "Monthly, with operator approval and rollback plan. Pre-release full chaos suite mandatory."
+            },
+            "dual_logging_reconciliation_testing": {
+              "method": "Inject artificial commit log or checkpoint write failures (e.g., block ADLS or MongoDB writes for selected chunks).",
+              "scenarios": [
+                "Force commit log write to fail, verify checkpoint is not written and chunk is retried.",
+                "Force checkpoint write to fail after commit log succeeds, verify reconciliation job recovers state.",
+                "Delete or corrupt commit log/checkpoint entries and verify reconciliation job detects and repairs or alerts."
+              ],
+              "automation": "Nightly in dev/QA; pre-release in prod."
+            },
+            "reporting": {
+              "all_failures": "Logged to admin.TestFailureLog with scenario, timestamp, and outcome.",
+              "dashboard": "Reliability test pass/fail status and coverage displayed on operator dashboard.",
+              "alerts": "Critical test failures (e.g., data loss, unrecoverable state) trigger immediate ops alert."
+            }
+          }
+        },
+        "reliability_contract": {
+          "circuit_breakers": {
+            "external_calls_covered": [
+              "Census Geocoder batch API",
+              "Google Maps Geocoding API",
+              "RxNorm API",
+              "NPPES Public Registry API"
+            ],
+            "thresholds": {
+              "failure_rate": ">= 5 consecutive failures OR >= 10% error rate in last 100 calls",
+              "timeout": "Any call > 10s triggers a soft failure; 3 timeouts in 5 minutes triggers breaker"
+            },
+            "breaker_behavior": "On threshold breach, breaker opens for 10 minutes (no new requests, all attempts fail-fast). After 10 minutes, allow 1 probe call per minute until success. Log all breaker state changes to commit log and alert ops@chathealthy.ai."
+          },
+          "dead_letter_queues": {
+            "implementation": "MongoDB collection per pipeline: admin.DeadLetter_{pipeline_name}",
+            "schema": {
+              "_id": "string (UUID)",
+              "pipeline_name": "string",
+              "stage": "string",
+              "chunk_id": "string",
+              "record_id": "string or int",
+              "error_type": "string",
+              "error_details": "object",
+              "original_payload": "object",
+              "created_at_utc": "ISO8601 string",
+              "retry_count": "int"
+            },
+            "retention": "30 days (auto-purge after)",
+            "replay_policy": "Scheduled retry job runs every 6 hours; max 3 retries per dead letter. Success moves record back to main pipeline; persistent failure escalates to ops."
+          },
+          "retry_policies": {
+            "scope": "Per-call for all external API calls and chunk-level DB writes",
+            "max_retries": 5,
+            "backoff_formula": "Exponential backoff with jitter: base_delay = 2s, max_delay = 60s, jitter = +/- 20%",
+            "global_limits": "No more than 100 concurrent retries per pipeline stage to avoid stampede"
+          },
+          "chaos_testing": {
+            "scope": [
+              "Simulate API timeouts and 500 errors for all external APIs",
+              "Randomly kill 5% of worker processes during enrichment and embedding",
+              "Inject random network latency (up to 2s) in 10% of chunk handoffs"
+            ],
+            "frequency": "Nightly in dev and QA environments; monthly in prod with operator approval",
+            "reporting": "Chaos test results logged to admin.ChaosTestResults and summarized in monthly reliability report"
+          },
+          "idempotency_guarantees": {
+            "operations_covered": [
+              "Chunked data loads (upsert by NPI or unique key)",
+              "Enrichment steps (atomic update by _id and enrichment_status)",
+              "Embedding writes (upsert by _id, embedding_version)",
+              "CopyToFrontEnd (staged collection pattern, chunk-level checkpointing)"
+            ],
+            "enforcement": {
+              "idempotent_keys": "All upserts use deterministic chunk IDs and unique keys (NPI, record_id, etc.)",
+              "ETag/SHA-256 guards": "No duplicate downloads or loads if ETag/SHA unchanged",
+              "state_machine": "Explicit chunk state: pending → in_progress → complete → verified | failed; only one transition per chunk at a time"
+            }
+          }
+        },
+        "reliability_patterns_detail": {
+          "circuit_breaker": {
+            "state_machine": {
+              "states": [
+                "closed",
+                "open",
+                "half-open"
+              ],
+              "transitions": [
+                "closed → open: On threshold breach (see below)",
+                "open → half-open: After reset timeout expires",
+                "half-open → closed: On first successful probe call",
+                "half-open → open: On probe call failure"
+              ]
+            },
+            "thresholds": {
+              "failure_rate": ">= 5 consecutive failures OR >= 10% error rate in last 100 calls",
+              "timeout": "Any call > 10s counts as failure; 3 timeouts in 5 minutes triggers open"
+            },
+            "reset_timer": {
+              "open_state_duration_sec": 600,
+              "half_open_probe_interval_sec": 60
+            },
+            "implementation": {
+              "per_api": [
+                "Census Geocoder",
+                "Google Maps Geocoding",
+                "RxNorm",
+                "NPPES Registry"
+              ],
+              "shared_state": "One breaker per external API endpoint",
+              "logging": "All state transitions logged to commit log and alert ops@chathealthy.ai"
+            }
+          },
+          "dead_letter_queue": {
+            "collection": "admin.DeadLetter_{pipeline_name}",
+            "schema": {
+              "_id": "string (UUID)",
+              "pipeline_name": "string",
+              "stage": "string",
+              "chunk_id": "string",
+              "record_id": "string or int",
+              "error_type": "string",
+              "error_details": "object",
+              "original_payload": "object",
+              "created_at_utc": "ISO8601 string",
+              "retry_count": "int",
+              "last_retry_utc": "ISO8601 string"
+            },
+            "retry_schedule": {
+              "interval_hours": 6,
+              "max_retries": 3,
+              "scheduler": "Azure Function TimerTrigger or Durable Entity",
+              "on_success": "Move record back to main pipeline",
+              "on_failure": "Increment retry_count, update last_retry_utc"
+            },
+            "poison_message_handling": {
+              "criteria": "retry_count >= 3",
+              "action": "Mark as poison, alert ops, do not retry further, require manual intervention"
+            }
+          },
+          "rate_limiter": {
+            "algorithm": "token_bucket",
+            "scope": "Per-API endpoint (not global)",
+            "parameters": {
+              "Census Geocoder": {
+                "rate": 10,
+                "interval_sec": 1,
+                "burst": 20
+              },
+              "Google Maps Geocoding": {
+                "rate": 50,
+                "interval_sec": 1,
+                "burst": 100
+              },
+              "RxNorm": {
+                "rate": 20,
+                "interval_sec": 1,
+                "burst": 40
+              },
+              "NPPES Registry": {
+                "rate": 5,
+                "interval_sec": 1,
+                "burst": 10
+              }
+            },
+            "implementation": "Distributed token bucket (Redis or in-memory per worker with periodic sync)",
+            "enforcement": "All API calls must acquire token before execution; if unavailable, wait or fail-fast if circuit breaker is open"
+          },
+          "health_checks": {
+            "checks": [
+              "External API reachability (HTTP 200/response time < 5s)",
+              "MongoDB cluster status (primary/replica health, storage usage)",
+              "ADLS Gen2 container access and free space",
+              "Worker heartbeat (last_heartbeat_utc < 2 min ago)",
+              "Pipeline backlog (pending chunk count < threshold)"
+            ],
+            "frequency": "Every 5 minutes (Azure Function TimerTrigger)",
+            "alert_triggers": [
+              "API unreachable or >20% error rate",
+              "MongoDB not writable or lagging",
+              "ADLS Gen2 < 10% free space",
+              "Any worker heartbeat expired",
+              "Backlog exceeds 2x normal"
+            ],
+            "alerting": "Immediate email to ops@chathealthy.ai and dashboard update"
+          },
+          "graceful_degradation": {
+            "optional_enrichments": [
+              "Google Maps Geocoding (practice and billing address, paid, optional)",
+              "NPPES public registry lookup by NPI (last pass, optional if circuit breaker is open)"
+            ],
+            "required_enrichments": [
+              "ZIP-based county crosswalk",
+              "Census Geocoder (at least one address per provider)",
+              "OIG/SAM exclusion flags",
+              "Specialty normalization"
+            ],
+            "minimum_viable_pipeline_run": {
+              "criteria": [
+                "All records have ZIP-based county crosswalk",
+                "At least one successful Census Geocoder pass per provider",
+                "OIG/SAM exclusions applied",
+                "Specialty normalized"
+              ],
+              "fallback_behavior": [
+                "If optional enrichments fail (circuit breaker open), log all skipped IDs to dead letter and proceed",
+                "Pipeline only aborts if required enrichments cannot be completed"
+              ]
+            }
+          }
+        }
+      },
+      "resolved_parked_items": [
+        {
+          "topic": "External Vector DB vs MongoDB Atlas",
+          "decision": "Stay with MongoDB Atlas Vector Search (frontend cluster only). No external vector DB.",
+          "rationale": "Boss: Already invested in Atlas, external DB adds ops burden. RAM monitored; offload only if >80% or 2M providers."
+        },
+        {
+          "topic": "Parquet as Canonical Intermediate Format vs Direct CSV-to-MongoDB",
+          "decision": "Parquet is canonical intermediate format. All ingest and downstream processing use Parquet.",
+          "rationale": "Boss: CSV fragility will bite us at 50-state scale. Better to invest now."
+        },
+        {
+          "topic": "Distributed Commit Log vs MongoDB-based Checkpointing",
+          "decision": "Implement both: ADLS append-only commit log (audit trail) and MongoDB checkpoint (operational state).",
+          "rationale": "Boss: Different purposes. Commit log = what happened; checkpoint = where are we now."
+        },
+        {
+          "topic": "Schema Registry Service vs Schema-in-Code",
+          "decision": "Lightweight schema validation in code (header match, field count, type check) + schema fingerprint per batch.",
+          "rationale": "Boss: Full registry not needed for 4 sources. Fingerprints and validation suffice."
+        },
+        {
+          "topic": "Complexity vs Pragmatism",
+          "decision": "Full reliability patterns NOW: chunked streaming, checkpoint/restart, parity verification, circuit breakers, dead letters.",
+          "rationale": "Boss: 'If not now, when.' No more deferral."
+        }
+      ],
+      "consensus_decisions": [
+        "Parquet is canonical intermediate format for all ingest and downstream processing",
+        "Dual logging: ADLS append-only commit log (audit) + MongoDB checkpoint (operational)",
+        "Streaming CSV and Parquet processing with O(1) per-row memory",
+        "Byte-aligned partitioning for NPPES provider data (now Parquet chunking)",
+        "DataFetcherBase pattern with ETag + SHA-256 for download deduplication",
+        "Snapshot manifest tracking all input files for consistency",
+        "Chunk-level state machine (pending -> in_progress -> complete -> verified | failed)",
+        "Staged collection pattern for CopyToFrontEnd (never write to live collection)",
+        "Parity verification (count + hash spot checks) before declaring Ship success",
+        "Worker lease/heartbeat pattern for claiming records in enrichment and embedding",
+        "Circuit breaker pattern for external API enrichment",
+        "Exponential backoff with jitter for all external API calls",
+        "Dead-letter queues for irrecoverable enrichment failures",
+        "ClusterLifecycleManager for pipeline cluster pause/resume",
+        "Durable Functions replay as primary checkpoint mechanism",
+        "Per-worker metadata in admin.DataLoadMetadata",
+        "OpenTelemetry integration for distributed tracing",
+        "Known-good/known-bad test records injected per pipeline run",
+        "Stratified sampling in data quality audits",
+        "Anomaly detection on output distributions",
+        "Environment isolation: dev_ -> qa_ -> prod_ (forward only)",
+        "DR-022: Never embed on frontend cluster",
+        "v4-001: Pipeline runs on Azure Functions, not local machines",
+        "Reconciliation after every batch step, not just at Ship",
+        "Schema fingerprint (SHA-256) stored per batch for drift detection",
+        "Pre-ingest dry run for new/large files to estimate resource needs",
+        "Hard process-level RAM quotas via cgroups or container limits",
+        "Parquet-to-MongoDB load is idempotent and checkpointed",
+        "Operator runbooks for all major failure modes",
+        "Reliability/chaos testing suite is automated and continuous"
+      ],
+      "bug_fixes": {
+        "BUG_LOAD_001": "CopyToFrontEnd partial copy fixed by: (1) staged collection pattern, (2) per-chunk checkpointing, (3) mandatory parity verification before swap",
+        "OOM_3_7GB": "CMS Part D OOM fixed by: (1) streaming CSV/Parquet parser with O(1) per-row memory, (2) chunking to 256MB max, (3) hard process RAM quota, (4) pre-ingest dry run",
+        "RE_DOWNLOAD": "Fixed by DataFetcherBase ETag + SHA-256 guard + snapshot manifest",
+        "LOCAL_EXECUTION": "v4-001: Pipeline must run on Azure Functions. Local execution blocked by health check activity.",
+        "NO_PARALLEL": "Fixed by fan-out/fan-in pattern: parallel downloads, parallel workers, parallel enrichment",
+        "NO_CHECKPOINT": "Fixed by Durable Functions replay + start_step + per-chunk state machine",
+        "VECTOR_RAM_199": "Fixed by: (1) remove vector indexes from pipeline cluster, (2) vector indexes only on frontend cluster, (3) monitor RAM, evaluate external vector DB at 2M providers",
+        "CSV_FRAGILITY": "Resolved by adopting Parquet as canonical format with schema fingerprinting and validation",
+        "COMMIT_LOG_GAP": "Fixed by implementing dual logging (commit log + MongoDB checkpoint) with reconciliation job"
+      },
+      "iteration_summary": {
+        "iterations_1_5": "Resolved all parked items per Boss's direction: Parquet canonical, dual logging, Atlas-only vector, full reliability patterns, lightweight schema validation.",
+        "iterations_6_10": "Detailed Parquet layer: conversion, partitioning, schema evolution, storage, and Parquet-to-MongoDB ingest.",
+        "iterations_11_15": "Designed dual logging: commit log schema, MongoDB checkpoint schema, reconciliation, RBAC, retention, and compliance.",
+        "iterations_16_20": "Reliability and chaos testing: circuit breaker, checkpoint/restart, Parquet corruption, chaos schedule, operational runbooks, edge case handling, cost analysis, migration path.",
+        "iterations_21_25": "Final assembly: embedding and ship layer refinements, monitoring/observability, consensus, bug fixes, and full v3 object."
+      },
+      "parked_items": [],
+      "compliance_check": {
+        "date": "2026-04-08",
+        "method": "25-iteration adversarial compliance review",
+        "reviewers": [
+          "Claude Opus 4.6 (Principal Engineer — orchestrator)",
+          "GPT-4.1 (Enterprise Architect — reviewer)"
+        ],
+        "model_used": "gpt-4.1",
+        "iterations": 25,
+        "overall_verdict": "COMPLIANT with minor gaps",
+        "rules_checked": 65,
+        "compliant": 56,
+        "partial": 6,
+        "needs_clarification": 3,
+        "non_compliant": 0,
+        "contradictions": 0,
+        "gaps_found": 5,
+        "gap_summary": [
+          "GAP-001: Bell notification not wired in pipeline runbooks (v4-008, Biz Req #2) — MEDIUM",
+          "GAP-002: api-tests.http update not in pipeline doc (v4-002) — LOW",
+          "GAP-003: Requirement-to-test traceability not in arch doc (v4-007, v4-023) — LOW",
+          "GAP-004: Parquet state partition vs _id range processing clarity (DR-006) — LOW",
+          "GAP-005: Manifest should include MongoDB collections (DR-021) — LOW"
+        ],
+        "recommendation": "APPROVE for implementation. Address 5 gaps during implementation sprint.",
+        "full_log_ref": "brain/machine_artifacts/content/pipeline_v3_compliance_log.json",
+        "perplexity_audit_ref": "c:\temp\\perplexity_audit.json (2026-04-07, external audit context)",
+        "token_usage": {
+          "total_tokens": 918674,
+          "estimated_cost_usd": 2.15
+        }
+      }
+    },
+    {
+      "_record_id": "pipeline_architecture_v4",
+      "title": "Pipeline Architecture v4 -- Serviceable Design (Claude + GPT-4.1)",
+      "date": "2026-04-08",
+      "authors": [
+        "Claude Opus 4.6 (Principal Engineer)",
+        "GPT-4.1 (Enterprise Architect)"
+      ],
+      "status": "DRAFT_SERVICEABLE",
+      "supersedes": "pipeline_architecture_v3",
+      "design_process": {
+        "method": "21-iteration adversarial design review (v4-009 compliant)",
+        "iterations": 21,
+        "model_used": "gpt-4.1",
+        "total_tokens": 229689,
+        "consensus_reached": true,
+        "iteration_log": "pipeline_v4_design_iterations.json"
+      },
+      "boss_requirements": {
+        "req_1": "Bullet proof ETL, 95 pct success rate given source files exist",
+        "req_2": "Fatal errors ring bell continuously every 5 seconds on Skip Snow computer",
+        "req_3": "Priority order: reliability > speed > cost",
+        "req_4": "All architecture rules must be complied with",
+        "req_5": "Engineering rules must be complied with"
+      },
+      "priority_goals": [
+        "1. RELIABILITY -- 95 pct success. Resume from checkpoint. No data loss.",
+        "2. SPEED -- parallel downloads, fan-out per state.",
+        "3. COST -- minimize Azure compute, minimize Atlas uptime.",
+        "4. COMPLIANCE -- audit trail, v4-001 enforced, bell alerting."
+      ],
+      "changes_from_v3": {
+        "summary": "v4 resolves all 11 outstanding gaps from v3. No architectural redesign.",
+        "principle": "v3 architecture is the platform. v4 makes code conform to the brain."
+      },
+      "resolved_issues": [
+        {
+          "issue": 1,
+          "title": "Prescriber orchestrator not wired to Azure Functions",
+          "class": "architecture_gap",
+          "fix": "Refactor prescriber_pipeline_manager.py for Azure Functions. Register in function_app.py. Remove CLI entrypoints.",
+          "files": [
+            "prescriber_pipeline_manager.py",
+            "function_app.py"
+          ],
+          "test": "POST payload to Azure, verify completion.",
+          "rollback": "Revert orchestrator code"
+        },
+        {
+          "issue": 2,
+          "title": "No data quality gates between stages",
+          "class": "new_component",
+          "fix": "QualityGate class: min_rows, required_columns, max_null_frac, schema_fingerprint. Gate after each stage.",
+          "new_file": "quality_gate.py",
+          "test": "Bad data triggers gate. Valid data passes.",
+          "rollback": "Remove gate calls"
+        },
+        {
+          "issue": 3,
+          "title": "Idempotency gaps",
+          "class": "minor_refinement",
+          "fix": "Add output_exists_and_valid() to PipelineWorkerBase. Upsert with deterministic keys. ETag conditional upload.",
+          "files": [
+            "pipeline_worker_base.py"
+          ],
+          "test": "Run twice, second is no-op.",
+          "rollback": "Remove idempotency checks"
+        },
+        {
+          "issue": 4,
+          "title": "CopyToFrontEnd parity incomplete (BUG-LOAD-001)",
+          "class": "bug_fix",
+          "fix": "Atomic staged copy with metadata sidecar. Count+hash parity checks. Atomic swap.",
+          "files": [
+            "copy_to_frontend.py"
+          ],
+          "checks": [
+            "count match",
+            "hash first/last 1000",
+            "spot checks 100 records",
+            "schema fingerprint"
+          ],
+          "test": "Full copy, verify parity. Simulate failure, verify rollback.",
+          "rollback": "Drop staging; live unaffected"
+        },
+        {
+          "issue": 5,
+          "title": "overnight_pipeline.py raw requests.get (v4-001D)",
+          "class": "code_only",
+          "fix": "Replace requests.get with DataFetcherBase subclass calls.",
+          "files": [
+            "overnight_pipeline.py"
+          ],
+          "test": "Pipeline completes via DataFetcherBase. Grep: no raw HTTP.",
+          "rollback": "Revert file"
+        },
+        {
+          "issue": 6,
+          "title": ".readall() in 3 files (v4-001D)",
+          "class": "code_only",
+          "fix": "Replace .readall() with streaming (download_blob().chunks()). O(1) memory.",
+          "files": [
+            "data_fetcher_base.py",
+            "provider_load_manager.py"
+          ],
+          "test": "Large file without OOM. Constant memory.",
+          "rollback": "Revert to .readall()"
+        },
+        {
+          "issue": 7,
+          "title": "Hardcoded URLs in provider_load_manager.py (v4-001D)",
+          "class": "code_only",
+          "fix": "Move URLs to env vars or config. Discovery with fallback.",
+          "files": [
+            "provider_load_manager.py"
+          ],
+          "test": "Pipeline runs with config override. Default discovery works.",
+          "rollback": "Revert to hardcoded"
+        },
+        {
+          "issue": 8,
+          "title": "4 compliance test failures",
+          "class": "code_only",
+          "fix": "Auto-resolves when issues 5,6,7,11 fixed. Tests validate no raw HTTP, no .readall(), DataFetcherBase, no local exec.",
+          "dependency": "Issues 5,6,7,11",
+          "test": "pytest test_pipeline_compliance.py all pass",
+          "rollback": "N/A"
+        },
+        {
+          "issue": 9,
+          "title": "Schema drift detection not implemented",
+          "class": "new_component",
+          "fix": "SchemaDriftDetector: SHA-256 fingerprint of normalized columns+types. Compare vs admin.SchemaFingerprints. Mismatch aborts. Override param logged.",
+          "new_file": "schema_drift_detector.py",
+          "integration": "Called at start of Process stage",
+          "test": "Alter CSV headers triggers abort. Valid passes.",
+          "rollback": "Remove detection"
+        },
+        {
+          "issue": 10,
+          "title": "Fatal error alerting (bell) not implemented",
+          "class": "new_component",
+          "fix": "FatalAlertBridge: on fatal error log event, if local Windows run PowerShell beep loop every 5s, if Azure send Pushover/webhook to Skip PC triggering local bell. Dedup by run_id. Events in admin.BellEvents.",
+          "new_file": "fatal_alert_bridge.py",
+          "local_cmd": "powershell -c while($true){[console]::beep(800,500); Start-Sleep -Seconds 5}",
+          "cloud": "Azure Function -> Pushover API -> Skip PC -> local listener -> bell",
+          "test": "Inject fatal, verify bell event logged. CI: mock bell.",
+          "rollback": "Remove bell trigger"
+        },
+        {
+          "issue": 11,
+          "title": "Pipeline runs on local machine (v4-001C)",
+          "class": "architecture_gap",
+          "fix": "All execution via Azure Functions. overnight_pipeline.py becomes Durable Functions orchestrator. CI gate rejects local entrypoints. Health check verifies WEBSITE_SITE_NAME.",
+          "files": [
+            "overnight_pipeline.py",
+            "function_app.py",
+            "deploy-pipelines.yml"
+          ],
+          "ci_gate": "No if __name__ in DataPipelines except tests",
+          "test": "Deploy to Azure, pipeline via HTTP trigger. Local blocked.",
+          "rollback": "Re-enable local"
+        }
+      ],
+      "new_components": {
+        "QualityGate": {
+          "file": "quality_gate.py",
+          "purpose": "Data quality checks between stages"
+        },
+        "SchemaDriftDetector": {
+          "file": "schema_drift_detector.py",
+          "purpose": "Schema fingerprinting and drift detection"
+        },
+        "FatalAlertBridge": {
+          "file": "fatal_alert_bridge.py",
+          "purpose": "Fatal error bell notification (local+cloud)"
+        }
+      },
+      "reliability_target": {
+        "target": "95 pct pipeline success given source files exist",
+        "metric_store": "admin.PipelineRunMetrics",
+        "computation": "Rolling 7 and 30 day success rates daily",
+        "alerting": "Alert ops if below 95 pct"
+      },
+      "implementation_order": [
+        {
+          "step": 1,
+          "issues": [
+            1,
+            11
+          ],
+          "title": "Orchestrator Cloud Wiring"
+        },
+        {
+          "step": 2,
+          "issues": [
+            5,
+            6
+          ],
+          "title": "Data Fetcher and Streaming Compliance"
+        },
+        {
+          "step": 3,
+          "issues": [
+            7
+          ],
+          "title": "Configurable URLs"
+        },
+        {
+          "step": 4,
+          "issues": [
+            2,
+            3
+          ],
+          "title": "Quality Gates and Idempotency"
+        },
+        {
+          "step": 5,
+          "issues": [
+            9
+          ],
+          "title": "Schema Drift Detection"
+        },
+        {
+          "step": 6,
+          "issues": [
+            4
+          ],
+          "title": "CopyToFrontEnd Parity Fix"
+        },
+        {
+          "step": 7,
+          "issues": [
+            8
+          ],
+          "title": "Compliance Test Fixes"
+        },
+        {
+          "step": 8,
+          "issues": [
+            10
+          ],
+          "title": "Fatal Bell Bridge"
+        },
+        {
+          "step": 9,
+          "issues": [],
+          "title": "95 pct Success Metric"
+        },
+        {
+          "step": 10,
+          "issues": [],
+          "title": "Final Regression"
+        }
+      ],
+      "v3_retained": [
+        "Parquet canonical format (ADLS Gen2)",
+        "Dual logging (ADLS commit log + MongoDB checkpoint)",
+        "Azure Durable Functions orchestration",
+        "DataFetcherBase with ETag/SHA-256",
+        "PipelineWorkerBase template method",
+        "Staged collection pattern for Ship",
+        "Circuit breakers, dead-letter queues, rate limiters",
+        "ClusterLifecycleManager",
+        "Chunk-level state machine",
+        "Environment isolation (dev_ -> qa_ -> prod_)"
+      ],
+      "rules_compliance": {
+        "v4-001A": "Path filter enforced",
+        "v4-001B": "No commit during running job",
+        "v4-001C": "All workloads on Azure Functions (issues 1, 11)",
+        "v4-001D": "DataFetcherBase, streaming, no hardcoded URLs (issues 5, 6, 7)",
+        "v4-001E": "Sequential stages, parallel sub-steps",
+        "v4-003": "Architecture doc updated with code",
+        "v4-008": "Bell via FatalAlertBridge (issue 10)",
+        "v4-009": "Governance in all GPT prompts (verified)"
+      },
+      "iteration_summary": {
+        "phase_1": "Triage: 5 code-only, 3 new components, 3 refinements. No pushback.",
+        "phase_2": "Detailed: signatures, class designs, file locations.",
+        "phase_3": "Implementation: steps, dependencies, tests, rollback.",
+        "phase_4": "Integration: bell bridge, 95 pct metric, conflict analysis.",
+        "phase_5": "Final: rules verified. Consensus iteration 21."
+      },
+      "parked_items": []
     }
   ]
 }

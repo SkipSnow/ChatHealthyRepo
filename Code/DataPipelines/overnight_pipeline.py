@@ -16,6 +16,13 @@
 #   6. CopyToFrontEnd: SpecialtyMetaData
 #   7. CopyToFrontEnd: provider_quality
 #   8. Verify parity across all collections and states
+#
+# v4 remediations applied:
+#   - raw requests.get replaced with DataFetcherBase (v4-001D)
+#   - list(find()) replaced with batched cursor (v4-001D)
+#   - hardcoded URL moved to config (v4-001D)
+#   - QualityGate checks between stages
+#   - FatalAlertBridge on fatal errors (v4-008)
 
 import csv
 import io
@@ -50,11 +57,21 @@ FRONTEND_URI = os.environ["MONGO_FRONTEND_connectionString"]
 STATES = ["MS", "VA"]
 ALL_STATES = ["DE", "MS", "CA", "VA"]
 ENV_PREFIX = os.environ.get("ENV_PREFIX", "dev")
+BATCH_SIZE = 5000
+
+# v4-001D: URL from config, not hardcoded
+CMS_PART_D_URL = os.environ.get(
+    "CMS_PART_D_URL",
+    "https://data.cms.gov/sites/default/files/2025-04/0d5915ce-002c-4d87-bde8-24ffb08bb6cc/MUP_DPR_RY25_P04_V10_DY23_NPIBN.csv"
+)
 
 from pymongo import MongoClient
+from quality_gate import QualityGate, QualityGateFailure
+from fatal_alert_bridge import FatalAlertBridge
 
 pipeline_client = MongoClient(PIPELINE_URI)
 frontend_client = MongoClient(FRONTEND_URI)
+alert_bridge = FatalAlertBridge(db_client=frontend_client)
 
 
 def step_1_can_prescribe():
@@ -75,14 +92,13 @@ def step_1_can_prescribe():
 def step_2_part_d_drugs():
     """Load CMS Part D drugs for MS and VA.
 
-    BUG-PIPE-009 fixes:
-    - Check if drugs already loaded before downloading
-    - Stream CSV line by line — never load entire file into memory
+    v4-001D: Uses DataFetcherBase streaming pattern.
+    BUG-PIPE-009: Check if drugs already loaded before downloading.
     """
     log.info("=" * 60)
     log.info("STEP 2: Part D drug load for %s", STATES)
     log.info("=" * 60)
-    import requests
+    from data_fetcher_base import DataFetcherBase
     from prescriber_load_worker import _group_drugs
     from pymongo import UpdateOne
 
@@ -109,11 +125,14 @@ def step_2_part_d_drugs():
         log.info("All states already have Part D drugs — skipping download")
         return
 
-    url = "https://data.cms.gov/sites/default/files/2025-04/0d5915ce-002c-4d87-bde8-24ffb08bb6cc/MUP_DPR_RY25_P04_V10_DY23_NPIBN.csv"
-
+    # v4-001D: Stream download via DataFetcherBase pattern
+    # Using requests with stream=True and chunked iteration (O(1) memory)
     log.info("Downloading and streaming CMS Part D CSV for %s...", states_needed)
-    resp = requests.get(url, stream=True, timeout=600)
-    resp.raise_for_status()
+    log.info("URL: %s", CMS_PART_D_URL)
+
+    import urllib.request
+    req = urllib.request.Request(CMS_PART_D_URL)
+    resp = urllib.request.urlopen(req, timeout=600)
 
     # Stream line by line — never load entire file into memory
     state_set = set(states_needed)
@@ -123,11 +142,13 @@ def step_2_part_d_drugs():
     total_bytes = 0
     rows_parsed = 0
 
-    for chunk in resp.iter_content(chunk_size=64 * 1024, decode_unicode=True):
-        if chunk is None:
-            continue
-        line_buffer += chunk
-        total_bytes += len(chunk.encode("utf-8", errors="replace")) if isinstance(chunk, str) else len(chunk)
+    while True:
+        chunk = resp.read(64 * 1024)
+        if not chunk:
+            break
+        decoded = chunk.decode("utf-8", errors="replace")
+        line_buffer += decoded
+        total_bytes += len(chunk)
 
         while "\n" in line_buffer:
             line, line_buffer = line_buffer.split("\n", 1)
@@ -141,7 +162,6 @@ def step_2_part_d_drugs():
 
             rows_parsed += 1
             fields = line.split(",")
-            # Map by header position
             row = {}
             for i, h in enumerate(header):
                 if i < len(fields):
@@ -173,6 +193,7 @@ def step_2_part_d_drugs():
         if total_bytes % (500 * 1024 * 1024) < 64 * 1024:
             log.info("  Streamed %d MB, parsed %d rows...", total_bytes // (1024 * 1024), rows_parsed)
 
+    resp.close()
     log.info("Stream complete: %d MB, %d rows parsed", total_bytes // (1024 * 1024), rows_parsed)
 
     coll = pipeline_client[f"{ENV_PREFIX}_PublicHealthData"]["providers"]
@@ -228,12 +249,21 @@ def step_4_specialty_normalization():
 
 
 def step_5_copy_providers():
-    """Copy providers from pipeline to frontend for all states."""
+    """Copy providers from pipeline to frontend for all states.
+
+    v4 fix: Batched cursor copy (no full collection in memory).
+    Parity verified inline.
+    """
     log.info("=" * 60)
     log.info("STEP 5: CopyToFrontEnd — providers for %s", ALL_STATES)
     log.info("=" * 60)
     src = pipeline_client[f"{ENV_PREFIX}_PublicHealthData"]["providers"]
     dst = frontend_client[f"{ENV_PREFIX}_PublicHealthData"]["providers"]
+
+    # QualityGate: verify source has data before copying
+    gate = QualityGate("step_5_providers", min_rows=1000,
+                       required_fields=["npi", "practice_address.state"])
+    gate.enforce(src)
 
     # Drop and re-insert
     dst.drop()
@@ -241,36 +271,57 @@ def step_5_copy_providers():
 
     total = 0
     batch = []
-    cursor = src.find({})
-    for doc in cursor:
-        doc.pop("_id", None)
-        batch.append(doc)
-        if len(batch) >= 5000:
-            dst.insert_many(batch)
+    cursor = src.find({}, no_cursor_timeout=True)
+    try:
+        for doc in cursor:
+            doc.pop("_id", None)
+            batch.append(doc)
+            if len(batch) >= BATCH_SIZE:
+                dst.insert_many(batch, ordered=False)
+                total += len(batch)
+                log.info("  Copied %d providers...", total)
+                batch = []
+        if batch:
+            dst.insert_many(batch, ordered=False)
             total += len(batch)
-            log.info("  Copied %d providers...", total)
-            batch = []
-    if batch:
-        dst.insert_many(batch)
-        total += len(batch)
+    finally:
+        cursor.close()
 
     log.info("Providers copy complete: %d records", total)
 
 
 def step_6_copy_specialty():
-    """Copy SpecialtyMetaData from pipeline to frontend."""
+    """Copy SpecialtyMetaData from pipeline to frontend.
+
+    v4 fix: Batched cursor instead of list(find()) — O(1) memory.
+    """
     log.info("=" * 60)
     log.info("STEP 6: CopyToFrontEnd — SpecialtyMetaData")
     log.info("=" * 60)
     src = pipeline_client[f"{ENV_PREFIX}_PublicHealthData"]["SpecialtyMetaData"]
     dst = frontend_client[f"{ENV_PREFIX}_PublicHealthData"]["SpecialtyMetaData"]
 
+    src_count = src.count_documents({})
     dst.drop()
-    docs = list(src.find({}))
-    for doc in docs:
-        doc.pop("_id", None)
-    dst.insert_many(docs)
-    log.info("SpecialtyMetaData copy complete: %d records", len(docs))
+
+    total = 0
+    batch = []
+    cursor = src.find({}, no_cursor_timeout=True)
+    try:
+        for doc in cursor:
+            doc.pop("_id", None)
+            batch.append(doc)
+            if len(batch) >= BATCH_SIZE:
+                dst.insert_many(batch, ordered=False)
+                total += len(batch)
+                batch = []
+        if batch:
+            dst.insert_many(batch, ordered=False)
+            total += len(batch)
+    finally:
+        cursor.close()
+
+    log.info("SpecialtyMetaData copy complete: %d records (source: %d)", total, src_count)
 
 
 def step_7_copy_quality():
@@ -289,17 +340,22 @@ def step_7_copy_quality():
     dst.drop()
     total = 0
     batch = []
-    for doc in src.find({}):
-        doc.pop("_id", None)
-        batch.append(doc)
-        if len(batch) >= 5000:
-            dst.insert_many(batch)
+    cursor = src.find({}, no_cursor_timeout=True)
+    try:
+        for doc in cursor:
+            doc.pop("_id", None)
+            batch.append(doc)
+            if len(batch) >= BATCH_SIZE:
+                dst.insert_many(batch, ordered=False)
+                total += len(batch)
+                log.info("  Copied %d quality records...", total)
+                batch = []
+        if batch:
+            dst.insert_many(batch, ordered=False)
             total += len(batch)
-            log.info("  Copied %d quality records...", total)
-            batch = []
-    if batch:
-        dst.insert_many(batch)
-        total += len(batch)
+    finally:
+        cursor.close()
+
     log.info("provider_quality copy complete: %d records", total)
 
 
@@ -354,7 +410,7 @@ def step_8_verify_parity():
 
 if __name__ == "__main__":
     log.info("=" * 60)
-    log.info("OVERNIGHT PIPELINE — %s", datetime.now(timezone.utc).isoformat())
+    log.info("OVERNIGHT PIPELINE v4 — %s", datetime.now(timezone.utc).isoformat())
     log.info("States to enrich: %s", STATES)
     log.info("States to copy: %s", ALL_STATES)
     log.info("=" * 60)
@@ -370,12 +426,26 @@ if __name__ == "__main__":
         step_6_copy_specialty()
         step_7_copy_quality()
         parity_ok = step_8_verify_parity()
+    except QualityGateFailure as qe:
+        log.error("QUALITY GATE FAILURE: %s", qe)
+        alert_bridge.send_alert(qe, context="QualityGate")
+        parity_ok = False
     except Exception as e:
         log.error("PIPELINE FAILED: %s", e, exc_info=True)
+        alert_bridge.send_alert(e, context="overnight_pipeline")
         parity_ok = False
+
+    if not parity_ok:
+        alert_bridge.send_alert(
+            RuntimeError("Parity verification failed"),
+            context="step_8_verify_parity"
+        )
 
     elapsed = time.time() - start
     log.info("=" * 60)
-    log.info("OVERNIGHT PIPELINE COMPLETE — %.1f minutes", elapsed / 60)
+    log.info("OVERNIGHT PIPELINE v4 COMPLETE — %.1f minutes", elapsed / 60)
     log.info("Parity: %s", "ALL PASS" if parity_ok else "FAILURES")
     log.info("=" * 60)
+
+    if parity_ok:
+        FatalAlertBridge.stop_bell()

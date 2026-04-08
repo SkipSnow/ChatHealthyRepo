@@ -193,13 +193,13 @@ ASYNC_TASK_ORCHESTRATORS = {
     "SnapshotCollection": "snapshot_collection_orchestrator",
     "CopyToFrontEnd": "copy_to_frontend_orchestrator",
     "MigrateEnvironment": "migrate_environment_orchestrator",
-    "PrescriberPipeline": "prescriber_pipeline_orchestrator",
+    "PrescriberEvaluateCarePipeline": "prescriber_pipeline_orchestrator",
 }
 
 # Pipeline step registry — valid steps per pipeline, with preconditions.
 # Used by Router to validate steps[] before dispatching.
 PIPELINE_STEP_REGISTRY = {
-    "PrescriberPipeline": {
+    "PrescriberEvaluateCarePipeline": {
         "valid_steps": [0, 1, 2, 3, 4],
         "step_names": {0: "validate", 1: "fetch", 2: "load", 3: "enrich", 4: "embed"},
         "preconditions": {
@@ -998,7 +998,7 @@ def prescriber_validate_activity(config: dict) -> dict:
     state_filter = {"practice_address.state": {"$in": states}}
     return {
         "status": "valid",
-        "pipeline": "PrescriberPipeline",
+        "pipeline": "PrescriberEvaluateCarePipeline",
         "env_prefix": env_prefix,
         "states": states,
         "steps_requested": config.get("steps", []),

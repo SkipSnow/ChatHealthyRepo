@@ -1,6 +1,6 @@
 {
   "collection": "design",
-  "record_count": 4,
+  "record_count": 5,
   "records": [
     {
       "_record_id": "design_eval_p_rx_drug_mapping",
@@ -281,6 +281,437 @@
         "React app owns all state — parent page is a dumb rendering surface",
         "Controls appear and disappear via postMessage — no page reloads"
       ]
+    },
+    {
+      "_record_id": "design_pipeline_architecture_v4",
+      "title": "Pipeline Architecture v4 -- Bulletproof ETL",
+      "feature_id": "PIPE-BP-001",
+      "epic_id": "EPIC-PIPE",
+      "status": "designed",
+      "version": 4,
+      "created": "2026-04-08",
+      "created_by": "GPT-4.1 (Architect) + GPT-4.1 (Reviewer) -- 11 iteration convergence",
+      "audit_source": "EXT-AUDIT-003 (Perplexity Pipeline v4 Design Audit)",
+      "boss_requirements": {
+        "target": "Bulletproof ETL -- 95% successful end-to-end runs when source files exist",
+        "fatal_alert": "Ring bell continuously every 5 seconds on Boss computer for fatal errors",
+        "priority": "reliability > speed > cost"
+      },
+      "v3_retained": [
+        "Parquet canonical intermediate format (ADLS Gen2, pyarrow, zstd)",
+        "Dual logging (ADLS commit log + MongoDB checkpoint)",
+        "Azure Durable Functions orchestration",
+        "DataFetcherBase with ETag/SHA-256 skip guard",
+        "PipelineWorkerBase template method pattern",
+        "Staged collection pattern for Ship",
+        "Circuit breakers, dead-letter queues, rate limiters",
+        "ClusterLifecycleManager (pause/resume pipeline cluster)",
+        "Chunk-level state machine (pending -> in_progress -> complete -> verified | failed)",
+        "Environment isolation (dev_ / qa_ / prod_)"
+      ],
+      "pipelines": {
+        "provider_pipeline": {
+          "description": "Full NPPES provider data load, enrichment, embedding, and ship to frontend",
+          "data_source": "NPPES (CMS) -- 10.6GB ZIP, all US healthcare providers",
+          "stages": {
+            "stage_1_assemble": {
+              "steps": [
+                {
+                  "step": 0,
+                  "name": "Reserve cluster",
+                  "class": "ClusterLifecycleManager",
+                  "method": "reserve()"
+                },
+                {
+                  "step": 1,
+                  "name": "Download NPI ZIP",
+                  "class": "NppesFetcher (DataFetcherBase)",
+                  "method": "fetch()",
+                  "notes": "Auto-discovers URL from CMS page, ETag/SHA-256 skip guard, 8MB stream chunks to Azure Blob"
+                },
+                {
+                  "step": 2,
+                  "name": "Extract CSV to blob",
+                  "notes": "Skip guard if CSV already exists in blob"
+                },
+                {
+                  "step": 3,
+                  "name": "Compute byte-aligned partitions",
+                  "notes": "Newline-aligned boundaries from blob byte ranges, O(1) memory (DR-008)"
+                }
+              ]
+            },
+            "stage_2_process": {
+              "steps": [
+                {
+                  "step": 4,
+                  "name": "Drain staging collection",
+                  "notes": "Drop unless incremental=true (BUG-PIPE-003)"
+                },
+                {
+                  "step": 5,
+                  "name": "Pre-load indexes (incremental only)"
+                },
+                {
+                  "step": 6,
+                  "name": "Write worker metadata",
+                  "notes": "One record per worker in admin.DataLoadMetadata"
+                },
+                {
+                  "step": "6.5",
+                  "name": "Pre-warm Azure Flex instances",
+                  "notes": "Set always_ready = num_workers"
+                },
+                {
+                  "step": 7,
+                  "name": "Fan-out load",
+                  "class": "ProviderWorker (PipelineWorkerBase)",
+                  "notes": "32 workers load partitions simultaneously via task_all"
+                },
+                {
+                  "step": "7.5",
+                  "name": "Reset always_ready = 0"
+                },
+                {
+                  "step": "8-9",
+                  "name": "Build indexes + reconcile counts",
+                  "notes": "Parallel: post-load indexes + source vs loaded count verification"
+                }
+              ]
+            },
+            "stage_3_enrich": {
+              "description": "County enrichment -- 6-pass cascading resolution",
+              "class": "CountyEnrichmentJob",
+              "passes": [
+                {
+                  "pass": 1,
+                  "name": "ZIP bulk crosswalk",
+                  "method": "updateMany per ZIP where res_ratio >= 0.98",
+                  "notes": "220x fewer ops than per-provider"
+                },
+                {
+                  "pass": 2,
+                  "name": "Census Geocoder (practice address)",
+                  "notes": "Batch POST, 500 per batch"
+                },
+                {
+                  "pass": 3,
+                  "name": "Census Geocoder (billing address)",
+                  "notes": "For geocoder_failed from pass 2"
+                },
+                {
+                  "pass": 4,
+                  "name": "Google Maps (practice address)",
+                  "notes": "Paid API, optional"
+                },
+                {
+                  "pass": 5,
+                  "name": "Google Maps (billing address)",
+                  "notes": "Paid API, optional"
+                },
+                {
+                  "pass": 6,
+                  "name": "NPPES public registry lookup",
+                  "notes": "Free, 5 req/s rate limit"
+                }
+              ]
+            },
+            "stage_4_embed": {
+              "class": "EmbeddingWorker (PipelineWorkerBase)",
+              "model": "text-embedding-3-large (3072d)",
+              "batch_size": 100,
+              "notes": "Pre-filter excludes bad_data/out_of_scope. Rate limiting with exponential backoff + jitter. DR-022: embed on pipeline cluster only, never frontend."
+            },
+            "stage_5_ship": {
+              "class": "CopyToFrontEndManager",
+              "method": "Partition via $bucketAuto (DR-008), copy by _id range in 10K batches, insert_many(ordered=False)",
+              "steps": [
+                {
+                  "step": 1,
+                  "name": "Copy static collections",
+                  "collections": [
+                    "SpecialtyMetaData",
+                    "provider_quality",
+                    "ICD10Codes",
+                    "ZipCountyCrosswalk",
+                    "drug_crosswalk_cache"
+                  ]
+                },
+                {
+                  "step": 2,
+                  "name": "Copy providers (filtered by states)"
+                },
+                {
+                  "step": 3,
+                  "name": "Verify parity",
+                  "notes": "Source count == destination count per collection and per state"
+                },
+                {
+                  "step": 4,
+                  "name": "Create vector indexes",
+                  "notes": "provider_vector_index (3072d cosine) + specialty_vector_index. DR-016: verified on every promotion."
+                },
+                {
+                  "step": 5,
+                  "name": "Verify frontend indexes"
+                }
+              ]
+            }
+          }
+        },
+        "prescriber_evaluate_care_pipeline": {
+          "description": "CMS Part D prescriber data: drug behavior, crosswalk enrichment, exclusion flags, specialty normalization",
+          "data_sources": [
+            "CMS Part D Prescriber PUF (3.7GB CSV)",
+            "OIG LEIE (excluded providers)",
+            "SAM.gov (excluded entities)",
+            "RxNorm API (drug-molecule-indication mapping)"
+          ],
+          "stages": {
+            "stage_0_validate": {
+              "notes": "Check provider counts exist"
+            },
+            "stage_1_fetch": {
+              "class": "PrescriberDataFetcher (DataFetcherBase)",
+              "method": "fetch_all()",
+              "notes": "Downloads CMS Part D + OIG + SAM via DataFetcherBase"
+            },
+            "stage_2_load": {
+              "class": "PrescriberLoadWorker (PipelineWorkerBase)",
+              "notes": "Parse CSV, filter by state, build provider_quality collection"
+            },
+            "stage_3_crosswalk": {
+              "class": "CrosswalkBuilder",
+              "method": "enrich_providers_with_crosswalk()",
+              "notes": "RxNorm -> molecule -> indication -> ICD-10 mapping"
+            },
+            "stage_4_exclusion": {
+              "class": "PrescriberEnrichmentJob",
+              "method": "enrich_all()",
+              "notes": "OIG/SAM exclusion flag enrichment"
+            },
+            "stage_5_specialty_norm": {
+              "class": "CrosswalkBuilder",
+              "method": "compute_specialty_baselines()",
+              "notes": "Peer benchmarks, 5% deviation bands"
+            },
+            "stage_6_embed": {
+              "notes": "Drug/molecule vector search embeddings"
+            }
+          }
+        }
+      },
+      "new_components_v4": {
+        "quality_gate": {
+          "file": "Code/DataPipelines/pipeline/quality_gate.py",
+          "class": "QualityGate",
+          "purpose": "Data validation between every pipeline stage",
+          "methods": [
+            "validate_schema()",
+            "check_nulls()",
+            "check_ranges()",
+            "enforce_on_stage(stage_name)"
+          ],
+          "behavior": "Fail fast with clear error if gate not met. Config-driven per stage. Override via documented flag."
+        },
+        "schema_drift_detector": {
+          "file": "Code/DataPipelines/pipeline/schema_drift_detector.py",
+          "class": "SchemaDriftDetector",
+          "purpose": "Detect schema changes between pipeline runs",
+          "methods": [
+            "detect_and_alert()"
+          ],
+          "behavior": "SHA-256 fingerprint of normalized columns+types vs admin.SchemaFingerprints. Abort pipeline on mismatch. Override for hotfixes."
+        },
+        "fatal_alert_bridge": {
+          "file": "Code/DataPipelines/pipeline/fatal_alert_bridge.py",
+          "class": "FatalAlertBridge",
+          "purpose": "Ring bell on fatal pipeline errors per v4-008",
+          "methods": [
+            "send_alert(error, context)"
+          ],
+          "behavior": "Local: PowerShell beep loop every 5 seconds. Cloud: Pushover webhook. Events logged to admin.BellEvents."
+        },
+        "idempotency_manager": {
+          "enhanced_in": "Code/DataPipelines/pipeline_worker_base.py",
+          "method": "output_exists_and_valid()",
+          "purpose": "Skip completed stages on restart without re-running",
+          "behavior": "Check output file/collection existence + hash. Deterministic upsert keys. Conditional blob upload."
+        },
+        "traceability_matrix_manager": {
+          "file": "Code/DataPipelines/scripts/update_traceability_matrix.py",
+          "class": "TraceabilityMatrixManager",
+          "purpose": "Requirement-to-test traceability enforcement (v4-007/v4-023)",
+          "methods": [
+            "update_on_change()",
+            "sync_status_with_tests()",
+            "resolve_test_mapping()",
+            "audit_trail()"
+          ],
+          "behavior": "CI enforcement on PR and nightly. UUID-based test mapping survives renames. Audit trail per requirement."
+        },
+        "ci_cd_conflict_detector": {
+          "file": "Code/DataPipelines/scripts/ci_cd_conflict_detector.py",
+          "class": "CiCdConflictDetector",
+          "purpose": "Detect drift between GitHub Actions and Azure DevOps enforcement logic",
+          "methods": [
+            "compare_enforcement_logic()",
+            "notify_legacy_users()",
+            "detect_drift()"
+          ],
+          "behavior": "Blocks deploy on conflict. Notifies legacy users. Runs in both pipelines."
+        },
+        "api_test_updater": {
+          "file": "Code/DataPipelines/scripts/update_api_tests.py",
+          "class": "ApiTestUpdater",
+          "purpose": "Auto-update api-tests.http after successful deploy (v4-002)",
+          "methods": [
+            "filter_status_apis()",
+            "capture_instance_id()",
+            "update_api_tests_file()"
+          ],
+          "behavior": "Only human status APIs via OpenAPI tags. Instance ID from Azure Functions env. CI blocks non-status APIs."
+        },
+        "manifest_manager": {
+          "file": "Code/DataPipelines/scripts/update_manifest.py",
+          "class": "ManifestManager",
+          "purpose": "Include MongoDB collections in project manifest (DR-021)",
+          "methods": [
+            "add_mongodb_collections()",
+            "validate_manifest()"
+          ],
+          "behavior": "Auto-detect collections. Add mongodb_collections section to manifest."
+        }
+      },
+      "v4_remediations": {
+        "overnight_pipeline": "Replace raw requests.get with DataFetcherBase subclass calls. Replace .readall() with streaming download_blob().chunks(). Move hardcoded URLs to env/config.",
+        "cloud_only_execution": "overnight_pipeline.py becomes Durable Functions orchestrator. CI gate rejects 'if __name__'. Health check verifies WEBSITE_SITE_NAME.",
+        "copytofrontend_fix": "Atomic staged copy with metadata sidecar. Count+hash parity verification. Atomic swap. Rollback on failure. Addresses BUG-LOAD-001."
+      },
+      "execution_rules": {
+        "stage_ordering": "Sequential stages (v4-001E): Assemble -> Process -> Enrich -> Embed -> Ship. Each completes before next begins. No interleaving.",
+        "parallel_sub_steps": "Within each stage, sub-steps may run in parallel (e.g., 32 load workers, parallel index builds).",
+        "cloud_only": "v4-001C: All workloads execute on Azure Functions, never local machine.",
+        "data_acquisition": "v4-001D: All downloads through DataFetcherBase with ETag/SHA-256. Never raw HTTP. Stream and chunk. Never load full file in memory."
+      },
+      "vector_search": {
+        "provider_index": {
+          "collection": "providers",
+          "dimensions": 3072,
+          "similarity": "cosine",
+          "filter_fields": [
+            "practice_address.state",
+            ".city",
+            ".zip",
+            "county.name",
+            "county.fips"
+          ]
+        },
+        "specialty_index": {
+          "collection": "SpecialtyMetaData",
+          "dimensions": 3072,
+          "similarity": "cosine"
+        },
+        "placement": "Vector indexes ONLY on frontend cluster (v3 decision). Pipeline cluster holds raw vectors, no indexes.",
+        "scaling": "Max 2M providers at 3072d before evaluating external vector DB. Monitor RAM at 80% threshold."
+      },
+      "storage": {
+        "parquet": {
+          "location": "ADLS Gen2 adls2://pipeline-data/parquet/",
+          "format": "pyarrow, zstd compression, 128MB row groups",
+          "partitioning": "By state, year. Optional NPI prefix for large states.",
+          "role": "Immutable audit source. Cold-start recovery to MongoDB."
+        },
+        "azure_blob": {
+          "role": "Intermediate file storage (downloaded ZIPs, extracted CSVs)"
+        },
+        "mongodb_pipeline": {
+          "role": "Operational mutable state during pipeline execution. DR-020: ZERO admin state."
+        },
+        "mongodb_frontend": {
+          "role": "Production serving. All admin state. All vector indexes. 24/7 uptime."
+        }
+      },
+      "implementation_order": [
+        {
+          "phase": 1,
+          "name": "Orchestrator Cloud Wiring",
+          "issues": [
+            1,
+            11
+          ],
+          "description": "Wire prescriber orchestrator + overnight pipeline to Azure Functions"
+        },
+        {
+          "phase": 2,
+          "name": "Data Fetcher and Streaming",
+          "issues": [
+            5,
+            6
+          ],
+          "description": "Replace raw HTTP and .readall() with DataFetcherBase streaming"
+        },
+        {
+          "phase": 3,
+          "name": "Configurable URLs",
+          "issues": [
+            7
+          ],
+          "description": "Move hardcoded URLs to config/env"
+        },
+        {
+          "phase": 4,
+          "name": "Quality Gates and Idempotency",
+          "issues": [
+            2,
+            3
+          ],
+          "description": "Add QualityGate between stages, idempotency in PipelineWorkerBase"
+        },
+        {
+          "phase": 5,
+          "name": "Schema Drift Detection",
+          "issues": [
+            9
+          ],
+          "description": "SchemaDriftDetector with SHA-256 fingerprints"
+        },
+        {
+          "phase": 6,
+          "name": "CopyToFrontEnd Parity",
+          "issues": [
+            4
+          ],
+          "description": "Fix BUG-LOAD-001 with atomic staged copy and parity verification"
+        },
+        {
+          "phase": 7,
+          "name": "Compliance Test Fixes",
+          "issues": [
+            8
+          ],
+          "description": "Auto-resolves when phases 2-3, 6 complete"
+        },
+        {
+          "phase": 8,
+          "name": "Fatal Bell Bridge",
+          "issues": [
+            10
+          ],
+          "description": "FatalAlertBridge with PowerShell beep and Pushover webhook"
+        },
+        {
+          "phase": 9,
+          "name": "95% Success Metric",
+          "description": "Rolling success-rate computation and dashboard"
+        },
+        {
+          "phase": 10,
+          "name": "Traceability and CI/CD",
+          "description": "TraceabilityMatrixManager, CiCdConflictDetector, ApiTestUpdater, ManifestManager"
+        }
+      ],
+      "publish": false
     }
   ]
 }

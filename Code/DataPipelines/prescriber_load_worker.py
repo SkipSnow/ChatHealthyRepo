@@ -71,7 +71,10 @@ class PrescriberLoadWorker(PipelineWorkerBase):
         blob_service = get_blob_service()
         blob_client = blob_service.get_blob_client(self.container, self.blob_name)
         stream = blob_client.download_blob()
-        content = stream.readall().decode("utf-8", errors="replace")
+        chunks = []
+        for chunk in stream.chunks():
+            chunks.append(chunk)
+        content = b"".join(chunks).decode("utf-8", errors="replace")
 
         _log.info("CSV loaded (%d bytes). Parsing and filtering...", len(content))
 
@@ -256,7 +259,7 @@ class PrescriberLoadWorker(PipelineWorkerBase):
         _log.info("Load complete: %d providers → provider_quality (%d with prescriber data)",
                   self._npis_loaded, self._npis_with_rx)
 
-    def _pipeline_result(self):
+    def _pipeline_build_result(self):
         return {
             "status": "complete",
             "npis_loaded": self._npis_loaded,

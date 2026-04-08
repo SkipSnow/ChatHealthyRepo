@@ -53,7 +53,7 @@ def run_pipeline(config: dict = None):
         state_filter = {"practice_address.state": {"$in": states}}
         results["validate"] = {
             "status": "valid",
-            "pipeline": "PrescriberPipeline",
+            "pipeline": "PrescriberEvaluateCarePipeline",
             "states": states,
             "collections": {
                 "providers": db["providers"].count_documents(state_filter),

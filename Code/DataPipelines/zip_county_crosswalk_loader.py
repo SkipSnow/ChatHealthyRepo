@@ -90,13 +90,13 @@ def load_crosswalk(config: dict = None) -> dict:
     # Always read from blob — never re-download from CMS
     blob_service = get_blob_service()
     container = config.get("blob_container", "provider-data")
-    raw_bytes = (
+    stream = (
         blob_service
         .get_container_client(container)
         .get_blob_client(fetch_result["blob_path"])
         .download_blob()
-        .readall()
     )
+    raw_bytes = b"".join(stream.chunks())
     logging.info("Parsing Census ZCTA-to-county relationship file from blob...")
     content = raw_bytes.decode("utf-8-sig")
     lines = content.splitlines()
