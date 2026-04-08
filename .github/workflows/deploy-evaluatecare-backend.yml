@@ -1,4 +1,4 @@
-name: Deploy ChatHealthy Backend to HuggingFace
+name: Deploy EvaluateCare Backend to HuggingFace
 
 on:
   push:
@@ -7,13 +7,9 @@ on:
       - qa
       - main
     paths:
-      - 'Code/ConversationalUX/FindCareChat/backend/**'
-      - 'Code/ConversationalUX/FindCareChat/frontend/**'
-      - 'Code/ConversationalUX/ChatHealthyWhoAmIChat/me/**'
-      - 'Code/Shared/ChatHealthyMongoUtilities.py'
-      - 'Code/Shared/prompt_system_maker.py'
-      - 'brain/machine_artifacts/content/emergency_keywords.json'
-      - '.github/workflows/deploy-findcare-backend.yml'
+      - 'Code/evaluate_care/**'
+      - 'Code/Shared/session_token.py'
+      - '.github/workflows/deploy-evaluatecare-backend.yml'
 
 jobs:
   deploy:
@@ -30,7 +26,7 @@ jobs:
         run: |
           BRANCH="${GITHUB_REF_NAME}"
           ORG="SkipSnow"
-          BASE="ChatHealthySpace"
+          BASE="EvaluateCareSpace"
           if [ "$BRANCH" = "main" ]; then
             SPACE="${BASE}"
             ENV="prod"
@@ -50,25 +46,13 @@ jobs:
       - name: Pre-deploy rule check (v4-017)
         run: |
           pip install pymongo python-dotenv
-          python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare
+          python Code/Shared/ops/tools/pre_deploy_rule_check.py evaluatecare
 
       - name: Bump build counter
         env:
           MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
         run: |
-          pip install pymongo python-dotenv
           python Code/Shared/ops/bump_build.py --env ${{ steps.space.outputs.env }}
-
-      - name: Build React frontend
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install and build frontend
-        working-directory: Code/ConversationalUX/FindCareChat/frontend
-        run: |
-          npm ci
-          VITE_API_URL="" npm run build
 
       - name: Push to HuggingFace Space
         env:
@@ -77,41 +61,28 @@ jobs:
         run: |
           git config --global user.email "skip.snow@gmail.com"
           git config --global user.name "SkipSnow"
-          git lfs install
 
           echo "Target Space: SkipSnow/${HF_SPACE}"
           git clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/${HF_SPACE} hf_space
 
+          # Preserve README.md (HF config)
+          cp hf_space/README.md /tmp/hf_readme.md 2>/dev/null || true
           find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
+          cp /tmp/hf_readme.md hf_space/README.md 2>/dev/null || true
 
-          # Backend code
+          # EvaluateCare code
           rsync -av \
             --exclude='.env' \
             --exclude='__pycache__' \
             --exclude='*.pyc' \
-            Code/ConversationalUX/FindCareChat/backend/ hf_space/
-
-          # Pre-built React frontend → static/
-          cp -r Code/ConversationalUX/FindCareChat/frontend/dist hf_space/static
+            --exclude='tests/' \
+            Code/evaluate_care/ hf_space/
 
           # Shared utilities
-          cp Code/Shared/ChatHealthyMongoUtilities.py hf_space/
-          cp Code/Shared/prompt_system_maker.py hf_space/
-
-          # Brain artifacts needed at runtime
-          mkdir -p hf_space/brain/machine_artifacts/content
-          cp brain/machine_artifacts/content/emergency_keywords.json hf_space/brain/machine_artifacts/content/
-
-          # UAT report tool
-          mkdir -p hf_space/ops
-          cp Code/Shared/ops/uat_report.py hf_space/ops/
-
-          # me/ context files (PDFs, summary, codebase)
-          mkdir -p hf_space/me
-          rsync -av Code/ConversationalUX/ChatHealthyWhoAmIChat/me/ hf_space/me/
+          mkdir -p hf_space/shared
+          cp Code/Shared/session_token.py hf_space/shared/ 2>/dev/null || true
 
           cd hf_space
-          git lfs track "*.pdf"
           git add .
           if git diff --staged --quiet; then
             echo "No changes to deploy."

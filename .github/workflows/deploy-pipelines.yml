@@ -48,6 +48,10 @@ jobs:
         run: |
           python Code/Shared/ops/bump_build.py --env ${{ steps.env.outputs.name }}
 
+      - name: Pre-deploy rule check (v4-017)
+        run: |
+          python Code/Shared/ops/tools/pre_deploy_rule_check.py pipeline
+
       - name: Login to Azure
         uses: azure/login@v2
         with:

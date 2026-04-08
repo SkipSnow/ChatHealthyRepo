@@ -267,6 +267,12 @@
       "rule": "You cannot deploy if the deploy would kill running code. If a pipeline job is running as designed, wait. If you discover a bug in the running code, terminate the job first, then deploy the fix, then rerun. The pipeline is idempotent — restarting with the fix is always faster than watching a broken job fail. This applies per deployment target: frontend (Cloudflare + HuggingFace) and pipeline (Azure Functions) are independent — deploying one cannot kill the other.",
       "incident": "CopyToFrontEnd was stuck for 15+ minutes. Two deploys were blocked by CI guard. Should have terminated immediately when the bug was identified.",
       "date": "2026-04-08"
+    },
+    {
+      "id": "DR-026",
+      "rule": "Never create a HuggingFace Space except by invoking Code/Shared/ops/tools/create_hf_space.py. The tier (cpu-upgrade, 8 vCPU, 32 GB RAM, $0.03/hr) is hardcoded in the script. Pass only the space name as a parameter. No HF Space may be created any other way.",
+      "incident": "Spaces were created with inconsistent tiers and ad-hoc API calls. Standardized to single script with mandatory tier.",
+      "date": "2026-04-08"
     }
   ]
 }
