@@ -33,7 +33,7 @@ def main():
     log.info("Backfilling embeddings for state: %s", STATE)
     mongo = MongoClient(os.environ["MONGO_connectionString"], serverSelectionTimeoutMS=60000)
     oai = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-    col = mongo["dev_PublicHealthData"]["providers"]
+    col = mongo[f"{os.environ.get('ENV_PREFIX', 'dev')}_PublicHealthData"]["providers"]
 
     # Count missing
     query = {

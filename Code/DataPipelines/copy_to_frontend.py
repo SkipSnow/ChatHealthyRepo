@@ -569,7 +569,7 @@ def run_copy_to_frontend(config: dict) -> dict:
 
     results = []
     try:
-        src_db_name = config.get("src_db", "dev_PublicHealthData")
+        src_db_name = config.get("src_db", f"{os.environ.get('ENV_PREFIX', 'dev')}_PublicHealthData")
 
         for src_coll, dst_coll in _STATIC_COLLECTIONS:
             logging.info("=== %s.%s → frontend:%s.%s ===", src_db_name, src_coll, dst_db_name, dst_coll)

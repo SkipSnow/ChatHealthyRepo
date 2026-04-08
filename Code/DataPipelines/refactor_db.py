@@ -52,7 +52,7 @@ COPIES = [
 ]
 
 SRC_DB  = "PublicHealthData"
-DST_DB  = "dev_PublicHealthData"
+DST_DB  = f"{os.environ.get('ENV_PREFIX', 'dev')}_PublicHealthData"
 
 
 def main():
