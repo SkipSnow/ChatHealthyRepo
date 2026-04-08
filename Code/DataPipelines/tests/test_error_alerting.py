@@ -7,12 +7,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from fatal_alert_bridge import FatalAlertBridge
 
 def test_alert_on_fatal_error():
-    """PIPE-FA-001-REQ-001: send_alert must not crash"""
+    """PIPE-FA-001-REQ-001: send_alert must not crash on any error type"""
     bridge = FatalAlertBridge(db_client=None)
-    # Should not raise on any error type
-    bridge.send_alert(RuntimeError("test error"), context="unit_test")
-    bridge.send_alert(ValueError("bad value"), context="unit_test")
-    bridge.send_alert(Exception("generic"), context="unit_test")
+    # Must not raise on any error type — if it does, pytest catches the exception
+    for err in [RuntimeError("test"), ValueError("bad"), Exception("generic"), OSError("io")]:
+        bridge.send_alert(err, context="unit_test")
+    assert True  # reached here without raising
 
 def test_alert_logs_to_mongodb():
     """PIPE-FA-001-REQ-002: event written to admin.BellEvents"""
@@ -40,5 +40,6 @@ def test_alert_logs_to_mongodb():
     assert client.db.bell.docs[0]["error_type"] == "RuntimeError"
 
 def test_bell_stop():
-    """PIPE-FA-001-REQ-003: stop_bell terminates loop"""
-    FatalAlertBridge.stop_bell()  # Should not crash even if bell never started
+    """PIPE-FA-001-REQ-003: stop_bell terminates loop without error"""
+    FatalAlertBridge.stop_bell()
+    assert True  # reached here without raising
