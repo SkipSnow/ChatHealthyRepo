@@ -416,12 +416,14 @@ def drop_destination(config: dict) -> dict:
 def partition_source(config: dict) -> dict:
     """Count source records and compute _id boundaries for chunked copy.
 
-    Returns: total count, chunk_size, and a list of _id boundaries.
-    Each boundary pair (start, end) defines one worker's range.
+    Uses $bucketAuto to sample boundary _ids without loading all docs into memory.
+    O(1) memory regardless of collection size.
 
     config:
         env_prefix, src_db, collection, chunk_size, query
     """
+    from bson import ObjectId
+
     pipeline_conn = os.environ.get("MONGO_connectionString")
     if not pipeline_conn:
         raise ValueError("MONGO_connectionString not set")
@@ -442,31 +444,24 @@ def partition_source(config: dict) -> dict:
         if total == 0:
             return {"total": 0, "chunks": []}
 
-        # Get all _ids sorted, sample at chunk boundaries
-        # Use aggregation to get boundary _ids without pulling all docs
+        num_buckets = max(1, (total + chunk_size - 1) // chunk_size)
+
+        # Use $bucketAuto to get boundary _ids — O(1) memory, no full scan
         pipeline = []
         if query:
             pipeline.append({"$match": query})
-        pipeline.extend([
-            {"$sort": {"_id": 1}},
-            {"$project": {"_id": 1}},
-        ])
+        pipeline.append({"$bucketAuto": {"groupBy": "$_id", "buckets": num_buckets}})
 
-        all_ids = [doc["_id"] for doc in coll.aggregate(pipeline, allowDiskUse=True)]
+        buckets = list(coll.aggregate(pipeline, allowDiskUse=True))
 
-        # Build chunks: each chunk is (start_id, end_id)
         chunks = []
-        for i in range(0, len(all_ids), chunk_size):
-            start_id = all_ids[i]
-            end_idx = min(i + chunk_size, len(all_ids)) - 1
-            end_id = all_ids[end_idx]
-            chunk_count = min(chunk_size, len(all_ids) - i)
+        for i, bucket in enumerate(buckets):
             chunks.append({
-                "job_number": len(chunks),
-                "start_id": str(start_id),
-                "end_id": str(end_id),
-                "count": chunk_count,
-                "is_last": end_idx == len(all_ids) - 1,
+                "job_number": i,
+                "start_id": str(bucket["_id"]["min"]),
+                "end_id": str(bucket["_id"]["max"]),
+                "count": bucket["count"],
+                "is_last": i == len(buckets) - 1,
             })
 
         logging.info("Partition: %d chunks of ~%s", len(chunks), f"{chunk_size:,}")
