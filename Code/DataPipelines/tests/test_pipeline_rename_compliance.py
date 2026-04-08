@@ -44,6 +44,14 @@ def test_no_old_prescriber_pipeline_name():
     )
 
 
+def test_no_overnight_pipeline_file():
+    """The file overnight_pipeline.py must not exist — renamed to prescriber_evaluate_care_pipeline.py."""
+    old_path = os.path.join(REPO_ROOT, "Code", "DataPipelines", "overnight_pipeline.py")
+    assert not os.path.exists(old_path), "overnight_pipeline.py still exists — must be renamed"
+    new_path = os.path.join(REPO_ROOT, "Code", "DataPipelines", "prescriber_evaluate_care_pipeline.py")
+    assert os.path.exists(new_path), "prescriber_evaluate_care_pipeline.py not found"
+
+
 def test_new_name_in_function_app():
     """The new task name must be registered in function_app.py."""
     fpath = os.path.join(REPO_ROOT, "Code", "DataPipelines", "function_app.py")

@@ -584,8 +584,8 @@
         }
       },
       "v4_remediations": {
-        "overnight_pipeline": "Replace raw requests.get with DataFetcherBase subclass calls. Replace .readall() with streaming download_blob().chunks(). Move hardcoded URLs to env/config.",
-        "cloud_only_execution": "overnight_pipeline.py becomes Durable Functions orchestrator. CI gate rejects 'if __name__'. Health check verifies WEBSITE_SITE_NAME.",
+        "prescriber_evaluate_care_pipeline": "Replace raw requests.get with DataFetcherBase subclass calls. Replace .readall() with streaming download_blob().chunks(). Move hardcoded URLs to env/config.",
+        "cloud_only_execution": "prescriber_evaluate_care_pipeline.py becomes Durable Functions orchestrator. CI gate rejects 'if __name__'. Health check verifies WEBSITE_SITE_NAME.",
         "copytofrontend_fix": "Atomic staged copy with metadata sidecar. Count+hash parity verification. Atomic swap. Rollback on failure. Addresses BUG-LOAD-001."
       },
       "execution_rules": {

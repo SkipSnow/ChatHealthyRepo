@@ -4660,11 +4660,11 @@
         },
         {
           "issue": 5,
-          "title": "overnight_pipeline.py raw requests.get (v4-001D)",
+          "title": "prescriber_evaluate_care_pipeline.py raw requests.get (v4-001D)",
           "class": "code_only",
           "fix": "Replace requests.get with DataFetcherBase subclass calls.",
           "files": [
-            "overnight_pipeline.py"
+            "prescriber_evaluate_care_pipeline.py"
           ],
           "test": "Pipeline completes via DataFetcherBase. Grep: no raw HTTP.",
           "rollback": "Revert file"
@@ -4726,9 +4726,9 @@
           "issue": 11,
           "title": "Pipeline runs on local machine (v4-001C)",
           "class": "architecture_gap",
-          "fix": "All execution via Azure Functions. overnight_pipeline.py becomes Durable Functions orchestrator. CI gate rejects local entrypoints. Health check verifies WEBSITE_SITE_NAME.",
+          "fix": "All execution via Azure Functions. prescriber_evaluate_care_pipeline.py becomes Durable Functions orchestrator. CI gate rejects local entrypoints. Health check verifies WEBSITE_SITE_NAME.",
           "files": [
-            "overnight_pipeline.py",
+            "prescriber_evaluate_care_pipeline.py",
             "function_app.py",
             "deploy-pipelines.yml"
           ],
