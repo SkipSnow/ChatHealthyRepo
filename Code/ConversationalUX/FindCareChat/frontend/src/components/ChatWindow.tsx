@@ -258,8 +258,15 @@ export default function ChatWindow() {
         .then(r => r.json())
         .then(data => {
           if (data.evaluated_providers) {
-            // Remove "Evaluating..." message
-            setMessages(prev => prev.filter(m => m.content !== '**Evaluating providers...**'))
+            // Remove "Evaluating..." message but preserve ALL other chat history
+            setMessages(prev => {
+              const filtered = prev.filter(m => m.content !== '**Evaluating providers...**')
+              // Add confirmation message to chat
+              return [...filtered, {
+                role: 'assistant' as const,
+                content: `**Evaluation sent to EvaluateCare** — ${data.evaluated_providers.length} providers. Check the right panel for results.`,
+              }]
+            })
             // Send to right panel — use FULL provider data from FindCare, not stripped EvaluateCare response
             if (window.parent && window.parent !== window) {
               window.parent.postMessage({
