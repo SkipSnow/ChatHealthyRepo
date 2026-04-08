@@ -32,11 +32,13 @@ def generate_session_token(origin: str = "FindCare") -> dict:
     Returns {origin, token, signature, created_at} — pass entire dict to client.
     """
     now = datetime.now(timezone.utc)
-    created_stamp = now.strftime('%m%d%Y%H%M')
+    ms = str(now.microsecond)[:3].zfill(3)
+    created_stamp = now.strftime('%m%d%Y%H%M%S') + ms
     guid = uuid.uuid4().hex
-    # Format: CH_{last_used}_{created}_{guid}
+    # Format: CH{last_used}{created}{guid} — no delimiters, obscured
     # Only created + guid are signed. Last_used is mutable (session keepalive).
-    token = f"CH_{created_stamp}_{created_stamp}_{guid}"
+    # created_stamp = MMDDYYYYHHMMSSmmm (16 chars)
+    token = f"CH{created_stamp}{created_stamp}{guid}"
     created = datetime.now(timezone.utc).isoformat()
 
     # Load private key for signing
@@ -86,12 +88,13 @@ def verify_session_token(session: dict, expected_origin: str = "FindCare") -> bo
     if origin != expected_origin or not token or not sig_b64:
         return False
 
-    # Extract created_stamp and guid from token: CH_{last_used}_{created}_{guid}
-    parts = token.split("_")
-    if len(parts) < 4:
+    # Extract by position: CH{last_used:17}{created:17}{guid:32}
+    # Stamp = MMDDYYYYHHMMSSmmm = 17 chars
+    # Total: 2 + 17 + 17 + 32 = 68 chars
+    if len(token) < 68:
         return False
-    created_stamp = parts[2]  # second timestamp = created
-    guid = parts[3]           # guid
+    created_stamp = token[19:36]  # chars 19-35 = created (17 chars)
+    guid = token[36:]             # chars 36+ = guid
 
     # Load public cert
     cert_path = os.path.join(CERTS_DIR, f"{origin.lower()}.crt")
