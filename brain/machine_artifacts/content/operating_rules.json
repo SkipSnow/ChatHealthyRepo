@@ -12,7 +12,23 @@
     {
       "id": "v4-001",
       "title": "Pipeline discipline",
-      "rule": "A. Path filter: The deploy-pipelines.yml workflow only triggers on pushes that include changes to Code/DataPipelines/**. Workflow-file-only changes will NOT trigger a deploy. Always include a meaningful Code/DataPipelines/ file change in the same commit as any workflow fix. Never change the Azure deploy command (az functionapp deployment source config-zip) without verifying it is actually broken.\n\nB. No commit during running job: Never commit or deploy Code/DataPipelines/** while an Azure pipeline job is running -- a mid-run deploy could restart the Function App and kill the job. This restriction applies ONLY to DataPipelines. Website/ (Cloudflare static pages) can be committed and deployed freely regardless of pipeline state.\n\nC. Pipeline execution model: All pipeline workloads execute on cloud infrastructure (Azure Functions), never on developer machines. Local machines are for development and testing only — not batch processing, not overnight runs, not data migration. The pipeline framework (PipelineWorkerBase, DataFetcherBase, orchestrators) is the execution surface. If a workload cannot run through the framework, fix the framework — do not bypass it with ad-hoc scripts on local machines.\n\nD. Data acquisition: All source file downloads go through DataFetcherBase with ETag/SHA-256 verification and Azure Blob Storage caching. Files are downloaded once and reused until the source publishes a new version. Never download a source file directly with raw HTTP in pipeline code. Never load an entire source file into memory — stream and process in chunks. Fan-out to parallel workers when processing multiple states or partitions.\n\nE. Pipeline stages are sequential, sub-steps may parallelize: Stage 1 (Assemble) downloads all source files in parallel. Stage 2 (Process) loads, parses, classifies — fan-out per state or partition. Stage 3 (Enrich) applies crosswalks, normalization, cost measures. Stage 4 (Embed) generates vector embeddings on the pipeline cluster only (DR-022). Stage 5 (Ship) copies all collections to the frontend cluster with parity verification. Each stage completes before the next begins. No interleaving of stages."
+      "rule": "A. Path filter: The deploy-pipelines.yml workflow only triggers on pushes that include changes to Code/DataPipelines/**. Workflow-file-only changes will NOT trigger a deploy. Always include a meaningful Code/DataPipelines/ file change in the same commit as any workflow fix. Never change the Azure deploy command (az functionapp deployment source config-zip) without verifying it is actually broken.\n\nB. No commit during running job: Never commit or deploy Code/DataPipelines/** while an Azure pipeline job is running -- a mid-run deploy could restart the Function App and kill the job. This restriction applies ONLY to DataPipelines. Website/ (Cloudflare static pages) can be committed and deployed freely regardless of pipeline state.\n\nC. Pipeline execution model: All pipeline workloads execute on cloud infrastructure (Azure Functions), never on developer machines. Local machines are for development and testing only — not batch processing, not overnight runs, not data migration. The pipeline framework (PipelineWorkerBase, DataFetcherBase, orchestrators) is the execution surface. If a workload cannot run through the framework, fix the framework — do not bypass it with ad-hoc scripts on local machines.\n\nD. Data acquisition: All source file downloads go through DataFetcherBase with ETag/SHA-256 verification and Azure Blob Storage caching. Files are downloaded once and reused until the source publishes a new version. Never download a source file directly with raw HTTP in pipeline code. Never load an entire source file into memory — stream and process in chunks. Fan-out to parallel workers when processing multiple states or partitions.\n\nE. Pipeline stages are sequential, sub-steps may parallelize: Stage 1 (Assemble) downloads all source files in parallel. Stage 2 (Process) loads, parses, classifies — fan-out per state or partition. Stage 3 (Enrich) applies crosswalks, normalization, cost measures. Stage 4 (Embed) generates vector embeddings on the pipeline cluster only (DR-022). Stage 5 (Ship) copies all collections to the frontend cluster with parity verification. Each stage completes before the next begins. No interleaving of stages.",
+      "enforcement": {
+        "type": "file_scan",
+        "scan_dirs": [
+          "Code/DataPipelines"
+        ],
+        "pattern": "requests\\.get\\(.*stream\\s*=\\s*True",
+        "exclude_comments": true,
+        "exempt_patterns": [
+          "data_fetcher_base",
+          "DataFetcherBase"
+        ],
+        "_note": "v4-001D targets streaming file downloads, not API calls. Streaming requests.get (stream=True) outside DataFetcherBase is the violation. Small GETs for URL discovery and API calls are permitted.",
+        "exempt_files": [
+          "data_fetcher_base.py"
+        ]
+      }
     },
     {
       "id": "v4-002",
@@ -47,7 +63,13 @@
     {
       "id": "v4-008",
       "title": "Bell notification",
-      "rule": "Ring the bell BEFORE every message that asks Skip Snow for input -- questions, approvals, decisions, reviews, or any pause. Command: powershell -c \"[console]::beep(800,500); Start-Sleep -Seconds 3; [console]::beep(800,500); Start-Sleep -Seconds 3; [console]::beep(800,500); Start-Sleep -Seconds 3; [console]::beep(800,500); Start-Sleep -Seconds 3; [console]::beep(800,500)\". Only PowerShell beep works. Ring before any question directed at Skip Snow, any approval request, any options presentation, any \"ready for review\" message. If in doubt, ring. False alarms acceptable. Missing bells are not. Bell behavior varies by mode -- refine per mode in collaboration with Skip Snow."
+      "rule": "Ring the bell BEFORE every message that asks Skip Snow for input -- questions, approvals, decisions, reviews, or any pause. Command: powershell -c \"[console]::beep(800,500); Start-Sleep -Seconds 3; [console]::beep(800,500); Start-Sleep -Seconds 3; [console]::beep(800,500); Start-Sleep -Seconds 3; [console]::beep(800,500); Start-Sleep -Seconds 3; [console]::beep(800,500)\". Only PowerShell beep works. Ring before any question directed at Skip Snow, any approval request, any options presentation, any \"ready for review\" message. If in doubt, ring. False alarms acceptable. Missing bells are not. Bell behavior varies by mode -- refine per mode in collaboration with Skip Snow.",
+      "enforcement": {
+        "type": "file_present",
+        "paths": [
+          "Code/DataPipelines/fatal_alert_bridge.py"
+        ]
+      }
     },
     {
       "id": "v4-009",
@@ -117,7 +139,13 @@
     {
       "id": "v4-022",
       "title": "Alpha code freeze — no architecture work without Boss override",
-      "rule": "From 2026-04-07 until alpha launch (2026-05-01), no one — not Claude, not Boss — may perform architecture, infrastructure, security, governance, documentation, or brain housekeeping work. Every session must produce working product code — scoring engine, measures, data loading, or end-to-end wiring. If Boss requests architecture work, Claude must object and require Boss to justify the work as 'must-have for alpha.' Claude must then present Boss's justification to GPT (Enterprise Architect) for approval. Only if GPT agrees it is must-have does the work proceed. Boss cannot override alone — GPT must concur. This rule exists because the scoring engine is the alpha differentiator and it does not exist yet. Claude Code is good enough for alpha."
+      "rule": "From 2026-04-07 until alpha launch (2026-05-01), no one — not Claude, not Boss — may perform architecture, infrastructure, security, governance, documentation, or brain housekeeping work. Every session must produce working product code — scoring engine, measures, data loading, or end-to-end wiring. If Boss requests architecture work, Claude must object and require Boss to justify the work as 'must-have for alpha.' Claude must then present Boss's justification to GPT (Enterprise Architect) for approval. Only if GPT agrees it is must-have does the work proceed. Boss cannot override alone — GPT must concur. This rule exists because the scoring engine is the alpha differentiator and it does not exist yet. Claude Code is good enough for alpha.",
+      "enforcement": {
+        "type": "file_absent",
+        "paths": [
+          "Code/DataPipelines/overnight_pipeline.py"
+        ]
+      }
     },
     {
       "id": "v4-024",

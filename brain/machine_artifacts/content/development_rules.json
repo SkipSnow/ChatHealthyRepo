@@ -14,13 +14,35 @@
       "id": "DR-006",
       "rule": "State is not a valid partition boundary for data operations. Record count or _id range is the correct boundary.",
       "incident": "Chunked CopyToFrontEnd by state. CA has 500K records, WY has 5K. Chunks were wildly uneven. Boss had to explain why this was wrong.",
-      "date": "2026-04-02"
+      "date": "2026-04-02",
+      "enforcement": {
+        "type": "file_scan",
+        "scan_dirs": [
+          "Code/DataPipelines"
+        ],
+        "pattern": "for state in.*(states|ALL_STATES|state_list)",
+        "context_pattern": "stream_to_temp|copy_chunk|insert_many|sync_collection",
+        "context_lines": 5,
+        "exclude_comments": true
+      }
     },
     {
       "id": "DR-008",
       "rule": "Do not pull all _ids into memory to compute partition boundaries. Use $bucketAuto or sampling.",
       "incident": "partition_source aggregated all _ids from millions of records into a Python list. Activity hung and likely timed out.",
-      "date": "2026-04-02"
+      "date": "2026-04-02",
+      "enforcement": {
+        "type": "file_scan",
+        "scan_dirs": [
+          "Code/DataPipelines"
+        ],
+        "pattern": "list\\(.*\\.find\\(\\{?\\}?\\)",
+        "exempt_patterns": [
+          "limit(",
+          "batch_size=",
+          "SAMPLE_SIZE"
+        ]
+      }
     },
     {
       "id": "DR-009",
@@ -248,13 +270,32 @@
       "id": "DR-022",
       "rule": "Never run embedding generation against the frontend cluster. Embeddings are generated on the pipeline cluster and copied to the frontend via CopyToFrontEnd. The frontend cluster is for serving user queries, not for expensive batch operations.",
       "incident": "During DE data quality work, re-embedded 2,843 providers directly on the frontend cluster. Wasted $2 on incomplete data and ran batch OpenAI calls against the production-serving cluster.",
-      "date": "2026-04-07"
+      "date": "2026-04-07",
+      "enforcement": {
+        "type": "file_scan",
+        "scan_dirs": [
+          "Code/DataPipelines"
+        ],
+        "pattern": "FRONTEND.*embed|embed.*FRONTEND",
+        "file_filter": "embed",
+        "exclude_comments": true
+      }
     },
     {
       "id": "DR-023",
       "rule": "A design is not complete until it has: epic -> features -> stories -> requirements -> boolean pytestable test cases -> all green. No exceptions. The incident-to-rule-to-test cycle must close: every bug or audit finding traces to a rule violation or missing rule, every rule produces a boolean test, every test maps to a requirement, every requirement has a green pytest before the work is marked done.",
       "incident": "Pipeline v4: 11 audit findings existed because rules were documented but no tests enforced them. Raw requests.get, .readall(), hardcoded URLs, and local execution all violated existing rules but shipped because no pytest would have caught them at commit time.",
-      "date": "2026-04-08"
+      "date": "2026-04-08",
+      "enforcement": {
+        "type": "json_check",
+        "path": "brain/machine_artifacts/content/traceability_matrix.json",
+        "required_fields": [
+          "_record_id",
+          "entries"
+        ],
+        "entries_field": "entries",
+        "min_entries": 1
+      }
     },
     {
       "id": "DR-024",
@@ -272,7 +313,13 @@
       "id": "DR-026",
       "rule": "Never create a HuggingFace Space except by invoking Code/Shared/ops/tools/create_hf_space.py. The tier (cpu-upgrade, 8 vCPU, 32 GB RAM, $0.03/hr) is hardcoded in the script. Pass only the space name as a parameter. No HF Space may be created any other way.",
       "incident": "Spaces were created with inconsistent tiers and ad-hoc API calls. Standardized to single script with mandatory tier.",
-      "date": "2026-04-08"
+      "date": "2026-04-08",
+      "enforcement": {
+        "type": "file_present",
+        "paths": [
+          "Code/Shared/ops/tools/create_hf_space.py"
+        ]
+      }
     }
   ]
 }

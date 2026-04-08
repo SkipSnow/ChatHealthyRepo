@@ -1,206 +1,240 @@
 # Copyright (c) 2026 Skip Snow. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# v4-017: Read rules before any infrastructure command.
-# This script runs before every deployment. If it fails, the deploy is blocked.
+# v4-017: Read and enforce ALL rules before any deployment.
+#
+# This script loads every rule from development_rules.json and operating_rules.json.
+# Rules that have an "enforcement" field are automatically checked.
+# Rules without enforcement are logged as "no automatable check".
+#
+# Enforcement types:
+#   file_scan     — scan files for a regex pattern, fail if found
+#   file_absent   — fail if a file exists (e.g. old renamed files)
+#   file_present  — fail if a file is missing (e.g. required components)
+#   json_check    — load a JSON file and check for required fields
+#   no_pattern    — scan files, fail if pattern is NOT found (e.g. missing import)
 #
 # Usage: python pre_deploy_rule_check.py <target>
-#   target: findcare | evaluatecare | shared | pipeline | website
-#
-# Checks:
-#   1. All compliance tests pass (test_compliance.py, test_pipeline_rename_compliance.py)
-#   2. DR-024 meta-tests pass (test_dr024_test_rigor.py)
-#   3. Traceability tests pass (test_traceability.py)
-#   4. No .readall() in pipeline code
-#   5. No raw requests.get in pipeline code
-#   6. No overnight_pipeline.py filename
-#   7. No "PrescriberPipeline" old name
 
 import json
 import os
+import re
 import sys
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
-PIPELINE_DIR = os.path.join(REPO_ROOT, "Code", "DataPipelines")
 BRAIN_DIR = os.path.join(REPO_ROOT, "brain", "machine_artifacts", "content")
 
+SKIP_FILES = {"conversation_log.json", "pipeline_v3_compliance_log.json",
+              "pipeline_v3_iteration_log.json", "pipeline_v4_design_iterations.json",
+              "pre_deploy_rule_check.py"}
 
-def check_no_old_names():
-    """No 'PrescriberPipeline' or overnight_pipeline.py in code."""
+
+def _resolve_dir(rel_path):
+    return os.path.join(REPO_ROOT, rel_path)
+
+
+def _get_py_files(directory):
+    d = _resolve_dir(directory)
+    if not os.path.isdir(d):
+        return []
+    return [os.path.join(d, f) for f in os.listdir(d)
+            if f.endswith(".py") and not f.startswith("test_") and f not in SKIP_FILES]
+
+
+def _get_all_files(directory, extensions=(".py", ".json", ".yml")):
+    d = _resolve_dir(directory)
+    results = []
+    if not os.path.isdir(d):
+        return results
+    for root, _, files in os.walk(d):
+        for f in files:
+            if f in SKIP_FILES:
+                continue
+            if any(f.endswith(ext) for ext in extensions):
+                results.append(os.path.join(root, f))
+    return results
+
+
+# ── Enforcement executors ─────────────────────────────────────
+
+def enforce_file_scan(rule_id, enforcement):
+    """Scan files for a regex pattern. Fail if found."""
     violations = []
-    skip_files = {"conversation_log.json", "pipeline_v3_compliance_log.json",
-                  "pipeline_v3_iteration_log.json", "pipeline_v4_design_iterations.json",
-                  "test_pipeline_rename_compliance.py", "pre_deploy_rule_check.py"}
+    pattern = enforcement.get("pattern", "")
+    if not pattern:
+        return violations
+    dirs = enforcement.get("scan_dirs", [])
+    context_pattern = enforcement.get("context_pattern", "")
+    context_lines = enforcement.get("context_lines", 0)
+    exclude_comments = enforcement.get("exclude_comments", True)
+    file_filter = enforcement.get("file_filter", "")
 
-    for scan_dir in [PIPELINE_DIR, BRAIN_DIR]:
-        for root, _, files in os.walk(scan_dir):
-            for fname in files:
-                if fname in skip_files:
+    exempt_files = enforcement.get("exempt_files", [])
+
+    for d in dirs:
+        for fpath in _get_py_files(d) if not enforcement.get("all_files") else _get_all_files(d):
+            basename = os.path.basename(fpath)
+            if basename in exempt_files:
+                continue
+            if file_filter and not re.search(file_filter, basename):
+                continue
+            try:
+                with open(fpath, "r", encoding="utf-8", errors="replace") as f:
+                    lines = f.readlines()
+            except Exception:
+                continue
+            for i, line in enumerate(lines, 1):
+                stripped = line.strip()
+                if exclude_comments and stripped.startswith("#"):
                     continue
-                if not fname.endswith((".py", ".json", ".yml")):
-                    continue
-                fpath = os.path.join(root, fname)
-                try:
-                    with open(fpath, "r", encoding="utf-8", errors="replace") as f:
-                        for i, line in enumerate(f, 1):
-                            if '"PrescriberPipeline"' in line:
-                                violations.append(f"{fpath}:{i}: old name PrescriberPipeline")
-                except Exception:
-                    pass
-
-    if os.path.exists(os.path.join(PIPELINE_DIR, "overnight_pipeline.py")):
-        violations.append("overnight_pipeline.py still exists — must be renamed")
-
+                if re.search(pattern, stripped):
+                    if context_pattern and context_lines > 0:
+                        ctx = "".join(lines[max(0, i - context_lines - 1):min(len(lines), i + context_lines)])
+                        if not re.search(context_pattern, ctx):
+                            continue
+                    # Check exempt patterns
+                    exempt = enforcement.get("exempt_patterns", [])
+                    if exempt:
+                        ctx = "".join(lines[max(0, i - 5):i])
+                        if any(p in ctx for p in exempt):
+                            continue
+                    violations.append(f"{rule_id}: {os.path.basename(fpath)}:{i}")
     return violations
 
 
-def check_no_readall():
-    """No .readall() on full blob downloads."""
+def enforce_file_absent(rule_id, enforcement):
+    """Fail if a file exists."""
     violations = []
-    exempt = ["download_blob(offset="]
-    for fname in os.listdir(PIPELINE_DIR):
-        if not fname.endswith(".py") or fname.startswith("test_"):
-            continue
-        fpath = os.path.join(PIPELINE_DIR, fname)
-        with open(fpath, "r", encoding="utf-8", errors="replace") as f:
-            lines = f.readlines()
-        for i, line in enumerate(lines, 1):
-            if ".readall()" in line:
-                context = "".join(lines[max(0, i - 4):i])
-                if any(p in context for p in exempt):
-                    continue
-                violations.append(f"{fname}:{i}: .readall()")
+    for path in enforcement.get("paths", []):
+        full = os.path.join(REPO_ROOT, path)
+        if os.path.exists(full):
+            violations.append(f"{rule_id}: {path} must not exist")
     return violations
 
 
-def check_no_raw_http():
-    """No requests.get in pipeline entry points."""
+def enforce_file_present(rule_id, enforcement):
+    """Fail if a file is missing."""
     violations = []
-    for fname in ["prescriber_evaluate_care_pipeline.py"]:
-        fpath = os.path.join(PIPELINE_DIR, fname)
-        if not os.path.exists(fpath):
-            continue
-        with open(fpath, "r", encoding="utf-8") as f:
-            content = f.read()
-        if "requests.get(" in content:
-            violations.append(f"{fname}: raw requests.get")
+    for path in enforcement.get("paths", []):
+        full = os.path.join(REPO_ROOT, path)
+        if not os.path.exists(full):
+            violations.append(f"{rule_id}: {path} missing")
     return violations
 
 
-def check_traceability():
-    """Traceability matrix exists and is valid."""
+def enforce_json_check(rule_id, enforcement):
+    """Load a JSON file and check for required fields."""
     violations = []
-    matrix_path = os.path.join(BRAIN_DIR, "traceability_matrix.json")
-    if not os.path.exists(matrix_path):
-        violations.append("traceability_matrix.json missing")
+    path = os.path.join(REPO_ROOT, enforcement.get("path", ""))
+    if not os.path.exists(path):
+        violations.append(f"{rule_id}: {enforcement.get('path')} missing")
         return violations
     try:
-        with open(matrix_path, "r", encoding="utf-8") as f:
-            matrix = json.load(f)
-        if "entries" not in matrix:
-            violations.append("traceability_matrix.json missing 'entries'")
-        elif len(matrix["entries"]) == 0:
-            violations.append("traceability_matrix.json has no entries")
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
     except json.JSONDecodeError as e:
-        violations.append(f"traceability_matrix.json invalid JSON: {e}")
+        violations.append(f"{rule_id}: invalid JSON: {e}")
+        return violations
+    for field in enforcement.get("required_fields", []):
+        if field not in data:
+            violations.append(f"{rule_id}: missing field '{field}'")
+    min_entries = enforcement.get("min_entries", 0)
+    entries_field = enforcement.get("entries_field", "")
+    if entries_field and min_entries > 0:
+        entries = data.get(entries_field, {})
+        if len(entries) < min_entries:
+            violations.append(f"{rule_id}: {entries_field} has {len(entries)} entries, need {min_entries}")
     return violations
 
 
-def check_architecture():
-    """GOV-005: Four-app boundary. Three HF Spaces for App 2 (FindCare, EvaluateCare, Shared Services)."""
+def enforce_no_pattern(rule_id, enforcement):
+    """Scan files, fail if pattern is NOT found (e.g. missing import)."""
     violations = []
-
-    # Verify deploy workflows exist for all three services
-    workflows_dir = os.path.join(REPO_ROOT, ".github", "workflows")
-    required_workflows = {
-        "deploy-findcare-backend.yml": "FindCare",
-        "deploy-evaluatecare-backend.yml": "EvaluateCare",
-        "deploy-shared-services.yml": "Shared Services",
-    }
-    for wf, service in required_workflows.items():
-        if not os.path.exists(os.path.join(workflows_dir, wf)):
-            violations.append(f"Missing deploy workflow for {service}: {wf}")
-
-    # Verify each deploy workflow has pre-deploy rule check
-    for wf in required_workflows:
-        wf_path = os.path.join(workflows_dir, wf)
-        if os.path.exists(wf_path):
-            with open(wf_path, "r", encoding="utf-8") as f:
-                content = f.read()
-            if "pre_deploy_rule_check" not in content:
-                violations.append(f"{wf} missing pre-deploy rule check step")
-
-    # Verify Dockerfiles exist for EvaluateCare and Shared Services
-    for service_dir, service_name in [
-        ("Code/evaluate_care", "EvaluateCare"),
-        ("Code/shared_services", "Shared Services"),
-    ]:
-        dockerfile = os.path.join(REPO_ROOT, service_dir, "Dockerfile")
-        if not os.path.exists(dockerfile):
-            violations.append(f"Missing Dockerfile for {service_name}: {service_dir}/Dockerfile")
-
-    # Verify no http://localhost cross-service calls in deployed code
-    for service_dir in ["Code/evaluate_care", "Code/shared_services",
-                         "Code/ConversationalUX/FindCareChat/backend"]:
-        app_files = []
-        full_dir = os.path.join(REPO_ROOT, service_dir)
-        if not os.path.exists(full_dir):
-            continue
-        for fname in os.listdir(full_dir):
-            if fname.endswith(".py") and not fname.startswith("test_"):
-                app_files.append(os.path.join(full_dir, fname))
-        for fpath in app_files:
+    pattern = enforcement.get("pattern", "")
+    if not pattern:
+        return violations
+    for d in enforcement.get("scan_dirs", []):
+        files = enforcement.get("files", [])
+        if files:
+            file_list = [os.path.join(_resolve_dir(d), f) for f in files]
+        else:
+            file_list = _get_py_files(d)
+        for fpath in file_list:
+            if not os.path.exists(fpath):
+                violations.append(f"{rule_id}: {os.path.basename(fpath)} missing")
+                continue
             with open(fpath, "r", encoding="utf-8", errors="replace") as f:
-                for i, line in enumerate(f, 1):
-                    # http://localhost in non-default, non-comment lines is a violation
-                    stripped = line.strip()
-                    if stripped.startswith("#"):
-                        continue
-                    if "http://localhost" in stripped:
-                        # OK if it's in CORS allow_origins block (browser-side, not service-to-service)
-                        # Check surrounding context (prev 5 lines) for CORS indicators
-                        all_lines = open(fpath, "r", encoding="utf-8", errors="replace").readlines()
-                        context = "".join(all_lines[max(0, i - 6):i])
-                        if "allow_origins" in context or "allow_origin_regex" in context or "CORSMiddleware" in context:
-                            continue
-                        # OK if it's a fallback default in os.getenv
-                        if "os.getenv" in stripped or "os.environ.get" in stripped:
-                            continue
-                        violations.append(f"{os.path.basename(fpath)}:{i}: http://localhost in deployed code")
-
+                content = f.read()
+            if not re.search(pattern, content):
+                violations.append(f"{rule_id}: {os.path.basename(fpath)} missing pattern: {pattern[:60]}")
     return violations
+
+
+EXECUTORS = {
+    "file_scan": enforce_file_scan,
+    "file_absent": enforce_file_absent,
+    "file_present": enforce_file_present,
+    "json_check": enforce_json_check,
+    "no_pattern": enforce_no_pattern,
+}
 
 
 def main(target: str) -> int:
     print(f"Pre-deploy rule check for: {target}")
-    print("=" * 50)
+    print("=" * 60)
+
+    # Load all rules from brain
+    all_rules = []
+    for fname in ["development_rules.json", "operating_rules.json"]:
+        fpath = os.path.join(BRAIN_DIR, fname)
+        if not os.path.exists(fpath):
+            continue
+        with open(fpath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for r in data.get("rules", []):
+            all_rules.append(r)
+
+    print(f"Loaded {len(all_rules)} rules")
 
     all_violations = []
+    checked = 0
+    skipped = 0
 
-    checks = [
-        ("No old names", check_no_old_names),
-        ("No .readall()", check_no_readall),
-        ("No raw HTTP", check_no_raw_http),
-        ("Traceability", check_traceability),
-        ("Architecture (GOV-005)", check_architecture),
-    ]
+    for rule in all_rules:
+        rule_id = rule.get("id", "unknown")
+        enforcement = rule.get("enforcement")
 
-    for name, check_fn in checks:
-        violations = check_fn()
+        if not enforcement:
+            skipped += 1
+            continue
+
+        enf_type = enforcement.get("type", "")
+        executor = EXECUTORS.get(enf_type)
+
+        if not executor:
+            print(f"WARN: {rule_id}: unknown enforcement type '{enf_type}'")
+            skipped += 1
+            continue
+
+        violations = executor(rule_id, enforcement)
+        checked += 1
+
         if violations:
-            print(f"FAIL: {name}")
+            print(f"FAIL: {rule_id}")
             for v in violations:
                 print(f"  {v}")
             all_violations.extend(violations)
         else:
-            print(f"PASS: {name}")
+            print(f"PASS: {rule_id}")
 
-    print("=" * 50)
+    print("=" * 60)
+    print(f"Rules: {len(all_rules)} | Checked: {checked} | Skipped: {skipped} | Violations: {len(all_violations)}")
+
     if all_violations:
-        print(f"DEPLOY BLOCKED: {len(all_violations)} violation(s)")
+        print(f"\nDEPLOY BLOCKED: {len(all_violations)} violation(s)")
         return 1
     else:
-        print("All checks passed. Deploy may proceed.")
+        print("\nAll enforced rules passed. Deploy may proceed.")
         return 0
 
 
