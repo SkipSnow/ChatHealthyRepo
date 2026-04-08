@@ -31,6 +31,7 @@ from auth import require_auth
 from otp_manager import exchange_otp
 from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
+from sync_gateway_agent import run_promote_to_frontend
 from copy_to_frontend import (run_copy_to_frontend, snapshot_collection_fn, create_frontend_vector_index_fn,
                               partition_source, copy_chunk, drop_destination,
                               migrate_small_collections, migrate_chunk, verify_parity)
@@ -95,6 +96,7 @@ SYNC_TASK_HANDLERS = {
     "StampEmbeddingVersion": stamp_embedding_version_fn,
     "PromoteData": run_promote_data,
     "CopyToFrontEndSync": run_copy_to_frontend,
+    "PromoteToFrontEnd": run_promote_to_frontend,
     "VerifyParity": verify_parity,
 }
 
