@@ -1,6 +1,6 @@
 {
   "collection": "design",
-  "record_count": 5,
+  "record_count": 6,
   "records": [
     {
       "_record_id": "design_eval_p_rx_drug_mapping",
@@ -711,6 +711,19 @@
           "description": "TraceabilityMatrixManager, CiCdConflictDetector, ApiTestUpdater, ManifestManager"
         }
       ],
+      "publish": false
+    },
+    {
+      "_record_id": "design_copy_to_frontend_v2",
+      "title": "CopyToFrontEnd v2 — Agent-Gated Cluster Sync",
+      "feature_id": "PIPE-COPY-V2",
+      "epic_id": "EPIC-PIPE",
+      "status": "approved",
+      "created": "2026-04-08",
+      "created_by": "Claude + GPT-4.1 (approved with 5 conditions, all addressed)",
+      "problem": "CopyToFrontEnd v1 OOMs on Azure Functions copying 1.3M provider documents. It reinvents replication with batched reads, cross-cluster inserts, and memory-bound workers. Multiple days lost to OOM failures.",
+      "solution": "SyncGatewayAgent with agent-gated promotion: quality gates before sync, streaming copy (500-doc batches, never OOM), atomic swap (temp collection + rename), per-state split for providers, parity verification, forward-only environment enforcement.",
+      "gpt_approval": "YES — no blocking issues. Design is robust, safe, and compliant.",
       "publish": false
     }
   ]
