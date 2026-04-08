@@ -233,6 +233,12 @@
       "date": "2026-04-07"
     },
     {
+      "id": "BUG-PIPE-009",
+      "rule": "BUG: Overnight pipeline re-downloads CMS Part D CSV (3.7GB) every run instead of using blob storage. The file is already in blob from previous runs. Must use DataFetcherBase ETag guard pattern — download once, store in blob, reuse. Also: the Part D CSV contains ALL states. Parsing it for one state wastes the data for other states. Parse once, store per-state results in MongoDB, never re-download unless ETag changes.",
+      "incident": "Overnight pipeline for MS/VA re-downloaded 3.7GB Part D CSV that was already downloaded yesterday for DE. Process used 3.3GB RAM and took hours. Should have reused blob copy or checked if drugs already loaded.",
+      "date": "2026-04-08"
+    },
+    {
       "id": "BUG-SEC-001",
       "rule": "BUG (PRE-ALPHA REQUIREMENT): HuggingFace Spaces still use bearer tokens for authentication. Security architecture (EPIC-4) requires zero bearer tokens — all auth via x509 certificates registered with Azure Key Vault. Perplexity external audit (EXT-AUDIT-001) flagged the security model. Must migrate dev HF Spaces from bearer tokens to x509 cert auth before alpha. Each Space gets its own cert. SecretManager fetches certs from Key Vault at startup.",
       "incident": "Boss flagged during local HTTPS/PKI setup that HF Spaces still use bearer tokens. Perplexity audit had major concerns about security model. Local dev now has proper PKI with individual certs per service, but deployed architecture hasn't caught up.",
