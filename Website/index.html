@@ -922,7 +922,9 @@
             var rows = msg.providers.map(function(p, i) {
               return '<div style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">'
                 + '<div style="font-weight:600;color:#1f2937;font-size:13px;">' + (i+1) + '. ' + (p.name || 'Unknown') + '</div>'
-                + '<div style="font-size:11px;color:#6b7280;">' + (p.specialty || '') + '</div>'
+                + (p.address ? '<div style="font-size:11px;color:#374151;">' + p.address + '</div>' : '')
+                + (p.county ? '<div style="font-size:10px;color:#6b7280;">' + p.county + '</div>' : '')
+                + (p.phone ? '<div style="font-size:10px;color:#6b7280;">Phone: ' + p.phone + '</div>' : '')
                 + '<div style="font-size:10px;color:#9ca3af;">NPI: ' + (p.npi || '') + '</div>'
                 + '</div>';
             }).join('');
