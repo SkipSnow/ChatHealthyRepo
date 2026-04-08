@@ -249,6 +249,12 @@
       "rule": "Never run embedding generation against the frontend cluster. Embeddings are generated on the pipeline cluster and copied to the frontend via CopyToFrontEnd. The frontend cluster is for serving user queries, not for expensive batch operations.",
       "incident": "During DE data quality work, re-embedded 2,843 providers directly on the frontend cluster. Wasted $2 on incomplete data and ran batch OpenAI calls against the production-serving cluster.",
       "date": "2026-04-07"
+    },
+    {
+      "id": "DR-023",
+      "rule": "A design is not complete until it has: epic -> features -> stories -> requirements -> boolean pytestable test cases -> all green. No exceptions. The incident-to-rule-to-test cycle must close: every bug or audit finding traces to a rule violation or missing rule, every rule produces a boolean test, every test maps to a requirement, every requirement has a green pytest before the work is marked done.",
+      "incident": "Pipeline v4: 11 audit findings existed because rules were documented but no tests enforced them. Raw requests.get, .readall(), hardcoded URLs, and local execution all violated existing rules but shipped because no pytest would have caught them at commit time.",
+      "date": "2026-04-08"
     }
   ]
 }

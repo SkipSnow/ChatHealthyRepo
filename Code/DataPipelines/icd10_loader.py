@@ -195,13 +195,17 @@ def load_icd10(config: dict = None) -> dict:
     # Read from blob
     container = config.get("blob_container", "provider-data")
     blob_service = get_blob_service()
-    zip_bytes = (
+    # v4-001D: stream blob in chunks instead of loading entire blob at once
+    blob_stream = (
         blob_service
         .get_container_client(container)
         .get_blob_client(fetch_result["blob_path"])
         .download_blob()
-        .readall()
     )
+    chunks = []
+    for chunk in blob_stream.chunks():
+        chunks.append(chunk)
+    zip_bytes = b"".join(chunks)
 
     codes = _parse_icd10_zip(zip_bytes)
 

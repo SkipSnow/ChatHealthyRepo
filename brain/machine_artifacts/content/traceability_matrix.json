@@ -1,0 +1,33 @@
+{
+  "_record_id": "traceability_matrix",
+  "title": "Pipeline v4 Requirement-to-Test Traceability Matrix",
+  "version": "1.0",
+  "date": "2026-04-08",
+  "epic_id": "EPIC-PIPE",
+  "entries": {
+    "PIPE-QG-001-REQ-001": {"story": "PIPE-QG-001", "test_artifacts": ["test_quality_gates.py::test_min_row_count_fail"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-QG-001-REQ-002": {"story": "PIPE-QG-001", "test_artifacts": ["test_quality_gates.py::test_min_row_count_pass"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-QG-001-REQ-003": {"story": "PIPE-QG-001", "test_artifacts": ["test_quality_gates.py::test_null_check_fail"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-QG-001-REQ-004": {"story": "PIPE-QG-001", "test_artifacts": ["test_quality_gates.py::test_null_check_pass"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-FA-001-REQ-001": {"story": "PIPE-FA-001", "test_artifacts": ["test_error_alerting.py::test_alert_on_fatal_error"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-FA-001-REQ-002": {"story": "PIPE-FA-001", "test_artifacts": ["test_error_alerting.py::test_alert_logs_to_mongodb"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-FA-001-REQ-003": {"story": "PIPE-FA-001", "test_artifacts": ["test_error_alerting.py::test_bell_stop"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-SD-001-REQ-001": {"story": "PIPE-SD-001", "test_artifacts": ["test_schema_drift.py::test_drift_detected"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-SD-001-REQ-002": {"story": "PIPE-SD-001", "test_artifacts": ["test_schema_drift.py::test_no_drift"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-SD-001-REQ-003": {"story": "PIPE-SD-001", "test_artifacts": ["test_schema_drift.py::test_store_fingerprint"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-SD-001-REQ-004": {"story": "PIPE-SD-001", "test_artifacts": ["test_schema_drift.py::test_allow_drift_override"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-ID-001-REQ-001": {"story": "PIPE-ID-001", "test_artifacts": ["test_idempotency.py::test_output_exists"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-ID-001-REQ-002": {"story": "PIPE-ID-001", "test_artifacts": ["test_idempotency.py::test_no_output"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-ID-001-REQ-003": {"story": "PIPE-ID-001", "test_artifacts": ["test_idempotency.py::test_insufficient_count"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-CO-001-REQ-001": {"story": "PIPE-CO-001", "test_artifacts": ["test_compliance.py::test_no_raw_requests_get"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-CO-001-REQ-002": {"story": "PIPE-CO-001", "test_artifacts": ["test_compliance.py::test_no_readall"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-CO-001-REQ-003": {"story": "PIPE-CO-001", "test_artifacts": ["test_compliance.py::test_no_hardcoded_urls"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-CO-001-REQ-004": {"story": "PIPE-CO-001", "test_artifacts": ["test_compliance.py::test_quality_gate_imported"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-CO-001-REQ-005": {"story": "PIPE-CO-001", "test_artifacts": ["test_compliance.py::test_fatal_alert_imported"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-CP-001-REQ-001": {"story": "PIPE-CP-001", "test_artifacts": ["test_copy_to_frontend.py::test_parity_after_copy"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-CP-001-REQ-002": {"story": "PIPE-CP-001", "test_artifacts": ["test_copy_to_frontend.py::test_parity_per_state"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-TR-001-REQ-001": {"story": "PIPE-TR-001", "test_artifacts": ["test_traceability.py::test_all_requirements_have_tests"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-TR-001-REQ-002": {"story": "PIPE-TR-001", "test_artifacts": ["test_traceability.py::test_test_files_exist"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}},
+    "PIPE-TR-001-REQ-003": {"story": "PIPE-TR-001", "test_artifacts": ["test_traceability.py::test_matrix_valid_json"], "status": "IMPLEMENTED", "audit_trail": {"last_verified": "2026-04-08", "verified_by": "Claude Opus 4.6"}}
+  }
+}

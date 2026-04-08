@@ -1,6 +1,6 @@
 {
   "collection": "external_audits",
-  "record_count": 4,
+  "record_count": 5,
   "records": [
     {
       "title": "External Audit Registry",
@@ -47,6 +47,26 @@
             "total": 12
           },
           "overall_assessment": "Plausible and generally sound design. Moderate clarity and governance gaps to address in Phase 2 GPT review.",
+          "status": "received"
+        },
+        {
+          "audit_id": "EXT-AUDIT-003",
+          "title": "Pipeline Architecture v4 Design Audit",
+          "auditor": "Perplexity Computer",
+          "date": "2026-04-08",
+          "version_audited": "v4 design (pre-implementation)",
+          "scope": "Pipeline architecture v4 design review against v3 compliance log, operating rules v4-001 through v4-024, development rules DR-xxx, and 11 open issues from GPT-4.1/Claude iteration.",
+          "documents_reviewed": 3,
+          "findings": {
+            "design_resolved_implementation_pending": 7,
+            "still_open": 3,
+            "total": 10
+          },
+          "artifacts": {
+            "source_document": "brain/BusinessArtifacts/externalAudits/PerplexitychathealthyAutid3external_pipeline_audit_Design.docx",
+            "design_response_md": "brain/BusinessArtifacts/externalAudits/pipeline_v4_design.md"
+          },
+          "overall_assessment": "The v4 design materially improves audit posture but remains design-stage remediation. Most findings are closed in design but open pending implementation evidence. The most important missed requirement is requirement-to-test traceability (v4-007/v4-023).",
           "status": "received"
         }
       ],
@@ -648,6 +668,86 @@
         }
       ],
       "summary": "12 violations found. 2 CRITICAL, 4 HIGH, 5 MEDIUM, 1 LOW. The most significant gap is the absence of server-side enforcement that LLM responses are grounded in tool results (V003, V004). The system has strong data-layer patterns (provider search, clinical trials, pagination) but the final LLM-to-user text path has no validation gate. Secondary concerns: AI-driven decisions in URLGuardian (V010, V011), missing user disambiguation on specialty resolution (V005, V007), and LLM-generated query expansion terms (V006).",
+      "publish": false
+    },
+    {
+      "_record_id": "external_audit_pipeline_v4_design",
+      "audit_id": "EXT-AUDIT-003",
+      "title": "Pipeline Architecture v4 Design Audit",
+      "auditor": "Perplexity Computer",
+      "date": "2026-04-08",
+      "version_audited": "v4 design (pre-implementation)",
+      "scope": "Pipeline architecture v4 design review against v3 compliance log, operating rules, development rules, and 11 open issues.",
+      "revised_opinion": "Conditionally improved but not fully closed. Design addresses most prior architectural weaknesses. Best classification: closed in design, open until implemented and evidenced.",
+      "residual_risks": [
+        "Evidentiary overreach: v4 material claims resolution but closure is documented as intended fixes, not code/build/run evidence.",
+        "Governance controls may be deferred to runbooks rather than genuinely closed.",
+        "Requirement-to-test traceability (v4-007/v4-023) is the clearest remaining missed requirement."
+      ],
+      "findings": [
+        {
+          "finding_id": "PA-F01",
+          "area": "Azure Functions-only execution",
+          "revised_status": "Design-resolved, implementation evidence pending",
+          "basis": "v4 explicitly wires orchestration to Azure Functions and blocks local execution"
+        },
+        {
+          "finding_id": "PA-F02",
+          "area": "Data quality gates between stages",
+          "revised_status": "Design-resolved, implementation evidence pending",
+          "basis": "v4 adds QualityGate controls after each stage"
+        },
+        {
+          "finding_id": "PA-F03",
+          "area": "Idempotent restart and duplicate prevention",
+          "revised_status": "Improved in design, still proof-critical",
+          "basis": "v4 adds output-validity checks, deterministic upserts, conditional uploads, but no runtime proof shown"
+        },
+        {
+          "finding_id": "PA-F04",
+          "area": "Copy-to-frontend parity",
+          "revised_status": "Design-resolved, implementation evidence pending",
+          "basis": "v4 adds staged copy, parity checks, atomic swap, and rollback"
+        },
+        {
+          "finding_id": "PA-F05",
+          "area": "Raw HTTP, .readall, hardcoded URL compliance",
+          "revised_status": "Design-resolved, implementation evidence pending",
+          "basis": "v4 maps concrete remediations and compliance tests"
+        },
+        {
+          "finding_id": "PA-F06",
+          "area": "Schema drift detection",
+          "revised_status": "Design-resolved, implementation evidence pending",
+          "basis": "v4 adds SchemaDriftDetector using SHA-256 fingerprints"
+        },
+        {
+          "finding_id": "PA-F07",
+          "area": "Fatal bell alerting",
+          "revised_status": "Substantially improved in design, live verification pending",
+          "basis": "v4 adds FatalAlertBridge with bell logic and event logging"
+        },
+        {
+          "finding_id": "PA-F08",
+          "area": "Requirement-to-test traceability",
+          "revised_status": "Still open",
+          "basis": "v4 still lists this as a compliance gap under v4-007 and v4-023"
+        },
+        {
+          "finding_id": "PA-F09",
+          "area": "api-tests.http update after relaunch",
+          "revised_status": "Still open",
+          "basis": "v4 still lists this as a compliance gap"
+        },
+        {
+          "finding_id": "PA-F10",
+          "area": "Manifest inclusion of MongoDB collections",
+          "revised_status": "Still open",
+          "basis": "v4 still lists this as a compliance gap"
+        }
+      ],
+      "iteration_method": "GPT-4.1 Architect vs GPT-4.1 Reviewer, 11 iterations to convergence",
+      "iteration_cost_usd": 2.18,
       "publish": false
     }
   ]
