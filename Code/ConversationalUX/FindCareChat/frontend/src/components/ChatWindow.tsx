@@ -253,8 +253,10 @@ export default function ChatWindow() {
       })
 
       // Route through FindCare backend proxy (not browser → EvaluateCare direct)
-      // FindCare backend forwards to EvaluateCare with mTLS in production
       getSessionToken(API_URL).then(sessionToken => {
+        console.log('[Evaluate] Session token:', sessionToken?.token?.substring(0, 20))
+        console.log('[Evaluate] Sending to:', `${API_URL}/evaluate/providers`)
+        console.log('[Evaluate] Providers:', providers.length)
         return fetch(`${API_URL}/evaluate/providers`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -265,13 +267,16 @@ export default function ChatWindow() {
           }),
         })
       })
-        .then(r => r.json())
+        .then(r => {
+          console.log('[Evaluate] Response status:', r.status)
+          if (!r.ok) throw new Error(`EvaluateCare returned ${r.status}`)
+          return r.json()
+        })
         .then(data => {
+          console.log('[Evaluate] Data received:', data?.status, data?.evaluated_providers?.length, 'providers')
           if (data.evaluated_providers) {
-            // Remove "Evaluating..." message but preserve ALL other chat history
             setMessages(prev => {
               const filtered = prev.filter(m => m.content !== '**Evaluating providers...**')
-              // Add confirmation message to chat
               return [...filtered, {
                 role: 'assistant' as const,
                 content: `**Evaluation sent to EvaluateCare** — ${data.evaluated_providers.length} providers. Check the right panel for results.`,
@@ -297,9 +302,10 @@ export default function ChatWindow() {
           setIsLoading(false)
         })
         .catch(err => {
+          console.error('[Evaluate] ERROR:', err)
           setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: `**Error:** Could not reach EvaluateCare service. ${err}`,
+            role: 'assistant' as const,
+            content: `**Error:** Could not reach EvaluateCare service. ${err.message || err}`,
             isError: true,
           }])
           setIsLoading(false)
