@@ -28,8 +28,8 @@ def get_missing_npis():
     src = MongoClient(os.environ["MONGO_connectionString"], serverSelectionTimeoutMS=60000)
     dst = MongoClient(os.environ["MONGO_FRONTEND_connectionString"], serverSelectionTimeoutMS=60000)
 
-    src_col = src["dev_PublicHealthData"]["providers"]
-    dst_col = dst["dev_PublicHealthData"]["providers"]
+    src_col = src[f"{os.environ.get('ENV_PREFIX', 'dev')}_PublicHealthData"]["providers"]
+    dst_col = dst[f"{os.environ.get('ENV_PREFIX', 'dev')}_PublicHealthData"]["providers"]
 
     log.info("Finding missing VA NPIs...")
     src_npis = set()
@@ -50,8 +50,8 @@ def copy_batch(npis):
     src = MongoClient(os.environ["MONGO_connectionString"], serverSelectionTimeoutMS=60000)
     dst = MongoClient(os.environ["MONGO_FRONTEND_connectionString"], serverSelectionTimeoutMS=60000)
 
-    src_col = src["dev_PublicHealthData"]["providers"]
-    dst_col = dst["dev_PublicHealthData"]["providers"]
+    src_col = src[f"{os.environ.get('ENV_PREFIX', 'dev')}_PublicHealthData"]["providers"]
+    dst_col = dst[f"{os.environ.get('ENV_PREFIX', 'dev')}_PublicHealthData"]["providers"]
 
     docs = list(src_col.find({"npi": {"$in": npis}}))
     if docs:
