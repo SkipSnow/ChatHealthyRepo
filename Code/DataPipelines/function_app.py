@@ -483,6 +483,13 @@ def copy_to_frontend_orchestrator(context: df.DurableOrchestrationContext):
     chunk_size = config.get("chunk_size", 50_000)
     job_id = config.get("job_id", f"copy_to_frontend_{int(time.time())}")
 
+    # Build state filter for provider query — only copy requested states
+    states = config.get("states")
+    if isinstance(states, list) and states:
+        provider_query = {"practice_address.state": {"$in": states}}
+    else:
+        provider_query = {}
+
     # Step 1: Reserve cluster
     reservation = {
         "job_id": job_id,
@@ -519,11 +526,12 @@ def copy_to_frontend_orchestrator(context: df.DurableOrchestrationContext):
     })
 
     # Step 5: Partition source into chunks by _id range
-    context.set_custom_status("Partitioning source")
+    context.set_custom_status(f"Partitioning source (states: {states or 'all'})")
     partition = yield context.call_activity("partition_source_activity", {
         "env_prefix": env_prefix,
         "collection": "providers",
         "chunk_size": chunk_size,
+        "query": provider_query,
     })
     chunks = partition.get("chunks", [])
     total = partition.get("total", 0)
@@ -558,6 +566,7 @@ def copy_to_frontend_orchestrator(context: df.DurableOrchestrationContext):
     context.set_custom_status("Verifying parity")
     parity = yield context.call_activity("verify_parity_activity", {
         "env_prefix": env_prefix,
+        "states": states if isinstance(states, list) and states else None,
     })
     parity_pass = parity.get("all_pass", False)
     if not parity_pass:
