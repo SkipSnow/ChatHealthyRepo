@@ -247,32 +247,14 @@ class SyncGatewayAgent:
                         result["status"] = "FAILED"
                         return result
 
-            # Step 3: Sync providers (all states into one temp)
-            result["providers"] = []
-            total_expected = 0
-            for state in states:
-                q = {"practice_address.state": state}
-                state_count = self.src_db["providers"].count_documents(q)
-                total_expected += state_count
+            # Step 3: Sync providers — DR-006: partition by _id range, not state
+            provider_query = {"practice_address.state": {"$in": states}} if states else {}
+            total_expected = self.src_db["providers"].count_documents(provider_query)
+            log.info("Syncing providers: %d docs (states: %s)", total_expected, states)
 
-                if state_count > LARGE_STATE_THRESHOLD:
-                    # Split large state by _id range
-                    from copy_to_frontend import partition_source
-                    partitions = partition_source({
-                        "env_prefix": self.env_prefix,
-                        "collection": "providers",
-                        "chunk_size": LARGE_STATE_THRESHOLD,
-                        "query": q,
-                    })
-                    for chunk in partitions.get("chunks", []):
-                        from bson import ObjectId
-                        chunk_q = {**q, "_id": {"$gte": ObjectId(chunk["start_id"]),
-                                                "$lte": ObjectId(chunk["end_id"])}}
-                        r = self.stream_to_temp("providers", query=chunk_q)
-                        result["providers"].append(r)
-                else:
-                    r = self.stream_to_temp("providers", query=q)
-                    result["providers"].append(r)
+            # Stream all matching providers into temp (single cursor, 500-doc batches)
+            r = self.stream_to_temp("providers", query=provider_query)
+            result["providers"] = r
 
             # Step 4: Atomic swap providers
             swap = self.atomic_swap("providers", total_expected)
@@ -363,3 +345,4 @@ def run_promote_to_frontend(config: dict) -> dict:
         return agent.promote(states)
     finally:
         agent.close()
+# deploy trigger
