@@ -147,6 +147,12 @@ def evaluate_providers(body: EvaluateProvidersRequest):
         "status": "received",
         "evaluated_providers": results,
         "question_summary": _last_evaluation["question"],
+        "session_token": {
+            "token_received": body.session_token.get("token", "") if body.session_token else "",
+            "signature_received": (body.session_token.get("signature", "") or "")[:40] + "..." if body.session_token and body.session_token.get("signature") else "none",
+            "origin": body.session_token.get("origin", "") if body.session_token else "",
+            "verified": token_valid,
+        },
     }
 
 @app.get("/evaluate/view")
