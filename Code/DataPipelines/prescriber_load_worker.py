@@ -71,14 +71,26 @@ class PrescriberLoadWorker(PipelineWorkerBase):
         blob_service = get_blob_service()
         blob_client = blob_service.get_blob_client(self.container, self.blob_name)
         stream = blob_client.download_blob()
-        chunks = []
-        for chunk in stream.chunks():
-            chunks.append(chunk)
-        content = b"".join(chunks).decode("utf-8", errors="replace")
 
-        _log.info("CSV loaded (%d bytes). Parsing and filtering...", len(content))
+        # v4-001D: Stream line-by-line — O(1) memory, never hold full CSV
+        _log.info("Streaming CMS Part D CSV (line-by-line)...")
 
-        reader = csv.DictReader(io.StringIO(content))
+        def _line_iterator(blob_stream):
+            """Yield decoded lines from blob chunks without assembling full content."""
+            buf = ""
+            total_bytes = 0
+            for chunk in blob_stream.chunks():
+                total_bytes += len(chunk)
+                buf += chunk.decode("utf-8", errors="replace")
+                while "\n" in buf:
+                    line, buf = buf.split("\n", 1)
+                    yield line
+                if total_bytes % (500 * 1024 * 1024) < 65536:
+                    _log.info("  Streamed %d MB...", total_bytes // (1024 * 1024))
+            if buf.strip():
+                yield buf
+
+        reader = csv.DictReader(_line_iterator(stream))
         state_set = set(self.states)
         skipped = 0
 
