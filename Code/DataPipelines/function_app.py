@@ -34,7 +34,8 @@ from icd10_loader import load_icd10
 from sync_gateway_agent import run_promote_to_frontend
 from copy_to_frontend import (run_copy_to_frontend, snapshot_collection_fn, create_frontend_vector_index_fn,
                               partition_source, copy_chunk, drop_destination,
-                              migrate_small_collections, migrate_chunk, verify_parity)
+                              migrate_small_collections, migrate_chunk, verify_parity,
+                              copy_providers_only)
 from promote_data_fn import run_promote_data
 from gpt_reader import handle_gpt_reader
 from pipeline_health import check_mongo_health
@@ -96,6 +97,7 @@ SYNC_TASK_HANDLERS = {
     "StampEmbeddingVersion": stamp_embedding_version_fn,
     "PromoteData": run_promote_data,
     "CopyToFrontEndSync": run_copy_to_frontend,
+    "CopyProvidersOnly": copy_providers_only,
     "PromoteToFrontEnd": run_promote_to_frontend,
     "VerifyParity": verify_parity,
 }
