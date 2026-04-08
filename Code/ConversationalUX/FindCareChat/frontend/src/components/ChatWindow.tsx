@@ -24,6 +24,11 @@ const LOADING_MESSAGE: Message = {
   content: 'Loading...',
 }
 
+// Session token — ephemeral, in-memory only, dies with the tab.
+// TODO: Move generation to FindCare backend, encrypt before sending to client.
+// Client carries the opaque blob, EvaluateCare decrypts. For alpha: plaintext GUID.
+const SESSION_TOKEN = `CH_${crypto.randomUUID()}`
+
 export default function ChatWindow() {
   const [messages, setMessages] = useState<Message[]>([LOADING_MESSAGE])
   const [input, setInput] = useState('')
@@ -233,23 +238,23 @@ export default function ChatWindow() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           providers,
+          session_token: SESSION_TOKEN,
           question_summary: `Provider evaluation requested — ${providers.length} providers`,
         }),
       })
         .then(r => r.json())
         .then(data => {
           if (data.evaluated_providers) {
-            const evalText = data.evaluated_providers.map((p: any, i: number) =>
-              `**${i + 1}. ${p.name}**\nSpecialty: ${p.specialty}\nNPI: ${p.npi}`
-            ).join('\n\n')
-            setMessages(prev => {
-              // Remove the "Evaluating..." message
-              const filtered = prev.filter(m => m.content !== '**Evaluating providers...**')
-              return [...filtered, {
-                role: 'assistant',
-                content: `**EvaluateCare — Provider Evaluation:**\n\n${data.question_summary}\n\n${evalText}\n\n*${data.note}*`,
-              }]
-            })
+            // Remove "Evaluating..." message
+            setMessages(prev => prev.filter(m => m.content !== '**Evaluating providers...**'))
+            // Send to right panel via postMessage
+            if (window.parent && window.parent !== window) {
+              window.parent.postMessage({
+                type: 'gui:evaluate-result',
+                providers: data.evaluated_providers,
+                question: data.question_summary || '',
+              }, '*')
+            }
           }
           setIsLoading(false)
         })

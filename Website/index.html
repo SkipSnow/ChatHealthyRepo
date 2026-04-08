@@ -915,6 +915,29 @@
           }
         }
 
+        // EvaluateCare result — render in right panel
+        if (msg.type === 'gui:evaluate-result') {
+          var rightPanel = document.getElementById('rightPanel');
+          if (rightPanel && msg.providers) {
+            var rows = msg.providers.map(function(p, i) {
+              return '<div style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">'
+                + '<div style="font-weight:600;color:#1f2937;font-size:13px;">' + (i+1) + '. ' + (p.name || 'Unknown') + '</div>'
+                + '<div style="font-size:11px;color:#6b7280;">' + (p.specialty || '') + '</div>'
+                + '<div style="font-size:10px;color:#9ca3af;">NPI: ' + (p.npi || '') + '</div>'
+                + '</div>';
+            }).join('');
+            rightPanel.style.alignItems = 'stretch';
+            rightPanel.style.justifyContent = 'flex-start';
+            rightPanel.style.flexDirection = 'column';
+            rightPanel.style.overflow = 'auto';
+            rightPanel.innerHTML = '<div style="padding:8px 10px;border-bottom:2px solid #d97706;background:#fffbeb;">'
+              + '<div style="font-size:11px;font-weight:700;color:#d97706;text-transform:uppercase;">EvaluateCare</div>'
+              + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">' + msg.providers.length + ' providers · ' + (msg.question || '') + '</div>'
+              + '</div>'
+              + '<div style="overflow-y:auto;flex:1;">' + rows + '</div>';
+          }
+        }
+
         if (msg.type === 'gui:event' && msg.action === 'highlight-filter') {
           // Flash the filter panel to draw attention
           leftPanel.style.transition = 'background 0.3s';
