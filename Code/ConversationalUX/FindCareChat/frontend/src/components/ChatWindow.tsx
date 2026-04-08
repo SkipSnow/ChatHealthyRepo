@@ -234,7 +234,13 @@ export default function ChatWindow() {
 
     gui.onEvaluateProviders(() => {
       const providers = lastProvidersRef.current
-      if (!providers || providers.length === 0) return
+      if (!providers || providers.length === 0) {
+        setMessages(prev => [...prev, {
+          role: 'assistant' as const,
+          content: '**No providers to evaluate.** Search for providers first, then click Evaluate.',
+        }])
+        return
+      }
 
       setIsLoading(true)
       setMessages(prev => [...prev, {
@@ -482,6 +488,23 @@ export default function ChatWindow() {
       }])
       if (data.emergency) setIsLocked(true)
       if (data.response === 'Session unlocked.') setIsLocked(false)
+
+      // Always fetch structured providers for EvaluateCare handoff
+      if (data.pagination?.total_count > 0) {
+        fetch(`${API_URL}/search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...data.pagination.search_params, limit: data.pagination.count || 25 }),
+        })
+          .then(r => r.json())
+          .then(searchData => {
+            if (searchData.providers) {
+              lastProvidersRef.current = searchData.providers
+              console.log('[Providers] Stored', searchData.providers.length, 'for evaluate handoff')
+            }
+          })
+          .catch(() => {})
+      }
 
       // Store pagination state silently — no controls yet.
       // Controls appear only when user says "yes" and we fetch page 2.
