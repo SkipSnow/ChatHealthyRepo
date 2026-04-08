@@ -264,8 +264,8 @@
     },
     {
       "id": "DR-025",
-      "rule": "Never interrupt a pipeline job that is running as designed. But if you discover a bug in the running code, terminate the job immediately, deploy the fix, and rerun. The pipeline is idempotent — restarting with the fix is always faster than watching a broken job fail.",
-      "incident": "CopyToFrontEnd was stuck for 15+ minutes. Two deploys were blocked by the CI guard. Should have terminated immediately when the bug was identified, not waited for it to fail.",
+      "rule": "You cannot deploy if the deploy would kill running code. If a pipeline job is running as designed, wait. If you discover a bug in the running code, terminate the job first, then deploy the fix, then rerun. The pipeline is idempotent — restarting with the fix is always faster than watching a broken job fail. This applies per deployment target: frontend (Cloudflare + HuggingFace) and pipeline (Azure Functions) are independent — deploying one cannot kill the other.",
+      "incident": "CopyToFrontEnd was stuck for 15+ minutes. Two deploys were blocked by CI guard. Should have terminated immediately when the bug was identified.",
       "date": "2026-04-08"
     }
   ]
