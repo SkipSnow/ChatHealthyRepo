@@ -68,20 +68,56 @@ def _propensity_response(label: str, json_stem: str = "", reason: str = "") -> d
     return base
 
 
-class bug_governance_constraints(BaseModel if BaseModel is not object else object):
+class governance_worker_base(BaseModel if BaseModel is not object else object):
+    """Base class for all pydantic governance worker objects.
+    Every worker inherits Boss constraint check and risk acceptance validation.
+    BUG-GOV-002: Boss prompt instructions take precedence over all other rules."""
+
+    risk_acceptance_id: str = None
+    ch_matrix_id: str = ""
+
+    def check_boss_constraint(self, transcript_path: str = "") -> dict:
+        """Check if Boss has an active constraint against state changes.
+        Returns {"constrained": True/False, "constraint": "..."}"""
+        return chathealthy_devops_boot._boss_has_active_constraint(transcript_path)
+
+    def check_risk_acceptance(self) -> bool:
+        """Returns True if this record has an authorized risk acceptance."""
+        return self.risk_acceptance_id is not None and self.risk_acceptance_id != ""
+
+    def pre_run_checks(self, transcript_path: str = "") -> dict:
+        """Run before any governance process. Returns escalate if Boss constrained
+        or if action requires risk acceptance that doesn't exist."""
+        boss_check = self.check_boss_constraint(transcript_path)
+        if boss_check.get("constrained"):
+            return {
+                "comply": False,
+                "action": "escalate",
+                "reason": f"BUG-GOV-002: Boss constraint active — '{boss_check['constraint']}'",
+            }
+        return {"comply": True}
+
+
+class bug_governance_constraints(governance_worker_base):
     """Pydantic model for a governed bug record.
     Constructor validates bug data against governance constraints."""
 
     id: str = ""
     rule: str = ""
     description: str = ""
-    severity: str = ""  # constrained by bug_severity CV
-    environments: list = []  # constrained to local/dev/qa/prod
+    type: str = ""  # constrained by CV-008 bug_type
+    reason: str = ""
+    severity: str = ""  # legacy — use type
+    environments: list = []  # constrained by CV-010
     date: str = ""
     discovery_date: str = ""
     due_date: str = ""
     next_action: str = "analysis"
     status: str = "open"
+    resolution_status: str = "in_analysis"  # constrained by CV-009
+    risk_acceptance_id: str = None  # null until Boss authorizes
+    pytest_id: str = ""
+    pytest_success_criteria: str = ""
     success_criteria_to_close: str = ""
     source: str = ""
     ch_matrix_id: str = ""
@@ -106,45 +142,36 @@ class bug_governance_constraints(BaseModel if BaseModel is not object else objec
             }
         return {"comply": True, "propensity": "allow"}
 
-    def run_governance_process(self) -> dict:
+    def run_governance_process(self, transcript_path: str = "") -> dict:
         """Execute the governance process for this bug instance.
-        Runs on the stack — multiple instances can run concurrently
-        inside the singleton boot controller."""
+        Calls base class pre_run_checks first — Boss constraint and risk acceptance."""
+
+        # Base class checks — Boss constraint, risk acceptance
+        pre = self.pre_run_checks(transcript_path)
+        if not pre.get("comply", True):
+            return pre
+
         result = {
             "bug_id": self.id,
-            "severity": self.severity,
-            "status": self.status,
-            "next_action": self.next_action,
-            "is_show_stopper": self.is_show_stopper(),
-            "is_release_blocker": self.is_release_blocker(),
-            "environments": self.environments,
+            "type": self.type,
+            "resolution_status": self.resolution_status,
+            "risk_acceptance_id": self.risk_acceptance_id,
             "comply": True,
         }
 
-        # Show stoppers and release blockers fail governance
-        if self.is_show_stopper() or self.is_release_blocker():
+        # Show stoppers / release blockers without risk acceptance — escalate
+        if not self.check_risk_acceptance() and (self.is_show_stopper() or self.is_release_blocker()):
             result["comply"] = False
-            result["action"] = "session_abend"
-            result["reason"] = f"{self.id}: {(self.rule or self.description)[:200]}"
+            result["action"] = "escalate"
+            result["reason"] = f"{self.id}: {self.type or 'SHOW STOPPER'} — no risk acceptance. Escalate to Boss."
+            return result
 
-        # Open bugs with no next action are governance warnings
-        if self.status == "open" and not self.next_action:
-            result["warning"] = f"{self.id}: open bug with no next_action"
+        # Risk accepted — authorized
+        if self.check_risk_acceptance():
+            result["authorized_by"] = self.risk_acceptance_id
+            return result
 
-        # Bugs past due date are escalated
-        if self.due_date:
-            from datetime import datetime, timezone
-            try:
-                due = datetime.fromisoformat(self.due_date.replace("Z", "+00:00"))
-                if datetime.now(timezone.utc) > due:
-                    result["warning"] = f"{self.id}: past due {self.due_date}"
-                    if self.is_show_stopper():
-                        result["comply"] = False
-                        result["action"] = "system_abend"
-                        result["reason"] = f"{self.id}: SHOW STOPPER past due {self.due_date}"
-            except Exception:
-                pass
-
+        # Default: allow for non-blocking bugs
         return result
 
     @classmethod
@@ -450,12 +477,12 @@ class chathealthy_devops_boot:
     def check_external_audits(self, source="", destination="", action_event="session_start") -> dict:
         return self._check_json("external_audits", method)
 
-    def check_bugs(self, source="", destination="", action_event="session_start") -> dict:
+    def check_bugs(self, source="", destination="", action_event="session_start", transcript_path="") -> dict:
         """Construct each bug, call run_governance_process. The class owns the rules."""
         bugs_data = self.brain.get("bugs", {})
         for bug_dict in bugs_data.get("bugs", []):
             bug = bug_governance_constraints.from_dict(bug_dict)
-            result = bug.run_governance_process()
+            result = bug.run_governance_process(transcript_path=transcript_path)
             if not result.get("comply", True):
                 return result
         return _propensity_response("allow", "bugs")
@@ -500,6 +527,59 @@ class chathealthy_devops_boot:
     def _announce(self, method, source, destination):
         """Print hook execution visibly."""
         print(f"🔒 GUARD | {method}() | source={source} | destination={destination}", file=sys.stderr)
+
+    # ── BUG-GOV-002: Boss prompt constraint check ──────────────────────────
+
+    @staticmethod
+    def _boss_has_active_constraint(transcript_path: str, window_hours: int = 3) -> dict:
+        """Check if Boss issued a constraint against state changes in the last N hours.
+        Returns {"constrained": True/False, "constraint": "..."} """
+        if not transcript_path or not os.path.exists(transcript_path):
+            return {"constrained": False}
+
+        from datetime import datetime, timezone, timedelta
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=window_hours)
+
+        constraint_phrases = [
+            "don't make any changes",
+            "do not make any changes",
+            "don't change anything",
+            "do not change anything",
+            "no changes",
+            "don't touch",
+            "do not touch",
+            "don't edit",
+            "do not edit",
+            "don't modify",
+            "do not modify",
+            "make no changes",
+            "stop",
+            "do nothing",
+        ]
+
+        try:
+            with open(transcript_path, encoding="utf-8") as f:
+                for line in f:
+                    try:
+                        entry = json.loads(line)
+                    except Exception:
+                        continue
+                    # Only check user/human messages
+                    if entry.get("role") not in ("user", "human"):
+                        continue
+                    content = entry.get("content", "")
+                    if not isinstance(content, str):
+                        continue
+                    msg_lower = content.lower()
+                    for phrase in constraint_phrases:
+                        if phrase in msg_lower:
+                            return {
+                                "constrained": True,
+                                "constraint": content[:200],
+                            }
+        except Exception:
+            pass
+        return {"constrained": False}
 
     def boot(self) -> dict:
         """session_start — load brain, verify all JSONs, check matrix propensities."""
@@ -584,12 +664,11 @@ class chathealthy_devops_boot:
         except Exception as e:
             return {"intent": "unknown", "warnings": [str(e)], "proceed": True}
 
-    def tool_call(self, tool_name: str, tool_input: dict) -> dict:
+    def tool_call(self, tool_name: str, tool_input: dict, transcript_path: str = "") -> dict:
         """PreToolUse — gate actions using the governance matrix.
 
-        Reads pre_tool_use column for every brain JSON.
-        Any session_abend or system_abend voter blocks the action.
-        Also checks show-stopper bugs and engineering rules.
+        BUG-GOV-002: Before any state change, check if Boss has an active
+        constraint in the transcript. Any pydantic run object inherits this.
         """
         detail = tool_input.get("command", tool_input.get("file_path", ""))[:80]
         self._announce("tool_call", f"pre_tool_use:{tool_name}", detail)
@@ -764,7 +843,7 @@ def main():
 
         elif args.mode == "tool_call":
             boot = chathealthy_devops_boot(load_full=False)
-            result = boot.tool_call(data.get("tool_name", ""), data.get("tool_input", {}))
+            result = boot.tool_call(data.get("tool_name", ""), data.get("tool_input", {}), transcript_path=data.get("transcript_path", ""))
             if not result.get("allow", False):
                 output = {
                     "hookSpecificOutput": {

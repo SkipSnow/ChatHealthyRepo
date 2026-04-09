@@ -91,8 +91,9 @@ class EmbeddingWorker(PipelineWorkerBase):
     def __init__(self, config: dict):
         super().__init__(config)
         self.worker_id = config["worker_id"]
+        _env = config.get("env_prefix", os.environ.get("ENV_PREFIX", "dev"))
         self.provider_collection = config.get(
-            "provider_collection", "dev_PublicHealthData.providers"
+            "provider_collection", f"{_env}_PublicHealthData.providers"
         )
         self._states_filter = _build_states_filter(config)  # BUG-PIPE-001: strict, raises if missing
         self._batch_size = config.get("embed_batch_size", EMBED_BATCH_SIZE)

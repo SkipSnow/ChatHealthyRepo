@@ -5,6 +5,11 @@
   "description": "Boot instructions for Claude. This is the single entry point. CLAUDE.md points here and nowhere else.",
   "boot_sequence": [
     {
+      "step": 0,
+      "action": "check_resume",
+      "instruction": "Before anything else, read the last 15 minutes of prompt history. If Boss gave a resume directive (e.g. 'resume', 'pick up where we left off', 'continue'), do NOT ask what mode to use or what we are doing. Resume the current mode from the prior session and continue working from where the last session ended. Skip steps 4 and 5."
+    },
+    {
       "step": 1,
       "action": "read_brain",
       "instruction": "Read every JSON file in brain/machine_artifacts/content/. Disk is source of truth for rules."

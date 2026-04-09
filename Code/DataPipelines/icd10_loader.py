@@ -43,7 +43,8 @@ def _get_mongo_client() -> MongoClient:
         _mongo = MongoClient(os.environ["MONGO_connectionString"])
     return _mongo
 
-ICD10_COLLECTION = "dev_PublicHealthData.ICD10Codes"
+_ENV_PREFIX = os.environ.get("ENV_PREFIX", "dev")
+ICD10_COLLECTION = f"{_ENV_PREFIX}_PublicHealthData.ICD10Codes"
 
 # CMS releases ICD-10-CM annually (Oct 1) with a mid-year update (Apr 1).
 # The scraper below checks the CMS page for the latest URL.

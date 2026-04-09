@@ -561,6 +561,73 @@
       },
       "ch_matrix_id": "1c1847f5-d2c2-412d-8d65-d72110050118"
     }
+  ,
+    {
+      "vocabulary_id": "CV-008",
+      "name": "bug_type",
+      "definition": "Constrained severity/type values for bug records in bugs.json. Every bug must have exactly one type.",
+      "risk_level": "low",
+      "reason": "Required to automate governance.",
+      "members": [
+        {"value": "show_stopper", "definition": "System cannot function. All work stops until resolved.", "ch_matrix_id": "b1000001-0000-4000-c000-000000000001"},
+        {"value": "critical", "definition": "Major functionality broken. Must fix this sprint.", "ch_matrix_id": "b1000001-0000-4000-c000-000000000002"},
+        {"value": "high", "definition": "Significant defect. Fix within two sprints.", "ch_matrix_id": "b1000001-0000-4000-c000-000000000003"},
+        {"value": "medium", "definition": "Moderate defect. Scheduled fix.", "ch_matrix_id": "b1000001-0000-4000-c000-000000000004"},
+        {"value": "low", "definition": "Minor defect. Fix when convenient.", "ch_matrix_id": "b1000001-0000-4000-c000-000000000005"},
+        {"value": "not_a_bug", "definition": "Investigated and determined not to be a defect.", "ch_matrix_id": "b1000001-0000-4000-c000-000000000006"},
+        {"value": "resolved", "definition": "Bug has been fixed and verified.", "ch_matrix_id": "b1000001-0000-4000-c000-000000000007"}
+      ],
+      "invoked_by": {
+        "source_files": [
+          {"file": "Code/Shared/ops/tools/chathealthy_devops_boot.py", "function": "bug_governance_constraints", "note": "Validates bug type on construction."}
+        ],
+        "stories": []
+      },
+      "ch_matrix_id": "b1000001-0000-4000-c000-000000000000"
+    },
+    {
+      "vocabulary_id": "CV-009",
+      "name": "bug_resolution_status",
+      "definition": "Constrained resolution status values for bug records. Tracks lifecycle from discovery through verified fix.",
+      "risk_level": "low",
+      "reason": "Required to automate governance.",
+      "members": [
+        {"value": "in_analysis", "definition": "Bug is being investigated. Root cause not yet identified.", "ch_matrix_id": "b2000001-0000-4000-c000-000000000001"},
+        {"value": "fixing", "definition": "Root cause identified. Fix in progress.", "ch_matrix_id": "b2000001-0000-4000-c000-000000000002"},
+        {"value": "testing", "definition": "Fix applied. Pytest required. Fields: pytest_id (required), pytest_success_criteria (from pytest record, required).", "ch_matrix_id": "b2000001-0000-4000-c000-000000000003"},
+        {"value": "tested_passed", "definition": "Pytest passed. Fields: pytest_id (required), pytest_success_criteria (from pytest record, required).", "ch_matrix_id": "b2000001-0000-4000-c000-000000000004"}
+      ],
+      "invoked_by": {
+        "source_files": [
+          {"file": "Code/Shared/ops/tools/chathealthy_devops_boot.py", "function": "bug_governance_constraints", "note": "Validates resolution status on construction."}
+        ],
+        "stories": []
+      },
+      "ch_matrix_id": "b2000001-0000-4000-c000-000000000000"
+    }
+  ,
+    {
+      "vocabulary_id": "CV-010",
+      "name": "environment",
+      "definition": "Constrained environment values used across all collections — bugs, governance matrix, deployments, pipeline operations. Universal vocabulary for where things run.",
+      "risk_level": "low",
+      "reason": "Required to automate governance — environments are used across bugs, governance matrix, deployments, and pipeline operations.",
+      "members": [
+        {"value": "local", "definition": "Developer local machine.", "ch_matrix_id": "c1000001-0000-4000-d000-000000000001"},
+        {"value": "dev", "definition": "Development environment on cloud infrastructure.", "ch_matrix_id": "c1000001-0000-4000-d000-000000000002"},
+        {"value": "qa", "definition": "Quality assurance environment. GPT sign-off required for promotion.", "ch_matrix_id": "c1000001-0000-4000-d000-000000000003"},
+        {"value": "prod", "definition": "Production environment. Boss sign-off required for promotion.", "ch_matrix_id": "c1000001-0000-4000-d000-000000000004"}
+      ],
+      "invoked_by": {
+        "source_files": [
+          {"file": "brain/machine_artifacts/content/bugs.json", "function": "bug.environment", "note": "Constrains which environments a bug exists in."},
+          {"file": "brain/machine_artifacts/content/governance_matrix.json", "function": "matrix.environments", "note": "Defines the environment tiers for governance."},
+          {"file": "Code/Shared/ops/tools/chathealthy_devops_boot.py", "function": "bug_governance_constraints", "note": "Validates environment on bug construction."}
+        ],
+        "stories": []
+      },
+      "ch_matrix_id": "c1000001-0000-4000-d000-000000000000"
+    }
   ],
   "ch_matrix_id": "c279a5f7-f10a-4103-b5f4-06a45ebb071a"
 }

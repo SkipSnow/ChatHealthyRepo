@@ -4,6 +4,7 @@
 # Pipeline DB — shared MongoDB access for all pipeline workers.
 # Module-level singleton (correct pattern for Azure Functions).
 # ENV_PREFIX routing — no hardcoded database names (Framework 1.1).
+# Environment values constrained by CV-010 (controlled_vocabularies.json).
 
 import os
 import logging
@@ -13,6 +14,19 @@ from pymongo import MongoClient
 _log = logging.getLogger("pipeline_db")
 
 _mongo: MongoClient | None = None
+
+# CV-010: environment controlled vocabulary
+_VALID_ENVIRONMENTS = {"local", "dev", "qa", "prod"}
+
+
+def _validate_env(env_prefix: str) -> str:
+    """Validate env_prefix against CV-010. Raises ValueError if invalid."""
+    if env_prefix not in _VALID_ENVIRONMENTS:
+        raise ValueError(
+            f"Invalid environment '{env_prefix}'. "
+            f"Must be one of CV-010 values: {sorted(_VALID_ENVIRONMENTS)}"
+        )
+    return env_prefix
 
 
 def get_mongo() -> MongoClient:
@@ -28,8 +42,10 @@ def get_mongo() -> MongoClient:
 
 
 def get_db(env_prefix: str = None):
-    """Get the PublicHealthData database with ENV_PREFIX routing."""
+    """Get the PublicHealthData database with ENV_PREFIX routing.
+    Environment constrained by CV-010."""
     env_prefix = env_prefix or os.environ.get("ENV_PREFIX", "dev")
+    _validate_env(env_prefix)
     return get_mongo()[f"{env_prefix}_PublicHealthData"]
 
 
