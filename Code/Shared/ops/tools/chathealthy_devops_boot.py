@@ -581,6 +581,80 @@ class chathealthy_devops_boot:
             pass
         return {"constrained": False}
 
+    @staticmethod
+    def check_resume_directive(transcript_path: str) -> dict:
+        """Step 0: Check last 15 minutes of transcript for resume directive.
+        If found, return the mode and last context so boot skips mode question."""
+        if not transcript_path or not os.path.exists(transcript_path):
+            return {"resume": False}
+
+        from datetime import datetime, timezone, timedelta
+        cutoff = datetime.now(timezone.utc) - timedelta(minutes=15)
+
+        resume_phrases = [
+            "resume", "pick up where we left off", "continue",
+            "keep going", "carry on", "where were we",
+            "pick up where you left off", "start where we left off",
+        ]
+
+        mode_phrases = {
+            "idiot mode": 3, "idiot": 3,
+            "normal mode": 2, "normal": 2,
+            "unattended mode": 1, "unattended": 1,
+        }
+
+        last_mode = None
+        resume_found = False
+        last_context = ""
+
+        try:
+            lines = []
+            with open(transcript_path, encoding="utf-8") as f:
+                for line in f:
+                    try:
+                        lines.append(json.loads(line))
+                    except Exception:
+                        continue
+
+            # Read backwards — most recent first
+            for entry in reversed(lines):
+                if entry.get("role") not in ("user", "human"):
+                    continue
+                content = entry.get("content", "")
+                if not isinstance(content, str):
+                    continue
+                msg_lower = content.lower()
+
+                # Check for resume directive
+                for phrase in resume_phrases:
+                    if phrase in msg_lower:
+                        resume_found = True
+
+                # Check for mode
+                for phrase, mode_num in mode_phrases.items():
+                    if phrase in msg_lower:
+                        if last_mode is None:
+                            last_mode = mode_num
+
+                # Capture last context
+                if not last_context and len(content) > 10:
+                    last_context = content[:200]
+
+                # Only look at recent messages
+                if resume_found and last_mode is not None:
+                    break
+
+        except Exception:
+            pass
+
+        if resume_found:
+            return {
+                "resume": True,
+                "mode": last_mode or 3,  # default idiot mode
+                "last_context": last_context,
+            }
+        return {"resume": False}
+
     def boot(self) -> dict:
         """session_start — load brain, verify all JSONs, check matrix propensities."""
         self._announce("boot", "session_start", "brain")
@@ -828,6 +902,22 @@ def main():
     try:
         if args.mode == "boot":
             boot = chathealthy_devops_boot(load_full=True)
+
+            # Step 0: Check for resume directive in transcript
+            transcript = data.get("transcript_path", "")
+            resume = boot.check_resume_directive(transcript)
+            if resume.get("resume"):
+                mode_names = {1: "Unattended", 2: "Normal", 3: "Idiot"}
+                mode_name = mode_names.get(resume["mode"], "Idiot")
+                print(f"RESUME: {mode_name} Mode. Last context: {resume.get('last_context', '')[:100]}", file=sys.stderr)
+                result = boot.boot()
+                result["resume"] = True
+                result["mode"] = resume["mode"]
+                result["mode_name"] = mode_name
+                result["last_context"] = resume.get("last_context", "")
+                json.dump(result, sys.stdout)
+                sys.exit(0)
+
             result = boot.boot()
             json.dump(result, sys.stdout)
             if result.get("status") == "abend":
