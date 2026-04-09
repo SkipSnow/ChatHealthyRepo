@@ -1,5 +1,5 @@
 {
-  "collection": "qa_reports",
+  "collection": "functional_discrepancy_reports",
   "record_count": 10,
   "records": [
     {
@@ -418,7 +418,7 @@
     {
       "title": "QA Report — v0.1.2 Pre-Alpha Release",
       "record_type": "qa_report",
-      "collection": "qa_reports",
+      "collection": "functional_discrepancy_reports",
       "date": "2026-03-28",
       "tester": "Skip Snow",
       "engineer": "Claude Opus 4.6",

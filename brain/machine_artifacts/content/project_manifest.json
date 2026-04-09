@@ -357,7 +357,7 @@
     "description": ""
   },
   {
-    "project_path": "brain/machine_artifacts/content/qa_reports.json",
+    "project_path": "brain/machine_artifacts/content/functional_discrepancy_reports.json",
     "size": 96035,
     "content_hash": "00d9c177508a05c8",
     "entity_type": "file",

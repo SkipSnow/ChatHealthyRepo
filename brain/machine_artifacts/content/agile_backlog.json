@@ -18189,7 +18189,42 @@
           "priority": "MEDIUM",
           "status": "accepted",
           "accepted_by": "Boss",
-          "stories": []
+          "stories": [
+            {
+              "story_id": "SDT-BRAIN-SAFETY-001",
+              "title": "Remove keyword false positives from safety dual-trigger",
+              "description": "The 57-word keyword substring match produces false positives on provider search queries containing emergency terms (e.g. 'find me a doctor for chest pain'). The AI classifier (gpt-4.1-mini) with its three-gate prompt is precise. Remove keywords as a primary trigger — let the model carry detection. Keywords remain as fallback ONLY when the AI classifier API fails.",
+              "parent_feature": "SDT-BRAIN",
+              "size": "S",
+              "status": "in_progress",
+              "requirements": [
+                {
+                  "req_id": "SDT-BRAIN-SAFETY-001-REQ-001",
+                  "requirement": "AI classifier is the sole primary trigger for emergency detection",
+                  "priority": "must-have",
+                  "status": "in_progress"
+                },
+                {
+                  "req_id": "SDT-BRAIN-SAFETY-001-REQ-002",
+                  "requirement": "Keywords are used ONLY as fallback when AI classifier API call fails",
+                  "priority": "must-have",
+                  "status": "in_progress"
+                },
+                {
+                  "req_id": "SDT-BRAIN-SAFETY-001-REQ-003",
+                  "requirement": "Provider search queries containing emergency terms do not trigger emergency response",
+                  "priority": "must-have",
+                  "status": "in_progress"
+                },
+                {
+                  "req_id": "SDT-BRAIN-SAFETY-001-REQ-004",
+                  "requirement": "Actual emergencies (all three gates: body location + acute onset + life-threat) still trigger correctly",
+                  "priority": "must-have",
+                  "status": "in_progress"
+                }
+              ]
+            }
+          ]
         },
         {
           "feature_id": "SDT-LOCAL-DEV",
@@ -19239,6 +19274,163 @@
                   "priority": "must-have",
                   "status": "IMPLEMENTED",
                   "test": "test_traceability.py::test_matrix_valid_json"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "epic_id": "EPIC-10",
+      "name": "Testing",
+      "capacity": "",
+      "goal": "Automated user simulation testing across all environments. Smoke tests, regression tests, security verification, and user journey validation.",
+      "definition_of_done": "All user-facing flows have automated Playwright tests. Local, dev, and production environments verified before release.",
+      "status": "active",
+      "features": [
+        {
+          "feature_id": "TEST-USER-SIM",
+          "name": "User Testing Simulation",
+          "epic_id": "EPIC-10",
+          "layer": "testing",
+          "capability": "QA",
+          "description": "Automated Playwright tests that simulate real user journeys through the full application. Tests run against the parent page (DR-019), exercise FindCare search, EvaluateCare handoff, session tokens, and panel layout.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/local_environment_user_ready.py",
+          "stories": [
+            {
+              "story_id": "TEST-SIM-001",
+              "title": "Local environment user-ready smoke test",
+              "description": "Playwright smoke test verifying full FindCare-to-EvaluateCare user journey on localhost.",
+              "parent_feature": "TEST-USER-SIM",
+              "sprint": null,
+              "dependencies": [],
+              "size": "L",
+              "status": "implemented",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/local_environment_user_ready.py",
+              "requirements": [
+                {
+                  "req_id": "TEST-SIM-001-REQ-001",
+                  "requirement": "http://localhost loads with status 200 and page title contains ChatHealthy",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "TEST-SIM-001-REQ-002",
+                  "requirement": "Red dev/staging environment banner is visible",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "TEST-SIM-001-REQ-003",
+                  "requirement": "Chat iframe loads and shows welcome message with QA report",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "TEST-SIM-001-REQ-004",
+                  "requirement": "Chat input prompt exists and is not locked",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "TEST-SIM-001-REQ-005",
+                  "requirement": "Provider search for DE foot provider returns results with NPIs",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "TEST-SIM-001-REQ-006",
+                  "requirement": "Left panel shows specialty filter checkboxes after search",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "TEST-SIM-001-REQ-007",
+                  "requirement": "Left panel shows session token starting with ch_ and nonce timestamps",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "TEST-SIM-001-REQ-008",
+                  "requirement": "Left panel has two buttons below specialty list including Evaluate Care",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "TEST-SIM-001-REQ-009",
+                  "requirement": "Right panel is empty before Evaluate Care click",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "TEST-SIM-001-REQ-010",
+                  "requirement": "Evaluate Care click triggers handoff and providers move to left panel",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "TEST-SIM-001-REQ-011",
+                  "requirement": "Encrypted and decrypted session tokens visible after handoff",
+                  "priority": "must-have",
+                  "status": "implemented"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "feature_id": "TEST-SEC-LOCAL",
+          "name": "Security Local Environment Testing",
+          "epic_id": "EPIC-10",
+          "layer": "testing",
+          "capability": "Security",
+          "description": "Automated tests verifying local security posture: TLS between components, HTTPS redirect, sensitive page protection.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "stories": [
+            {
+              "story_id": "TEST-SEC-001",
+              "title": "TLS between all local components",
+              "description": "Verify TLS is configured between all local services.",
+              "parent_feature": "TEST-SEC-LOCAL",
+              "size": "M",
+              "status": "accepted",
+              "requirements": [
+                {
+                  "req_id": "TEST-SEC-001-REQ-001",
+                  "requirement": "All inter-service communication uses TLS",
+                  "priority": "must-have",
+                  "status": "gap",
+                  "label": "GAP-TLS-001"
+                },
+                {
+                  "req_id": "TEST-SEC-001-REQ-002",
+                  "requirement": "http://localhost redirects to https://localhost",
+                  "priority": "must-have",
+                  "status": "bug",
+                  "label": "BUG-TLS-001"
+                }
+              ]
+            },
+            {
+              "story_id": "TEST-SEC-002",
+              "title": "Sensitive pages served on :443 only",
+              "description": "Architecture, roadmap, and artifact pages must be served behind TLS on :443.",
+              "parent_feature": "TEST-SEC-LOCAL",
+              "size": "M",
+              "status": "accepted",
+              "requirements": [
+                {
+                  "req_id": "TEST-SEC-002-REQ-001",
+                  "requirement": "architecture.html, roadmap.html, and artifact pages served on :443 only",
+                  "priority": "must-have",
+                  "status": "gap",
+                  "label": "GAP-443-001"
                 }
               ]
             }

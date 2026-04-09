@@ -1,0 +1,6 @@
+{
+  "type": "beacon",
+  "guid": "b19452d9-686c-43c3-b9ce-6a90919a0b36",
+  "purpose": "Semaphore — Windows service watches access time. Claude reads this to signal activity. No content changes needed.",
+  "created": "2026-04-09T04:30:00Z"
+}
