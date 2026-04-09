@@ -28,7 +28,7 @@
     },
     {
       "id": "DR-008",
-      "rule": "Do not pull all _ids into memory to compute partition boundaries. Use $bucketAuto or sampling.",
+      "rule": "No single operation may materialize more than 10,000 documents into a Python list, dict, or variable at once. If the source collection has more than 10,000 documents, use a server-side cursor with batch_size, $bucketAuto, or streaming iteration. list(collection.find()) on a collection with more than 10,000 documents is always a violation.",
       "incident": "partition_source aggregated all _ids from millions of records into a Python list. Activity hung and likely timed out.",
       "date": "2026-04-02",
       "enforcement": {
@@ -36,12 +36,15 @@
         "scan_dirs": [
           "Code/DataPipelines"
         ],
-        "pattern": "list\\(.*\\.find\\(\\{?\\}?\\)",
+        "pattern": "list\\(.*\\.find\\(",
+        "exclude_comments": true,
         "exempt_patterns": [
           "limit(",
           "batch_size=",
-          "SAMPLE_SIZE"
-        ]
+          "SAMPLE_SIZE",
+          ".limit("
+        ],
+        "_note": "Catches list(collection.find()) patterns. Exempt if cursor is limited."
       }
     },
     {

@@ -70,22 +70,38 @@ class PromptSystemMaker:
 
     # ------------------------------------------------------------------
     # Emergency keywords
-    # Source: brain/machine_artifacts/emergency_keywords.json
+    # Source: brain/machine_artifacts/content/controlled_vocabularies.json (CV-006)
+    # Fallback: brain/machine_artifacts/content/emergency_keywords.json
     # ------------------------------------------------------------------
     def load_emergency_keywords(self) -> list[str]:
-        """Load flat list of emergency keywords from brain artifact."""
+        """Load flat list of emergency keywords from controlled vocabulary CV-006."""
         if self._emergency_keywords is not None:
             return self._emergency_keywords
 
-        path = self._brain / "machine_artifacts" / "content" / "emergency_keywords.json"
+        # Primary: controlled_vocabularies.json CV-006
+        cv_path = self._brain / "machine_artifacts" / "content" / "controlled_vocabularies.json"
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(cv_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            for vocab in data.get("vocabularies", []):
+                if vocab.get("vocabulary_id") == "CV-006" or vocab.get("name") == "emergency_keywords":
+                    keywords = [m["value"] for m in vocab.get("members", []) if m.get("value")]
+                    self._emergency_keywords = keywords
+                    _log.info("Loaded %d emergency keywords from CV-006 in %s", len(keywords), cv_path)
+                    return keywords
+        except Exception as exc:
+            _log.warning("Failed to load CV-006 from controlled_vocabularies: %s", exc)
+
+        # Fallback: emergency_keywords.json (legacy format)
+        ek_path = self._brain / "machine_artifacts" / "content" / "emergency_keywords.json"
+        try:
+            with open(ek_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             keywords = []
             for category_list in data.get("categories", {}).values():
                 keywords.extend(category_list)
             self._emergency_keywords = keywords
-            _log.info("Loaded %d emergency keywords from %s", len(keywords), path)
+            _log.info("Loaded %d emergency keywords from fallback %s", len(keywords), ek_path)
             return keywords
         except Exception as exc:
             _log.warning("Failed to load emergency keywords: %s — using defaults", exc)

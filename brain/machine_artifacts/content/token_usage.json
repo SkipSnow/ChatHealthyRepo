@@ -19035,6 +19035,25 @@
           "vendor": "Anthropic"
         }
       ]
+    },
+    {
+      "date": "2026-04-08",
+      "epic": "PIPE-BULLETPROOF",
+      "task": "pipeline_v3_compliance_check (25 iterations)",
+      "model": "gpt-4.1",
+      "prompt_tokens": 866390,
+      "completion_tokens": 52284,
+      "total_tokens": 918674,
+      "estimated_cost_usd": 2.15
+    },
+    {
+      "date": "2026-04-08",
+      "model": "gpt-4.1",
+      "epic": "Pipeline Architecture v4 Design",
+      "task": "21-iteration adversarial design review with GPT-4.1",
+      "total_tokens": 229689,
+      "estimated_cost_usd": 2.3,
+      "notes": "v4-009 compliant. Consensus reached at iteration 21."
     }
   ]
 }

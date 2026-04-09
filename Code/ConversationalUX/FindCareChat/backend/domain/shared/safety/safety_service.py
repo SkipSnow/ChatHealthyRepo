@@ -47,17 +47,20 @@ class SafetyService:
         self._admin_unlock_key = admin_unlock_key or os.getenv("ADMIN_UNLOCK_KEY", "")
 
     def is_emergency(self, message: str) -> bool:
-        """Dual-trigger OR logic: keyword match OR AI classifier."""
+        """AI-primary emergency detection. Keywords are fallback only when AI is unavailable.
+
+        SDT-BRAIN-SAFETY-001: Removed keyword OR trigger — false positives on provider
+        search queries like 'find me a doctor for chest pain'. The AI classifier with
+        its three-gate prompt (body location + acute onset + life-threat) is precise.
+        Keywords remain as degraded-mode fallback when the API call fails.
+        """
         msg_lower = message.lower()
 
         # Fast path: skip for obvious non-emergency
         if any(msg_lower.startswith(p) for p in _SAFE_PREFIXES):
             return False
 
-        keyword_hit = any(kw in msg_lower for kw in self._keywords)
-
-        # AI classifier
-        ai_hit = False
+        # Primary: AI classifier
         try:
             from openai import OpenAI
             oai = OpenAI(api_key=self._openai_key)
@@ -83,12 +86,11 @@ class SafetyService:
             raw = resp.choices[0].message.content.strip()
             result = json.loads(raw)
             confidence = float(result.get("confidence", 0))
-            ai_hit = bool(result.get("emergency", False)) and confidence >= 0.80
+            return bool(result.get("emergency", False)) and confidence >= 0.80
         except Exception as exc:
-            _log.error("Safety AI failed (%s) — keyword-only", exc)
-            return keyword_hit
-
-        return keyword_hit or ai_hit
+            _log.error("Safety AI failed (%s) — falling back to keyword detection", exc)
+            # Fallback: keyword match ONLY when AI is unavailable
+            return any(kw in msg_lower for kw in self._keywords)
 
     def _safety_collection(self):
         """Get the safety incidents collection. Uses legacy collection name for compatibility."""

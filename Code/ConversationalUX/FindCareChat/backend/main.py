@@ -290,7 +290,7 @@ def _get_qa_report():
     """Load QA report from MongoDB (source of truth), fall back to file for bootstrap."""
     db = _get_db()
     if db:
-        doc = db[f"{_ENV_PREFIX}_System"]["qa_reports"].find_one(
+        doc = db[f"{_ENV_PREFIX}_System"]["functional_discrepancy_reports"].find_one(
             {"_record_id": "qa_report_v014_sit"}, {"_id": 0})
         if doc:
             return doc
@@ -303,7 +303,7 @@ def _get_qa_report():
     with open(report_path) as f:
         report = json.load(f)
     if db:
-        db[f"{_ENV_PREFIX}_System"]["qa_reports"].replace_one(
+        db[f"{_ENV_PREFIX}_System"]["functional_discrepancy_reports"].replace_one(
             {"_record_id": "qa_report_v014_sit"}, report, upsert=True)
         _log.info("QA report seeded to MongoDB from file")
     return report
@@ -389,7 +389,7 @@ async def qa_report_submit(request: Request):
     # Write to MongoDB
     db = _get_db()
     if db:
-        db[f"{_ENV_PREFIX}_System"]["qa_reports"].replace_one(
+        db[f"{_ENV_PREFIX}_System"]["functional_discrepancy_reports"].replace_one(
             {"_record_id": "qa_report_v014_sit"}, report, upsert=True)
     _log.info("QA report saved to MongoDB: %d test cases updated", updated)
     from starlette.responses import RedirectResponse

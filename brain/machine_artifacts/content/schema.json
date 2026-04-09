@@ -54,8 +54,8 @@
       "produces_artifact": false,
       "biz_artifact_folder": null
     },
-    "qa_reports": {
-      "path": "brain/machine_artifacts/qa_reports/",
+    "functional_discrepancy_reports": {
+      "path": "brain/machine_artifacts/functional_discrepancy_reports/",
       "purpose": "QA/UAT reports, release gates, test results, production status",
       "record_types": [
         "qa_report",

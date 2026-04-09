@@ -295,6 +295,13 @@
         }
       ],
       "publish": false
+    },
+    {
+      "id": "GOV-015",
+      "name": "Governance Is Universal and Immediate",
+      "source": "Boss directive, 2026-04-09",
+      "status": "permanent",
+      "description": "Governance is instantly and universally enforced across all environments (dev, qa, prod), even if it breaks something. There is no environment where governance is relaxed. Dev, qa, and prod are 100% equal from a governance perspective. If governance breaks a build, the build is broken — governance is not the problem."
     }
   ]
 }

@@ -71,6 +71,97 @@
         ],
         "stories": ["DEVOPS-QA-001", "DEVOPS-QA-002"]
       }
+    },
+    {
+      "vocabulary_id": "CV-006",
+      "name": "emergency_keywords",
+      "definition": "Config-driven keyword list for SafetyService EmergencyDetector. Dual-trigger OR logic: keyword match OR semantic classifier. F-09 fix expanded from v1.0. Categories group keywords by medical emergency type. Each member value is a keyword phrase; the definition is the emergency category.",
+      "members": [
+        {"value": "chest pain", "definition": "cardiac"},
+        {"value": "chest tightness", "definition": "cardiac"},
+        {"value": "heart attack", "definition": "cardiac"},
+        {"value": "can't breathe", "definition": "respiratory"},
+        {"value": "cannot breathe", "definition": "respiratory"},
+        {"value": "difficulty breathing", "definition": "respiratory"},
+        {"value": "trouble breathing", "definition": "respiratory"},
+        {"value": "not breathing", "definition": "respiratory"},
+        {"value": "stopped breathing", "definition": "respiratory"},
+        {"value": "stroke", "definition": "stroke"},
+        {"value": "face drooping", "definition": "stroke"},
+        {"value": "arm weakness", "definition": "stroke"},
+        {"value": "sudden numbness", "definition": "stroke"},
+        {"value": "severe bleeding", "definition": "bleeding"},
+        {"value": "bleeding out", "definition": "bleeding"},
+        {"value": "won't stop bleeding", "definition": "bleeding"},
+        {"value": "unconscious", "definition": "consciousness"},
+        {"value": "passed out", "definition": "consciousness"},
+        {"value": "unresponsive", "definition": "consciousness"},
+        {"value": "overdose", "definition": "overdose"},
+        {"value": "took too many", "definition": "overdose"},
+        {"value": "took too much", "definition": "overdose"},
+        {"value": "suicide", "definition": "suicide"},
+        {"value": "suicidal", "definition": "suicide"},
+        {"value": "kill myself", "definition": "suicide"},
+        {"value": "end my life", "definition": "suicide"},
+        {"value": "seizure", "definition": "seizure"},
+        {"value": "convulsing", "definition": "seizure"},
+        {"value": "severe allergic reaction", "definition": "allergic"},
+        {"value": "anaphylaxis", "definition": "allergic"},
+        {"value": "throat closing", "definition": "allergic"},
+        {"value": "choking", "definition": "choking"},
+        {"value": "severe burn", "definition": "burns"},
+        {"value": "on fire", "definition": "burns"},
+        {"value": "chemical burn", "definition": "burns"},
+        {"value": "third degree burn", "definition": "burns"},
+        {"value": "drowning", "definition": "drowning"},
+        {"value": "pulled from water", "definition": "drowning"},
+        {"value": "underwater", "definition": "drowning"},
+        {"value": "near drowning", "definition": "drowning"},
+        {"value": "car accident", "definition": "trauma"},
+        {"value": "gunshot", "definition": "trauma"},
+        {"value": "stabbing", "definition": "trauma"},
+        {"value": "severe injury", "definition": "trauma"},
+        {"value": "head injury", "definition": "trauma"},
+        {"value": "major trauma", "definition": "trauma"},
+        {"value": "hit by car", "definition": "trauma"},
+        {"value": "blood sugar", "definition": "diabetic"},
+        {"value": "diabetic coma", "definition": "diabetic"},
+        {"value": "diabetic emergency", "definition": "diabetic"},
+        {"value": "insulin shock", "definition": "diabetic"},
+        {"value": "hypoglycemic", "definition": "diabetic"},
+        {"value": "in labor", "definition": "childbirth"},
+        {"value": "water broke", "definition": "childbirth"},
+        {"value": "baby coming", "definition": "childbirth"},
+        {"value": "giving birth", "definition": "childbirth"},
+        {"value": "premature labor", "definition": "childbirth"}
+      ],
+      "invoked_by": {
+        "source_files": [
+          {"file": "Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py", "function": "EmergencyDetector", "note": "Dual-trigger: keyword match OR semantic classifier. Loaded at startup from brain JSON."}
+        ],
+        "stories": ["EPIC-8"]
+      }
+    },
+    {
+      "vocabulary_id": "CV-007",
+      "name": "governance_propensity",
+      "definition": "Immutable governance response labels. Five levels spanning two scopes (system and session). Each label maps to a fixed propensity. Used in the governance matrix — every cell in the matrix must be one of these five values. Labels are subjective assignments today — research story pending to validate each cell.",
+      "members": [
+        {"value": "system_abend", "definition": "System-level abend. All users, all sessions, all environments stop. The system is non-compliant and must not serve until resolved. Flag set globally — every hook returns continue:false. GOV-015: governance is universal and immediate."},
+        {"value": "session_abend", "definition": "Session-level abend. This Claude session stops (continue:false). System keeps running. Other users unaffected. The session violated a constraint that cannot be recovered within the session."},
+        {"value": "environment_abend", "definition": "Environment-aware abend. Check current environment context. Abend if the constraint applies in this environment."},
+        {"value": "system_warning", "definition": "System-level warning. Logged system-wide. Boss alerted. All sessions see it. Proceed with caution. The constraint is at risk across the system."},
+        {"value": "session_warning", "definition": "Session-level warning. Logged locally to this session. Claude proceeds with caution. The constraint is relevant but not blocking."},
+        {"value": "environment_warning", "definition": "Environment-aware warning. Check current environment context. Warn if the constraint applies in this environment."},
+        {"value": "environment_display", "definition": "Environment-aware display. Show environment context to the user (e.g. red dev banner). Not a warning or risk — presentation behavior."},
+        {"value": "allow", "definition": "Good event. Proceed. No action needed. The constraint is either not relevant or fully satisfied."}
+      ],
+      "invoked_by": {
+        "source_files": [
+          {"file": "Code/Shared/ops/tools/chathealthy_devops_boot.py", "function": "chathealthy_devops_boot", "note": "Governance matrix reads labels to determine compliance response per JSON per action event."}
+        ],
+        "stories": []
+      }
     }
   ]
 }

@@ -1,0 +1,33 @@
+{
+  "collection": "chathealthy_devops_boot",
+  "version": "1.0",
+  "created": "2026-04-09T03:00:00Z",
+  "description": "Boot instructions for Claude. This is the single entry point. CLAUDE.md points here and nowhere else.",
+  "boot_sequence": [
+    {
+      "step": 1,
+      "action": "read_brain",
+      "instruction": "Read every JSON file in brain/machine_artifacts/content/. Disk is source of truth for rules."
+    },
+    {
+      "step": 2,
+      "action": "sync_brain_to_mongo",
+      "instruction": "Query admin database on the frontend cluster (ChatHealthyFrontEnd) for all brain collections. Lazy sync: push disk changes to MongoDB for other agents. Never query the pipeline cluster for brain data (DR-020)."
+    },
+    {
+      "step": 3,
+      "action": "verify_guard",
+      "instruction": "Verify the guard daemon is running. If not running, start it. Claude must not act until the guard is confirmed active."
+    },
+    {
+      "step": 4,
+      "action": "ask_mode",
+      "instruction": "Ask Boss: 'I am in Idiot Mode. Should I change my mode? (1=Unattended, 2=Normal, 3=Idiot Mode)'"
+    },
+    {
+      "step": 5,
+      "action": "wait",
+      "instruction": "Do not act until Boss responds."
+    }
+  ]
+}
