@@ -27,6 +27,16 @@
       "accepted_by": "Boss (Skip Snow, CEO)",
       "rationale": "The alternative is hardcoding 800+ specialty classifications manually, which is error-prone and unmaintainable. GPT-4.1-mini classification is faster, covers all specialties, and the cached result can be reviewed and corrected. The risk is low — misclassification of a specialty is a filter error, not a clinical error.",
       "mitigation": "Cache result in MongoDB. Human-reviewable. Corrections override AI classification. Log which specialties were AI-classified vs manually corrected."
+    },
+    {
+      "id": "RISK-003",
+      "date": "2026-04-09",
+      "title": "kill_zombies.py --kill-name exception for rogue processes",
+      "description": "DR-009 prohibits direct taskkill/kill from bash. kill_zombies.py only kills by port. A rogue pipeline process (not bound to a port) cannot be killed by the sanctioned tool. Boss authorized adding --kill-name flag to kill by process name.",
+      "risk": "Broader kill capability could accidentally terminate legitimate processes if wrong name is passed.",
+      "approved_by": "Skip Snow",
+      "rationale": "Claude started a pipeline locally (v4-001C violation) that ran for 7+ hours. The governance guard now prevents this from happening again, but the orphan process must be killable. The guard blocks direct taskkill — kill_zombies.py is the only sanctioned path.",
+      "mitigation": "kill_zombies.py is the only way to kill. Guard blocks direct taskkill. --kill-name requires explicit process name argument. Cannot kill by wildcard."
     }
   ]
 }
