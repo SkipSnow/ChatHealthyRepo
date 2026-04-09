@@ -1,0 +1,573 @@
+{
+  "collection": "bugs",
+  "description": "All system bugs. Every bug exists equally in dev, qa, and prod per GOV-015. Source of truth for defect tracking.",
+  "environments": [
+    "dev",
+    "qa",
+    "prod"
+  ],
+  "dev_bugs": [
+    {
+      "id": "BUG-FILTER-001",
+      "rule": "BUG: Specialty filter panel empty — specialization_options returns 0 items. Root cause: SpecialtyService.find_specialty_codes returns empty despite SpecialtyMetaData having 45 matches for 'surg' in Display Name. Vector search indexes missing on frontend cluster (both provider_vector_index and specialty_vector_index). Regex pipeline in SpecialtyService._expand_query may be failing silently. Pipeline must create all vector search indexes on CopyToFrontEnd.",
+      "incident": "User searched 'surgeons in VA', got 4,418 results but no filter panel. specialization_options was empty in the response because identify_specialty returned no codes.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-MSG-001",
+      "rule": "BUG: LLM response duplicates system summary. LLM says 'Here are the first 25 of 11,772' AND system says 'There are 11,747 more'. User sees double. Root cause: system prompt RULE 9 still tells LLM to summarize results. Fix: update RULE 9 to stop LLM from summarizing when system summary exists.",
+      "incident": "Boss tested 'find me shrinks in VA' and saw repetitive data — both LLM and system summaries displayed.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-FILTER-002",
+      "rule": "BUG FIXED: Filter panel text displayed sideways. Root cause: leftPanel div had writing-mode:vertical-rl for the blank label, never reset when filter content loaded. Fix: reset writing-mode to horizontal-tb when gui:filter message received, restore vertical on gui:filter-clear.",
+      "incident": "Boss saw checkboxes and specialty names rotated 90 degrees in the filter panel.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-MSG-002",
+      "rule": "BUG FIXED: Summary used LLM-translated term ('psychiatrist') instead of user's term ('shrinks'). Root cause: specialty_searched came from the LLM's tool call parameter, not the user's original message. Fix: main.py now passes body.message as specialty_searched in summary_message.",
+      "incident": "Boss tested 'find me shrinks in VA', summary said 'psychiatrist' instead of 'shrinks'.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-VECTOR-001",
+      "rule": "RELEASE BLOCKER — SIT NEXT SPRINT, MUST-HAVE: Specialty code resolution must vector search against SpecialtyMetaData (883 specialty descriptions), not provider records. Current code searches provider embeddings which returns irrelevant taxonomy codes because providers have rich text (address, licenses, county) that pollutes similarity. Fix: Route 4 Step 1 should embed user query with text-embedding-3-small (1536d) and search SpecialtyMetaData. Provider embeddings (3072d) are retained for Evaluate Care provider detail lookups.",
+      "incident": "Boss searched 'find a kids doc in VA', got 7 specialty types including Hospitalist Physician, Clinic/Center, Mental Health Clinic — only 2/7 correct. Root cause: vector similarity ran against provider embeddings, not specialty descriptions.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-DESIGN-001",
+      "rule": "DESIGN ERROR (Boss): Filtered results with more than one page must show pagination controls in the control frame immediately. Do not make the user ask for page 2 after applying a filter — they already expressed intent to see results.",
+      "incident": "Boss applied specialty filter, got summary but had to ask to see more. Pagination controls should appear automatically when has_more is true on filtered results.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-PIPE-001",
+      "rule": "BUG: Enrichment steps do not filter by states. Pass 1 ZIP crosswalk processed 8.8M records instead of 1.3M because no state filter was applied. Every enrichment step must accept and enforce the states parameter.",
+      "incident": "Pipeline ran enrichment on all 50 states instead of DE/MS/VA/CA. Wasted 3.5+ hours on unnecessary records.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-002",
+      "rule": "BUG: No try/finally in orchestrators. If a step fails, the reservation is never released and the cluster stays up. Orphan reservations cause unnecessary cost.",
+      "incident": "Pipeline terminated but cluster remained up with no active reservation release.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-003",
+      "rule": "BUG: Skipping load step (start_step=3) left stale data. 8.8M records from prior runs remained. Load step must drop collection unless incremental=true.",
+      "incident": "Resubmitted with start_step=3 to skip load. Enrichment ran against entire collection from prior runs instead of just 4 states.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-005",
+      "rule": "BUG: Cluster lifecycle reservations stored on the managed cluster. The pipeline management data (_System.cluster_lifecycle) is on the pipeline cluster — the cluster being managed. This creates chicken-and-egg: can't write reservation before cluster is up, can't wake cluster without reservation. Fix: move reservations to the frontend cluster (24/7 uptime).",
+      "incident": "reserve() failed because it tried to write to MongoDB on the paused pipeline cluster. Fixed with Atlas API wake-first hack, but root cause is architectural.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-004",
+      "rule": "BUG: Enrichment must be in-place on provider record. Per MongoDB best practices, one document per provider. No separate enrichment collection.",
+      "incident": "Design review identified separate enrichment pattern as anti-pattern.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-006",
+      "rule": "DESIGN BUG (Boss): DataFetcherBase skip guard trusted registry without verifying blob existed. Registry said 'already downloaded' but blob was deleted. Pipeline skipped download, extract failed with BlobNotFound. Fix: verify blob exists before skipping. Root cause: no data retention policy for source files — retention is an ops concern, not pipeline.",
+      "incident": "Pipeline failed 3 times at extract_csv_activity because download was skipped based on stale registry entry. Blob had been deleted.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-008",
+      "rule": "BUG: Load workers insert duplicate NPI records. 70,000 duplicates found. Same worker_id, same record_id — exact duplicate rows. Root cause: bulk_write batch flushed twice, or worker retried after partial success. Fix: investigate worker retry logic in PipelineWorkerBase.",
+      "incident": "npi_unique index creation failed because 70K NPIs had 2 copies each. Dedup required before enrichment.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-007",
+      "rule": "BUG: ensure_postload_indexes_activity fails with DuplicateKeyError on load_record_unique index. Root cause TBD — drop() should clear indexes, but post-load index creation finds duplicate load_id + record_id combinations. May be stale data from prior run or worker record_id collision.",
+      "incident": "Pipeline failed at post-load index step twice. Data loads correctly (state filter confirmed working). Index creation fails.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-ROADMAP-001",
+      "rule": "BUG (HIGH): Roadmap milestones in business_plan.json are disconnected date/label pairs with no references to epics, features, or definition of done. The roadmap generator (generate_roadmap_page.py) must draw milestone descriptions, scope, and acceptance criteria from agile_backlog.json — not from hand-written labels. Each milestone must reference its epic_ids and derive its content from the brain. Current state: milestone says 'Alpha launch' but doesn't say what's in it.",
+      "incident": "Roadmap milestones added to business_plan.json without epic_refs or traceability. Discovered during v4-021 roadmap generator work.",
+      "date": "2026-04-06"
+    },
+    {
+      "id": "BUG-LOAD-001",
+      "rule": "SHOW STOPPER — SPRINT BLOCKER — DUE 2026-04-09: Delaware provider load is incomplete. Root cause: CopyToFrontEnd copied only 2,843 of 25,591 DE providers from pipeline cluster to frontend cluster. Pipeline cluster load is correct. Fix CopyToFrontEnd. dev_PublicHealthData.providers contains only 2,843 DE providers. CMS Part D prescriber data alone has 3,505 DE NPIs. Delaware should have ~26,000 providers. The NPPES load ran with 32 workers across the full CSV but only captured a fraction of DE records. Root cause TBD — may be a CopyToFrontEnd issue (pipeline cluster has full set, frontend got partial) or a load partition issue. All downstream work (enrichment, embedding, scoring) is invalid until the full DE dataset is loaded.",
+      "incident": "Boss asked 'Delaware only has 2,843 providers?' during data quality review. CMS Part D had 3,505 DE prescribers — more than our total provider count. Expected ~26K based on population ratio and CMS records. CA has ~1.1M prescribers; DE should scale proportionally to ~26K total providers.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-LOAD-002",
+      "rule": "SHOW STOPPER — ALPHA RELEASE BLOCKER: The question 'how many providers are there in DE' must give a correct answer. If the database has 2,843 and the real answer is ~26,000, the system is giving wrong data to users. This is a GOV-011 violation — the system must answer using real data, not incomplete data. The provider count must match the NPPES source of truth before any state goes to production.",
+      "incident": "Data quality review revealed the count was wrong. System would have told users DE has 2,843 providers when the real number is ~26,000. Discovered same session as BUG-LOAD-001.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-LOAD-003",
+      "rule": "BUG (DESIGN): Source data files in blob storage must NEVER be deleted after loading. The raw NPPES CSV, CMS Part D CSV, OIG LEIE CSV, and SAM exclusion CSV must remain in blob storage until replaced by the next full load. These files are the source of truth for data quality reconciliation — pipeline count must match source count must match frontend count. Deletion breaks the audit chain.",
+      "incident": "During BUG-LOAD-001 investigation, needed to count DE records in the raw NPPES CSV to verify pipeline cluster count (25,591). The file existed only because it hadn't been cleaned up yet. If it had been deleted, there would be no way to verify the load was correct without re-downloading 10.6GB from CMS.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-LEGAL-001",
+      "rule": "BUG (SPRINT BLOCKER — DUE THIS SPRINT): CPT codes CANNOT be used in any consumer-facing feature. UMLS license Category 3 restricts CPT to internal use only (research, development, statistical analysis). Public display requires a separate AMA commercial license. Before alpha: (1) audit all user-facing output for CPT codes, (2) remove or block any CPT display, (3) add copyright/attribution banner for UMLS-derived content, (4) notify NLM in writing before launch, (5) geo-fence US-only vocabularies.",
+      "incident": "GPT Enterprise Architect review of UMLS license (2026-04-07) identified CPT Category 3 restriction as incompatible with consumer-facing product. Also identified pre-alpha compliance requirements for SNOMED CT, ICD-10-CM, LOINC attribution.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-UX-001",
+      "rule": "BUG: 'find me a kids doc in VA' produces stuck response 'Thinking... Ok No'. Chat never completes. Either safety check, consent flow, or backend timeout is intercepting and the UI doesn't recover. User sees a dead chat. Must investigate: (1) is 'kids' triggering safety? (2) is there a consent prompt that the UI doesn't render? (3) is the backend timing out?",
+      "incident": "Headless browser dry run on dev.chathealthy.ai — query submitted, chat showed 'Thinking... Ok No' and never progressed. Left panel stayed empty. No provider results rendered.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-UX-002",
+      "rule": "BUG: Left panel has overflowY:hidden — filter content cannot scroll. When specialty filter loads with more options than fit in the panel height, user cannot scroll to see all options. Fix: set overflowY:auto on #leftPanel when filter content is present.",
+      "incident": "Headless browser inspection showed #leftPanel scrollHeight=863 clientHeight=863 overflowY=hidden. Confirmed by Boss as known broken scroll bar.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "UAT-FILTER-001",
+      "rule": "PASS: Filter panel FUNCTIONALITY signed off for alpha by Boss 2026-04-07. Prescriber toggle, homeopathic toggle (Sonnet resolver), specialty checkboxes, counts display, client-side caching, scroll bar — all functional. UX NOT signed off — layout, three-number labels, sort order, and visual polish still need work.",
+      "incident": "Boss tested on localhost after 11/11 Playwright regression pass. 96 specialties (59 pediatric + 37 homeopathic). Homeopathic resolver returns 38 relevant specialties via Claude Sonnet 4.6.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-BA-001",
+      "rule": "BUG (BA): First number in filter header shows provider count (4,676) but should show total possible specialties (universe of all specialty types, not providers). Business analyst requirement error — the three numbers should be: (1) total specialty types in the universe, (2) types after filter switches applied, (3) types the user has checked. Provider count is useful but belongs elsewhere, not in position 1.",
+      "incident": "Boss caught during UAT. The number 4,676 is providers, not specialties. The universe should be the total number of specialty types (e.g., 883 in NUCC), not how many providers matched.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "UAT-UX-001",
+      "rule": "PASS: Timer + Stop button in guiControlFrame. Styled container with teal text, raised Stop button. Boss signed off for alpha 2026-04-07.",
+      "incident": "Boss tested on localhost, approved timer display and Stop button UX.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-UX-003",
+      "rule": "BUG FIXED: Stop button left orphaned in chat area when timer moved to control frame. Timer and Stop button are a unit — both must move together. Fixed by removing thinking bubble from chat and rendering both timer + Stop in guiControlFrame.",
+      "incident": "Boss caught Stop button floating alone in chat area after timer was moved to control frame. Timer showed in control frame but Stop stayed in the chat.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-UX-004",
+      "rule": "BUG FIXED: Prescriber toggle checkbox re-rendered as checked when specialty list updated. When user unchecked 'Prescribers only', the list re-render reset the checkbox to checked. Fixed by passing prescribersChecked state into renderFilterHTML.",
+      "incident": "Boss unchecked prescribers only, list didn't change. Root cause: re-render of filter HTML reset checkbox state.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-PIPE-009",
+      "rule": "BUG: Overnight pipeline re-downloads CMS Part D CSV (3.7GB) every run instead of using blob storage. The file is already in blob from previous runs. Must use DataFetcherBase ETag guard pattern — download once, store in blob, reuse. Also: the Part D CSV contains ALL states. Parsing it for one state wastes the data for other states. Parse once, store per-state results in MongoDB, never re-download unless ETag changes.",
+      "incident": "Overnight pipeline for MS/VA re-downloaded 3.7GB Part D CSV that was already downloaded yesterday for DE. Process used 3.3GB RAM and took hours. Should have reused blob copy or checked if drugs already loaded.",
+      "date": "2026-04-08"
+    },
+    {
+      "id": "BUG-SEC-001",
+      "rule": "BUG (PRE-ALPHA REQUIREMENT): HuggingFace Spaces still use bearer tokens for authentication. Security architecture (EPIC-4) requires zero bearer tokens — all auth via x509 certificates registered with Azure Key Vault. Perplexity external audit (EXT-AUDIT-001) flagged the security model. Must migrate dev HF Spaces from bearer tokens to x509 cert auth before alpha. Each Space gets its own cert. SecretManager fetches certs from Key Vault at startup.",
+      "incident": "Boss flagged during local HTTPS/PKI setup that HF Spaces still use bearer tokens. Perplexity audit had major concerns about security model. Local dev now has proper PKI with individual certs per service, but deployed architecture hasn't caught up.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-CLASSIFY-001",
+      "date": "2026-03-29",
+      "description": "Factual health questions misclassified as medical advice. Example: 'What is the most common form of breast cancer?' was declined as medical advice when it should be answered as general health knowledge.",
+      "root_cause": "RULE 2 too aggressive — 'You know NOTHING else' blocks factual health knowledge that aids navigation.",
+      "fix": "Prompt tuning: distinguish factual health questions from personal medical advice.",
+      "status": "open",
+      "source": "architecture.json"
+    },
+    {
+      "id": "BUG-PERF-001",
+      "date": "2026-03-29",
+      "description": "Provider search in VA took 87 seconds. Query falls back to collection scan when vector search index is missing or not yet built on the target environment.",
+      "root_cause": "PromoteData copied provider data without creating the vector search index. Fixed in build 168 — index creation is now automatic. Residual risk: index build time on Atlas (1-2 minutes after creation) during which queries are slow.",
+      "fix": "Index creation added to PromoteData. Monitor for any remaining slow queries after index is confirmed ready.",
+      "status": "open",
+      "source": "architecture.json"
+    }
+  ],
+  "qa_bugs": [
+    {
+      "id": "BUG-FILTER-001",
+      "rule": "BUG: Specialty filter panel empty — specialization_options returns 0 items. Root cause: SpecialtyService.find_specialty_codes returns empty despite SpecialtyMetaData having 45 matches for 'surg' in Display Name. Vector search indexes missing on frontend cluster (both provider_vector_index and specialty_vector_index). Regex pipeline in SpecialtyService._expand_query may be failing silently. Pipeline must create all vector search indexes on CopyToFrontEnd.",
+      "incident": "User searched 'surgeons in VA', got 4,418 results but no filter panel. specialization_options was empty in the response because identify_specialty returned no codes.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-MSG-001",
+      "rule": "BUG: LLM response duplicates system summary. LLM says 'Here are the first 25 of 11,772' AND system says 'There are 11,747 more'. User sees double. Root cause: system prompt RULE 9 still tells LLM to summarize results. Fix: update RULE 9 to stop LLM from summarizing when system summary exists.",
+      "incident": "Boss tested 'find me shrinks in VA' and saw repetitive data — both LLM and system summaries displayed.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-FILTER-002",
+      "rule": "BUG FIXED: Filter panel text displayed sideways. Root cause: leftPanel div had writing-mode:vertical-rl for the blank label, never reset when filter content loaded. Fix: reset writing-mode to horizontal-tb when gui:filter message received, restore vertical on gui:filter-clear.",
+      "incident": "Boss saw checkboxes and specialty names rotated 90 degrees in the filter panel.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-MSG-002",
+      "rule": "BUG FIXED: Summary used LLM-translated term ('psychiatrist') instead of user's term ('shrinks'). Root cause: specialty_searched came from the LLM's tool call parameter, not the user's original message. Fix: main.py now passes body.message as specialty_searched in summary_message.",
+      "incident": "Boss tested 'find me shrinks in VA', summary said 'psychiatrist' instead of 'shrinks'.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-VECTOR-001",
+      "rule": "RELEASE BLOCKER — SIT NEXT SPRINT, MUST-HAVE: Specialty code resolution must vector search against SpecialtyMetaData (883 specialty descriptions), not provider records. Current code searches provider embeddings which returns irrelevant taxonomy codes because providers have rich text (address, licenses, county) that pollutes similarity. Fix: Route 4 Step 1 should embed user query with text-embedding-3-small (1536d) and search SpecialtyMetaData. Provider embeddings (3072d) are retained for Evaluate Care provider detail lookups.",
+      "incident": "Boss searched 'find a kids doc in VA', got 7 specialty types including Hospitalist Physician, Clinic/Center, Mental Health Clinic — only 2/7 correct. Root cause: vector similarity ran against provider embeddings, not specialty descriptions.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-DESIGN-001",
+      "rule": "DESIGN ERROR (Boss): Filtered results with more than one page must show pagination controls in the control frame immediately. Do not make the user ask for page 2 after applying a filter — they already expressed intent to see results.",
+      "incident": "Boss applied specialty filter, got summary but had to ask to see more. Pagination controls should appear automatically when has_more is true on filtered results.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-PIPE-001",
+      "rule": "BUG: Enrichment steps do not filter by states. Pass 1 ZIP crosswalk processed 8.8M records instead of 1.3M because no state filter was applied. Every enrichment step must accept and enforce the states parameter.",
+      "incident": "Pipeline ran enrichment on all 50 states instead of DE/MS/VA/CA. Wasted 3.5+ hours on unnecessary records.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-002",
+      "rule": "BUG: No try/finally in orchestrators. If a step fails, the reservation is never released and the cluster stays up. Orphan reservations cause unnecessary cost.",
+      "incident": "Pipeline terminated but cluster remained up with no active reservation release.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-003",
+      "rule": "BUG: Skipping load step (start_step=3) left stale data. 8.8M records from prior runs remained. Load step must drop collection unless incremental=true.",
+      "incident": "Resubmitted with start_step=3 to skip load. Enrichment ran against entire collection from prior runs instead of just 4 states.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-005",
+      "rule": "BUG: Cluster lifecycle reservations stored on the managed cluster. The pipeline management data (_System.cluster_lifecycle) is on the pipeline cluster — the cluster being managed. This creates chicken-and-egg: can't write reservation before cluster is up, can't wake cluster without reservation. Fix: move reservations to the frontend cluster (24/7 uptime).",
+      "incident": "reserve() failed because it tried to write to MongoDB on the paused pipeline cluster. Fixed with Atlas API wake-first hack, but root cause is architectural.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-004",
+      "rule": "BUG: Enrichment must be in-place on provider record. Per MongoDB best practices, one document per provider. No separate enrichment collection.",
+      "incident": "Design review identified separate enrichment pattern as anti-pattern.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-006",
+      "rule": "DESIGN BUG (Boss): DataFetcherBase skip guard trusted registry without verifying blob existed. Registry said 'already downloaded' but blob was deleted. Pipeline skipped download, extract failed with BlobNotFound. Fix: verify blob exists before skipping. Root cause: no data retention policy for source files — retention is an ops concern, not pipeline.",
+      "incident": "Pipeline failed 3 times at extract_csv_activity because download was skipped based on stale registry entry. Blob had been deleted.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-008",
+      "rule": "BUG: Load workers insert duplicate NPI records. 70,000 duplicates found. Same worker_id, same record_id — exact duplicate rows. Root cause: bulk_write batch flushed twice, or worker retried after partial success. Fix: investigate worker retry logic in PipelineWorkerBase.",
+      "incident": "npi_unique index creation failed because 70K NPIs had 2 copies each. Dedup required before enrichment.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-007",
+      "rule": "BUG: ensure_postload_indexes_activity fails with DuplicateKeyError on load_record_unique index. Root cause TBD — drop() should clear indexes, but post-load index creation finds duplicate load_id + record_id combinations. May be stale data from prior run or worker record_id collision.",
+      "incident": "Pipeline failed at post-load index step twice. Data loads correctly (state filter confirmed working). Index creation fails.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-ROADMAP-001",
+      "rule": "BUG (HIGH): Roadmap milestones in business_plan.json are disconnected date/label pairs with no references to epics, features, or definition of done. The roadmap generator (generate_roadmap_page.py) must draw milestone descriptions, scope, and acceptance criteria from agile_backlog.json — not from hand-written labels. Each milestone must reference its epic_ids and derive its content from the brain. Current state: milestone says 'Alpha launch' but doesn't say what's in it.",
+      "incident": "Roadmap milestones added to business_plan.json without epic_refs or traceability. Discovered during v4-021 roadmap generator work.",
+      "date": "2026-04-06"
+    },
+    {
+      "id": "BUG-LOAD-001",
+      "rule": "SHOW STOPPER — SPRINT BLOCKER — DUE 2026-04-09: Delaware provider load is incomplete. Root cause: CopyToFrontEnd copied only 2,843 of 25,591 DE providers from pipeline cluster to frontend cluster. Pipeline cluster load is correct. Fix CopyToFrontEnd. dev_PublicHealthData.providers contains only 2,843 DE providers. CMS Part D prescriber data alone has 3,505 DE NPIs. Delaware should have ~26,000 providers. The NPPES load ran with 32 workers across the full CSV but only captured a fraction of DE records. Root cause TBD — may be a CopyToFrontEnd issue (pipeline cluster has full set, frontend got partial) or a load partition issue. All downstream work (enrichment, embedding, scoring) is invalid until the full DE dataset is loaded.",
+      "incident": "Boss asked 'Delaware only has 2,843 providers?' during data quality review. CMS Part D had 3,505 DE prescribers — more than our total provider count. Expected ~26K based on population ratio and CMS records. CA has ~1.1M prescribers; DE should scale proportionally to ~26K total providers.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-LOAD-002",
+      "rule": "SHOW STOPPER — ALPHA RELEASE BLOCKER: The question 'how many providers are there in DE' must give a correct answer. If the database has 2,843 and the real answer is ~26,000, the system is giving wrong data to users. This is a GOV-011 violation — the system must answer using real data, not incomplete data. The provider count must match the NPPES source of truth before any state goes to production.",
+      "incident": "Data quality review revealed the count was wrong. System would have told users DE has 2,843 providers when the real number is ~26,000. Discovered same session as BUG-LOAD-001.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-LOAD-003",
+      "rule": "BUG (DESIGN): Source data files in blob storage must NEVER be deleted after loading. The raw NPPES CSV, CMS Part D CSV, OIG LEIE CSV, and SAM exclusion CSV must remain in blob storage until replaced by the next full load. These files are the source of truth for data quality reconciliation — pipeline count must match source count must match frontend count. Deletion breaks the audit chain.",
+      "incident": "During BUG-LOAD-001 investigation, needed to count DE records in the raw NPPES CSV to verify pipeline cluster count (25,591). The file existed only because it hadn't been cleaned up yet. If it had been deleted, there would be no way to verify the load was correct without re-downloading 10.6GB from CMS.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-LEGAL-001",
+      "rule": "BUG (SPRINT BLOCKER — DUE THIS SPRINT): CPT codes CANNOT be used in any consumer-facing feature. UMLS license Category 3 restricts CPT to internal use only (research, development, statistical analysis). Public display requires a separate AMA commercial license. Before alpha: (1) audit all user-facing output for CPT codes, (2) remove or block any CPT display, (3) add copyright/attribution banner for UMLS-derived content, (4) notify NLM in writing before launch, (5) geo-fence US-only vocabularies.",
+      "incident": "GPT Enterprise Architect review of UMLS license (2026-04-07) identified CPT Category 3 restriction as incompatible with consumer-facing product. Also identified pre-alpha compliance requirements for SNOMED CT, ICD-10-CM, LOINC attribution.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-UX-001",
+      "rule": "BUG: 'find me a kids doc in VA' produces stuck response 'Thinking... Ok No'. Chat never completes. Either safety check, consent flow, or backend timeout is intercepting and the UI doesn't recover. User sees a dead chat. Must investigate: (1) is 'kids' triggering safety? (2) is there a consent prompt that the UI doesn't render? (3) is the backend timing out?",
+      "incident": "Headless browser dry run on dev.chathealthy.ai — query submitted, chat showed 'Thinking... Ok No' and never progressed. Left panel stayed empty. No provider results rendered.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-UX-002",
+      "rule": "BUG: Left panel has overflowY:hidden — filter content cannot scroll. When specialty filter loads with more options than fit in the panel height, user cannot scroll to see all options. Fix: set overflowY:auto on #leftPanel when filter content is present.",
+      "incident": "Headless browser inspection showed #leftPanel scrollHeight=863 clientHeight=863 overflowY=hidden. Confirmed by Boss as known broken scroll bar.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "UAT-FILTER-001",
+      "rule": "PASS: Filter panel FUNCTIONALITY signed off for alpha by Boss 2026-04-07. Prescriber toggle, homeopathic toggle (Sonnet resolver), specialty checkboxes, counts display, client-side caching, scroll bar — all functional. UX NOT signed off — layout, three-number labels, sort order, and visual polish still need work.",
+      "incident": "Boss tested on localhost after 11/11 Playwright regression pass. 96 specialties (59 pediatric + 37 homeopathic). Homeopathic resolver returns 38 relevant specialties via Claude Sonnet 4.6.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-BA-001",
+      "rule": "BUG (BA): First number in filter header shows provider count (4,676) but should show total possible specialties (universe of all specialty types, not providers). Business analyst requirement error — the three numbers should be: (1) total specialty types in the universe, (2) types after filter switches applied, (3) types the user has checked. Provider count is useful but belongs elsewhere, not in position 1.",
+      "incident": "Boss caught during UAT. The number 4,676 is providers, not specialties. The universe should be the total number of specialty types (e.g., 883 in NUCC), not how many providers matched.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "UAT-UX-001",
+      "rule": "PASS: Timer + Stop button in guiControlFrame. Styled container with teal text, raised Stop button. Boss signed off for alpha 2026-04-07.",
+      "incident": "Boss tested on localhost, approved timer display and Stop button UX.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-UX-003",
+      "rule": "BUG FIXED: Stop button left orphaned in chat area when timer moved to control frame. Timer and Stop button are a unit — both must move together. Fixed by removing thinking bubble from chat and rendering both timer + Stop in guiControlFrame.",
+      "incident": "Boss caught Stop button floating alone in chat area after timer was moved to control frame. Timer showed in control frame but Stop stayed in the chat.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-UX-004",
+      "rule": "BUG FIXED: Prescriber toggle checkbox re-rendered as checked when specialty list updated. When user unchecked 'Prescribers only', the list re-render reset the checkbox to checked. Fixed by passing prescribersChecked state into renderFilterHTML.",
+      "incident": "Boss unchecked prescribers only, list didn't change. Root cause: re-render of filter HTML reset checkbox state.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-PIPE-009",
+      "rule": "BUG: Overnight pipeline re-downloads CMS Part D CSV (3.7GB) every run instead of using blob storage. The file is already in blob from previous runs. Must use DataFetcherBase ETag guard pattern — download once, store in blob, reuse. Also: the Part D CSV contains ALL states. Parsing it for one state wastes the data for other states. Parse once, store per-state results in MongoDB, never re-download unless ETag changes.",
+      "incident": "Overnight pipeline for MS/VA re-downloaded 3.7GB Part D CSV that was already downloaded yesterday for DE. Process used 3.3GB RAM and took hours. Should have reused blob copy or checked if drugs already loaded.",
+      "date": "2026-04-08"
+    },
+    {
+      "id": "BUG-SEC-001",
+      "rule": "BUG (PRE-ALPHA REQUIREMENT): HuggingFace Spaces still use bearer tokens for authentication. Security architecture (EPIC-4) requires zero bearer tokens — all auth via x509 certificates registered with Azure Key Vault. Perplexity external audit (EXT-AUDIT-001) flagged the security model. Must migrate dev HF Spaces from bearer tokens to x509 cert auth before alpha. Each Space gets its own cert. SecretManager fetches certs from Key Vault at startup.",
+      "incident": "Boss flagged during local HTTPS/PKI setup that HF Spaces still use bearer tokens. Perplexity audit had major concerns about security model. Local dev now has proper PKI with individual certs per service, but deployed architecture hasn't caught up.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-CLASSIFY-001",
+      "date": "2026-03-29",
+      "description": "Factual health questions misclassified as medical advice. Example: 'What is the most common form of breast cancer?' was declined as medical advice when it should be answered as general health knowledge.",
+      "root_cause": "RULE 2 too aggressive — 'You know NOTHING else' blocks factual health knowledge that aids navigation.",
+      "fix": "Prompt tuning: distinguish factual health questions from personal medical advice.",
+      "status": "open",
+      "source": "architecture.json"
+    },
+    {
+      "id": "BUG-PERF-001",
+      "date": "2026-03-29",
+      "description": "Provider search in VA took 87 seconds. Query falls back to collection scan when vector search index is missing or not yet built on the target environment.",
+      "root_cause": "PromoteData copied provider data without creating the vector search index. Fixed in build 168 — index creation is now automatic. Residual risk: index build time on Atlas (1-2 minutes after creation) during which queries are slow.",
+      "fix": "Index creation added to PromoteData. Monitor for any remaining slow queries after index is confirmed ready.",
+      "status": "open",
+      "source": "architecture.json"
+    }
+  ],
+  "prod_bugs": [
+    {
+      "id": "BUG-FILTER-001",
+      "rule": "BUG: Specialty filter panel empty — specialization_options returns 0 items. Root cause: SpecialtyService.find_specialty_codes returns empty despite SpecialtyMetaData having 45 matches for 'surg' in Display Name. Vector search indexes missing on frontend cluster (both provider_vector_index and specialty_vector_index). Regex pipeline in SpecialtyService._expand_query may be failing silently. Pipeline must create all vector search indexes on CopyToFrontEnd.",
+      "incident": "User searched 'surgeons in VA', got 4,418 results but no filter panel. specialization_options was empty in the response because identify_specialty returned no codes.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-MSG-001",
+      "rule": "BUG: LLM response duplicates system summary. LLM says 'Here are the first 25 of 11,772' AND system says 'There are 11,747 more'. User sees double. Root cause: system prompt RULE 9 still tells LLM to summarize results. Fix: update RULE 9 to stop LLM from summarizing when system summary exists.",
+      "incident": "Boss tested 'find me shrinks in VA' and saw repetitive data — both LLM and system summaries displayed.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-FILTER-002",
+      "rule": "BUG FIXED: Filter panel text displayed sideways. Root cause: leftPanel div had writing-mode:vertical-rl for the blank label, never reset when filter content loaded. Fix: reset writing-mode to horizontal-tb when gui:filter message received, restore vertical on gui:filter-clear.",
+      "incident": "Boss saw checkboxes and specialty names rotated 90 degrees in the filter panel.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-MSG-002",
+      "rule": "BUG FIXED: Summary used LLM-translated term ('psychiatrist') instead of user's term ('shrinks'). Root cause: specialty_searched came from the LLM's tool call parameter, not the user's original message. Fix: main.py now passes body.message as specialty_searched in summary_message.",
+      "incident": "Boss tested 'find me shrinks in VA', summary said 'psychiatrist' instead of 'shrinks'.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-VECTOR-001",
+      "rule": "RELEASE BLOCKER — SIT NEXT SPRINT, MUST-HAVE: Specialty code resolution must vector search against SpecialtyMetaData (883 specialty descriptions), not provider records. Current code searches provider embeddings which returns irrelevant taxonomy codes because providers have rich text (address, licenses, county) that pollutes similarity. Fix: Route 4 Step 1 should embed user query with text-embedding-3-small (1536d) and search SpecialtyMetaData. Provider embeddings (3072d) are retained for Evaluate Care provider detail lookups.",
+      "incident": "Boss searched 'find a kids doc in VA', got 7 specialty types including Hospitalist Physician, Clinic/Center, Mental Health Clinic — only 2/7 correct. Root cause: vector similarity ran against provider embeddings, not specialty descriptions.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-DESIGN-001",
+      "rule": "DESIGN ERROR (Boss): Filtered results with more than one page must show pagination controls in the control frame immediately. Do not make the user ask for page 2 after applying a filter — they already expressed intent to see results.",
+      "incident": "Boss applied specialty filter, got summary but had to ask to see more. Pagination controls should appear automatically when has_more is true on filtered results.",
+      "date": "2026-04-03"
+    },
+    {
+      "id": "BUG-PIPE-001",
+      "rule": "BUG: Enrichment steps do not filter by states. Pass 1 ZIP crosswalk processed 8.8M records instead of 1.3M because no state filter was applied. Every enrichment step must accept and enforce the states parameter.",
+      "incident": "Pipeline ran enrichment on all 50 states instead of DE/MS/VA/CA. Wasted 3.5+ hours on unnecessary records.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-002",
+      "rule": "BUG: No try/finally in orchestrators. If a step fails, the reservation is never released and the cluster stays up. Orphan reservations cause unnecessary cost.",
+      "incident": "Pipeline terminated but cluster remained up with no active reservation release.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-003",
+      "rule": "BUG: Skipping load step (start_step=3) left stale data. 8.8M records from prior runs remained. Load step must drop collection unless incremental=true.",
+      "incident": "Resubmitted with start_step=3 to skip load. Enrichment ran against entire collection from prior runs instead of just 4 states.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-005",
+      "rule": "BUG: Cluster lifecycle reservations stored on the managed cluster. The pipeline management data (_System.cluster_lifecycle) is on the pipeline cluster — the cluster being managed. This creates chicken-and-egg: can't write reservation before cluster is up, can't wake cluster without reservation. Fix: move reservations to the frontend cluster (24/7 uptime).",
+      "incident": "reserve() failed because it tried to write to MongoDB on the paused pipeline cluster. Fixed with Atlas API wake-first hack, but root cause is architectural.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-004",
+      "rule": "BUG: Enrichment must be in-place on provider record. Per MongoDB best practices, one document per provider. No separate enrichment collection.",
+      "incident": "Design review identified separate enrichment pattern as anti-pattern.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-006",
+      "rule": "DESIGN BUG (Boss): DataFetcherBase skip guard trusted registry without verifying blob existed. Registry said 'already downloaded' but blob was deleted. Pipeline skipped download, extract failed with BlobNotFound. Fix: verify blob exists before skipping. Root cause: no data retention policy for source files — retention is an ops concern, not pipeline.",
+      "incident": "Pipeline failed 3 times at extract_csv_activity because download was skipped based on stale registry entry. Blob had been deleted.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-008",
+      "rule": "BUG: Load workers insert duplicate NPI records. 70,000 duplicates found. Same worker_id, same record_id — exact duplicate rows. Root cause: bulk_write batch flushed twice, or worker retried after partial success. Fix: investigate worker retry logic in PipelineWorkerBase.",
+      "incident": "npi_unique index creation failed because 70K NPIs had 2 copies each. Dedup required before enrichment.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-PIPE-007",
+      "rule": "BUG: ensure_postload_indexes_activity fails with DuplicateKeyError on load_record_unique index. Root cause TBD — drop() should clear indexes, but post-load index creation finds duplicate load_id + record_id combinations. May be stale data from prior run or worker record_id collision.",
+      "incident": "Pipeline failed at post-load index step twice. Data loads correctly (state filter confirmed working). Index creation fails.",
+      "date": "2026-04-04"
+    },
+    {
+      "id": "BUG-ROADMAP-001",
+      "rule": "BUG (HIGH): Roadmap milestones in business_plan.json are disconnected date/label pairs with no references to epics, features, or definition of done. The roadmap generator (generate_roadmap_page.py) must draw milestone descriptions, scope, and acceptance criteria from agile_backlog.json — not from hand-written labels. Each milestone must reference its epic_ids and derive its content from the brain. Current state: milestone says 'Alpha launch' but doesn't say what's in it.",
+      "incident": "Roadmap milestones added to business_plan.json without epic_refs or traceability. Discovered during v4-021 roadmap generator work.",
+      "date": "2026-04-06"
+    },
+    {
+      "id": "BUG-LOAD-001",
+      "rule": "SHOW STOPPER — SPRINT BLOCKER — DUE 2026-04-09: Delaware provider load is incomplete. Root cause: CopyToFrontEnd copied only 2,843 of 25,591 DE providers from pipeline cluster to frontend cluster. Pipeline cluster load is correct. Fix CopyToFrontEnd. dev_PublicHealthData.providers contains only 2,843 DE providers. CMS Part D prescriber data alone has 3,505 DE NPIs. Delaware should have ~26,000 providers. The NPPES load ran with 32 workers across the full CSV but only captured a fraction of DE records. Root cause TBD — may be a CopyToFrontEnd issue (pipeline cluster has full set, frontend got partial) or a load partition issue. All downstream work (enrichment, embedding, scoring) is invalid until the full DE dataset is loaded.",
+      "incident": "Boss asked 'Delaware only has 2,843 providers?' during data quality review. CMS Part D had 3,505 DE prescribers — more than our total provider count. Expected ~26K based on population ratio and CMS records. CA has ~1.1M prescribers; DE should scale proportionally to ~26K total providers.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-LOAD-002",
+      "rule": "SHOW STOPPER — ALPHA RELEASE BLOCKER: The question 'how many providers are there in DE' must give a correct answer. If the database has 2,843 and the real answer is ~26,000, the system is giving wrong data to users. This is a GOV-011 violation — the system must answer using real data, not incomplete data. The provider count must match the NPPES source of truth before any state goes to production.",
+      "incident": "Data quality review revealed the count was wrong. System would have told users DE has 2,843 providers when the real number is ~26,000. Discovered same session as BUG-LOAD-001.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-LOAD-003",
+      "rule": "BUG (DESIGN): Source data files in blob storage must NEVER be deleted after loading. The raw NPPES CSV, CMS Part D CSV, OIG LEIE CSV, and SAM exclusion CSV must remain in blob storage until replaced by the next full load. These files are the source of truth for data quality reconciliation — pipeline count must match source count must match frontend count. Deletion breaks the audit chain.",
+      "incident": "During BUG-LOAD-001 investigation, needed to count DE records in the raw NPPES CSV to verify pipeline cluster count (25,591). The file existed only because it hadn't been cleaned up yet. If it had been deleted, there would be no way to verify the load was correct without re-downloading 10.6GB from CMS.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-LEGAL-001",
+      "rule": "BUG (SPRINT BLOCKER — DUE THIS SPRINT): CPT codes CANNOT be used in any consumer-facing feature. UMLS license Category 3 restricts CPT to internal use only (research, development, statistical analysis). Public display requires a separate AMA commercial license. Before alpha: (1) audit all user-facing output for CPT codes, (2) remove or block any CPT display, (3) add copyright/attribution banner for UMLS-derived content, (4) notify NLM in writing before launch, (5) geo-fence US-only vocabularies.",
+      "incident": "GPT Enterprise Architect review of UMLS license (2026-04-07) identified CPT Category 3 restriction as incompatible with consumer-facing product. Also identified pre-alpha compliance requirements for SNOMED CT, ICD-10-CM, LOINC attribution.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-UX-001",
+      "rule": "BUG: 'find me a kids doc in VA' produces stuck response 'Thinking... Ok No'. Chat never completes. Either safety check, consent flow, or backend timeout is intercepting and the UI doesn't recover. User sees a dead chat. Must investigate: (1) is 'kids' triggering safety? (2) is there a consent prompt that the UI doesn't render? (3) is the backend timing out?",
+      "incident": "Headless browser dry run on dev.chathealthy.ai — query submitted, chat showed 'Thinking... Ok No' and never progressed. Left panel stayed empty. No provider results rendered.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-UX-002",
+      "rule": "BUG: Left panel has overflowY:hidden — filter content cannot scroll. When specialty filter loads with more options than fit in the panel height, user cannot scroll to see all options. Fix: set overflowY:auto on #leftPanel when filter content is present.",
+      "incident": "Headless browser inspection showed #leftPanel scrollHeight=863 clientHeight=863 overflowY=hidden. Confirmed by Boss as known broken scroll bar.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "UAT-FILTER-001",
+      "rule": "PASS: Filter panel FUNCTIONALITY signed off for alpha by Boss 2026-04-07. Prescriber toggle, homeopathic toggle (Sonnet resolver), specialty checkboxes, counts display, client-side caching, scroll bar — all functional. UX NOT signed off — layout, three-number labels, sort order, and visual polish still need work.",
+      "incident": "Boss tested on localhost after 11/11 Playwright regression pass. 96 specialties (59 pediatric + 37 homeopathic). Homeopathic resolver returns 38 relevant specialties via Claude Sonnet 4.6.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-BA-001",
+      "rule": "BUG (BA): First number in filter header shows provider count (4,676) but should show total possible specialties (universe of all specialty types, not providers). Business analyst requirement error — the three numbers should be: (1) total specialty types in the universe, (2) types after filter switches applied, (3) types the user has checked. Provider count is useful but belongs elsewhere, not in position 1.",
+      "incident": "Boss caught during UAT. The number 4,676 is providers, not specialties. The universe should be the total number of specialty types (e.g., 883 in NUCC), not how many providers matched.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "UAT-UX-001",
+      "rule": "PASS: Timer + Stop button in guiControlFrame. Styled container with teal text, raised Stop button. Boss signed off for alpha 2026-04-07.",
+      "incident": "Boss tested on localhost, approved timer display and Stop button UX.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-UX-003",
+      "rule": "BUG FIXED: Stop button left orphaned in chat area when timer moved to control frame. Timer and Stop button are a unit — both must move together. Fixed by removing thinking bubble from chat and rendering both timer + Stop in guiControlFrame.",
+      "incident": "Boss caught Stop button floating alone in chat area after timer was moved to control frame. Timer showed in control frame but Stop stayed in the chat.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-UX-004",
+      "rule": "BUG FIXED: Prescriber toggle checkbox re-rendered as checked when specialty list updated. When user unchecked 'Prescribers only', the list re-render reset the checkbox to checked. Fixed by passing prescribersChecked state into renderFilterHTML.",
+      "incident": "Boss unchecked prescribers only, list didn't change. Root cause: re-render of filter HTML reset checkbox state.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-PIPE-009",
+      "rule": "BUG: Overnight pipeline re-downloads CMS Part D CSV (3.7GB) every run instead of using blob storage. The file is already in blob from previous runs. Must use DataFetcherBase ETag guard pattern — download once, store in blob, reuse. Also: the Part D CSV contains ALL states. Parsing it for one state wastes the data for other states. Parse once, store per-state results in MongoDB, never re-download unless ETag changes.",
+      "incident": "Overnight pipeline for MS/VA re-downloaded 3.7GB Part D CSV that was already downloaded yesterday for DE. Process used 3.3GB RAM and took hours. Should have reused blob copy or checked if drugs already loaded.",
+      "date": "2026-04-08"
+    },
+    {
+      "id": "BUG-SEC-001",
+      "rule": "BUG (PRE-ALPHA REQUIREMENT): HuggingFace Spaces still use bearer tokens for authentication. Security architecture (EPIC-4) requires zero bearer tokens — all auth via x509 certificates registered with Azure Key Vault. Perplexity external audit (EXT-AUDIT-001) flagged the security model. Must migrate dev HF Spaces from bearer tokens to x509 cert auth before alpha. Each Space gets its own cert. SecretManager fetches certs from Key Vault at startup.",
+      "incident": "Boss flagged during local HTTPS/PKI setup that HF Spaces still use bearer tokens. Perplexity audit had major concerns about security model. Local dev now has proper PKI with individual certs per service, but deployed architecture hasn't caught up.",
+      "date": "2026-04-07"
+    },
+    {
+      "id": "BUG-CLASSIFY-001",
+      "date": "2026-03-29",
+      "description": "Factual health questions misclassified as medical advice. Example: 'What is the most common form of breast cancer?' was declined as medical advice when it should be answered as general health knowledge.",
+      "root_cause": "RULE 2 too aggressive — 'You know NOTHING else' blocks factual health knowledge that aids navigation.",
+      "fix": "Prompt tuning: distinguish factual health questions from personal medical advice.",
+      "status": "open",
+      "source": "architecture.json"
+    },
+    {
+      "id": "BUG-PERF-001",
+      "date": "2026-03-29",
+      "description": "Provider search in VA took 87 seconds. Query falls back to collection scan when vector search index is missing or not yet built on the target environment.",
+      "root_cause": "PromoteData copied provider data without creating the vector search index. Fixed in build 168 — index creation is now automatic. Residual risk: index build time on Atlas (1-2 minutes after creation) during which queries are slow.",
+      "fix": "Index creation added to PromoteData. Monitor for any remaining slow queries after index is confirmed ready.",
+      "status": "open",
+      "source": "architecture.json"
+    }
+  ]
+}

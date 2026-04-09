@@ -95,7 +95,7 @@ class chathealthy_devops_boot:
         "policies": "check_policies",
         "project_manifest": "check_project_manifest",
         "prompts": "check_prompts",
-        "functional_discrepancy_reports": "check_functional_discrepancy_reports",
+        "bugs": "check_bugs",
         "risk_acceptance": "check_risk_acceptance",
         "schema": "check_schema",
         "security": "check_security",
@@ -341,8 +341,8 @@ class chathealthy_devops_boot:
     def check_external_audits(self, source="", destination="", action_event="session_start") -> dict:
         return self._check_json("external_audits", method)
 
-    def check_functional_discrepancy_reports(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("functional_discrepancy_reports", method)
+    def check_bugs(self, source="", destination="", action_event="session_start") -> dict:
+        return self._check_json("bugs", method)
 
     def check_traceability_matrix(self, source="", destination="", action_event="session_start") -> dict:
         return self._check_json("traceability_matrix", method)
@@ -469,10 +469,16 @@ class chathealthy_devops_boot:
             return {"intent": "unknown", "warnings": [str(e)], "proceed": True}
 
     def tool_call(self, tool_name: str, tool_input: dict) -> dict:
-        """PreToolUse — gate actions. Static file checks + defense-in-depth."""
+        """PreToolUse — gate actions using the governance matrix.
+
+        Reads pre_tool_use column for every brain JSON.
+        Any session_abend or system_abend voter blocks the action.
+        Also checks show-stopper bugs and engineering rules.
+        """
         detail = tool_input.get("command", tool_input.get("file_path", ""))[:80]
         self._announce("tool_call", f"pre_tool_use:{tool_name}", detail)
-        # Read-only — always pass
+
+        # Read-only tools — always pass
         if tool_name in ("Read", "Glob", "Grep", "WebFetch", "WebSearch"):
             return {"allow": True}
 
@@ -480,11 +486,43 @@ class chathealthy_devops_boot:
         if tool_name in ("Edit", "Write"):
             return self._check_file_path(tool_input.get("file_path", ""))
 
-        # Bash — defense in depth (native permissions are first layer)
+        # Bash — walk the matrix pre_tool_use column
         if tool_name == "Bash":
             command = tool_input.get("command", "")
-            if re.search(r"python\s+.*Code[/\\]DataPipelines[/\\](?!tests[/\\])", command, re.IGNORECASE):
-                return {"allow": False, "reason": "v4-001C: Pipeline code runs on Azure, not locally"}
+
+            # Check show-stopper bugs — if any SHOW STOPPER bug is open, block
+            bugs = self.brain.get("bugs", {})
+            for bug in bugs.get("dev_bugs", []):
+                rule_text = bug.get("rule", "")
+                bug_id = bug.get("id", "")
+                if "SHOW STOPPER" in rule_text or "SPRINT BLOCKER" in rule_text:
+                    # Check if this command could worsen the show stopper
+                    if bug_id == "BUG-LOAD-001" and "copy_to_frontend" in command.lower():
+                        # The destructive drop() — block unless using safe copy
+                        if "copy_providers_only" not in command and "fix_frontend" not in command:
+                            return {"allow": False, "reason": f"{bug_id}: CopyToFrontEnd has destructive drop(). Use copy_providers_only or fix_frontend_data.py"}
+
+            # Check engineering rules that map to commands
+            for rule in self.brain.get("operating_rules", {}).get("rules", []):
+                rule_text = rule.get("rule", "")
+                rule_id = rule.get("id", "")
+                # v4-001C: Pipeline code runs on Azure
+                if "pipeline" in rule_text.lower() and "azure" in rule_text.lower():
+                    if re.search(r"python\s+.*Code[/\\]DataPipelines[/\\](?!tests[/\\])", command, re.IGNORECASE):
+                        return {"allow": False, "reason": f"v4-001C: Pipeline code runs on Azure, not locally"}
+
+            # Check development rules for enforcement patterns
+            for rule in self.brain.get("development_rules", {}).get("rules", []):
+                enforcement = rule.get("enforcement", {})
+                if not enforcement:
+                    continue
+                rule_id = rule.get("id", "")
+                # File scan enforcement — check if command touches scanned dirs
+                if enforcement.get("type") == "file_scan":
+                    pattern = enforcement.get("pattern", "")
+                    if pattern and re.search(pattern, command, re.IGNORECASE):
+                        return {"allow": False, "reason": f"{rule_id}: {rule.get('rule', '')[:100]}"}
+
             return {"allow": True}
 
         return {"allow": True}

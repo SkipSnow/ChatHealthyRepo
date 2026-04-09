@@ -30,7 +30,7 @@
     "project_manifest":              {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "session_warning", "post_tool_use": "session_warning", "stop": "allow"},
     "agile_backlog":                 {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
     "sprint_plan":                   {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
-    "functional_discrepancy_reports":                    {"session_start": "environment_display","user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "session_warning"},
+    "bugs":                    {"session_start": "environment_display","user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "session_warning"},
     "external_audits":               {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "session_abend",   "stop": "session_abend"},
     "traceability_matrix":           {"session_start": "system_warning",     "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
     "prompts":                       {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},

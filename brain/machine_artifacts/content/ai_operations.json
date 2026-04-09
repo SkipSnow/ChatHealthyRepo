@@ -16531,7 +16531,7 @@
                 "pending_legal_questions"
               ]
             },
-            "functional_discrepancy_reports": {
+            "bugs": {
               "record_count": 9,
               "records": [
                 "e2e_regression_report",
