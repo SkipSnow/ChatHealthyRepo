@@ -29,11 +29,13 @@
       "enhancements_implemented": [
         {
           "enhancement": "Full conversation history in safety audit",
-          "description": "Safety audit now captures the complete de-identified conversation up to the trigger point, not just the last message. Enables incident review with full context."
+          "description": "Safety audit now captures the complete de-identified conversation up to the trigger point, not just the last message. Enables incident review with full context.",
+          "ch_matrix_id": "202c9b90-2562-4ec8-bd10-99507a96d026"
         },
         {
           "enhancement": "Switched safety classifier from Claude Haiku to GPT-4.1-mini",
-          "description": "Better classification accuracy on edge cases. Vendor diversity (OpenAI for safety, Anthropic for chat). 2.5x cheaper than Haiku at scale ($83K/year vs $438K/year per 1M users)."
+          "description": "Better classification accuracy on edge cases. Vendor diversity (OpenAI for safety, Anthropic for chat). 2.5x cheaper than Haiku at scale ($83K/year vs $438K/year per 1M users).",
+          "ch_matrix_id": "1c96808c-c3c6-4186-8d38-5df33be9bab3"
         }
       ],
       "test_results": {
@@ -44,7 +46,8 @@
       "_record_id": "safety_signoff",
       "_source_file": "safety_signoff.json",
       "description": "Safety system sign-off record. Dual-trigger emergency detection validated.",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "4adf3e2a-1e86-4af8-b83a-d59238514f2a"
     },
     {
       "_record_id": "corporate_cadence",
@@ -53,8 +56,10 @@
       "timezone": "PST (UTC-8, UTC-7 during daylight saving)",
       "work_schedule": "7 days per week",
       "sprint_cycle": "Weekly sprints, Tuesday start",
-      "operating_hours": "Flexible \u2014 founder-led, AI-native. No fixed hours.",
-      "note": "Systems use UTC. Brain understands PST for corporate planning."
+      "operating_hours": "Flexible — founder-led, AI-native. No fixed hours.",
+      "note": "Systems use UTC. Brain understands PST for corporate planning.",
+      "ch_matrix_id": "42042bee-c002-4912-beb9-dcfc5d1da5db"
     }
-  ]
+  ],
+  "ch_matrix_id": "61a53cd1-9bf7-40e6-b27a-d81378de0c46"
 }

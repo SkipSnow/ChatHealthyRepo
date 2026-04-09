@@ -5,53 +5,92 @@
   "description": "Config-driven keyword list for SafetyService EmergencyDetector. Dual-trigger OR logic: keyword match OR semantic classifier. F-09 fix: expanded from v1.0.",
   "categories": {
     "cardiac": [
-      "chest pain", "chest tightness", "heart attack"
+      "chest pain",
+      "chest tightness",
+      "heart attack"
     ],
     "respiratory": [
-      "can't breathe", "cannot breathe", "difficulty breathing", "trouble breathing",
-      "not breathing", "stopped breathing"
+      "can't breathe",
+      "cannot breathe",
+      "difficulty breathing",
+      "trouble breathing",
+      "not breathing",
+      "stopped breathing"
     ],
     "stroke": [
-      "stroke", "face drooping", "arm weakness", "sudden numbness"
+      "stroke",
+      "face drooping",
+      "arm weakness",
+      "sudden numbness"
     ],
     "bleeding": [
-      "severe bleeding", "bleeding out", "won't stop bleeding"
+      "severe bleeding",
+      "bleeding out",
+      "won't stop bleeding"
     ],
     "consciousness": [
-      "unconscious", "passed out", "unresponsive"
+      "unconscious",
+      "passed out",
+      "unresponsive"
     ],
     "overdose": [
-      "overdose", "took too many", "took too much"
+      "overdose",
+      "took too many",
+      "took too much"
     ],
     "suicide": [
-      "suicide", "suicidal", "kill myself", "end my life"
+      "suicide",
+      "suicidal",
+      "kill myself",
+      "end my life"
     ],
     "seizure": [
-      "seizure", "convulsing"
+      "seizure",
+      "convulsing"
     ],
     "allergic": [
-      "severe allergic reaction", "anaphylaxis", "throat closing"
+      "severe allergic reaction",
+      "anaphylaxis",
+      "throat closing"
     ],
     "choking": [
       "choking"
     ],
     "burns": [
-      "severe burn", "on fire", "chemical burn", "third degree burn"
+      "severe burn",
+      "on fire",
+      "chemical burn",
+      "third degree burn"
     ],
     "drowning": [
-      "drowning", "pulled from water", "underwater", "near drowning"
+      "drowning",
+      "pulled from water",
+      "underwater",
+      "near drowning"
     ],
     "trauma": [
-      "car accident", "gunshot", "stabbing", "severe injury",
-      "head injury", "major trauma", "hit by car"
+      "car accident",
+      "gunshot",
+      "stabbing",
+      "severe injury",
+      "head injury",
+      "major trauma",
+      "hit by car"
     ],
     "diabetic": [
-      "blood sugar", "diabetic coma", "diabetic emergency",
-      "insulin shock", "hypoglycemic"
+      "blood sugar",
+      "diabetic coma",
+      "diabetic emergency",
+      "insulin shock",
+      "hypoglycemic"
     ],
     "childbirth": [
-      "in labor", "water broke", "baby coming",
-      "giving birth", "premature labor"
+      "in labor",
+      "water broke",
+      "baby coming",
+      "giving birth",
+      "premature labor"
     ]
-  }
+  },
+  "ch_matrix_id": "8e73b5bd-34e1-426d-ab24-f55774e30020"
 }

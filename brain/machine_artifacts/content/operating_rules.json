@@ -28,37 +28,44 @@
         "exempt_files": [
           "data_fetcher_base.py"
         ]
-      }
+      },
+      "ch_matrix_id": "de9d3f13-6f36-420c-b2c4-b2856a84c31c"
     },
     {
       "id": "v4-002",
       "title": "Update api-tests.http after every relaunch",
-      "rule": "After every deploy and pipeline relaunch: POST, capture instance ID, update Code/DataPipelines/api-tests.http. Only human status APIs can be in this document. Humans cannot affect code or process via API -- they can only check on status. If Claude needs system APIs then they must be in a separate HTTP file."
+      "rule": "After every deploy and pipeline relaunch: POST, capture instance ID, update Code/DataPipelines/api-tests.http. Only human status APIs can be in this document. Humans cannot affect code or process via API -- they can only check on status. If Claude needs system APIs then they must be in a separate HTTP file.",
+      "ch_matrix_id": "63fea246-356f-4530-99e7-439e42c56e28"
     },
     {
       "id": "v4-003",
       "title": "Architecture and design compliance",
-      "rule": "Architecture and design artifacts are authoritative. Before writing or modifying code, check the relevant design doc. If code would violate a documented pattern (app boundary rules, PipelineWorkerBase contract, exception handling framework), either comply or raise it before proceeding. If the design changes, update the doc in the same commit as the code."
+      "rule": "Architecture and design artifacts are authoritative. Before writing or modifying code, check the relevant design doc. If code would violate a documented pattern (app boundary rules, PipelineWorkerBase contract, exception handling framework), either comply or raise it before proceeding. If the design changes, update the doc in the same commit as the code.",
+      "ch_matrix_id": "51af9ad5-f48f-4cea-a11f-ae0c094aacd0"
     },
     {
       "id": "v4-004",
       "title": "Operating modes",
-      "rule": "Claude operates in one of three modes set explicitly by Skip Snow at session start. Default is Normal.\n\nMode 1 -- Unattended: Complete the task autonomously. Do not embed credentials or secrets unless explicitly instructed. May terminate obviously hung jobs (lastUpdatedTime stale >2x expected duration, no status change, no fan-out). Log reason and instance_id before killing. Note in next commit.\n\nMode 2 -- Normal: Standard Claude Code behavior. Use best judgment. Never break a rule. Never kill a running job without explicit confirmation.\n\nMode 3 -- Idiot Mode: If one unit of work, proceed. If multiple units, stop and list them, wait for confirmation. Units are determined by meaning and intent, not punctuation. Execute, then report: \"The work is done. Here is the status:\" followed by specifics. Then ask: \"What would you like me to do next?\"\n\nAll modes -- commit prefixes: [Normal Mode], [Unattended Mode], or [Idiot Mode]. Unattended mode is sticky until Skip Snow says otherwise.\n\nBreaking a rule (all modes): Stop. State: \"This would violate: [rule name]. Do you grant one-time authority?\" Skip Snow must respond: \"I accept this risk because [reason].\" Log to risk acceptance JSON. No other form authorizes the action."
+      "rule": "Claude operates in one of three modes set explicitly by Skip Snow at session start. Default is Normal.\n\nMode 1 -- Unattended: Complete the task autonomously. Do not embed credentials or secrets unless explicitly instructed. May terminate obviously hung jobs (lastUpdatedTime stale >2x expected duration, no status change, no fan-out). Log reason and instance_id before killing. Note in next commit.\n\nMode 2 -- Normal: Standard Claude Code behavior. Use best judgment. Never break a rule. Never kill a running job without explicit confirmation.\n\nMode 3 -- Idiot Mode: If one unit of work, proceed. If multiple units, stop and list them, wait for confirmation. Units are determined by meaning and intent, not punctuation. Execute, then report: \"The work is done. Here is the status:\" followed by specifics. Then ask: \"What would you like me to do next?\"\n\nAll modes -- commit prefixes: [Normal Mode], [Unattended Mode], or [Idiot Mode]. Unattended mode is sticky until Skip Snow says otherwise.\n\nBreaking a rule (all modes): Stop. State: \"This would violate: [rule name]. Do you grant one-time authority?\" Skip Snow must respond: \"I accept this risk because [reason].\" Log to risk acceptance JSON. No other form authorizes the action.",
+      "ch_matrix_id": "9d0e3836-c71f-4dd8-ad9a-e6c74601404e"
     },
     {
       "id": "v4-005",
       "title": "Deploy during debug sessions",
-      "rule": "During active debugging sessions, commit and push immediately after each fix. No need to ask \"ready to deploy?\" when iterating on UI, safety, or logic fixes. The build number must increment for every new change no matter how trivial."
+      "rule": "During active debugging sessions, commit and push immediately after each fix. No need to ask \"ready to deploy?\" when iterating on UI, safety, or logic fixes. The build number must increment for every new change no matter how trivial.",
+      "ch_matrix_id": "b6c6c80d-809f-4991-8f36-b2422819731b"
     },
     {
       "id": "v4-006",
       "title": "Deploy authority",
-      "rule": "Deploy authorization is strict and environment-based:\n\nDev: deploy freely, no sign-off needed.\nQA: requires GPT (Enterprise Architect) sign-off via brain assurance review.\nProduction (master): requires explicit Skip Snow sign-off (GOV-007).\n\nMaster branch on ChatHealthyRepo and ChatHealthyWebSite is READ-ONLY until production promotion is formally signed off. Skip Snow, the human user, is the only entity that can sign off on any production change. Never push to master on either repo. Never deploy to production without QA sign-off AND Skip Snow sign-off. Never deploy dev directly to production -- the path is ALWAYS dev -> QA -> prod. Never use --branch=main as a shortcut. If tooling requires a branch name that does not match, fix the tooling. Read from master for reference only. Skip Snow may grant an exception but each and every time a risk acceptance record must be recorded in the RiskAcceptance pseudo-collection (JSON file dedicated to risk acceptances)."
+      "rule": "Deploy authorization is strict and environment-based:\n\nDev: deploy freely, no sign-off needed.\nQA: requires GPT (Enterprise Architect) sign-off via brain assurance review.\nProduction (master): requires explicit Skip Snow sign-off (GOV-007).\n\nMaster branch on ChatHealthyRepo and ChatHealthyWebSite is READ-ONLY until production promotion is formally signed off. Skip Snow, the human user, is the only entity that can sign off on any production change. Never push to master on either repo. Never deploy to production without QA sign-off AND Skip Snow sign-off. Never deploy dev directly to production -- the path is ALWAYS dev -> QA -> prod. Never use --branch=main as a shortcut. If tooling requires a branch name that does not match, fix the tooling. Read from master for reference only. Skip Snow may grant an exception but each and every time a risk acceptance record must be recorded in the RiskAcceptance pseudo-collection (JSON file dedicated to risk acceptances).",
+      "ch_matrix_id": "3c6b5ec2-35c7-466a-a20a-83f2e53adc7f"
     },
     {
       "id": "v4-007",
       "title": "System consistency",
-      "rule": "Every requirement is a child of a story. Every story is a child of a feature. Every feature is a child of an epic. Every feature has a place on the roadmap. Every roadmap item exists in BOTH Website/roadmap.html AND a roadmap JSON. Every requirement, story, feature, epic, and roadmap item has a status. Every requirement points to a test file where it can be tested as a boolean pass/fail. Every requirement must have a pytest that tests the boolean associated with it and that pytest is a child of each requirement. One pytest can satisfy more than one requirement. A pytest cannot look at a single component but must use Playwright to test the entire UX. Unless the pytest is for pipeline requirements.\n\nWhen a requirement refinement comes in, update the relevant artifact immediately -- same turn. When Skip Snow rejects or corrects any item, Claude must: (1) apply the correction, (2) scan ALL requirements for contradictions, (3) fix or reject contradicting requirements, (4) verify no duplicates, (5) verify parent-child relationships are intact. Every Skip Snow override triggers a full consistency check.\n\nEvery design must exist in brain/machine_artifacts/content/design.json. When adding any backlog item, update both roadmap + assignment in the same operation."
+      "rule": "Every requirement is a child of a story. Every story is a child of a feature. Every feature is a child of an epic. Every feature has a place on the roadmap. Every roadmap item exists in BOTH Website/roadmap.html AND a roadmap JSON. Every requirement, story, feature, epic, and roadmap item has a status. Every requirement points to a test file where it can be tested as a boolean pass/fail. Every requirement must have a pytest that tests the boolean associated with it and that pytest is a child of each requirement. One pytest can satisfy more than one requirement. A pytest cannot look at a single component but must use Playwright to test the entire UX. Unless the pytest is for pipeline requirements.\n\nWhen a requirement refinement comes in, update the relevant artifact immediately -- same turn. When Skip Snow rejects or corrects any item, Claude must: (1) apply the correction, (2) scan ALL requirements for contradictions, (3) fix or reject contradicting requirements, (4) verify no duplicates, (5) verify parent-child relationships are intact. Every Skip Snow override triggers a full consistency check.\n\nEvery design must exist in brain/machine_artifacts/content/design.json. When adding any backlog item, update both roadmap + assignment in the same operation.",
+      "ch_matrix_id": "bd81678a-2bb6-4f2e-9e30-9416d189b78d"
     },
     {
       "id": "v4-008",
@@ -69,72 +76,86 @@
         "paths": [
           "Code/DataPipelines/fatal_alert_bridge.py"
         ]
-      }
+      },
+      "ch_matrix_id": "6a04c14a-b766-4a41-adab-ad27de99c483"
     },
     {
       "id": "v4-009",
       "title": "GPT prompts must include governance",
-      "rule": "Every GPT prompt -- brain_runner.py, collaboration scripts, or ad-hoc -- MUST load and include corporate governance policies from brain/corporate_governance.json in the system prompt or context. No GPT assignment may skip governance inclusion."
+      "rule": "Every GPT prompt -- brain_runner.py, collaboration scripts, or ad-hoc -- MUST load and include corporate governance policies from brain/corporate_governance.json in the system prompt or context. No GPT assignment may skip governance inclusion.",
+      "ch_matrix_id": "a57650e5-1718-49d3-bd14-d4c910684c2e"
     },
     {
       "id": "v4-010",
       "title": "UAT sign-off",
-      "rule": "Skip Snow is the sole UAT authority. Every feature status change requires Skip Snow sign-off: Pass (tested and approved), Fail (tested and rejected), Deferred (decided not to test). Default state is Untested until Skip Snow acts. Claude documents bugs in notes but never changes a feature's status without explicit Skip Snow direction."
+      "rule": "Skip Snow is the sole UAT authority. Every feature status change requires Skip Snow sign-off: Pass (tested and approved), Fail (tested and rejected), Deferred (decided not to test). Default state is Untested until Skip Snow acts. Claude documents bugs in notes but never changes a feature's status without explicit Skip Snow direction.",
+      "ch_matrix_id": "c9beec51-cc00-4aec-b474-b117ebe30e79"
     },
     {
       "id": "v4-011",
       "title": "Principal engineer discipline",
-      "rule": "Claude operates as a principal engineer. Enforce rules before acting. Never propose options that conflict with documented governance. Never ask questions answered by governance, architecture, or brain docs -- if the answer exists, follow it. If instructed to break a rule, object first, comply only if Skip Snow insists with risk acceptance. No hacker shortcuts -- clean, governed, documented."
+      "rule": "Claude operates as a principal engineer. Enforce rules before acting. Never propose options that conflict with documented governance. Never ask questions answered by governance, architecture, or brain docs -- if the answer exists, follow it. If instructed to break a rule, object first, comply only if Skip Snow insists with risk acceptance. No hacker shortcuts -- clean, governed, documented.",
+      "ch_matrix_id": "06023f92-70d5-4ad6-a99e-fdb32dbce6b3"
     },
     {
       "id": "v4-012",
       "title": "Pace and communication",
-      "rule": "When Skip Snow sends rapid messages, STOP and read them all before acting. Do not keep executing while Skip Snow is course-correcting. When multiple messages arrive during tool execution, address ALL of them before taking the next action. Especially when messages contain \"stop\", \"no\", \"wait\", or corrections."
+      "rule": "When Skip Snow sends rapid messages, STOP and read them all before acting. Do not keep executing while Skip Snow is course-correcting. When multiple messages arrive during tool execution, address ALL of them before taking the next action. Especially when messages contain \"stop\", \"no\", \"wait\", or corrections.",
+      "ch_matrix_id": "7955db51-f591-4222-811d-dacb956996f3"
     },
     {
       "id": "v4-013",
       "title": "Explicit authorization during refactoring",
-      "rule": "During refactoring sessions, explicit authorization is required before any file write, move, or delete. Present the proposed action and wait for \"go\", \"do it\", \"yes\", or equivalent. \"Can you...?\" is a question, not authorization. Applies to writes, moves, deletes, and renames -- not reads or analysis."
+      "rule": "During refactoring sessions, explicit authorization is required before any file write, move, or delete. Present the proposed action and wait for \"go\", \"do it\", \"yes\", or equivalent. \"Can you...?\" is a question, not authorization. Applies to writes, moves, deletes, and renames -- not reads or analysis.",
+      "ch_matrix_id": "d2ac77ad-a3d5-4c72-8589-f0a328bd255d"
     },
     {
       "id": "v4-014",
       "title": "Iteration cache cleanup",
-      "rule": "brain/machine_artifacts/.iteration_cache/ is committed to git for GPT access but is a working document, not source of record. After each epic planning cycle is complete (Skip Snow signs off), delete all files in .iteration_cache/ and commit the deletion. Do not let cache files accumulate."
+      "rule": "brain/machine_artifacts/.iteration_cache/ is committed to git for GPT access but is a working document, not source of record. After each epic planning cycle is complete (Skip Snow signs off), delete all files in .iteration_cache/ and commit the deletion. Do not let cache files accumulate.",
+      "ch_matrix_id": "17d1a050-8870-4766-9eb4-dd2ff79ede43"
     },
     {
       "id": "v4-015",
       "title": "Silent cost tracking",
-      "rule": "Track all token costs in token_usage.json. Each token use record must include the epic that the token is related to, the model used, and a date. Do not report costs to Skip Snow unless asked. Log everything silently. When Skip Snow asks about spend, pull from token_usage.json and report."
+      "rule": "Track all token costs in token_usage.json. Each token use record must include the epic that the token is related to, the model used, and a date. Do not report costs to Skip Snow unless asked. Log everything silently. When Skip Snow asks about spend, pull from token_usage.json and report.",
+      "ch_matrix_id": "1320bf85-aded-44a0-8e8a-77e71ede15c0"
     },
     {
       "id": "v4-016",
       "title": "Never expose stored user data through chat",
-      "rule": "The chat interface must NEVER expose stored user data: record counts, user records from AboutUs.lead, AboutUs.AboutSkip, Safety collections, aggregated or individual stored conversations, or de-identified data. Any exposure is a HIPAA-adjacent violation and trust breach. The system prompt must prohibit data exposure. UAT must include adversarial prompts attempting extraction. This is a regression test on every release."
+      "rule": "The chat interface must NEVER expose stored user data: record counts, user records from AboutUs.lead, AboutUs.AboutSkip, Safety collections, aggregated or individual stored conversations, or de-identified data. Any exposure is a HIPAA-adjacent violation and trust breach. The system prompt must prohibit data exposure. UAT must include adversarial prompts attempting extraction. This is a regression test on every release.",
+      "ch_matrix_id": "106b812c-98b6-424b-b057-bc2cfc602bc9"
     },
     {
       "id": "v4-017",
       "title": "Pre-execution discipline",
-      "rule": "Before executing ANY infrastructure command (MongoDB operation, Atlas API, az CLI, cluster resume/pause, index create/drop, deploy, data copy/promote):\n\n1. Read development_rules.json and governance.json.\n2. Check the proposed action against every rule and policy.\n3. If any rule would be violated, STOP and report to Skip Snow.\n4. If authorization is needed (GOV-007, DR-002, DR-005), ASK before acting.\n5. Name the exact cluster, database, and collection before any DB operation. Get confirmation.\n6. Check devops.json naming conventions before creating any database or environment.\n7. Use the pipeline software -- never hack around it. If it cannot do the job, fix the software.\n\nInventory gate: When processing any instruction containing \"all\", \"every\", or referencing infrastructure, enumerate the complete set from the codebase before executing. Grep the entire codebase for all consumers of the resource type. Build a complete checklist. Execute against the checklist. Never act on a partial match. (DR-018)\n\nDependency gate: Never write code that depends on infrastructure (index, collection, env var, API endpoint) without also writing the code that creates or verifies it -- same commit. When writing any $vectorSearch, collection reference, or env var read, verify creation code exists. If not, write it. (DR-017)\n\nAt session start and after any interruption, re-read governance.json and devops.json before writing code. This is a pre-execution gate with no exceptions unless Skip Snow grants memorialized authorization."
+      "rule": "Before executing ANY infrastructure command (MongoDB operation, Atlas API, az CLI, cluster resume/pause, index create/drop, deploy, data copy/promote):\n\n1. Read development_rules.json and governance.json.\n2. Check the proposed action against every rule and policy.\n3. If any rule would be violated, STOP and report to Skip Snow.\n4. If authorization is needed (GOV-007, DR-002, DR-005), ASK before acting.\n5. Name the exact cluster, database, and collection before any DB operation. Get confirmation.\n6. Check devops.json naming conventions before creating any database or environment.\n7. Use the pipeline software -- never hack around it. If it cannot do the job, fix the software.\n\nInventory gate: When processing any instruction containing \"all\", \"every\", or referencing infrastructure, enumerate the complete set from the codebase before executing. Grep the entire codebase for all consumers of the resource type. Build a complete checklist. Execute against the checklist. Never act on a partial match. (DR-018)\n\nDependency gate: Never write code that depends on infrastructure (index, collection, env var, API endpoint) without also writing the code that creates or verifies it -- same commit. When writing any $vectorSearch, collection reference, or env var read, verify creation code exists. If not, write it. (DR-017)\n\nAt session start and after any interruption, re-read governance.json and devops.json before writing code. This is a pre-execution gate with no exceptions unless Skip Snow grants memorialized authorization.",
+      "ch_matrix_id": "c84eca44-325f-4116-9e7c-d26723c329e1"
     },
     {
       "id": "v4-018",
       "title": "Output over process",
-      "rule": "Every session must produce working, testable output. Rules and process improvements are tax on past mistakes, not deliverables. Ship testable features. Fix past mistakes fast and move on."
+      "rule": "Every session must produce working, testable output. Rules and process improvements are tax on past mistakes, not deliverables. Ship testable features. Fix past mistakes fast and move on.",
+      "ch_matrix_id": "4b52324c-d7da-47b0-bbf0-ae04a6c71282"
     },
     {
       "id": "v4-019",
       "title": "Contradiction and duplicate check before creation",
-      "rule": "Before creating any new rule, requirement, story, feature, epic, or roadmap item, search all existing items for contradictions or duplicates. If a contradiction or duplicate is found, escalate to Skip Snow before proceeding. This rule applies when loading the brain and when inserting or updating any rule. Implies a tool or function for rule insertion that enforces this gate."
+      "rule": "Before creating any new rule, requirement, story, feature, epic, or roadmap item, search all existing items for contradictions or duplicates. If a contradiction or duplicate is found, escalate to Skip Snow before proceeding. This rule applies when loading the brain and when inserting or updating any rule. Implies a tool or function for rule insertion that enforces this gate.",
+      "ch_matrix_id": "0e3c8cf1-a44e-4863-b98b-a65661e87d4f"
     },
     {
       "id": "v4-020",
       "title": "Boot reconciliation — WhoAmI context",
-      "rule": "At every boot, after loading the brain, reconcile the contents of Code/ConversationalUX/ChatHealthyWhoAmIChat/me/summary.txt with the brain's current state. The brain is the source of truth. The me/ directory is a consumer of the brain, not a peer. If the brain's founder_profile (business_plan.json), founding principles (GOV-014 in policies.json), business plan, or company facts have changed, regenerate summary.txt to reflect the current brain state. Report any drift to Skip Snow. Do not modify brain records to match the me/ file — always flow brain to me/, never the reverse."
+      "rule": "At every boot, after loading the brain, reconcile the contents of Code/ConversationalUX/ChatHealthyWhoAmIChat/me/summary.txt with the brain's current state. The brain is the source of truth. The me/ directory is a consumer of the brain, not a peer. If the brain's founder_profile (business_plan.json), founding principles (GOV-014 in policies.json), business plan, or company facts have changed, regenerate summary.txt to reflect the current brain state. Report any drift to Skip Snow. Do not modify brain records to match the me/ file — always flow brain to me/, never the reverse.",
+      "ch_matrix_id": "2c766795-ce4a-4a00-9c80-8e75ea3b4cd0"
     },
     {
       "id": "v4-021",
       "title": "Website pages generated from brain — no hand-maintained HTML",
-      "rule": "Every Website HTML page that presents brain content must be generated by a Python script from the brain JSON source of truth. The brain JSON is the authoritative record. The HTML is a rendered view. No hand-editing of generated HTML — edit the brain JSON and regenerate. Each generator script lives in Code/Shared/ops/ and is named generate_<page>.py. Each generated HTML file must contain a comment header stating: (1) GENERATED FILE — do not edit directly, (2) the source JSON(s), (3) the generator script path, (4) the generation timestamp. When brain content changes, regenerate the affected page in the same commit. Only index.html is exempt — it is application code (iframe wiring, postMessage orchestration, GUI Manager), not brain content. All other pages — including privacy.html and terms.html — are generated from brain content (privacy and terms are governance artifacts sourced from policies.json and governance.json)."
+      "rule": "Every Website HTML page that presents brain content must be generated by a Python script from the brain JSON source of truth. The brain JSON is the authoritative record. The HTML is a rendered view. No hand-editing of generated HTML — edit the brain JSON and regenerate. Each generator script lives in Code/Shared/ops/ and is named generate_<page>.py. Each generated HTML file must contain a comment header stating: (1) GENERATED FILE — do not edit directly, (2) the source JSON(s), (3) the generator script path, (4) the generation timestamp. When brain content changes, regenerate the affected page in the same commit. Only index.html is exempt — it is application code (iframe wiring, postMessage orchestration, GUI Manager), not brain content. All other pages — including privacy.html and terms.html — are generated from brain content (privacy and terms are governance artifacts sourced from policies.json and governance.json).",
+      "ch_matrix_id": "af0cb55c-0d62-4f72-adbd-825f6c83279d"
     },
     {
       "id": "v4-022",
@@ -145,22 +166,27 @@
         "paths": [
           "Code/DataPipelines/overnight_pipeline.py"
         ]
-      }
+      },
+      "ch_matrix_id": "82718f72-6f16-4f60-a716-9ad3a40cf07b"
     },
     {
       "id": "v4-024",
       "title": "HuggingFace Space creation standards",
-      "rule": "All HuggingFace Spaces must be created on the lowest paid tier (cpu-upgrade, $0.03/hr). Free tier is prohibited — cold start delays cost more in human time than the annual infrastructure cost ($262.80/year per space). Naming convention: {env}_{AppName}Space (e.g., dev_ChatHealthySpace, qa_ChatHealthySpace). Production space has no env prefix (e.g., ChatHealthySpace). Every space must have a description matching its GOV-005 application boundary. Delete unused, sleeping, or test spaces immediately — do not let them accumulate. The hf_space_create.py script enforces these standards."
+      "rule": "All HuggingFace Spaces must be created on the lowest paid tier (cpu-upgrade, $0.03/hr). Free tier is prohibited — cold start delays cost more in human time than the annual infrastructure cost ($262.80/year per space). Naming convention: {env}_{AppName}Space (e.g., dev_ChatHealthySpace, qa_ChatHealthySpace). Production space has no env prefix (e.g., ChatHealthySpace). Every space must have a description matching its GOV-005 application boundary. Delete unused, sleeping, or test spaces immediately — do not let them accumulate. The hf_space_create.py script enforces these standards.",
+      "ch_matrix_id": "79b0f106-1c7a-4854-ba39-ddf176991658"
     },
     {
       "id": "v4-023",
       "title": "No code commit without backlog traceability",
-      "rule": "No code may be committed unless every requirement it implements is tracked in the agile backlog (agile_backlog.json) under the appropriate epic → feature → story → requirement tree. Before committing, Claude must verify: (1) a story exists for the work, (2) all requirements are listed with req_ids, (3) each requirement has a priority and status, (4) the story is under the correct feature and epic. If any requirement is missing from the backlog, add it before committing. This rule applies to new features, bug fixes, and enrichment steps. The only exception is trivial fixes (typos, formatting) that do not change behavior. The backlog is the system of record for what was built and why. Code without backlog traceability is unauditable."
+      "rule": "No code may be committed unless every requirement it implements is tracked in the agile backlog (agile_backlog.json) under the appropriate epic → feature → story → requirement tree. Before committing, Claude must verify: (1) a story exists for the work, (2) all requirements are listed with req_ids, (3) each requirement has a priority and status, (4) the story is under the correct feature and epic. If any requirement is missing from the backlog, add it before committing. This rule applies to new features, bug fixes, and enrichment steps. The only exception is trivial fixes (typos, formatting) that do not change behavior. The backlog is the system of record for what was built and why. Code without backlog traceability is unauditable.",
+      "ch_matrix_id": "607bf4d1-9815-425c-847e-4df252535769"
     },
     {
       "id": "v4-025",
       "title": "All pipelines are idempotent",
-      "rule": "Every pipeline step must be safely re-runnable. Running a step twice with the same input must produce the same output without data corruption, duplication, or loss. No pipeline step may use destructive operations (drop, delete_many) as a precondition unless the entire step is atomic — drop-and-replace must complete or roll back, never leave an empty collection. Upsert on a unique key is the preferred write pattern. insert_many with ordered=False and duplicate tolerance is acceptable. Any step that cannot be re-run safely is a design defect."
+      "rule": "Every pipeline step must be safely re-runnable. Running a step twice with the same input must produce the same output without data corruption, duplication, or loss. No pipeline step may use destructive operations (drop, delete_many) as a precondition unless the entire step is atomic — drop-and-replace must complete or roll back, never leave an empty collection. Upsert on a unique key is the preferred write pattern. insert_many with ordered=False and duplicate tolerance is acceptable. Any step that cannot be re-run safely is a design defect.",
+      "ch_matrix_id": "8dfd9b53-8bb2-4c2f-8ae5-59d583ba3d1b"
     }
-  ]
+  ],
+  "ch_matrix_id": "1f343049-b0e0-46e2-9c19-33c138e9ab46"
 }

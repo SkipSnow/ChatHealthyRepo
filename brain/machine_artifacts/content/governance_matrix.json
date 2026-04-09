@@ -4,44 +4,240 @@
   "created": "2026-04-09T08:00:00Z",
   "description": "Governance propensity matrix. Rows = brain JSONs. Columns = Anthropic action events. Cells = CV-007 labels. GOV-015: all environments equal. Policies is a child of governance. Every cell value must be a CV-007 member.",
   "vocabulary": "CV-007",
-  "columns": ["session_start", "user_prompt_submit", "pre_tool_use", "post_tool_use", "stop"],
+  "columns": [
+    "session_start",
+    "user_prompt_submit",
+    "pre_tool_use",
+    "post_tool_use",
+    "stop"
+  ],
   "hierarchy": {
     "governance": {
-      "children": ["policies"],
-      "rule": "Child inherits parent propensity by default. Child may escalate but never relax."
+      "children": [
+        "policies"
+      ],
+      "rule": "Child inherits parent propensity by default. Child may escalate but never relax.",
+      "ch_matrix_id": "59bb31da-bfca-43ee-a137-78e638d40fe8"
     }
   },
   "matrix": {
-    "chathealthyai_brainboot":       {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
-    "governance_matrix":             {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
-    "operating_rules":               {"session_start": "session_warning",    "user_prompt_submit": "session_warning", "pre_tool_use": "session_abend",   "post_tool_use": "session_abend",   "stop": "session_abend"},
-    "security":                      {"session_start": "session_warning",    "user_prompt_submit": "session_warning", "pre_tool_use": "session_abend",   "post_tool_use": "session_abend",   "stop": "session_abend"},
-    "architecture":                  {"session_start": "session_warning",    "user_prompt_submit": "allow",           "pre_tool_use": "session_abend",   "post_tool_use": "session_abend",   "stop": "session_abend"},
-    "legal":                         {"session_start": "session_warning",    "user_prompt_submit": "session_warning", "pre_tool_use": "session_abend",   "post_tool_use": "session_abend",   "stop": "session_abend"},
-    "development_rules":             {"session_start": "session_warning",    "user_prompt_submit": "allow",           "pre_tool_use": "session_abend",   "post_tool_use": "session_abend",   "stop": "session_abend"},
-    "emergency_keywords":            {"session_start": "session_warning",    "user_prompt_submit": "session_abend",   "pre_tool_use": "allow",           "post_tool_use": "session_abend",   "stop": "session_abend"},
-    "controlled_vocabularies":       {"session_start": "session_warning",    "user_prompt_submit": "allow",           "pre_tool_use": "session_warning", "post_tool_use": "session_warning", "stop": "session_warning"},
-    "governance":                    {"session_start": "session_warning",    "user_prompt_submit": "session_warning", "pre_tool_use": "session_abend",   "post_tool_use": "system_abend",    "stop": "system_abend"},
-    "policies":                      {"session_start": "session_warning",    "user_prompt_submit": "session_warning", "pre_tool_use": "session_abend",   "post_tool_use": "system_abend",    "stop": "system_abend"},
-    "risk_acceptance":               {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
-    "token_usage":                   {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "session_warning"},
-    "ai_operations":                 {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
-    "schema":                        {"session_start": "session_warning",    "user_prompt_submit": "allow",           "pre_tool_use": "session_warning", "post_tool_use": "session_warning", "stop": "allow"},
-    "project_manifest":              {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "session_warning", "post_tool_use": "session_warning", "stop": "allow"},
-    "agile_backlog":                 {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
-    "sprint_plan":                   {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
-    "bugs":                    {"session_start": "environment_display","user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "session_warning"},
-    "external_audits":               {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "session_abend",   "stop": "session_abend"},
-    "traceability_matrix":           {"session_start": "system_warning",     "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
-    "prompts":                       {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
-    "business_plan":                 {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
-    "design":                        {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
-    "work_log":                      {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
-    "conversation_log":              {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
-    "daily_punch_list_with_results_and_accomplishments": {"session_start": "allow", "user_prompt_submit": "allow", "pre_tool_use": "allow", "post_tool_use": "allow", "stop": "allow"},
-    "unrealized_ideas":              {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
-    "pipeline_v3_compliance_log":    {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
-    "pipeline_v3_iteration_log":     {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"},
-    "pipeline_v4_design_iterations": {"session_start": "allow",              "user_prompt_submit": "allow",           "pre_tool_use": "allow",           "post_tool_use": "allow",           "stop": "allow"}
-  }
+    "chathealthyai_brainboot": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    },
+    "governance_matrix": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    },
+    "operating_rules": {
+      "session_start": "session_warning",
+      "user_prompt_submit": "session_warning",
+      "pre_tool_use": "session_abend",
+      "post_tool_use": "session_abend",
+      "stop": "session_abend"
+    },
+    "security": {
+      "session_start": "session_warning",
+      "user_prompt_submit": "session_warning",
+      "pre_tool_use": "session_abend",
+      "post_tool_use": "session_abend",
+      "stop": "session_abend"
+    },
+    "architecture": {
+      "session_start": "session_warning",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "session_abend",
+      "post_tool_use": "session_abend",
+      "stop": "session_abend"
+    },
+    "legal": {
+      "session_start": "session_warning",
+      "user_prompt_submit": "session_warning",
+      "pre_tool_use": "session_abend",
+      "post_tool_use": "session_abend",
+      "stop": "session_abend"
+    },
+    "development_rules": {
+      "session_start": "session_warning",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "session_abend",
+      "post_tool_use": "session_abend",
+      "stop": "session_abend"
+    },
+    "emergency_keywords": {
+      "session_start": "session_warning",
+      "user_prompt_submit": "session_abend",
+      "pre_tool_use": "allow",
+      "post_tool_use": "session_abend",
+      "stop": "session_abend"
+    },
+    "controlled_vocabularies": {
+      "session_start": "session_warning",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "session_warning",
+      "post_tool_use": "session_warning",
+      "stop": "session_warning"
+    },
+    "governance": {
+      "session_start": "session_warning",
+      "user_prompt_submit": "session_warning",
+      "pre_tool_use": "session_abend",
+      "post_tool_use": "system_abend",
+      "stop": "system_abend"
+    },
+    "policies": {
+      "session_start": "session_warning",
+      "user_prompt_submit": "session_warning",
+      "pre_tool_use": "session_abend",
+      "post_tool_use": "system_abend",
+      "stop": "system_abend"
+    },
+    "risk_acceptance": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    },
+    "token_usage": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "session_warning"
+    },
+    "ai_operations": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    },
+    "schema": {
+      "session_start": "session_warning",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "session_warning",
+      "post_tool_use": "session_warning",
+      "stop": "allow"
+    },
+    "project_manifest": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "session_warning",
+      "post_tool_use": "session_warning",
+      "stop": "allow"
+    },
+    "agile_backlog": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    },
+    "sprint_plan": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    },
+    "bugs": {
+      "session_start": "environment_display",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "session_warning"
+    },
+    "external_audits": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "session_abend",
+      "stop": "session_abend"
+    },
+    "traceability_matrix": {
+      "session_start": "system_warning",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    },
+    "prompts": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    },
+    "business_plan": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    },
+    "design": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    },
+    "work_log": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    },
+    "conversation_log": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    },
+    "daily_punch_list_with_results_and_accomplishments": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    },
+    "unrealized_ideas": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    },
+    "pipeline_v3_compliance_log": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    },
+    "pipeline_v3_iteration_log": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    },
+    "pipeline_v4_design_iterations": {
+      "session_start": "allow",
+      "user_prompt_submit": "allow",
+      "pre_tool_use": "allow",
+      "post_tool_use": "allow",
+      "stop": "allow"
+    }
+  },
+  "ch_matrix_id": "33fc1888-2d8f-4a00-8598-a7a3d9f2d507"
 }

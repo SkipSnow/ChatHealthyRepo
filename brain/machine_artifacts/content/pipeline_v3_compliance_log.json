@@ -245,45 +245,52 @@
         "rule": "v4-008 + Business Req #2",
         "description": "Bell notification: No explicit mapping in pipeline runbooks/alerting to trigger continuous PowerShell beep on Skip computer for fatal errors. Architecture has email/PagerDuty alerts but not the specific bell mechanism.",
         "severity": "MEDIUM",
-        "recommendation": "Add explicit step in operational runbooks to trigger PowerShell beep loop on fatal pipeline errors."
+        "recommendation": "Add explicit step in operational runbooks to trigger PowerShell beep loop on fatal pipeline errors.",
+        "ch_matrix_id": "86535cd7-5c3a-4f21-8fd4-554fe0a2740b"
       },
       {
         "id": "GAP-002",
         "rule": "v4-002",
         "description": "api-tests.http update after deploy/relaunch not referenced in pipeline architecture.",
         "severity": "LOW",
-        "recommendation": "Add to release/deploy runbook (process concern, not architecture)."
+        "recommendation": "Add to release/deploy runbook (process concern, not architecture).",
+        "ch_matrix_id": "59b71b82-b184-452e-92c9-9cbfff412cc6"
       },
       {
         "id": "GAP-003",
         "rule": "v4-007 + v4-023",
         "description": "Requirement-to-test traceability and backlog mapping not visible in the architecture document.",
         "severity": "LOW",
-        "recommendation": "Traceability lives in agile_backlog.json; verify all v3 requirements are tracked there."
+        "recommendation": "Traceability lives in agile_backlog.json; verify all v3 requirements are tracked there.",
+        "ch_matrix_id": "2a68ee87-4c2a-451f-8811-8079f511039d"
       },
       {
         "id": "GAP-004",
         "rule": "DR-006",
         "description": "Parquet partitioning is by state (for storage), but processing/shipping chunking must be by _id range. Potential for confusion.",
         "severity": "LOW",
-        "recommendation": "Add explicit note that Parquet storage partitioning by state does not imply processing partitioning by state."
+        "recommendation": "Add explicit note that Parquet storage partitioning by state does not imply processing partitioning by state.",
+        "ch_matrix_id": "8df16023-ebbb-4233-9317-bb168a0434c0"
       },
       {
         "id": "GAP-005",
         "rule": "DR-021",
         "description": "Manifest should explicitly include all MongoDB collections, not just file inventory.",
         "severity": "LOW",
-        "recommendation": "Extend manifest logic to inventory MongoDB collections alongside files."
+        "recommendation": "Extend manifest logic to inventory MongoDB collections alongside files.",
+        "ch_matrix_id": "501c132d-115e-4b08-b044-0448fbc7ed3f"
       }
     ],
     "pushbacks": [
       {
         "rule": "v4-022 (Alpha code freeze)",
         "pushback": "This compliance check IS architecture work during alpha freeze. However, it was explicitly ordered by Boss as must-have for the PIPE-BULLETPROOF epic. GPT concurs this is must-have since the architecture was just completed and must be validated before implementation proceeds.",
-        "resolution": "Authorized by Boss. GPT concurs as must-have. No rule violation."
+        "resolution": "Authorized by Boss. GPT concurs as must-have. No rule violation.",
+        "ch_matrix_id": "af78de45-576c-4d90-a71d-e02afdbcce7d"
       }
     ],
     "claude_assessment": "As Principal Engineer, I concur with GPT-4.1 findings. The v3 architecture is comprehensive, well-structured, and addresses all major rules. The 5 gaps are all documentation/runbook items, not architectural deficiencies. The bell notification gap (GAP-001) is the most actionable — it requires wiring the pipeline alerting system to trigger the PowerShell beep on Skip machine for fatal errors. The other gaps are process-level improvements.",
     "recommendation": "APPROVE pipeline_architecture_v3 for implementation. Address 5 gaps during implementation sprint."
-  }
+  },
+  "ch_matrix_id": "baa3c516-6b05-41ca-89b6-88a05f2dec18"
 }

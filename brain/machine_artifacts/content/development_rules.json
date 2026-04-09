@@ -8,7 +8,8 @@
       "id": "DR-004",
       "rule": "When a pattern is established, apply it everywhere in the same commit. Do not build a correct pattern then forget to use it 10 minutes later.",
       "incident": "Built chunked _id range copy for CopyToFrontEnd, then used single $out for MigrateEnvironment. Same problem, forgot to use the same solution.",
-      "date": "2026-04-02"
+      "date": "2026-04-02",
+      "ch_matrix_id": "74b81daf-a853-4d04-bf27-fb346c80f402"
     },
     {
       "id": "DR-006",
@@ -24,7 +25,8 @@
         "context_pattern": "stream_to_temp|copy_chunk|insert_many|sync_collection",
         "context_lines": 5,
         "exclude_comments": true
-      }
+      },
+      "ch_matrix_id": "57b0ca97-8a3d-43fa-b698-a48c7459dc87"
     },
     {
       "id": "DR-008",
@@ -45,61 +47,71 @@
           ".limit("
         ],
         "_note": "Catches list(collection.find()) patterns. Exempt if cursor is limited."
-      }
+      },
+      "ch_matrix_id": "f291a327-075f-4b25-b31e-751f1b1feb8e"
     },
     {
       "id": "DR-009",
       "rule": "Before starting any local server, kill all dead and zombie processes on the target ports first. Verify the port is clear before binding.",
       "incident": "Had 12 zombie Python processes running. Old servers on port 8000 served stale code while the new server hadn't finished loading. Caused false 404s and hours of confusion.",
-      "date": "2026-04-02"
+      "date": "2026-04-02",
+      "ch_matrix_id": "c8a64b7c-6cc0-4b0a-801c-28e68c02f946"
     },
     {
       "id": "DR-010",
       "rule": "Never refer to the LLM as Claude, GPT, or any model name when discussing code behavior. Say 'the code' or 'the system prompt'. The LLM is a component, not an actor.",
       "incident": "Said 'Claude is ignoring RULE 9' when the actual bug was the vector search route bypassing _paginated_result. The code was wrong, not the model.",
-      "date": "2026-04-02"
+      "date": "2026-04-02",
+      "ch_matrix_id": "92f6f7a6-0876-49d0-8ebb-1fec12fc9d58"
     },
     {
       "id": "DR-011",
       "rule": "When running locally, the parent page iframe must default to localhost automatically. No query params, no workarounds.",
       "incident": "Required ?local param to test locally. Boss had to point out the iframe was going to HuggingFace. Should detect localhost and switch automatically.",
-      "date": "2026-04-02"
+      "date": "2026-04-02",
+      "ch_matrix_id": "c4111e39-fecf-463a-a940-9c7742836f59"
     },
     {
       "id": "DR-012",
       "rule": "Never remove a requirement from the implementation to save performance. If a requirement is expensive, find a cheaper way to implement it. Only Boss can waive requirements.",
       "incident": "Removed server-side page_start calculation because it was slow (extra count_documents query). This broke the pagination display — every page showed Records 1-25. Should have moved the tracking to the frontend instead of dropping the requirement.",
-      "date": "2026-04-02"
+      "date": "2026-04-02",
+      "ch_matrix_id": "19cf2f16-3db8-42ba-b3ce-bdda7979d401"
     },
     {
       "id": "DR-013",
       "rule": "AI resolves codes. Database returns data. Vector search must NEVER return provider records directly to the user. It resolves taxonomy codes, then the deterministic taxonomy query returns the actual data. GOV-011 policy violation: 'The AI turns what the user says into a clear question. The system answers using real data, not guesses.'",
       "incident": "Vector search route returned provider records directly from similarity ranking. These results were non-deterministic, inconsistent with taxonomy query counts, and caused pagination to show different data on replay. The AI was answering instead of the system.",
-      "date": "2026-04-02"
+      "date": "2026-04-02",
+      "ch_matrix_id": "cb6566f0-fdab-4c06-a2bd-0b94683be299"
     },
     {
       "id": "DR-016",
       "rule": "Vector search indexes must be verified on every environment promotion (dev→qa, qa→prod). Required indexes on frontend cluster: provider_vector_index on providers, specialty_vector_index on SpecialtyMetaData. Promotion must fail if indexes are missing.",
       "incident": "Indexes were missing on dev and prod frontend clusters. Specialty filter returned empty results. Boss had to find the problem and manually pause the pipeline cluster.",
-      "date": "2026-04-03"
+      "date": "2026-04-03",
+      "ch_matrix_id": "58b9f7f8-9d17-4664-8b1c-4e395f30df5b"
     },
     {
       "id": "DR-019",
       "rule": "All SIT testing must be against the full parent page (dev.chathealthy.ai), never the HF Space iframe in isolation. The parent page is the product. The iframe is a component. Test the product.",
       "incident": "SIT tests were passing against the iframe but missing bugs visible on the full page — sideways filter text, missing banner build number, filter panel not rendering. These were only visible in the parent page context.",
-      "date": "2026-04-03"
+      "date": "2026-04-03",
+      "ch_matrix_id": "873a417f-544a-43bc-b605-001c290f616b"
     },
     {
       "id": "DR-020",
       "rule": "The pipeline cluster (ChatHealthyDataPipelines) stores ZERO administrative or devops state. All admin, devops, manifest, governance, and brain state lives on the frontend cluster (ChatHealthyFrontEnd). At session startup, only query the frontend cluster for brain data. Never attempt to connect to the pipeline cluster for brain/admin/devops data — even when the pipeline cluster is running.",
       "incident": "Session startup attempted to query both clusters. The pipeline cluster has no brain collections and may be paused. All administrative state is on the frontend cluster.",
-      "date": "2026-04-05"
+      "date": "2026-04-05",
+      "ch_matrix_id": "9da38aa2-9b5a-4fcb-a39f-2bd494ed55c8"
     },
     {
       "id": "DR-021",
       "rule": "The admin.manifest must include all MongoDB collections — not just files. Every database and collection on the frontend cluster must be inventoried in the manifest alongside the file inventory. The manifest is the single source of truth for what exists in the system.",
       "incident": "Manifest snapshot_20260330 contained 196 file entries but zero MongoDB collection entries. Collections were undocumented, making it impossible to verify system completeness from the manifest alone.",
-      "date": "2026-04-05"
+      "date": "2026-04-05",
+      "ch_matrix_id": "fdffea59-3698-4f52-90ae-e1d3563cba8e"
     },
     {
       "id": "DR-022",
@@ -114,7 +126,8 @@
         "pattern": "FRONTEND.*embed|embed.*FRONTEND",
         "file_filter": "embed",
         "exclude_comments": true
-      }
+      },
+      "ch_matrix_id": "1b4cc7b8-1945-4e21-a228-eead19130f36"
     },
     {
       "id": "DR-023",
@@ -130,19 +143,22 @@
         ],
         "entries_field": "entries",
         "min_entries": 1
-      }
+      },
+      "ch_matrix_id": "83fada34-e81e-4be4-9f88-8a8787c911fd"
     },
     {
       "id": "DR-024",
       "rule": "Every pytest must test every form of the thing being tested. A rename test must check the string, the filename, the imports, the comments, and the brain references. A memory fix test must assert bounded memory, not just API substitution. A compliance test must scan every file, not just one. Requirements must describe testable outcomes (e.g. \"must never hold more than 64KB in memory\"), not mechanisms (e.g. \"use streaming\").",
       "incident": "Pipeline v4 rename: test checked for string \"PrescriberPipeline\" but missed the filename overnight_pipeline.py. OOM fix: test checked that .readall() was removed but did not check that b\"\".join(chunks) reassembled the same data in memory.",
-      "date": "2026-04-08"
+      "date": "2026-04-08",
+      "ch_matrix_id": "d66582bd-c752-48b0-ab72-4704f8b122ab"
     },
     {
       "id": "DR-025",
       "rule": "You cannot deploy if the deploy would kill running code. If a pipeline job is running as designed, wait. If you discover a bug in the running code, terminate the job first, then deploy the fix, then rerun. The pipeline is idempotent — restarting with the fix is always faster than watching a broken job fail. This applies per deployment target: frontend (Cloudflare + HuggingFace) and pipeline (Azure Functions) are independent — deploying one cannot kill the other.",
       "incident": "CopyToFrontEnd was stuck for 15+ minutes. Two deploys were blocked by CI guard. Should have terminated immediately when the bug was identified.",
-      "date": "2026-04-08"
+      "date": "2026-04-08",
+      "ch_matrix_id": "3c4327ee-59fe-41e1-afde-3c7c26933a39"
     },
     {
       "id": "DR-026",
@@ -154,7 +170,9 @@
         "paths": [
           "Code/Shared/ops/tools/create_hf_space.py"
         ]
-      }
+      },
+      "ch_matrix_id": "b53d438b-21b5-4e47-95de-1f4b59ff1bb0"
     }
-  ]
+  ],
+  "ch_matrix_id": "cd4061b6-ef89-4d31-8e97-4fdfea20dfec"
 }

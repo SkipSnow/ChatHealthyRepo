@@ -27,54 +27,65 @@
             {
               "id": "T1-A",
               "task": "Maps Adapter (encapsulate Google Maps calls)",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "10634445-6912-4f70-80d0-aea645510d6a"
             },
             {
               "id": "T1-B",
               "task": "Data contract: ProviderSearchResult -> Map markers",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "819084f4-169a-4e1f-b5fd-3676feab663c"
             },
             {
               "id": "T1-C",
               "task": "UI component: map + markers + click -> ProviderDetail",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "70575e0f-03ec-472d-a21d-c667802f576a"
             },
             {
               "id": "T1-D",
               "task": "Refactor ConsentDecision domain object",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "cf4698bf-4774-455c-85c8-dbc95c8dbbe6"
             },
             {
               "id": "T1-E",
               "task": "Refactor SafetyAssessment domain object",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "aec8bacd-70a8-43d8-a8f6-621907508ae1"
             },
             {
               "id": "T1-F",
               "task": "Refactor ResponsePlan domain object",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "1590160c-65e8-429c-9316-8f5d7bcb1655"
             },
             {
               "id": "T1-G",
               "task": "Refactor ProviderSearchRequest/Result domain objects",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "4ab6e4c3-0499-47e7-821a-897ead45ab2b"
             },
             {
               "id": "T1-H",
               "task": "Integration flow: UserIntent -> SafetyAssessment -> ConsentDecision -> ResponsePlan",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "7bc637a2-db81-4ac6-947e-1f278d73e695"
             },
             {
               "id": "T1-I",
               "task": "Before/After code structure documentation",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "2655b04a-4b95-42db-99a1-8186f2c454c0"
             },
             {
               "id": "T1-J",
               "task": "Textual flow diagram",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "56a7c535-f19b-4283-a6c5-a9b44892f3f6"
             }
-          ]
+          ],
+          "ch_matrix_id": "a8297a64-36d0-42a7-8e60-9fca70c27134"
         },
         {
           "assignment_id": "SPRINT-012-BIZ",
@@ -98,39 +109,47 @@
             {
               "id": "T2-A",
               "task": "Usage-Triggered Capital Facility (UTCF) design",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "b81212a0-4eff-4bc0-b768-c892f46dff14"
             },
             {
               "id": "T2-B",
               "task": "Valuation protection structure (SAFE/tranche)",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "665cf958-b62e-48b4-bb6a-61266188db40"
             },
             {
               "id": "T2-C",
               "task": "Usage gating model (normal/high/viral load)",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "47d93dcd-2d91-4d11-9d1a-0dac361fd0cc"
             },
             {
               "id": "T2-D",
               "task": "Cost control strategy (reduce Sonnet dependency, OSS candidates)",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "20626d2b-c40a-415b-864d-851f1423cf6d"
             },
             {
               "id": "T2-E",
               "task": "IP strategy (patent vs trade secret, provisional filing)",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "a0917669-958e-4bb4-b6a2-b22a96352314"
             },
             {
               "id": "T2-F",
               "task": "May 1 LinkedIn announcement draft",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "71f7bd8d-0cd9-4f1f-9f2a-a91473727a67"
             },
             {
               "id": "T2-G",
               "task": "Master agreement outline (prep for next sprint)",
-              "status": "pending"
+              "status": "pending",
+              "ch_matrix_id": "e67efd0e-9049-4994-9fca-6e4d0a0ad610"
             }
-          ]
+          ],
+          "ch_matrix_id": "8865a982-9946-4039-b5f0-95a8639b1b85"
         },
         {
           "assignment_id": "ASN-F3A821",
@@ -152,7 +171,8 @@
           "result": null,
           "feedback_needed": false,
           "feedback_question": null,
-          "uat_requirement": "UAT scenario rules: (1) If scenario exercises LLM behavior: exactly 10 semantically different boolean testable test cases. Semantic difference means different phrasing, intent, edge case, or user type — not paraphrasing. (2) If scenario exercises procedural logic only: sufficient test cases to prove all happy path(s) plus at least 2 exception paths. All test cases are boolean: true = pass, false = fail. No partial results."
+          "uat_requirement": "UAT scenario rules: (1) If scenario exercises LLM behavior: exactly 10 semantically different boolean testable test cases. Semantic difference means different phrasing, intent, edge case, or user type — not paraphrasing. (2) If scenario exercises procedural logic only: sufficient test cases to prove all happy path(s) plus at least 2 exception paths. All test cases are boolean: true = pass, false = fail. No partial results.",
+          "ch_matrix_id": "d078c682-f5bf-42ae-8979-bdea1d20ecbc"
         },
         {
           "assignment_id": "ASN-5EE93C",
@@ -174,7 +194,8 @@
           "result": null,
           "feedback_needed": false,
           "feedback_question": null,
-          "uat_requirement": "UAT scenario rules: (1) If scenario exercises LLM behavior: 10 semantically different boolean testable test cases. Semantic difference means different phrasing, intent, edge case, or user type — not paraphrasing. (2) If scenario exercises procedural logic only: sufficient test cases to prove all happy path(s) plus at least 2 exception paths. All test cases are boolean: true = pass, false = fail. No partial results."
+          "uat_requirement": "UAT scenario rules: (1) If scenario exercises LLM behavior: 10 semantically different boolean testable test cases. Semantic difference means different phrasing, intent, edge case, or user type — not paraphrasing. (2) If scenario exercises procedural logic only: sufficient test cases to prove all happy path(s) plus at least 2 exception paths. All test cases are boolean: true = pass, false = fail. No partial results.",
+          "ch_matrix_id": "f76d4e8e-ba29-43c4-9faf-ed18f7ce7c04"
         },
         {
           "assignment_id": "ASN-12058C",
@@ -212,7 +233,8 @@
             "Replace ALL print() with logging -- no print() statements in committed code",
             "commitSignificantActivity: verify it is wired and uses ENV_PREFIX for database routing"
           ],
-          "picked_up_at": "2026-03-26T15:22:27.500688+00:00"
+          "picked_up_at": "2026-03-26T15:22:27.500688+00:00",
+          "ch_matrix_id": "01d7ae58-d240-4041-b7c6-9807e4c4a3af"
         },
         {
           "assignment_id": "ASN-1F9268",
@@ -243,7 +265,8 @@
             "Feature description as section header in both the JSON and the Excel output",
             "acceptance_criteria: minimum 3 per feature, covering distinct behavioral dimensions",
             "uat_scenarios: minimum 5 test cases per scenario using standard UAT rules"
-          ]
+          ],
+          "ch_matrix_id": "a70ce958-4b02-49a2-bc6b-94f839461ee3"
         },
         {
           "assignment_id": "ASN-6D0265",
@@ -264,7 +287,8 @@
           "status": "backlog",
           "result": null,
           "feedback_needed": false,
-          "feedback_question": null
+          "feedback_question": null,
+          "ch_matrix_id": "c370a0cb-406d-45ea-89ad-c8caf14fdb1e"
         },
         {
           "assignment_id": "ASN-CB1468",
@@ -283,7 +307,8 @@
           "status": "backlog",
           "result": null,
           "feedback_needed": false,
-          "feedback_question": null
+          "feedback_question": null,
+          "ch_matrix_id": "882c7add-7521-41ef-88f8-3818dd3f31a5"
         },
         {
           "assignment_id": "ASN-F5801E",
@@ -300,7 +325,8 @@
           "status": "backlog",
           "result": null,
           "feedback_needed": false,
-          "feedback_question": null
+          "feedback_question": null,
+          "ch_matrix_id": "885f2245-e46e-4604-a3ed-ce5cdc1efae0"
         },
         {
           "assignment_id": "ASN-883AFF",
@@ -318,7 +344,8 @@
           "status": "pending",
           "result": null,
           "feedback_needed": false,
-          "feedback_question": null
+          "feedback_question": null,
+          "ch_matrix_id": "018f529d-336f-4915-9baa-3ca9ee3a270f"
         },
         {
           "assignment_id": "ASN-3C7F91",
@@ -336,7 +363,8 @@
           "result": null,
           "feedback_needed": false,
           "feedback_question": null,
-          "uat_requirement": null
+          "uat_requirement": null,
+          "ch_matrix_id": "558de394-e742-45fb-a148-08300af8e12f"
         },
         {
           "assignment_id": "ASN-4AFBDA",
@@ -356,7 +384,8 @@
           "result": null,
           "feedback_needed": false,
           "feedback_question": null,
-          "uat_requirement": null
+          "uat_requirement": null,
+          "ch_matrix_id": "7a272929-937d-4f1f-9e15-46c151a38f95"
         },
         {
           "assignment_id": "ASN-B1A002",
@@ -376,7 +405,8 @@
           "result": null,
           "feedback_needed": false,
           "feedback_question": null,
-          "uat_requirement": null
+          "uat_requirement": null,
+          "ch_matrix_id": "a9e496db-d00f-4ad7-b9f4-b12b0aaccc23"
         },
         {
           "assignment_id": "ASN-MAP001",
@@ -397,7 +427,8 @@
           "result": null,
           "feedback_needed": false,
           "feedback_question": null,
-          "uat_requirement": null
+          "uat_requirement": null,
+          "ch_matrix_id": "a1f02d30-48e5-478e-9032-ee028d64fd39"
         },
         {
           "assignment_id": "ASN-DB0MON",
@@ -416,7 +447,8 @@
           "result": null,
           "feedback_needed": false,
           "feedback_question": null,
-          "uat_requirement": null
+          "uat_requirement": null,
+          "ch_matrix_id": "0bbc4a55-2b61-4adc-8200-27d96b82ffe4"
         },
         {
           "assignment_id": "ASN-TUE027",
@@ -471,7 +503,8 @@
                 "Google Maps stretch goal already tracked as ASN-MAP001 with gate requiring all Tuesday ACs signed off first"
               ]
             }
-          }
+          },
+          "ch_matrix_id": "902f5227-c0c8-4066-9741-1c89385cfedc"
         },
         {
           "assignment_id": "ASN-PROD01",
@@ -494,7 +527,8 @@
           "result": null,
           "feedback_needed": false,
           "feedback_question": null,
-          "uat_requirement": null
+          "uat_requirement": null,
+          "ch_matrix_id": "4e13dd37-c7dd-491c-befd-9ff540d30e87"
         },
         {
           "assignment_id": "ASN-GUI01",
@@ -512,7 +546,8 @@
           "result": null,
           "feedback_needed": false,
           "feedback_question": null,
-          "uat_requirement": null
+          "uat_requirement": null,
+          "ch_matrix_id": "4aa692f9-ff42-43fc-9dd1-fb8d878513d6"
         },
         {
           "assignment_id": "ASN-VA001",
@@ -532,7 +567,8 @@
           "result": null,
           "feedback_needed": false,
           "feedback_question": null,
-          "uat_requirement": null
+          "uat_requirement": null,
+          "ch_matrix_id": "59d5c72d-7f23-4db1-a24a-c6757ffce1dd"
         },
         {
           "assignment_id": "ASN-IP001",
@@ -556,7 +592,8 @@
             "target": "brain/assurance_results.json",
             "format": "Assurance Output schema — include document_content field with full agreement text, plus excel_generator_script for .docx generation",
             "instruction": "GPT must deliver result to brain/assurance_results.json under this assignment_id. Do not deliver via chat. Same pattern as UAT Excel delivery (ASN-1F9268)."
-          }
+          },
+          "ch_matrix_id": "8f73bc7d-39bc-4722-9551-718153827975"
         },
         {
           "assignment_id": "ASN-JURIS01",
@@ -575,7 +612,8 @@
           "result": null,
           "feedback_needed": false,
           "feedback_question": null,
-          "deadline": "2026-04-02"
+          "deadline": "2026-04-02",
+          "ch_matrix_id": "0cc4ca29-bf1d-495c-bcd1-a24f688bce35"
         },
         {
           "assignment_id": "ASN-ROAD01",
@@ -592,7 +630,8 @@
           "status": "backlog",
           "result": null,
           "feedback_needed": false,
-          "feedback_question": null
+          "feedback_question": null,
+          "ch_matrix_id": "db5bfc7c-322a-4364-b90b-a2338120c4fd"
         },
         {
           "assignment_id": "ASN-BIZP01",
@@ -609,7 +648,8 @@
           "status": "backlog",
           "result": null,
           "feedback_needed": false,
-          "feedback_question": null
+          "feedback_question": null,
+          "ch_matrix_id": "8a19a550-1069-42d8-ba53-95dc451327d9"
         },
         {
           "assignment_id": "ASN-BLOB01",
@@ -632,7 +672,8 @@
           "status": "backlog",
           "result": null,
           "feedback_needed": false,
-          "feedback_question": null
+          "feedback_question": null,
+          "ch_matrix_id": "7ce116e9-35a3-4f78-a696-aadad23f5c08"
         },
         {
           "assignment_id": "ASN-BENC01",
@@ -650,7 +691,8 @@
           "status": "backlog",
           "result": null,
           "feedback_needed": false,
-          "feedback_question": null
+          "feedback_question": null,
+          "ch_matrix_id": "f61c2c0b-ddaf-412f-bb15-751a8111ac34"
         },
         {
           "assignment_id": "ASN-ERRB01",
@@ -668,7 +710,8 @@
           "status": "backlog",
           "result": null,
           "feedback_needed": false,
-          "feedback_question": null
+          "feedback_question": null,
+          "ch_matrix_id": "4fbc39f7-69d2-4c45-b4a7-1777fdc9742e"
         },
         {
           "assignment_id": "ASN-PORT01",
@@ -686,7 +729,8 @@
           "status": "backlog",
           "result": null,
           "feedback_needed": false,
-          "feedback_question": null
+          "feedback_question": null,
+          "ch_matrix_id": "6ac6e0bb-5983-4ad9-b5ff-3ff40408a2c1"
         },
         {
           "assignment_id": "ASN-PORT02",
@@ -703,7 +747,8 @@
           "status": "backlog",
           "result": null,
           "feedback_needed": false,
-          "feedback_question": null
+          "feedback_question": null,
+          "ch_matrix_id": "d49fb4f1-99ce-4ea7-b060-d9e3ac94f866"
         },
         {
           "assignment_id": "ASN-UDATA01",
@@ -719,7 +764,8 @@
           "result": null,
           "feedback_needed": false,
           "feedback_question": null,
-          "deadline": "2026-04-07"
+          "deadline": "2026-04-07",
+          "ch_matrix_id": "033dd2d1-bab1-4d0f-876c-6300b0541a71"
         },
         {
           "assignment_id": "ASN-DMIG01",
@@ -735,7 +781,8 @@
           "result": null,
           "feedback_needed": false,
           "feedback_question": null,
-          "deadline": "2026-04-14"
+          "deadline": "2026-04-14",
+          "ch_matrix_id": "d9b495db-fc72-414b-8828-4455ce067b90"
         },
         {
           "assignment_id": "ASN-BVAL01",
@@ -764,7 +811,8 @@
           "result": null,
           "feedback_needed": false,
           "feedback_question": null,
-          "deadline": "2026-03-30"
+          "deadline": "2026-03-30",
+          "ch_matrix_id": "8150e688-390c-41a9-8ab7-00620b6800bf"
         },
         {
           "assignment_id": "ASN-DPROM01",
@@ -780,7 +828,8 @@
           "result": null,
           "feedback_needed": false,
           "feedback_question": null,
-          "deadline": "2026-04-21"
+          "deadline": "2026-04-21",
+          "ch_matrix_id": "c5d1a3b0-a8e3-41c4-9d77-fc5db94de480"
         },
         {
           "assignment_id": "ASN-GITSEC01",
@@ -796,13 +845,15 @@
           "result": null,
           "feedback_needed": false,
           "feedback_question": null,
-          "deadline": "2026-04-30"
+          "deadline": "2026-04-30",
+          "ch_matrix_id": "ea85ac63-b047-4b74-a739-430bc8c5b487"
         }
       ],
       "_record_id": "assignment_queue",
       "_source_file": "assignment_queue.json",
       "description": "Pending GPT assignments. Brain runner reads from this queue.",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "3835a3da-9a4e-4e65-924d-b9fc788a204f"
     },
     {
       "results": [
@@ -821,7 +872,8 @@
               {
                 "feature": "Brain Loop 0.1",
                 "description": "Initial release of Brain Loop with core functionality for autonomous review loop.",
-                "risk": "Moderate"
+                "risk": "Moderate",
+                "ch_matrix_id": "71e2f12d-42f5-4e6f-90cf-92c0716ea552"
               }
             ],
             "deferred": [
@@ -844,19 +896,22 @@
               "phase": "Unit Testing",
               "timing": "2026-03-28T09:00:00Z",
               "owner": "Claude",
-              "description": "Test individual components of Brain Loop 0.1 for expected behavior."
+              "description": "Test individual components of Brain Loop 0.1 for expected behavior.",
+              "ch_matrix_id": "6f9cc4c3-dc49-4720-9cda-31f6064c30f9"
             },
             {
               "phase": "Integration Testing",
               "timing": "2026-03-29T09:00:00Z",
               "owner": "Claude",
-              "description": "Ensure all components of Brain Loop 0.1 work together seamlessly."
+              "description": "Ensure all components of Brain Loop 0.1 work together seamlessly.",
+              "ch_matrix_id": "18b199a3-f29e-46d7-a652-92361db8e3be"
             },
             {
               "phase": "User Acceptance Testing",
               "timing": "2026-03-29T15:00:00Z",
               "owner": "GPT",
-              "description": "Validate the system against user scenarios and acceptance criteria."
+              "description": "Validate the system against user scenarios and acceptance criteria.",
+              "ch_matrix_id": "16139807-2690-45ea-bca1-a5b62a24af71"
             }
           ],
           "acceptance_criteria": [
@@ -890,7 +945,8 @@
                 "Claude writes a review pack and submits it."
               ],
               "pass_condition": "The review pack is processed without errors and logged.",
-              "fail_condition": "The review pack processing fails or logs an error."
+              "fail_condition": "The review pack processing fails or logs an error.",
+              "ch_matrix_id": "c444ffeb-6cf2-4ca1-bd11-4e053ad01e70"
             },
             {
               "flow_id": "E2E-002",
@@ -902,7 +958,8 @@
                 "GPT alerts if budget thresholds are exceeded."
               ],
               "pass_condition": "Budget alerts are triggered correctly when thresholds are exceeded.",
-              "fail_condition": "Budget alerts fail to trigger when thresholds are exceeded."
+              "fail_condition": "Budget alerts fail to trigger when thresholds are exceeded.",
+              "ch_matrix_id": "60f2d265-100e-4aa2-8f30-4b2e53e1f144"
             },
             {
               "flow_id": "E2E-003",
@@ -914,7 +971,8 @@
                 "Boss confirms the log matches expected actions."
               ],
               "pass_condition": "All actions and decisions are present and correct in the log.",
-              "fail_condition": "Missing or incorrect entries in the audit log."
+              "fail_condition": "Missing or incorrect entries in the audit log.",
+              "ch_matrix_id": "b854ac3e-2c14-44a4-972d-d2588ef905bd"
             }
           ],
           "uat_scenarios": [
@@ -943,7 +1001,8 @@
                   "expected": false,
                   "rationale": "System should not require manual intervention."
                 }
-              ]
+              ],
+              "ch_matrix_id": "1a0d5806-8d15-4fc0-812d-5eabdf77c210"
             },
             {
               "scenario_id": "UAT-002",
@@ -970,7 +1029,8 @@
                   "expected": false,
                   "rationale": "No log entries should be missing."
                 }
-              ]
+              ],
+              "ch_matrix_id": "79cd0a87-8d18-4de4-9f89-9366fb9b917f"
             },
             {
               "scenario_id": "UAT-003",
@@ -997,7 +1057,8 @@
                   "expected": true,
                   "rationale": "Alerts should trigger when budget is exceeded."
                 }
-              ]
+              ],
+              "ch_matrix_id": "c7fa2ae4-82b1-4fcf-bc92-c643bf0e6c05"
             }
           ],
           "usage": {
@@ -1049,35 +1110,40 @@
               "feature": "Provider Search",
               "requirement": "The system must connect to MongoDB using a secure connection string stored as an environment variable.",
               "source": "architecture constraint",
-              "priority": "must-have"
+              "priority": "must-have",
+              "ch_matrix_id": "2ccb92ea-1b1b-4cf4-9396-eda3fd68d69c"
             },
             {
               "req_id": "REQ-002",
               "feature": "Safety Filter",
               "requirement": "The system must log all emergency triggers to MongoDB Safety.emergency_incidents.",
               "source": "architecture constraint",
-              "priority": "must-have"
+              "priority": "must-have",
+              "ch_matrix_id": "26e1a32b-f6ca-4849-ba01-616e926e3051"
             },
             {
               "req_id": "REQ-003",
               "feature": "Google Maps Integration",
               "requirement": "The system must display provider locations on an embedded Google Map within the chat interface.",
               "source": "architecture constraint",
-              "priority": "must-have"
+              "priority": "must-have",
+              "ch_matrix_id": "eb38bbb3-8af1-41ab-9c48-37e40835cbc4"
             },
             {
               "req_id": "REQ-004",
               "feature": "Angular Frontend",
               "requirement": "The system must use Angular for the frontend, hosted on Cloudflare Pages.",
               "source": "architecture constraint",
-              "priority": "must-have"
+              "priority": "must-have",
+              "ch_matrix_id": "ac723e8a-f951-4ce5-b47a-25044816179b"
             },
             {
               "req_id": "REQ-005",
               "feature": "Provider Search",
               "requirement": "The system must return up to 10 providers per query, filtered by state and optionally by city.",
               "source": "architecture constraint",
-              "priority": "must-have"
+              "priority": "must-have",
+              "ch_matrix_id": "3346f8f9-5cc5-48fd-ae02-86a6ee3be3da"
             }
           ],
           "feature_set": {
@@ -1085,12 +1151,14 @@
               {
                 "feature": "Safety Filter",
                 "description": "Validates health questions and escalates genuine emergencies.",
-                "risk": "Moderate"
+                "risk": "Moderate",
+                "ch_matrix_id": "902bf492-afb7-4986-89a0-60f886f05e61"
               },
               {
                 "feature": "Angular Frontend",
                 "description": "Port from Gradio to Angular + FastAPI.",
-                "risk": "High"
+                "risk": "High",
+                "ch_matrix_id": "a4bd0603-57c3-460d-8276-e143b1586716"
               }
             ],
             "deferred": [
@@ -1109,19 +1177,22 @@
               "phase": "Unit Testing",
               "timing": "2026-03-28T14:00:00Z",
               "owner": "Claude",
-              "description": "Test individual components for functionality and integration."
+              "description": "Test individual components for functionality and integration.",
+              "ch_matrix_id": "d564296b-28b5-43b9-9d5d-ead8b3118a45"
             },
             {
               "phase": "Integration Testing",
               "timing": "2026-03-29T10:00:00Z",
               "owner": "GPT",
-              "description": "Test the integration of Angular frontend with FastAPI backend."
+              "description": "Test the integration of Angular frontend with FastAPI backend.",
+              "ch_matrix_id": "c55251b2-90ba-41d8-9991-2697e440e00c"
             },
             {
               "phase": "User Acceptance Testing",
               "timing": "2026-03-29T16:00:00Z",
               "owner": "Boss",
-              "description": "Validate end-to-end user flows and acceptance criteria."
+              "description": "Validate end-to-end user flows and acceptance criteria.",
+              "ch_matrix_id": "70192a37-50f6-446f-b264-5cecbb88b99d"
             }
           ],
           "acceptance_criteria": [
@@ -1155,7 +1226,8 @@
                 "System returns matching providers in the chat interface."
               ],
               "pass_condition": "Providers are displayed in the chat interface.",
-              "fail_condition": "No providers are displayed or an error message is shown."
+              "fail_condition": "No providers are displayed or an error message is shown.",
+              "ch_matrix_id": "89362902-9a12-4830-8199-007445c0db07"
             },
             {
               "flow_id": "E2E-002",
@@ -1167,7 +1239,8 @@
                 "System logs the incident and escalates appropriately."
               ],
               "pass_condition": "Incident is logged and escalated.",
-              "fail_condition": "Incident is not logged or escalated."
+              "fail_condition": "Incident is not logged or escalated.",
+              "ch_matrix_id": "9075a14f-1ed3-4972-893d-40ab961fb928"
             },
             {
               "flow_id": "E2E-003",
@@ -1179,7 +1252,8 @@
                 "User interacts with the chat interface."
               ],
               "pass_condition": "Chat interface loads and functions correctly.",
-              "fail_condition": "Chat interface fails to load or has functional issues."
+              "fail_condition": "Chat interface fails to load or has functional issues.",
+              "ch_matrix_id": "45ca5153-be33-45a1-a167-ca649c3da370"
             }
           ],
           "uat_scenarios": [
@@ -1250,7 +1324,8 @@
                   "expected": true,
                   "rationale": "Rash is not an emergency keyword."
                 }
-              ]
+              ],
+              "ch_matrix_id": "704377c8-5b7c-4b1e-b34e-b957c9c67c9d"
             },
             {
               "scenario_id": "UAT-002",
@@ -1289,7 +1364,8 @@
                   "expected": true,
                   "rationale": "Severe bleeding is an emergency keyword, should be logged."
                 }
-              ]
+              ],
+              "ch_matrix_id": "318398fd-365e-41f1-9009-0598ff91350c"
             },
             {
               "scenario_id": "UAT-003",
@@ -1328,7 +1404,8 @@
                   "expected": false,
                   "rationale": "The interface may not support outdated browsers."
                 }
-              ]
+              ],
+              "ch_matrix_id": "ea168ae8-9fd0-4769-8a4e-b354b8b33912"
             }
           ],
           "usage": {
@@ -1394,7 +1471,8 @@
       "_record_id": "assurance_results",
       "_source_file": "assurance_results.json",
       "description": "GPT assurance output history. Architectural review results.",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "131588e4-d936-44a5-8955-8f6f6c799dcb"
     },
     {
       "title": "Business Architecture Collaboration Transcript",
@@ -1431,7 +1509,8 @@
       "_record_id": "biz_arch_collab_transcript",
       "_source_file": "biz_arch_collab_transcript.json",
       "description": "Claude+GPT business architecture collaboration. 3 iterations.",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "9f1e6793-4e4c-4ad1-8b6a-0311979f0506"
     },
     {
       "sufficiency": "Strong core set. Covers product, value, monetization, experience, and defensibility. Investor-ready baseline.",
@@ -1439,30 +1518,35 @@
         {
           "name": "Growth Loop",
           "why": "You mention network + data compounding, but don’t SHOW it. Investors need to see the flywheel.",
-          "what_to_show": "Users → Sessions → Data → Better Decisions → Trust → More Users (closed loop)"
+          "what_to_show": "Users → Sessions → Data → Better Decisions → Trust → More Users (closed loop)",
+          "ch_matrix_id": "0274e58d-cd03-40ed-8b0c-73c18002892e"
         },
         {
           "name": "Go-To-Market / Entry Wedge",
           "why": "No diagram explains how this starts. 'Free Find Care' is not enough without a wedge.",
-          "what_to_show": "Initial user segment → acquisition channel → first use case → expansion into Discuss Care"
+          "what_to_show": "Initial user segment → acquisition channel → first use case → expansion into Discuss Care",
+          "ch_matrix_id": "ad5e5dfc-e2d4-4e90-a6cc-9863f7cb4ca9"
         },
         {
           "name": "Regulatory Boundary",
           "why": "Your biggest insight (vendors avoid healthcare liability) is only stated, not visualized.",
-          "what_to_show": "ChatHealthy owns care context + compliance layer; AI vendors sit outside as tools"
+          "what_to_show": "ChatHealthy owns care context + compliance layer; AI vendors sit outside as tools",
+          "ch_matrix_id": "2c21e5ee-f903-461f-a0e6-7de1482b8828"
         }
       ],
       "optional": [
         {
           "name": "Ecosystem Map",
           "why": "Helps position against incumbents (Zocdoc, WebMD, hospitals, insurers, AI labs)",
-          "what_to_show": "ChatHealthy as coordination layer between fragmented players"
+          "what_to_show": "ChatHealthy as coordination layer between fragmented players",
+          "ch_matrix_id": "72aa0a77-440c-4043-8afe-dc52fa225586"
         }
       ],
       "_record_id": "biz_arch_diagram_review",
       "_source_file": "biz_arch_diagram_review.json",
       "description": "GPT review of 5 business architecture diagrams.",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "21150a77-eb2f-436b-a5f2-a8b988088a33"
     },
     {
       "current_activity": "refactoring",
@@ -1471,7 +1555,8 @@
       "authorization_mode": "explicit — all writes require Boss approval",
       "_record_id": "current_activity",
       "_source_file": "current_activity.json",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "f221f2dd-0122-495d-8b03-88b1623b21eb"
     },
     {
       "diagrams": [
@@ -1490,7 +1575,8 @@
               "width": 200,
               "height": 200,
               "color": "darkblue",
-              "label": "GPU AI CORE"
+              "label": "GPU AI CORE",
+              "ch_matrix_id": "cf7614d0-7969-42e8-bf70-208e2e3ebaab"
             },
             {
               "type": "line_group",
@@ -1499,7 +1585,8 @@
               "center_y": 350,
               "count": 12,
               "radius": 250,
-              "color": "gray"
+              "color": "gray",
+              "ch_matrix_id": "95fc2274-6f63-479e-8df5-2a8d48076794"
             },
             {
               "type": "text_cluster",
@@ -1524,7 +1611,8 @@
                   "y": 400,
                   "color": "red"
                 }
-              ]
+              ],
+              "ch_matrix_id": "0b39518c-1a5e-4b61-92ba-59d08f9d12b6"
             },
             {
               "type": "text_cluster",
@@ -1549,7 +1637,8 @@
                   "y": 480,
                   "color": "green"
                 }
-              ]
+              ],
+              "ch_matrix_id": "0a2b9fd1-1e58-453d-b5f7-d7ba6ab0b89e"
             },
             {
               "type": "arrow_group",
@@ -1621,9 +1710,11 @@
                   ],
                   "color": "lightgray"
                 }
-              ]
+              ],
+              "ch_matrix_id": "84d188fe-79be-45cd-a1d1-d6a3fa39aefe"
             }
-          ]
+          ],
+          "ch_matrix_id": "c7f3e1f8-1ae6-4ffa-9144-906e3a6622c4"
         },
         {
           "title": "EVALUATE CARE",
@@ -1640,7 +1731,8 @@
               "width": 200,
               "height": 300,
               "color": "blue",
-              "label": "DATA SOURCES\nprescriptions\nprovider db\nquality scores"
+              "label": "DATA SOURCES\nprescriptions\nprovider db\nquality scores",
+              "ch_matrix_id": "11d160a7-f149-44e3-9a17-eb126ba54303"
             },
             {
               "type": "rectangle",
@@ -1650,7 +1742,8 @@
               "width": 300,
               "height": 400,
               "color": "darkgray",
-              "label": "MIXING BOARD"
+              "label": "MIXING BOARD",
+              "ch_matrix_id": "9530c27c-e6a0-4b5f-b21b-d66eb5bc3b32"
             },
             {
               "type": "slider_group",
@@ -1661,23 +1754,27 @@
                   "y": 200,
                   "height": 200,
                   "value": 0.7,
-                  "color": "orange"
+                  "color": "orange",
+                  "ch_matrix_id": "c9128690-e502-452b-867d-85ca8210ee6c"
                 },
                 {
                   "x": 470,
                   "y": 200,
                   "height": 200,
                   "value": 0.4,
-                  "color": "orange"
+                  "color": "orange",
+                  "ch_matrix_id": "2b983490-b2eb-4702-ac65-2ce564264f58"
                 },
                 {
                   "x": 540,
                   "y": 200,
                   "height": 200,
                   "value": 0.8,
-                  "color": "orange"
+                  "color": "orange",
+                  "ch_matrix_id": "7305b72b-b0c4-4a02-b224-82d620084fbe"
                 }
-              ]
+              ],
+              "ch_matrix_id": "b451e051-785d-4ef1-a96c-e5af95da7d09"
             },
             {
               "type": "circle",
@@ -1686,7 +1783,8 @@
               "y": 600,
               "radius": 40,
               "color": "green",
-              "label": "USER"
+              "label": "USER",
+              "ch_matrix_id": "70e18509-4b09-4fea-b853-258d2331bdb2"
             },
             {
               "type": "arrow_group",
@@ -1725,7 +1823,8 @@
                   ],
                   "color": "gray"
                 }
-              ]
+              ],
+              "ch_matrix_id": "d6bd8b88-d82f-4fa6-b6a1-4e34039ae309"
             },
             {
               "type": "arrow_group",
@@ -1764,7 +1863,8 @@
                   ],
                   "color": "green"
                 }
-              ]
+              ],
+              "ch_matrix_id": "998bf45c-cd46-42e2-b417-3c9e25976b1f"
             },
             {
               "type": "text_block",
@@ -1774,7 +1874,8 @@
               "width": 200,
               "height": 200,
               "color": "purple",
-              "label": "PERSONALIZED RANKING\noption A\noption B\noption C"
+              "label": "PERSONALIZED RANKING\noption A\noption B\noption C",
+              "ch_matrix_id": "88f1ea9e-730d-4141-8123-b31dcdd67a01"
             },
             {
               "type": "arrow",
@@ -1787,15 +1888,18 @@
                 800,
                 350
               ],
-              "color": "gray"
+              "color": "gray",
+              "ch_matrix_id": "4d213267-7f42-4502-b1b3-a7f760dfeb62"
             }
-          ]
+          ],
+          "ch_matrix_id": "f268fe26-4d63-4962-b00c-7a0746a768f7"
         }
       ],
       "_record_id": "diagram_creative_direction",
       "_source_file": "diagram_creative_direction.json",
       "description": "GPT creative direction for Find Care + Evaluate Care diagrams.",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "f3797cc5-0e7f-4536-a363-e749cf61f493"
     },
     {
       "current_review_id": "ASN-12058C",
@@ -1807,7 +1911,8 @@
       "_record_id": "execution_state",
       "_source_file": "execution_state.json",
       "description": "Brain runner execution state. Last run, pending items.",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "f0279ffd-8396-4170-a8b3-f6ee8612fcea"
     },
     {
       "title": "ARCH-001 Refactor Design Collaboration Transcript",
@@ -1855,14 +1960,16 @@
       "_record_id": "refactor_collab_transcript",
       "_source_file": "refactor_collab_transcript.json",
       "description": "ARCH-001 Claude+GPT design collaboration. 5 iterations, agreed design.",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "94956212-5c03-4411-bd1d-69ba571766a0"
     },
     {
       "reviews": [],
       "_record_id": "review_queue",
       "_source_file": "review_queue.json",
       "description": "Pending review items for GPT architect.",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "6859b0e9-8d71-4ba4-995b-a6d2d8c6bc80"
     },
     {
       "title": "Testing Session Mind Dump - Saturday 2026-03-28",
@@ -2019,7 +2126,8 @@
       "_record_id": "session_2026_03_28_mind_dump",
       "_source_file": "session_2026_03_28_mind_dump.json",
       "description": "Saturday March 28 testing session notes. Pre-refactor baseline.",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "67018174-6fca-4cb7-a9c3-0dbd918957df"
     },
     {
       "description": "Support ticket log. Production incidents and resolutions.",
@@ -2038,12 +2146,14 @@
           "space": "SkipSnow/dev_ChatHealthyAIChatWindow",
           "impact": "Blocking v0.1.2 release prep. Space unresponsive after factory restart killed old container.",
           "workaround": "Old container was serving before factory restart. Code is in HF repo but build queue not processing.",
-          "notes": "Recurring problem since Docker SDK conversion. Forum has unanswered posts from August 2025 - response not expected. Reinforces need for Azure portability (ARCH-001)."
+          "notes": "Recurring problem since Docker SDK conversion. Forum has unanswered posts from August 2025 - response not expected. Reinforces need for Azure portability (ARCH-001).",
+          "ch_matrix_id": "4cef62ae-35ed-4b9a-869c-0e0a9eee1b2f"
         }
       ],
       "_record_id": "support_tickets",
       "_source_file": "support_tickets.json",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "d8742b0a-7fb2-4783-854e-79009b8c9cf6"
     },
     {
       "_record_id": "unattended_assignment_gpt_code_review",
@@ -2059,7 +2169,8 @@
         "iterations": 1,
         "output": "One report with two tables and a conclusion",
         "code_changes": false
-      }
+      },
+      "ch_matrix_id": "fcbee49f-b41a-4403-ab2e-3645bfdd3777"
     },
     {
       "_record_id": "pipeline_maintenance_log_20260404",
@@ -2424,7 +2535,8 @@
           "status": "Terminated",
           "customStatus": "Step 3/7: County enrichment — Pass 1: ZIP crosswalk"
         }
-      ]
+      ],
+      "ch_matrix_id": "0a01dbee-0e49-4572-abc5-d48ce342807e"
     }
   ]
 }
