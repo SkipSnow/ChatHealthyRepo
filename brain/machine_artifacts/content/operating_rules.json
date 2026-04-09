@@ -156,6 +156,11 @@
       "id": "v4-023",
       "title": "No code commit without backlog traceability",
       "rule": "No code may be committed unless every requirement it implements is tracked in the agile backlog (agile_backlog.json) under the appropriate epic → feature → story → requirement tree. Before committing, Claude must verify: (1) a story exists for the work, (2) all requirements are listed with req_ids, (3) each requirement has a priority and status, (4) the story is under the correct feature and epic. If any requirement is missing from the backlog, add it before committing. This rule applies to new features, bug fixes, and enrichment steps. The only exception is trivial fixes (typos, formatting) that do not change behavior. The backlog is the system of record for what was built and why. Code without backlog traceability is unauditable."
+    },
+    {
+      "id": "v4-025",
+      "title": "All pipelines are idempotent",
+      "rule": "Every pipeline step must be safely re-runnable. Running a step twice with the same input must produce the same output without data corruption, duplication, or loss. No pipeline step may use destructive operations (drop, delete_many) as a precondition unless the entire step is atomic — drop-and-replace must complete or roll back, never leave an empty collection. Upsert on a unique key is the preferred write pattern. insert_many with ordered=False and duplicate tolerance is acceptable. Any step that cannot be re-run safely is a design defect."
     }
   ]
 }
