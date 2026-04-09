@@ -14,7 +14,8 @@
       "rationale": "The competitive landscape section requires naming incumbents by name to make the positioning credible for investors. Fair use in comparative context.",
       "mitigation": "Text-based brand representations only (no actual logo files). Used in private investor materials, not public marketing.",
       "build": "265",
-      "artifact": "brain/BusinessArtifacts/biz_arch_investor_v2.pdf"
+      "artifact": "brain/BusinessArtifacts/biz_arch_investor_v2.pdf",
+      "ch_matrix_id": "af6833f2-ab0a-4726-9cdb-fc49930e7f32"
     },
     {
       "id": "RISK-002",
@@ -26,7 +27,8 @@
       "boss_decision": "ACCEPTED",
       "accepted_by": "Boss (Skip Snow, CEO)",
       "rationale": "The alternative is hardcoding 800+ specialty classifications manually, which is error-prone and unmaintainable. GPT-4.1-mini classification is faster, covers all specialties, and the cached result can be reviewed and corrected. The risk is low — misclassification of a specialty is a filter error, not a clinical error.",
-      "mitigation": "Cache result in MongoDB. Human-reviewable. Corrections override AI classification. Log which specialties were AI-classified vs manually corrected."
+      "mitigation": "Cache result in MongoDB. Human-reviewable. Corrections override AI classification. Log which specialties were AI-classified vs manually corrected.",
+      "ch_matrix_id": "1cb654dc-a4c0-4a15-98c9-7d49885d3dd6"
     },
     {
       "id": "RISK-003",
@@ -36,7 +38,9 @@
       "risk": "Broader kill capability could accidentally terminate legitimate processes if wrong name is passed.",
       "approved_by": "Skip Snow",
       "rationale": "Claude started a pipeline locally (v4-001C violation) that ran for 7+ hours. The governance guard now prevents this from happening again, but the orphan process must be killable. The guard blocks direct taskkill — kill_zombies.py is the only sanctioned path.",
-      "mitigation": "kill_zombies.py is the only way to kill. Guard blocks direct taskkill. --kill-name requires explicit process name argument. Cannot kill by wildcard."
+      "mitigation": "kill_zombies.py is the only way to kill. Guard blocks direct taskkill. --kill-name requires explicit process name argument. Cannot kill by wildcard.",
+      "ch_matrix_id": "bff65762-7477-4948-8478-e8b5b9dcd495"
     }
-  ]
+  ],
+  "ch_matrix_id": "1001cdca-db77-40c2-ab15-5c0441f5ab2b"
 }

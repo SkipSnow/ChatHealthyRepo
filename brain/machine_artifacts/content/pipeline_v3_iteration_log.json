@@ -199,7 +199,8 @@
       },
       "validation_function": {
         "signature": "def validate_and_fingerprint_schema(raw_header: List[str], expected_normalized_schema: List[Dict[str, str]], allow_override: bool = False) -> Tuple[bool, str, str]",
-        "description": "Validates the raw CSV header and normalized schema against stored fingerprints. Returns (is_valid, raw_header_fingerprint, normalized_schema_fingerprint). Raises exception or aborts if mismatch and override is False."
+        "description": "Validates the raw CSV header and normalized schema against stored fingerprints. Returns (is_valid, raw_header_fingerprint, normalized_schema_fingerprint). Raises exception or aborts if mismatch and override is False.",
+        "ch_matrix_id": "1497bcb0-3966-4df6-affe-869eb4a68fcb"
       },
       "fingerprint_comparison_logic": {
         "steps": [
@@ -276,7 +277,7 @@
           "enforcement": {
             "idempotent_keys": "All upserts use deterministic chunk IDs and unique keys (NPI, record_id, etc.)",
             "ETag/SHA-256 guards": "No duplicate downloads or loads if ETag/SHA unchanged",
-            "state_machine": "Explicit chunk state: pending \u2192 in_progress \u2192 complete \u2192 verified | failed; only one transition per chunk at a time"
+            "state_machine": "Explicit chunk state: pending → in_progress → complete → verified | failed; only one transition per chunk at a time"
           }
         }
       }
@@ -335,22 +336,26 @@
               "row_group_size_bytes: int = 128_000_000",
               "row_group_size_rows: int = 500_000"
             ],
-            "description": "Initialize writer with output path, schema, and config."
+            "description": "Initialize writer with output path, schema, and config.",
+            "ch_matrix_id": "6d17874b-787a-4a88-ae11-56f5ddb70a3b"
           },
           "write_batch": {
             "params": [
               "records: List[dict]"
             ],
-            "description": "Append a batch of records. Splits into row groups as needed."
+            "description": "Append a batch of records. Splits into row groups as needed.",
+            "ch_matrix_id": "1c522ff2-30a5-4316-8464-481accadce3b"
           },
           "finalize": {
             "params": [],
-            "description": "Flush all buffers, close the Parquet file, and write manifest/metadata."
+            "description": "Flush all buffers, close the Parquet file, and write manifest/metadata.",
+            "ch_matrix_id": "503c9959-6bef-49b0-a183-cd6242739fd4"
           },
           "get_schema_fingerprint": {
             "params": [],
             "returns": "str (SHA-256 of normalized schema)",
-            "description": "Return the schema fingerprint for this file."
+            "description": "Return the schema fingerprint for this file.",
+            "ch_matrix_id": "38933060-252f-4cb0-840a-596db71caa1e"
           }
         },
         "error_handling": {
@@ -366,7 +371,7 @@
     "result": {
       "iteration": 7,
       "focus": "Parquet/MongoDB Integration and Data Flow",
-      "topic": "Parquet \u2194 MongoDB Data Flow, Source of Truth, Reconciliation, and Recovery",
+      "topic": "Parquet ↔ MongoDB Data Flow, Source of Truth, Reconciliation, and Recovery",
       "decision": "Parquet is the canonical intermediate format in blob storage; MongoDB remains the queryable, operational state. Both are required for full pipeline function. Parquet enables robust cold-start recovery and auditability.",
       "rationale": "Parquet in ADLS Gen2 provides immutable, auditable, and partitioned storage for all ingested data. MongoDB is optimized for fast, flexible queries and downstream enrichment/embedding. This dual-path ensures resilience and operational agility.",
       "data_flow": {
@@ -573,7 +578,8 @@
           "2. Query admin.DataLoadMetadata for documents with matching pipeline_run_id and chunk_id, state='complete'.",
           "3. Return all (pipeline_run_id, chunk_id) pairs present in the commit log but missing in MongoDB."
         ],
-        "pseudo_sql": "SELECT c.pipeline_run_id, c.chunk_id FROM commit_log c WHERE c.event_type = 'chunk_complete' AND NOT EXISTS (SELECT 1 FROM admin.DataLoadMetadata m WHERE m.pipeline_run_id = c.pipeline_run_id AND m.chunk_id = c.chunk_id AND m.state = 'complete')"
+        "pseudo_sql": "SELECT c.pipeline_run_id, c.chunk_id FROM commit_log c WHERE c.event_type = 'chunk_complete' AND NOT EXISTS (SELECT 1 FROM admin.DataLoadMetadata m WHERE m.pipeline_run_id = c.pipeline_run_id AND m.chunk_id = c.chunk_id AND m.state = 'complete')",
+        "ch_matrix_id": "d1b78a51-4c2a-4c6e-adf9-908cb743602a"
       }
     }
   },
@@ -581,7 +587,7 @@
     "iteration": 10,
     "result": {
       "iteration": 10,
-      "focus": "Reliability Patterns \u2014 Implementation Details",
+      "focus": "Reliability Patterns — Implementation Details",
       "topic": "Full Reliability Pattern Implementation for v3",
       "decision": "Specify all reliability mechanisms with concrete state machines, schemas, schedules, and fallback logic.",
       "rationale": "Explicit implementation details ensure reliability is not left to interpretation and can be validated in code and operations.",
@@ -594,10 +600,10 @@
               "half-open"
             ],
             "transitions": [
-              "closed \u2192 open: On threshold breach (see below)",
-              "open \u2192 half-open: After reset timeout expires",
-              "half-open \u2192 closed: On first successful probe call",
-              "half-open \u2192 open: On probe call failure"
+              "closed → open: On threshold breach (see below)",
+              "open → half-open: After reset timeout expires",
+              "half-open → closed: On first successful probe call",
+              "half-open → open: On probe call failure"
             ]
           },
           "thresholds": {
@@ -750,7 +756,8 @@
           "3. If commit log entry exists but no checkpoint, attempt to re-apply the checkpoint using the commit log details.",
           "4. If checkpoint exists but no commit log entry, flag as 'commit_log_missing' in admin.CheckpointPending and alert ops.",
           "5. All reconciliation actions are logged to admin.ReconciliationLog."
-        ]
+        ],
+        "ch_matrix_id": "9faf91c3-8cdc-42d5-a91c-e59a2c823374"
       },
       "recovery_procedure": {
         "commit_log_missing": {
@@ -759,14 +766,16 @@
             "1. Attempt to reconstruct the missing commit log entry from checkpoint and pipeline context.",
             "2. Write reconstructed entry to commit log with a 'recovered' flag.",
             "3. Alert ops for manual review if reconstruction is ambiguous."
-          ]
+          ],
+          "ch_matrix_id": "be49f41d-1363-4258-a9fc-3fc7f0041327"
         },
         "checkpoint_missing": {
           "description": "Commit log entry exists but no MongoDB checkpoint.",
           "action": [
             "1. Attempt to re-apply the checkpoint to MongoDB using commit log details.",
             "2. If re-apply fails, alert ops and mark chunk as 'checkpoint_recovery_failed' in admin.CheckpointPending."
-          ]
+          ],
+          "ch_matrix_id": "d9874fd4-d602-4e82-a54a-205b85e89b92"
         }
       },
       "operator_alerts": [
@@ -1005,9 +1014,9 @@
       "cost_estimates": {
         "adls_gen2_parquet_and_commit_log": {
           "storage_volume": {
-            "parquet": "NPPES (10.6GB CSV x 4 states) \u2248 42.4GB raw; Parquet (zstd, columnar) compresses 2.5x \u2192 \u2248 17GB",
+            "parquet": "NPPES (10.6GB CSV x 4 states) ≈ 42.4GB raw; Parquet (zstd, columnar) compresses 2.5x → ≈ 17GB",
             "commit_log": "Estimated 1GB/month (JSONL, highly compressible, 1M events/month)",
-            "total_monthly_storage": "\u2248 18GB"
+            "total_monthly_storage": "≈ 18GB"
           },
           "azure_pricing": {
             "hot_tier": "$0.0184/GB/month (East US, as of 2024)",
@@ -1015,7 +1024,7 @@
             "transaction_costs": "Negligible (<$1/month) for append/read operations at current scale"
           },
           "future_scale_projection": {
-            "50 states": "NPPES/CMS/OIG/SAM \u2248 500GB Parquet, 5GB commit log \u2192 $9.30/month"
+            "50 states": "NPPES/CMS/OIG/SAM ≈ 500GB Parquet, 5GB commit log → $9.30/month"
           }
         },
         "csv_on_blob_baseline": {
@@ -1037,7 +1046,7 @@
         "mongodb_storage_impact": {
           "current": "Raw collections (prod_provider_raw, prod_prescriber_raw) are retained for reprocessing/debugging",
           "with_parquet": "Raw collections can be dropped after successful Parquet-to-MongoDB load and parity verification, as Parquet is now the canonical backup",
-          "storage_savings": "At 42.4GB raw, dropping raw collections saves \u2248 $60/month on M30 cluster (MongoDB Atlas: $1.40/GB/month for hot storage)",
+          "storage_savings": "At 42.4GB raw, dropping raw collections saves ≈ $60/month on M30 cluster (MongoDB Atlas: $1.40/GB/month for hot storage)",
           "recommendation": "Retain only latest raw collection for 30 days; archive or drop older versions"
         },
         "cosmosdb_commit_log_alternative": {
@@ -1047,7 +1056,7 @@
             "total_RU_month": "10M RU",
             "RU_cost": "$0.008 per 100 RU/s provisioned per hour"
           },
-          "monthly_cost": "10M RU / (100 RU/s x 2,592,000s/month) \u2248 4 RU/s needed \u2192 $0.032/month (minimal at current scale)",
+          "monthly_cost": "10M RU / (100 RU/s x 2,592,000s/month) ≈ 4 RU/s needed → $0.032/month (minimal at current scale)",
           "notes": "CosmosDB cost is negligible for commit log at current scale, but operational overhead and complexity are higher than ADLS append blobs"
         }
       },
@@ -1316,7 +1325,8 @@
           "description": "Two independent pipelines sharing infrastructure",
           "provider_pipeline": "NPPES download -> partition -> Parquet conversion -> load -> county enrichment (6 passes) -> embed -> ship",
           "prescriber_pipeline": "CMS Part D download -> Parquet conversion -> load -> crosswalk enrichment -> OIG/SAM flags -> specialty normalization -> embed",
-          "shared_ship_step": "CopyToFrontEnd with parity verification"
+          "shared_ship_step": "CopyToFrontEnd with parity verification",
+          "ch_matrix_id": "debda8cc-81f1-4b8c-9420-85414efef637"
         },
         "2_orchestration": {
           "pattern": "Azure Durable Functions -- orchestrator/activity separation",
@@ -1923,7 +1933,8 @@
         "iterations_16_20": "Reliability and chaos testing: circuit breaker, checkpoint/restart, Parquet corruption, chaos schedule, operational runbooks, edge case handling, cost analysis, migration path.",
         "iterations_21_25": "Final assembly: embedding and ship layer refinements, monitoring/observability, consensus decisions, bug fixes, and full v3 object."
       },
-      "parked_items": []
+      "parked_items": [],
+      "ch_matrix_id": "d9e94257-0ed4-4a62-9a04-3b6f44bfae7f"
     }
   },
   {
@@ -1998,39 +2009,39 @@
           "status": "PASS",
           "details": [
             "All v2 consensus decisions are present in v3, either preserved as-is or explicitly superseded:",
-            "- Streaming CSV processing \u2192 Now streaming CSV and Parquet processing.",
-            "- Byte-aligned partitioning \u2192 Now Parquet chunking (partitioned ingest).",
-            "- DataFetcherBase with ETag + SHA-256 \u2192 Unchanged.",
-            "- Snapshot manifest \u2192 Unchanged.",
-            "- Chunk-level state machine \u2192 Unchanged.",
-            "- Staged collection pattern for CopyToFrontEnd \u2192 Unchanged.",
-            "- Parity verification before Ship \u2192 Unchanged, now also includes Parquet-to-MongoDB parity.",
-            "- Worker lease/heartbeat \u2192 Unchanged.",
-            "- Circuit breaker, dead letter, quota-aware enrichment \u2192 Unchanged.",
-            "- ClusterLifecycleManager, Durable Functions replay, per-worker metadata \u2192 Unchanged.",
-            "- OpenTelemetry integration \u2192 Extended to Parquet conversion.",
-            "- Known-good/bad test records, stratified sampling, anomaly detection \u2192 Unchanged.",
-            "- Environment isolation, DR-022, v4-001 \u2192 Unchanged.",
-            "- Reconciliation after every batch step \u2192 Unchanged.",
-            "- Schema fingerprint per batch \u2192 Unchanged.",
-            "- Pre-ingest dry run, hard RAM quotas \u2192 Unchanged.",
-            "- Parquet-to-MongoDB load is idempotent and checkpointed \u2192 New in v3.",
-            "- Operator runbooks, reliability/chaos testing suite \u2192 New in v3."
+            "- Streaming CSV processing → Now streaming CSV and Parquet processing.",
+            "- Byte-aligned partitioning → Now Parquet chunking (partitioned ingest).",
+            "- DataFetcherBase with ETag + SHA-256 → Unchanged.",
+            "- Snapshot manifest → Unchanged.",
+            "- Chunk-level state machine → Unchanged.",
+            "- Staged collection pattern for CopyToFrontEnd → Unchanged.",
+            "- Parity verification before Ship → Unchanged, now also includes Parquet-to-MongoDB parity.",
+            "- Worker lease/heartbeat → Unchanged.",
+            "- Circuit breaker, dead letter, quota-aware enrichment → Unchanged.",
+            "- ClusterLifecycleManager, Durable Functions replay, per-worker metadata → Unchanged.",
+            "- OpenTelemetry integration → Extended to Parquet conversion.",
+            "- Known-good/bad test records, stratified sampling, anomaly detection → Unchanged.",
+            "- Environment isolation, DR-022, v4-001 → Unchanged.",
+            "- Reconciliation after every batch step → Unchanged.",
+            "- Schema fingerprint per batch → Unchanged.",
+            "- Pre-ingest dry run, hard RAM quotas → Unchanged.",
+            "- Parquet-to-MongoDB load is idempotent and checkpointed → New in v3.",
+            "- Operator runbooks, reliability/chaos testing suite → New in v3."
           ]
         },
         "bug_fixes": {
           "status": "PASS",
           "details": [
             "All v2 bug fixes are still addressed in v3:",
-            "- BUG_LOAD_001: Staged collection, per-chunk checkpointing, parity verification \u2192 All present.",
-            "- OOM_3_7GB: Streaming parser, chunking, RAM quota, pre-ingest dry run \u2192 All present.",
-            "- RE_DOWNLOAD: DataFetcherBase ETag + SHA-256 + manifest \u2192 All present.",
-            "- LOCAL_EXECUTION: v4-001 enforced \u2192 Present.",
-            "- NO_PARALLEL: Fan-out/fan-in pattern \u2192 Present.",
-            "- NO_CHECKPOINT: Durable Functions replay + start_step + per-chunk state \u2192 Present.",
-            "- VECTOR_RAM_199: Vector indexes only on frontend, RAM monitoring, external DB deferred \u2192 Present.",
-            "- CSV_FRAGILITY: Parquet canonical format, schema fingerprinting, validation \u2192 New in v3.",
-            "- COMMIT_LOG_GAP: Dual logging with reconciliation job \u2192 New in v3."
+            "- BUG_LOAD_001: Staged collection, per-chunk checkpointing, parity verification → All present.",
+            "- OOM_3_7GB: Streaming parser, chunking, RAM quota, pre-ingest dry run → All present.",
+            "- RE_DOWNLOAD: DataFetcherBase ETag + SHA-256 + manifest → All present.",
+            "- LOCAL_EXECUTION: v4-001 enforced → Present.",
+            "- NO_PARALLEL: Fan-out/fan-in pattern → Present.",
+            "- NO_CHECKPOINT: Durable Functions replay + start_step + per-chunk state → Present.",
+            "- VECTOR_RAM_199: Vector indexes only on frontend, RAM monitoring, external DB deferred → Present.",
+            "- CSV_FRAGILITY: Parquet canonical format, schema fingerprinting, validation → New in v3.",
+            "- COMMIT_LOG_GAP: Dual logging with reconciliation job → New in v3."
           ]
         },
         "iteration_summary": {
@@ -2150,7 +2161,8 @@
           "description": "Two independent pipelines sharing infrastructure",
           "provider_pipeline": "NPPES download -> partition -> Parquet conversion -> load -> county enrichment (6 passes) -> embed -> ship",
           "prescriber_pipeline": "CMS Part D download -> Parquet conversion -> load -> crosswalk enrichment -> OIG/SAM flags -> specialty normalization -> embed",
-          "shared_ship_step": "CopyToFrontEnd with parity verification"
+          "shared_ship_step": "CopyToFrontEnd with parity verification",
+          "ch_matrix_id": "f377192b-c87b-4000-b205-39d5d05fb6b0"
         },
         "2_orchestration": {
           "pattern": "Azure Durable Functions -- orchestrator/activity separation",
@@ -2758,7 +2770,8 @@
         "iterations_16_20": "Reliability and chaos testing: circuit breaker, checkpoint/restart, Parquet corruption, chaos schedule, operational runbooks, edge case handling, cost analysis, migration path.",
         "iterations_21_25": "Final assembly: embedding and ship layer refinements, monitoring/observability, consensus, bug fixes, and full v3 object."
       },
-      "parked_items": []
+      "parked_items": [],
+      "ch_matrix_id": "955f6129-0ffc-44a2-9d71-c61ee396f5de"
     }
   }
 ]

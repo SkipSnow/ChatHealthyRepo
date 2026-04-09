@@ -34,7 +34,8 @@
         "properties": {
           "drugName": {
             "type": "string",
-            "description": "Brand or generic name of the drug"
+            "description": "Brand or generic name of the drug",
+            "ch_matrix_id": "92b120fa-b395-41b4-bac7-e72a73d3a155"
           },
           "uses": {
             "type": "array",
@@ -44,11 +45,13 @@
               "properties": {
                 "indication": {
                   "type": "string",
-                  "description": "Clinical description of the on-label indication as applied in this quality measure"
+                  "description": "Clinical description of the on-label indication as applied in this quality measure",
+                  "ch_matrix_id": "4df572e9-2c9b-41b2-af74-a34323bd6308"
                 },
                 "qualityMeasureContext": {
                   "type": "string",
-                  "description": "Name/identifier of the quality measure this mapping is intended for (e.g., NQF ID, CMS Quality ID)"
+                  "description": "Name/identifier of the quality measure this mapping is intended for (e.g., NQF ID, CMS Quality ID)",
+                  "ch_matrix_id": "e5606600-3838-4b3d-a5f5-ba7642533650"
                 },
                 "icd10Codes": {
                   "type": "array",
@@ -56,7 +59,8 @@
                   "items": {
                     "type": "string",
                     "pattern": "^[A-TV-Z][0-9][0-9A-Z](\\.[0-9A-Z]{1,4})?$"
-                  }
+                  },
+                  "ch_matrix_id": "6d965e54-c158-4a39-92ed-f93b7223613b"
                 }
               },
               "required": [
@@ -64,7 +68,8 @@
                 "qualityMeasureContext",
                 "icd10Codes"
               ]
-            }
+            },
+            "ch_matrix_id": "f6fe70c2-9f2d-4e93-aa86-7595cb78e2e1"
           }
         },
         "required": [
@@ -77,12 +82,14 @@
         "relevance": {
           "description": "Does the provider prescribing pattern indicate they treat the patient condition?",
           "method": "Map provider top drugs -> on-label indications -> ICD-10 -> compare to patient condition",
-          "positive": true
+          "positive": true,
+          "ch_matrix_id": "bb2e7ddc-0036-42ed-93ab-4178a5804464"
         },
         "integrity": {
           "description": "Does the prescribing pattern show red flags for fraud or inappropriate prescribing?",
           "method": "Controlled substance ratio vs specialty peers, prescribing outside specialty scope, anomaly detection",
-          "positive": false
+          "positive": false,
+          "ch_matrix_id": "5e652b6e-f14f-43c4-9e79-1e47bfe080ab"
         }
       },
       "implementation_paths": {
@@ -91,19 +98,22 @@
           "source": "DailyMed SPL, FDA Orange Book, or RxNorm",
           "pro": "Cheaper to maintain, deterministic, auditable",
           "con": "Requires finding and licensing the dataset, ETL pipeline to keep current",
-          "decision": "TBD"
+          "decision": "TBD",
+          "ch_matrix_id": "f126fd75-b34b-40c9-a8e5-213deafd82ba"
         },
         "path_b": {
           "name": "LLM-generated mapping with cache",
           "source": "GPT or Haiku generates drug-indication-ICD10 mapping on demand",
           "pro": "No dataset dependency, covers any drug immediately",
           "con": "LLM output not verified, hallucination risk on clinical data, per-call cost",
-          "decision": "TBD -- acceptable for alpha, close in beta with verified source"
+          "decision": "TBD -- acceptable for alpha, close in beta with verified source",
+          "ch_matrix_id": "ad05903d-fd9b-4267-8972-0823478a059a"
         }
       },
       "alpha_gap": "Drug-to-indication mapping source not finalized. LLM fallback acceptable for alpha. Close in beta with verified mapping table.",
       "patent_relevance": "Method of combining CMS prescriber data + ICD-10 + drug indication mapping + quality measure context + LLM synthesis for consumer provider quality signal. Data is public. Method is novel.",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "4f2c59ef-8192-4c57-a3fb-9da2b8e8d5c9"
     },
     {
       "_record_id": "design_county_economic_enrichment",
@@ -133,7 +143,8 @@
         "CENSUS_API_KEY",
         "BEA_API_KEY"
       ],
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "5083ee6a-f2fb-4d35-a190-68b20954acbe"
     },
     {
       "_record_id": "design_agent_framework",
@@ -172,7 +183,8 @@
         "ops_manager": "Code/DataPipelines/ops_manager/",
         "reservation_model": "Array in MongoDB. Multiple concurrent. Last release shuts down cluster."
       },
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "5982c480-65aa-429e-bbee-8dc6a192067a"
     },
     {
       "_record_id": "gui_frame_layout",
@@ -204,7 +216,8 @@
             "width": "same as chat iframe",
             "id": "guiControlFrame",
             "content": "Empty canvas. Controls appear when needed (pagination, filters, future widgets). Blank otherwise.",
-            "behavior": "React app sends HTML via postMessage (gui:render). Parent renders into this div. Clicks relay back to React app via postMessage (gui:event). When controls are cleared (gui:clear), the canvas goes blank but stays visible at 7%."
+            "behavior": "React app sends HTML via postMessage (gui:render). Parent renders into this div. Clicks relay back to React app via postMessage (gui:event). When controls are cleared (gui:clear), the canvas goes blank but stays visible at 7%.",
+            "ch_matrix_id": "7142d9c2-d67e-48a0-8eef-d070315cd28a"
           }
         },
         "right_panel": {
@@ -269,7 +282,8 @@
           "id": "GUI-LEAF",
           "title": "Leaf page control — more control over right panel behavior",
           "status": "backlog",
-          "notes": "Boss directive: add to GUI Manager. Not further defined yet."
+          "notes": "Boss directive: add to GUI Manager. Not further defined yet.",
+          "ch_matrix_id": "5a1e28d4-d084-4f1e-b46b-2ca07a76d231"
         }
       ],
       "rules": [
@@ -280,7 +294,8 @@
         "Chat iframe fills remaining vertical space in center column",
         "React app owns all state — parent page is a dumb rendering surface",
         "Controls appear and disappear via postMessage — no page reloads"
-      ]
+      ],
+      "ch_matrix_id": "a72bc050-ec49-41c9-b93c-1011dbac299b"
     },
     {
       "_record_id": "design_pipeline_architecture_v4",
@@ -320,24 +335,28 @@
                   "step": 0,
                   "name": "Reserve cluster",
                   "class": "ClusterLifecycleManager",
-                  "method": "reserve()"
+                  "method": "reserve()",
+                  "ch_matrix_id": "7f888a06-e0b3-42c4-bdad-435f3e9acede"
                 },
                 {
                   "step": 1,
                   "name": "Download NPI ZIP",
                   "class": "NppesFetcher (DataFetcherBase)",
                   "method": "fetch()",
-                  "notes": "Auto-discovers URL from CMS page, ETag/SHA-256 skip guard, 8MB stream chunks to Azure Blob"
+                  "notes": "Auto-discovers URL from CMS page, ETag/SHA-256 skip guard, 8MB stream chunks to Azure Blob",
+                  "ch_matrix_id": "26bd9f04-4e38-4c34-86a2-7136f2cc75ee"
                 },
                 {
                   "step": 2,
                   "name": "Extract CSV to blob",
-                  "notes": "Skip guard if CSV already exists in blob"
+                  "notes": "Skip guard if CSV already exists in blob",
+                  "ch_matrix_id": "924312bf-e8bd-41be-9cb0-e875b127ffe8"
                 },
                 {
                   "step": 3,
                   "name": "Compute byte-aligned partitions",
-                  "notes": "Newline-aligned boundaries from blob byte ranges, O(1) memory (DR-008)"
+                  "notes": "Newline-aligned boundaries from blob byte ranges, O(1) memory (DR-008)",
+                  "ch_matrix_id": "7d011304-21ec-4254-9527-6d2613020733"
                 }
               ]
             },
@@ -346,36 +365,43 @@
                 {
                   "step": 4,
                   "name": "Drain staging collection",
-                  "notes": "Drop unless incremental=true (BUG-PIPE-003)"
+                  "notes": "Drop unless incremental=true (BUG-PIPE-003)",
+                  "ch_matrix_id": "e5e27aed-1115-43b4-9e6f-14036bd8473d"
                 },
                 {
                   "step": 5,
-                  "name": "Pre-load indexes (incremental only)"
+                  "name": "Pre-load indexes (incremental only)",
+                  "ch_matrix_id": "8c3fbfb5-df16-48ee-bd06-bed2fc4c7ff5"
                 },
                 {
                   "step": 6,
                   "name": "Write worker metadata",
-                  "notes": "One record per worker in admin.DataLoadMetadata"
+                  "notes": "One record per worker in admin.DataLoadMetadata",
+                  "ch_matrix_id": "3113c648-2d5f-47df-97d2-f5662e0ada84"
                 },
                 {
                   "step": "6.5",
                   "name": "Pre-warm Azure Flex instances",
-                  "notes": "Set always_ready = num_workers"
+                  "notes": "Set always_ready = num_workers",
+                  "ch_matrix_id": "7cc2b9e8-5466-4cc9-8387-36d3050cab4b"
                 },
                 {
                   "step": 7,
                   "name": "Fan-out load",
                   "class": "ProviderWorker (PipelineWorkerBase)",
-                  "notes": "32 workers load partitions simultaneously via task_all"
+                  "notes": "32 workers load partitions simultaneously via task_all",
+                  "ch_matrix_id": "513b60ad-1dd1-4e07-a3c8-bb4c7438f8fb"
                 },
                 {
                   "step": "7.5",
-                  "name": "Reset always_ready = 0"
+                  "name": "Reset always_ready = 0",
+                  "ch_matrix_id": "30113aaa-2d17-48e4-bf76-b1213d87b43f"
                 },
                 {
                   "step": "8-9",
                   "name": "Build indexes + reconcile counts",
-                  "notes": "Parallel: post-load indexes + source vs loaded count verification"
+                  "notes": "Parallel: post-load indexes + source vs loaded count verification",
+                  "ch_matrix_id": "9eee97fd-9c8e-4eab-ad4c-51c4fed48ed7"
                 }
               ]
             },
@@ -387,34 +413,41 @@
                   "pass": 1,
                   "name": "ZIP bulk crosswalk",
                   "method": "updateMany per ZIP where res_ratio >= 0.98",
-                  "notes": "220x fewer ops than per-provider"
+                  "notes": "220x fewer ops than per-provider",
+                  "ch_matrix_id": "6465bcaa-696b-49fb-9f67-66c1304f20a5"
                 },
                 {
                   "pass": 2,
                   "name": "Census Geocoder (practice address)",
-                  "notes": "Batch POST, 500 per batch"
+                  "notes": "Batch POST, 500 per batch",
+                  "ch_matrix_id": "d786d509-87c9-40ee-91af-a04474ed6dfd"
                 },
                 {
                   "pass": 3,
                   "name": "Census Geocoder (billing address)",
-                  "notes": "For geocoder_failed from pass 2"
+                  "notes": "For geocoder_failed from pass 2",
+                  "ch_matrix_id": "96a3a7ec-4e8e-4fc4-94c4-40d0729df1cc"
                 },
                 {
                   "pass": 4,
                   "name": "Google Maps (practice address)",
-                  "notes": "Paid API, optional"
+                  "notes": "Paid API, optional",
+                  "ch_matrix_id": "408788cc-48d7-4b16-ae69-310a00ec63d6"
                 },
                 {
                   "pass": 5,
                   "name": "Google Maps (billing address)",
-                  "notes": "Paid API, optional"
+                  "notes": "Paid API, optional",
+                  "ch_matrix_id": "aaf263fe-47ce-4b6e-ad16-1a8919dd2642"
                 },
                 {
                   "pass": 6,
                   "name": "NPPES public registry lookup",
-                  "notes": "Free, 5 req/s rate limit"
+                  "notes": "Free, 5 req/s rate limit",
+                  "ch_matrix_id": "9489993b-4065-45bf-a5f1-869e9fc77d58"
                 }
-              ]
+              ],
+              "ch_matrix_id": "88d081e5-6991-45fe-830c-9a31932e0962"
             },
             "stage_4_embed": {
               "class": "EmbeddingWorker (PipelineWorkerBase)",
@@ -435,29 +468,35 @@
                     "ICD10Codes",
                     "ZipCountyCrosswalk",
                     "drug_crosswalk_cache"
-                  ]
+                  ],
+                  "ch_matrix_id": "a10597a2-e571-455a-9eaf-9f4f2f0a946e"
                 },
                 {
                   "step": 2,
-                  "name": "Copy providers (filtered by states)"
+                  "name": "Copy providers (filtered by states)",
+                  "ch_matrix_id": "042e2167-75a9-4359-af85-889228598fb5"
                 },
                 {
                   "step": 3,
                   "name": "Verify parity",
-                  "notes": "Source count == destination count per collection and per state"
+                  "notes": "Source count == destination count per collection and per state",
+                  "ch_matrix_id": "02374ed5-0da7-4715-89d2-959c9c8e3c67"
                 },
                 {
                   "step": 4,
                   "name": "Create vector indexes",
-                  "notes": "provider_vector_index (3072d cosine) + specialty_vector_index. DR-016: verified on every promotion."
+                  "notes": "provider_vector_index (3072d cosine) + specialty_vector_index. DR-016: verified on every promotion.",
+                  "ch_matrix_id": "06d03ed0-4957-4da2-ba5e-9e00a906473b"
                 },
                 {
                   "step": 5,
-                  "name": "Verify frontend indexes"
+                  "name": "Verify frontend indexes",
+                  "ch_matrix_id": "0221cf8e-e508-4577-ae18-cb65fcbae523"
                 }
               ]
             }
-          }
+          },
+          "ch_matrix_id": "719ac024-96a4-4434-9e60-de511dd0a9e9"
         },
         "prescriber_evaluate_care_pipeline": {
           "description": "CMS Part D prescriber data: drug behavior, crosswalk enrichment, exclusion flags, specialty normalization",
@@ -498,7 +537,8 @@
             "stage_6_embed": {
               "notes": "Drug/molecule vector search embeddings"
             }
-          }
+          },
+          "ch_matrix_id": "b1b013fc-0e50-4cdc-bde3-925f3fefcf5e"
         }
       },
       "new_components_v4": {
@@ -640,7 +680,8 @@
             1,
             11
           ],
-          "description": "Wire prescriber orchestrator + overnight pipeline to Azure Functions"
+          "description": "Wire prescriber orchestrator + overnight pipeline to Azure Functions",
+          "ch_matrix_id": "9a786fae-2533-4dbe-a4c9-3cd72a131998"
         },
         {
           "phase": 2,
@@ -649,7 +690,8 @@
             5,
             6
           ],
-          "description": "Replace raw HTTP and .readall() with DataFetcherBase streaming"
+          "description": "Replace raw HTTP and .readall() with DataFetcherBase streaming",
+          "ch_matrix_id": "e59487b8-873e-4449-85a5-828e4a896db0"
         },
         {
           "phase": 3,
@@ -657,7 +699,8 @@
           "issues": [
             7
           ],
-          "description": "Move hardcoded URLs to config/env"
+          "description": "Move hardcoded URLs to config/env",
+          "ch_matrix_id": "bee8c95f-7b6e-44ba-a16f-b5d69e4ca6b7"
         },
         {
           "phase": 4,
@@ -666,7 +709,8 @@
             2,
             3
           ],
-          "description": "Add QualityGate between stages, idempotency in PipelineWorkerBase"
+          "description": "Add QualityGate between stages, idempotency in PipelineWorkerBase",
+          "ch_matrix_id": "6d38597b-58ef-4ef5-bd01-669a0ab8831a"
         },
         {
           "phase": 5,
@@ -674,7 +718,8 @@
           "issues": [
             9
           ],
-          "description": "SchemaDriftDetector with SHA-256 fingerprints"
+          "description": "SchemaDriftDetector with SHA-256 fingerprints",
+          "ch_matrix_id": "94c59894-04ba-45a0-86fd-dccf3b03d523"
         },
         {
           "phase": 6,
@@ -682,7 +727,8 @@
           "issues": [
             4
           ],
-          "description": "Fix BUG-LOAD-001 with atomic staged copy and parity verification"
+          "description": "Fix BUG-LOAD-001 with atomic staged copy and parity verification",
+          "ch_matrix_id": "a5d0efa1-ccce-48a1-97a7-f05700b4d170"
         },
         {
           "phase": 7,
@@ -690,7 +736,8 @@
           "issues": [
             8
           ],
-          "description": "Auto-resolves when phases 2-3, 6 complete"
+          "description": "Auto-resolves when phases 2-3, 6 complete",
+          "ch_matrix_id": "2a13d0f3-2495-415c-9d61-f6b804319afd"
         },
         {
           "phase": 8,
@@ -698,20 +745,24 @@
           "issues": [
             10
           ],
-          "description": "FatalAlertBridge with PowerShell beep and Pushover webhook"
+          "description": "FatalAlertBridge with PowerShell beep and Pushover webhook",
+          "ch_matrix_id": "de16e9ef-eb75-4856-b1e8-90cc53cd9cb1"
         },
         {
           "phase": 9,
           "name": "95% Success Metric",
-          "description": "Rolling success-rate computation and dashboard"
+          "description": "Rolling success-rate computation and dashboard",
+          "ch_matrix_id": "93e98401-69e7-4c42-b8c3-7242688c3b15"
         },
         {
           "phase": 10,
           "name": "Traceability and CI/CD",
-          "description": "TraceabilityMatrixManager, CiCdConflictDetector, ApiTestUpdater, ManifestManager"
+          "description": "TraceabilityMatrixManager, CiCdConflictDetector, ApiTestUpdater, ManifestManager",
+          "ch_matrix_id": "7338e732-23d8-441c-966f-c4bcce8e1190"
         }
       ],
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "e70f63ba-cd90-459b-b45c-62f3953040cc"
     },
     {
       "_record_id": "design_copy_to_frontend_v2",
@@ -724,7 +775,8 @@
       "problem": "CopyToFrontEnd v1 OOMs on Azure Functions copying 1.3M provider documents. It reinvents replication with batched reads, cross-cluster inserts, and memory-bound workers. Multiple days lost to OOM failures.",
       "solution": "SyncGatewayAgent with agent-gated promotion: quality gates before sync, streaming copy (500-doc batches, never OOM), atomic swap (temp collection + rename), per-state split for providers, parity verification, forward-only environment enforcement.",
       "gpt_approval": "YES — no blocking issues. Design is robust, safe, and compliant.",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "61fca672-aad0-481e-862f-6d6912139e85"
     }
   ]
 }

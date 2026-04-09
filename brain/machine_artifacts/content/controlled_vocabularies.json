@@ -7,161 +7,538 @@
       "name": "bad_data_reasons",
       "definition": "Controlled reasons for flagging a provider record as having data quality issues. A bad_data record has structural problems that make it unreliable for enrichment or user-facing queries. The record is retained but flagged.",
       "members": [
-        {"value": "no_address", "definition": "Provider has no practice address and no mailing address. Cannot be geocoded or county-enriched."},
-        {"value": "bad_address", "definition": "Provider has an address but it is demonstrably wrong. Zip/state mismatch detected and repair from license data failed for an unclassified reason."},
-        {"value": "zip_state_mismatch", "definition": "Provider zip code maps to a different state than practice_address.state. License data was checked but did not resolve the conflict."},
-        {"value": "zip_state_mismatch_multiple_licenses", "definition": "Zip/state mismatch detected. Provider has multiple license states — cannot determine which is correct."},
-        {"value": "zip_state_mismatch_no_license", "definition": "Zip/state mismatch detected. Provider has no license data to use for repair."}
+        {
+          "value": "no_address",
+          "definition": "Provider has no practice address and no mailing address. Cannot be geocoded or county-enriched.",
+          "ch_matrix_id": "05c4171f-c960-4291-8d73-520cb0e3c9c4"
+        },
+        {
+          "value": "bad_address",
+          "definition": "Provider has an address but it is demonstrably wrong. Zip/state mismatch detected and repair from license data failed for an unclassified reason.",
+          "ch_matrix_id": "42769277-faeb-49f0-8ec9-9abb705072a4"
+        },
+        {
+          "value": "zip_state_mismatch",
+          "definition": "Provider zip code maps to a different state than practice_address.state. License data was checked but did not resolve the conflict.",
+          "ch_matrix_id": "c22ed224-7e16-43f0-9a81-a73a7d8298f8"
+        },
+        {
+          "value": "zip_state_mismatch_multiple_licenses",
+          "definition": "Zip/state mismatch detected. Provider has multiple license states — cannot determine which is correct.",
+          "ch_matrix_id": "b37ac3e3-8844-494a-992b-458796785826"
+        },
+        {
+          "value": "zip_state_mismatch_no_license",
+          "definition": "Zip/state mismatch detected. Provider has no license data to use for repair.",
+          "ch_matrix_id": "4a349c1d-77e6-458f-869f-b6d7f73b729e"
+        }
       ],
       "invoked_by": {
         "source_files": [
-          {"file": "Code/DataPipelines/county_enrichment_job.py", "function": "mark_out_of_scope_fn", "note": "Replaces county.source=out_of_scope for address issues"},
-          {"file": "Code/DataPipelines/county_enrichment_job.py", "function": "mark_zip_state_mismatch_fn", "note": "Zip/state mismatch detection and license repair"}
+          {
+            "file": "Code/DataPipelines/county_enrichment_job.py",
+            "function": "mark_out_of_scope_fn",
+            "note": "Replaces county.source=out_of_scope for address issues"
+          },
+          {
+            "file": "Code/DataPipelines/county_enrichment_job.py",
+            "function": "mark_zip_state_mismatch_fn",
+            "note": "Zip/state mismatch detection and license repair"
+          }
         ],
-        "stories": ["PIPE-DQ-001", "PIPE-DQ-003"]
-      }
+        "stories": [
+          "PIPE-DQ-001",
+          "PIPE-DQ-003"
+        ]
+      },
+      "ch_matrix_id": "805adc48-cfc1-40a4-8274-51d9382220a4"
     },
     {
       "vocabulary_id": "CV-002",
       "name": "out_of_scope_reasons",
       "definition": "Controlled reasons for marking a provider record as out of scope. An out_of_scope record is a valid, good-quality record that falls outside the current processing scope. It is not enriched or embedded but is not deleted.",
       "members": [
-        {"value": "deactivated", "definition": "Provider NPI has been deactivated by CMS without subsequent reactivation. The provider is no longer active."},
-        {"value": "foreign_provider", "definition": "Provider practice address country is set and is not US. Valid provider but outside ChatHealthy.ai's geographic scope."}
+        {
+          "value": "deactivated",
+          "definition": "Provider NPI has been deactivated by CMS without subsequent reactivation. The provider is no longer active.",
+          "ch_matrix_id": "f6f4b090-dc9d-4abf-9a58-9b4b46645a29"
+        },
+        {
+          "value": "foreign_provider",
+          "definition": "Provider practice address country is set and is not US. Valid provider but outside ChatHealthy.ai's geographic scope.",
+          "ch_matrix_id": "d4bddef6-eb39-4d3b-8b66-cc46380ef10b"
+        }
       ],
       "invoked_by": {
         "source_files": [
-          {"file": "Code/DataPipelines/county_enrichment_job.py", "function": "mark_out_of_scope_fn", "note": "Marks deactivated and foreign providers"}
+          {
+            "file": "Code/DataPipelines/county_enrichment_job.py",
+            "function": "mark_out_of_scope_fn",
+            "note": "Marks deactivated and foreign providers"
+          }
         ],
-        "stories": ["PIPE-DQ-002"]
-      }
+        "stories": [
+          "PIPE-DQ-002"
+        ]
+      },
+      "ch_matrix_id": "4d09a3d4-dcfe-4689-8395-96573921ed81"
     },
     {
       "vocabulary_id": "CV-004",
       "name": "commit_prefixes",
       "definition": "Required prefixes on all git commit messages to indicate Claude's operating mode during the work.",
       "members": [
-        {"value": "[Normal Mode]", "definition": "Claude operating in Normal mode -- standard behavior, best judgment, never break a rule."},
-        {"value": "[Unattended Mode]", "definition": "Claude operating in Unattended mode -- autonomous, may terminate hung jobs, no secrets unless instructed."},
-        {"value": "[Idiot Mode]", "definition": "Claude operating in Idiot mode -- step-by-step confirmation, one unit at a time."}
+        {
+          "value": "[Normal Mode]",
+          "definition": "Claude operating in Normal mode -- standard behavior, best judgment, never break a rule.",
+          "ch_matrix_id": "479ed70c-86e1-4e62-b10d-0531024f3fbb"
+        },
+        {
+          "value": "[Unattended Mode]",
+          "definition": "Claude operating in Unattended mode -- autonomous, may terminate hung jobs, no secrets unless instructed.",
+          "ch_matrix_id": "90bacf90-24db-4599-bfab-d6e7e8ac278d"
+        },
+        {
+          "value": "[Idiot Mode]",
+          "definition": "Claude operating in Idiot mode -- step-by-step confirmation, one unit at a time.",
+          "ch_matrix_id": "caacffc0-2202-4a8c-b5da-a04a14541f19"
+        }
       ],
       "invoked_by": {
         "source_files": [],
         "stories": []
-      }
+      },
+      "ch_matrix_id": "ac64f226-72b6-42ba-a1ce-c75b4a72afd4"
     },
     {
       "vocabulary_id": "CV-005",
       "name": "feature_statuses",
       "definition": "Status values for features and test cases in QA reports and the agile backlog.",
       "members": [
-        {"value": "NOT_STARTED", "definition": "Work has not begun."},
-        {"value": "IN_PROGRESS", "definition": "Work is underway."},
-        {"value": "TO_TEST", "definition": "Code is written, awaiting testing."},
-        {"value": "UNTESTED", "definition": "Code exists but cannot be tested yet (dependency or tooling gap)."},
-        {"value": "PASS", "definition": "Tested and approved by Boss."},
-        {"value": "FAIL", "definition": "Tested and rejected by Boss."},
-        {"value": "DEFERRED", "definition": "Intentionally postponed to a later sprint."},
-        {"value": "RELEASE_BLOCKER", "definition": "Must be resolved before any release."}
+        {
+          "value": "NOT_STARTED",
+          "definition": "Work has not begun.",
+          "ch_matrix_id": "4fa1c303-24c8-46fd-8a60-9e1e92cd7200"
+        },
+        {
+          "value": "IN_PROGRESS",
+          "definition": "Work is underway.",
+          "ch_matrix_id": "be3e71e6-136b-4557-9838-43da02d59fe4"
+        },
+        {
+          "value": "TO_TEST",
+          "definition": "Code is written, awaiting testing.",
+          "ch_matrix_id": "7beda308-9201-48fd-823c-8c82328bae69"
+        },
+        {
+          "value": "UNTESTED",
+          "definition": "Code exists but cannot be tested yet (dependency or tooling gap).",
+          "ch_matrix_id": "b99f3d28-4e98-4377-949c-700e21b9e259"
+        },
+        {
+          "value": "PASS",
+          "definition": "Tested and approved by Boss.",
+          "ch_matrix_id": "9789bc93-5e34-4b42-b6c9-c2d4475d40df"
+        },
+        {
+          "value": "FAIL",
+          "definition": "Tested and rejected by Boss.",
+          "ch_matrix_id": "818731e7-5577-4dff-be66-27b1f7ce491a"
+        },
+        {
+          "value": "DEFERRED",
+          "definition": "Intentionally postponed to a later sprint.",
+          "ch_matrix_id": "e8124422-27f8-4fd9-b699-75baf41d0511"
+        },
+        {
+          "value": "RELEASE_BLOCKER",
+          "definition": "Must be resolved before any release.",
+          "ch_matrix_id": "9de7bfd4-6efc-43f5-88a5-efd211574da9"
+        }
       ],
       "invoked_by": {
         "source_files": [
-          {"file": "Code/ConversationalUX/FindCareChat/backend/main.py", "function": "qa_report", "note": "QA report renderer color coding"},
-          {"file": "Code/ConversationalUX/FindCareChat/backend/main.py", "function": "qa_report_submit", "note": "QA report dropdown options"}
+          {
+            "file": "Code/ConversationalUX/FindCareChat/backend/main.py",
+            "function": "qa_report",
+            "note": "QA report renderer color coding"
+          },
+          {
+            "file": "Code/ConversationalUX/FindCareChat/backend/main.py",
+            "function": "qa_report_submit",
+            "note": "QA report dropdown options"
+          }
         ],
-        "stories": ["DEVOPS-QA-001", "DEVOPS-QA-002"]
-      }
+        "stories": [
+          "DEVOPS-QA-001",
+          "DEVOPS-QA-002"
+        ]
+      },
+      "ch_matrix_id": "5a839206-e88f-4eb2-87f1-781719d45721"
     },
     {
       "vocabulary_id": "CV-006",
       "name": "emergency_keywords",
       "definition": "Config-driven keyword list for SafetyService EmergencyDetector. Dual-trigger OR logic: keyword match OR semantic classifier. F-09 fix expanded from v1.0. Categories group keywords by medical emergency type. Each member value is a keyword phrase; the definition is the emergency category.",
       "members": [
-        {"value": "chest pain", "definition": "cardiac"},
-        {"value": "chest tightness", "definition": "cardiac"},
-        {"value": "heart attack", "definition": "cardiac"},
-        {"value": "can't breathe", "definition": "respiratory"},
-        {"value": "cannot breathe", "definition": "respiratory"},
-        {"value": "difficulty breathing", "definition": "respiratory"},
-        {"value": "trouble breathing", "definition": "respiratory"},
-        {"value": "not breathing", "definition": "respiratory"},
-        {"value": "stopped breathing", "definition": "respiratory"},
-        {"value": "stroke", "definition": "stroke"},
-        {"value": "face drooping", "definition": "stroke"},
-        {"value": "arm weakness", "definition": "stroke"},
-        {"value": "sudden numbness", "definition": "stroke"},
-        {"value": "severe bleeding", "definition": "bleeding"},
-        {"value": "bleeding out", "definition": "bleeding"},
-        {"value": "won't stop bleeding", "definition": "bleeding"},
-        {"value": "unconscious", "definition": "consciousness"},
-        {"value": "passed out", "definition": "consciousness"},
-        {"value": "unresponsive", "definition": "consciousness"},
-        {"value": "overdose", "definition": "overdose"},
-        {"value": "took too many", "definition": "overdose"},
-        {"value": "took too much", "definition": "overdose"},
-        {"value": "suicide", "definition": "suicide"},
-        {"value": "suicidal", "definition": "suicide"},
-        {"value": "kill myself", "definition": "suicide"},
-        {"value": "end my life", "definition": "suicide"},
-        {"value": "seizure", "definition": "seizure"},
-        {"value": "convulsing", "definition": "seizure"},
-        {"value": "severe allergic reaction", "definition": "allergic"},
-        {"value": "anaphylaxis", "definition": "allergic"},
-        {"value": "throat closing", "definition": "allergic"},
-        {"value": "choking", "definition": "choking"},
-        {"value": "severe burn", "definition": "burns"},
-        {"value": "on fire", "definition": "burns"},
-        {"value": "chemical burn", "definition": "burns"},
-        {"value": "third degree burn", "definition": "burns"},
-        {"value": "drowning", "definition": "drowning"},
-        {"value": "pulled from water", "definition": "drowning"},
-        {"value": "underwater", "definition": "drowning"},
-        {"value": "near drowning", "definition": "drowning"},
-        {"value": "car accident", "definition": "trauma"},
-        {"value": "gunshot", "definition": "trauma"},
-        {"value": "stabbing", "definition": "trauma"},
-        {"value": "severe injury", "definition": "trauma"},
-        {"value": "head injury", "definition": "trauma"},
-        {"value": "major trauma", "definition": "trauma"},
-        {"value": "hit by car", "definition": "trauma"},
-        {"value": "blood sugar", "definition": "diabetic"},
-        {"value": "diabetic coma", "definition": "diabetic"},
-        {"value": "diabetic emergency", "definition": "diabetic"},
-        {"value": "insulin shock", "definition": "diabetic"},
-        {"value": "hypoglycemic", "definition": "diabetic"},
-        {"value": "in labor", "definition": "childbirth"},
-        {"value": "water broke", "definition": "childbirth"},
-        {"value": "baby coming", "definition": "childbirth"},
-        {"value": "giving birth", "definition": "childbirth"},
-        {"value": "premature labor", "definition": "childbirth"}
+        {
+          "value": "chest pain",
+          "definition": "cardiac",
+          "ch_matrix_id": "c3464eb7-faaa-440e-a1d0-a1bfe9d17352"
+        },
+        {
+          "value": "chest tightness",
+          "definition": "cardiac",
+          "ch_matrix_id": "6deff858-3688-424e-9bb7-75ad9d374623"
+        },
+        {
+          "value": "heart attack",
+          "definition": "cardiac",
+          "ch_matrix_id": "dcd51b3e-6f2b-4270-b422-98b16eb26aa4"
+        },
+        {
+          "value": "can't breathe",
+          "definition": "respiratory",
+          "ch_matrix_id": "a8ccf2c3-e443-4909-b0a8-f54606693eca"
+        },
+        {
+          "value": "cannot breathe",
+          "definition": "respiratory",
+          "ch_matrix_id": "045f8e5f-88e4-4f93-a66b-e3264a68f0cc"
+        },
+        {
+          "value": "difficulty breathing",
+          "definition": "respiratory",
+          "ch_matrix_id": "d4f4c79e-7fd2-449a-b852-852b50fec2df"
+        },
+        {
+          "value": "trouble breathing",
+          "definition": "respiratory",
+          "ch_matrix_id": "16d82265-644c-4efd-b47d-71c9ac5fb2bc"
+        },
+        {
+          "value": "not breathing",
+          "definition": "respiratory",
+          "ch_matrix_id": "8de0a654-7251-4811-85b8-469cf6e76d6c"
+        },
+        {
+          "value": "stopped breathing",
+          "definition": "respiratory",
+          "ch_matrix_id": "bcd7b8fb-277a-4d8c-86ba-770376bd2da7"
+        },
+        {
+          "value": "stroke",
+          "definition": "stroke",
+          "ch_matrix_id": "9bf6572b-cc6f-4f31-813b-1f337e13f814"
+        },
+        {
+          "value": "face drooping",
+          "definition": "stroke",
+          "ch_matrix_id": "2c54702f-c9d4-413b-b0af-0143ed2e68b6"
+        },
+        {
+          "value": "arm weakness",
+          "definition": "stroke",
+          "ch_matrix_id": "adecb40f-b97b-4917-9ba1-a2c826fc6277"
+        },
+        {
+          "value": "sudden numbness",
+          "definition": "stroke",
+          "ch_matrix_id": "34b26904-eb7d-4c1b-a3f6-4bdaae65a1ec"
+        },
+        {
+          "value": "severe bleeding",
+          "definition": "bleeding",
+          "ch_matrix_id": "53f1822c-c22f-4b70-9ac1-0ffb2e7f8b8b"
+        },
+        {
+          "value": "bleeding out",
+          "definition": "bleeding",
+          "ch_matrix_id": "90bc5d04-884e-40a3-bac7-b519053e6a8b"
+        },
+        {
+          "value": "won't stop bleeding",
+          "definition": "bleeding",
+          "ch_matrix_id": "ab5a7647-834d-4927-83c0-507db27ddc42"
+        },
+        {
+          "value": "unconscious",
+          "definition": "consciousness",
+          "ch_matrix_id": "35305514-1d88-448c-a83d-4479bc0b6ebf"
+        },
+        {
+          "value": "passed out",
+          "definition": "consciousness",
+          "ch_matrix_id": "1ca046ef-654c-4995-960a-fab0b5ff9a23"
+        },
+        {
+          "value": "unresponsive",
+          "definition": "consciousness",
+          "ch_matrix_id": "2d043b5b-19e2-41c4-9298-3451b08b2f1b"
+        },
+        {
+          "value": "overdose",
+          "definition": "overdose",
+          "ch_matrix_id": "6408cbe2-cb52-4317-80b9-dc8f82fc7948"
+        },
+        {
+          "value": "took too many",
+          "definition": "overdose",
+          "ch_matrix_id": "ae2cb0d0-8c0c-476c-91f8-faf7b4a3a6fe"
+        },
+        {
+          "value": "took too much",
+          "definition": "overdose",
+          "ch_matrix_id": "fbb74651-c16c-4cef-82d9-09a8eaa4592c"
+        },
+        {
+          "value": "suicide",
+          "definition": "suicide",
+          "ch_matrix_id": "3eb6ae54-920e-4ad5-920a-e53258958025"
+        },
+        {
+          "value": "suicidal",
+          "definition": "suicide",
+          "ch_matrix_id": "de645f16-452c-494b-a239-eaa5aa45c068"
+        },
+        {
+          "value": "kill myself",
+          "definition": "suicide",
+          "ch_matrix_id": "f937bc3c-043f-49b5-a54d-d42634fdb1af"
+        },
+        {
+          "value": "end my life",
+          "definition": "suicide",
+          "ch_matrix_id": "e0f46df4-52f1-4ad0-b83a-e71185eaa94b"
+        },
+        {
+          "value": "seizure",
+          "definition": "seizure",
+          "ch_matrix_id": "1406136a-95b6-41e8-9eed-3f06633c3505"
+        },
+        {
+          "value": "convulsing",
+          "definition": "seizure",
+          "ch_matrix_id": "6ebd03c6-6c8c-4208-a99a-1ade5ef11c84"
+        },
+        {
+          "value": "severe allergic reaction",
+          "definition": "allergic",
+          "ch_matrix_id": "9cb1f645-75e8-47e8-9d4d-055c3424bb8f"
+        },
+        {
+          "value": "anaphylaxis",
+          "definition": "allergic",
+          "ch_matrix_id": "59b87ffc-9320-4c82-af0b-86bc6689e0db"
+        },
+        {
+          "value": "throat closing",
+          "definition": "allergic",
+          "ch_matrix_id": "0a2a2721-a0f6-45d0-b8ac-30798ba907fa"
+        },
+        {
+          "value": "choking",
+          "definition": "choking",
+          "ch_matrix_id": "f64e5302-42c6-41dc-9886-82679eef0325"
+        },
+        {
+          "value": "severe burn",
+          "definition": "burns",
+          "ch_matrix_id": "c0e0ad5f-796c-4495-90e8-af4b73feae88"
+        },
+        {
+          "value": "on fire",
+          "definition": "burns",
+          "ch_matrix_id": "f776b09f-712b-43ea-a156-ff96b2264592"
+        },
+        {
+          "value": "chemical burn",
+          "definition": "burns",
+          "ch_matrix_id": "3be7fc78-e3b7-450f-ab19-759463bbf114"
+        },
+        {
+          "value": "third degree burn",
+          "definition": "burns",
+          "ch_matrix_id": "1f6c3453-a092-452e-bf3c-2ed63c45cdb3"
+        },
+        {
+          "value": "drowning",
+          "definition": "drowning",
+          "ch_matrix_id": "04625bba-5d38-4b80-9cb3-a4b1d04bf7a9"
+        },
+        {
+          "value": "pulled from water",
+          "definition": "drowning",
+          "ch_matrix_id": "70f0bbe7-d724-4673-91c8-854191114a5b"
+        },
+        {
+          "value": "underwater",
+          "definition": "drowning",
+          "ch_matrix_id": "405103a8-199f-4351-a698-b594506d05c6"
+        },
+        {
+          "value": "near drowning",
+          "definition": "drowning",
+          "ch_matrix_id": "db87f7fe-d506-41f0-9f4c-269584380194"
+        },
+        {
+          "value": "car accident",
+          "definition": "trauma",
+          "ch_matrix_id": "cabcc43e-8674-43b3-8535-e11e625490df"
+        },
+        {
+          "value": "gunshot",
+          "definition": "trauma",
+          "ch_matrix_id": "62ded8b1-445b-4635-b38c-3473e240ff13"
+        },
+        {
+          "value": "stabbing",
+          "definition": "trauma",
+          "ch_matrix_id": "8e9aa3cb-265f-4846-ba3d-15f4b34b9eaa"
+        },
+        {
+          "value": "severe injury",
+          "definition": "trauma",
+          "ch_matrix_id": "e9ec3277-a854-4a3d-a884-c0ef1a245dd1"
+        },
+        {
+          "value": "head injury",
+          "definition": "trauma",
+          "ch_matrix_id": "9b8722ec-382d-46ed-a1c9-a07ca18ea09a"
+        },
+        {
+          "value": "major trauma",
+          "definition": "trauma",
+          "ch_matrix_id": "b798c5a8-b891-4721-b631-037635531b81"
+        },
+        {
+          "value": "hit by car",
+          "definition": "trauma",
+          "ch_matrix_id": "452dccae-3415-48f4-ad24-c745c7032760"
+        },
+        {
+          "value": "blood sugar",
+          "definition": "diabetic",
+          "ch_matrix_id": "d8910420-d76b-4b96-939f-62435f540453"
+        },
+        {
+          "value": "diabetic coma",
+          "definition": "diabetic",
+          "ch_matrix_id": "1dc4b00a-f47e-40ef-a5c6-3afbdfa3cdbe"
+        },
+        {
+          "value": "diabetic emergency",
+          "definition": "diabetic",
+          "ch_matrix_id": "468aafe6-c10d-4e36-910b-287835d10d2f"
+        },
+        {
+          "value": "insulin shock",
+          "definition": "diabetic",
+          "ch_matrix_id": "28590639-0e9e-4663-9fec-b0cff2c9345a"
+        },
+        {
+          "value": "hypoglycemic",
+          "definition": "diabetic",
+          "ch_matrix_id": "b6f0f58f-6cc9-4a20-9e16-62c54e58f174"
+        },
+        {
+          "value": "in labor",
+          "definition": "childbirth",
+          "ch_matrix_id": "a6ef9004-7372-4979-93f4-660af75ccff2"
+        },
+        {
+          "value": "water broke",
+          "definition": "childbirth",
+          "ch_matrix_id": "98109b16-0353-45d1-b972-01e57af7825e"
+        },
+        {
+          "value": "baby coming",
+          "definition": "childbirth",
+          "ch_matrix_id": "98fd5312-7a4f-4072-9d73-ff87017fc54c"
+        },
+        {
+          "value": "giving birth",
+          "definition": "childbirth",
+          "ch_matrix_id": "d1294302-c1b1-4ee3-9eec-490dd73dd55e"
+        },
+        {
+          "value": "premature labor",
+          "definition": "childbirth",
+          "ch_matrix_id": "64a31b50-ea00-4c69-b4c3-c19f1e543e63"
+        }
       ],
       "invoked_by": {
         "source_files": [
-          {"file": "Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py", "function": "EmergencyDetector", "note": "Dual-trigger: keyword match OR semantic classifier. Loaded at startup from brain JSON."}
+          {
+            "file": "Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py",
+            "function": "EmergencyDetector",
+            "note": "Dual-trigger: keyword match OR semantic classifier. Loaded at startup from brain JSON."
+          }
         ],
-        "stories": ["EPIC-8"]
-      }
+        "stories": [
+          "EPIC-8"
+        ]
+      },
+      "ch_matrix_id": "8987b44a-4202-4c29-8e35-d886d5d16155"
     },
     {
       "vocabulary_id": "CV-007",
       "name": "governance_propensity",
       "definition": "Immutable governance response labels. Five levels spanning two scopes (system and session). Each label maps to a fixed propensity. Used in the governance matrix — every cell in the matrix must be one of these five values. Labels are subjective assignments today — research story pending to validate each cell.",
       "members": [
-        {"value": "system_abend", "definition": "System-level abend. All users, all sessions, all environments stop. The system is non-compliant and must not serve until resolved. Flag set globally — every hook returns continue:false. GOV-015: governance is universal and immediate."},
-        {"value": "session_abend", "definition": "Session-level abend. This Claude session stops (continue:false). System keeps running. Other users unaffected. The session violated a constraint that cannot be recovered within the session."},
-        {"value": "environment_abend", "definition": "Environment-aware abend. Check current environment context. Abend if the constraint applies in this environment."},
-        {"value": "system_warning", "definition": "System-level warning. Logged system-wide. Boss alerted. All sessions see it. Proceed with caution. The constraint is at risk across the system."},
-        {"value": "session_warning", "definition": "Session-level warning. Logged locally to this session. Claude proceeds with caution. The constraint is relevant but not blocking."},
-        {"value": "environment_warning", "definition": "Environment-aware warning. Check current environment context. Warn if the constraint applies in this environment."},
-        {"value": "environment_display", "definition": "Environment-aware display. Show environment context to the user (e.g. red dev banner). Not a warning or risk — presentation behavior."},
-        {"value": "allow", "definition": "Good event. Proceed. No action needed. The constraint is either not relevant or fully satisfied."}
+        {
+          "value": "system_abend",
+          "definition": "System-level abend. All users, all sessions, all environments stop. The system is non-compliant and must not serve until resolved. Flag set globally — every hook returns continue:false. GOV-015: governance is universal and immediate.",
+          "ch_matrix_id": "f985b164-2928-4e21-a3de-3015747404fc"
+        },
+        {
+          "value": "session_abend",
+          "definition": "Session-level abend. This Claude session stops (continue:false). System keeps running. Other users unaffected. The session violated a constraint that cannot be recovered within the session.",
+          "ch_matrix_id": "035dfe40-ecce-4daa-81dd-afcc062ddbc9"
+        },
+        {
+          "value": "environment_abend",
+          "definition": "Environment-aware abend. Check current environment context. Abend if the constraint applies in this environment.",
+          "ch_matrix_id": "9e153de8-8a56-490f-85f0-0c4753b3288e"
+        },
+        {
+          "value": "system_warning",
+          "definition": "System-level warning. Logged system-wide. Boss alerted. All sessions see it. Proceed with caution. The constraint is at risk across the system.",
+          "ch_matrix_id": "03bf5b52-7990-47ec-aef3-9e393a61eeaf"
+        },
+        {
+          "value": "session_warning",
+          "definition": "Session-level warning. Logged locally to this session. Claude proceeds with caution. The constraint is relevant but not blocking.",
+          "ch_matrix_id": "ea31964d-eba4-4e35-80a5-f7d2eb8f672d"
+        },
+        {
+          "value": "environment_warning",
+          "definition": "Environment-aware warning. Check current environment context. Warn if the constraint applies in this environment.",
+          "ch_matrix_id": "6608431a-6bc3-4085-ab28-4f765689a045"
+        },
+        {
+          "value": "environment_display",
+          "definition": "Environment-aware display. Show environment context to the user (e.g. red dev banner). Not a warning or risk — presentation behavior.",
+          "ch_matrix_id": "fd34a16d-813e-4705-bcce-20dbbdccba49"
+        },
+        {
+          "value": "allow",
+          "definition": "Good event. Proceed. No action needed. The constraint is either not relevant or fully satisfied.",
+          "ch_matrix_id": "4abb6ff7-3f0e-471b-9579-62ef084bab75"
+        }
       ],
       "invoked_by": {
         "source_files": [
-          {"file": "Code/Shared/ops/tools/chathealthy_devops_boot.py", "function": "chathealthy_devops_boot", "note": "Governance matrix reads labels to determine compliance response per JSON per action event."}
+          {
+            "file": "Code/Shared/ops/tools/chathealthy_devops_boot.py",
+            "function": "chathealthy_devops_boot",
+            "note": "Governance matrix reads labels to determine compliance response per JSON per action event."
+          }
         ],
         "stories": []
-      }
+      },
+      "ch_matrix_id": "1c1847f5-d2c2-412d-8d65-d72110050118"
     }
-  ]
+  ],
+  "ch_matrix_id": "c279a5f7-f10a-4103-b5f4-06a45ebb071a"
 }

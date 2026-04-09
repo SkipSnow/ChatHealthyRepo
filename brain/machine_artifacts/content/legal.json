@@ -52,23 +52,25 @@
       "_record_id": "ip_agreement_inputs",
       "_source_file": "ip_agreement_inputs.json",
       "description": "Input parameters for IP license agreement generation.",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "a971ca25-16af-4226-94ed-2727c36f70fe"
     },
     {
-      "title": "IP License Agreement \u2014 FindCare Evaluation License (FEL-1.0)",
+      "title": "IP License Agreement — FindCare Evaluation License (FEL-1.0)",
       "record_type": "ip_agreement",
       "collection": "legal",
       "date": "2026-03-28",
       "version": "v11 (draft)",
       "business_artifact_pdf": "brain/BusinessArtifacts/ip_license_agreement_draft_v11.pdf",
       "business_artifact_docx": "brain/BusinessArtifacts/ip_license_agreement_draft_v11.pdf.docx",
-      "suggested_home_for_docx": "legal/ collection \u2014 editable source alongside the PDF",
-      "status": "draft \u2014 pending legal review",
+      "suggested_home_for_docx": "legal/ collection — editable source alongside the PDF",
+      "status": "draft — pending legal review",
       "_record_id": "ip_license_agreement",
       "_source_file": "ip_license_agreement.json",
       "description": "FindCare Evaluation License (FEL-1.0) v11 draft. Pending legal review.",
       "publish": false,
-      "business_artifact": "brain/BusinessArtifacts/ip_license_agreement_draft_v11.pdf"
+      "business_artifact": "brain/BusinessArtifacts/ip_license_agreement_draft_v11.pdf",
+      "ch_matrix_id": "73356450-ec9a-4de3-a1e2-8c55561167fa"
     },
     {
       "document": "Revocable Intellectual Property License Agreement",
@@ -93,7 +95,8 @@
       "_record_id": "ip_license_signoff",
       "_source_file": "ip_license_signoff.json",
       "description": "IP license sign-off tracking. Status and approvals.",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "265173d9-9466-486e-a896-a0ee0dc86fc7"
     },
     {
       "title": "Pending Legal Questions - FindCare v0.1.2+",
@@ -107,7 +110,8 @@
           "risk": "Medium - currently operating under assumption that HIPAA emergency exception applies",
           "status": "open",
           "raised_by": "Skip Snow",
-          "date_raised": "2026-03-28"
+          "date_raised": "2026-03-28",
+          "ch_matrix_id": "ce57b8ef-defb-41bc-83a3-f85cbb8a74a1"
         },
         {
           "id": "LEG-002",
@@ -117,7 +121,8 @@
           "risk": "High - LLM may miss identifiers, no automated verification",
           "status": "open",
           "raised_by": "Claude Opus 4.6",
-          "date_raised": "2026-03-28"
+          "date_raised": "2026-03-28",
+          "ch_matrix_id": "204877cf-862a-4509-bb3d-5c37a1e96c00"
         },
         {
           "id": "LEG-003",
@@ -127,9 +132,11 @@
           "risk": "Medium - may not meet evidentiary standard for consent",
           "status": "open",
           "raised_by": "Claude Opus 4.6",
-          "date_raised": "2026-03-28"
+          "date_raised": "2026-03-28",
+          "ch_matrix_id": "e4efd393-4fe6-49c1-b10f-bf283e1a2993"
         }
-      ]
+      ],
+      "ch_matrix_id": "4680b7a3-bd08-4180-b341-d6aa52e7efc6"
     },
     {
       "title": "UMLS Terminology Services License",
@@ -138,7 +145,14 @@
       "applicant": "Skip Snow",
       "entity": "ChatHealthy.ai LLC",
       "licensor": "U.S. National Library of Medicine (NLM)",
-      "scope": ["UMLS", "RxNorm", "SNOMED CT - US Edition", "LOINC", "MeSH", "CPT"],
+      "scope": [
+        "UMLS",
+        "RxNorm",
+        "SNOMED CT - US Edition",
+        "LOINC",
+        "MeSH",
+        "CPT"
+      ],
       "expected_approval": "within 3 business days (by 2026-04-10)",
       "note": "NLM is reviewing the request. Once approved, email will be sent with access to UMLS Terminology Services (UTS) authentication. Required for crosswalk_builder.py UMLS integration (currently commented out). No cost. Annual usage report due each January.",
       "blocks": "crosswalk_builder.py UMLS path — currently using DrugCentral as partial substitute (~60-70% coverage)",
@@ -193,7 +207,8 @@
             "Audit all search output to ensure no raw vocabulary extraction possible"
           ]
         }
-      }
+      },
+      "ch_matrix_id": "f5d077d4-f83e-4dc0-99f1-e797be2fa322"
     },
     {
       "title": "Pending Legal Questions - FindCare v0.1.2+",
@@ -202,7 +217,8 @@
       "_source_file": "pending_legal_questions.json",
       "description": "Open legal questions: FDA classification, DeepSeek disclosure, consent wording.",
       "business_artifact": "brain/BusinessArtifacts/pending_legal_questions.pdf",
-      "publish": false
+      "publish": false,
+      "ch_matrix_id": "071ddc46-002e-48eb-ad24-eff3b8c1b29e"
     }
   ]
 }

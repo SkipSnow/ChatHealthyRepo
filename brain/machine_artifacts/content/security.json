@@ -37,7 +37,8 @@
         "title": "FindCare → EvaluateCare Provider Evaluation Handoff",
         "description": "Sample inter-component handoff demonstrating the security architecture in action. FindCare returns providers, user opts into evaluation, FindCare builds a handoff payload (chat history, provider list, user DB reference for paid users only, encrypted cookie stats) and sends it to EvaluateCare over mTLS. EvaluateCare resolves user context, scores providers against quality signals, and paints the chat screen via postMessage. This flow exercises mTLS, SecretManager, cookie encryption, conditional DB access, and the GOV-011 principle (AI translates, system answers).",
         "diagram_svg": "brain/machine_artifacts/diagrams/rendered/findcare_evalcare_handoff_sequence.svg",
-        "website_svg": "Website/Images/findcare_evalcare_handoff_sequence.svg"
+        "website_svg": "Website/Images/findcare_evalcare_handoff_sequence.svg",
+        "ch_matrix_id": "df8098d1-dec4-4a69-af83-abc832fffaa5"
       },
       "local_security_architecture": {
         "description": "The local development environment mirrors production security boundaries. All inter-service communication uses mutual TLS — Caddy acts as the single entry point, terminating TLS for consumers and enforcing mTLS for service-to-service traffic. No service binds directly to a consumer-accessible port without Caddy mediation. Three backend services (FindCare :8000, EvaluateCare :8001, Shared Services :8002) communicate exclusively through mTLS-authenticated channels. The SecretManager component in Shared Services authenticates to Azure Key Vault using an x509 certificate registered with Azure AD. The private key resides on local disk in a directory excluded from git. At startup, SecretManager fetches all credentials (MongoDB connection strings, API keys, mTLS certificates) from Key Vault and serves them to FindCare and EvaluateCare over mTLS. No service holds API keys or connection strings in its own configuration, environment variables, or code. The encrypted secure cookie (AES-256, HttpOnly, Secure, SameSite=Strict) tracks visit frequency and query patterns with a 90-day auto-delete TTL. The admin website is gated behind basic authentication locally, addressing Perplexity audit finding F-13 (architecture docs publicly accessible).",
@@ -50,7 +51,8 @@
           "Admin site auth-gated (F-13)",
           "Cookie: AES-256, HttpOnly, Secure, SameSite=Strict, 90-day TTL",
           "DR-009: zombie process cleanup before port binding"
-        ]
+        ],
+        "ch_matrix_id": "0a3e50eb-1a2f-401e-b3d0-056871b85495"
       },
       "deployed_security_architecture": {
         "description": "The deployed architecture eliminates all bearer tokens from the credential chain. HuggingFace Spaces (9 spaces: 3 services x 3 environments) authenticate to Azure Key Vault using x509 certificates registered with Azure AD — each Space holds one certificate (the private key in HF Secrets) instead of six API keys. Azure Functions authenticate to Key Vault via Managed Identity, which requires zero credentials — Azure handles authentication internally through the instance metadata service. This is the most secure authentication mechanism available on Azure. Azure Key Vault is FedRAMP High authorized, HIPAA BAA eligible, and uses FIPS 140-2 Level 2 validated HSMs for key storage. Public access to Key Vault is disabled — access is restricted to Azure VNet private endpoints and authorized x509 certificate holders. The Azure VNet provides network isolation with separate subnets for DataPipelines, BIZOperations, and private endpoints. An Azure Firewall enforces deny-all default egress, allowing only explicitly listed destinations (MongoDB Atlas, Anthropic, OpenAI, HuggingFace, SparkPost). All firewall traffic is logged for audit. MongoDB Atlas clusters are accessible only via Azure Private Endpoints and Skip's static IP — no public internet exposure. Cloudflare provides TLS termination, HSTS, DDoS protection, and Cloudflare Access for the admin site. All inter-service traffic between HuggingFace Spaces uses mTLS with certificates fetched from Key Vault at startup.",
@@ -67,7 +69,8 @@
           "mTLS between all HuggingFace Spaces",
           "Managed Identity for Azure Functions (zero credentials)",
           "HF Spaces: one x509 cert per Space instead of six API keys"
-        ]
+        ],
+        "ch_matrix_id": "8dc5f4ff-ef9a-4bb2-8a5c-13182c1576a2"
       },
       "compliance_mapping": {
         "nist_800_171": {
@@ -77,47 +80,138 @@
             {
               "family": "3.1 Access Control",
               "controls_satisfied": [
-                {"id": "3.1.1", "control": "Limit system access to authorized users", "how": "mTLS client certificates restrict service-to-service access. Key Vault access policies limit secret retrieval to registered certificates and Managed Identities."},
-                {"id": "3.1.2", "control": "Limit system access to authorized transactions and functions", "how": "ToolRouter allowlist restricts tool execution (F-05 fix). SharedServicesFacade exposes only defined methods."},
-                {"id": "3.1.3", "control": "Control the flow of CUI", "how": "Azure Firewall deny-all default with explicit allowlist. Private endpoints prevent CUI from traversing public internet. MongoDB IP allowlist."},
-                {"id": "3.1.13", "control": "Employ cryptographic mechanisms to protect confidentiality of remote access sessions", "how": "mTLS on all inter-service. TLS 1.2 minimum on Cloudflare. x509 cert auth to Key Vault."},
-                {"id": "3.1.17", "control": "Protect wireless access using authentication and encryption", "how": "Not applicable — no wireless access in architecture. All traffic over TLS/mTLS."}
+                {
+                  "id": "3.1.1",
+                  "control": "Limit system access to authorized users",
+                  "how": "mTLS client certificates restrict service-to-service access. Key Vault access policies limit secret retrieval to registered certificates and Managed Identities.",
+                  "ch_matrix_id": "2c3ebf16-3e68-4a10-baf1-6a1e71e35843"
+                },
+                {
+                  "id": "3.1.2",
+                  "control": "Limit system access to authorized transactions and functions",
+                  "how": "ToolRouter allowlist restricts tool execution (F-05 fix). SharedServicesFacade exposes only defined methods.",
+                  "ch_matrix_id": "eecf9b36-8c69-4813-8c9e-acff9ca47510"
+                },
+                {
+                  "id": "3.1.3",
+                  "control": "Control the flow of CUI",
+                  "how": "Azure Firewall deny-all default with explicit allowlist. Private endpoints prevent CUI from traversing public internet. MongoDB IP allowlist.",
+                  "ch_matrix_id": "ea1e4aac-1e19-4a29-a4c9-c606fee35a17"
+                },
+                {
+                  "id": "3.1.13",
+                  "control": "Employ cryptographic mechanisms to protect confidentiality of remote access sessions",
+                  "how": "mTLS on all inter-service. TLS 1.2 minimum on Cloudflare. x509 cert auth to Key Vault.",
+                  "ch_matrix_id": "e133480c-2398-455a-82d0-c0b33e060ea9"
+                },
+                {
+                  "id": "3.1.17",
+                  "control": "Protect wireless access using authentication and encryption",
+                  "how": "Not applicable — no wireless access in architecture. All traffic over TLS/mTLS.",
+                  "ch_matrix_id": "7b2c0493-532e-49f7-8439-c419530280ee"
+                }
               ]
             },
             {
               "family": "3.5 Identification and Authentication",
               "controls_satisfied": [
-                {"id": "3.5.1", "control": "Identify system users, processes, and devices", "how": "x509 certificates identify each service (FindCare, EvaluateCare, Shared Services). Managed Identity identifies Azure Functions. CAC/PKI identifies federal beneficiaries (future)."},
-                {"id": "3.5.2", "control": "Authenticate users, processes, and devices", "how": "mTLS mutual authentication. x509 cert auth to Azure AD for Key Vault. Managed Identity for Azure Functions. OAuth 2.0 with PKCE for end users (EPIC-6)."},
-                {"id": "3.5.3", "control": "Use multifactor authentication", "how": "Cloudflare account: MFA enforced (SEC-CF-005). End users: OAuth social login (inherits provider MFA). CAC/PKI: hardware token + PIN (inherent MFA)."},
-                {"id": "3.5.10", "control": "Store and transmit only cryptographically-protected passwords", "how": "No passwords in the system. All authentication is certificate-based or Managed Identity. API keys stored in Key Vault (FIPS 140-2 L2 HSM), transmitted only over mTLS."}
+                {
+                  "id": "3.5.1",
+                  "control": "Identify system users, processes, and devices",
+                  "how": "x509 certificates identify each service (FindCare, EvaluateCare, Shared Services). Managed Identity identifies Azure Functions. CAC/PKI identifies federal beneficiaries (future).",
+                  "ch_matrix_id": "a327685b-465b-4a07-8148-50fd104816f1"
+                },
+                {
+                  "id": "3.5.2",
+                  "control": "Authenticate users, processes, and devices",
+                  "how": "mTLS mutual authentication. x509 cert auth to Azure AD for Key Vault. Managed Identity for Azure Functions. OAuth 2.0 with PKCE for end users (EPIC-6).",
+                  "ch_matrix_id": "472184ff-0289-4815-94a2-63da5341a923"
+                },
+                {
+                  "id": "3.5.3",
+                  "control": "Use multifactor authentication",
+                  "how": "Cloudflare account: MFA enforced (SEC-CF-005). End users: OAuth social login (inherits provider MFA). CAC/PKI: hardware token + PIN (inherent MFA).",
+                  "ch_matrix_id": "3ada0951-1f7a-4bdd-be6e-68317761418f"
+                },
+                {
+                  "id": "3.5.10",
+                  "control": "Store and transmit only cryptographically-protected passwords",
+                  "how": "No passwords in the system. All authentication is certificate-based or Managed Identity. API keys stored in Key Vault (FIPS 140-2 L2 HSM), transmitted only over mTLS.",
+                  "ch_matrix_id": "155bf574-785f-4c59-b18e-35fdbd55068f"
+                }
               ]
             },
             {
               "family": "3.8 Media Protection",
               "controls_satisfied": [
-                {"id": "3.8.1", "control": "Protect system media containing CUI", "how": "No CUI on local disk except ephemeral in-memory processing. MongoDB at rest encryption. Key Vault HSM-backed storage. Brain JSON on local disk is not CUI — it is governance/SDLC data."},
-                {"id": "3.8.6", "control": "Implement cryptographic mechanisms to protect CUI on portable media", "how": "Secure cookie: AES-256 encrypted. No other portable media in architecture."}
+                {
+                  "id": "3.8.1",
+                  "control": "Protect system media containing CUI",
+                  "how": "No CUI on local disk except ephemeral in-memory processing. MongoDB at rest encryption. Key Vault HSM-backed storage. Brain JSON on local disk is not CUI — it is governance/SDLC data.",
+                  "ch_matrix_id": "a6bd8eb8-a366-4778-8cd7-58f8da1f3246"
+                },
+                {
+                  "id": "3.8.6",
+                  "control": "Implement cryptographic mechanisms to protect CUI on portable media",
+                  "how": "Secure cookie: AES-256 encrypted. No other portable media in architecture.",
+                  "ch_matrix_id": "00fa5461-69d9-4181-9b9b-a780b3f5bbe7"
+                }
               ]
             },
             {
               "family": "3.13 System and Communications Protection",
               "controls_satisfied": [
-                {"id": "3.13.1", "control": "Monitor, control, and protect communications at external system boundaries", "how": "Azure Firewall at VNet boundary. Cloudflare WAF at public boundary. mTLS at service boundary."},
-                {"id": "3.13.5", "control": "Implement subnetworks for publicly accessible system components", "how": "Azure VNet with separate subnets for DataPipelines, BIZOperations, and Private Endpoints. NSG per subnet."},
-                {"id": "3.13.8", "control": "Implement cryptographic mechanisms to prevent unauthorized disclosure of CUI during transmission", "how": "mTLS (mutual TLS) on all inter-service traffic. TLS 1.2 minimum on all external connections. x509 cert auth — private keys never transmitted."},
-                {"id": "3.13.11", "control": "Employ FIPS-validated cryptography when used to protect confidentiality of CUI", "how": "Azure Key Vault uses FIPS 140-2 Level 2 validated HSMs. AES-256 for cookie encryption."}
+                {
+                  "id": "3.13.1",
+                  "control": "Monitor, control, and protect communications at external system boundaries",
+                  "how": "Azure Firewall at VNet boundary. Cloudflare WAF at public boundary. mTLS at service boundary.",
+                  "ch_matrix_id": "20056c96-c4cd-41ac-9996-258078d1204c"
+                },
+                {
+                  "id": "3.13.5",
+                  "control": "Implement subnetworks for publicly accessible system components",
+                  "how": "Azure VNet with separate subnets for DataPipelines, BIZOperations, and Private Endpoints. NSG per subnet.",
+                  "ch_matrix_id": "a91480a3-33bd-40a4-b2b1-af8a130be566"
+                },
+                {
+                  "id": "3.13.8",
+                  "control": "Implement cryptographic mechanisms to prevent unauthorized disclosure of CUI during transmission",
+                  "how": "mTLS (mutual TLS) on all inter-service traffic. TLS 1.2 minimum on all external connections. x509 cert auth — private keys never transmitted.",
+                  "ch_matrix_id": "ea942e7d-c9e0-4d74-b00f-2fdd54f435fe"
+                },
+                {
+                  "id": "3.13.11",
+                  "control": "Employ FIPS-validated cryptography when used to protect confidentiality of CUI",
+                  "how": "Azure Key Vault uses FIPS 140-2 Level 2 validated HSMs. AES-256 for cookie encryption.",
+                  "ch_matrix_id": "5ed9581e-cfc2-45ec-9e28-4b39faa01667"
+                }
               ]
             },
             {
               "family": "3.14 System and Information Integrity",
               "controls_satisfied": [
-                {"id": "3.14.1", "control": "Identify, report, and correct system flaws in a timely manner", "how": "Perplexity external audits (EXT-AUDIT-001, EXT-AUDIT-002). Development rules (DR-*) capture and enforce incident learnings. EPIC-4 backlog tracks all findings."},
-                {"id": "3.14.6", "control": "Monitor system security alerts and advisories", "how": "Cloudflare Security Insights (11 findings tracked). Azure Application Insights for runtime monitoring. Firewall audit logging."},
-                {"id": "3.14.7", "control": "Identify unauthorized use of the system", "how": "MongoDB audit logging. Key Vault access logging. Firewall denied-traffic logging. Safety system IP lockout with audit trail."}
+                {
+                  "id": "3.14.1",
+                  "control": "Identify, report, and correct system flaws in a timely manner",
+                  "how": "Perplexity external audits (EXT-AUDIT-001, EXT-AUDIT-002). Development rules (DR-*) capture and enforce incident learnings. EPIC-4 backlog tracks all findings.",
+                  "ch_matrix_id": "21cc5311-16d1-4896-8444-f268aee94b22"
+                },
+                {
+                  "id": "3.14.6",
+                  "control": "Monitor system security alerts and advisories",
+                  "how": "Cloudflare Security Insights (11 findings tracked). Azure Application Insights for runtime monitoring. Firewall audit logging.",
+                  "ch_matrix_id": "2e6c4221-9b87-4da6-857c-431ad2792b12"
+                },
+                {
+                  "id": "3.14.7",
+                  "control": "Identify unauthorized use of the system",
+                  "how": "MongoDB audit logging. Key Vault access logging. Firewall denied-traffic logging. Safety system IP lockout with audit trail.",
+                  "ch_matrix_id": "31673af6-6a97-4f55-bcd4-c6f87aa2652d"
+                }
               ]
             }
-          ]
+          ],
+          "ch_matrix_id": "a36e5688-0c93-4f8e-b27c-653975a1d13f"
         },
         "hitrust_csf": {
           "title": "HITRUST CSF v11 — Healthcare-Specific Security Framework",
@@ -126,42 +220,108 @@
             {
               "domain": "01 Information Security Management Program",
               "controls_satisfied": [
-                {"id": "01.a", "control": "Information Security Management Program", "how": "The Brain (App 4) functions as the ISMS — governance policies (GOV-001 through GOV-014), operating rules (v4-001 through v4-020), risk acceptance register, external audit registry, and continuous improvement KPIs (IDEA-004)."}
+                {
+                  "id": "01.a",
+                  "control": "Information Security Management Program",
+                  "how": "The Brain (App 4) functions as the ISMS — governance policies (GOV-001 through GOV-014), operating rules (v4-001 through v4-020), risk acceptance register, external audit registry, and continuous improvement KPIs (IDEA-004).",
+                  "ch_matrix_id": "011d21b4-7316-4a36-ac7d-c78e817f6399"
+                }
               ]
             },
             {
               "domain": "05 Access Control",
               "controls_satisfied": [
-                {"id": "05.a", "control": "Business requirement for access control", "how": "Zero-trust: all services authenticate via mTLS. Key Vault access requires x509 cert or Managed Identity. MongoDB requires VNet PE or IP allowlist."},
-                {"id": "05.d", "control": "Password management", "how": "No passwords in system. Certificate-based auth eliminates password lifecycle entirely."},
-                {"id": "05.i", "control": "Policy on use of network services", "how": "Azure Firewall deny-all default. NSG per subnet. Only explicitly allowed destinations."},
-                {"id": "05.j", "control": "User identification and authentication", "how": "x509 for services. OAuth 2.0 + PKCE for consumers. CAC/PKI for federal users (future). Managed Identity for Azure."}
+                {
+                  "id": "05.a",
+                  "control": "Business requirement for access control",
+                  "how": "Zero-trust: all services authenticate via mTLS. Key Vault access requires x509 cert or Managed Identity. MongoDB requires VNet PE or IP allowlist.",
+                  "ch_matrix_id": "b8c45ca0-25ae-409a-af2f-d978834cf539"
+                },
+                {
+                  "id": "05.d",
+                  "control": "Password management",
+                  "how": "No passwords in system. Certificate-based auth eliminates password lifecycle entirely.",
+                  "ch_matrix_id": "7c0f619c-151b-4a8f-a4ac-5705a919adcf"
+                },
+                {
+                  "id": "05.i",
+                  "control": "Policy on use of network services",
+                  "how": "Azure Firewall deny-all default. NSG per subnet. Only explicitly allowed destinations.",
+                  "ch_matrix_id": "fbde4f93-5396-49aa-bd93-ab3d7524ca1f"
+                },
+                {
+                  "id": "05.j",
+                  "control": "User identification and authentication",
+                  "how": "x509 for services. OAuth 2.0 + PKCE for consumers. CAC/PKI for federal users (future). Managed Identity for Azure.",
+                  "ch_matrix_id": "59728d8c-1d44-43d9-b16e-241692303ee7"
+                }
               ]
             },
             {
               "domain": "06 Cryptography",
               "controls_satisfied": [
-                {"id": "06.d", "control": "Cryptographic controls", "how": "mTLS (TLS 1.2+), AES-256 cookie encryption, FIPS 140-2 L2 HSM in Key Vault, x509 certificate auth. No custom cryptography — all industry-standard."},
-                {"id": "06.f", "control": "Key management", "how": "Azure Key Vault is the single key management system. Certificate rotation via dual-cert acceptance window. Secrets cached in-memory with TTL. Keys never on disk except local dev private key (.gitignore)."}
+                {
+                  "id": "06.d",
+                  "control": "Cryptographic controls",
+                  "how": "mTLS (TLS 1.2+), AES-256 cookie encryption, FIPS 140-2 L2 HSM in Key Vault, x509 certificate auth. No custom cryptography — all industry-standard.",
+                  "ch_matrix_id": "c45ff927-7b2d-4a8e-b29b-adad946ec618"
+                },
+                {
+                  "id": "06.f",
+                  "control": "Key management",
+                  "how": "Azure Key Vault is the single key management system. Certificate rotation via dual-cert acceptance window. Secrets cached in-memory with TTL. Keys never on disk except local dev private key (.gitignore).",
+                  "ch_matrix_id": "28bd3652-3484-46df-9c92-7e932234d158"
+                }
               ]
             },
             {
               "domain": "09 Communications and Operations Management",
               "controls_satisfied": [
-                {"id": "09.m", "control": "Network controls", "how": "Azure VNet with subnets, NSGs, firewall. Private endpoints for Key Vault and MongoDB. Cloudflare DDoS and WAF for public surface."},
-                {"id": "09.s", "control": "Information exchange policies and procedures", "how": "GOV-011: AI translates, system answers. GOV-012: environment isolation. v4-006: deploy authority. All data flows documented in architecture."},
-                {"id": "09.ab", "control": "Monitoring system use", "how": "Azure Firewall audit logs. Key Vault access logs. MongoDB audit. Application Insights. Safety system audit trail."}
+                {
+                  "id": "09.m",
+                  "control": "Network controls",
+                  "how": "Azure VNet with subnets, NSGs, firewall. Private endpoints for Key Vault and MongoDB. Cloudflare DDoS and WAF for public surface.",
+                  "ch_matrix_id": "d69dc76e-f75e-4881-a927-1a80faf85447"
+                },
+                {
+                  "id": "09.s",
+                  "control": "Information exchange policies and procedures",
+                  "how": "GOV-011: AI translates, system answers. GOV-012: environment isolation. v4-006: deploy authority. All data flows documented in architecture.",
+                  "ch_matrix_id": "ea5d5fb9-7cb3-4b7b-8590-3f6b8a22c055"
+                },
+                {
+                  "id": "09.ab",
+                  "control": "Monitoring system use",
+                  "how": "Azure Firewall audit logs. Key Vault access logs. MongoDB audit. Application Insights. Safety system audit trail.",
+                  "ch_matrix_id": "ce73bc80-2106-4225-91f3-e1b3b53924fe"
+                }
               ]
             },
             {
               "domain": "10 Information Systems Acquisition, Development, and Maintenance",
               "controls_satisfied": [
-                {"id": "10.a", "control": "Security requirements analysis and specification", "how": "EPIC-4 Security with 8 features, 27 stories, 70+ boolean testable requirements. Perplexity external audits. GOV-007 engineering rules as binding standards."},
-                {"id": "10.f", "control": "Technical review of applications after operating platform changes", "how": "Three-environment promotion (dev, qa, prod). QA gate requires GPT sign-off. Production requires Boss sign-off (GOV-007). Full regression after every architecture change."},
-                {"id": "10.h", "control": "Control of technical vulnerabilities", "how": "Perplexity audit findings tracked in backlog with priority. Cloudflare Security Insights monitored. Development rules (DR-*) encode incident learnings as enforceable standards."}
+                {
+                  "id": "10.a",
+                  "control": "Security requirements analysis and specification",
+                  "how": "EPIC-4 Security with 8 features, 27 stories, 70+ boolean testable requirements. Perplexity external audits. GOV-007 engineering rules as binding standards.",
+                  "ch_matrix_id": "4884dcfd-db1e-42b3-96c0-fbc5bd97751b"
+                },
+                {
+                  "id": "10.f",
+                  "control": "Technical review of applications after operating platform changes",
+                  "how": "Three-environment promotion (dev, qa, prod). QA gate requires GPT sign-off. Production requires Boss sign-off (GOV-007). Full regression after every architecture change.",
+                  "ch_matrix_id": "3237dc36-7956-4b1f-aee2-4134c716488b"
+                },
+                {
+                  "id": "10.h",
+                  "control": "Control of technical vulnerabilities",
+                  "how": "Perplexity audit findings tracked in backlog with priority. Cloudflare Security Insights monitored. Development rules (DR-*) encode incident learnings as enforceable standards.",
+                  "ch_matrix_id": "7fcb0391-31aa-42ad-9926-7fdde01fd3e3"
+                }
               ]
             }
-          ]
+          ],
+          "ch_matrix_id": "ebdc7daf-be0c-4af2-b90a-1fe453b4e697"
         }
       },
       "cui_readiness": {
@@ -178,8 +338,11 @@
           "Formal ATO (Authority to Operate) from the sponsoring federal agency",
           "Legal review by federal healthcare contracts attorney",
           "Potential upgrade to Azure Government (IL4) depending on agency assessment"
-        ]
-      }
+        ],
+        "ch_matrix_id": "ed9106ce-7305-49a4-828a-fa559ed60296"
+      },
+      "ch_matrix_id": "874bc653-daf6-4d37-8eda-24bd70d15c23"
     }
-  ]
+  ],
+  "ch_matrix_id": "4fb3707c-16b4-4278-81b4-99c6391bc42f"
 }
