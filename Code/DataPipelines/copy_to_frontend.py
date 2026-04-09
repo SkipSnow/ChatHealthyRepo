@@ -542,7 +542,7 @@ def copy_chunk(config: dict) -> dict:
 
 
 def copy_providers_only(config: dict) -> dict:
-    """Copy ONLY providers (no static collections). Minimal overhead for large state copies."""
+    """Copy ONLY providers (no static collections). Streams directly — no count_documents."""
     pipeline_conn = os.environ.get("MONGO_connectionString")
     frontend_conn = os.environ.get("MONGO_FRONTEND_connectionString")
     if not pipeline_conn or not frontend_conn:
@@ -559,11 +559,43 @@ def copy_providers_only(config: dict) -> dict:
     pipeline_client = MongoClient(pipeline_conn, serverSelectionTimeoutMS=60_000)
     frontend_client = MongoClient(frontend_conn, serverSelectionTimeoutMS=60_000)
     try:
-        result = _copy_collection(
-            pipeline_client[db_name], frontend_client[db_name],
-            "providers", "providers", query=query,
-        )
-        return {"status": "complete", "result": result}
+        src = pipeline_client[db_name]["providers"]
+        dst = frontend_client[db_name]["providers"]
+
+        # Stream directly — no count, no delete, no skip checks
+        cursor = src.find(query, batch_size=BATCH_SIZE, no_cursor_timeout=True)
+        batch = []
+        copied = 0
+        start = time.time()
+
+        try:
+            for doc in cursor:
+                batch.append(doc)
+                if len(batch) >= BATCH_SIZE:
+                    try:
+                        dst.insert_many(batch, ordered=False)
+                    except Exception:
+                        pass  # duplicates OK
+                    copied += len(batch)
+                    elapsed = time.time() - start
+                    rate = copied / elapsed if elapsed > 0 else 0
+                    logging.info("providers(%s): %s copied (%.0f doc/s)",
+                                 ",".join(states), f"{copied:,}", rate)
+                    batch = []
+            if batch:
+                try:
+                    dst.insert_many(batch, ordered=False)
+                except Exception:
+                    pass
+                copied += len(batch)
+        finally:
+            cursor.close()
+
+        elapsed = time.time() - start
+        logging.info("providers(%s): DONE — %s in %.1f s",
+                     ",".join(states), f"{copied:,}", elapsed)
+        return {"status": "complete", "states": states, "copied": copied,
+                "seconds": round(elapsed, 1)}
     finally:
         pipeline_client.close()
         frontend_client.close()
