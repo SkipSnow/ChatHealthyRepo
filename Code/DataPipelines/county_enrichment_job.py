@@ -151,8 +151,8 @@ def _geocode_single_maps(address: str, api_key: str) -> tuple[str | None, str | 
 SPLIT_THRESHOLD = 0.98
 CENSUS_BATCH_URL = "https://geocoding.geo.census.gov/geocoder/geographies/addressbatch"
 GOOGLE_MAPS_GEOCODING_URL = "https://maps.googleapis.com/maps/api/geocode/json"
-CROSSWALK_COLLECTION = "dev_PublicHealthData.ZipCountyCrosswalk"
 _ENV_PREFIX = os.environ.get("ENV_PREFIX", "dev")
+CROSSWALK_COLLECTION = f"{_ENV_PREFIX}_PublicHealthData.ZipCountyCrosswalk"
 PROVIDERS_COLLECTION = f"{_ENV_PREFIX}_PublicHealthData.providers"
 
 # US state/territory abbreviation → 2-digit FIPS (used by Pass 4 to resolve Maps results)
