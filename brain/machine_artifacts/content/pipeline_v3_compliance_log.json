@@ -1,5 +1,6 @@
 {
   "_record_id": "pipeline_v3_compliance_check",
+  "governance_attribute_id": "ch_governance_record_id_8d26aa3a-ee8b-4f03-bef4-df0a3e79b555",
   "title": "Pipeline Architecture v3 — 25-Iteration Compliance Check (Claude + GPT-4.1)",
   "date": "2026-04-08",
   "authors": [

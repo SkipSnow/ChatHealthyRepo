@@ -1,5 +1,6 @@
 {
   "collection": "sprint_plan",
+  "governance_attribute_id": "ch_governance_record_id_2326f467-3633-4a69-82e5-c8267d93c683",
   "record_count": 7,
   "daily_punch_list": {
     "description": "Today's work plan and tomorrow's. Agreed between Boss and Claude at end of session or start of next. Not a backlog. Not a bug tracker. Just what we are doing next.",

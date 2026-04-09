@@ -1,5 +1,6 @@
 {
   "collection": "security",
+  "governance_attribute_id": "ch_governance_record_id_1b04f24c-6c81-46ab-8952-491b3e005c36",
   "description": "Security architecture design, compliance control mappings, and CUI readiness assessment. Authoritative source for all security architecture decisions. Features and requirements are in agile_backlog.json under EPIC-4.",
   "record_count": 1,
   "records": [

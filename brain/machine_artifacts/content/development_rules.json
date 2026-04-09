@@ -1,5 +1,6 @@
 {
   "_record_id": "development_rules",
+  "governance_attribute_id": "ch_governance_record_id_c17a6ab6-6941-474f-9308-d871bde9cf26",
   "title": "Development Rules — Learned the Hard Way",
   "description": "Incident log of lessons learned. Engineering operating rules (claude_operating_rules.xlsx, Version 4) are the authoritative standard per GOV-007 (Engineering Rules Are Standards). Rules in this file that are superseded by v4 have been removed. Remaining entries are either orphan lessons not yet promoted to v4 or bug records.",
   "publish": false,

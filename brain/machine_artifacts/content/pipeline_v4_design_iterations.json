@@ -1,5 +1,6 @@
 {
   "_record_id": "pipeline_v4_design_iterations",
+  "governance_attribute_id": "ch_governance_record_id_60308c67-f344-4580-91ff-a359b60bd871",
   "title": "Pipeline v4 Design Iterations (Claude+GPT-4.1)",
   "date": "2026-04-08",
   "model": "gpt-4.1",

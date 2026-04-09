@@ -1,5 +1,6 @@
 {
   "collection": "unrealized_ideas",
+  "governance_attribute_id": "ch_governance_record_id_e85047f3-d6e4-4be6-8578-0ddc8793ff65",
   "description": "Ideas captured from Boss that are not yet in the backlog. Every idea gets tracked here first, then promoted to a story when prioritized.",
   "ideas": [
     {

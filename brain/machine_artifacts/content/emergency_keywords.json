@@ -1,5 +1,6 @@
 {
   "title": "Emergency Detection Keywords",
+  "governance_attribute_id": "ch_governance_record_id_0b0fdfd2-43f5-49ad-babd-9f3c4b93ee54",
   "version": "2.0",
   "date": "2026-03-30",
   "description": "Config-driven keyword list for SafetyService EmergencyDetector. Dual-trigger OR logic: keyword match OR semantic classifier. F-09 fix: expanded from v1.0.",

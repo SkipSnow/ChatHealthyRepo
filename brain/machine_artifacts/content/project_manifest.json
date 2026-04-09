@@ -1,2170 +1,2174 @@
-[
-  {
-    "project_path": "CLAUDE.md",
-    "size": 508,
-    "content_hash": "27ba1c44decb6cdf",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "b416f2a8-a647-4855-8c56-ca47cffc54dc"
-  },
-  {
-    "project_path": "README.md",
-    "size": 1437,
-    "content_hash": "495ce1d586628c0b",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "5f053ec4-1746-47cc-b990-8cf1e951a69a"
-  },
-  {
-    "project_path": "ROADMAP.md",
-    "size": 9657,
-    "content_hash": "c5159989860d6ba9",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "32fa8b7f-a6ab-483f-a6f7-629473a3b7fd"
-  },
-  {
-    "project_path": "brain_v0.1.3_design.json",
-    "size": 21469,
-    "content_hash": "25cb8956c652f8b2",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "76e509a9-1f1c-4046-9aa7-acc9b2f20156"
-  },
-  {
-    "project_path": "test_debug_filter_orientation.png",
-    "size": 79536,
-    "content_hash": "e883e1846e25de36",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "698587d1-1c85-4309-944a-4256450db95b"
-  },
-  {
-    "project_path": "test_debug_frames.png",
-    "size": 61728,
-    "content_hash": "84c32c5f0e9dffce",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "7e811596-8bdf-48a8-a24d-ac5a7bc7cbbf"
-  },
-  {
-    "project_path": "test_debug_iframe.png",
-    "size": 61704,
-    "content_hash": "b81f64a231e5dd10",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "0ee208d0-0f58-4e0f-82cf-d7d05534c28c"
-  },
-  {
-    "project_path": "test_debug_links.png",
-    "size": 84204,
-    "content_hash": "a701c1231152da49",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "edc473d1-d8a5-4fb3-925a-693fd32bffbf"
-  },
-  {
-    "project_path": "test_debug_scroll.png",
-    "size": 81672,
-    "content_hash": "f3f04567c8bcffba",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "7a9f57ec-0c8f-4961-982d-33703832dd57"
-  },
-  {
-    "project_path": "Analysis/embedding-design-2026-03-24.md",
-    "size": 13313,
-    "content_hash": "c75474cf6b444b83",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "6329cd24-7079-4066-958a-b8acb657309c"
-  },
-  {
-    "project_path": "archive/V0_1/business/SUP-001_hf_build_failure.pdf",
-    "size": 4007,
-    "content_hash": "dbd09ca38d77daef",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "3f1f7806-714c-4495-b9e7-fcfd1ee02e7e"
-  },
-  {
-    "project_path": "archive/V0_1/business/business_model_v1.pdf",
-    "size": 10054,
-    "content_hash": "4d056a7aa5bda1d1",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "5ea80714-f885-461d-ac38-99f2e7e841b6"
-  },
-  {
-    "project_path": "archive/V0_1/business/ip_license_agreement_draft_v11.pdf",
-    "size": 4278,
-    "content_hash": "d03237a6b54fc994",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "c7672373-b7cb-4bef-8e7e-be6433e84010"
-  },
-  {
-    "project_path": "archive/V0_1/business/ip_license_agreement_draft_v11.pdf.docx",
-    "size": 16926,
-    "content_hash": "a04306ccdaa03796",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "85da1198-52bc-42e6-a2cb-8324bbddb4ce"
-  },
-  {
-    "project_path": "archive/V0_1/business/pending_legal_questions.pdf",
-    "size": 7725,
-    "content_hash": "9b2dbe3b8ebe1f72",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "bb5f69e6-cf0a-467b-b014-699f418c4393"
-  },
-  {
-    "project_path": "archive/V0_1/business/qa_report_v012_final.pdf",
-    "size": 4542,
-    "content_hash": "ee3825a83b02a9bc",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "d502f590-80ec-4672-aaaa-e90dd9a8fe40"
-  },
-  {
-    "project_path": "archive/V0_1/legacy_machine_docs/machine_brain_seed.py",
-    "size": 9066,
-    "content_hash": "2ca46d7d5eddb401",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "4a8e4f10-ab19-4e59-8357-fe9675d3cbdc"
-  },
-  {
-    "project_path": "archive/V0_1/legacy_machine_docs/machine_brain_seed_gpt.py",
-    "size": 36119,
-    "content_hash": "41ee1b805cffc82a",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "2733a159-6b37-4a5b-8973-e55e58cda056"
-  },
-  {
-    "project_path": "archive/V0_1/legacy_machine_docs/seed_findcare_requirements.py",
-    "size": 16741,
-    "content_hash": "7bcf6027cbf2e8d0",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "c1fdbacd-0696-4ead-9a9e-5277eb285c79"
-  },
-  {
-    "project_path": "brain/machine_artifacts/code/add_cost_reduction.py",
-    "size": 8110,
-    "content_hash": "7a71157d9c0cdcf0",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "9454d4fa-3b50-48d7-9957-b2d6a1e28a6d"
-  },
-  {
-    "project_path": "brain/machine_artifacts/code/add_maintenance_features.py",
-    "size": 4192,
-    "content_hash": "bf998435b9afc8c9",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "55816419-b3cd-4400-9b29-b829d29e76e0"
-  },
-  {
-    "project_path": "brain/machine_artifacts/code/cleanup_epics.py",
-    "size": 3191,
-    "content_hash": "5e556678064efc32",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "6a1917c8-f704-4969-8e6b-caf362330c87"
-  },
-  {
-    "project_path": "brain/machine_artifacts/code/generate_arch001_pdf.py",
-    "size": 18242,
-    "content_hash": "2401ff09405540a1",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "1bd2e690-fc92-4ef7-b4e4-08f7ee075ac4"
-  },
-  {
-    "project_path": "brain/machine_artifacts/code/generate_audit_report_doc.py",
-    "size": 16326,
-    "content_hash": "7ade2fccbc915af2",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "5c5c119d-6165-4212-890a-403a1900399c"
-  },
-  {
-    "project_path": "brain/machine_artifacts/code/generate_epic_plan_artifacts.py",
-    "size": 16118,
-    "content_hash": "337bd33532146cd7",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "1db4c4dc-e593-455c-bf46-247f6e180a7e"
-  },
-  {
-    "project_path": "brain/machine_artifacts/code/generate_epic_planning_doc.py",
-    "size": 18992,
-    "content_hash": "32cdef292d129bc9",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "c508d92f-3dfa-4a67-8571-e8b9647d63c9"
-  },
-  {
-    "project_path": "brain/machine_artifacts/code/update_rx_features.py",
-    "size": 4706,
-    "content_hash": "a54e2a4e61a39c15",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "aacb9b7f-684a-434a-b2a5-1c9dd2faafcd"
-  },
-  {
-    "project_path": "brain/machine_artifacts/code/update_triage_and_rejected.py",
-    "size": 7210,
-    "content_hash": "fc67cd67bd1a2891",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "d73fcde2-8744-45c4-8b6a-0fdc431b9e6c"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/agile_backlog.json",
-    "size": 820831,
-    "content_hash": "d0d78187a891c8b9",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "e9ababfe-9693-4e94-996c-a39cc712404e"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/ai_operations.json",
-    "size": 718216,
-    "content_hash": "39d2d2c065432c06",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "9f052131-f6c7-4c09-88ce-a2e2ffbe9669"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/architecture.json",
-    "size": 135746,
-    "content_hash": "1a83c68ee744c4e6",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "d7894d3d-ad7a-4c79-9b3c-0554d0c36e6e"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/audit_response_user_prompt_template.txt",
-    "size": 1211,
-    "content_hash": "d4948baa49fc16e3",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "bb6ac049-1fdd-4286-beda-e61f73b9fe1e"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/business_facts.json",
-    "size": 1541,
-    "content_hash": "07607405969797d0",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "bc084a00-0f00-4eb6-a2f8-1e303f58ea54"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/business_plan.json",
-    "size": 68635,
-    "content_hash": "7408bd6e53c8fd01",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "53c414f2-06cc-4787-947a-4c1b5940a322"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/claude_acceptance_system_prompt.json",
-    "size": 1941,
-    "content_hash": "f7744aac1d9aae51",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "c829b899-5062-40ed-a759-d320617c02b3"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/claude_audit_response_system_prompt.json",
-    "size": 3234,
-    "content_hash": "9f03128e1d4a2d33",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "d4a5aee1-d3f3-4ce9-aa6c-7d9a724c4ff4"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/controlled_vocabularies.json",
-    "size": 6461,
-    "content_hash": "5d1c7cd5d2c81b0c",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "328eac8a-68c6-4386-a134-93b8214dc349"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/design.gui_frame_layout.json",
-    "size": 5382,
-    "content_hash": "3cce04d74b633b17",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "8bd6cbe7-3dd0-4a0e-bd19-9d1aa2687996"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/design.json",
-    "size": 8884,
-    "content_hash": "0f61f3d6a0d5c14d",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "19ad752d-8493-4bb5-815d-94ad9fd9ce49"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/development_rules.json",
-    "size": 14687,
-    "content_hash": "d711a7efe5004716",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "bb504264-23be-48ae-92a1-ba14bea9c626"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/devops.json",
-    "size": 7580,
-    "content_hash": "fe2bd53b651b1b16",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "322bee62-8972-4520-b8ff-9510b169ec14"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/emergency_keywords.json",
-    "size": 1738,
-    "content_hash": "1f871e629e2c70d4",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "53b27fef-189b-438e-a3a2-65efb87c8883"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/epic_planning_system_prompt.json",
-    "size": 11419,
-    "content_hash": "fe293affa8a428d5",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "dca61f75-efb4-464f-8a0c-816a0a975716"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/epic_planning_user_prompt_v014.txt",
-    "size": 9947,
-    "content_hash": "c9fc3c1d61e88520",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "e7ebec4f-f9be-41e0-a5ef-182e4bd67982"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/external_audits.json",
-    "size": 14169,
-    "content_hash": "a1f0a8f6632fdb62",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "6f32622c-1fb5-49f6-936a-f01bfcf3c107"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/funding_test_result.json",
-    "size": 776,
-    "content_hash": "8cd4d390daa74dd1",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "16d8626c-ad5b-4d23-89fa-060b8eac6cfd"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/gov011_audit.json",
-    "size": 12936,
-    "content_hash": "4615c3dc60a7eaf6",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "145b005d-b755-45de-98a0-a117bd1b0817"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/governance.json",
-    "size": 21211,
-    "content_hash": "bac6fdafe47ccbe6",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "23d41ae4-90e0-483b-a076-2b438d011de2"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/legal.json",
-    "size": 6757,
-    "content_hash": "508f0a8b6cf81cd0",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "c76987d5-e3b9-426e-9a30-2709ab98a333"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/pipeline_maintenance_log.json",
-    "size": 12566,
-    "content_hash": "12268e2f8889a0f5",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "8e7396b2-905f-4661-a258-6eecbaba4955"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/qa_report_v014_sit.json",
-    "size": 9983,
-    "content_hash": "a7371ab64cd045ef",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "4e5add47-5590-4eef-8fe1-96543f085879"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/bugs.json",
-    "size": 96035,
-    "content_hash": "00d9c177508a05c8",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "277fc8a5-54c6-42a4-a520-4a21ac933ff1"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/schema.json",
-    "size": 4556,
-    "content_hash": "62326526f9f515c4",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "d922c440-38de-4162-ad39-eebef38aff3a"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/sprint_plan.json",
-    "size": 40180,
-    "content_hash": "86789af9567c6488",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "5aff8364-a869-49de-989b-bf71f0ce0664"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/token_usage.json",
-    "size": 636909,
-    "content_hash": "7face93bf827e01c",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "563d6ff1-84b9-48cb-b7f1-9ada335f5ecb"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/unattended_assignment.json",
-    "size": 1235,
-    "content_hash": "73a4bd3a0a954438",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "3f1bf962-63a3-44c7-8924-0cf17ff88a19"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/unrealized_ideas.json",
-    "size": 6842,
-    "content_hash": "23712176855a8846",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "452b0d42-6bc5-4ab7-b5c6-f4a8ce963ae5"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/work_log.json",
-    "size": 211725,
-    "content_hash": "a845fc4244e25116",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "2344547e-0930-4949-a48b-a0f341392c49"
-  },
-  {
-    "project_path": "brain/machine_artifacts/content/project_manifest.json",
-    "size": 52898,
-    "content_hash": "9f1275c43c2e0864",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "68e3f8de-8992-410e-a01d-1a84937f6090"
-  },
-  {
-    "project_path": "claude_thoughts/.gitkeep",
-    "size": 0,
-    "content_hash": "e4a6a0577479b2b4",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "9a6c9e67-da7a-4d4a-baef-fa23259e635f"
-  },
-  {
-    "project_path": "Code/.env",
-    "size": 4443,
-    "content_hash": "453b1e14822e887f",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "46046e9a-fa81-46fc-b7e3-bd93857fa167"
-  },
-  {
-    "project_path": "Code/logging_config.py",
-    "size": 1981,
-    "content_hash": "7d688a28d9d9b4bf",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "fb788a48-bdcd-4b44-aedb-8b40b208ecbf"
-  },
-  {
-    "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/BuildingAnthropicAConversationWithItsCo-foundersYouTube.pdf",
-    "size": 1553440,
-    "content_hash": "60d422f7b15a4a2c",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "6d8f8bc3-8c61-45bd-b539-055c38c30366"
-  },
-  {
-    "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/SkipSnowLinkedInProfile.pdf",
-    "size": 64441,
-    "content_hash": "f17290fe1420f747",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "110bba3e-7a37-49de-a7b9-2727c95b9bbb"
-  },
-  {
-    "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/anthropic_principles.txt",
-    "size": 2645,
-    "content_hash": "cd4f07323e185d2a",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "50b9ff11-06dc-4ae7-babc-09947e2cdc18"
-  },
-  {
-    "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/chatHealthy_ai_business_plan.pdf",
-    "size": 24298,
-    "content_hash": "17add17d69e4f251",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "c7511036-c2f1-49af-b576-409f743da1c0"
-  },
-  {
-    "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/findcare-code-package.json",
-    "size": 1009280,
-    "content_hash": "960abebe9cf63acb",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "75c99f57-a660-431a-8ece-3950a5d9ec40"
-  },
-  {
-    "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/summary.txt",
-    "size": 2823,
-    "content_hash": "74cecd9729dc6590",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "f62edf4e-cd8b-471b-a361-98936f055129"
-  },
-  {
-    "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/tests/__init__.py",
-    "size": 0,
-    "content_hash": "e4a6a0577479b2b4",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "fbf7bd31-cb54-4b08-9c1f-a4c20a6b12c7"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/Dockerfile",
-    "size": 157,
-    "content_hash": "d6500b9c5f752c17",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "399c3aa9-f92d-41b0-8b5b-bdbde3fd84b7"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/README.md",
-    "size": 139,
-    "content_hash": "4bcebe904358fe19",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "8b0e701e-ba48-44e2-9233-2b2e392d1196"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/build.txt",
-    "size": 16,
-    "content_hash": "2187d66d5ee6bece",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "624493a8-38ad-4be2-a04b-106f83b9f550"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/main.py",
-    "size": 32621,
-    "content_hash": "c73fbc19ebca8f39",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "66d3ec1e-c68a-4786-a678-4f1842dba2a9"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/requirements.txt",
-    "size": 186,
-    "content_hash": "9c3346235a619d99",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "822e6d41-de87-42a0-8c19-478fa7d2243e"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py",
-    "size": 15120,
-    "content_hash": "9ede151e67306922",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "5ba0df8b-1848-42ba-b61b-4ecc7c757b33"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/adapter/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "cd6efe06-d4bc-4d10-8217-3c74a145b1a1"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/application/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "05c4ebac-8703-4674-8c9a-a2a592d6f566"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py",
-    "size": 4512,
-    "content_hash": "c385317f5fbd56ed",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "f1fff085-e767-4d21-a5b0-8fa281af4138"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/application/facades/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "eed83a0d-b0ab-4870-8317-10eda87cd56d"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py",
-    "size": 1962,
-    "content_hash": "7b1b527d5f0cd5f8",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "adb6787d-5a0f-4ac6-b38b-926e738d934c"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py",
-    "size": 451,
-    "content_hash": "94bacb9f5345a3db",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "1d8eb21c-09f8-4be3-9238-7ae9f27a1f89"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "aaeebf3e-b23f-424c-a773-4d7cb1fb9e71"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py",
-    "size": 744,
-    "content_hash": "96fd56abe71880c1",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "0e33d0a6-b15e-49bc-bd11-fb7c7c8c2283"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py",
-    "size": 939,
-    "content_hash": "f28f13eb4999f035",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "f0c75ec4-5064-4b56-9c06-b55b30bcca3f"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py",
-    "size": 1141,
-    "content_hash": "f5083ba994511ffb",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "56afa2c3-3184-4dc0-ba61-03172bb6059a"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/brain_data/qa_report_v014_sit.json",
-    "size": 9983,
-    "content_hash": "a7371ab64cd045ef",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "258dd983-700b-4204-9797-3b99e21271c1"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "6c2c3bc1-e109-408d-87f1-0905cd8d2d33"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "65cb5f13-3e11-4cdc-afb6-96c53c22a61f"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py",
-    "size": 6236,
-    "content_hash": "bd030f5dd606b4a9",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "27f72153-7751-45e1-871d-bfa0fe73f4ab"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py",
-    "size": 4725,
-    "content_hash": "59d6ca3d80c47d5c",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "fd1f80b6-9659-4a28-88bc-f239305f5ad3"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "33c7046a-8226-40f8-9fa6-c737419870dc"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py",
-    "size": 24328,
-    "content_hash": "9299df628f3ecf55",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "117c7103-02b6-4ede-9109-66efa18a1cbf"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py",
-    "size": 5762,
-    "content_hash": "00313e8274edaa1e",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "8d22467e-a39f-4164-8867-73d94a3d26c9"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "8ba9c69a-0214-42c4-941c-5b52e080f166"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "073eb4b1-833c-490e-9fcf-3303f1c87cfd"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py",
-    "size": 4057,
-    "content_hash": "dbb3ce807ad4e39a",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "93ef6f80-835f-4be9-8532-4192a3212067"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/content/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "a56991d1-b86b-48ec-9c47-53392cac5de1"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/content/about_service.py",
-    "size": 1437,
-    "content_hash": "8291048e301ca8eb",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "b2b11d74-5eb5-4c6c-bc4f-b3e25879fa37"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "6b6c4b9f-f094-4938-a9a1-90a7ad1bb167"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py",
-    "size": 2939,
-    "content_hash": "c55a90bc468b0cfa",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "ff8e9cf1-1fb5-4afb-b24e-e95710da46fc"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "0819228c-be3e-43ed-9397-cefa5fa9977e"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py",
-    "size": 6904,
-    "content_hash": "6e62adb271591cad",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "6f323a6b-e219-453d-9c9f-d3f718cdbb5a"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "1168de0b-dc4a-40f1-9d39-519e4c6caaac"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py",
-    "size": 3082,
-    "content_hash": "3cf9d6a5b9148014",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "a35c8789-cdd9-40d5-899b-94f7fd13d5aa"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/url/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "19e19123-ee87-4819-af56-df51816f9b51"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "9f5cc184-ed9f-490a-ab10-27f647fedd15"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py",
-    "size": 2027,
-    "content_hash": "eb0a02ccb6f45fc2",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "867713ef-d528-4b1c-8458-5bc1011610b2"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/config/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "f184b389-e9e1-4c2e-b547-cff92d1813f7"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/embeddings/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "066dadbf-1268-460e-852f-00f6620c36c5"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/embeddings/embedding_client.py",
-    "size": 3050,
-    "content_hash": "8c50c34fcdea8b2c",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "0afc7cbd-516a-47b2-883b-dc308ff300df"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/external_apis/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "36f7bdde-d44a-46e4-8153-9ae19b65c181"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/mongo/__init__.py",
-    "size": 115,
-    "content_hash": "889bcd103417c605",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "c4de3fc9-00e1-4404-a964-e45e361b634b"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/static/_redirects",
-    "size": 20,
-    "content_hash": "5d68c21713fb4cd9",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "9764691e-e2d1-434c-8d61-3d9f0556ffa6"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/static/index.html",
-    "size": 417,
-    "content_hash": "6d26b26a3002173c",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "815cd213-c891-4021-8a8c-283a7b153e2d"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/static/assets/index--YlKMHek.css",
-    "size": 292,
-    "content_hash": "fc5c4766f652044e",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "093a5ecb-7d88-4f5f-ad3e-fa8c85d8bb44"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/static/assets/index-Bdx2diUW.js",
-    "size": 485091,
-    "content_hash": "8791d39f101cc1ae",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "cf9223ac-d4d4-4395-b635-68752d281fae"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py",
-    "size": 2292,
-    "content_hash": "48ce33d6f5bca87b",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "6ef6ff09-2a1c-4375-826c-6fa219e53ce6"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_embedding_client.py",
-    "size": 2490,
-    "content_hash": "5db520a44eaa8878",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "f0d7b66d-6822-456a-9616-20a5e093a057"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_human_testing_mode.py",
-    "size": 7507,
-    "content_hash": "4d54a27e7c66c7d3",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "8c4b3968-3f68-4fad-a8d1-0d5ebdfda7e7"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_pagination.py",
-    "size": 33575,
-    "content_hash": "a593c4450c2c8339",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "1c7491a4-39df-4b5c-9f28-b658400aaf4a"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_prompt_system_maker.py",
-    "size": 2756,
-    "content_hash": "b65ca2bbc59cdd4c",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "24b80fbb-1a57-4ecc-ad7b-cd9dd1e4c3d5"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_sit_browser.py",
-    "size": 11926,
-    "content_hash": "b8c962e2bed2305b",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "00ef2e80-4b07-46b0-9100-ca12b460d9b0"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py",
-    "size": 2416,
-    "content_hash": "8f6a4832b23d7089",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "596c36f5-fb9f-42d6-baf0-5b8640078932"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_unanswerable_questions.py",
-    "size": 10281,
-    "content_hash": "055d4f862381704d",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "3c210cc8-57f1-4e7b-b6f7-44ba332009d8"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/frontend/.env.example",
-    "size": 80,
-    "content_hash": "3bde2edcd84e92eb",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "97c66e9f-211c-4910-abd9-36af6880bab7"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/frontend/.env.local",
-    "size": 35,
-    "content_hash": "1d181571226bd84d",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "6e892585-02f6-4ab9-a356-fe10f0434d6c"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/frontend/index.html",
-    "size": 319,
-    "content_hash": "5406cff5ebd72800",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "86b2aeaa-576c-41ae-b8b8-758c745360d1"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/frontend/package-lock.json",
-    "size": 126412,
-    "content_hash": "c5fa9359c9f4046e",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "4711797c-4062-4370-a82a-7a8150a11485"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/frontend/package.json",
-    "size": 581,
-    "content_hash": "d696cc47d97dad92",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "439e0d65-5ac9-4430-bd2b-bc785161430e"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/frontend/tsconfig.json",
-    "size": 425,
-    "content_hash": "498b6a9ddcf3bd2d",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "29175567-edd1-46a3-b448-aec08eba7226"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/frontend/vite.config.ts",
-    "size": 178,
-    "content_hash": "77cff3af83951544",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "bfcf1a31-c5e9-4ebe-ac56-bc4adfc4e65f"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/frontend/public/_redirects",
-    "size": 20,
-    "content_hash": "5d68c21713fb4cd9",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "693dc10f-bbd9-4ce6-b549-5572148bb594"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx",
-    "size": 346,
-    "content_hash": "f42ccec0d3924e97",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "f2af2dbc-ae75-43b2-a84f-552fa7fc518c"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/index.css",
-    "size": 465,
-    "content_hash": "28df8e6204490dc6",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "c6f87a9a-a5dc-476f-90ad-352aacc5b1c6"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/main.tsx",
-    "size": 360,
-    "content_hash": "2dc8c8b4e071fbf6",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "20ad1f2e-595f-4e91-8a36-ec26e122f935"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/vite-env.d.ts",
-    "size": 158,
-    "content_hash": "927bf5894d518609",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "93666811-70e3-41e9-b0e4-b38a619855a5"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx",
-    "size": 23715,
-    "content_hash": "6ff68c79bac2fd7e",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "f446d8c3-4ac9-4182-b8d7-84644d636f55"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/components/GUIManager.tsx",
-    "size": 10667,
-    "content_hash": "fcdad29e6d1af930",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "6e00c1bb-c102-45e9-99eb-a8d516841c29"
-  },
-  {
-    "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx",
-    "size": 4296,
-    "content_hash": "c8144423b10531e8",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "662c9bae-a7ab-41eb-a8cb-abf7fb1249ed"
-  },
-  {
-    "project_path": "Code/DataPipelines/ChatHealthyMongoUtilities.py",
-    "size": 5149,
-    "content_hash": "a535744eaf5a9cad",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "2c4092fb-e925-4a5a-b176-415eabecda3c"
-  },
-  {
-    "project_path": "Code/DataPipelines/atlas_cluster_manager.py",
-    "size": 8660,
-    "content_hash": "9438dad01d6e06f5",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "2cb837fc-f02e-40ce-ac50-46edb1db67fc"
-  },
-  {
-    "project_path": "Code/DataPipelines/auth.py",
-    "size": 1966,
-    "content_hash": "2a5a79d132b4de78",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "66ffccbe-692f-45ba-ade2-da997d6246f0"
-  },
-  {
-    "project_path": "Code/DataPipelines/blob_client.py",
-    "size": 1629,
-    "content_hash": "a3da85581ab97f02",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "47849d50-66bd-45eb-8158-f6dd56bad2d9"
-  },
-  {
-    "project_path": "Code/DataPipelines/cluster_lifecycle_manager.py",
-    "size": 12986,
-    "content_hash": "954daf26cef0aa07",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "a095abf9-1360-42b2-881e-6177ffc57488"
-  },
-  {
-    "project_path": "Code/DataPipelines/copy_to_frontend.py",
-    "size": 24332,
-    "content_hash": "8d2f6ca0b2583476",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "212b69bc-34cf-4da0-ba21-552974345636"
-  },
-  {
-    "project_path": "Code/DataPipelines/copy_va_incremental.py",
-    "size": 3093,
-    "content_hash": "2413bfea8b6b60ab",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "2a3bdd55-92d8-4f2c-9ca0-ab098af83933"
-  },
-  {
-    "project_path": "Code/DataPipelines/county_economic_enrichment.py",
-    "size": 9768,
-    "content_hash": "0c5dd2df726e32b6",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "7621d273-dd6a-49ff-9db5-1583de82cd22"
-  },
-  {
-    "project_path": "Code/DataPipelines/county_enrichment_job.py",
-    "size": 73833,
-    "content_hash": "0f12d0ec91098a73",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "1d202c11-7729-4d5f-9118-9d01894f5ff7"
-  },
-  {
-    "project_path": "Code/DataPipelines/data_fetcher_base.py",
-    "size": 8054,
-    "content_hash": "c578eb7a29a0ff1d",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "6de11995-2084-4362-b05b-32a9efd07c7c"
-  },
-  {
-    "project_path": "Code/DataPipelines/discrepancy_reporter.py",
-    "size": 7935,
-    "content_hash": "45a87a97a958bb0e",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "9f7f953e-8423-41e8-9006-500a5ec8bc34"
-  },
-  {
-    "project_path": "Code/DataPipelines/embed_va_backfill.py",
-    "size": 4395,
-    "content_hash": "69f2936e4fe80511",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "c9500d09-b36e-43c7-a39b-b3d32c00563e"
-  },
-  {
-    "project_path": "Code/DataPipelines/embedding_worker.py",
-    "size": 9466,
-    "content_hash": "b8ce4132800ce599",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "4a9a09bd-a8bf-4973-925d-48b80f47c358"
-  },
-  {
-    "project_path": "Code/DataPipelines/favicon.ico",
-    "size": 15406,
-    "content_hash": "25f008f15dca64ab",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "d8ee64a1-1bfa-424f-a5c5-91844ccea686"
-  },
-  {
-    "project_path": "Code/DataPipelines/function_app.py",
-    "size": 31748,
-    "content_hash": "0ea1be474f2bfb34",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "21853ae9-f8db-4637-b772-4ae54caa5e94"
-  },
-  {
-    "project_path": "Code/DataPipelines/gpt_reader.py",
-    "size": 9756,
-    "content_hash": "85880b66f0188098",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "64b1f977-40e1-4d7d-a6ba-e39fde1fe8f5"
-  },
-  {
-    "project_path": "Code/DataPipelines/host.json",
-    "size": 620,
-    "content_hash": "0b3d5d864439d4cc",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "1d55d0b8-e4c2-4a55-8ed5-c588a518b0e9"
-  },
-  {
-    "project_path": "Code/DataPipelines/icd10_loader.py",
-    "size": 8526,
-    "content_hash": "33549c673ef4a2a1",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "544d4e33-d254-437d-a31e-747cc8215760"
-  },
-  {
-    "project_path": "Code/DataPipelines/idle_monitor.py",
-    "size": 5447,
-    "content_hash": "fa3942d582515c5a",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "d1ee0eff-c327-4ffb-bdd0-5980ea709d73"
-  },
-  {
-    "project_path": "Code/DataPipelines/instance_warmer.py",
-    "size": 5475,
-    "content_hash": "bfa19e9c38f1e759",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "c5c44c59-bdf8-49fe-8418-32d7193204cb"
-  },
-  {
-    "project_path": "Code/DataPipelines/load_provider_data.py",
-    "size": 587,
-    "content_hash": "25c2fa043917bd61",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "2399a02c-4ea9-4aa3-a22a-1d9995aca808"
-  },
-  {
-    "project_path": "Code/DataPipelines/load_specialty_data.py",
-    "size": 8839,
-    "content_hash": "9871061018ced9fa",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "3ec6256b-2502-44ba-9b82-a0ba33581bac"
-  },
-  {
-    "project_path": "Code/DataPipelines/migrate_discrepancy_reports.py",
-    "size": 4126,
-    "content_hash": "ff495b97338a82b4",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "9aef4ae3-0606-41b8-adfd-18e243295d40"
-  },
-  {
-    "project_path": "Code/DataPipelines/move_to_frontend.py",
-    "size": 4294,
-    "content_hash": "e8ef66574624efaf",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "b0b4bf19-325b-4474-9828-2c1e4ea66d2a"
-  },
-  {
-    "project_path": "Code/DataPipelines/otp_manager.py",
-    "size": 3180,
-    "content_hash": "a400dfe054b441a1",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "4397c96a-9cf7-4769-9134-356792ab2bcc"
-  },
-  {
-    "project_path": "Code/DataPipelines/pipeline_code_review.json",
-    "size": 166895,
-    "content_hash": "9fb53a4162bc979d",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "34f47ba8-f1a2-46f8-add8-a8e097e584e2"
-  },
-  {
-    "project_path": "Code/DataPipelines/pipeline_files.json",
-    "size": 1287,
-    "content_hash": "f20a934467f24c77",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "0310bc21-ecde-4cff-82b8-f0cd82e30520"
-  },
-  {
-    "project_path": "Code/DataPipelines/pipeline_health.py",
-    "size": 4290,
-    "content_hash": "a1bd6c234c7dbdde",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "6e8cb35f-e80a-4011-87a2-c3a9aabb6b0a"
-  },
-  {
-    "project_path": "Code/DataPipelines/pipeline_worker_base.py",
-    "size": 7457,
-    "content_hash": "c47cacfbbd417e96",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "5d8dec05-6399-482a-b684-5f64c0a831e9"
-  },
-  {
-    "project_path": "Code/DataPipelines/promote_data_fn.py",
-    "size": 6183,
-    "content_hash": "51cfe76fa64d6551",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "d18b8e3d-1145-46ae-853c-5cc5179127d1"
-  },
-  {
-    "project_path": "Code/DataPipelines/provider_embedding.py",
-    "size": 15840,
-    "content_hash": "15554d05b505030c",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "b6511798-3225-4ef5-8179-a414b11e731c"
-  },
-  {
-    "project_path": "Code/DataPipelines/provider_load_manager.py",
-    "size": 35322,
-    "content_hash": "2324234dadf2cdb3",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "891b4b4f-2c74-4ab5-aa8c-a7c1e98bf31b"
-  },
-  {
-    "project_path": "Code/DataPipelines/provider_worker.py",
-    "size": 17355,
-    "content_hash": "b0e3ab627316e3c9",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "2a5ddeca-85c1-43cb-aa63-82723969c45f"
-  },
-  {
-    "project_path": "Code/DataPipelines/qa_provider_load.py",
-    "size": 15160,
-    "content_hash": "a16606d9f6092ad6",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "78f82167-67d1-4749-a463-d4fa5acea3d0"
-  },
-  {
-    "project_path": "Code/DataPipelines/refactor_db.py",
-    "size": 3808,
-    "content_hash": "e8c69e3557568fa7",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "fa4e75d4-cbbf-49fe-8818-c585acbc9086"
-  },
-  {
-    "project_path": "Code/DataPipelines/rename_to_dev.py",
-    "size": 4008,
-    "content_hash": "5a340af36f6e8eb0",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "b546de25-4ef7-4765-a217-7f5f9523e0d3"
-  },
-  {
-    "project_path": "Code/DataPipelines/requirements-pipeline.txt",
-    "size": 208,
-    "content_hash": "2fc131c44e5b66c4",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "5e61a4e7-43f2-4e46-a022-45c3050c2ec6"
-  },
-  {
-    "project_path": "Code/DataPipelines/validate_provider_load.py",
-    "size": 12500,
-    "content_hash": "9e469e44b112f1f8",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "37168814-c7fa-4c0f-86f9-0cd6e4f74224"
-  },
-  {
-    "project_path": "Code/DataPipelines/zip_county_crosswalk_loader.py",
-    "size": 6907,
-    "content_hash": "76191b51235e22aa",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "25c3bf16-72fd-4219-8691-a5377c5c8a7f"
-  },
-  {
-    "project_path": "Code/DataPipelines/legal/licence.txt",
-    "size": 1508,
-    "content_hash": "5f0079153f3fa0f3",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "41de2dbe-ae5d-461d-bb5c-4b92a8a86b17"
-  },
-  {
-    "project_path": "Code/DataPipelines/ops_manager/__init__.py",
-    "size": 519,
-    "content_hash": "8772481c427eb02b",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "541a3d7e-ddd0-44e7-8b9a-ee04a52c1234"
-  },
-  {
-    "project_path": "Code/DataPipelines/ops_manager/alert_tool.py",
-    "size": 4014,
-    "content_hash": "7ceef6f10ba35049",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "a1c18029-bd23-4f52-aaa8-7e90cb523ab8"
-  },
-  {
-    "project_path": "Code/DataPipelines/ops_manager/audit_trail.py",
-    "size": 3882,
-    "content_hash": "a67e37494915906e",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "db4846c9-a9d8-472c-99d0-9594e721becd"
-  },
-  {
-    "project_path": "Code/DataPipelines/ops_manager/cluster_tool.py",
-    "size": 4884,
-    "content_hash": "a0d51cc48f21362e",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "18b44b41-9499-4188-a70b-0dea8cea6d9d"
-  },
-  {
-    "project_path": "Code/DataPipelines/ops_manager/evidence_package.py",
-    "size": 2472,
-    "content_hash": "9a039edc340dfa14",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "df551aa4-26f0-41d9-a76b-14bc49d4d089"
-  },
-  {
-    "project_path": "Code/DataPipelines/ops_manager/ops_agent.py",
-    "size": 15017,
-    "content_hash": "8a94cbcc7073da04",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "a99a4750-c55c-4dd5-8915-de89e205fc6a"
-  },
-  {
-    "project_path": "Code/DataPipelines/ops_manager/test_ops_agent.py",
-    "size": 10530,
-    "content_hash": "556afbd90af6dcfa",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "142f7001-3aa9-4c3f-8ee4-ae160f9640c7"
-  },
-  {
-    "project_path": "Code/DataPipelines/ops_manager/triage_tool.py",
-    "size": 8115,
-    "content_hash": "deb88cb877477be3",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "f158b7de-2e0f-4017-a2c8-977083c04e67"
-  },
-  {
-    "project_path": "Code/DataPipelines/tests/gpt_sit_runner.py",
-    "size": 18228,
-    "content_hash": "fdc17402a84c11b1",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "25dc65ee-2a6a-429a-9f85-458187a92bd3"
-  },
-  {
-    "project_path": "Code/DataPipelines/tests/gpt_sit_with_gpt.py",
-    "size": 24032,
-    "content_hash": "b0b910b937a8120a",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "61119b87-5436-43fc-848d-96f9e759a58c"
-  },
-  {
-    "project_path": "Code/DataPipelines/tests/test_data_quality.py",
-    "size": 11055,
-    "content_hash": "19754a1f9fed2564",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "38569081-b397-4819-9b70-863d0143582d"
-  },
-  {
-    "project_path": "Code/DataPipelines/tests/test_gpt_reader.py",
-    "size": 12078,
-    "content_hash": "4347d3bbcbd8075e",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "d0627207-1d58-44b1-adb9-220ca5f18ec1"
-  },
-  {
-    "project_path": "Code/DataPipelines/tests/test_gpt_reader_integration.py",
-    "size": 15241,
-    "content_hash": "b008410c84e1bd1b",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "4b2bc25c-4c41-4fe1-8f1f-d5e1724734a8"
-  },
-  {
-    "project_path": "Code/DataPipelines/tests/test_pipeline_e2e.py",
-    "size": 8801,
-    "content_hash": "4e2677ad223ecc80",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "9b17b75f-33e7-447c-8ca8-1f04818648de"
-  },
-  {
-    "project_path": "Code/DataPipelines/tests/test_pipeline_worker_base.py",
-    "size": 8794,
-    "content_hash": "9949839ab1372471",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "45b664f9-ae72-47a1-b029-a8af4ff3f987"
-  },
-  {
-    "project_path": "Code/DataPipelines/tests/test_provider_embedding.py",
-    "size": 13581,
-    "content_hash": "b34d5c028a1388a6",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "6f162c88-bb99-420b-a398-278b1cc74cdd"
-  },
-  {
-    "project_path": "Code/Schemas/ChatHealthy.Providers.json",
-    "size": 18020,
-    "content_hash": "4386743a7269211e",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "92465441-cf22-499a-a964-a8142ed47406"
-  },
-  {
-    "project_path": "Code/Shared/ChatHealthyMongoUtilities.py",
-    "size": 4914,
-    "content_hash": "7265544363cfe050",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "3868624c-1ec0-4280-9cda-ee0cb1d6ab0d"
-  },
-  {
-    "project_path": "Code/Shared/backlog.py",
-    "size": 6250,
-    "content_hash": "cc31b0fe39a2d9c3",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "5c281cee-b08b-4d1c-aa80-b6922ea9a4f4"
-  },
-  {
-    "project_path": "Code/Shared/brain_auth.py",
-    "size": 2955,
-    "content_hash": "9247a9dded427a99",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "c7295aea-309b-42ae-81db-834a8f9c69f8"
-  },
-  {
-    "project_path": "Code/Shared/brain_loop.py",
-    "size": 26771,
-    "content_hash": "5508c9af80f0f8e5",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "0c414912-bee0-477f-b8a8-4cbe00c6c660"
-  },
-  {
-    "project_path": "Code/Shared/brain_runner.py",
-    "size": 14188,
-    "content_hash": "469c035e40a86848",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "fa58f79a-277c-4a9f-8eb9-16e94650cb74"
-  },
-  {
-    "project_path": "Code/Shared/cost_guard.py",
-    "size": 11597,
-    "content_hash": "6563653e327b2133",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "bb3b5ea8-51b6-471d-987e-b3d93319c78a"
-  },
-  {
-    "project_path": "Code/Shared/machine_brain.py",
-    "size": 11978,
-    "content_hash": "a7af0ae97d3b5299",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "10c23b4f-edd9-4348-a41a-2fbce94c1d02"
-  },
-  {
-    "project_path": "Code/Shared/prompt_system_maker.py",
-    "size": 17197,
-    "content_hash": "9cdcbabb524dc113",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "190aa3b1-6953-4676-bb87-e3e04b355eae"
-  },
-  {
-    "project_path": "Code/Shared/agent_framework/__init__.py",
-    "size": 312,
-    "content_hash": "c4c47913fa611f70",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "3e2dfaf1-4eb4-4e28-975f-ad80189e9dfc"
-  },
-  {
-    "project_path": "Code/Shared/agent_framework/base_agent.py",
-    "size": 2667,
-    "content_hash": "3a7e51b7daca6280",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "6779d640-8e7d-4cba-916c-603f67a7f356"
-  },
-  {
-    "project_path": "Code/Shared/agent_framework/base_tool.py",
-    "size": 2307,
-    "content_hash": "93d925d43d38c8d2",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "6c153b0e-a23a-4084-8d7a-6b69e5a79260"
-  },
-  {
-    "project_path": "Code/Shared/agent_framework/tool_registry.py",
-    "size": 2746,
-    "content_hash": "d347f609d648fa2b",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "e880b7da-6b7d-4ef9-bc4d-3eb8f6edadef"
-  },
-  {
-    "project_path": "Code/Shared/ops/atlas_cluster_toggle.py",
-    "size": 2479,
-    "content_hash": "fb64740ebe7bd7cd",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "37b12152-e481-454b-abea-8e56b27cd044"
-  },
-  {
-    "project_path": "Code/Shared/ops/brain_biz_arch_collab.py",
-    "size": 13309,
-    "content_hash": "a2765da529b396cf",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "9ae170d0-aa4f-4fdd-a47c-abcd2782043b"
-  },
-  {
-    "project_path": "Code/Shared/ops/brain_biz_arch_diagrams.py",
-    "size": 18287,
-    "content_hash": "d5e779c1a1d4b514",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "5273a4d9-d35a-459f-85c1-f8ff81eb7b81"
-  },
-  {
-    "project_path": "Code/Shared/ops/brain_refactor_collab.py",
-    "size": 20180,
-    "content_hash": "2ee75a20a94b7baf",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "c4aea038-1138-4387-a550-32fc5f808883"
-  },
-  {
-    "project_path": "Code/Shared/ops/brain_snapshot.py",
-    "size": 3132,
-    "content_hash": "b0b21b05aa22559e",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "60b8015e-1909-43fe-bf7c-f6f5c55bb56a"
-  },
-  {
-    "project_path": "Code/Shared/ops/build_repo_json.py",
-    "size": 4517,
-    "content_hash": "953adc9477668b9e",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "d01c236e-24ea-45dd-818a-48943f6074ed"
-  },
-  {
-    "project_path": "Code/Shared/ops/bump_build.py",
-    "size": 1578,
-    "content_hash": "e07ec07473ddaa7b",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "0a8f6039-6359-412e-82f8-898728380e67"
-  },
-  {
-    "project_path": "Code/Shared/ops/dev_pipeline.py",
-    "size": 1188,
-    "content_hash": "7c628bbd4d120c18",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "ba1ce443-29cb-470b-96b6-34e72fc843a7"
-  },
-  {
-    "project_path": "Code/Shared/ops/epic_planning_runner.py",
-    "size": 36363,
-    "content_hash": "2957816e1d86f7d5",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "e3394b12-49ef-42c5-8e19-4068d5b7deb0"
-  },
-  {
-    "project_path": "Code/Shared/ops/framework_version.py",
-    "size": 3689,
-    "content_hash": "871cadf7bd1a4480",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "f7f7da35-07bd-4904-929e-1dc21d5a028b"
-  },
-  {
-    "project_path": "Code/Shared/ops/gen_evaluate_care_v3.py",
-    "size": 6882,
-    "content_hash": "b1c122db03081efd",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "b552396e-c258-42dd-99f4-121a8054882a"
-  },
-  {
-    "project_path": "Code/Shared/ops/gen_investor_docx.py",
-    "size": 10873,
-    "content_hash": "85281ba76ac5ddb0",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "1227832d-5442-4324-9793-38ed6b6cf1c9"
-  },
-  {
-    "project_path": "Code/Shared/ops/gen_investor_docx_v3.py",
-    "size": 19073,
-    "content_hash": "60add9edb01ef0d7",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "e9da2113-9d2c-4c9b-b12b-157cee647c0c"
-  },
-  {
-    "project_path": "Code/Shared/ops/gen_investor_pdf_v2.py",
-    "size": 12081,
-    "content_hash": "f096a28c927cc4a8",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "1fba17d0-54fe-4406-ba28-fd74c719c977"
-  },
-  {
-    "project_path": "Code/Shared/ops/gen_moat_v4.py",
-    "size": 3914,
-    "content_hash": "acc0a8136d6e45b6",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "bbfe20b4-a0e8-4736-b323-fd6bc1952ec8"
-  },
-  {
-    "project_path": "Code/Shared/ops/hf_space_create.py",
-    "size": 6452,
-    "content_hash": "1c3fa023af73214a",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "4b4aff19-91ac-4297-ada3-2d7ac4bc187c"
-  },
-  {
-    "project_path": "Code/Shared/ops/hf_space_delete.py",
-    "size": 3865,
-    "content_hash": "8a706062e2966848",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "7526d348-22a5-4951-b9e8-e83f37a18e36"
-  },
-  {
-    "project_path": "Code/Shared/ops/hf_space_restart.py",
-    "size": 1468,
-    "content_hash": "5de873ce79b222ae",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "9dd4720d-c8f6-4ecb-865d-697a848a76f0"
-  },
-  {
-    "project_path": "Code/Shared/ops/hf_space_status.py",
-    "size": 1956,
-    "content_hash": "06544b1568fdcd97",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "2b43d9df-df7e-46d9-aa23-1ea70afb1333"
-  },
-  {
-    "project_path": "Code/Shared/ops/manifest_generator.py",
-    "size": 17864,
-    "content_hash": "ef3c4283fbd16fd1",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "5902991c-424e-46c7-934d-adc4bec66eef"
-  },
-  {
-    "project_path": "Code/Shared/ops/promote_build.py",
-    "size": 3633,
-    "content_hash": "d1771874a6eb0d06",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "6f9741fe-8037-4209-a311-944bbfdddc0d"
-  },
-  {
-    "project_path": "Code/Shared/ops/promote_data.py",
-    "size": 4164,
-    "content_hash": "06d112cbc61510f9",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "83c1d542-60d2-4020-a905-df66f79047fa"
-  },
-  {
-    "project_path": "Code/Shared/ops/rebuild_manifest.py",
-    "size": 1203,
-    "content_hash": "dff086f794320a94",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "83350c53-0644-4779-8622-bc9737667583"
-  },
-  {
-    "project_path": "Code/Shared/ops/sync_to_mongo.py",
-    "size": 10383,
-    "content_hash": "6fe855a7a7122e30",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "03419b63-ed7f-4035-9a09-508560e99b55"
-  },
-  {
-    "project_path": "Code/Shared/ops/test_brain_questions.py",
-    "size": 3924,
-    "content_hash": "976d5f5bdb99d65a",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "0b47e4a5-4e3e-4c9b-a1fe-928ee68f37e5"
-  },
-  {
-    "project_path": "Code/Shared/ops/uat_report.py",
-    "size": 9049,
-    "content_hash": "fc9118361d84f79b",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "e40ed278-60aa-4b36-b9ec-a20f59f5ee1d"
-  },
-  {
-    "project_path": "Code/Shared/ops/unattended_monitor.py",
-    "size": 9651,
-    "content_hash": "04aba4990e916c4b",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "08a8c376-7985-4568-990f-b6ae4345e1b7"
-  },
-  {
-    "project_path": "Code/Shared/ops/update_brain_descriptions.py",
-    "size": 9247,
-    "content_hash": "c0097d65a1f4ec58",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "165c1f1c-1af3-4745-b6d1-801a1b9bedb9"
-  },
-  {
-    "project_path": "Code/Shared/ops/update_manifest_capabilities.py",
-    "size": 8030,
-    "content_hash": "49922c49619166c1",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "56eb67f2-7c69-4286-a90e-167d45daae98"
-  },
-  {
-    "project_path": "Code/Shared/ops/tools/gen_ops_design_docx.py",
-    "size": 16587,
-    "content_hash": "366d2cbe5216a244",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "4142682c-a781-4308-b373-fca49c665b96"
-  },
-  {
-    "project_path": "Code/Shared/ops/tools/kill_dev_servers.ps1",
-    "size": 2430,
-    "content_hash": "720c503e0354d7be",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "4f2cd8a2-cc40-4cc6-818d-1f30b1708124"
-  },
-  {
-    "project_path": "docs/machine-brain-claude-spec.md",
-    "size": 10220,
-    "content_hash": "180cf39c3c9d2de1",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "839564f1-359d-4171-a49f-b32b40dbf1a4"
-  },
-  {
-    "project_path": "docs/adr/ADR-0001-three-application-architecture.md",
-    "size": 813,
-    "content_hash": "6dcc2a046084c24a",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "a0588e1f-96e9-405b-8297-19b7668e8fae"
-  },
-  {
-    "project_path": "docs/adr/ADR-0002-cloudflare-pages-frontend.md",
-    "size": 736,
-    "content_hash": "4f12eb70dd199148",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "ff19a51a-da63-4882-9841-54d5dfab4c88"
-  },
-  {
-    "project_path": "docs/adr/ADR-0003-fastapi-azure-app-service.md",
-    "size": 903,
-    "content_hash": "bc6cd9ba41503af6",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "19c1d6c0-6282-4496-a277-6ba77ab52eff"
-  },
-  {
-    "project_path": "docs/adr/ADR-0004-env-prefix-routing.md",
-    "size": 786,
-    "content_hash": "9b13bf3b82204217",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "14696495-56f4-4c9a-b5fc-faea2f030e2f"
-  },
-  {
-    "project_path": "docs/adr/ADR-0005-chat-url-injection.md",
-    "size": 824,
-    "content_hash": "d37de9dbe19297e0",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "a3ea4854-4279-4f91-91cd-be023e2022ae"
-  },
-  {
-    "project_path": "docs/adr/ADR-0006-two-mongodb-clusters.md",
-    "size": 790,
-    "content_hash": "52077a6fe6318d03",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "8713ee28-6711-4bda-bbcc-20dc6950d8e0"
-  },
-  {
-    "project_path": "docs/adr/ADR-0007-machine-brain.md",
-    "size": 1033,
-    "content_hash": "f319cb8ccbe8bbf8",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "ee35bdbc-d7b8-4c4a-a46d-7d8ccc73e626"
-  },
-  {
-    "project_path": "docs/adr/ADR-0008-main-branch-naming.md",
-    "size": 795,
-    "content_hash": "f3c4d25a437dac70",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "81446a8f-f87a-424b-a992-ba90e43f8bb2"
-  },
-  {
-    "project_path": "docs/adr/ADR-0009-persist-mode.md",
-    "size": 872,
-    "content_hash": "319635985b8212ad",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "b7ec7a5d-fdf7-4eac-99fc-199323b3866d"
-  },
-  {
-    "project_path": "docs/adr/ADR-0010-safety-incident-logging.md",
-    "size": 961,
-    "content_hash": "fc7aa9653af3ff5f",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "9c062e34-d5cb-4061-b5cd-6995fd681876"
-  },
-  {
-    "project_path": "docs/adr/ADR-0011-dev-branch-naming.md",
-    "size": 806,
-    "content_hash": "c9dc91ecb4850ff4",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "c0df5026-0432-4a78-bbba-053b3b4305d6"
-  },
-  {
-    "project_path": "docs/manifests/.gitkeep",
-    "size": 0,
-    "content_hash": "e4a6a0577479b2b4",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "824aadb9-f9c6-47c4-83bf-f216de5d1d1c"
-  },
-  {
-    "project_path": "gpt_thoughts/.gitkeep",
-    "size": 0,
-    "content_hash": "e4a6a0577479b2b4",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "e383e32a-87aa-4455-bb2b-e281c87287e5"
-  },
-  {
-    "project_path": "Legal/Licence.txt",
-    "size": 1542,
-    "content_hash": "62cb61e8b534632b",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "d5d4f737-0e0f-4929-8410-92fe36ca836e"
-  },
-  {
-    "project_path": "Website/_headers",
-    "size": 117,
-    "content_hash": "a85304e35a91b4e9",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "09f3ae26-eee3-46a5-94f1-6a939ebef140"
-  },
-  {
-    "project_path": "Website/architecture.html",
-    "size": 72635,
-    "content_hash": "88cb92a606814327",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "eb9caaf9-f9d4-49c7-b146-1d5f25666e65"
-  },
-  {
-    "project_path": "Website/chat-app-design.html",
-    "size": 68505,
-    "content_hash": "5acac38c3a180d46",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "25b48892-58d8-488f-8795-8a04e91a18c5"
-  },
-  {
-    "project_path": "Website/chat-url.txt",
-    "size": 27,
-    "content_hash": "36287e866f33e1a9",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "d81eca48-7361-4c5a-a4d8-c9789f68a4d3"
-  },
-  {
-    "project_path": "Website/embedding-design.html",
-    "size": 25838,
-    "content_hash": "0406b6dacc09af6d",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "7a8b37eb-d494-4844-a878-3275ce529dd5"
-  },
-  {
-    "project_path": "Website/index.html",
-    "size": 34503,
-    "content_hash": "dfb1dc928c68c1f3",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "12d93638-f401-47cf-b9f2-89aa17f5093b"
-  },
-  {
-    "project_path": "Website/load-perf-report.html",
-    "size": 33021,
-    "content_hash": "3b8c3c17fc632dbf",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "2741e7af-4ecc-4213-83f2-f4910e596fc7"
-  },
-  {
-    "project_path": "Website/load_comparison.png",
-    "size": 126583,
-    "content_hash": "67336237258394cf",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "06d6d273-41cd-461e-8a21-eef14b50d2b1"
-  },
-  {
-    "project_path": "Website/load_progress.png",
-    "size": 51182,
-    "content_hash": "45b6a86438fe5e3b",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "e1497ad7-4b25-4519-9537-fd3fc726f76d"
-  },
-  {
-    "project_path": "Website/ops-manager-design.html",
-    "size": 53487,
-    "content_hash": "68b37b3cc6b148e7",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "b17126a0-3f60-4541-a052-60776bb932a3"
-  },
-  {
-    "project_path": "Website/privacy.html",
-    "size": 19068,
-    "content_hash": "d0e51115d2577617",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "90d4536a-eb8f-4387-877c-f664409cfd56"
-  },
-  {
-    "project_path": "Website/products.html",
-    "size": 14180,
-    "content_hash": "af4c3105aad611f5",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "e94df04f-57f7-42b2-a3c2-1565e7b76555"
-  },
-  {
-    "project_path": "Website/provider-data-load.html",
-    "size": 69413,
-    "content_hash": "eedc6bb0bceac8b3",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "a39f97e3-baaf-4be0-aa19-ab2dff3c4969"
-  },
-  {
-    "project_path": "Website/roadmap.html",
-    "size": 61655,
-    "content_hash": "046b31a2c380f2a9",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "59dbde0c-958d-4c38-91ae-0b32cf8100a2"
-  },
-  {
-    "project_path": "Website/terms.html",
-    "size": 12616,
-    "content_hash": "bec50ce69b4a3d65",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "9f00a2f4-df0a-474a-81d7-4e074d8fc3af"
-  },
-  {
-    "project_path": "Website/tests/conftest.py",
-    "size": 1072,
-    "content_hash": "c7630fc4b4a764e5",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "78dcbdfa-02c5-4d1d-8e75-0d491583f597"
-  },
-  {
-    "project_path": "Website/tests/test_website.py",
-    "size": 17544,
-    "content_hash": "393bcb8007b7ef24",
-    "entity_type": "file",
-    "description": "",
-    "ch_matrix_id": "aba869be-65b9-4733-be36-4fd39eab5185"
-  }
-]
+{
+  "collection": "project_manifest",
+  "governance_attribute_id": "ch_governance_record_id_4c56372c-74cf-4a5f-a2d1-aa4cac860c53",
+  "records": [
+    {
+      "project_path": "CLAUDE.md",
+      "size": 508,
+      "content_hash": "27ba1c44decb6cdf",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "b416f2a8-a647-4855-8c56-ca47cffc54dc"
+    },
+    {
+      "project_path": "README.md",
+      "size": 1437,
+      "content_hash": "495ce1d586628c0b",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "5f053ec4-1746-47cc-b990-8cf1e951a69a"
+    },
+    {
+      "project_path": "ROADMAP.md",
+      "size": 9657,
+      "content_hash": "c5159989860d6ba9",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "32fa8b7f-a6ab-483f-a6f7-629473a3b7fd"
+    },
+    {
+      "project_path": "brain_v0.1.3_design.json",
+      "size": 21469,
+      "content_hash": "25cb8956c652f8b2",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "76e509a9-1f1c-4046-9aa7-acc9b2f20156"
+    },
+    {
+      "project_path": "test_debug_filter_orientation.png",
+      "size": 79536,
+      "content_hash": "e883e1846e25de36",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "698587d1-1c85-4309-944a-4256450db95b"
+    },
+    {
+      "project_path": "test_debug_frames.png",
+      "size": 61728,
+      "content_hash": "84c32c5f0e9dffce",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "7e811596-8bdf-48a8-a24d-ac5a7bc7cbbf"
+    },
+    {
+      "project_path": "test_debug_iframe.png",
+      "size": 61704,
+      "content_hash": "b81f64a231e5dd10",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "0ee208d0-0f58-4e0f-82cf-d7d05534c28c"
+    },
+    {
+      "project_path": "test_debug_links.png",
+      "size": 84204,
+      "content_hash": "a701c1231152da49",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "edc473d1-d8a5-4fb3-925a-693fd32bffbf"
+    },
+    {
+      "project_path": "test_debug_scroll.png",
+      "size": 81672,
+      "content_hash": "f3f04567c8bcffba",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "7a9f57ec-0c8f-4961-982d-33703832dd57"
+    },
+    {
+      "project_path": "Analysis/embedding-design-2026-03-24.md",
+      "size": 13313,
+      "content_hash": "c75474cf6b444b83",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "6329cd24-7079-4066-958a-b8acb657309c"
+    },
+    {
+      "project_path": "archive/V0_1/business/SUP-001_hf_build_failure.pdf",
+      "size": 4007,
+      "content_hash": "dbd09ca38d77daef",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "3f1f7806-714c-4495-b9e7-fcfd1ee02e7e"
+    },
+    {
+      "project_path": "archive/V0_1/business/business_model_v1.pdf",
+      "size": 10054,
+      "content_hash": "4d056a7aa5bda1d1",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "5ea80714-f885-461d-ac38-99f2e7e841b6"
+    },
+    {
+      "project_path": "archive/V0_1/business/ip_license_agreement_draft_v11.pdf",
+      "size": 4278,
+      "content_hash": "d03237a6b54fc994",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "c7672373-b7cb-4bef-8e7e-be6433e84010"
+    },
+    {
+      "project_path": "archive/V0_1/business/ip_license_agreement_draft_v11.pdf.docx",
+      "size": 16926,
+      "content_hash": "a04306ccdaa03796",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "85da1198-52bc-42e6-a2cb-8324bbddb4ce"
+    },
+    {
+      "project_path": "archive/V0_1/business/pending_legal_questions.pdf",
+      "size": 7725,
+      "content_hash": "9b2dbe3b8ebe1f72",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "bb5f69e6-cf0a-467b-b014-699f418c4393"
+    },
+    {
+      "project_path": "archive/V0_1/business/qa_report_v012_final.pdf",
+      "size": 4542,
+      "content_hash": "ee3825a83b02a9bc",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "d502f590-80ec-4672-aaaa-e90dd9a8fe40"
+    },
+    {
+      "project_path": "archive/V0_1/legacy_machine_docs/machine_brain_seed.py",
+      "size": 9066,
+      "content_hash": "2ca46d7d5eddb401",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "4a8e4f10-ab19-4e59-8357-fe9675d3cbdc"
+    },
+    {
+      "project_path": "archive/V0_1/legacy_machine_docs/machine_brain_seed_gpt.py",
+      "size": 36119,
+      "content_hash": "41ee1b805cffc82a",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "2733a159-6b37-4a5b-8973-e55e58cda056"
+    },
+    {
+      "project_path": "archive/V0_1/legacy_machine_docs/seed_findcare_requirements.py",
+      "size": 16741,
+      "content_hash": "7bcf6027cbf2e8d0",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "c1fdbacd-0696-4ead-9a9e-5277eb285c79"
+    },
+    {
+      "project_path": "brain/machine_artifacts/code/add_cost_reduction.py",
+      "size": 8110,
+      "content_hash": "7a71157d9c0cdcf0",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "9454d4fa-3b50-48d7-9957-b2d6a1e28a6d"
+    },
+    {
+      "project_path": "brain/machine_artifacts/code/add_maintenance_features.py",
+      "size": 4192,
+      "content_hash": "bf998435b9afc8c9",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "55816419-b3cd-4400-9b29-b829d29e76e0"
+    },
+    {
+      "project_path": "brain/machine_artifacts/code/cleanup_epics.py",
+      "size": 3191,
+      "content_hash": "5e556678064efc32",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "6a1917c8-f704-4969-8e6b-caf362330c87"
+    },
+    {
+      "project_path": "brain/machine_artifacts/code/generate_arch001_pdf.py",
+      "size": 18242,
+      "content_hash": "2401ff09405540a1",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "1bd2e690-fc92-4ef7-b4e4-08f7ee075ac4"
+    },
+    {
+      "project_path": "brain/machine_artifacts/code/generate_audit_report_doc.py",
+      "size": 16326,
+      "content_hash": "7ade2fccbc915af2",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "5c5c119d-6165-4212-890a-403a1900399c"
+    },
+    {
+      "project_path": "brain/machine_artifacts/code/generate_epic_plan_artifacts.py",
+      "size": 16118,
+      "content_hash": "337bd33532146cd7",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "1db4c4dc-e593-455c-bf46-247f6e180a7e"
+    },
+    {
+      "project_path": "brain/machine_artifacts/code/generate_epic_planning_doc.py",
+      "size": 18992,
+      "content_hash": "32cdef292d129bc9",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "c508d92f-3dfa-4a67-8571-e8b9647d63c9"
+    },
+    {
+      "project_path": "brain/machine_artifacts/code/update_rx_features.py",
+      "size": 4706,
+      "content_hash": "a54e2a4e61a39c15",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "aacb9b7f-684a-434a-b2a5-1c9dd2faafcd"
+    },
+    {
+      "project_path": "brain/machine_artifacts/code/update_triage_and_rejected.py",
+      "size": 7210,
+      "content_hash": "fc67cd67bd1a2891",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "d73fcde2-8744-45c4-8b6a-0fdc431b9e6c"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/agile_backlog.json",
+      "size": 820831,
+      "content_hash": "d0d78187a891c8b9",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "e9ababfe-9693-4e94-996c-a39cc712404e"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/ai_operations.json",
+      "size": 718216,
+      "content_hash": "39d2d2c065432c06",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "9f052131-f6c7-4c09-88ce-a2e2ffbe9669"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/architecture.json",
+      "size": 135746,
+      "content_hash": "1a83c68ee744c4e6",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "d7894d3d-ad7a-4c79-9b3c-0554d0c36e6e"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/audit_response_user_prompt_template.txt",
+      "size": 1211,
+      "content_hash": "d4948baa49fc16e3",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "bb6ac049-1fdd-4286-beda-e61f73b9fe1e"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/business_facts.json",
+      "size": 1541,
+      "content_hash": "07607405969797d0",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "bc084a00-0f00-4eb6-a2f8-1e303f58ea54"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/business_plan.json",
+      "size": 68635,
+      "content_hash": "7408bd6e53c8fd01",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "53c414f2-06cc-4787-947a-4c1b5940a322"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/claude_acceptance_system_prompt.json",
+      "size": 1941,
+      "content_hash": "f7744aac1d9aae51",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "c829b899-5062-40ed-a759-d320617c02b3"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/claude_audit_response_system_prompt.json",
+      "size": 3234,
+      "content_hash": "9f03128e1d4a2d33",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "d4a5aee1-d3f3-4ce9-aa6c-7d9a724c4ff4"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/controlled_vocabularies.json",
+      "size": 6461,
+      "content_hash": "5d1c7cd5d2c81b0c",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "328eac8a-68c6-4386-a134-93b8214dc349"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/design.gui_frame_layout.json",
+      "size": 5382,
+      "content_hash": "3cce04d74b633b17",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "8bd6cbe7-3dd0-4a0e-bd19-9d1aa2687996"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/design.json",
+      "size": 8884,
+      "content_hash": "0f61f3d6a0d5c14d",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "19ad752d-8493-4bb5-815d-94ad9fd9ce49"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/development_rules.json",
+      "size": 14687,
+      "content_hash": "d711a7efe5004716",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "bb504264-23be-48ae-92a1-ba14bea9c626"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/devops.json",
+      "size": 7580,
+      "content_hash": "fe2bd53b651b1b16",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "322bee62-8972-4520-b8ff-9510b169ec14"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/emergency_keywords.json",
+      "size": 1738,
+      "content_hash": "1f871e629e2c70d4",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "53b27fef-189b-438e-a3a2-65efb87c8883"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/epic_planning_system_prompt.json",
+      "size": 11419,
+      "content_hash": "fe293affa8a428d5",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "dca61f75-efb4-464f-8a0c-816a0a975716"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/epic_planning_user_prompt_v014.txt",
+      "size": 9947,
+      "content_hash": "c9fc3c1d61e88520",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "e7ebec4f-f9be-41e0-a5ef-182e4bd67982"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/external_audits.json",
+      "size": 14169,
+      "content_hash": "a1f0a8f6632fdb62",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "6f32622c-1fb5-49f6-936a-f01bfcf3c107"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/funding_test_result.json",
+      "size": 776,
+      "content_hash": "8cd4d390daa74dd1",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "16d8626c-ad5b-4d23-89fa-060b8eac6cfd"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/gov011_audit.json",
+      "size": 12936,
+      "content_hash": "4615c3dc60a7eaf6",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "145b005d-b755-45de-98a0-a117bd1b0817"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/governance.json",
+      "size": 21211,
+      "content_hash": "bac6fdafe47ccbe6",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "23d41ae4-90e0-483b-a076-2b438d011de2"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/legal.json",
+      "size": 6757,
+      "content_hash": "508f0a8b6cf81cd0",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "c76987d5-e3b9-426e-9a30-2709ab98a333"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/pipeline_maintenance_log.json",
+      "size": 12566,
+      "content_hash": "12268e2f8889a0f5",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "8e7396b2-905f-4661-a258-6eecbaba4955"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/qa_report_v014_sit.json",
+      "size": 9983,
+      "content_hash": "a7371ab64cd045ef",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "4e5add47-5590-4eef-8fe1-96543f085879"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/bugs.json",
+      "size": 96035,
+      "content_hash": "00d9c177508a05c8",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "277fc8a5-54c6-42a4-a520-4a21ac933ff1"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/schema.json",
+      "size": 4556,
+      "content_hash": "62326526f9f515c4",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "d922c440-38de-4162-ad39-eebef38aff3a"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/sprint_plan.json",
+      "size": 40180,
+      "content_hash": "86789af9567c6488",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "5aff8364-a869-49de-989b-bf71f0ce0664"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/token_usage.json",
+      "size": 636909,
+      "content_hash": "7face93bf827e01c",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "563d6ff1-84b9-48cb-b7f1-9ada335f5ecb"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/unattended_assignment.json",
+      "size": 1235,
+      "content_hash": "73a4bd3a0a954438",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "3f1bf962-63a3-44c7-8924-0cf17ff88a19"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/unrealized_ideas.json",
+      "size": 6842,
+      "content_hash": "23712176855a8846",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "452b0d42-6bc5-4ab7-b5c6-f4a8ce963ae5"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/work_log.json",
+      "size": 211725,
+      "content_hash": "a845fc4244e25116",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "2344547e-0930-4949-a48b-a0f341392c49"
+    },
+    {
+      "project_path": "brain/machine_artifacts/content/project_manifest.json",
+      "size": 52898,
+      "content_hash": "9f1275c43c2e0864",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "68e3f8de-8992-410e-a01d-1a84937f6090"
+    },
+    {
+      "project_path": "claude_thoughts/.gitkeep",
+      "size": 0,
+      "content_hash": "e4a6a0577479b2b4",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "9a6c9e67-da7a-4d4a-baef-fa23259e635f"
+    },
+    {
+      "project_path": "Code/.env",
+      "size": 4443,
+      "content_hash": "453b1e14822e887f",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "46046e9a-fa81-46fc-b7e3-bd93857fa167"
+    },
+    {
+      "project_path": "Code/logging_config.py",
+      "size": 1981,
+      "content_hash": "7d688a28d9d9b4bf",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "fb788a48-bdcd-4b44-aedb-8b40b208ecbf"
+    },
+    {
+      "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/BuildingAnthropicAConversationWithItsCo-foundersYouTube.pdf",
+      "size": 1553440,
+      "content_hash": "60d422f7b15a4a2c",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "6d8f8bc3-8c61-45bd-b539-055c38c30366"
+    },
+    {
+      "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/SkipSnowLinkedInProfile.pdf",
+      "size": 64441,
+      "content_hash": "f17290fe1420f747",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "110bba3e-7a37-49de-a7b9-2727c95b9bbb"
+    },
+    {
+      "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/anthropic_principles.txt",
+      "size": 2645,
+      "content_hash": "cd4f07323e185d2a",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "50b9ff11-06dc-4ae7-babc-09947e2cdc18"
+    },
+    {
+      "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/chatHealthy_ai_business_plan.pdf",
+      "size": 24298,
+      "content_hash": "17add17d69e4f251",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "c7511036-c2f1-49af-b576-409f743da1c0"
+    },
+    {
+      "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/findcare-code-package.json",
+      "size": 1009280,
+      "content_hash": "960abebe9cf63acb",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "75c99f57-a660-431a-8ece-3950a5d9ec40"
+    },
+    {
+      "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/summary.txt",
+      "size": 2823,
+      "content_hash": "74cecd9729dc6590",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "f62edf4e-cd8b-471b-a361-98936f055129"
+    },
+    {
+      "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/tests/__init__.py",
+      "size": 0,
+      "content_hash": "e4a6a0577479b2b4",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "fbf7bd31-cb54-4b08-9c1f-a4c20a6b12c7"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/Dockerfile",
+      "size": 157,
+      "content_hash": "d6500b9c5f752c17",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "399c3aa9-f92d-41b0-8b5b-bdbde3fd84b7"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/README.md",
+      "size": 139,
+      "content_hash": "4bcebe904358fe19",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "8b0e701e-ba48-44e2-9233-2b2e392d1196"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/build.txt",
+      "size": 16,
+      "content_hash": "2187d66d5ee6bece",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "624493a8-38ad-4be2-a04b-106f83b9f550"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/main.py",
+      "size": 32621,
+      "content_hash": "c73fbc19ebca8f39",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "66d3ec1e-c68a-4786-a678-4f1842dba2a9"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/requirements.txt",
+      "size": 186,
+      "content_hash": "9c3346235a619d99",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "822e6d41-de87-42a0-8c19-478fa7d2243e"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/url_guardian.py",
+      "size": 15120,
+      "content_hash": "9ede151e67306922",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "5ba0df8b-1848-42ba-b61b-4ecc7c757b33"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/adapter/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "cd6efe06-d4bc-4d10-8217-3c74a145b1a1"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/application/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "05c4ebac-8703-4674-8c9a-a2a592d6f566"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py",
+      "size": 4512,
+      "content_hash": "c385317f5fbd56ed",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "f1fff085-e767-4d21-a5b0-8fa281af4138"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/application/facades/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "eed83a0d-b0ab-4870-8317-10eda87cd56d"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py",
+      "size": 1962,
+      "content_hash": "7b1b527d5f0cd5f8",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "adb6787d-5a0f-4ac6-b38b-926e738d934c"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py",
+      "size": 451,
+      "content_hash": "94bacb9f5345a3db",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "1d8eb21c-09f8-4be3-9238-7ae9f27a1f89"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "aaeebf3e-b23f-424c-a773-4d7cb1fb9e71"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py",
+      "size": 744,
+      "content_hash": "96fd56abe71880c1",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "0e33d0a6-b15e-49bc-bd11-fb7c7c8c2283"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py",
+      "size": 939,
+      "content_hash": "f28f13eb4999f035",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "f0c75ec4-5064-4b56-9c06-b55b30bcca3f"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py",
+      "size": 1141,
+      "content_hash": "f5083ba994511ffb",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "56afa2c3-3184-4dc0-ba61-03172bb6059a"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/brain_data/qa_report_v014_sit.json",
+      "size": 9983,
+      "content_hash": "a7371ab64cd045ef",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "258dd983-700b-4204-9797-3b99e21271c1"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "6c2c3bc1-e109-408d-87f1-0905cd8d2d33"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "65cb5f13-3e11-4cdc-afb6-96c53c22a61f"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py",
+      "size": 6236,
+      "content_hash": "bd030f5dd606b4a9",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "27f72153-7751-45e1-871d-bfa0fe73f4ab"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/provider_detail_service.py",
+      "size": 4725,
+      "content_hash": "59d6ca3d80c47d5c",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "fd1f80b6-9659-4a28-88bc-f239305f5ad3"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "33c7046a-8226-40f8-9fa6-c737419870dc"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py",
+      "size": 24328,
+      "content_hash": "9299df628f3ecf55",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "117c7103-02b6-4ede-9109-66efa18a1cbf"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py",
+      "size": 5762,
+      "content_hash": "00313e8274edaa1e",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "8d22467e-a39f-4164-8867-73d94a3d26c9"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "8ba9c69a-0214-42c4-941c-5b52e080f166"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "073eb4b1-833c-490e-9fcf-3303f1c87cfd"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py",
+      "size": 4057,
+      "content_hash": "dbb3ce807ad4e39a",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "93ef6f80-835f-4be9-8532-4192a3212067"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/content/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "a56991d1-b86b-48ec-9c47-53392cac5de1"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/content/about_service.py",
+      "size": 1437,
+      "content_hash": "8291048e301ca8eb",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "b2b11d74-5eb5-4c6c-bc4f-b3e25879fa37"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "6b6c4b9f-f094-4938-a9a1-90a7ad1bb167"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py",
+      "size": 2939,
+      "content_hash": "c55a90bc468b0cfa",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "ff8e9cf1-1fb5-4afb-b24e-e95710da46fc"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "0819228c-be3e-43ed-9397-cefa5fa9977e"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py",
+      "size": 6904,
+      "content_hash": "6e62adb271591cad",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "6f323a6b-e219-453d-9c9f-d3f718cdbb5a"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "1168de0b-dc4a-40f1-9d39-519e4c6caaac"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py",
+      "size": 3082,
+      "content_hash": "3cf9d6a5b9148014",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "a35c8789-cdd9-40d5-899b-94f7fd13d5aa"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/shared/url/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "19e19123-ee87-4819-af56-df51816f9b51"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "9f5cc184-ed9f-490a-ab10-27f647fedd15"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/debug_logger.py",
+      "size": 2027,
+      "content_hash": "eb0a02ccb6f45fc2",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "867713ef-d528-4b1c-8458-5bc1011610b2"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/config/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "f184b389-e9e1-4c2e-b547-cff92d1813f7"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/embeddings/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "066dadbf-1268-460e-852f-00f6620c36c5"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/embeddings/embedding_client.py",
+      "size": 3050,
+      "content_hash": "8c50c34fcdea8b2c",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "0afc7cbd-516a-47b2-883b-dc308ff300df"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/external_apis/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "36f7bdde-d44a-46e4-8153-9ae19b65c181"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/mongo/__init__.py",
+      "size": 115,
+      "content_hash": "889bcd103417c605",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "c4de3fc9-00e1-4404-a964-e45e361b634b"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/static/_redirects",
+      "size": 20,
+      "content_hash": "5d68c21713fb4cd9",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "9764691e-e2d1-434c-8d61-3d9f0556ffa6"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/static/index.html",
+      "size": 417,
+      "content_hash": "6d26b26a3002173c",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "815cd213-c891-4021-8a8c-283a7b153e2d"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/static/assets/index--YlKMHek.css",
+      "size": 292,
+      "content_hash": "fc5c4766f652044e",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "093a5ecb-7d88-4f5f-ad3e-fa8c85d8bb44"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/static/assets/index-Bdx2diUW.js",
+      "size": 485091,
+      "content_hash": "8791d39f101cc1ae",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "cf9223ac-d4d4-4395-b635-68752d281fae"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py",
+      "size": 2292,
+      "content_hash": "48ce33d6f5bca87b",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "6ef6ff09-2a1c-4375-826c-6fa219e53ce6"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_embedding_client.py",
+      "size": 2490,
+      "content_hash": "5db520a44eaa8878",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "f0d7b66d-6822-456a-9616-20a5e093a057"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_human_testing_mode.py",
+      "size": 7507,
+      "content_hash": "4d54a27e7c66c7d3",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "8c4b3968-3f68-4fad-a8d1-0d5ebdfda7e7"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_pagination.py",
+      "size": 33575,
+      "content_hash": "a593c4450c2c8339",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "1c7491a4-39df-4b5c-9f28-b658400aaf4a"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_prompt_system_maker.py",
+      "size": 2756,
+      "content_hash": "b65ca2bbc59cdd4c",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "24b80fbb-1a57-4ecc-ad7b-cd9dd1e4c3d5"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_sit_browser.py",
+      "size": 11926,
+      "content_hash": "b8c962e2bed2305b",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "00ef2e80-4b07-46b0-9100-ca12b460d9b0"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py",
+      "size": 2416,
+      "content_hash": "8f6a4832b23d7089",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "596c36f5-fb9f-42d6-baf0-5b8640078932"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/backend/tests/test_unanswerable_questions.py",
+      "size": 10281,
+      "content_hash": "055d4f862381704d",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "3c210cc8-57f1-4e7b-b6f7-44ba332009d8"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/frontend/.env.example",
+      "size": 80,
+      "content_hash": "3bde2edcd84e92eb",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "97c66e9f-211c-4910-abd9-36af6880bab7"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/frontend/.env.local",
+      "size": 35,
+      "content_hash": "1d181571226bd84d",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "6e892585-02f6-4ab9-a356-fe10f0434d6c"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/frontend/index.html",
+      "size": 319,
+      "content_hash": "5406cff5ebd72800",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "86b2aeaa-576c-41ae-b8b8-758c745360d1"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/frontend/package-lock.json",
+      "size": 126412,
+      "content_hash": "c5fa9359c9f4046e",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "4711797c-4062-4370-a82a-7a8150a11485"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/frontend/package.json",
+      "size": 581,
+      "content_hash": "d696cc47d97dad92",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "439e0d65-5ac9-4430-bd2b-bc785161430e"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/frontend/tsconfig.json",
+      "size": 425,
+      "content_hash": "498b6a9ddcf3bd2d",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "29175567-edd1-46a3-b448-aec08eba7226"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/frontend/vite.config.ts",
+      "size": 178,
+      "content_hash": "77cff3af83951544",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "bfcf1a31-c5e9-4ebe-ac56-bc4adfc4e65f"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/frontend/public/_redirects",
+      "size": 20,
+      "content_hash": "5d68c21713fb4cd9",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "693dc10f-bbd9-4ce6-b549-5572148bb594"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx",
+      "size": 346,
+      "content_hash": "f42ccec0d3924e97",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "f2af2dbc-ae75-43b2-a84f-552fa7fc518c"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/index.css",
+      "size": 465,
+      "content_hash": "28df8e6204490dc6",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "c6f87a9a-a5dc-476f-90ad-352aacc5b1c6"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/main.tsx",
+      "size": 360,
+      "content_hash": "2dc8c8b4e071fbf6",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "20ad1f2e-595f-4e91-8a36-ec26e122f935"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/vite-env.d.ts",
+      "size": 158,
+      "content_hash": "927bf5894d518609",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "93666811-70e3-41e9-b0e4-b38a619855a5"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx",
+      "size": 23715,
+      "content_hash": "6ff68c79bac2fd7e",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "f446d8c3-4ac9-4182-b8d7-84644d636f55"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/components/GUIManager.tsx",
+      "size": 10667,
+      "content_hash": "fcdad29e6d1af930",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "6e00c1bb-c102-45e9-99eb-a8d516841c29"
+    },
+    {
+      "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx",
+      "size": 4296,
+      "content_hash": "c8144423b10531e8",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "662c9bae-a7ab-41eb-a8cb-abf7fb1249ed"
+    },
+    {
+      "project_path": "Code/DataPipelines/ChatHealthyMongoUtilities.py",
+      "size": 5149,
+      "content_hash": "a535744eaf5a9cad",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "2c4092fb-e925-4a5a-b176-415eabecda3c"
+    },
+    {
+      "project_path": "Code/DataPipelines/atlas_cluster_manager.py",
+      "size": 8660,
+      "content_hash": "9438dad01d6e06f5",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "2cb837fc-f02e-40ce-ac50-46edb1db67fc"
+    },
+    {
+      "project_path": "Code/DataPipelines/auth.py",
+      "size": 1966,
+      "content_hash": "2a5a79d132b4de78",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "66ffccbe-692f-45ba-ade2-da997d6246f0"
+    },
+    {
+      "project_path": "Code/DataPipelines/blob_client.py",
+      "size": 1629,
+      "content_hash": "a3da85581ab97f02",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "47849d50-66bd-45eb-8158-f6dd56bad2d9"
+    },
+    {
+      "project_path": "Code/DataPipelines/cluster_lifecycle_manager.py",
+      "size": 12986,
+      "content_hash": "954daf26cef0aa07",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "a095abf9-1360-42b2-881e-6177ffc57488"
+    },
+    {
+      "project_path": "Code/DataPipelines/copy_to_frontend.py",
+      "size": 24332,
+      "content_hash": "8d2f6ca0b2583476",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "212b69bc-34cf-4da0-ba21-552974345636"
+    },
+    {
+      "project_path": "Code/DataPipelines/copy_va_incremental.py",
+      "size": 3093,
+      "content_hash": "2413bfea8b6b60ab",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "2a3bdd55-92d8-4f2c-9ca0-ab098af83933"
+    },
+    {
+      "project_path": "Code/DataPipelines/county_economic_enrichment.py",
+      "size": 9768,
+      "content_hash": "0c5dd2df726e32b6",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "7621d273-dd6a-49ff-9db5-1583de82cd22"
+    },
+    {
+      "project_path": "Code/DataPipelines/county_enrichment_job.py",
+      "size": 73833,
+      "content_hash": "0f12d0ec91098a73",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "1d202c11-7729-4d5f-9118-9d01894f5ff7"
+    },
+    {
+      "project_path": "Code/DataPipelines/data_fetcher_base.py",
+      "size": 8054,
+      "content_hash": "c578eb7a29a0ff1d",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "6de11995-2084-4362-b05b-32a9efd07c7c"
+    },
+    {
+      "project_path": "Code/DataPipelines/discrepancy_reporter.py",
+      "size": 7935,
+      "content_hash": "45a87a97a958bb0e",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "9f7f953e-8423-41e8-9006-500a5ec8bc34"
+    },
+    {
+      "project_path": "Code/DataPipelines/embed_va_backfill.py",
+      "size": 4395,
+      "content_hash": "69f2936e4fe80511",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "c9500d09-b36e-43c7-a39b-b3d32c00563e"
+    },
+    {
+      "project_path": "Code/DataPipelines/embedding_worker.py",
+      "size": 9466,
+      "content_hash": "b8ce4132800ce599",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "4a9a09bd-a8bf-4973-925d-48b80f47c358"
+    },
+    {
+      "project_path": "Code/DataPipelines/favicon.ico",
+      "size": 15406,
+      "content_hash": "25f008f15dca64ab",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "d8ee64a1-1bfa-424f-a5c5-91844ccea686"
+    },
+    {
+      "project_path": "Code/DataPipelines/function_app.py",
+      "size": 31748,
+      "content_hash": "0ea1be474f2bfb34",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "21853ae9-f8db-4637-b772-4ae54caa5e94"
+    },
+    {
+      "project_path": "Code/DataPipelines/gpt_reader.py",
+      "size": 9756,
+      "content_hash": "85880b66f0188098",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "64b1f977-40e1-4d7d-a6ba-e39fde1fe8f5"
+    },
+    {
+      "project_path": "Code/DataPipelines/host.json",
+      "size": 620,
+      "content_hash": "0b3d5d864439d4cc",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "1d55d0b8-e4c2-4a55-8ed5-c588a518b0e9"
+    },
+    {
+      "project_path": "Code/DataPipelines/icd10_loader.py",
+      "size": 8526,
+      "content_hash": "33549c673ef4a2a1",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "544d4e33-d254-437d-a31e-747cc8215760"
+    },
+    {
+      "project_path": "Code/DataPipelines/idle_monitor.py",
+      "size": 5447,
+      "content_hash": "fa3942d582515c5a",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "d1ee0eff-c327-4ffb-bdd0-5980ea709d73"
+    },
+    {
+      "project_path": "Code/DataPipelines/instance_warmer.py",
+      "size": 5475,
+      "content_hash": "bfa19e9c38f1e759",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "c5c44c59-bdf8-49fe-8418-32d7193204cb"
+    },
+    {
+      "project_path": "Code/DataPipelines/load_provider_data.py",
+      "size": 587,
+      "content_hash": "25c2fa043917bd61",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "2399a02c-4ea9-4aa3-a22a-1d9995aca808"
+    },
+    {
+      "project_path": "Code/DataPipelines/load_specialty_data.py",
+      "size": 8839,
+      "content_hash": "9871061018ced9fa",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "3ec6256b-2502-44ba-9b82-a0ba33581bac"
+    },
+    {
+      "project_path": "Code/DataPipelines/migrate_discrepancy_reports.py",
+      "size": 4126,
+      "content_hash": "ff495b97338a82b4",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "9aef4ae3-0606-41b8-adfd-18e243295d40"
+    },
+    {
+      "project_path": "Code/DataPipelines/move_to_frontend.py",
+      "size": 4294,
+      "content_hash": "e8ef66574624efaf",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "b0b4bf19-325b-4474-9828-2c1e4ea66d2a"
+    },
+    {
+      "project_path": "Code/DataPipelines/otp_manager.py",
+      "size": 3180,
+      "content_hash": "a400dfe054b441a1",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "4397c96a-9cf7-4769-9134-356792ab2bcc"
+    },
+    {
+      "project_path": "Code/DataPipelines/pipeline_code_review.json",
+      "size": 166895,
+      "content_hash": "9fb53a4162bc979d",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "34f47ba8-f1a2-46f8-add8-a8e097e584e2"
+    },
+    {
+      "project_path": "Code/DataPipelines/pipeline_files.json",
+      "size": 1287,
+      "content_hash": "f20a934467f24c77",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "0310bc21-ecde-4cff-82b8-f0cd82e30520"
+    },
+    {
+      "project_path": "Code/DataPipelines/pipeline_health.py",
+      "size": 4290,
+      "content_hash": "a1bd6c234c7dbdde",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "6e8cb35f-e80a-4011-87a2-c3a9aabb6b0a"
+    },
+    {
+      "project_path": "Code/DataPipelines/pipeline_worker_base.py",
+      "size": 7457,
+      "content_hash": "c47cacfbbd417e96",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "5d8dec05-6399-482a-b684-5f64c0a831e9"
+    },
+    {
+      "project_path": "Code/DataPipelines/promote_data_fn.py",
+      "size": 6183,
+      "content_hash": "51cfe76fa64d6551",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "d18b8e3d-1145-46ae-853c-5cc5179127d1"
+    },
+    {
+      "project_path": "Code/DataPipelines/provider_embedding.py",
+      "size": 15840,
+      "content_hash": "15554d05b505030c",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "b6511798-3225-4ef5-8179-a414b11e731c"
+    },
+    {
+      "project_path": "Code/DataPipelines/provider_load_manager.py",
+      "size": 35322,
+      "content_hash": "2324234dadf2cdb3",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "891b4b4f-2c74-4ab5-aa8c-a7c1e98bf31b"
+    },
+    {
+      "project_path": "Code/DataPipelines/provider_worker.py",
+      "size": 17355,
+      "content_hash": "b0e3ab627316e3c9",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "2a5ddeca-85c1-43cb-aa63-82723969c45f"
+    },
+    {
+      "project_path": "Code/DataPipelines/qa_provider_load.py",
+      "size": 15160,
+      "content_hash": "a16606d9f6092ad6",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "78f82167-67d1-4749-a463-d4fa5acea3d0"
+    },
+    {
+      "project_path": "Code/DataPipelines/refactor_db.py",
+      "size": 3808,
+      "content_hash": "e8c69e3557568fa7",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "fa4e75d4-cbbf-49fe-8818-c585acbc9086"
+    },
+    {
+      "project_path": "Code/DataPipelines/rename_to_dev.py",
+      "size": 4008,
+      "content_hash": "5a340af36f6e8eb0",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "b546de25-4ef7-4765-a217-7f5f9523e0d3"
+    },
+    {
+      "project_path": "Code/DataPipelines/requirements-pipeline.txt",
+      "size": 208,
+      "content_hash": "2fc131c44e5b66c4",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "5e61a4e7-43f2-4e46-a022-45c3050c2ec6"
+    },
+    {
+      "project_path": "Code/DataPipelines/validate_provider_load.py",
+      "size": 12500,
+      "content_hash": "9e469e44b112f1f8",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "37168814-c7fa-4c0f-86f9-0cd6e4f74224"
+    },
+    {
+      "project_path": "Code/DataPipelines/zip_county_crosswalk_loader.py",
+      "size": 6907,
+      "content_hash": "76191b51235e22aa",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "25c3bf16-72fd-4219-8691-a5377c5c8a7f"
+    },
+    {
+      "project_path": "Code/DataPipelines/legal/licence.txt",
+      "size": 1508,
+      "content_hash": "5f0079153f3fa0f3",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "41de2dbe-ae5d-461d-bb5c-4b92a8a86b17"
+    },
+    {
+      "project_path": "Code/DataPipelines/ops_manager/__init__.py",
+      "size": 519,
+      "content_hash": "8772481c427eb02b",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "541a3d7e-ddd0-44e7-8b9a-ee04a52c1234"
+    },
+    {
+      "project_path": "Code/DataPipelines/ops_manager/alert_tool.py",
+      "size": 4014,
+      "content_hash": "7ceef6f10ba35049",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "a1c18029-bd23-4f52-aaa8-7e90cb523ab8"
+    },
+    {
+      "project_path": "Code/DataPipelines/ops_manager/audit_trail.py",
+      "size": 3882,
+      "content_hash": "a67e37494915906e",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "db4846c9-a9d8-472c-99d0-9594e721becd"
+    },
+    {
+      "project_path": "Code/DataPipelines/ops_manager/cluster_tool.py",
+      "size": 4884,
+      "content_hash": "a0d51cc48f21362e",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "18b44b41-9499-4188-a70b-0dea8cea6d9d"
+    },
+    {
+      "project_path": "Code/DataPipelines/ops_manager/evidence_package.py",
+      "size": 2472,
+      "content_hash": "9a039edc340dfa14",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "df551aa4-26f0-41d9-a76b-14bc49d4d089"
+    },
+    {
+      "project_path": "Code/DataPipelines/ops_manager/ops_agent.py",
+      "size": 15017,
+      "content_hash": "8a94cbcc7073da04",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "a99a4750-c55c-4dd5-8915-de89e205fc6a"
+    },
+    {
+      "project_path": "Code/DataPipelines/ops_manager/test_ops_agent.py",
+      "size": 10530,
+      "content_hash": "556afbd90af6dcfa",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "142f7001-3aa9-4c3f-8ee4-ae160f9640c7"
+    },
+    {
+      "project_path": "Code/DataPipelines/ops_manager/triage_tool.py",
+      "size": 8115,
+      "content_hash": "deb88cb877477be3",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "f158b7de-2e0f-4017-a2c8-977083c04e67"
+    },
+    {
+      "project_path": "Code/DataPipelines/tests/gpt_sit_runner.py",
+      "size": 18228,
+      "content_hash": "fdc17402a84c11b1",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "25dc65ee-2a6a-429a-9f85-458187a92bd3"
+    },
+    {
+      "project_path": "Code/DataPipelines/tests/gpt_sit_with_gpt.py",
+      "size": 24032,
+      "content_hash": "b0b910b937a8120a",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "61119b87-5436-43fc-848d-96f9e759a58c"
+    },
+    {
+      "project_path": "Code/DataPipelines/tests/test_data_quality.py",
+      "size": 11055,
+      "content_hash": "19754a1f9fed2564",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "38569081-b397-4819-9b70-863d0143582d"
+    },
+    {
+      "project_path": "Code/DataPipelines/tests/test_gpt_reader.py",
+      "size": 12078,
+      "content_hash": "4347d3bbcbd8075e",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "d0627207-1d58-44b1-adb9-220ca5f18ec1"
+    },
+    {
+      "project_path": "Code/DataPipelines/tests/test_gpt_reader_integration.py",
+      "size": 15241,
+      "content_hash": "b008410c84e1bd1b",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "4b2bc25c-4c41-4fe1-8f1f-d5e1724734a8"
+    },
+    {
+      "project_path": "Code/DataPipelines/tests/test_pipeline_e2e.py",
+      "size": 8801,
+      "content_hash": "4e2677ad223ecc80",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "9b17b75f-33e7-447c-8ca8-1f04818648de"
+    },
+    {
+      "project_path": "Code/DataPipelines/tests/test_pipeline_worker_base.py",
+      "size": 8794,
+      "content_hash": "9949839ab1372471",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "45b664f9-ae72-47a1-b029-a8af4ff3f987"
+    },
+    {
+      "project_path": "Code/DataPipelines/tests/test_provider_embedding.py",
+      "size": 13581,
+      "content_hash": "b34d5c028a1388a6",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "6f162c88-bb99-420b-a398-278b1cc74cdd"
+    },
+    {
+      "project_path": "Code/Schemas/ChatHealthy.Providers.json",
+      "size": 18020,
+      "content_hash": "4386743a7269211e",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "92465441-cf22-499a-a964-a8142ed47406"
+    },
+    {
+      "project_path": "Code/Shared/ChatHealthyMongoUtilities.py",
+      "size": 4914,
+      "content_hash": "7265544363cfe050",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "3868624c-1ec0-4280-9cda-ee0cb1d6ab0d"
+    },
+    {
+      "project_path": "Code/Shared/backlog.py",
+      "size": 6250,
+      "content_hash": "cc31b0fe39a2d9c3",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "5c281cee-b08b-4d1c-aa80-b6922ea9a4f4"
+    },
+    {
+      "project_path": "Code/Shared/brain_auth.py",
+      "size": 2955,
+      "content_hash": "9247a9dded427a99",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "c7295aea-309b-42ae-81db-834a8f9c69f8"
+    },
+    {
+      "project_path": "Code/Shared/brain_loop.py",
+      "size": 26771,
+      "content_hash": "5508c9af80f0f8e5",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "0c414912-bee0-477f-b8a8-4cbe00c6c660"
+    },
+    {
+      "project_path": "Code/Shared/brain_runner.py",
+      "size": 14188,
+      "content_hash": "469c035e40a86848",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "fa58f79a-277c-4a9f-8eb9-16e94650cb74"
+    },
+    {
+      "project_path": "Code/Shared/cost_guard.py",
+      "size": 11597,
+      "content_hash": "6563653e327b2133",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "bb3b5ea8-51b6-471d-987e-b3d93319c78a"
+    },
+    {
+      "project_path": "Code/Shared/machine_brain.py",
+      "size": 11978,
+      "content_hash": "a7af0ae97d3b5299",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "10c23b4f-edd9-4348-a41a-2fbce94c1d02"
+    },
+    {
+      "project_path": "Code/Shared/prompt_system_maker.py",
+      "size": 17197,
+      "content_hash": "9cdcbabb524dc113",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "190aa3b1-6953-4676-bb87-e3e04b355eae"
+    },
+    {
+      "project_path": "Code/Shared/agent_framework/__init__.py",
+      "size": 312,
+      "content_hash": "c4c47913fa611f70",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "3e2dfaf1-4eb4-4e28-975f-ad80189e9dfc"
+    },
+    {
+      "project_path": "Code/Shared/agent_framework/base_agent.py",
+      "size": 2667,
+      "content_hash": "3a7e51b7daca6280",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "6779d640-8e7d-4cba-916c-603f67a7f356"
+    },
+    {
+      "project_path": "Code/Shared/agent_framework/base_tool.py",
+      "size": 2307,
+      "content_hash": "93d925d43d38c8d2",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "6c153b0e-a23a-4084-8d7a-6b69e5a79260"
+    },
+    {
+      "project_path": "Code/Shared/agent_framework/tool_registry.py",
+      "size": 2746,
+      "content_hash": "d347f609d648fa2b",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "e880b7da-6b7d-4ef9-bc4d-3eb8f6edadef"
+    },
+    {
+      "project_path": "Code/Shared/ops/atlas_cluster_toggle.py",
+      "size": 2479,
+      "content_hash": "fb64740ebe7bd7cd",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "37b12152-e481-454b-abea-8e56b27cd044"
+    },
+    {
+      "project_path": "Code/Shared/ops/brain_biz_arch_collab.py",
+      "size": 13309,
+      "content_hash": "a2765da529b396cf",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "9ae170d0-aa4f-4fdd-a47c-abcd2782043b"
+    },
+    {
+      "project_path": "Code/Shared/ops/brain_biz_arch_diagrams.py",
+      "size": 18287,
+      "content_hash": "d5e779c1a1d4b514",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "5273a4d9-d35a-459f-85c1-f8ff81eb7b81"
+    },
+    {
+      "project_path": "Code/Shared/ops/brain_refactor_collab.py",
+      "size": 20180,
+      "content_hash": "2ee75a20a94b7baf",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "c4aea038-1138-4387-a550-32fc5f808883"
+    },
+    {
+      "project_path": "Code/Shared/ops/brain_snapshot.py",
+      "size": 3132,
+      "content_hash": "b0b21b05aa22559e",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "60b8015e-1909-43fe-bf7c-f6f5c55bb56a"
+    },
+    {
+      "project_path": "Code/Shared/ops/build_repo_json.py",
+      "size": 4517,
+      "content_hash": "953adc9477668b9e",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "d01c236e-24ea-45dd-818a-48943f6074ed"
+    },
+    {
+      "project_path": "Code/Shared/ops/bump_build.py",
+      "size": 1578,
+      "content_hash": "e07ec07473ddaa7b",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "0a8f6039-6359-412e-82f8-898728380e67"
+    },
+    {
+      "project_path": "Code/Shared/ops/dev_pipeline.py",
+      "size": 1188,
+      "content_hash": "7c628bbd4d120c18",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "ba1ce443-29cb-470b-96b6-34e72fc843a7"
+    },
+    {
+      "project_path": "Code/Shared/ops/epic_planning_runner.py",
+      "size": 36363,
+      "content_hash": "2957816e1d86f7d5",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "e3394b12-49ef-42c5-8e19-4068d5b7deb0"
+    },
+    {
+      "project_path": "Code/Shared/ops/framework_version.py",
+      "size": 3689,
+      "content_hash": "871cadf7bd1a4480",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "f7f7da35-07bd-4904-929e-1dc21d5a028b"
+    },
+    {
+      "project_path": "Code/Shared/ops/gen_evaluate_care_v3.py",
+      "size": 6882,
+      "content_hash": "b1c122db03081efd",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "b552396e-c258-42dd-99f4-121a8054882a"
+    },
+    {
+      "project_path": "Code/Shared/ops/gen_investor_docx.py",
+      "size": 10873,
+      "content_hash": "85281ba76ac5ddb0",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "1227832d-5442-4324-9793-38ed6b6cf1c9"
+    },
+    {
+      "project_path": "Code/Shared/ops/gen_investor_docx_v3.py",
+      "size": 19073,
+      "content_hash": "60add9edb01ef0d7",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "e9da2113-9d2c-4c9b-b12b-157cee647c0c"
+    },
+    {
+      "project_path": "Code/Shared/ops/gen_investor_pdf_v2.py",
+      "size": 12081,
+      "content_hash": "f096a28c927cc4a8",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "1fba17d0-54fe-4406-ba28-fd74c719c977"
+    },
+    {
+      "project_path": "Code/Shared/ops/gen_moat_v4.py",
+      "size": 3914,
+      "content_hash": "acc0a8136d6e45b6",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "bbfe20b4-a0e8-4736-b323-fd6bc1952ec8"
+    },
+    {
+      "project_path": "Code/Shared/ops/hf_space_create.py",
+      "size": 6452,
+      "content_hash": "1c3fa023af73214a",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "4b4aff19-91ac-4297-ada3-2d7ac4bc187c"
+    },
+    {
+      "project_path": "Code/Shared/ops/hf_space_delete.py",
+      "size": 3865,
+      "content_hash": "8a706062e2966848",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "7526d348-22a5-4951-b9e8-e83f37a18e36"
+    },
+    {
+      "project_path": "Code/Shared/ops/hf_space_restart.py",
+      "size": 1468,
+      "content_hash": "5de873ce79b222ae",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "9dd4720d-c8f6-4ecb-865d-697a848a76f0"
+    },
+    {
+      "project_path": "Code/Shared/ops/hf_space_status.py",
+      "size": 1956,
+      "content_hash": "06544b1568fdcd97",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "2b43d9df-df7e-46d9-aa23-1ea70afb1333"
+    },
+    {
+      "project_path": "Code/Shared/ops/manifest_generator.py",
+      "size": 17864,
+      "content_hash": "ef3c4283fbd16fd1",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "5902991c-424e-46c7-934d-adc4bec66eef"
+    },
+    {
+      "project_path": "Code/Shared/ops/promote_build.py",
+      "size": 3633,
+      "content_hash": "d1771874a6eb0d06",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "6f9741fe-8037-4209-a311-944bbfdddc0d"
+    },
+    {
+      "project_path": "Code/Shared/ops/promote_data.py",
+      "size": 4164,
+      "content_hash": "06d112cbc61510f9",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "83c1d542-60d2-4020-a905-df66f79047fa"
+    },
+    {
+      "project_path": "Code/Shared/ops/rebuild_manifest.py",
+      "size": 1203,
+      "content_hash": "dff086f794320a94",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "83350c53-0644-4779-8622-bc9737667583"
+    },
+    {
+      "project_path": "Code/Shared/ops/sync_to_mongo.py",
+      "size": 10383,
+      "content_hash": "6fe855a7a7122e30",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "03419b63-ed7f-4035-9a09-508560e99b55"
+    },
+    {
+      "project_path": "Code/Shared/ops/test_brain_questions.py",
+      "size": 3924,
+      "content_hash": "976d5f5bdb99d65a",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "0b47e4a5-4e3e-4c9b-a1fe-928ee68f37e5"
+    },
+    {
+      "project_path": "Code/Shared/ops/uat_report.py",
+      "size": 9049,
+      "content_hash": "fc9118361d84f79b",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "e40ed278-60aa-4b36-b9ec-a20f59f5ee1d"
+    },
+    {
+      "project_path": "Code/Shared/ops/unattended_monitor.py",
+      "size": 9651,
+      "content_hash": "04aba4990e916c4b",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "08a8c376-7985-4568-990f-b6ae4345e1b7"
+    },
+    {
+      "project_path": "Code/Shared/ops/update_brain_descriptions.py",
+      "size": 9247,
+      "content_hash": "c0097d65a1f4ec58",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "165c1f1c-1af3-4745-b6d1-801a1b9bedb9"
+    },
+    {
+      "project_path": "Code/Shared/ops/update_manifest_capabilities.py",
+      "size": 8030,
+      "content_hash": "49922c49619166c1",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "56eb67f2-7c69-4286-a90e-167d45daae98"
+    },
+    {
+      "project_path": "Code/Shared/ops/tools/gen_ops_design_docx.py",
+      "size": 16587,
+      "content_hash": "366d2cbe5216a244",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "4142682c-a781-4308-b373-fca49c665b96"
+    },
+    {
+      "project_path": "Code/Shared/ops/tools/kill_dev_servers.ps1",
+      "size": 2430,
+      "content_hash": "720c503e0354d7be",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "4f2cd8a2-cc40-4cc6-818d-1f30b1708124"
+    },
+    {
+      "project_path": "docs/machine-brain-claude-spec.md",
+      "size": 10220,
+      "content_hash": "180cf39c3c9d2de1",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "839564f1-359d-4171-a49f-b32b40dbf1a4"
+    },
+    {
+      "project_path": "docs/adr/ADR-0001-three-application-architecture.md",
+      "size": 813,
+      "content_hash": "6dcc2a046084c24a",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "a0588e1f-96e9-405b-8297-19b7668e8fae"
+    },
+    {
+      "project_path": "docs/adr/ADR-0002-cloudflare-pages-frontend.md",
+      "size": 736,
+      "content_hash": "4f12eb70dd199148",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "ff19a51a-da63-4882-9841-54d5dfab4c88"
+    },
+    {
+      "project_path": "docs/adr/ADR-0003-fastapi-azure-app-service.md",
+      "size": 903,
+      "content_hash": "bc6cd9ba41503af6",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "19c1d6c0-6282-4496-a277-6ba77ab52eff"
+    },
+    {
+      "project_path": "docs/adr/ADR-0004-env-prefix-routing.md",
+      "size": 786,
+      "content_hash": "9b13bf3b82204217",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "14696495-56f4-4c9a-b5fc-faea2f030e2f"
+    },
+    {
+      "project_path": "docs/adr/ADR-0005-chat-url-injection.md",
+      "size": 824,
+      "content_hash": "d37de9dbe19297e0",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "a3ea4854-4279-4f91-91cd-be023e2022ae"
+    },
+    {
+      "project_path": "docs/adr/ADR-0006-two-mongodb-clusters.md",
+      "size": 790,
+      "content_hash": "52077a6fe6318d03",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "8713ee28-6711-4bda-bbcc-20dc6950d8e0"
+    },
+    {
+      "project_path": "docs/adr/ADR-0007-machine-brain.md",
+      "size": 1033,
+      "content_hash": "f319cb8ccbe8bbf8",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "ee35bdbc-d7b8-4c4a-a46d-7d8ccc73e626"
+    },
+    {
+      "project_path": "docs/adr/ADR-0008-main-branch-naming.md",
+      "size": 795,
+      "content_hash": "f3c4d25a437dac70",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "81446a8f-f87a-424b-a992-ba90e43f8bb2"
+    },
+    {
+      "project_path": "docs/adr/ADR-0009-persist-mode.md",
+      "size": 872,
+      "content_hash": "319635985b8212ad",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "b7ec7a5d-fdf7-4eac-99fc-199323b3866d"
+    },
+    {
+      "project_path": "docs/adr/ADR-0010-safety-incident-logging.md",
+      "size": 961,
+      "content_hash": "fc7aa9653af3ff5f",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "9c062e34-d5cb-4061-b5cd-6995fd681876"
+    },
+    {
+      "project_path": "docs/adr/ADR-0011-dev-branch-naming.md",
+      "size": 806,
+      "content_hash": "c9dc91ecb4850ff4",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "c0df5026-0432-4a78-bbba-053b3b4305d6"
+    },
+    {
+      "project_path": "docs/manifests/.gitkeep",
+      "size": 0,
+      "content_hash": "e4a6a0577479b2b4",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "824aadb9-f9c6-47c4-83bf-f216de5d1d1c"
+    },
+    {
+      "project_path": "gpt_thoughts/.gitkeep",
+      "size": 0,
+      "content_hash": "e4a6a0577479b2b4",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "e383e32a-87aa-4455-bb2b-e281c87287e5"
+    },
+    {
+      "project_path": "Legal/Licence.txt",
+      "size": 1542,
+      "content_hash": "62cb61e8b534632b",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "d5d4f737-0e0f-4929-8410-92fe36ca836e"
+    },
+    {
+      "project_path": "Website/_headers",
+      "size": 117,
+      "content_hash": "a85304e35a91b4e9",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "09f3ae26-eee3-46a5-94f1-6a939ebef140"
+    },
+    {
+      "project_path": "Website/architecture.html",
+      "size": 72635,
+      "content_hash": "88cb92a606814327",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "eb9caaf9-f9d4-49c7-b146-1d5f25666e65"
+    },
+    {
+      "project_path": "Website/chat-app-design.html",
+      "size": 68505,
+      "content_hash": "5acac38c3a180d46",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "25b48892-58d8-488f-8795-8a04e91a18c5"
+    },
+    {
+      "project_path": "Website/chat-url.txt",
+      "size": 27,
+      "content_hash": "36287e866f33e1a9",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "d81eca48-7361-4c5a-a4d8-c9789f68a4d3"
+    },
+    {
+      "project_path": "Website/embedding-design.html",
+      "size": 25838,
+      "content_hash": "0406b6dacc09af6d",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "7a8b37eb-d494-4844-a878-3275ce529dd5"
+    },
+    {
+      "project_path": "Website/index.html",
+      "size": 34503,
+      "content_hash": "dfb1dc928c68c1f3",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "12d93638-f401-47cf-b9f2-89aa17f5093b"
+    },
+    {
+      "project_path": "Website/load-perf-report.html",
+      "size": 33021,
+      "content_hash": "3b8c3c17fc632dbf",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "2741e7af-4ecc-4213-83f2-f4910e596fc7"
+    },
+    {
+      "project_path": "Website/load_comparison.png",
+      "size": 126583,
+      "content_hash": "67336237258394cf",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "06d6d273-41cd-461e-8a21-eef14b50d2b1"
+    },
+    {
+      "project_path": "Website/load_progress.png",
+      "size": 51182,
+      "content_hash": "45b6a86438fe5e3b",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "e1497ad7-4b25-4519-9537-fd3fc726f76d"
+    },
+    {
+      "project_path": "Website/ops-manager-design.html",
+      "size": 53487,
+      "content_hash": "68b37b3cc6b148e7",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "b17126a0-3f60-4541-a052-60776bb932a3"
+    },
+    {
+      "project_path": "Website/privacy.html",
+      "size": 19068,
+      "content_hash": "d0e51115d2577617",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "90d4536a-eb8f-4387-877c-f664409cfd56"
+    },
+    {
+      "project_path": "Website/products.html",
+      "size": 14180,
+      "content_hash": "af4c3105aad611f5",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "e94df04f-57f7-42b2-a3c2-1565e7b76555"
+    },
+    {
+      "project_path": "Website/provider-data-load.html",
+      "size": 69413,
+      "content_hash": "eedc6bb0bceac8b3",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "a39f97e3-baaf-4be0-aa19-ab2dff3c4969"
+    },
+    {
+      "project_path": "Website/roadmap.html",
+      "size": 61655,
+      "content_hash": "046b31a2c380f2a9",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "59dbde0c-958d-4c38-91ae-0b32cf8100a2"
+    },
+    {
+      "project_path": "Website/terms.html",
+      "size": 12616,
+      "content_hash": "bec50ce69b4a3d65",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "9f00a2f4-df0a-474a-81d7-4e074d8fc3af"
+    },
+    {
+      "project_path": "Website/tests/conftest.py",
+      "size": 1072,
+      "content_hash": "c7630fc4b4a764e5",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "78dcbdfa-02c5-4d1d-8e75-0d491583f597"
+    },
+    {
+      "project_path": "Website/tests/test_website.py",
+      "size": 17544,
+      "content_hash": "393bcb8007b7ef24",
+      "entity_type": "file",
+      "description": "",
+      "ch_matrix_id": "aba869be-65b9-4733-be36-4fd39eab5185"
+    }
+  ]
+}

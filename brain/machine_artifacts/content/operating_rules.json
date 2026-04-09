@@ -1,5 +1,6 @@
 {
   "collection": "operating_rules",
+  "governance_attribute_id": "ch_governance_record_id_8294cb85-08c6-41b5-8bef-d79190df12f6",
   "description": "Authoritative engineering operating rules for Claude. Source of truth. No deviation without signed risk acceptance from Skip Snow.",
   "version": "4",
   "date": "2026-04-05",
@@ -186,6 +187,18 @@
       "title": "All pipelines are idempotent",
       "rule": "Every pipeline step must be safely re-runnable. Running a step twice with the same input must produce the same output without data corruption, duplication, or loss. No pipeline step may use destructive operations (drop, delete_many) as a precondition unless the entire step is atomic — drop-and-replace must complete or roll back, never leave an empty collection. Upsert on a unique key is the preferred write pattern. insert_many with ordered=False and duplicate tolerance is acceptable. Any step that cannot be re-run safely is a design defect.",
       "ch_matrix_id": "8dfd9b53-8bb2-4c2f-8ae5-59d583ba3d1b"
+    },
+    {
+      "id": "v4-026",
+      "title": "Governance matrix changes require Boss risk acceptance",
+      "rule": "Claude may not change any record in the governance matrix (governance_matrix.json) without explicit risk acceptance from Skip Snow. Skip must accept and explain the change. This rule is universally enforced — no environment exception, no mode exception, no urgency exception. The governance matrix is the control plane. Unauthorized changes to the control plane are a system-level violation.",
+      "ch_matrix_id": "a1b2c3d4-0000-4000-a000-000000000026"
+    },
+    {
+      "id": "v4-027",
+      "title": "Controlled vocabulary changes require Boss authorization",
+      "rule": "Claude may not add, remove, or modify any value in any controlled vocabulary (controlled_vocabularies.json) without explicit authorization from Skip Snow. Skip must authorize the specific change. Controlled vocabularies define the permitted values across the system — unauthorized changes propagate silently and can corrupt governance, data quality, and compliance. This rule is universally enforced.",
+      "ch_matrix_id": "a1b2c3d4-0000-4000-a000-000000000027"
     }
   ],
   "ch_matrix_id": "1f343049-b0e0-46e2-9c19-33c138e9ab46"

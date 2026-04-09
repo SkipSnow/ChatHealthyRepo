@@ -25,6 +25,14 @@ import re
 import sys
 import tempfile
 from pathlib import Path
+from typing import Optional, Literal
+
+try:
+    from pydantic import BaseModel, Field
+except ImportError:
+    # Fallback if pydantic not installed
+    BaseModel = object
+    Field = lambda **kwargs: None
 
 _log = logging.getLogger("devops_boot")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
@@ -60,6 +68,100 @@ def _propensity_response(label: str, json_stem: str = "", reason: str = "") -> d
     return base
 
 
+class bug_governance_constraints(BaseModel if BaseModel is not object else object):
+    """Pydantic model for a governed bug record.
+    Constructor validates bug data against governance constraints."""
+
+    id: str = ""
+    rule: str = ""
+    description: str = ""
+    severity: str = ""  # constrained by bug_severity CV
+    environments: list = []  # constrained to local/dev/qa/prod
+    date: str = ""
+    discovery_date: str = ""
+    due_date: str = ""
+    next_action: str = "analysis"
+    status: str = "open"
+    success_criteria_to_close: str = ""
+    source: str = ""
+    ch_matrix_id: str = ""
+    incident: str = ""
+    risk_level: str = ""
+    reason: str = ""
+
+    def is_show_stopper(self) -> bool:
+        return "SHOW STOPPER" in (self.rule or "") or "SHOW STOPPER" in (self.severity or "")
+
+    def is_release_blocker(self) -> bool:
+        return "RELEASE BLOCKER" in (self.rule or "") or "SPRINT BLOCKER" in (self.rule or "")
+
+    def blocks_action(self, action_event: str) -> dict:
+        """Check if this bug should block a governance action event."""
+        if self.is_show_stopper() or self.is_release_blocker():
+            return {
+                "comply": False,
+                "action": "session_abend",
+                "reason": f"{self.id}: {self.severity or 'SHOW STOPPER'} — {(self.rule or self.description)[:150]}",
+                "propensity": "session_abend",
+            }
+        return {"comply": True, "propensity": "allow"}
+
+    def run_governance_process(self) -> dict:
+        """Execute the governance process for this bug instance.
+        Runs on the stack — multiple instances can run concurrently
+        inside the singleton boot controller."""
+        result = {
+            "bug_id": self.id,
+            "severity": self.severity,
+            "status": self.status,
+            "next_action": self.next_action,
+            "is_show_stopper": self.is_show_stopper(),
+            "is_release_blocker": self.is_release_blocker(),
+            "environments": self.environments,
+            "comply": True,
+        }
+
+        # Show stoppers and release blockers fail governance
+        if self.is_show_stopper() or self.is_release_blocker():
+            result["comply"] = False
+            result["action"] = "session_abend"
+            result["reason"] = f"{self.id}: {(self.rule or self.description)[:200]}"
+
+        # Open bugs with no next action are governance warnings
+        if self.status == "open" and not self.next_action:
+            result["warning"] = f"{self.id}: open bug with no next_action"
+
+        # Bugs past due date are escalated
+        if self.due_date:
+            from datetime import datetime, timezone
+            try:
+                due = datetime.fromisoformat(self.due_date.replace("Z", "+00:00"))
+                if datetime.now(timezone.utc) > due:
+                    result["warning"] = f"{self.id}: past due {self.due_date}"
+                    if self.is_show_stopper():
+                        result["comply"] = False
+                        result["action"] = "system_abend"
+                        result["reason"] = f"{self.id}: SHOW STOPPER past due {self.due_date}"
+            except Exception:
+                pass
+
+        return result
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Construct from a bug dict, tolerating extra fields."""
+        fields = {k: v for k, v in data.items() if k in cls.__annotations__} if hasattr(cls, '__annotations__') else data
+        try:
+            return cls(**fields)
+        except Exception:
+            # Fallback for non-pydantic
+            obj = cls()
+            for k, v in data.items():
+                if hasattr(obj, k):
+                    setattr(obj, k, v)
+            return obj
+
+
 class chathealthy_devops_boot:
     """Governance brain — singleton. Loads rules, gates actions, audits output."""
 
@@ -92,7 +194,7 @@ class chathealthy_devops_boot:
         "pipeline_v3_compliance_log": "check_pipeline_v3_compliance_log",
         "pipeline_v3_iteration_log": "check_pipeline_v3_iteration_log",
         "pipeline_v4_design_iterations": "check_pipeline_v4_design_iterations",
-        "policies": "check_policies",
+        # policies merged into governance.json as top-level attribute
         "project_manifest": "check_project_manifest",
         "prompts": "check_prompts",
         "bugs": "check_bugs",
@@ -225,11 +327,18 @@ class chathealthy_devops_boot:
 
         # Policies
         if json_stem == "policies":
-            return [p.get("policy", "") or p.get("description", "") for p in data.get("policies", []) if p.get("policy") or p.get("description")]
+            return [p.get("policy", "") or p.get("description", "") for p in data.get("policies", data.get("corporate_policies", [])) if p.get("policy") or p.get("description")]
 
-        # Governance sign-offs
+        # Governance sign-offs + policies (policies is a child of governance)
         if json_stem == "governance":
-            return [e.get("description", "") for e in data.get("sign_offs", []) if e.get("description")]
+            constraints = [e.get("description", "") for e in data.get("records", []) if e.get("description")]
+            policies = data.get("policies", {})
+            if isinstance(policies, dict):
+                for p in policies.get("corporate_policies", []):
+                    text = p.get("policy", "") or p.get("description", "")
+                    if text:
+                        constraints.append(text)
+            return constraints
 
         # Architecture
         if json_stem == "architecture":
@@ -342,7 +451,14 @@ class chathealthy_devops_boot:
         return self._check_json("external_audits", method)
 
     def check_bugs(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("bugs", method)
+        """Construct each bug, call run_governance_process. The class owns the rules."""
+        bugs_data = self.brain.get("bugs", {})
+        for bug_dict in bugs_data.get("bugs", []):
+            bug = bug_governance_constraints.from_dict(bug_dict)
+            result = bug.run_governance_process()
+            if not result.get("comply", True):
+                return result
+        return _propensity_response("allow", "bugs")
 
     def check_traceability_matrix(self, source="", destination="", action_event="session_start") -> dict:
         return self._check_json("traceability_matrix", method)
@@ -492,7 +608,7 @@ class chathealthy_devops_boot:
 
             # Check show-stopper bugs — if any SHOW STOPPER bug is open, block
             bugs = self.brain.get("bugs", {})
-            for bug in bugs.get("dev_bugs", []):
+            for bug in bugs.get("bugs", []):
                 rule_text = bug.get("rule", "")
                 bug_id = bug.get("id", "")
                 if "SHOW STOPPER" in rule_text or "SPRINT BLOCKER" in rule_text:
