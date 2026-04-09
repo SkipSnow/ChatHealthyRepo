@@ -1,5 +1,6 @@
 {
   "collection": "agile_backlog",
+  "governance_attribute_id": "ch_governance_record_id_efd2ec19-5b64-4a27-a745-e9d4d3260c69",
   "version": "1.0",
   "created": "2026-04-02T01:37:56.872058+00:00",
   "description": "Master agile backlog. All epics, features, stories, and requirements from this epic forward.",
@@ -21575,6 +21576,18 @@
             }
           ],
           "ch_matrix_id": "d3434847-b205-463e-ba65-4d1a3c8a34bc"
+        },
+        {
+          "feature_id": "GOV-AUTO-BUG",
+          "name": "Bugs must be automatically created in pytest",
+          "epic_id": "EPIC-10",
+          "layer": "governance",
+          "capability": "Bug Management",
+          "description": "When a pytest discovers a defect, it must automatically create a bug record in bugs.json with the correct severity, environment, and governance classification. The test owns the bug creation — no manual entry.",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "ch_matrix_id": "34e8e61b-657c-4ad6-9f99-2bf34cd65a94"
         }
       ],
       "ch_matrix_id": "3561e18f-baf3-427b-ae0e-bf71db886bc7"

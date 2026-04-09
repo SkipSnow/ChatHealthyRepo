@@ -1,5 +1,6 @@
 {
   "collection": "prompts",
+  "governance_attribute_id": "ch_governance_record_id_ba640bb4-1c20-47f0-a251-e41e86fe75ff",
   "description": "All system and user prompts for GPT and Claude agent assignments. Registered per GOV-009 (Role In System Prompt).",
   "date": "2026-04-05",
   "records": [

@@ -1,5 +1,6 @@
 {
   "collection": "daily_punch_list",
+  "governance_attribute_id": "ch_governance_record_id_e86ce8bc-0ba5-48ca-9252-bf8bd474f0e3",
   "description": "Daily punch lists with results. Tracks what was planned, what was done, and what carried over. Source of truth for daily velocity and accountability.",
   "entries": [
     {

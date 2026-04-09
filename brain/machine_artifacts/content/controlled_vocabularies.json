@@ -1,5 +1,6 @@
 {
   "collection": "controlled_vocabularies",
+  "governance_attribute_id": "ch_governance_record_id_47cd0b46-1dbd-4dd6-924b-96ea0e1be369",
   "description": "Governed controlled vocabularies used across the ChatHealthy.ai system. Each vocabulary has a definition, members with definitions, and implementation traceability. Engineering operating rules (claude_operating_rules.xlsx, Version 4) are the authoritative standard per GOV-007 (Engineering Rules Are Standards). Vocabularies that duplicate v4 rules have been removed.",
   "vocabularies": [
     {
@@ -487,6 +488,13 @@
       "definition": "Immutable governance response labels. Five levels spanning two scopes (system and session). Each label maps to a fixed propensity. Used in the governance matrix — every cell in the matrix must be one of these five values. Labels are subjective assignments today — research story pending to validate each cell.",
       "members": [
         {
+          "value": "escalate",
+          "definition": "Escalate to a higher authority. The current scope cannot resolve this — requires human intervention or a higher-level governance decision.",
+          "risk_level": "not_a_problem",
+          "reason": "Required to make governance framework functional and automated.",
+          "ch_matrix_id": "a1c2d3e4-0000-4000-b000-000000000099"
+        },
+        {
           "value": "system_abend",
           "definition": "System-level abend. All users, all sessions, all environments stop. The system is non-compliant and must not serve until resolved. Flag set globally — every hook returns continue:false. GOV-015: governance is universal and immediate.",
           "ch_matrix_id": "f985b164-2928-4e21-a3de-3015747404fc"
@@ -525,6 +533,20 @@
           "value": "allow",
           "definition": "Good event. Proceed. No action needed. The constraint is either not relevant or fully satisfied.",
           "ch_matrix_id": "4abb6ff7-3f0e-471b-9579-62ef084bab75"
+        },
+        {
+          "value": "code_controlled",
+          "definition": "Behavior is enforced by code. When the governance grid cell has this value, the code implements the specific control sequence defined in the engineering rules — not a generic abend or warning. The code must execute the exact procedure specified in the rule (e.g. v4-004 control sequence: stop, state the violation, request one-time authority, log risk acceptance).",
+          "risk_level": "not_a_problem",
+          "reason": "These additions to the vocabulary (code_controlled, not_a_problem) are required in order to make our governance framework functional and automated.",
+          "ch_matrix_id": "a1c2d3e4-0000-4000-b000-000000000100"
+        },
+        {
+          "value": "not_a_problem",
+          "definition": "No risk. Used as a risk_level value when a governance action carries no operational, compliance, or security risk.",
+          "risk_level": "not_a_problem",
+          "reason": "These additions to the vocabulary (code_controlled, not_a_problem) are required in order to make our governance framework functional and automated.",
+          "ch_matrix_id": "a1c2d3e4-0000-4000-b000-000000000101"
         }
       ],
       "invoked_by": {

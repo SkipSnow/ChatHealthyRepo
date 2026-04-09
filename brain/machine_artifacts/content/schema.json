@@ -1,5 +1,6 @@
 {
   "title": "Brain Collection Schema — v0.1.5",
+  "governance_attribute_id": "ch_governance_record_id_79ed0be7-6301-421b-9ae8-46c7dbcc1474",
   "version": "0.1.5",
   "date": "2026-04-06",
   "description": "Defines all brain collections in brain/machine_artifacts/content/, their record types, and artifact generation rules. All brain content is JSON. Diagrams live in brain/machine_artifacts/diagrams/.",

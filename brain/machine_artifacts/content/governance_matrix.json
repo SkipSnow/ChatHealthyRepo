@@ -38,7 +38,7 @@
     "operating_rules": {
       "session_start": "session_warning",
       "user_prompt_submit": "session_warning",
-      "pre_tool_use": "session_abend",
+      "pre_tool_use": "code_controlled",
       "post_tool_use": "session_abend",
       "stop": "session_abend"
     },
