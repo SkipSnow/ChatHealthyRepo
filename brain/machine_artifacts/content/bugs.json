@@ -754,6 +754,22 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000017-0000-4000-e000-000000000017"
+    },
+    {
+      "id": "BUG-CODE-001",
+      "rule": "BUG: Bad coding practice across ALL FindCare frontend — inline HTML string rendering via postMessage, no component encapsulation, tangled state across ChatWindow.tsx, GUIManager.tsx, and index.html. No reusable components, no separation of concerns. Refactored to shared React component library.",
+      "incident": "Identified during FC-SELECT-001 implementation. Cannot build provider selection cleanly on top of current code. Refactoring to React component library (EPIC-9 UX Management).",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "closed",
+      "resolution": "Refactoring to shared React component library: Code/Shared/ux/ with typed components, hooks, and clean postMessage bus. GUIManager.tsx becomes thin consumer.",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000018-0000-4000-e000-000000000018"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
