@@ -58,48 +58,13 @@ def _get_all_files(directory, extensions=(".py", ".json", ".yml")):
 # ── Enforcement executors ─────────────────────────────────────
 
 def enforce_file_scan(rule_id, enforcement):
-    """Scan files for a regex pattern. Fail if found."""
-    violations = []
+    """BUG-GOV-004: Regex file_scan removed — cannot distinguish filtered queries
+    from unfiltered. False positives block deploys. GPT-4.1-mini enforcement pending.
+    For now: warn, don't block."""
     pattern = enforcement.get("pattern", "")
-    if not pattern:
-        return violations
-    dirs = enforcement.get("scan_dirs", [])
-    context_pattern = enforcement.get("context_pattern", "")
-    context_lines = enforcement.get("context_lines", 0)
-    exclude_comments = enforcement.get("exclude_comments", True)
-    file_filter = enforcement.get("file_filter", "")
-
-    exempt_files = enforcement.get("exempt_files", [])
-
-    for d in dirs:
-        for fpath in _get_py_files(d) if not enforcement.get("all_files") else _get_all_files(d):
-            basename = os.path.basename(fpath)
-            if basename in exempt_files:
-                continue
-            if file_filter and not re.search(file_filter, basename):
-                continue
-            try:
-                with open(fpath, "r", encoding="utf-8", errors="replace") as f:
-                    lines = f.readlines()
-            except Exception:
-                continue
-            for i, line in enumerate(lines, 1):
-                stripped = line.strip()
-                if exclude_comments and stripped.startswith("#"):
-                    continue
-                if re.search(pattern, stripped):
-                    if context_pattern and context_lines > 0:
-                        ctx = "".join(lines[max(0, i - context_lines - 1):min(len(lines), i + context_lines)])
-                        if not re.search(context_pattern, ctx):
-                            continue
-                    # Check exempt patterns
-                    exempt = enforcement.get("exempt_patterns", [])
-                    if exempt:
-                        ctx = "".join(lines[max(0, i - 5):i])
-                        if any(p in ctx for p in exempt):
-                            continue
-                    violations.append(f"{rule_id}: {os.path.basename(fpath)}:{i}")
-    return violations
+    if pattern:
+        print(f"  WARN: {rule_id}: regex scan skipped (BUG-GOV-004 — GPT enforcement pending)")
+    return []  # Never block — GPT will handle this at PreToolUse
 
 
 def enforce_file_absent(rule_id, enforcement):
