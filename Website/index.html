@@ -653,10 +653,10 @@
         <span class="frame-label" style="color:#8888cc;font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;">LEFT PANEL</span>
       </div>
 
-      <!-- Center column — chat + controls -->
+      <!-- Center column — chat + provider selection + controls -->
       <div class="center-column">
         <!-- Chat iframe -->
-        <div class="chat-frame-wrapper">
+        <div class="chat-frame-wrapper" id="chatFrameWrapper">
           <div class="frame-loading" id="frameLoading">
             <div class="spinner"></div>
             <p>Loading Find Care AI…</p>
@@ -669,6 +669,32 @@
             loading="lazy"
             onload="document.getElementById('frameLoading').classList.add('hidden')"
           ></iframe>
+        </div>
+
+        <!-- Provider Selection Panel — hidden until providers arrive (FC-SELECT-001) -->
+        <div id="providerSelectionPanel" style="display:none;flex-direction:column;border:1px solid #d8e2e1;border-radius:6px;background:#fff;overflow:hidden;margin-top:2px;">
+          <!-- Available providers — top -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#f0fffe;border-bottom:1px solid #d8e2e1;">
+            <span style="font-size:11px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Available Providers</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span id="availableCount" style="font-size:10px;color:#6b7280;">0</span>
+              <button id="garbageBtn" title="Dismissed providers" style="background:none;border:none;cursor:pointer;font-size:14px;position:relative;">🗑️<span id="garbageCount" style="position:absolute;top:-6px;right:-8px;background:#dc2626;color:#fff;font-size:8px;font-weight:700;border-radius:50%;width:14px;height:14px;display:none;align-items:center;justify-content:center;">0</span></button>
+            </div>
+          </div>
+          <div id="availableList" style="max-height:200px;overflow-y:auto;overflow-x:hidden;"></div>
+
+          <!-- Drop zone divider -->
+          <div id="dropZoneDivider" style="padding:4px 10px;background:#fffbeb;border-top:1px solid #d8e2e1;border-bottom:1px solid #d8e2e1;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:10px;font-weight:600;color:#d97706;text-transform:uppercase;">Selected for Evaluation</span>
+            <span id="selectedCount" style="font-size:10px;color:#6b7280;">0 / 5</span>
+          </div>
+
+          <!-- Selected providers — bottom -->
+          <div id="selectedList" style="min-height:40px;max-height:180px;overflow-y:auto;overflow-x:hidden;background:#fffdf7;">
+            <div id="selectedEmpty" style="padding:12px;text-align:center;color:#9ca3af;font-size:11px;">
+              Drag providers here or click ↓ to select (max 5)
+            </div>
+          </div>
         </div>
 
         <!-- Control Frame — outside the iframe wrapper, visible canvas -->
