@@ -34,6 +34,12 @@ except ImportError:
     BaseModel = object
     Field = lambda **kwargs: None
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parents[4] / "Code" / ".env")
+except ImportError:
+    pass  # dotenv not installed — secrets must be in environment already
+
 _log = logging.getLogger("devops_boot")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 
@@ -189,6 +195,305 @@ class bug_governance_constraints(governance_worker_base):
             return obj
 
 
+class conversation_log_worker(governance_worker_base):
+    """Pydantic worker for conversation_log.json.
+    Polymorphic child — invoked by the singleton when the grid says code_controlled
+    on user_prompt_submit. Logs the user's prompt to conversation_log.json."""
+
+    MAX_CONTENT_LEN: int = 500
+    SYSTEM_REMINDER_PATTERN: object = None  # set in __init__
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs) if BaseModel is not object else None
+        self.SYSTEM_REMINDER_PATTERN = re.compile(r"<system-reminder>.*?</system-reminder>", re.DOTALL)
+
+    def _clean_content(self, content: str) -> str:
+        if not content:
+            return ""
+        content = self.SYSTEM_REMINDER_PATTERN.sub("", content).strip()
+        if content.startswith("data:") or "base64," in content:
+            return "[binary content omitted]"
+        if len(content) > self.MAX_CONTENT_LEN:
+            content = content[:self.MAX_CONTENT_LEN] + f" [truncated — {len(content)} chars]"
+        return content
+
+    def _make_timestamps(self):
+        from datetime import datetime, timezone, timedelta
+        now_utc = datetime.now(timezone.utc)
+        now_pst = now_utc + timedelta(hours=-7)
+        return (
+            now_pst.strftime("%Y-%m-%dT%H:%M:%S-07:00"),
+            now_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        )
+
+    def _load_log(self):
+        log_path = BRAIN_DIR / "conversation_log.json"
+        if log_path.exists():
+            return json.loads(log_path.read_text(encoding="utf-8"))
+        return {
+            "collection": "conversation_log",
+            "path": "brain/machine_artifacts/content/conversation_log.json",
+            "purpose": "Rolling 24h conversation log.",
+            "produces_artifact": False,
+            "retention": "24_hours",
+            "utterances": [],
+        }
+
+    def _save_utterance(self, actor: str, role: str, content: str) -> dict:
+        content = self._clean_content(content)
+        if not content:
+            return {"comply": True, "logged": False}
+        log_path = BRAIN_DIR / "conversation_log.json"
+        try:
+            log = self._load_log()
+            pst, utc = self._make_timestamps()
+            last_num = max((u["utterance"] for u in log.get("utterances", [])), default=0)
+            log["utterances"].append({
+                "utterance": last_num + 1,
+                "timestamp_pst": pst,
+                "timestamp_utc": utc,
+                "actor": actor,
+                "role": role,
+                "content": content,
+            })
+            log_path.write_text(json.dumps(log, indent=2, ensure_ascii=False), encoding="utf-8")
+            return {"comply": True, "logged": True}
+        except Exception as e:
+            _log.warning("conversation_log_worker failed: %s", e)
+            return {"comply": True, "logged": False, "error": str(e)}
+
+    def run(self, hook_input: dict, action_event: str = "user_prompt_submit") -> dict:
+        """Polymorphic run — called by singleton when grid says code_controlled."""
+        if action_event == "user_prompt_submit":
+            prompt = hook_input.get("prompt", hook_input.get("content", hook_input.get("message", "")))
+            return self._save_utterance("Skip", "user", prompt)
+
+        if action_event == "stop":
+            transcript_path = hook_input.get("transcript_path", "")
+            if not transcript_path or not Path(transcript_path).exists():
+                return {"comply": True, "logged": False}
+            try:
+                lines = Path(transcript_path).read_text(encoding="utf-8").strip().split("\n")
+                for line in reversed(lines):
+                    try:
+                        entry = json.loads(line)
+                        if entry.get("type") == "assistant" and entry.get("message"):
+                            msg = entry["message"]
+                            if isinstance(msg.get("content"), list):
+                                text_parts = [
+                                    block.get("text", "")
+                                    for block in msg["content"]
+                                    if block.get("type") == "text"
+                                ]
+                                return self._save_utterance("Claude", "assistant", " ".join(text_parts).strip())
+                            elif isinstance(msg.get("content"), str):
+                                return self._save_utterance("Claude", "assistant", msg["content"])
+                    except (json.JSONDecodeError, KeyError):
+                        continue
+            except Exception as e:
+                _log.warning("conversation_log_worker stop failed: %s", e)
+            return {"comply": True, "logged": False}
+
+        return {"comply": True}
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls()
+
+
+class operating_rules_worker(governance_worker_base):
+    """Pydantic worker for operating_rules.json.
+    Polymorphic child — invoked on pre_tool_use when grid says code_controlled.
+    Uses GPT-4.1-mini to adjudicate tool calls. No regex."""
+
+    def _load_rules_text(self) -> str:
+        """Load engineering rules + development rules + policies as text for GPT."""
+        lines = []
+        for json_name in ("operating_rules", "development_rules"):
+            path = BRAIN_DIR / f"{json_name}.json"
+            if path.exists():
+                data = json.loads(path.read_text(encoding="utf-8"))
+                for r in data.get("rules", []):
+                    rule_id = r.get("id", "?")
+                    rule_text = r.get("rule", "")[:200]
+                    lines.append(f"[{rule_id}] {rule_text}")
+        # Policies from governance.json
+        gov_path = BRAIN_DIR / "governance.json"
+        if gov_path.exists():
+            gov = json.loads(gov_path.read_text(encoding="utf-8"))
+            policies = gov.get("policies", {})
+            if isinstance(policies, dict):
+                for p in policies.get("corporate_policies", []):
+                    text = p.get("policy", "") or p.get("description", "")
+                    if text:
+                        lines.append(f"[POLICY] {text[:200]}")
+        return "\n".join(lines)
+
+    def _call_gpt(self, system_prompt: str, user_prompt: str) -> dict:
+        """Call GPT-4.1-mini. Returns parsed JSON or error dict."""
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
+            resp = client.chat.completions.create(
+                model="gpt-4.1-mini",
+                max_tokens=300,
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            )
+            return json.loads(resp.choices[0].message.content)
+        except Exception as e:
+            _log.warning("operating_rules_worker GPT call failed: %s", e)
+            return {"error": str(e), "allow": True}
+
+    _SYSTEM_PROMPT: str = (
+        "You are a governance advisor for ChatHealthy, a healthcare AI startup. "
+        "You evaluate tool calls against engineering rules and policies. "
+        "Respond in JSON only."
+    )
+
+    def _evaluate_git_commit(self, command: str, rules_text: str) -> dict:
+        """Eval A: git commit — check against rules, report violations."""
+        user_prompt = (
+            f"A git commit is being executed:\n"
+            f"Command: {command[:500]}\n\n"
+            f"Engineering rules and policies:\n{rules_text}\n\n"
+            f"Respond JSON: {{\"violations\": [{{\"rule_id\": \"...\", \"description\": \"...\", "
+            f"\"auto_fixable\": true/false, \"fix_description\": \"...\"}}], "
+            f"\"has_violations\": true/false}}"
+        )
+        return self._call_gpt(self._SYSTEM_PROMPT, user_prompt)
+
+    def _evaluate_state_change(self, tool_name: str, tool_input: dict) -> dict:
+        """Eval B: any other tool — does it change state outside git?"""
+        detail = tool_input.get("command", tool_input.get("file_path", ""))[:500]
+        user_prompt = (
+            f"A tool call is being made:\n"
+            f"Tool: {tool_name}\n"
+            f"Input: {detail}\n\n"
+            f"Does this tool call change state OUTSIDE of files tracked in git? "
+            f"Examples of external state: database writes, API POSTs, process kills, "
+            f"system config changes, deploying to cloud services.\n"
+            f"Editing source code files, config files, or JSON files in the project is NOT external state.\n"
+            f"Reading from anywhere (network, disk, API GETs) is NOT a state change.\n\n"
+            f"Respond JSON: {{\"changes_external_state\": true/false, "
+            f"\"state_description\": \"what state would change\"}}"
+        )
+        return self._call_gpt(self._SYSTEM_PROMPT, user_prompt)
+
+    # Governance infrastructure + Boss-authorized patterns — always pass
+    _GOVERNANCE_PATTERNS = [
+        r"chathealthy_devops_boot\.py",
+        r"conversation_log_hook\.py",
+        r"bash_rule_guard\.py",
+        r"kill_zombies\.py",
+        r"bump_build\.py",
+        r"pre_deploy_rule_check",
+        r"devpipelinemanagmentservice.*azurewebsites\.net",  # Pipeline service invocation
+        r"start_local\.bat",  # Local dev environment launcher
+        r"^curl\s",  # Network reads — health checks, status polls
+        r"^(tasklist|netstat)",  # Process inspection
+        r"uvicorn",  # Local dev servers
+        r"npm\s+(run|dev|start)",  # Frontend dev server
+        r"caddy",  # HTTPS reverse proxy
+        r"huggingface|hf\.space|hf_space|create_hf_space|delete_hf_space",  # HF Spaces ($0.03/hr)
+        r"playwright",  # Playwright browser testing
+        r"pytest",  # Test runner
+        r"^python3?\s+(-c\s|<<)",  # Inline python scripts
+    ]
+
+    def run(self, hook_input: dict, action_event: str = "pre_tool_use") -> dict:
+        """Polymorphic run — called by singleton when grid says code_controlled."""
+        if action_event != "pre_tool_use":
+            return {"comply": True}
+
+        tool_name = hook_input.get("tool_name", "")
+        tool_input = hook_input.get("tool_input", {})
+
+        # Read-only tools — always pass, no GPT call
+        if tool_name in ("Read", "Glob", "Grep", "WebFetch", "WebSearch"):
+            return {"comply": True, "allow": True}
+
+        # Edit/Write — if git tracks it, allow. Governance happens at commit time.
+        # If git doesn't track it, it's external state → GPT evaluates.
+        if tool_name in ("Edit", "Write"):
+            file_path = tool_input.get("file_path", "")
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ["git", "ls-files", "--error-unmatch", file_path],
+                    capture_output=True, text=True, timeout=5,
+                    cwd=str(BRAIN_DIR.parents[2])
+                )
+                if result.returncode == 0:
+                    return {"comply": True, "allow": True}  # Git-tracked → allow
+                # New file in a git repo dir → also allow (will be tracked on add)
+                result2 = subprocess.run(
+                    ["git", "rev-parse", "--is-inside-work-tree"],
+                    capture_output=True, text=True, timeout=5,
+                    cwd=os.path.dirname(file_path) if os.path.dirname(file_path) else "."
+                )
+                if result2.returncode == 0 and result2.stdout.strip() == "true":
+                    return {"comply": True, "allow": True}  # Inside git repo → allow
+            except Exception:
+                pass
+            # Outside git → GPT decides
+
+        command = tool_input.get("command", "")
+
+        # Governance infrastructure — always pass
+        for pattern in self._GOVERNANCE_PATTERNS:
+            if re.search(pattern, command, re.IGNORECASE):
+                return {"comply": True, "allow": True}
+
+        # Eval A: git commit
+        if tool_name == "Bash" and re.search(r"^git\s+(commit|push)", command):
+            rules_text = self._load_rules_text()
+            result = self._evaluate_git_commit(command, rules_text)
+            if result.get("error"):
+                return {"comply": True, "allow": True}  # fail open
+            if result.get("has_violations"):
+                violations = result.get("violations", [])
+                auto_fixable = [v for v in violations if v.get("auto_fixable")]
+                needs_human = [v for v in violations if not v.get("auto_fixable")]
+                return {
+                    "comply": len(needs_human) == 0,
+                    "allow": len(needs_human) == 0,
+                    "auto_fixable": auto_fixable,
+                    "needs_human": needs_human,
+                    "reason": "; ".join(f"{v['rule_id']}: {v['description']}" for v in needs_human) if needs_human else "",
+                }
+            return {"comply": True, "allow": True}
+
+        # Eval B: everything else — does it change external state?
+        result = self._evaluate_state_change(tool_name, tool_input)
+        if result.get("error"):
+            return {"comply": True, "allow": True}  # fail open
+        if result.get("changes_external_state"):
+            return {
+                "comply": False,
+                "allow": False,
+                "reason": f"State change detected: {result.get('state_description', 'unknown')}. Risk acceptance required from Skip.",
+            }
+        return {"comply": True, "allow": True}
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls()
+
+
+# ── Registry: JSON stem → child class ────────────────────────────────────────
+# Only JSONs with code_controlled cells in the grid get a child class.
+# The singleton uses this to dispatch.
+WORKER_REGISTRY = {
+    "bugs": bug_governance_constraints,
+    "conversation_log": conversation_log_worker,
+    "operating_rules": operating_rules_worker,
+}
+
+
 class chathealthy_devops_boot:
     """Governance brain — singleton. Loads rules, gates actions, audits output."""
 
@@ -233,7 +538,7 @@ class chathealthy_devops_boot:
         "traceability_matrix": "check_traceability_matrix",
         "unrealized_ideas": "check_unrealized_ideas",
         "work_log": "check_work_log",
-        "version": None,  # Static data — loaded into singleton, no compliance check
+        "version": None,  # Version metadata — not a constraint source
     }
 
     def __init__(self, load_full=False):
@@ -279,6 +584,7 @@ class chathealthy_devops_boot:
         digest = {
             "constraints": self._constraints,
             "brain_files": list(self.brain.keys()),
+            "governance_matrix": self.brain.get("governance_matrix", {}),
         }
         with open(DIGEST_PATH, "w", encoding="utf-8") as f:
             json.dump(digest, f, indent=2)
@@ -287,7 +593,11 @@ class chathealthy_devops_boot:
         if DIGEST_PATH.exists():
             try:
                 with open(DIGEST_PATH, encoding="utf-8") as f:
-                    self._constraints = json.load(f).get("constraints", [])
+                    cached = json.load(f)
+                    self._constraints = cached.get("constraints", [])
+                    # Restore matrix so dispatch_code_controlled works
+                    if cached.get("governance_matrix"):
+                        self.brain["governance_matrix"] = cached["governance_matrix"]
                 return
             except Exception:
                 pass
@@ -428,55 +738,55 @@ class chathealthy_devops_boot:
     # These exist so _JSON_FUNCTION_MAP can reference them by name
 
     def check_operating_rules(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("operating_rules", method)
+        return self._check_json("operating_rules", action_event)
 
     def check_development_rules(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("development_rules", method)
+        return self._check_json("development_rules", action_event)
 
     def check_policies(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("policies", method)
+        return self._check_json("policies", action_event)
 
     def check_governance(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("governance", method)
+        return self._check_json("governance", action_event)
 
     def check_architecture(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("architecture", method)
+        return self._check_json("architecture", action_event)
 
     def check_security(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("security", method)
+        return self._check_json("security", action_event)
 
     def check_risk_acceptance(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("risk_acceptance", method)
+        return self._check_json("risk_acceptance", action_event)
 
     def check_legal(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("legal", method)
+        return self._check_json("legal", action_event)
 
     def check_controlled_vocabularies(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("controlled_vocabularies", method)
+        return self._check_json("controlled_vocabularies", action_event)
 
     def check_agile_backlog(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("agile_backlog", method)
+        return self._check_json("agile_backlog", action_event)
 
     def check_sprint_plan(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("sprint_plan", method)
+        return self._check_json("sprint_plan", action_event)
 
     def check_ai_operations(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("ai_operations", method)
+        return self._check_json("ai_operations", action_event)
 
     def check_project_manifest(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("project_manifest", method)
+        return self._check_json("project_manifest", action_event)
 
     def check_schema(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("schema", method)
+        return self._check_json("schema", action_event)
 
     def check_prompts(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("prompts", method)
+        return self._check_json("prompts", action_event)
 
     def check_emergency_keywords(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("emergency_keywords", method)
+        return self._check_json("emergency_keywords", action_event)
 
     def check_external_audits(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("external_audits", method)
+        return self._check_json("external_audits", action_event)
 
     def check_bugs(self, source="", destination="", action_event="session_start", transcript_path="") -> dict:
         """Construct each bug, call run_governance_process. The class owns the rules."""
@@ -489,37 +799,37 @@ class chathealthy_devops_boot:
         return _propensity_response("allow", "bugs")
 
     def check_traceability_matrix(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("traceability_matrix", method)
+        return self._check_json("traceability_matrix", action_event)
 
     def check_business_plan(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("business_plan", method)
+        return self._check_json("business_plan", action_event)
 
     def check_design(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("design", method)
+        return self._check_json("design", action_event)
 
     def check_token_usage(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("token_usage", method)
+        return self._check_json("token_usage", action_event)
 
     def check_work_log(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("work_log", method)
+        return self._check_json("work_log", action_event)
 
     def check_conversation_log(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("conversation_log", method)
+        return self._check_json("conversation_log", action_event)
 
     def check_daily_punch_list(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("daily_punch_list_with_results_and_accomplishments", method)
+        return self._check_json("daily_punch_list_with_results_and_accomplishments", action_event)
 
     def check_unrealized_ideas(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("unrealized_ideas", method)
+        return self._check_json("unrealized_ideas", action_event)
 
     def check_pipeline_v3_compliance_log(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("pipeline_v3_compliance_log", method)
+        return self._check_json("pipeline_v3_compliance_log", action_event)
 
     def check_pipeline_v3_iteration_log(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("pipeline_v3_iteration_log", method)
+        return self._check_json("pipeline_v3_iteration_log", action_event)
 
     def check_pipeline_v4_design_iterations(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("pipeline_v4_design_iterations", method)
+        return self._check_json("pipeline_v4_design_iterations", action_event)
 
     # ══════════════════════════════════════════════════════════════════════
     # Four lifecycle methods
@@ -705,142 +1015,60 @@ class chathealthy_devops_boot:
                   len(self.brain), len(self._constraints), len(system_warnings), len(session_warnings))
         return summary
 
-    def prompt(self, user_message: str) -> dict:
-        """UserPromptSubmit — predict governance path for this prompt."""
+    def dispatch_code_controlled(self, hook_input: dict, action_event: str) -> dict:
+        """Dispatch to child class workers for code_controlled cells in the grid.
+        Reads the matrix, finds code_controlled cells for this action_event,
+        constructs the child class from WORKER_REGISTRY, calls run()."""
+        matrix = self._get_matrix()
+        results = []
+        for json_stem, row in matrix.items():
+            cell = row.get(action_event, "allow")
+            if cell != "code_controlled":
+                continue
+            worker_cls = WORKER_REGISTRY.get(json_stem)
+            if worker_cls is None:
+                _log.warning("code_controlled for %s but no worker in WORKER_REGISTRY", json_stem)
+                continue
+            try:
+                worker = worker_cls.from_dict(self.brain.get(json_stem, {}))
+                result = worker.run(hook_input=hook_input, action_event=action_event)
+                results.append({"json": json_stem, **result})
+                if not result.get("comply", True):
+                    return result  # First non-comply stops
+            except Exception as e:
+                _log.warning("Worker %s failed: %s", json_stem, e)
+                results.append({"json": json_stem, "comply": True, "error": str(e)})
+        return {"comply": True, "workers": results}
+
+    def prompt(self, user_message: str, hook_input: dict = None) -> dict:
+        """UserPromptSubmit — dispatch code_controlled workers, then log."""
         self._announce("prompt", "user_prompt_submit", f"user_message[:{min(50, len(user_message))}]")
         self._state["last_prompt"] = user_message
-
-        try:
-            from openai import OpenAI
-            client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
-            constraints = self.get_constraints_summary(max_chars=2000)
-
-            resp = client.chat.completions.create(
-                model="gpt-4o-mini",
-                max_tokens=300,
-                response_format={"type": "json_object"},
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are a governance advisor. A user sent a message to an AI coding agent. "
-                            "Predict what the agent will need to do and flag any constraints.\n\n"
-                            f"Constraints:\n{constraints}\n\n"
-                            "Respond JSON: {{\"intent\": \"...\", \"predicted_actions\": [\"...\"], "
-                            "\"warnings\": [\"...\"], \"proceed\": true/false}}"
-                        ),
-                    },
-                    {"role": "user", "content": user_message[:1000]},
-                ],
-            )
-            result = json.loads(resp.choices[0].message.content)
-            self._state["predicted_path"] = result
-            return result
-        except Exception as e:
-            return {"intent": "unknown", "warnings": [str(e)], "proceed": True}
+        return self.dispatch_code_controlled(hook_input or {}, "user_prompt_submit")
 
     def tool_call(self, tool_name: str, tool_input: dict, transcript_path: str = "") -> dict:
-        """PreToolUse — gate actions using the governance matrix.
-
-        BUG-GOV-002: Before any state change, check if Boss has an active
-        constraint in the transcript. Any pydantic run object inherits this.
-        """
+        """PreToolUse — dispatch to code_controlled workers via the grid.
+        GPT-4.1-mini adjudicates all non-read tool calls."""
         detail = tool_input.get("command", tool_input.get("file_path", ""))[:80]
         self._announce("tool_call", f"pre_tool_use:{tool_name}", detail)
 
-        # Read-only tools — always pass
-        if tool_name in ("Read", "Glob", "Grep", "WebFetch", "WebSearch"):
-            return {"allow": True}
+        # Pass tool context into hook_input so workers can see it
+        hook_input = {
+            "tool_name": tool_name,
+            "tool_input": tool_input,
+            "transcript_path": transcript_path,
+        }
+        result = self.dispatch_code_controlled(hook_input, "pre_tool_use")
 
-        # Edit/Write — check file path
-        if tool_name in ("Edit", "Write"):
-            return self._check_file_path(tool_input.get("file_path", ""))
-
-        # Bash — walk the matrix pre_tool_use column
-        if tool_name == "Bash":
-            command = tool_input.get("command", "")
-
-            # Check show-stopper bugs — if any SHOW STOPPER bug is open, block
-            bugs = self.brain.get("bugs", {})
-            for bug in bugs.get("bugs", []):
-                rule_text = bug.get("rule", "")
-                bug_id = bug.get("id", "")
-                if "SHOW STOPPER" in rule_text or "SPRINT BLOCKER" in rule_text:
-                    # Check if this command could worsen the show stopper
-                    if bug_id == "BUG-LOAD-001" and "copy_to_frontend" in command.lower():
-                        # The destructive drop() — block unless using safe copy
-                        if "copy_providers_only" not in command and "fix_frontend" not in command:
-                            return {"allow": False, "reason": f"{bug_id}: CopyToFrontEnd has destructive drop(). Use copy_providers_only or fix_frontend_data.py"}
-
-            # Check engineering rules that map to commands
-            for rule in self.brain.get("operating_rules", {}).get("rules", []):
-                rule_text = rule.get("rule", "")
-                rule_id = rule.get("id", "")
-                # v4-001C: Pipeline code runs on Azure
-                if "pipeline" in rule_text.lower() and "azure" in rule_text.lower():
-                    if re.search(r"python\s+.*Code[/\\]DataPipelines[/\\](?!tests[/\\])", command, re.IGNORECASE):
-                        return {"allow": False, "reason": f"v4-001C: Pipeline code runs on Azure, not locally"}
-
-            # Check development rules for enforcement patterns
-            for rule in self.brain.get("development_rules", {}).get("rules", []):
-                enforcement = rule.get("enforcement", {})
-                if not enforcement:
-                    continue
-                rule_id = rule.get("id", "")
-                # File scan enforcement — check if command touches scanned dirs
-                if enforcement.get("type") == "file_scan":
-                    pattern = enforcement.get("pattern", "")
-                    if pattern and re.search(pattern, command, re.IGNORECASE):
-                        return {"allow": False, "reason": f"{rule_id}: {rule.get('rule', '')[:100]}"}
-
-            return {"allow": True}
-
+        # Convert worker result to allow/deny for Claude Code
+        if not result.get("comply", True):
+            return {"allow": False, "reason": result.get("reason", "Blocked by governance")}
         return {"allow": True}
 
-    def prompt_result(self, transcript_path: str) -> dict:
-        """Stop — audit Claude's output against brain constraints."""
+    def prompt_result(self, hook_input: dict) -> dict:
+        """Stop — dispatch code_controlled workers for the stop event."""
         self._announce("prompt_result", "stop", "transcript")
-        actions = []
-        if transcript_path and os.path.exists(transcript_path):
-            try:
-                with open(transcript_path, encoding="utf-8") as f:
-                    for line in f:
-                        entry = json.loads(line)
-                        if entry.get("tool_name"):
-                            actions.append(f"{entry['tool_name']}: {json.dumps(entry.get('tool_input', {}))[:100]}")
-            except Exception:
-                pass
-
-        if not actions:
-            return {"compliant": True, "notes": "No actions to audit"}
-
-        self._state["last_actions"] = actions
-
-        try:
-            from openai import OpenAI
-            client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
-            constraints = self.get_constraints_summary(max_chars=2000)
-            actions_desc = "\n".join(f"- {a}" for a in actions[-20:])
-
-            resp = client.chat.completions.create(
-                model="gpt-4o-mini",
-                max_tokens=200,
-                response_format={"type": "json_object"},
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are a compliance auditor. Review AI agent actions for violations.\n\n"
-                            f"Constraints:\n{constraints}\n\n"
-                            "Respond JSON: {{\"compliant\": true/false, \"violations\": [\"...\"], \"notes\": \"...\"}}"
-                        ),
-                    },
-                    {"role": "user", "content": f"Actions:\n{actions_desc}"},
-                ],
-            )
-            return json.loads(resp.choices[0].message.content)
-        except Exception as e:
-            return {"compliant": True, "notes": f"Audit unavailable: {e}"}
+        return self.dispatch_code_controlled(hook_input, "stop")
 
     # ── File path checker ──────────────────────────────────────────────────
 
@@ -927,8 +1155,8 @@ def main():
 
         elif args.mode == "prompt":
             boot = chathealthy_devops_boot(load_full=False)
-            user_msg = data.get("content", data.get("message", ""))
-            result = boot.prompt(user_msg)
+            user_msg = data.get("prompt", data.get("content", data.get("message", "")))
+            result = boot.prompt(user_msg, hook_input=data)
             json.dump(result, sys.stdout)
             sys.exit(0)
 
@@ -948,8 +1176,11 @@ def main():
             sys.exit(0)
 
         elif args.mode == "prompt_result":
+            # Guard against infinite loop — if stop hook is already active, exit immediately
+            if data.get("stop_hook_active"):
+                sys.exit(0)
             boot = chathealthy_devops_boot(load_full=False)
-            result = boot.prompt_result(data.get("transcript_path", ""))
+            result = boot.prompt_result(hook_input=data)
             json.dump(result, sys.stdout)
             sys.exit(0)
 

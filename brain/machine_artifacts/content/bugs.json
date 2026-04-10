@@ -581,6 +581,163 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "4392e393-635e-40d8-86a0-b132e653f0a6"
+    },
+    {
+      "id": "BUG-GOV-003",
+      "rule": "BUG: PreToolUse guard blocks authorized actions — operating_rules_worker does not check risk_acceptance.json before blocking. GPT-4.1-mini must receive the list of active risk acceptances so it can allow actions that Boss has already authorized.",
+      "incident": "Boss authorized dropping ChatHealthyFrontEnd.Labs.test (risk=0, test collection). Guard blocked it twice because it has no awareness of risk acceptances.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000003-0000-4000-e000-000000000003"
+    },
+    {
+      "id": "BUG-PIPE-007",
+      "rule": "BUG: Cluster lifecycle manager does not detect or clean up zombie reservations. Three stale reservations from April 8 were still marked active on April 10. Reservations with expected_end_time in the past should be auto-released on ClusterStatus or any reservation check.",
+      "incident": "Pipeline cluster had 3 active reservations — 2 from April 8 (18+ hours expired) and 1 from April 10. Required manual ForceRelease. Cluster was burning money idle.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000007-0000-4000-e000-000000000007"
+    },
+    {
+      "id": "BUG-PIPE-008",
+      "rule": "BUG CRITICAL: CopyToFrontEnd orchestrator never calls _create_specialty_vector_index() after copying SpecialtyMetaData. Function exists (copy_to_frontend.py:196-221) but is dead code. Frontend health check reports degraded. FindCare specialty search broken on frontend.",
+      "incident": "Health check returns degraded. specialty_vector_index missing.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000008-0000-4000-e000-000000000008"
+    },
+    {
+      "id": "BUG-PIPE-009",
+      "rule": "BUG: SpecialtyMetaData has no vector search index on pipeline cluster. load_specialty_data.py generates embeddings but never creates the vector index.",
+      "incident": "Audit of load_specialty_data.py — embedding field present but no create_search_index call.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000009-0000-4000-e000-000000000009"
+    },
+    {
+      "id": "BUG-PIPE-010",
+      "rule": "BUG: Index creation must happen AFTER cluster reservation release. CopyToFrontEnd creates provider_vector_index inside reservation window. Atlas vector index creation is async — cluster may pause mid-build if reservation released too early.",
+      "incident": "Audit finding — index creation timing not separated from reservation lifecycle.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000010-0000-4000-e000-000000000010"
+    },
+    {
+      "id": "BUG-UX-006",
+      "rule": "BUG: Encrypted and clear session tokens not displayed on EvaluateCare right panel. Tokens were working before April 9 crash but not visible after restore.",
+      "incident": "Skip reported tokens missing from right screen during smoke test.",
+      "date": "2026-04-10",
+      "environment": [
+        "local"
+      ],
+      "status": "closed",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000011-0000-4000-e000-000000000011",
+      "severity": "SHOW STOPPER — ALPHA RELEASE BLOCKER",
+      "resolution": "Not a bug — tokens display correctly. Smoke test had stale selectors and per-test page isolation. Fixed smoke test to use shared page fixture. UAT passed by Skip with screenshots 2026-04-10."
+    },
+    {
+      "id": "BUG-LOCAL-001",
+      "rule": "BUG: start_local.bat does not thoroughly clean up before starting. Does not kill orphaned python/uvicorn/node processes from previous runs. Only kills by port — misses processes that crashed off-port. Does not kill by process name (python.exe running uvicorn, node.exe running vite). EvaluateCare on :8001 dies silently because previous zombie holds a resource.",
+      "incident": "EvaluateCare failed to start on :8001 with no error output. Silent failure because start /B swallowed stderr. Previous uvicorn process was orphaned.",
+      "date": "2026-04-10",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000012-0000-4000-e000-000000000012"
+    },
+    {
+      "id": "BUG-UX-007",
+      "rule": "BUG: Select specialty filter format does not match Excel mockup. Layout, contrast, and spacing are off. Skip provided a mockup — implement to spec.",
+      "incident": "Skip identified during UAT 2026-04-10. Mockup exists in requirements.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000013-0000-4000-e000-000000000013"
+    },
+    {
+      "id": "BUG-SEC-002",
+      "rule": "BUG: Mutual authentication PKI at transport layer is missing. FindCare to EvaluateCare calls use plain HTTP, not mTLS. Caddy Caddyfile has mTLS configured on :8081 but the evaluate proxy in main.py calls localhost:8001 directly bypassing Caddy.",
+      "incident": "Skip identified during UAT 2026-04-10. Architecture requires mTLS between all components.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000014-0000-4000-e000-000000000014"
+    },
+    {
+      "id": "BUG-EVAL-001",
+      "rule": "BUG DEFERRED: Wrong list of providers sent to EvaluateCare. lastProvidersRef in ChatWindow.tsx is empty when evaluate button is clicked — providers from search results are not being stored in the ref. Right panel shows no providers to evaluate. Smoke test evaluate tests fail because of this.",
+      "incident": "Playwright screenshot shows right panel: No providers to evaluate. Search for providers first, then click Evaluate.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev"
+      ],
+      "status": "deferred",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000015-0000-4000-e000-000000000015"
+    },
+    {
+      "id": "BUG-UX-008",
+      "rule": "BUG: Environment banner does not show build number, version, environment, or framework version. Banner only shows env name until health endpoint responds, then shows env + build + version but missing framework.",
+      "incident": "Skip identified during local testing 2026-04-10.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev",
+        "qa"
+      ],
+      "status": "fixed",
+      "resolution": "Added framework to /health response. Banner now shows: ENV — vX.X.X fwX.X.X bNNN",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000016-0000-4000-e000-000000000016"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

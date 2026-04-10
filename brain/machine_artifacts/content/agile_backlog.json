@@ -20282,6 +20282,48 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "ch_matrix_id": "56ee17e3-a997-42c9-bfb7-328a5dc4b3f2"
+                },
+                {
+                  "req_id": "SDT-LOCAL-003-REQ-003",
+                  "requirement": "start_local.bat must kill all orphaned python.exe processes running uvicorn before starting new instances",
+                  "priority": "must-have",
+                  "status": "open",
+                  "ch_matrix_id": "c0000001-0000-4000-e000-000000000001"
+                },
+                {
+                  "req_id": "SDT-LOCAL-003-REQ-004",
+                  "requirement": "start_local.bat must kill all orphaned node.exe processes running vite/npm before starting new instances",
+                  "priority": "must-have",
+                  "status": "open",
+                  "ch_matrix_id": "c0000002-0000-4000-e000-000000000002"
+                },
+                {
+                  "req_id": "SDT-LOCAL-003-REQ-005",
+                  "requirement": "start_local.bat must kill zombies on ALL service ports: 80, 443, 5173, 8000, 8001, 8002",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "ch_matrix_id": "c0000003-0000-4000-e000-000000000003"
+                },
+                {
+                  "req_id": "SDT-LOCAL-003-REQ-006",
+                  "requirement": "start_local.bat must log all service output to %TEMP%/chathealthy_*.log so silent failures are diagnosable",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "ch_matrix_id": "c0000004-0000-4000-e000-000000000004"
+                },
+                {
+                  "req_id": "SDT-LOCAL-003-REQ-007",
+                  "requirement": "start_local.bat verification step must report which log file to check on failure",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "ch_matrix_id": "c0000005-0000-4000-e000-000000000005"
+                },
+                {
+                  "req_id": "SDT-LOCAL-003-REQ-008",
+                  "requirement": "start_local.bat must verify EvaluateCare on :8001 is healthy before reporting success",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "ch_matrix_id": "c0000006-0000-4000-e000-000000000006"
                 }
               ],
               "ch_matrix_id": "0001aa87-0515-4114-9b32-58e125af5df4"
