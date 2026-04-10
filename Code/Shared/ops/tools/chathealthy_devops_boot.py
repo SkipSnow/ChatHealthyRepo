@@ -233,6 +233,7 @@ class chathealthy_devops_boot:
         "traceability_matrix": "check_traceability_matrix",
         "unrealized_ideas": "check_unrealized_ideas",
         "work_log": "check_work_log",
+        "version": None,  # Static data — loaded into singleton, no compliance check
     }
 
     def __init__(self, load_full=False):

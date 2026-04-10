@@ -1,0 +1,52 @@
+{
+  "collection": "version",
+  "description": "Product version, framework version, and build history. Loaded by the singleton at SessionStart. Displayed in banner. Included in every git commit message.",
+  "current": {
+    "version": "0.1.4",
+    "framework": "0.1.3",
+    "build": 801
+  },
+  "history": [
+    {
+      "version": "0.1.1",
+      "framework": "0.1.0",
+      "build": 313,
+      "tag": "v0.1.1",
+      "commit": "c3f7c4f",
+      "description": "Fix embedding worker OOM: stream cursor instead of loading all docs into memory"
+    },
+    {
+      "version": "0.1.2",
+      "framework": "0.1.1",
+      "build": 314,
+      "tag": "v0.1.2",
+      "commit": "e42037c",
+      "description": "FindCare alpha debug fixes"
+    },
+    {
+      "version": "0.1.3",
+      "framework": "0.1.1",
+      "build": 672,
+      "tag": "v0.1.3.1",
+      "commit": "bfc8864",
+      "description": "Promote dev to qa — maintenance patch. GPT approved."
+    },
+    {
+      "version": "0.1.4",
+      "framework": "0.1.2",
+      "build": 800,
+      "tag": "brain-v0.1.4",
+      "commit": "a6d0e3a",
+      "description": "Boot resume directive, governance worker base class, bug governance constraints"
+    },
+    {
+      "version": "0.1.4",
+      "framework": "0.1.3",
+      "build": 801,
+      "tag": null,
+      "commit": null,
+      "description": "Framework 0.1.3: 9-hook governance architecture, GPT-4.1-mini enforcement, singleton data class"
+    }
+  ],
+  "ch_matrix_id": "e1000001-0000-4000-f000-000000000001"
+}
