@@ -770,6 +770,31 @@
       "resolution": "Refactoring to shared React component library: Code/Shared/ux/ with typed components, hooks, and clean postMessage bus. GUIManager.tsx becomes thin consumer.",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000018-0000-4000-e000-000000000018"
+    },
+    {
+      "id": "BUG-EVAL-002",
+      "rule": "BUG: Wrong providers sent to EvaluateCare — all providers sent instead of only selected providers from the selection panel.",
+      "incident": "Skip UAT 2026-04-10. Evaluate handoff sends lastProvidersRef (all search results) instead of selection.state.selected.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000019-0000-4000-e000-000000000019"
+    },
+    {
+      "id": "BUG-UX-009",
+      "rule": "BUG: Selection panel requires scrolling to see both available and selected lists. Top frame must be scrolled to see bottom frame. Both should be visible without scrolling.",
+      "incident": "Skip UAT 2026-04-10.",
+      "date": "2026-04-10",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000020-0000-4000-e000-000000000020"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
