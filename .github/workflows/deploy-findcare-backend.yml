@@ -97,10 +97,18 @@ jobs:
           # Shared utilities
           cp Code/Shared/ChatHealthyMongoUtilities.py hf_space/
           cp Code/Shared/prompt_system_maker.py hf_space/
+          cp Code/Shared/session_token.py hf_space/
+
+          # PKI certs for mTLS + session token signing/verification
+          mkdir -p hf_space/certs
+          cp Code/Shared/ops/certs/findcare.crt hf_space/certs/
+          cp Code/Shared/ops/certs/findcare.key hf_space/certs/
+          cp Code/Shared/ops/certs/ca.crt hf_space/certs/
 
           # Brain artifacts needed at runtime
           mkdir -p hf_space/brain/machine_artifacts/content
           cp brain/machine_artifacts/content/emergency_keywords.json hf_space/brain/machine_artifacts/content/
+          cp brain/machine_artifacts/content/version.json hf_space/brain/machine_artifacts/content/
 
           # UAT report tool
           mkdir -p hf_space/ops

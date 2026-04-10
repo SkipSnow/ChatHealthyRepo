@@ -723,6 +723,21 @@
       "status": "deferred",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000015-0000-4000-e000-000000000015"
+    },
+    {
+      "id": "BUG-UX-008",
+      "rule": "BUG: Environment banner does not show build number, version, environment, or framework version. Banner only shows env name until health endpoint responds, then shows env + build + version but missing framework.",
+      "incident": "Skip identified during local testing 2026-04-10.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev",
+        "qa"
+      ],
+      "status": "fixed",
+      "resolution": "Added framework to /health response. Banner now shows: ENV — vX.X.X fwX.X.X bNNN",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000016-0000-4000-e000-000000000016"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
