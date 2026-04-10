@@ -226,39 +226,73 @@ class conversation_log_worker(governance_worker_base):
             now_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
         )
 
+    def _load_log(self):
+        log_path = BRAIN_DIR / "conversation_log.json"
+        if log_path.exists():
+            return json.loads(log_path.read_text(encoding="utf-8"))
+        return {
+            "collection": "conversation_log",
+            "path": "brain/machine_artifacts/content/conversation_log.json",
+            "purpose": "Rolling 24h conversation log.",
+            "produces_artifact": False,
+            "retention": "24_hours",
+            "utterances": [],
+        }
+
+    def _save_utterance(self, actor: str, role: str, content: str) -> dict:
+        content = self._clean_content(content)
+        if not content:
+            return {"comply": True, "logged": False}
+        log_path = BRAIN_DIR / "conversation_log.json"
+        try:
+            log = self._load_log()
+            pst, utc = self._make_timestamps()
+            last_num = max((u["utterance"] for u in log.get("utterances", [])), default=0)
+            log["utterances"].append({
+                "utterance": last_num + 1,
+                "timestamp_pst": pst,
+                "timestamp_utc": utc,
+                "actor": actor,
+                "role": role,
+                "content": content,
+            })
+            log_path.write_text(json.dumps(log, indent=2, ensure_ascii=False), encoding="utf-8")
+            return {"comply": True, "logged": True}
+        except Exception as e:
+            _log.warning("conversation_log_worker failed: %s", e)
+            return {"comply": True, "logged": False, "error": str(e)}
+
     def run(self, hook_input: dict, action_event: str = "user_prompt_submit") -> dict:
         """Polymorphic run — called by singleton when grid says code_controlled."""
         if action_event == "user_prompt_submit":
             prompt = hook_input.get("prompt", hook_input.get("content", hook_input.get("message", "")))
-            content = self._clean_content(prompt)
-            if not content:
-                return {"comply": True, "logged": False}
+            return self._save_utterance("Skip", "user", prompt)
 
-            log_path = BRAIN_DIR / "conversation_log.json"
+        if action_event == "stop":
+            transcript_path = hook_input.get("transcript_path", "")
+            if not transcript_path or not Path(transcript_path).exists():
+                return {"comply": True, "logged": False}
             try:
-                log = json.loads(log_path.read_text(encoding="utf-8")) if log_path.exists() else {
-                    "collection": "conversation_log",
-                    "path": "brain/machine_artifacts/content/conversation_log.json",
-                    "purpose": "Rolling 24h conversation log.",
-                    "produces_artifact": False,
-                    "retention": "24_hours",
-                    "utterances": [],
-                }
-                pst, utc = self._make_timestamps()
-                last_num = max((u["utterance"] for u in log.get("utterances", [])), default=0)
-                log["utterances"].append({
-                    "utterance": last_num + 1,
-                    "timestamp_pst": pst,
-                    "timestamp_utc": utc,
-                    "actor": "Skip",
-                    "role": "user",
-                    "content": content,
-                })
-                log_path.write_text(json.dumps(log, indent=2, ensure_ascii=False), encoding="utf-8")
-                return {"comply": True, "logged": True}
+                lines = Path(transcript_path).read_text(encoding="utf-8").strip().split("\n")
+                for line in reversed(lines):
+                    try:
+                        entry = json.loads(line)
+                        if entry.get("type") == "assistant" and entry.get("message"):
+                            msg = entry["message"]
+                            if isinstance(msg.get("content"), list):
+                                text_parts = [
+                                    block.get("text", "")
+                                    for block in msg["content"]
+                                    if block.get("type") == "text"
+                                ]
+                                return self._save_utterance("Claude", "assistant", " ".join(text_parts).strip())
+                            elif isinstance(msg.get("content"), str):
+                                return self._save_utterance("Claude", "assistant", msg["content"])
+                    except (json.JSONDecodeError, KeyError):
+                        continue
             except Exception as e:
-                _log.warning("conversation_log_worker failed: %s", e)
-                return {"comply": True, "logged": False, "error": str(e)}
+                _log.warning("conversation_log_worker stop failed: %s", e)
+            return {"comply": True, "logged": False}
 
         return {"comply": True}
 
@@ -320,6 +354,7 @@ class chathealthy_devops_boot:
         "traceability_matrix": "check_traceability_matrix",
         "unrealized_ideas": "check_unrealized_ideas",
         "work_log": "check_work_log",
+        "version": None,  # Version metadata — not a constraint source
     }
 
     def __init__(self, load_full=False):
@@ -365,6 +400,7 @@ class chathealthy_devops_boot:
         digest = {
             "constraints": self._constraints,
             "brain_files": list(self.brain.keys()),
+            "governance_matrix": self.brain.get("governance_matrix", {}),
         }
         with open(DIGEST_PATH, "w", encoding="utf-8") as f:
             json.dump(digest, f, indent=2)
@@ -373,7 +409,11 @@ class chathealthy_devops_boot:
         if DIGEST_PATH.exists():
             try:
                 with open(DIGEST_PATH, encoding="utf-8") as f:
-                    self._constraints = json.load(f).get("constraints", [])
+                    cached = json.load(f)
+                    self._constraints = cached.get("constraints", [])
+                    # Restore matrix so dispatch_code_controlled works
+                    if cached.get("governance_matrix"):
+                        self.brain["governance_matrix"] = cached["governance_matrix"]
                 return
             except Exception:
                 pass
@@ -514,55 +554,55 @@ class chathealthy_devops_boot:
     # These exist so _JSON_FUNCTION_MAP can reference them by name
 
     def check_operating_rules(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("operating_rules", method)
+        return self._check_json("operating_rules", action_event)
 
     def check_development_rules(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("development_rules", method)
+        return self._check_json("development_rules", action_event)
 
     def check_policies(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("policies", method)
+        return self._check_json("policies", action_event)
 
     def check_governance(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("governance", method)
+        return self._check_json("governance", action_event)
 
     def check_architecture(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("architecture", method)
+        return self._check_json("architecture", action_event)
 
     def check_security(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("security", method)
+        return self._check_json("security", action_event)
 
     def check_risk_acceptance(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("risk_acceptance", method)
+        return self._check_json("risk_acceptance", action_event)
 
     def check_legal(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("legal", method)
+        return self._check_json("legal", action_event)
 
     def check_controlled_vocabularies(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("controlled_vocabularies", method)
+        return self._check_json("controlled_vocabularies", action_event)
 
     def check_agile_backlog(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("agile_backlog", method)
+        return self._check_json("agile_backlog", action_event)
 
     def check_sprint_plan(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("sprint_plan", method)
+        return self._check_json("sprint_plan", action_event)
 
     def check_ai_operations(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("ai_operations", method)
+        return self._check_json("ai_operations", action_event)
 
     def check_project_manifest(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("project_manifest", method)
+        return self._check_json("project_manifest", action_event)
 
     def check_schema(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("schema", method)
+        return self._check_json("schema", action_event)
 
     def check_prompts(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("prompts", method)
+        return self._check_json("prompts", action_event)
 
     def check_emergency_keywords(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("emergency_keywords", method)
+        return self._check_json("emergency_keywords", action_event)
 
     def check_external_audits(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("external_audits", method)
+        return self._check_json("external_audits", action_event)
 
     def check_bugs(self, source="", destination="", action_event="session_start", transcript_path="") -> dict:
         """Construct each bug, call run_governance_process. The class owns the rules."""
@@ -575,37 +615,37 @@ class chathealthy_devops_boot:
         return _propensity_response("allow", "bugs")
 
     def check_traceability_matrix(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("traceability_matrix", method)
+        return self._check_json("traceability_matrix", action_event)
 
     def check_business_plan(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("business_plan", method)
+        return self._check_json("business_plan", action_event)
 
     def check_design(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("design", method)
+        return self._check_json("design", action_event)
 
     def check_token_usage(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("token_usage", method)
+        return self._check_json("token_usage", action_event)
 
     def check_work_log(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("work_log", method)
+        return self._check_json("work_log", action_event)
 
     def check_conversation_log(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("conversation_log", method)
+        return self._check_json("conversation_log", action_event)
 
     def check_daily_punch_list(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("daily_punch_list_with_results_and_accomplishments", method)
+        return self._check_json("daily_punch_list_with_results_and_accomplishments", action_event)
 
     def check_unrealized_ideas(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("unrealized_ideas", method)
+        return self._check_json("unrealized_ideas", action_event)
 
     def check_pipeline_v3_compliance_log(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("pipeline_v3_compliance_log", method)
+        return self._check_json("pipeline_v3_compliance_log", action_event)
 
     def check_pipeline_v3_iteration_log(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("pipeline_v3_iteration_log", method)
+        return self._check_json("pipeline_v3_iteration_log", action_event)
 
     def check_pipeline_v4_design_iterations(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("pipeline_v4_design_iterations", method)
+        return self._check_json("pipeline_v4_design_iterations", action_event)
 
     # ══════════════════════════════════════════════════════════════════════
     # Four lifecycle methods
@@ -880,50 +920,10 @@ class chathealthy_devops_boot:
 
         return {"allow": True}
 
-    def prompt_result(self, transcript_path: str) -> dict:
-        """Stop — audit Claude's output against brain constraints."""
+    def prompt_result(self, hook_input: dict) -> dict:
+        """Stop — dispatch code_controlled workers for the stop event."""
         self._announce("prompt_result", "stop", "transcript")
-        actions = []
-        if transcript_path and os.path.exists(transcript_path):
-            try:
-                with open(transcript_path, encoding="utf-8") as f:
-                    for line in f:
-                        entry = json.loads(line)
-                        if entry.get("tool_name"):
-                            actions.append(f"{entry['tool_name']}: {json.dumps(entry.get('tool_input', {}))[:100]}")
-            except Exception:
-                pass
-
-        if not actions:
-            return {"compliant": True, "notes": "No actions to audit"}
-
-        self._state["last_actions"] = actions
-
-        try:
-            from openai import OpenAI
-            client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
-            constraints = self.get_constraints_summary(max_chars=2000)
-            actions_desc = "\n".join(f"- {a}" for a in actions[-20:])
-
-            resp = client.chat.completions.create(
-                model="gpt-4o-mini",
-                max_tokens=200,
-                response_format={"type": "json_object"},
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are a compliance auditor. Review AI agent actions for violations.\n\n"
-                            f"Constraints:\n{constraints}\n\n"
-                            "Respond JSON: {{\"compliant\": true/false, \"violations\": [\"...\"], \"notes\": \"...\"}}"
-                        ),
-                    },
-                    {"role": "user", "content": f"Actions:\n{actions_desc}"},
-                ],
-            )
-            return json.loads(resp.choices[0].message.content)
-        except Exception as e:
-            return {"compliant": True, "notes": f"Audit unavailable: {e}"}
+        return self.dispatch_code_controlled(hook_input, "stop")
 
     # ── File path checker ──────────────────────────────────────────────────
 
@@ -1031,8 +1031,11 @@ def main():
             sys.exit(0)
 
         elif args.mode == "prompt_result":
+            # Guard against infinite loop — if stop hook is already active, exit immediately
+            if data.get("stop_hook_active"):
+                sys.exit(0)
             boot = chathealthy_devops_boot(load_full=False)
-            result = boot.prompt_result(data.get("transcript_path", ""))
+            result = boot.prompt_result(hook_input=data)
             json.dump(result, sys.stdout)
             sys.exit(0)
 
