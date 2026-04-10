@@ -659,16 +659,17 @@
     },
     {
       "id": "BUG-UX-006",
-      "rule": "SHOW STOPPER — BUG: Encrypted and clear session tokens not displayed on EvaluateCare right panel. Tokens were working before April 9 crash but not visible after restore.",
+      "rule": "BUG: Encrypted and clear session tokens not displayed on EvaluateCare right panel. Tokens were working before April 9 crash but not visible after restore.",
       "incident": "Skip reported tokens missing from right screen during smoke test.",
       "date": "2026-04-10",
       "environment": [
         "local"
       ],
-      "status": "open",
+      "status": "closed",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000011-0000-4000-e000-000000000011",
-      "severity": "SHOW STOPPER — ALPHA RELEASE BLOCKER"
+      "severity": "SHOW STOPPER — ALPHA RELEASE BLOCKER",
+      "resolution": "Not a bug — tokens display correctly. Smoke test had stale selectors and per-test page isolation. Fixed smoke test to use shared page fixture. UAT passed by Skip with screenshots 2026-04-10."
     },
     {
       "id": "BUG-LOCAL-001",
@@ -681,6 +682,47 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000012-0000-4000-e000-000000000012"
+    },
+    {
+      "id": "BUG-UX-007",
+      "rule": "BUG: Select specialty filter format does not match Excel mockup. Layout, contrast, and spacing are off. Skip provided a mockup — implement to spec.",
+      "incident": "Skip identified during UAT 2026-04-10. Mockup exists in requirements.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000013-0000-4000-e000-000000000013"
+    },
+    {
+      "id": "BUG-SEC-002",
+      "rule": "BUG: Mutual authentication PKI at transport layer is missing. FindCare to EvaluateCare calls use plain HTTP, not mTLS. Caddy Caddyfile has mTLS configured on :8081 but the evaluate proxy in main.py calls localhost:8001 directly bypassing Caddy.",
+      "incident": "Skip identified during UAT 2026-04-10. Architecture requires mTLS between all components.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000014-0000-4000-e000-000000000014"
+    },
+    {
+      "id": "BUG-EVAL-001",
+      "rule": "BUG DEFERRED: Wrong list of providers sent to EvaluateCare. lastProvidersRef in ChatWindow.tsx is empty when evaluate button is clicked — providers from search results are not being stored in the ref. Right panel shows no providers to evaluate. Smoke test evaluate tests fail because of this.",
+      "incident": "Playwright screenshot shows right panel: No providers to evaluate. Search for providers first, then click Evaluate.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev"
+      ],
+      "status": "deferred",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000015-0000-4000-e000-000000000015"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

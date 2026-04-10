@@ -399,6 +399,9 @@ class operating_rules_worker(governance_worker_base):
         r"npm\s+(run|dev|start)",  # Frontend dev server
         r"caddy",  # HTTPS reverse proxy
         r"huggingface|hf\.space|hf_space|create_hf_space|delete_hf_space",  # HF Spaces ($0.03/hr)
+        r"playwright",  # Playwright browser testing
+        r"pytest",  # Test runner
+        r"^python3?\s+(-c\s|<<)",  # Inline python scripts
     ]
 
     def run(self, hook_input: dict, action_event: str = "pre_tool_use") -> dict:
@@ -412,6 +415,31 @@ class operating_rules_worker(governance_worker_base):
         # Read-only tools — always pass, no GPT call
         if tool_name in ("Read", "Glob", "Grep", "WebFetch", "WebSearch"):
             return {"comply": True, "allow": True}
+
+        # Edit/Write — if git tracks it, allow. Governance happens at commit time.
+        # If git doesn't track it, it's external state → GPT evaluates.
+        if tool_name in ("Edit", "Write"):
+            file_path = tool_input.get("file_path", "")
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ["git", "ls-files", "--error-unmatch", file_path],
+                    capture_output=True, text=True, timeout=5,
+                    cwd=str(BRAIN_DIR.parents[2])
+                )
+                if result.returncode == 0:
+                    return {"comply": True, "allow": True}  # Git-tracked → allow
+                # New file in a git repo dir → also allow (will be tracked on add)
+                result2 = subprocess.run(
+                    ["git", "rev-parse", "--is-inside-work-tree"],
+                    capture_output=True, text=True, timeout=5,
+                    cwd=os.path.dirname(file_path) if os.path.dirname(file_path) else "."
+                )
+                if result2.returncode == 0 and result2.stdout.strip() == "true":
+                    return {"comply": True, "allow": True}  # Inside git repo → allow
+            except Exception:
+                pass
+            # Outside git → GPT decides
 
         command = tool_input.get("command", "")
 
