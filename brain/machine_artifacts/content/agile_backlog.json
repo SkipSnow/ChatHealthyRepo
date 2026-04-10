@@ -21633,6 +21633,261 @@
         }
       ],
       "ch_matrix_id": "3561e18f-baf3-427b-ae0e-bf71db886bc7"
+    },
+    {
+      "epic_id": "EPIC-FINDCARE",
+      "name": "FindCare",
+      "status": "active",
+      "description": "User journey for finding and selecting healthcare providers. Depends on EPIC-9 (UX Management) for reusable controls.",
+      "features": [
+        {
+          "name": "Provider Search and Selection",
+          "status": "active",
+          "description": "Search for providers by specialty, condition, or location. Select individual providers from results for evaluation.",
+          "dependencies": [
+            "EPIC-9"
+          ],
+          "stories": [
+            {
+              "story_id": "FC-SEARCH-001",
+              "title": "Provider search",
+              "description": "User searches for providers by specialty, condition, location, or free text. System returns matching providers.",
+              "size": "L",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-SEARCH-001-REQ-001",
+                  "requirement": "User can search by free text",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "FC-SEARCH-001-REQ-002",
+                  "requirement": "System returns provider name, NPI, address, county, phone",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "FC-SEARCH-001-REQ-003",
+                  "requirement": "Results paginated with forward/back controls",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "FC-SEARCH-001-REQ-004",
+                  "requirement": "System identifies matching specialty types from search query",
+                  "priority": "must-have",
+                  "status": "implemented"
+                }
+              ]
+            },
+            {
+              "story_id": "FC-SELECT-001",
+              "title": "Provider selection",
+              "description": "User selects individual providers from search results before sending to EvaluateCare. Different UX paradigm from specialty filter.",
+              "size": "L",
+              "status": "open",
+              "requirements": [
+                {
+                  "req_id": "FC-SELECT-001-REQ-001",
+                  "requirement": "Main chat window splits vertically: top = available providers, bottom = selected providers (max 5)",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "FC-SELECT-001-REQ-002",
+                  "requirement": "User can drag and drop a provider from top list to bottom list to select",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "FC-SELECT-001-REQ-003",
+                  "requirement": "User can click an arrow button on a provider row to move it to selected list",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "FC-SELECT-001-REQ-004",
+                  "requirement": "Selected providers (bottom list) have a delete/erase icon to move back to top list",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "FC-SELECT-001-REQ-005",
+                  "requirement": "Maximum 5 providers in selected list. Attempting to add a 6th is blocked with feedback",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "FC-SELECT-001-REQ-006",
+                  "requirement": "Click Evaluate Care with empty selected list shows popup: select at least one provider",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "FC-SELECT-001-REQ-007",
+                  "requirement": "Only selected providers (bottom list) sent to EvaluateCare on handoff",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "FC-SELECT-001-REQ-008",
+                  "requirement": "Garbage icon on top list providers dismisses them from view. Garbage shows count badge",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "FC-SELECT-001-REQ-009",
+                  "requirement": "Dismissed providers stay gone until user asks a new question in chat prompt",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "FC-SELECT-001-REQ-010",
+                  "requirement": "New chat question flushes garbage: count goes to 0, dismissed providers reappear, user sees it happen",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "FC-SELECT-001-REQ-011",
+                  "requirement": "When filter applied, top list re-renders with matching providers and all counts update",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "FC-SELECT-001-REQ-012",
+                  "requirement": "If selected provider no longer matches active filter, row color changes and tooltip shows on hover: not in your filter",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "FC-SELECT-001-REQ-013",
+                  "requirement": "Click on filtered-out selected provider gives choice: keep or delete. Delete moves to garbage",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "FC-SELECT-001-REQ-014",
+                  "requirement": "Selected list and garbage cache persist across pagination",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "FC-SELECT-001-REQ-015",
+                  "requirement": "Garbage cache is a JS array for future recoverability",
+                  "priority": "should-have",
+                  "status": "open"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Specialty Filter",
+          "status": "active",
+          "description": "Filter search results by specialty type, prescriber status, and homeopathic status. Uses EPIC-9 reusable filter control.",
+          "dependencies": [
+            "EPIC-9"
+          ],
+          "stories": [
+            {
+              "story_id": "FC-FILT-001",
+              "title": "Specialty type filter with prescriber and homeopathic toggles",
+              "size": "M",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-FILT-001-REQ-001",
+                  "requirement": "Filter panel shows specialty types from search results",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-002",
+                  "requirement": "Prescribers only checkbox filters to prescriber specialties",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-003",
+                  "requirement": "Homeopathic only checkbox adds homeopathic specialties",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-004",
+                  "requirement": "Three counts displayed: total types, showing, filtered",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-005",
+                  "requirement": "Check all / uncheck all toggle",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-006",
+                  "requirement": "Filter header must display as horizontal grid: [Filter by specialty] [All possible: N] [Prescribers & homeopathic: N (only if homeopathic checked)] [Your choices: N] [Prescribers only checkbox] [Homeopathic only checkbox]. Three labeled counts. Mockup provided by Skip 2026-04-10.",
+                  "priority": "must-have",
+                  "status": "open",
+                  "mockup": "Excel mockup from Skip: 5-column header row. Col1=label, Col2=all possible count, Col3=prescribers+homeopathic count (conditional), Col4=your checked choices count, Col5=two checkboxes stacked.",
+                  "bug_ref": "BUG-UX-007"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Handoff to EvaluateCare",
+          "status": "active",
+          "description": "Send selected providers to EvaluateCare service with signed session token.",
+          "dependencies": [
+            "EPIC-1",
+            "EPIC-9"
+          ],
+          "stories": [
+            {
+              "story_id": "FC-EVAL-001",
+              "title": "Evaluate These Providers button and handoff",
+              "size": "M",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-EVAL-001-REQ-001",
+                  "requirement": "Evaluate button visible in filter panel after search",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "FC-EVAL-001-REQ-002",
+                  "requirement": "Click sends providers to EvaluateCare with signed session token",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "FC-EVAL-001-REQ-003",
+                  "requirement": "Right panel displays provider list from EvaluateCare response",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "FC-EVAL-001-REQ-004",
+                  "requirement": "Session verification displayed in right panel",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "FC-EVAL-001-REQ-005",
+                  "requirement": "Session GUID displayed below evaluate button",
+                  "priority": "must-have",
+                  "status": "implemented"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "sprint_map": [

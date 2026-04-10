@@ -315,8 +315,14 @@ export function useGUIManager() {
 function renderFilterHTML(options: any[], totalProviders: number = 0, prescribersChecked: boolean = true, homeopathicChecked: boolean = false): string {
   if (!options.length) return ''
 
+  const allCount = options.length
   const prescCount = options.filter(o => o.can_prescribe).length
   const homeoCount = options.filter(o => o.homeopathic).length
+  // Filtered count: prescribers + homeopathic overlap
+  const filteredCount = prescribersChecked || homeopathicChecked
+    ? options.filter(o => (!prescribersChecked || o.can_prescribe) && (!homeopathicChecked || o.homeopathic)).length
+    : allCount
+  const checkedCount = filteredCount  // Initially all visible are checked
 
   const items = options.map(opt =>
     `<div style="display:block;padding:5px 10px;border-bottom:1px solid #eee;" data-spec-code="${opt.code}" data-can-prescribe="${opt.can_prescribe || false}" data-homeopathic="${opt.homeopathic || false}">
@@ -328,26 +334,41 @@ function renderFilterHTML(options: any[], totalProviders: number = 0, prescriber
     </div>`
   ).join('')
 
+  // Mockup: horizontal grid header with labeled counts + checkboxes on right
+  // [Filter by specialty] [All possible: N] [Prescribers & homeopathic: N] [Your choices: N] [checkboxes]
+  const presHomeoLabel = homeopathicChecked ? 'Prescribers &amp; homeopathic' : 'Prescribers'
+
   return `
     <div data-filter-panel style="display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:#fff;">
       <div style="padding:8px 10px;border-bottom:2px solid #0b7a75;background:#f8fffe;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:11px;font-weight:700;color:#0b7a75;text-transform:uppercase;letter-spacing:0.05em;">Filter by Specialty</span>
-          <span id="filterCounts" style="font-size:9px;color:#6b7280;line-height:1.4;">
-            <b>${options.length}</b> types &middot; <b id="filterShowing">${prescribersChecked ? prescCount : options.length}</b> showing
-          </span>
-        </div>
-        <div style="display:flex;gap:12px;margin-top:4px;">
-          <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;">
-            <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="prescribers" ${prescribersChecked ? 'checked' : ''}
-              style="accent-color:#0b7a75;width:13px;height:13px;" />
-            Prescribers only (${prescCount})
-          </label>
-          <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;">
-            <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="homeopathic" ${homeopathicChecked ? 'checked' : ''}
-              style="accent-color:#0b7a75;width:13px;height:13px;" />
-            Homeopathic only (${homeoCount})
-          </label>
+        <div style="display:flex;align-items:center;gap:0;flex-wrap:nowrap;">
+          <div style="flex:0 0 auto;padding-right:10px;border-right:1px solid #d8e2e1;">
+            <div style="font-size:11px;font-weight:700;color:#0b7a75;text-transform:uppercase;letter-spacing:0.03em;white-space:nowrap;">Filter by specialty</div>
+          </div>
+          <div style="flex:0 0 auto;padding:0 10px;border-right:1px solid #d8e2e1;text-align:center;">
+            <div style="font-size:8px;color:#6b7280;text-transform:uppercase;">All possible</div>
+            <div style="font-size:14px;font-weight:700;color:#1f2937;" id="filterAllCount">${allCount}</div>
+          </div>
+          <div style="flex:0 0 auto;padding:0 10px;border-right:1px solid #d8e2e1;text-align:center;">
+            <div style="font-size:8px;color:#6b7280;text-transform:uppercase;">${presHomeoLabel}</div>
+            <div style="font-size:14px;font-weight:700;color:#1f2937;" id="filterFilteredCount">${filteredCount}</div>
+          </div>
+          <div style="flex:0 0 auto;padding:0 10px;border-right:1px solid #d8e2e1;text-align:center;">
+            <div style="font-size:8px;color:#6b7280;text-transform:uppercase;">Your choices</div>
+            <div style="font-size:14px;font-weight:700;color:#0b7a75;" id="filterShowing">${checkedCount}</div>
+          </div>
+          <div style="flex:1;padding-left:10px;display:flex;flex-direction:column;gap:3px;justify-content:center;">
+            <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;">
+              <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="prescribers" ${prescribersChecked ? 'checked' : ''}
+                style="accent-color:#0b7a75;width:13px;height:13px;" />
+              Prescribers only
+            </label>
+            <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;">
+              <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="homeopathic" ${homeopathicChecked ? 'checked' : ''}
+                style="accent-color:#0b7a75;width:13px;height:13px;" />
+              Homeopathic only
+            </label>
+          </div>
         </div>
       </div>
       <div style="padding:4px 10px;display:flex;align-items:center;border-bottom:1px solid #e5e7eb;background:#fafafa;">
