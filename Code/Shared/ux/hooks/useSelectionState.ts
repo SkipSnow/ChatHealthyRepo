@@ -17,50 +17,53 @@ function selectionReducer(state: SelectionState, action: SelectionAction): Selec
     case 'SET_AVAILABLE': {
       // New providers from search — merge with existing state
       // Don't touch selected or garbage — they persist
-      const selectedNpis = new Set(state.selected.map(p => p.npi))
-      const garbageNpis = new Set(state.garbage.map(p => p.npi))
-      const available = action.providers.filter(
-        p => !selectedNpis.has(p.npi) && !garbageNpis.has(p.npi)
-      )
+      // NPI comparison always as string to avoid type mismatch
+      const selectedNpis = new Set(state.selected.map(p => String(p.npi)))
+      const garbageNpis = new Set(state.garbage.map(p => String(p.npi)))
+      const available = action.providers
+        .map(p => ({ ...p, npi: String(p.npi) }))  // normalize NPI to string
+        .filter(p => !selectedNpis.has(p.npi) && !garbageNpis.has(p.npi))
       return { ...state, available }
     }
 
     case 'SELECT': {
       if (state.selected.length >= state.maxSelected) return state
-      const provider = state.available.find(p => p.npi === action.npi)
+      const npi = String(action.npi)
+      const provider = state.available.find(p => String(p.npi) === npi)
       if (!provider) return state
       return {
         ...state,
-        available: state.available.filter(p => p.npi !== action.npi),
+        available: state.available.filter(p => String(p.npi) !== npi),
         selected: [...state.selected, provider],
       }
     }
 
     case 'DESELECT': {
-      const provider = state.selected.find(p => p.npi === action.npi)
+      const npi = String(action.npi)
+      const provider = state.selected.find(p => String(p.npi) === npi)
       if (!provider) return state
       return {
         ...state,
-        selected: state.selected.filter(p => p.npi !== action.npi),
+        selected: state.selected.filter(p => String(p.npi) !== npi),
         available: [...state.available, provider],
       }
     }
 
     case 'DISMISS': {
-      const fromAvailable = state.available.find(p => p.npi === action.npi)
+      const npi = String(action.npi)
+      const fromAvailable = state.available.find(p => String(p.npi) === npi)
       if (fromAvailable) {
         return {
           ...state,
-          available: state.available.filter(p => p.npi !== action.npi),
+          available: state.available.filter(p => String(p.npi) !== npi),
           garbage: [...state.garbage, fromAvailable],
         }
       }
-      // Dismiss from selected (filtered-out provider user chose to remove)
-      const fromSelected = state.selected.find(p => p.npi === action.npi)
+      const fromSelected = state.selected.find(p => String(p.npi) === npi)
       if (fromSelected) {
         return {
           ...state,
-          selected: state.selected.filter(p => p.npi !== action.npi),
+          selected: state.selected.filter(p => String(p.npi) !== npi),
           garbage: [...state.garbage, fromSelected],
         }
       }
