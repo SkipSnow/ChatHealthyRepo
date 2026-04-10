@@ -82,10 +82,7 @@ jobs:
           mkdir -p hf_space/shared
           cp Code/Shared/session_token.py hf_space/shared/ 2>/dev/null || true
 
-          # PKI certs for session token verification
-          mkdir -p hf_space/certs
-          cp Code/Shared/ops/certs/findcare.crt hf_space/certs/
-          cp Code/Shared/ops/certs/ca.crt hf_space/certs/
+          # PKI certs deferred to Beta (BUG-SEC-002) — HF doesn't support mTLS
 
           cd hf_space
           git add .

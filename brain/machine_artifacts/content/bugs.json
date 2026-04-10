@@ -707,9 +707,10 @@
         "qa",
         "prod"
       ],
-      "status": "open",
+      "status": "deferred",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000014-0000-4000-e000-000000000014"
+      "ch_matrix_id": "b0000014-0000-4000-e000-000000000014",
+      "resolution": "Deferred to Beta. HF Spaces does not support mTLS. Plan: Private Spaces + HF bearer token + signed session token. HF is the authority for transport auth."
     },
     {
       "id": "BUG-EVAL-001",
