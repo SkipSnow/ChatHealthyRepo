@@ -24,10 +24,10 @@ interface ProviderCardProps {
 const cardStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  padding: '6px 10px',
-  borderBottom: '1px solid #eee',
-  fontSize: '12px',
-  lineHeight: 1.4,
+  padding: '4px 8px',
+  borderBottom: '1px solid #f0f0f0',
+  fontSize: '11px',
+  lineHeight: 1.3,
   cursor: 'default',
   transition: 'background 0.15s',
 }
@@ -41,11 +41,11 @@ const filteredOutStyle: React.CSSProperties = {
 const nameStyle: React.CSSProperties = {
   fontWeight: 600,
   color: '#1f2937',
-  fontSize: '12px',
+  fontSize: '11px',
 }
 
 const detailStyle: React.CSSProperties = {
-  fontSize: '10px',
+  fontSize: '9px',
   color: '#6b7280',
 }
 

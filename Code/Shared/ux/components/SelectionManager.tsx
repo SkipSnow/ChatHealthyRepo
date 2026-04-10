@@ -82,15 +82,17 @@ export function SelectionManager({
         <span style={{ fontSize: '11px', fontWeight: 700, color: '#0b7a75', textTransform: 'uppercase' }}>
           Available Providers
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '10px', color: '#6b7280' }}>{state.available.length}</span>
-          {state.garbage.length > 0 && (
-            <span title={`${state.garbage.length} dismissed`} style={{
-              fontSize: '10px', color: '#dc2626', fontWeight: 600,
-            }}>
-              🗑 {state.garbage.length}
-            </span>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '10px', color: '#6b7280' }}>{state.available.length} available</span>
+          <span title={state.garbage.length > 0 ? `${state.garbage.length} dismissed — new question restores them` : 'No dismissed providers'} style={{
+            fontSize: '12px', color: state.garbage.length > 0 ? '#dc2626' : '#d1d5db',
+            cursor: 'default', position: 'relative',
+          }}>
+            🗑️ <span style={{
+              fontSize: '9px', fontWeight: 700,
+              color: state.garbage.length > 0 ? '#dc2626' : '#9ca3af',
+            }}>{state.garbage.length}</span>
+          </span>
         </div>
       </div>
 
