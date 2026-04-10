@@ -34,6 +34,12 @@ except ImportError:
     BaseModel = object
     Field = lambda **kwargs: None
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parents[4] / "Code" / ".env")
+except ImportError:
+    pass  # dotenv not installed — secrets must be in environment already
+
 _log = logging.getLogger("devops_boot")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 
@@ -187,6 +193,87 @@ class bug_governance_constraints(governance_worker_base):
                 if hasattr(obj, k):
                     setattr(obj, k, v)
             return obj
+
+
+class conversation_log_worker(governance_worker_base):
+    """Pydantic worker for conversation_log.json.
+    Polymorphic child — invoked by the singleton when the grid says code_controlled
+    on user_prompt_submit. Logs the user's prompt to conversation_log.json."""
+
+    MAX_CONTENT_LEN: int = 500
+    SYSTEM_REMINDER_PATTERN: object = None  # set in __init__
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs) if BaseModel is not object else None
+        self.SYSTEM_REMINDER_PATTERN = re.compile(r"<system-reminder>.*?</system-reminder>", re.DOTALL)
+
+    def _clean_content(self, content: str) -> str:
+        if not content:
+            return ""
+        content = self.SYSTEM_REMINDER_PATTERN.sub("", content).strip()
+        if content.startswith("data:") or "base64," in content:
+            return "[binary content omitted]"
+        if len(content) > self.MAX_CONTENT_LEN:
+            content = content[:self.MAX_CONTENT_LEN] + f" [truncated — {len(content)} chars]"
+        return content
+
+    def _make_timestamps(self):
+        from datetime import datetime, timezone, timedelta
+        now_utc = datetime.now(timezone.utc)
+        now_pst = now_utc + timedelta(hours=-7)
+        return (
+            now_pst.strftime("%Y-%m-%dT%H:%M:%S-07:00"),
+            now_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        )
+
+    def run(self, hook_input: dict, action_event: str = "user_prompt_submit") -> dict:
+        """Polymorphic run — called by singleton when grid says code_controlled."""
+        if action_event == "user_prompt_submit":
+            prompt = hook_input.get("prompt", hook_input.get("content", hook_input.get("message", "")))
+            content = self._clean_content(prompt)
+            if not content:
+                return {"comply": True, "logged": False}
+
+            log_path = BRAIN_DIR / "conversation_log.json"
+            try:
+                log = json.loads(log_path.read_text(encoding="utf-8")) if log_path.exists() else {
+                    "collection": "conversation_log",
+                    "path": "brain/machine_artifacts/content/conversation_log.json",
+                    "purpose": "Rolling 24h conversation log.",
+                    "produces_artifact": False,
+                    "retention": "24_hours",
+                    "utterances": [],
+                }
+                pst, utc = self._make_timestamps()
+                last_num = max((u["utterance"] for u in log.get("utterances", [])), default=0)
+                log["utterances"].append({
+                    "utterance": last_num + 1,
+                    "timestamp_pst": pst,
+                    "timestamp_utc": utc,
+                    "actor": "Skip",
+                    "role": "user",
+                    "content": content,
+                })
+                log_path.write_text(json.dumps(log, indent=2, ensure_ascii=False), encoding="utf-8")
+                return {"comply": True, "logged": True}
+            except Exception as e:
+                _log.warning("conversation_log_worker failed: %s", e)
+                return {"comply": True, "logged": False, "error": str(e)}
+
+        return {"comply": True}
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls()
+
+
+# ── Registry: JSON stem → child class ────────────────────────────────────────
+# Only JSONs with code_controlled cells in the grid get a child class.
+# The singleton uses this to dispatch.
+WORKER_REGISTRY = {
+    "bugs": bug_governance_constraints,
+    "conversation_log": conversation_log_worker,
+}
 
 
 class chathealthy_devops_boot:
@@ -704,39 +791,36 @@ class chathealthy_devops_boot:
                   len(self.brain), len(self._constraints), len(system_warnings), len(session_warnings))
         return summary
 
-    def prompt(self, user_message: str) -> dict:
-        """UserPromptSubmit — predict governance path for this prompt."""
+    def dispatch_code_controlled(self, hook_input: dict, action_event: str) -> dict:
+        """Dispatch to child class workers for code_controlled cells in the grid.
+        Reads the matrix, finds code_controlled cells for this action_event,
+        constructs the child class from WORKER_REGISTRY, calls run()."""
+        matrix = self._get_matrix()
+        results = []
+        for json_stem, row in matrix.items():
+            cell = row.get(action_event, "allow")
+            if cell != "code_controlled":
+                continue
+            worker_cls = WORKER_REGISTRY.get(json_stem)
+            if worker_cls is None:
+                _log.warning("code_controlled for %s but no worker in WORKER_REGISTRY", json_stem)
+                continue
+            try:
+                worker = worker_cls.from_dict(self.brain.get(json_stem, {}))
+                result = worker.run(hook_input=hook_input, action_event=action_event)
+                results.append({"json": json_stem, **result})
+                if not result.get("comply", True):
+                    return result  # First non-comply stops
+            except Exception as e:
+                _log.warning("Worker %s failed: %s", json_stem, e)
+                results.append({"json": json_stem, "comply": True, "error": str(e)})
+        return {"comply": True, "workers": results}
+
+    def prompt(self, user_message: str, hook_input: dict = None) -> dict:
+        """UserPromptSubmit — dispatch code_controlled workers, then log."""
         self._announce("prompt", "user_prompt_submit", f"user_message[:{min(50, len(user_message))}]")
         self._state["last_prompt"] = user_message
-
-        try:
-            from openai import OpenAI
-            client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
-            constraints = self.get_constraints_summary(max_chars=2000)
-
-            resp = client.chat.completions.create(
-                model="gpt-4o-mini",
-                max_tokens=300,
-                response_format={"type": "json_object"},
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are a governance advisor. A user sent a message to an AI coding agent. "
-                            "Predict what the agent will need to do and flag any constraints.\n\n"
-                            f"Constraints:\n{constraints}\n\n"
-                            "Respond JSON: {{\"intent\": \"...\", \"predicted_actions\": [\"...\"], "
-                            "\"warnings\": [\"...\"], \"proceed\": true/false}}"
-                        ),
-                    },
-                    {"role": "user", "content": user_message[:1000]},
-                ],
-            )
-            result = json.loads(resp.choices[0].message.content)
-            self._state["predicted_path"] = result
-            return result
-        except Exception as e:
-            return {"intent": "unknown", "warnings": [str(e)], "proceed": True}
+        return self.dispatch_code_controlled(hook_input or {}, "user_prompt_submit")
 
     def tool_call(self, tool_name: str, tool_input: dict, transcript_path: str = "") -> dict:
         """PreToolUse — gate actions using the governance matrix.
@@ -926,8 +1010,8 @@ def main():
 
         elif args.mode == "prompt":
             boot = chathealthy_devops_boot(load_full=False)
-            user_msg = data.get("content", data.get("message", ""))
-            result = boot.prompt(user_msg)
+            user_msg = data.get("prompt", data.get("content", data.get("message", "")))
+            result = boot.prompt(user_msg, hook_input=data)
             json.dump(result, sys.stdout)
             sys.exit(0)
 
