@@ -617,7 +617,7 @@ async def _chat_inner(body: ChatRequest, request: Request):
 
     _log.info("CHAT call=initial msgs=%d", len(messages))
     response = client.messages.create(
-        model="claude-haiku-4-5-20251001", max_tokens=4096, system=system, messages=messages, tools=anthropic_tools)
+        model="claude-sonnet-4-6", max_tokens=4096, system=system, messages=messages, tools=anthropic_tools)
     total_in  += getattr(response.usage, "input_tokens", 0)
     total_out += getattr(response.usage, "output_tokens", 0)
 
@@ -647,7 +647,7 @@ async def _chat_inner(body: ChatRequest, request: Request):
         loop_iter += 1
         _log.info("CHAT tool_loop iter=%d tools=%s", loop_iter, [b.name for b in tool_uses])
         response = client.messages.create(
-            model="claude-haiku-4-5-20251001", max_tokens=4096, system=system, messages=messages, tools=anthropic_tools)
+            model="claude-sonnet-4-6", max_tokens=4096, system=system, messages=messages, tools=anthropic_tools)
         total_in  += getattr(response.usage, "input_tokens", 0)
         total_out += getattr(response.usage, "output_tokens", 0)
 

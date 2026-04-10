@@ -357,16 +357,16 @@ function renderFilterHTML(options: any[], totalProviders: number = 0, prescriber
             <div style="font-size:8px;color:#6b7280;text-transform:uppercase;">Your choices</div>
             <div style="font-size:14px;font-weight:700;color:#0b7a75;" id="filterShowing">${checkedCount}</div>
           </div>
-          <div style="flex:1;padding-left:10px;display:flex;flex-direction:column;gap:3px;justify-content:center;">
-            <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;">
+          <div style="flex:0 0 auto;padding-left:10px;display:flex;flex-direction:column;gap:2px;justify-content:center;">
+            <label style="font-size:9px;color:#1f2937;display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap;">
               <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="prescribers" ${prescribersChecked ? 'checked' : ''}
-                style="accent-color:#0b7a75;width:13px;height:13px;" />
-              Prescribers only
+                style="accent-color:#0b7a75;width:12px;height:12px;" />
+              Prescribers
             </label>
-            <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;">
+            <label style="font-size:9px;color:#1f2937;display:flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap;">
               <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="homeopathic" ${homeopathicChecked ? 'checked' : ''}
-                style="accent-color:#0b7a75;width:13px;height:13px;" />
-              Homeopathic only
+                style="accent-color:#0b7a75;width:12px;height:12px;" />
+              Homeopathic
             </label>
           </div>
         </div>
