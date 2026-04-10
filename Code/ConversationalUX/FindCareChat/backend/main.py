@@ -426,8 +426,20 @@ def health():
     env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
     idx_check = _check_indexes()
     status = "ok" if idx_check["status"] == "ok" else "degraded"
+    # Version info from version.json — single source of truth
+    _version_info = {}
+    try:
+        import json as _json
+        _vpath = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "brain", "machine_artifacts", "content", "version.json")
+        if os.path.exists(_vpath):
+            _version_info = _json.loads(open(_vpath, encoding="utf-8").read()).get("current", {})
+    except Exception:
+        pass
     result = {"status": status, "db": "connected" if _get_db() else "unavailable",
-              "env": env_label, "build": _BUILD, "version": _APP_VERSION}
+              "env": env_label,
+              "build": _version_info.get("build", _BUILD),
+              "version": _version_info.get("version", _APP_VERSION),
+              "framework": _version_info.get("framework", "?")}
     if idx_check.get("missing"):
         result["missing_indexes"] = idx_check["missing"]
         _log.error("HEALTH CHECK: missing indexes — %s", idx_check["missing"])
