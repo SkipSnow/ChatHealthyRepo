@@ -29,15 +29,16 @@ CERTS_DIR = os.environ.get("CERTS_DIR",
 def generate_session_token(origin: str = "FindCare") -> dict:
     """Generate a new session token and sign it with the origin's private key.
 
-    Returns {origin, token, signature, created_at} — pass entire dict to client.
+    Includes nonce (random bytes) to prevent replay attacks.
+    Returns {origin, token, signature, nonce, created_at} — pass entire dict to client.
     """
     now = datetime.now(timezone.utc)
     ms = str(now.microsecond)[:3].zfill(3)
     created_stamp = now.strftime('%m%d%Y%H%M%S') + ms
     guid = uuid.uuid4().hex
+    nonce = uuid.uuid4().hex[:16]  # 16-char random nonce — unique per request
     # Format: CH{last_used}{created}{guid} — no delimiters, obscured
-    # Only created + guid are signed. Last_used is mutable (session keepalive).
-    # created_stamp = MMDDYYYYHHMMSSmmm (16 chars)
+    # Only created + guid + nonce are signed. Last_used is mutable (session keepalive).
     token = f"CH{created_stamp}{created_stamp}{guid}"
     created = datetime.now(timezone.utc).isoformat()
 
@@ -48,6 +49,7 @@ def generate_session_token(origin: str = "FindCare") -> dict:
         return {
             "origin": origin,
             "token": token,
+            "nonce": nonce,
             "signature": None,
             "created_at": created,
             "signed": False,
@@ -56,8 +58,8 @@ def generate_session_token(origin: str = "FindCare") -> dict:
     with open(key_path, "rb") as f:
         private_key = serialization.load_pem_private_key(f.read(), password=None)
 
-    # Sign only origin + created_stamp + guid (immutable parts)
-    payload = f"{origin}:{created_stamp}:{guid}".encode()
+    # Sign origin + created_stamp + guid + nonce (immutable parts)
+    payload = f"{origin}:{created_stamp}:{guid}:{nonce}".encode()
     signature = private_key.sign(
         payload,
         padding.PKCS1v15(),
@@ -67,6 +69,7 @@ def generate_session_token(origin: str = "FindCare") -> dict:
     return {
         "origin": origin,
         "token": token,
+        "nonce": nonce,
         "signature": base64.b64encode(signature).decode(),
         "created_at": created,
         "signed": True,
@@ -76,7 +79,8 @@ def generate_session_token(origin: str = "FindCare") -> dict:
 def verify_session_token(session: dict, expected_origin: str = "FindCare") -> bool:
     """Verify a session token's signature using the origin's public cert.
 
-    Returns True if the token was signed by the expected origin.
+    Verifies origin + created + guid + nonce were signed by the expected origin.
+    Returns True if the token was signed by the expected origin and nonce is present.
     """
     if not session or not session.get("signed"):
         return False
@@ -84,8 +88,13 @@ def verify_session_token(session: dict, expected_origin: str = "FindCare") -> bo
     origin = session.get("origin", "")
     token = session.get("token", "")
     sig_b64 = session.get("signature", "")
+    nonce = session.get("nonce", "")
 
     if origin != expected_origin or not token or not sig_b64:
+        return False
+
+    # Nonce required — prevents replay
+    if not nonce:
         return False
 
     # Extract by position: CH{last_used:17}{created:17}{guid:32}
@@ -105,8 +114,8 @@ def verify_session_token(session: dict, expected_origin: str = "FindCare") -> bo
         cert = load_pem_x509_certificate(f.read())
 
     public_key = cert.public_key()
-    # Verify against the immutable parts only (origin + created + guid)
-    payload = f"{origin}:{created_stamp}:{guid}".encode()
+    # Verify against immutable parts (origin + created + guid + nonce)
+    payload = f"{origin}:{created_stamp}:{guid}:{nonce}".encode()
     signature = base64.b64decode(sig_b64)
 
     try:
