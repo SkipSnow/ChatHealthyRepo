@@ -21777,6 +21777,12 @@
                   "requirement": "Garbage cache is a JS array for future recoverability",
                   "priority": "should-have",
                   "status": "open"
+                },
+                {
+                  "req_id": "FC-SELECT-001-REQ-016",
+                  "requirement": "Selected providers list (bottom) shows only provider name, specialty, and NPI. Full details (address, county, phone) shown in tooltip on hover.",
+                  "priority": "must-have",
+                  "status": "open"
                 }
               ]
             }

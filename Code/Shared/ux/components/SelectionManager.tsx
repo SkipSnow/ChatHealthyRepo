@@ -94,7 +94,7 @@ export function SelectionManager({
         </div>
       </div>
 
-      <div style={{ maxHeight: '200px', overflowY: 'auto', overflowX: 'hidden' }}>
+      <div style={{ maxHeight: '150px', overflowY: 'auto', overflowX: 'hidden' }}>
         {state.available.length === 0 ? (
           <div style={{ padding: '12px', textAlign: 'center', color: '#9ca3af', fontSize: '11px' }}>
             No providers available
@@ -142,7 +142,7 @@ export function SelectionManager({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         style={{
-          minHeight: '50px', maxHeight: '180px', overflowY: 'auto', overflowX: 'hidden',
+          minHeight: '40px', maxHeight: '130px', overflowY: 'auto', overflowX: 'hidden',
           background: dragOver ? '#fffdf0' : '#fffdf7',
         }}
       >
@@ -158,6 +158,7 @@ export function SelectionManager({
                 <ProviderCard
                   provider={p}
                   mode="selected"
+                  compact={true}
                   isFilteredOut={filteredOut}
                   onDeselect={onDeselect}
                   onFilteredClick={handleFilteredClick}

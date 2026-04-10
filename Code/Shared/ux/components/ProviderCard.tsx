@@ -11,6 +11,7 @@ import type { Provider } from '../types/provider'
 interface ProviderCardProps {
   provider: Provider
   mode: 'available' | 'selected'
+  compact?: boolean  // FC-SELECT-001-REQ-016: selected list shows name, specialty, NPI only
   isFilteredOut?: boolean
   onSelect?: (npi: string) => void
   onDeselect?: (npi: string) => void
@@ -60,6 +61,7 @@ const actionBtnStyle: React.CSSProperties = {
 export function ProviderCard({
   provider,
   mode,
+  compact = false,
   isFilteredOut = false,
   onSelect,
   onDeselect,
@@ -70,6 +72,9 @@ export function ProviderCard({
 }: ProviderCardProps) {
   const style = isFilteredOut ? filteredOutStyle : cardStyle
   const p = provider
+  const tooltipText = compact
+    ? `${p.address || ''}\n${p.county || ''}\nPhone: ${p.phone || 'N/A'}`
+    : (isFilteredOut ? 'Not in your filter — click to keep or remove' : '')
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('text/plain', p.npi)
@@ -81,15 +86,16 @@ export function ProviderCard({
       style={style}
       draggable={draggable && mode === 'available'}
       onDragStart={handleDragStart}
-      title={isFilteredOut ? 'Not in your filter — click to keep or remove' : ''}
+      title={tooltipText}
       onClick={isFilteredOut && onFilteredClick ? () => onFilteredClick(p.npi) : undefined}
     >
       {/* Provider info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={nameStyle}>{p.name}</div>
-        {p.address && <div style={detailStyle}>{p.address}</div>}
-        {p.county && <div style={detailStyle}>{p.county}</div>}
-        {p.phone && <div style={detailStyle}>Phone: {p.phone}</div>}
+        {!compact && p.address && <div style={detailStyle}>{p.address}</div>}
+        {!compact && p.county && <div style={detailStyle}>{p.county}</div>}
+        {!compact && p.phone && <div style={detailStyle}>Phone: {p.phone}</div>}
+        {compact && <div style={detailStyle}>{p.specialty || p.primary_specialty || ''}</div>}
         <div style={{ ...detailStyle, color: '#9ca3af' }}>NPI: {p.npi}</div>
       </div>
 
