@@ -301,12 +301,160 @@ class conversation_log_worker(governance_worker_base):
         return cls()
 
 
+class operating_rules_worker(governance_worker_base):
+    """Pydantic worker for operating_rules.json.
+    Polymorphic child — invoked on pre_tool_use when grid says code_controlled.
+    Uses GPT-4.1-mini to adjudicate tool calls. No regex."""
+
+    def _load_rules_text(self) -> str:
+        """Load engineering rules + development rules + policies as text for GPT."""
+        lines = []
+        for json_name in ("operating_rules", "development_rules"):
+            path = BRAIN_DIR / f"{json_name}.json"
+            if path.exists():
+                data = json.loads(path.read_text(encoding="utf-8"))
+                for r in data.get("rules", []):
+                    rule_id = r.get("id", "?")
+                    rule_text = r.get("rule", "")[:200]
+                    lines.append(f"[{rule_id}] {rule_text}")
+        # Policies from governance.json
+        gov_path = BRAIN_DIR / "governance.json"
+        if gov_path.exists():
+            gov = json.loads(gov_path.read_text(encoding="utf-8"))
+            policies = gov.get("policies", {})
+            if isinstance(policies, dict):
+                for p in policies.get("corporate_policies", []):
+                    text = p.get("policy", "") or p.get("description", "")
+                    if text:
+                        lines.append(f"[POLICY] {text[:200]}")
+        return "\n".join(lines)
+
+    def _call_gpt(self, system_prompt: str, user_prompt: str) -> dict:
+        """Call GPT-4.1-mini. Returns parsed JSON or error dict."""
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
+            resp = client.chat.completions.create(
+                model="gpt-4.1-mini",
+                max_tokens=300,
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            )
+            return json.loads(resp.choices[0].message.content)
+        except Exception as e:
+            _log.warning("operating_rules_worker GPT call failed: %s", e)
+            return {"error": str(e), "allow": True}
+
+    _SYSTEM_PROMPT: str = (
+        "You are a governance advisor for ChatHealthy, a healthcare AI startup. "
+        "You evaluate tool calls against engineering rules and policies. "
+        "Respond in JSON only."
+    )
+
+    def _evaluate_git_commit(self, command: str, rules_text: str) -> dict:
+        """Eval A: git commit — check against rules, report violations."""
+        user_prompt = (
+            f"A git commit is being executed:\n"
+            f"Command: {command[:500]}\n\n"
+            f"Engineering rules and policies:\n{rules_text}\n\n"
+            f"Respond JSON: {{\"violations\": [{{\"rule_id\": \"...\", \"description\": \"...\", "
+            f"\"auto_fixable\": true/false, \"fix_description\": \"...\"}}], "
+            f"\"has_violations\": true/false}}"
+        )
+        return self._call_gpt(self._SYSTEM_PROMPT, user_prompt)
+
+    def _evaluate_state_change(self, tool_name: str, tool_input: dict) -> dict:
+        """Eval B: any other tool — does it change state outside git?"""
+        detail = tool_input.get("command", tool_input.get("file_path", ""))[:500]
+        user_prompt = (
+            f"A tool call is being made:\n"
+            f"Tool: {tool_name}\n"
+            f"Input: {detail}\n\n"
+            f"Does this tool call change state OUTSIDE of files tracked in git? "
+            f"Examples of external state: database writes, API POSTs, process kills, "
+            f"system config changes, deploying to cloud services.\n"
+            f"Editing source code files, config files, or JSON files in the project is NOT external state.\n"
+            f"Reading from anywhere (network, disk, API GETs) is NOT a state change.\n\n"
+            f"Respond JSON: {{\"changes_external_state\": true/false, "
+            f"\"state_description\": \"what state would change\"}}"
+        )
+        return self._call_gpt(self._SYSTEM_PROMPT, user_prompt)
+
+    # Governance infrastructure — always pass, never evaluate
+    _GOVERNANCE_PATTERNS = [
+        r"chathealthy_devops_boot\.py",
+        r"conversation_log_hook\.py",
+        r"bash_rule_guard\.py",
+        r"kill_zombies\.py",
+        r"bump_build\.py",
+        r"pre_deploy_rule_check",
+    ]
+
+    def run(self, hook_input: dict, action_event: str = "pre_tool_use") -> dict:
+        """Polymorphic run — called by singleton when grid says code_controlled."""
+        if action_event != "pre_tool_use":
+            return {"comply": True}
+
+        tool_name = hook_input.get("tool_name", "")
+        tool_input = hook_input.get("tool_input", {})
+
+        # Read-only tools — always pass, no GPT call
+        if tool_name in ("Read", "Glob", "Grep", "WebFetch", "WebSearch"):
+            return {"comply": True, "allow": True}
+
+        command = tool_input.get("command", "")
+
+        # Governance infrastructure — always pass
+        for pattern in self._GOVERNANCE_PATTERNS:
+            if re.search(pattern, command, re.IGNORECASE):
+                return {"comply": True, "allow": True}
+
+        # Eval A: git commit
+        if tool_name == "Bash" and re.search(r"^git\s+(commit|push)", command):
+            rules_text = self._load_rules_text()
+            result = self._evaluate_git_commit(command, rules_text)
+            if result.get("error"):
+                return {"comply": True, "allow": True}  # fail open
+            if result.get("has_violations"):
+                violations = result.get("violations", [])
+                auto_fixable = [v for v in violations if v.get("auto_fixable")]
+                needs_human = [v for v in violations if not v.get("auto_fixable")]
+                return {
+                    "comply": len(needs_human) == 0,
+                    "allow": len(needs_human) == 0,
+                    "auto_fixable": auto_fixable,
+                    "needs_human": needs_human,
+                    "reason": "; ".join(f"{v['rule_id']}: {v['description']}" for v in needs_human) if needs_human else "",
+                }
+            return {"comply": True, "allow": True}
+
+        # Eval B: everything else — does it change external state?
+        result = self._evaluate_state_change(tool_name, tool_input)
+        if result.get("error"):
+            return {"comply": True, "allow": True}  # fail open
+        if result.get("changes_external_state"):
+            return {
+                "comply": False,
+                "allow": False,
+                "reason": f"State change detected: {result.get('state_description', 'unknown')}. Risk acceptance required from Skip.",
+            }
+        return {"comply": True, "allow": True}
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls()
+
+
 # ── Registry: JSON stem → child class ────────────────────────────────────────
 # Only JSONs with code_controlled cells in the grid get a child class.
 # The singleton uses this to dispatch.
 WORKER_REGISTRY = {
     "bugs": bug_governance_constraints,
     "conversation_log": conversation_log_worker,
+    "operating_rules": operating_rules_worker,
 }
 
 
@@ -863,61 +1011,22 @@ class chathealthy_devops_boot:
         return self.dispatch_code_controlled(hook_input or {}, "user_prompt_submit")
 
     def tool_call(self, tool_name: str, tool_input: dict, transcript_path: str = "") -> dict:
-        """PreToolUse — gate actions using the governance matrix.
-
-        BUG-GOV-002: Before any state change, check if Boss has an active
-        constraint in the transcript. Any pydantic run object inherits this.
-        """
+        """PreToolUse — dispatch to code_controlled workers via the grid.
+        GPT-4.1-mini adjudicates all non-read tool calls."""
         detail = tool_input.get("command", tool_input.get("file_path", ""))[:80]
         self._announce("tool_call", f"pre_tool_use:{tool_name}", detail)
 
-        # Read-only tools — always pass
-        if tool_name in ("Read", "Glob", "Grep", "WebFetch", "WebSearch"):
-            return {"allow": True}
+        # Pass tool context into hook_input so workers can see it
+        hook_input = {
+            "tool_name": tool_name,
+            "tool_input": tool_input,
+            "transcript_path": transcript_path,
+        }
+        result = self.dispatch_code_controlled(hook_input, "pre_tool_use")
 
-        # Edit/Write — check file path
-        if tool_name in ("Edit", "Write"):
-            return self._check_file_path(tool_input.get("file_path", ""))
-
-        # Bash — walk the matrix pre_tool_use column
-        if tool_name == "Bash":
-            command = tool_input.get("command", "")
-
-            # Check show-stopper bugs — if any SHOW STOPPER bug is open, block
-            bugs = self.brain.get("bugs", {})
-            for bug in bugs.get("bugs", []):
-                rule_text = bug.get("rule", "")
-                bug_id = bug.get("id", "")
-                if "SHOW STOPPER" in rule_text or "SPRINT BLOCKER" in rule_text:
-                    # Check if this command could worsen the show stopper
-                    if bug_id == "BUG-LOAD-001" and "copy_to_frontend" in command.lower():
-                        # The destructive drop() — block unless using safe copy
-                        if "copy_providers_only" not in command and "fix_frontend" not in command:
-                            return {"allow": False, "reason": f"{bug_id}: CopyToFrontEnd has destructive drop(). Use copy_providers_only or fix_frontend_data.py"}
-
-            # Check engineering rules that map to commands
-            for rule in self.brain.get("operating_rules", {}).get("rules", []):
-                rule_text = rule.get("rule", "")
-                rule_id = rule.get("id", "")
-                # v4-001C: Pipeline code runs on Azure
-                if "pipeline" in rule_text.lower() and "azure" in rule_text.lower():
-                    if re.search(r"python\s+.*Code[/\\]DataPipelines[/\\](?!tests[/\\])", command, re.IGNORECASE):
-                        return {"allow": False, "reason": f"v4-001C: Pipeline code runs on Azure, not locally"}
-
-            # Check development rules for enforcement patterns
-            for rule in self.brain.get("development_rules", {}).get("rules", []):
-                enforcement = rule.get("enforcement", {})
-                if not enforcement:
-                    continue
-                rule_id = rule.get("id", "")
-                # File scan enforcement — check if command touches scanned dirs
-                if enforcement.get("type") == "file_scan":
-                    pattern = enforcement.get("pattern", "")
-                    if pattern and re.search(pattern, command, re.IGNORECASE):
-                        return {"allow": False, "reason": f"{rule_id}: {rule.get('rule', '')[:100]}"}
-
-            return {"allow": True}
-
+        # Convert worker result to allow/deny for Claude Code
+        if not result.get("comply", True):
+            return {"allow": False, "reason": result.get("reason", "Blocked by governance")}
         return {"allow": True}
 
     def prompt_result(self, hook_input: dict) -> dict:
