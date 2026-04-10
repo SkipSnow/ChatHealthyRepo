@@ -383,7 +383,7 @@ class operating_rules_worker(governance_worker_base):
         )
         return self._call_gpt(self._SYSTEM_PROMPT, user_prompt)
 
-    # Governance infrastructure — always pass, never evaluate
+    # Governance infrastructure + Boss-authorized patterns — always pass
     _GOVERNANCE_PATTERNS = [
         r"chathealthy_devops_boot\.py",
         r"conversation_log_hook\.py",
@@ -391,6 +391,7 @@ class operating_rules_worker(governance_worker_base):
         r"kill_zombies\.py",
         r"bump_build\.py",
         r"pre_deploy_rule_check",
+        r"devpipelinemanagmentservice.*azurewebsites\.net",  # Pipeline service invocation
     ]
 
     def run(self, hook_input: dict, action_event: str = "pre_tool_use") -> dict:

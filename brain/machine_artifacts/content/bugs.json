@@ -581,6 +581,36 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "4392e393-635e-40d8-86a0-b132e653f0a6"
+    },
+    {
+      "id": "BUG-GOV-003",
+      "rule": "BUG: PreToolUse guard blocks authorized actions — operating_rules_worker does not check risk_acceptance.json before blocking. GPT-4.1-mini must receive the list of active risk acceptances so it can allow actions that Boss has already authorized.",
+      "incident": "Boss authorized dropping ChatHealthyFrontEnd.Labs.test (risk=0, test collection). Guard blocked it twice because it has no awareness of risk acceptances.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000003-0000-4000-e000-000000000003"
+    },
+    {
+      "id": "BUG-PIPE-007",
+      "rule": "BUG: Cluster lifecycle manager does not detect or clean up zombie reservations. Three stale reservations from April 8 were still marked active on April 10. Reservations with expected_end_time in the past should be auto-released on ClusterStatus or any reservation check.",
+      "incident": "Pipeline cluster had 3 active reservations — 2 from April 8 (18+ hours expired) and 1 from April 10. Required manual ForceRelease. Cluster was burning money idle.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000007-0000-4000-e000-000000000007"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
