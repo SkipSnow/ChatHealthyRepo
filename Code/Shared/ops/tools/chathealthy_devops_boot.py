@@ -448,12 +448,8 @@ class operating_rules_worker(governance_worker_base):
             if re.search(pattern, command, re.IGNORECASE):
                 return {"comply": True, "allow": True}
 
-        # Git read operations — always pass
-        if tool_name == "Bash" and re.search(r"^git\s+(status|log|diff|branch|show|remote|tag|stash|rev-parse|ls-files|fetch)", command):
-            return {"comply": True, "allow": True}
-
-        # Git push — allow (workflow path filters handle deployment gating)
-        if tool_name == "Bash" and re.search(r"^git\s+push", command):
+        # Git operations — always pass (governance happens at commit time, workflows gate deploys)
+        if tool_name == "Bash" and re.search(r"(^|\s*&&\s*)git\s+", command):
             return {"comply": True, "allow": True}
 
         # Eval A: git commit
