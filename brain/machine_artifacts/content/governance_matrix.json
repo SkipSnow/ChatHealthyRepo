@@ -40,42 +40,42 @@
       "user_prompt_submit": "session_warning",
       "pre_tool_use": "code_controlled",
       "post_tool_use": "session_abend",
-      "stop": "session_abend"
+      "stop": "session_warning"
     },
     "security": {
       "session_start": "session_warning",
       "user_prompt_submit": "session_warning",
       "pre_tool_use": "session_abend",
       "post_tool_use": "session_abend",
-      "stop": "session_abend"
+      "stop": "session_warning"
     },
     "architecture": {
       "session_start": "session_warning",
       "user_prompt_submit": "allow",
       "pre_tool_use": "session_abend",
       "post_tool_use": "session_abend",
-      "stop": "session_abend"
+      "stop": "session_warning"
     },
     "legal": {
       "session_start": "session_warning",
       "user_prompt_submit": "session_warning",
       "pre_tool_use": "session_abend",
       "post_tool_use": "session_abend",
-      "stop": "session_abend"
+      "stop": "session_warning"
     },
     "development_rules": {
       "session_start": "session_warning",
       "user_prompt_submit": "allow",
       "pre_tool_use": "session_abend",
       "post_tool_use": "session_abend",
-      "stop": "session_abend"
+      "stop": "session_warning"
     },
     "emergency_keywords": {
       "session_start": "session_warning",
       "user_prompt_submit": "session_abend",
       "pre_tool_use": "allow",
       "post_tool_use": "session_abend",
-      "stop": "session_abend"
+      "stop": "session_warning"
     },
     "controlled_vocabularies": {
       "session_start": "session_warning",
@@ -89,14 +89,14 @@
       "user_prompt_submit": "session_warning",
       "pre_tool_use": "session_abend",
       "post_tool_use": "system_abend",
-      "stop": "system_abend"
+      "stop": "system_warning"
     },
     "policies": {
       "session_start": "session_warning",
       "user_prompt_submit": "session_warning",
       "pre_tool_use": "session_abend",
       "post_tool_use": "system_abend",
-      "stop": "system_abend"
+      "stop": "system_warning"
     },
     "risk_acceptance": {
       "session_start": "allow",
@@ -159,7 +159,7 @@
       "user_prompt_submit": "allow",
       "pre_tool_use": "allow",
       "post_tool_use": "session_abend",
-      "stop": "session_abend"
+      "stop": "session_warning"
     },
     "traceability_matrix": {
       "session_start": "system_warning",
@@ -198,7 +198,7 @@
     },
     "conversation_log": {
       "session_start": "allow",
-      "user_prompt_submit": "allow",
+      "user_prompt_submit": "code_controlled",
       "pre_tool_use": "allow",
       "post_tool_use": "allow",
       "stop": "allow"
