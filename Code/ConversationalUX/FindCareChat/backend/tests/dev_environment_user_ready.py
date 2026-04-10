@@ -1,16 +1,20 @@
 # Copyright (c) 2026 Skip Snow. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# Local Environment User-Ready Smoke Test
+# Dev Environment User-Ready Smoke Test
 #
 # EPIC: EPIC-TEST — User Testing Simulation
-# Feature: USER-TEST-LOCAL — Local Environment Security & User Readiness
+# Feature: USER-TEST-DEV — Dev Environment Security & User Readiness
 #
-# Runs as a single sequential flow against one browser page:
-#   Phase 1: Page loads, env class, welcome message, input prompt
-#   Phase 2: Search DE foot providers, wait for results
-#   Phase 3: Verify left panel filters, counts, evaluate button
-#   Phase 4: Click evaluate, verify right panel, tokens
+# Same test logic as local_environment_user_ready.py but binds to:
+#   Website:      https://dev.chathealthy.ai (Cloudflare → HF)
+#   Chat iframe:  https://skipsnow-dev-chathealthyspace.hf.space
+#   FindCare:     (inside the HF space)
+#   EvaluateCare: https://skipsnow-dev-evaluatecarespace.hf.space
+#
+# Usage:
+#   pytest dev_environment_user_ready.py -v
+#   TEST_BASE_URL=https://dev.chathealthy.ai pytest dev_environment_user_ready.py -v
 #
 # DR-019: Tests run against the full parent page, not individual components.
 
@@ -19,9 +23,9 @@ import re
 import pytest
 from playwright.sync_api import sync_playwright, Page
 
-BASE_URL = os.getenv("TEST_BASE_URL", "http://localhost")
-CHAT_TIMEOUT = 120_000
-SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "test_screenshots", "user_ready")
+BASE_URL = os.getenv("TEST_BASE_URL", "https://dev.chathealthy.ai")
+CHAT_TIMEOUT = 180_000  # HF spaces may need cold start time
+SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "test_screenshots", "dev_user_ready")
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 KNOWN_BUGS = []
@@ -51,9 +55,9 @@ def shared_page():
         )
         page = context.new_page()
 
-        # Phase 1: Load page
-        page.goto(BASE_URL, wait_until="domcontentloaded", timeout=30000)
-        page.wait_for_timeout(10000)  # Wait for iframe + React cold start
+        # Phase 1: Load page — HF spaces may cold start (~30-60s)
+        page.goto(BASE_URL, wait_until="domcontentloaded", timeout=90000)
+        page.wait_for_timeout(15000)  # Wait for iframe + HF space cold start
 
         # Find chat frame
         chat_frame = page
@@ -270,10 +274,9 @@ class TestKnownGaps:
     def test_gap_tls_between_components(self, shared_page):
         _record_bug("GAP-TLS-001", "TLS not configured between all local components")
 
-    def test_gap_https_redirect(self, shared_page):
+    def test_dev_uses_https(self, shared_page):
         page = shared_page["page"]
-        if not page.url.startswith("https://"):
-            _record_bug("BUG-TLS-001", f"No HTTPS redirect. URL: {page.url}")
+        assert page.url.startswith("https://"), f"Dev must use HTTPS. URL: {page.url}"
 
 
 # ── Report ─────────────────────────────────────────────────────────────────

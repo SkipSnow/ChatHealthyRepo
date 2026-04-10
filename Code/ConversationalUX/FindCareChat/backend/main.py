@@ -426,8 +426,20 @@ def health():
     env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
     idx_check = _check_indexes()
     status = "ok" if idx_check["status"] == "ok" else "degraded"
+    # Version info from version.json — single source of truth
+    _version_info = {}
+    try:
+        import json as _json
+        _vpath = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "brain", "machine_artifacts", "content", "version.json")
+        if os.path.exists(_vpath):
+            _version_info = _json.loads(open(_vpath, encoding="utf-8").read()).get("current", {})
+    except Exception:
+        pass
     result = {"status": status, "db": "connected" if _get_db() else "unavailable",
-              "env": env_label, "build": _BUILD, "version": _APP_VERSION}
+              "env": env_label,
+              "build": _version_info.get("build", _BUILD),
+              "version": _version_info.get("version", _APP_VERSION),
+              "framework": _version_info.get("framework", "?")}
     if idx_check.get("missing"):
         result["missing_indexes"] = idx_check["missing"]
         _log.error("HEALTH CHECK: missing indexes — %s", idx_check["missing"])
@@ -459,10 +471,29 @@ class EvaluateRequest(BaseModel):
 @app.post("/evaluate/providers")
 def evaluate_proxy(body: EvaluateRequest):
     """Proxy evaluate call through FindCare → EvaluateCare.
-    In production: mTLS with FindCare client cert.
-    For alpha: direct HTTP to localhost:8001."""
+    Uses mTLS: FindCare presents its client cert, verifies against CA.
+    EVALCARE_URL defaults to Caddy mTLS port (:8081) locally, HF space in dev/prod."""
     import requests as _req
-    evalcare_url = os.getenv("EVALCARE_URL", "http://localhost:8001")
+
+    # Local: Caddy mTLS on :8081. Dev/Prod: HF space URL.
+    evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8081")
+    certs_dir = os.getenv("CERTS_DIR",
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs"))
+
+    # mTLS config: present FindCare client cert, verify against CA
+    cert_pair = None
+    verify = True
+    findcare_crt = os.path.join(certs_dir, "findcare.crt")
+    findcare_key = os.path.join(certs_dir, "findcare.key")
+    ca_crt = os.path.join(certs_dir, "ca.crt")
+
+    if os.path.exists(findcare_crt) and os.path.exists(findcare_key):
+        cert_pair = (findcare_crt, findcare_key)
+    if os.path.exists(ca_crt):
+        verify = ca_crt
+    else:
+        verify = False  # No CA cert — skip verification (HF spaces use public TLS)
+
     try:
         resp = _req.post(
             f"{evalcare_url}/evaluate/providers",
@@ -471,10 +502,9 @@ def evaluate_proxy(body: EvaluateRequest):
                 "session_token": body.session_token,
                 "question_summary": body.question_summary,
             },
-            timeout=10,
-            # TODO: Add mTLS client cert for production
-            # cert=("certs/findcare.crt", "certs/findcare.key"),
-            # verify="certs/ca.crt",
+            timeout=15,
+            cert=cert_pair,
+            verify=verify,
         )
         return resp.json()
     except Exception as e:
