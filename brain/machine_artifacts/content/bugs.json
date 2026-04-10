@@ -738,6 +738,21 @@
       "resolution": "Added framework to /health response. Banner now shows: ENV — vX.X.X fwX.X.X bNNN",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000016-0000-4000-e000-000000000016"
+    },
+    {
+      "id": "BUG-GOV-004",
+      "rule": "BUG: DR-008 enforcement uses regex (list(*.find()) which cannot distinguish filtered queries from unfiltered. Flags safe code with small result sets. Pre-push hook blocks deploy on false positives. Should use GPT-4.1-mini to evaluate context like the PreToolUse guard does.",
+      "incident": "Push to dev blocked by 9 false DR-008 violations in pipeline files — all have filters returning <1K docs.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000017-0000-4000-e000-000000000017"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
