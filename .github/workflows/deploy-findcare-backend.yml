@@ -99,11 +99,8 @@ jobs:
           cp Code/Shared/prompt_system_maker.py hf_space/
           cp Code/Shared/session_token.py hf_space/
 
-          # PKI certs for mTLS + session token signing/verification
-          mkdir -p hf_space/certs
-          cp Code/Shared/ops/certs/findcare.crt hf_space/certs/
-          cp Code/Shared/ops/certs/findcare.key hf_space/certs/
-          cp Code/Shared/ops/certs/ca.crt hf_space/certs/
+          # PKI certs deferred to Beta (BUG-SEC-002) — HF doesn't support mTLS
+          # Session token signing uses unsigned fallback on HF until Beta
 
           # Brain artifacts needed at runtime
           mkdir -p hf_space/brain/machine_artifacts/content

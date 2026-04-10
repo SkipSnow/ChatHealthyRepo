@@ -412,8 +412,8 @@ class operating_rules_worker(governance_worker_base):
         tool_name = hook_input.get("tool_name", "")
         tool_input = hook_input.get("tool_input", {})
 
-        # Read-only tools — always pass, no GPT call
-        if tool_name in ("Read", "Glob", "Grep", "WebFetch", "WebSearch"):
+        # Read-only tools and internal Claude tools — always pass, no GPT call
+        if tool_name in ("Read", "Glob", "Grep", "WebFetch", "WebSearch", "Agent", "TodoWrite", "Skill", "ToolSearch"):
             return {"comply": True, "allow": True}
 
         # Edit/Write — if git tracks it, allow. Governance happens at commit time.
@@ -448,8 +448,16 @@ class operating_rules_worker(governance_worker_base):
             if re.search(pattern, command, re.IGNORECASE):
                 return {"comply": True, "allow": True}
 
+        # Git read operations — always pass
+        if tool_name == "Bash" and re.search(r"^git\s+(status|log|diff|branch|show|remote|tag|stash|rev-parse|ls-files|fetch)", command):
+            return {"comply": True, "allow": True}
+
+        # Git push — allow (workflow path filters handle deployment gating)
+        if tool_name == "Bash" and re.search(r"^git\s+push", command):
+            return {"comply": True, "allow": True}
+
         # Eval A: git commit
-        if tool_name == "Bash" and re.search(r"^git\s+(commit|push)", command):
+        if tool_name == "Bash" and re.search(r"^git\s+commit", command):
             rules_text = self._load_rules_text()
             result = self._evaluate_git_commit(command, rules_text)
             if result.get("error"):
