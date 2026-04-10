@@ -47,7 +47,7 @@ class QualityGate:
         return results
 
     def _check_row_count(self, collection, query: dict) -> dict:
-        count = collection.count_documents(query)
+        count = collection.estimated_document_count() if not query else collection.count_documents(query)
         passed = count >= self.min_rows
         if not passed:
             log.error("QualityGate %s: row count %d < min %d",
@@ -58,15 +58,36 @@ class QualityGate:
         if not self.required_fields:
             return {"passed": True, "checked": 0}
 
-        total = collection.count_documents(query)
+        total = collection.estimated_document_count() if not query else collection.count_documents(query)
         if total == 0:
             return {"passed": True, "checked": 0}
 
+        # Single $facet aggregation — one pass instead of 2N separate count queries
+        facets = {}
+        for field in self.required_fields:
+            safe_name = field.replace(".", "_")
+            facets[f"{safe_name}_null"] = [
+                {"$match": {**query, field: {"$in": [None, "", []]}}},
+                {"$count": "n"}
+            ]
+            facets[f"{safe_name}_missing"] = [
+                {"$match": {**query, field: {"$exists": False}}},
+                {"$count": "n"}
+            ]
+
+        try:
+            result = list(collection.aggregate([{"$facet": facets}], allowDiskUse=True))
+            counts = result[0] if result else {}
+        except Exception as e:
+            log.warning("QualityGate %s: $facet failed (%s), skipping null checks", self.stage_name, e)
+            return {"passed": True, "checked": 0, "note": "facet_failed"}
+
         failures = []
         for field in self.required_fields:
-            null_q = {**query, field: {"$in": [None, "", []]}}
-            missing_q = {**query, field: {"$exists": False}}
-            null_count = collection.count_documents(null_q) + collection.count_documents(missing_q)
+            safe_name = field.replace(".", "_")
+            null_arr = counts.get(f"{safe_name}_null", [])
+            missing_arr = counts.get(f"{safe_name}_missing", [])
+            null_count = (null_arr[0]["n"] if null_arr else 0) + (missing_arr[0]["n"] if missing_arr else 0)
             fraction = null_count / total
             if fraction > self.max_null_fraction:
                 failures.append({

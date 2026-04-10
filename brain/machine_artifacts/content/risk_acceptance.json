@@ -52,6 +52,17 @@
       "rationale": "Required to automate governance. Without this, Claude cannot be governed during commits and must escalate every scan violation manually.",
       "mitigation": "Every change references RISK-004. Pre-commit scan validates. Boss reviews commit.",
       "ch_matrix_id": "d4000001-0000-4000-e000-000000000004"
+    },
+    {
+      "id": "RISK-005",
+      "date": "2026-04-09",
+      "title": "Boot script rewrite — governance hook architecture",
+      "description": "Claude authorized to rewrite chathealthy_devops_boot.py: remove 25 check functions, replace with matrix scan per event, wire 7 Claude Code lifecycle hooks, add resume/directive/gotcha detection, GPT-4.1-mini for user_prompt_submit governance, regex for pre_tool_use gating. Fail open on crash.",
+      "risk": "Boot script changes could freeze hooks or block Claude if buggy. Mitigated by fail-open pattern and piped JSON testing before wiring live.",
+      "approved_by": "Skip Snow",
+      "rationale": "Current boot silently crashes (NameError on undefined 'method' variable). No governance actually runs. Must fix to govern Claude.",
+      "mitigation": "Fail open on crash. Test all 7 events via piped JSON before wiring live. Don't touch project-level settings.json or brain JSONs. Prior gotchas documented and avoided.",
+      "ch_matrix_id": "d5000001-0000-4000-e000-000000000005"
     }
   ],
   "ch_matrix_id": "1001cdca-db77-40c2-ab15-5c0441f5ab2b"

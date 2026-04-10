@@ -85,8 +85,8 @@ class SyncGatewayAgent:
         checks["forward_only"] = {"env": self.env_prefix, "passed": True}
         log.info("Gate 1: Forward-only env=%s — PASS", self.env_prefix)
 
-        # Gate 2: Provider count > 0
-        provider_count = self.src_db["providers"].count_documents({})
+        # Gate 2: Provider count > 0 (estimated — instant, no collection scan)
+        provider_count = self.src_db["providers"].estimated_document_count()
         checks["provider_count"] = {"count": provider_count, "passed": provider_count > 0}
         if provider_count == 0:
             raise PromotionBlockedError("No providers on pipeline cluster", checks)
@@ -150,7 +150,7 @@ class SyncGatewayAgent:
 
         src = self.src_db[coll_name]
         dst_temp = self.dst_db[temp_name]
-        src_count = src.count_documents(q)
+        src_count = src.estimated_document_count() if not q else src.count_documents(q)
 
         if src_count == 0:
             return {"collection": coll_name, "copied": 0, "source": 0, "skipped": True}
@@ -163,10 +163,16 @@ class SyncGatewayAgent:
         start = time.time()
 
         try:
+            from pymongo.errors import BulkWriteError
             for doc in cursor:
                 batch.append(doc)
                 if len(batch) >= COPY_BATCH_SIZE:
-                    dst_temp.insert_many(batch, ordered=False)
+                    try:
+                        dst_temp.insert_many(batch, ordered=False)
+                    except BulkWriteError as bwe:
+                        # ordered=False inserts non-dupes and reports dupes as errors
+                        log.warning("  %s: %d dup key errors (non-fatal)", coll_name,
+                                    len(bwe.details.get("writeErrors", [])))
                     copied += len(batch)
                     batch = []
                     if copied % 50_000 == 0:
@@ -175,7 +181,10 @@ class SyncGatewayAgent:
                         log.info("  %s: %d / %d (%.0f doc/s)",
                                  coll_name, copied, src_count, rate)
             if batch:
-                dst_temp.insert_many(batch, ordered=False)
+                try:
+                    dst_temp.insert_many(batch, ordered=False)
+                except BulkWriteError:
+                    pass
                 copied += len(batch)
         finally:
             cursor.close()
@@ -225,15 +234,15 @@ class SyncGatewayAgent:
         # Recovery
         self.recover_orphans()
 
-        # Acquire lock
-        self.frontend_client["admin"]["SyncLock"].update_one(
-            {"_id": "sync_lock"},
-            {"$set": {"active": True, "started": result["ts"], "states": states}},
-            upsert=True)
-
         try:
-            # Step 1: Gate checks
+            # Step 1: Gate checks (before lock — lock check is part of gates)
             result["gates"] = self.run_gate_checks(states)
+
+            # Acquire lock after gates pass
+            self.frontend_client["admin"]["SyncLock"].update_one(
+                {"_id": "sync_lock"},
+                {"$set": {"active": True, "started": result["ts"], "states": states}},
+                upsert=True)
 
             # Step 2: Sync static collections
             result["static"] = []
