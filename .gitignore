@@ -60,3 +60,6 @@ Code/Shared/ops/tools/caddy.exe
 
 # Analysis videos — large, not source
 Analysis/
+
+# Conversation log — local dev artifact, contains secrets from session
+brain/machine_artifacts/content/conversation_log.json
