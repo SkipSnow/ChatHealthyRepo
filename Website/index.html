@@ -841,11 +841,18 @@
               if (el.getAttribute('data-gui-action') === 'toggle-all') {
                 el.addEventListener('click', function() {
                   var boxes = leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]');
-                  var checkedCount = leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]:checked').length;
-                  var majority = checkedCount > boxes.length / 2;
+                  var visibleBoxes = [];
+                  boxes.forEach(function(cb) {
+                    if (cb.closest('[data-spec-code]').style.display !== 'none') visibleBoxes.push(cb);
+                  });
+                  var checkedCount = visibleBoxes.filter(function(cb) { return cb.checked; }).length;
+                  var majority = checkedCount > visibleBoxes.length / 2;
                   var newState = !majority;
-                  boxes.forEach(function(cb) { cb.checked = newState; });
+                  visibleBoxes.forEach(function(cb) { cb.checked = newState; });
                   el.textContent = newState ? 'Uncheck All' : 'Check All';
+                  // Update Your choices count
+                  var showingEl = leftPanel.querySelector('#filterShowing');
+                  if (showingEl) showingEl.textContent = newState ? visibleBoxes.length : 0;
                 });
               }
               if (el.getAttribute('data-gui-action') === 'evaluate-providers') {
@@ -882,9 +889,16 @@
                     item.style.display = show ? '' : 'none';
                     if (show) shown++;
                   });
-                  // Update counts
+                  // Update counts — filtered count and your choices
+                  var filteredEl = leftPanel.querySelector('#filterFilteredCount');
+                  if (filteredEl) filteredEl.textContent = shown;
                   var showingEl = leftPanel.querySelector('#filterShowing');
                   if (showingEl) showingEl.textContent = shown;
+                  // Update prescribers & homeopathic label
+                  var filteredLabel = filteredEl ? filteredEl.parentElement.querySelector('div:first-child') : null;
+                  if (filteredLabel) {
+                    filteredLabel.textContent = homeoOn ? 'Prescribers & homeopathic' : 'Prescribers';
+                  }
                   // Update toggle button text
                   var toggleBtn = leftPanel.querySelector('[data-gui-action="toggle-all"]');
                   if (toggleBtn) toggleBtn.textContent = 'Uncheck All';
