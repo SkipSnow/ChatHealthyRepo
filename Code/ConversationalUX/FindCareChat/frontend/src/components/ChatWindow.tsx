@@ -4,6 +4,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import MessageBubble from './MessageBubble'
 import { useGUIManager } from './GUIManager'
+import { SelectionManager } from '../ux/components/SelectionManager'
+import { useSelectionState } from '../ux/hooks/useSelectionState'
+import type { Provider } from '../ux/types/provider'
 
 export interface Message {
   role: 'user' | 'assistant'
@@ -223,6 +226,7 @@ export default function ChatWindow() {
     totalCount: number; lastNpi: string; searchParams: any; pageSize: number; pageEnd: number
   } | null>(null)
   const lastProvidersRef = useRef<any[]>([])  // Store last provider results for EvaluateCare handoff
+  const selection = useSelectionState()  // FC-SELECT-001: available/selected/garbage
   const abortControllerRef = useRef<AbortController | null>(null)
 
   // EvaluateCare handoff — triggered by "Evaluate these providers" button in control frame
@@ -233,11 +237,15 @@ export default function ChatWindow() {
     })
 
     gui.onEvaluateProviders(() => {
-      const providers = lastProvidersRef.current
+      // FC-SELECT-001: Use selected providers, not all providers
+      const providers = selection.state.selected.length > 0
+        ? selection.state.selected
+        : lastProvidersRef.current
       if (!providers || providers.length === 0) {
+        // FC-SELECT-001-REQ-006: Popup if no providers selected
         setMessages(prev => [...prev, {
           role: 'assistant' as const,
-          content: '**No providers to evaluate.** Search for providers first, then click Evaluate.',
+          content: '**No providers selected.** Select at least one provider from the list above, then click Evaluate.',
         }])
         return
       }
@@ -500,7 +508,8 @@ export default function ChatWindow() {
           .then(searchData => {
             if (searchData.providers) {
               lastProvidersRef.current = searchData.providers
-              console.log('[Providers] Stored', searchData.providers.length, 'for evaluate handoff')
+              selection.setAvailable(searchData.providers as Provider[])
+              console.log('[Providers] Stored', searchData.providers.length, 'for selection + evaluate')
             }
           })
           .catch(() => {})
@@ -526,9 +535,10 @@ export default function ChatWindow() {
           .then(searchData => {
             if (searchData.providers) {
               lastProvidersRef.current = searchData.providers
+              selection.setAvailable(searchData.providers as Provider[])
             }
           })
-          .catch(() => {})  // silent — providers stored for evaluate handoff only
+          .catch(() => {})  // silent — providers stored for selection + evaluate
       }
 
       // Show filter panel if specialization options returned
@@ -627,6 +637,7 @@ export default function ChatWindow() {
       .map(m => ({ role: m.role, content: m.content }))
 
     welcomeLoadedRef.current = true  // first user message — switch to bottom-scroll mode
+    selection.flushGarbage()  // FC-SELECT-001-REQ-010: new question flushes garbage
     setMessages(prev => [...prev, { role: 'user', content: text }])
     setInput('')
     setIsLoading(true)
@@ -707,6 +718,19 @@ export default function ChatWindow() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* FC-SELECT-001: Provider selection panel — visible when providers available */}
+      {(selection.state.available.length > 0 || selection.state.selected.length > 0) && (
+        <SelectionManager
+          state={selection.state}
+          onSelect={selection.select}
+          onDeselect={selection.deselect}
+          onDismiss={selection.dismiss}
+          onKeepFiltered={selection.keepFiltered}
+          onRemoveFiltered={selection.removeFiltered}
+          isFull={selection.isFull}
+        />
       )}
 
       {/* Control frame lives on the static parent page — React pushes via postMessage */}
