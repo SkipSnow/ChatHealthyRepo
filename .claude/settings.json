@@ -1,0 +1,44 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode boot"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode tool_call"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode prompt"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode prompt_result"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -18,8 +18,16 @@ venv_func/
 __pycache__/
 *.pyc
 
-# Claude Code local settings
-.claude/
+# Claude Code — track settings files, ignore transient data
+.claude/backups/
+.claude/file-history/
+.claude/ide/
+.claude/plans/
+.claude/sessions/
+.claude/session-env/
+.claude/shell-snapshots/
+.claude/.credentials.json
+.claude/mcp-needs-auth-cache.json
 
 # DataPipelines HTTP test file — contains bearer token and instance URLs
 Code/DataPipelines/api-tests.http
