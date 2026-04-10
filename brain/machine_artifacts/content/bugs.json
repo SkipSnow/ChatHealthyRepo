@@ -611,6 +611,76 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000007-0000-4000-e000-000000000007"
+    },
+    {
+      "id": "BUG-PIPE-008",
+      "rule": "BUG CRITICAL: CopyToFrontEnd orchestrator never calls _create_specialty_vector_index() after copying SpecialtyMetaData. Function exists (copy_to_frontend.py:196-221) but is dead code. Frontend health check reports degraded. FindCare specialty search broken on frontend.",
+      "incident": "Health check returns degraded. specialty_vector_index missing.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000008-0000-4000-e000-000000000008"
+    },
+    {
+      "id": "BUG-PIPE-009",
+      "rule": "BUG: SpecialtyMetaData has no vector search index on pipeline cluster. load_specialty_data.py generates embeddings but never creates the vector index.",
+      "incident": "Audit of load_specialty_data.py — embedding field present but no create_search_index call.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000009-0000-4000-e000-000000000009"
+    },
+    {
+      "id": "BUG-PIPE-010",
+      "rule": "BUG: Index creation must happen AFTER cluster reservation release. CopyToFrontEnd creates provider_vector_index inside reservation window. Atlas vector index creation is async — cluster may pause mid-build if reservation released too early.",
+      "incident": "Audit finding — index creation timing not separated from reservation lifecycle.",
+      "date": "2026-04-10",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000010-0000-4000-e000-000000000010"
+    },
+    {
+      "id": "BUG-UX-006",
+      "rule": "SHOW STOPPER — BUG: Encrypted and clear session tokens not displayed on EvaluateCare right panel. Tokens were working before April 9 crash but not visible after restore.",
+      "incident": "Skip reported tokens missing from right screen during smoke test.",
+      "date": "2026-04-10",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000011-0000-4000-e000-000000000011",
+      "severity": "SHOW STOPPER — ALPHA RELEASE BLOCKER"
+    },
+    {
+      "id": "BUG-LOCAL-001",
+      "rule": "BUG: start_local.bat does not thoroughly clean up before starting. Does not kill orphaned python/uvicorn/node processes from previous runs. Only kills by port — misses processes that crashed off-port. Does not kill by process name (python.exe running uvicorn, node.exe running vite). EvaluateCare on :8001 dies silently because previous zombie holds a resource.",
+      "incident": "EvaluateCare failed to start on :8001 with no error output. Silent failure because start /B swallowed stderr. Previous uvicorn process was orphaned.",
+      "date": "2026-04-10",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000012-0000-4000-e000-000000000012"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

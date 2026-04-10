@@ -392,6 +392,13 @@ class operating_rules_worker(governance_worker_base):
         r"bump_build\.py",
         r"pre_deploy_rule_check",
         r"devpipelinemanagmentservice.*azurewebsites\.net",  # Pipeline service invocation
+        r"start_local\.bat",  # Local dev environment launcher
+        r"^curl\s",  # Network reads — health checks, status polls
+        r"^(tasklist|netstat)",  # Process inspection
+        r"uvicorn",  # Local dev servers
+        r"npm\s+(run|dev|start)",  # Frontend dev server
+        r"caddy",  # HTTPS reverse proxy
+        r"huggingface|hf\.space|hf_space|create_hf_space|delete_hf_space",  # HF Spaces ($0.03/hr)
     ]
 
     def run(self, hook_input: dict, action_event: str = "pre_tool_use") -> dict:
