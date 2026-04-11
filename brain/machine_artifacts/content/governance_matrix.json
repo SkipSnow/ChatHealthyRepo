@@ -21,13 +21,6 @@
     }
   },
   "matrix": {
-    "chathealthyai_brainboot": {
-      "session_start": "allow",
-      "user_prompt_submit": "allow",
-      "pre_tool_use": "allow",
-      "post_tool_use": "allow",
-      "stop": "allow"
-    },
     "governance_matrix": {
       "session_start": "allow",
       "user_prompt_submit": "allow",

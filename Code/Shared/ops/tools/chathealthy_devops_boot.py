@@ -44,7 +44,7 @@ _log = logging.getLogger("devops_boot")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 
 BRAIN_DIR = Path(__file__).resolve().parents[4] / "brain" / "machine_artifacts" / "content"
-BOOT_DIR = Path(__file__).resolve().parents[4] / "brain" / "machine_artifacts" / "boot"
+# BOOT_DIR removed — chathealthyai_brainboot.json deleted per ARCH-ORPHAN-001-REQ-005
 DIGEST_PATH = Path(tempfile.gettempdir()) / "chathealthy_brain_digest.json"
 
 # Current environment — read from ENV_PREFIX or default to dev
@@ -618,7 +618,6 @@ class chathealthy_devops_boot:
         "ai_operations": "check_ai_operations",
         "architecture": "check_architecture",
         "business_plan": "check_business_plan",
-        "chathealthyai_brainboot": None,
         "governance_matrix": None,  # The matrix itself — not a constraint source, it IS the governance
         "controlled_vocabularies": "check_controlled_vocabularies",
         "conversation_log": "check_conversation_log",
@@ -1106,16 +1105,63 @@ class chathealthy_devops_boot:
         self._save_digest()
         self._state["boot_complete"] = True
 
+        # ARCH-ORPHAN-001-REQ-001: Scan for orphan bugs
+        orphans = self._scan_orphans()
+
         summary = {
             "status": "booted",
             "brain_files": len(self.brain),
             "constraints": len(self._constraints),
             "system_warnings": system_warnings,
             "session_warnings": session_warnings,
+            "orphan_bugs": orphans,
         }
-        _log.info("Boot: %d files, %d constraints, %d sys_warn, %d sess_warn",
-                  len(self.brain), len(self._constraints), len(system_warnings), len(session_warnings))
+        _log.info("Boot: %d files, %d constraints, %d sys_warn, %d sess_warn, %d orphans",
+                  len(self.brain), len(self._constraints), len(system_warnings), len(session_warnings), len(orphans))
         return summary
+
+    def _scan_orphans(self) -> list:
+        """ARCH-ORPHAN-001-REQ-002: Scan bugs.json for ORPHAN_BUG entries. Pure file I/O."""
+        try:
+            bugs_path = BRAIN_DIR / "bugs.json"
+            with open(bugs_path, encoding="utf-8") as f:
+                data = json.load(f)
+            orphans = []
+            for bug in data.get("bugs", []):
+                if bug.get("req_id") == "ORPHAN_BUG":
+                    orphans.append({
+                        "id": bug.get("id", "?"),
+                        "type": bug.get("type", "?"),
+                        "rule": (bug.get("rule", "") or "")[:80],
+                        "date": bug.get("date", "?"),
+                    })
+            return orphans
+        except FileNotFoundError as e:
+            print(f"BOOT WARNING: bugs.json not found: {e}", file=sys.stderr)
+            import traceback; traceback.print_exc(file=sys.stderr)
+            return []
+        except json.JSONDecodeError as e:
+            print(f"BOOT WARNING: bugs.json corrupt: {e}", file=sys.stderr)
+            import traceback; traceback.print_exc(file=sys.stderr)
+            return []
+        except Exception as e:
+            print(f"BOOT WARNING: orphan triage failed: {e}", file=sys.stderr)
+            import traceback; traceback.print_exc(file=sys.stderr)
+            return []
+
+    def inform_claude(self, boot_result: dict) -> str:
+        """ARCH-ORPHAN-001-REQ-004: Build additionalContext for Claude."""
+        lines = []
+        orphans = boot_result.get("orphan_bugs", [])
+        if orphans:
+            lines.append(f"ORPHAN BUG TRIAGE: {len(orphans)} orphan bugs need placement before proceeding.")
+            lines.append("| ID | Type | Description | Date |")
+            lines.append("|---|---|---|---|")
+            for o in orphans:
+                lines.append(f"| {o['id']} | {o['type']} | {o['rule']} | {o['date']} |")
+            lines.append("")
+            lines.append("Triage these with Boss: find or create the correct requirement for each, then update req_id.")
+        return "\n".join(lines)
 
     def dispatch_code_controlled(self, hook_input: dict, action_event: str) -> dict:
         """Dispatch to child class workers for code_controlled cells in the grid.
@@ -1250,7 +1296,19 @@ def main():
                 sys.exit(0)
 
             result = boot.boot()
-            json.dump(result, sys.stdout)
+            # ARCH-ORPHAN-001-REQ-004: Output orphan table and context to Claude
+            claude_context = boot.inform_claude(result)
+            if claude_context:
+                output = {
+                    **result,
+                    "hookSpecificOutput": {
+                        "hookEventName": "SessionStart",
+                        "additionalContext": claude_context,
+                    }
+                }
+                json.dump(output, sys.stdout)
+            else:
+                json.dump(result, sys.stdout)
             if result.get("status") == "abend":
                 sys.exit(2)
             sys.exit(0)
