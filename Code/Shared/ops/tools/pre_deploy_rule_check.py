@@ -192,6 +192,28 @@ def main(target: str) -> int:
         else:
             print(f"PASS: {rule_id}")
 
+    # SEC-HTTPS-001-REQ-006: Run scan_http.py on staged files
+    import subprocess as _sp
+    scan_script = os.path.join(os.path.dirname(__file__), "scan_http.py")
+    if os.path.exists(scan_script):
+        # Get staged files and pass as file list
+        staged = _sp.run(["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
+            capture_output=True, text=True, timeout=10, cwd=REPO_ROOT)
+        staged_files = [f for f in staged.stdout.strip().split("\n") if f and f.endswith((".py", ".tsx", ".ts", ".js", ".html", ".json", ".yml"))]
+        if staged_files:
+            scan_result = _sp.run(["python", scan_script] + staged_files,
+                capture_output=True, text=True, timeout=30, cwd=REPO_ROOT)
+            if scan_result.returncode != 0:
+                print(f"FAIL: SEC-HTTPS-001-REQ-004 (scan_http.py)")
+                print(scan_result.stdout)
+                all_violations.append("SEC-HTTPS-001-REQ-004: http://localhost found in staged files")
+            else:
+                print(f"PASS: SEC-HTTPS-001-REQ-004 (scan_http.py)")
+            checked += 1
+        else:
+            print(f"PASS: SEC-HTTPS-001-REQ-004 (no scannable staged files)")
+            checked += 1
+
     print("=" * 60)
     print(f"Rules: {len(all_rules)} | Checked: {checked} | Skipped: {skipped} | Violations: {len(all_violations)}")
 
