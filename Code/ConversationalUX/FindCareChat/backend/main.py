@@ -475,24 +475,20 @@ def evaluate_proxy(body: EvaluateRequest):
     EVALCARE_URL defaults to Caddy mTLS port (:8081) locally, HF space in dev/prod."""
     import requests as _req
 
-    # Local: Caddy mTLS on :8081. Dev/Prod: HF space URL.
-    evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8081")
-    certs_dir = os.getenv("CERTS_DIR",
-        os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs"))
+    # Local: mTLS via Caddy :8081. HF/Dev: direct HTTP (BUG-SEC-002 deferred mTLS on HF to Beta).
+    is_hf = bool(os.getenv("SPACE_ID"))
+    evalcare_url = os.getenv("EVALCARE_URL", "http://localhost:8001" if is_hf else "https://localhost:8081")
+    certs_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
 
-    # mTLS config: present FindCare client cert, verify against CA
-    cert_pair = None
-    verify = True
-    findcare_crt = os.path.join(certs_dir, "findcare.crt")
-    findcare_key = os.path.join(certs_dir, "findcare.key")
-    ca_crt = os.path.join(certs_dir, "ca.crt")
-
-    if os.path.exists(findcare_crt) and os.path.exists(findcare_key):
-        cert_pair = (findcare_crt, findcare_key)
-    if os.path.exists(ca_crt):
-        verify = ca_crt
-    else:
-        verify = False  # No CA cert — skip verification (HF spaces use public TLS)
+    req_kwargs = {"timeout": 15}
+    if not is_hf:
+        findcare_crt = os.path.join(certs_dir, "findcare.crt")
+        findcare_key = os.path.join(certs_dir, "findcare.key")
+        ca_crt = os.path.join(certs_dir, "ca.crt")
+        if os.path.exists(findcare_crt) and os.path.exists(findcare_key):
+            req_kwargs["cert"] = (findcare_crt, findcare_key)
+        if os.path.exists(ca_crt):
+            req_kwargs["verify"] = ca_crt
 
     try:
         resp = _req.post(
@@ -502,9 +498,7 @@ def evaluate_proxy(body: EvaluateRequest):
                 "session_token": body.session_token,
                 "question_summary": body.question_summary,
             },
-            timeout=15,
-            cert=cert_pair,
-            verify=verify,
+            **req_kwargs,
         )
         return resp.json()
     except Exception as e:

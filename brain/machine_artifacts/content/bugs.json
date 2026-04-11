@@ -795,6 +795,42 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000020-0000-4000-e000-000000000020"
+    },
+    {
+      "id": "BUG-SEC-003",
+      "rule": "BUG: EvaluateCare mTLS handoff fails — certs not configured for Gemini/non-Anthropic flow. Authentication error in lower right panel.",
+      "incident": "Skip UAT 2026-04-10. EvaluateCare proxy returns auth failure after switching to Gemini.",
+      "date": "2026-04-10",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000021-0000-4000-e000-000000000021"
+    },
+    {
+      "id": "BUG-EVAL-003",
+      "rule": "BUG: Picked 1 provider but 5 showed in EvaluateCare. Selection state not used for handoff — still sending lastProvidersRef instead of selection.state.selected.",
+      "incident": "Skip UAT 2026-04-10.",
+      "date": "2026-04-10",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000022-0000-4000-e000-000000000022"
+    },
+    {
+      "id": "BUG-UX-010",
+      "rule": "BUG: Garbage text in chat window — specialty list rendered as visible text instead of hidden data. Structured output schema may be wrong or model dumping raw tool data into response.",
+      "incident": "Skip UAT 2026-04-10. Specialty list showing as text in chat.",
+      "date": "2026-04-10",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000023-0000-4000-e000-000000000023"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
