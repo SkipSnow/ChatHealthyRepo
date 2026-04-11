@@ -6,7 +6,7 @@
   "description": "Master agile backlog. All epics, features, stories, and requirements from this epic forward.",
   "epics": [
     {
-      "epic_id": "EPIC-1",
+      "epic_id": "EPIC-001",
       "name": "Evaluate Care v0.1.4",
       "capacity": "",
       "goal": "",
@@ -16,7 +16,7 @@
         {
           "feature_id": "EVAL-SCORE-PROV",
           "name": "Provider Quality Scoring Engine",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Providers",
           "description": "Deterministic composite scoring engine that aggregates multiple provider quality measures into a single score with fixed weighting logic.",
@@ -490,6 +490,12 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 },
                 {
@@ -1170,7 +1176,7 @@
         {
           "feature_id": "EVAL-SCORE-CT",
           "name": "Clinical Trial Quality Scoring Engine",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Clinical Trials",
           "description": "Deterministic composite scoring engine that aggregates multiple clinical trial measures into a single relevance/quality score.",
@@ -2334,7 +2340,7 @@
         {
           "feature_id": "EVAL-EXPLAIN",
           "name": "Score Explainability Service",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Shared",
           "description": "Returns structured explanation of score including each measure, raw value, normalization, and contribution to final score.",
@@ -3205,7 +3211,7 @@
         {
           "feature_id": "EVAL-P-MEASURE-1",
           "name": "Provider Board Certification Verification",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Providers",
           "description": "Measures whether provider holds active board certifications aligned with specialty.",
@@ -3578,6 +3584,12 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 },
                 {
@@ -3847,6 +3859,12 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 },
                 {
@@ -4159,7 +4177,7 @@
         {
           "feature_id": "EVAL-P-MEASURE-2",
           "name": "Provider Years in Practice",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Providers",
           "description": "Calculates years since graduation or first licensure as proxy for experience.",
@@ -4619,6 +4637,12 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 },
                 {
@@ -4675,6 +4699,12 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Providers must be loaded"
+                    }
                   ]
                 },
                 {
@@ -4717,6 +4747,12 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Providers must be loaded"
+                    }
                   ]
                 },
                 {
@@ -5141,7 +5177,7 @@
         {
           "feature_id": "EVAL-P-MEASURE-3",
           "name": "Provider Specialty Match Accuracy",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Providers",
           "description": "Scores how closely provider specialties (NUCC codes) align with user’s requested condition.",
@@ -5629,6 +5665,12 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 },
                 {
@@ -5842,6 +5884,12 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Providers must be loaded"
+                    }
                   ]
                 },
                 {
@@ -6493,7 +6541,7 @@
         {
           "feature_id": "EVAL-P-RX",
           "name": "Prescription Behavior Analysis",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Providers",
           "description": "Analyzes provider prescribing patterns relative to treated conditions to identify alignment with clinical norms.",
@@ -7093,6 +7141,12 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 },
                 {
@@ -7477,7 +7531,7 @@
         {
           "feature_id": "EVAL-CT-MEASURE-1",
           "name": "Clinical Trial Phase Scoring",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Clinical Trials",
           "description": "Scores trials based on phase (I–IV), prioritizing later-stage trials for credibility.",
@@ -8236,7 +8290,7 @@
         {
           "feature_id": "EVAL-CT-MEASURE-2",
           "name": "Clinical Trial Recruitment Status",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Clinical Trials",
           "description": "Scores trials based on whether they are recruiting, active, or completed.",
@@ -9050,7 +9104,7 @@
         {
           "feature_id": "EVAL-CT-MEASURE-3",
           "name": "Clinical Trial Condition Relevance",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Clinical Trials",
           "description": "Measures how closely trial conditions match the user’s query or diagnosis.",
@@ -10061,7 +10115,7 @@
         {
           "feature_id": "EVAL-WEIGHTS",
           "name": "User-Adjustable Quality Weights — Mixing Board",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "both",
           "capability": "Shared",
           "description": "Allows users to adjust importance of individual measures (cost, frequency, distance, experience) and recompute scores dynamically via slider controls in guiControlFrame. The 'mixing board' — multiple faders the user adjusts to express their priorities. System sets smart defaults based on inferred condition severity from drug + dosage. User overrides. Scoring engine recomputes in real-time. This is the alpha differentiator and the release path to prod.",
@@ -11229,7 +11283,7 @@
         {
           "feature_id": "EVAL-P-MEASURE-5",
           "name": "Provider Patient Ratings Aggregation",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Providers",
           "description": "Aggregate patient ratings from external sources to produce a normalized reputation score for providers.",
@@ -12097,6 +12151,12 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 }
               ],
@@ -12410,7 +12470,7 @@
         {
           "feature_id": "EVAL-CT-MEASURE-4",
           "name": "Clinical Trial Sponsor Credibility",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Clinical Trials",
           "description": "Score trial quality based on sponsor type (NIH, academic, pharmaceutical) and historical credibility.",
@@ -13507,7 +13567,7 @@
         {
           "feature_id": "EVAL-CT-MEASURE-5",
           "name": "Clinical Trial Proximity Scoring",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Clinical Trials",
           "description": "Score trials based on distance and travel time from the user to trial locations.",
@@ -14391,7 +14451,7 @@
         {
           "feature_id": "EVAL-CT-MEASURE-6",
           "name": "Clinical Trial Recency of Update",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Clinical Trials",
           "description": "Scores trials based on how recently the trial record was updated to reflect data freshness and reliability.",
@@ -15332,7 +15392,7 @@
         {
           "feature_id": "EVAL-NORMALIZATION",
           "name": "Measure Normalization Framework",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Shared",
           "description": "Normalizes heterogeneous measure outputs (binary, categorical, continuous) into a consistent scoring scale before composite scoring.",
@@ -16244,7 +16304,7 @@
         {
           "feature_id": "EVAL-DATA-PROVENANCE",
           "name": "Quality Data Provenance Tracking",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Shared",
           "description": "Attach source metadata (API, dataset, timestamp) to every measure used in scoring so explanations can cite where each data point originated.",
@@ -17213,7 +17273,7 @@
         {
           "feature_id": "EVAL-FAILSAFE",
           "name": "Measure Availability Failsafe",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Shared",
           "description": "Ensure scoring engine only returns a score when at least 3 valid measures are present; otherwise return structured insufficiency response.",
@@ -18366,7 +18426,7 @@
         {
           "feature_id": "EVAL-CONFIDENCE",
           "name": "Quality Score Confidence Indicator",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Shared",
           "description": "Compute a confidence score based on data completeness, recency, and agreement between measures to accompany the quality score.",
@@ -19477,7 +19537,7 @@
         {
           "feature_id": "EVAL-P-MEASURE-7",
           "name": "Provider New Patient Acceptance",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Providers",
           "description": "Determine whether a provider is accepting new patients as a quality/accessibility signal.",
@@ -20065,6 +20125,12 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 },
                 {
@@ -20350,7 +20416,7 @@
         {
           "feature_id": "EVAL-CT-MEASURE-7",
           "name": "Clinical Trial Eligibility Strictness",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Clinical Trials",
           "description": "Assess how restrictive eligibility criteria are to estimate likelihood a user qualifies.",
@@ -21288,7 +21354,7 @@
         {
           "feature_id": "EVAL-CACHE",
           "name": "Quality Score Caching Layer",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "Shared",
           "description": "Cache computed quality scores and measure results for repeated queries to reduce latency and cost.",
@@ -22484,7 +22550,7 @@
         {
           "feature_id": "EVAL-RESEARCH",
           "name": "Research Agent — Subspecialty Discovery",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "pipeline",
           "capability": "EvaluateCare",
           "description": "Autonomous research agent that discovers provider subspecialties and micro-credentials beyond NUCC taxonomy codes. Combines CMS public data (NPI, Medicare utilization, Part D prescriptions), board certification sources (ABMS), and professional society directories. Produces structured subspecialty data that feeds into provider quality scoring.",
@@ -22604,7 +22670,7 @@
         {
           "feature_id": "SDT-EVALCARE-SPACE",
           "name": "EvaluateCare Service (HuggingFace Space)",
-          "epic_id": "EPIC-1",
+          "epic_id": "EPIC-001",
           "layer": "backend",
           "capability": "EvaluateCare",
           "description": "EvaluateCare scoring engine. Separate HF Space. Port 8001 local, 7860 on HF. Calls FindCare facade over mTLS. Premium tier — higher value, separate scaling and pricing.",
@@ -22630,7 +22696,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "77fc674e-19e3-4968-ba0b-244f405741e1"
+              "ch_matrix_id": "77fc674e-19e3-4968-ba0b-244f405741e1",
+              "description": "mTLS for service-to-service communication"
             }
           ],
           "ch_matrix_id": "d033278e-159b-4770-b88b-519f0c811083",
@@ -22639,10 +22706,12 @@
           ]
         }
       ],
-      "ch_matrix_id": "075de9fc-969c-4f5e-9977-0136e167dfcd"
+      "ch_matrix_id": "075de9fc-969c-4f5e-9977-0136e167dfcd",
+      "type": "operational",
+      "description": "Evaluate Care scores and ranks healthcare providers and clinical trials by quality measures, giving consumers objective data to make informed decisions."
     },
     {
-      "epic_id": "EPIC-4",
+      "epic_id": "EPIC-002",
       "name": "Security",
       "capacity": "",
       "goal": "Eliminate all bearer tokens and .env secrets. Establish PKI-based credential management via Azure Key Vault. Resolve all Cloudflare findings. Zero plaintext secrets in any environment.",
@@ -22653,7 +22722,7 @@
         {
           "feature_id": "SEC-CLOUDFLARE",
           "name": "Cloudflare Security Findings",
-          "epic_id": "EPIC-4",
+          "epic_id": "EPIC-002",
           "layer": "infrastructure",
           "capability": "Security",
           "description": "Resolve all 11 Cloudflare Security Insights findings from April 2026 scan.",
@@ -22681,7 +22750,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "2a7adcc3-e5cc-4a42-bde5-4fd6271c257b"
+              "ch_matrix_id": "2a7adcc3-e5cc-4a42-bde5-4fd6271c257b",
+              "description": "Enable Bot Fight Mode on chathealthy.ai"
             },
             {
               "story_id": "SEC-CF-002",
@@ -22703,7 +22773,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "707ed3b8-e74e-4dc3-8c85-60f9ce771138"
+              "ch_matrix_id": "707ed3b8-e74e-4dc3-8c85-60f9ce771138",
+              "description": "Configure IP Access List on chathealthy.ai"
             },
             {
               "story_id": "SEC-CF-003",
@@ -22725,7 +22796,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "2fecb955-69f6-4245-a642-da33dd37d715"
+              "ch_matrix_id": "2fecb955-69f6-4245-a642-da33dd37d715",
+              "description": "Configure security.txt on chathealthy.ai"
             },
             {
               "story_id": "SEC-CF-004",
@@ -22747,7 +22819,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "bb6c2443-aeb8-4c71-b645-b6289a1bbc9c"
+              "ch_matrix_id": "bb6c2443-aeb8-4c71-b645-b6289a1bbc9c",
+              "description": "Enable Turnstile CAPTCHA"
             },
             {
               "story_id": "SEC-CF-005",
@@ -22769,7 +22842,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "3da8b5e5-6fe9-43f3-bd81-9369cfc45649"
+              "ch_matrix_id": "3da8b5e5-6fe9-43f3-bd81-9369cfc45649",
+              "description": "Enable MFA for all Cloudflare users"
             },
             {
               "story_id": "SEC-CF-006",
@@ -22791,7 +22865,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "7e31022b-ff9e-4149-9ffe-4cb672713867"
+              "ch_matrix_id": "7e31022b-ff9e-4149-9ffe-4cb672713867",
+              "description": "Enable Always Use HTTPS on bouncedmail.chathealthy.ai"
             },
             {
               "story_id": "SEC-CF-007",
@@ -22813,7 +22888,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "410f53b6-4b01-43cd-acca-1ea0883711cf"
+              "ch_matrix_id": "410f53b6-4b01-43cd-acca-1ea0883711cf",
+              "description": "Enable HSTS on bouncedmail.chathealthy.ai"
             },
             {
               "story_id": "SEC-CF-008",
@@ -22836,7 +22912,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "c349ae50-8d1c-4e0f-92a3-aa507d56ade6"
+              "ch_matrix_id": "c349ae50-8d1c-4e0f-92a3-aa507d56ade6",
+              "description": "Enable TLS encryption on bouncedmail.chathealthy.ai"
             },
             {
               "story_id": "SEC-CF-009",
@@ -22858,7 +22935,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "3b8f6412-a461-46aa-bf26-547a4049094e"
+              "ch_matrix_id": "3b8f6412-a461-46aa-bf26-547a4049094e",
+              "description": "Enable Always Use HTTPS on mail.chathealthy.ai"
             },
             {
               "story_id": "SEC-CF-010",
@@ -22880,7 +22958,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "958fe4d3-bab6-4b6c-9f5b-73c54503a487"
+              "ch_matrix_id": "958fe4d3-bab6-4b6c-9f5b-73c54503a487",
+              "description": "Enable HSTS on mail.chathealthy.ai"
             },
             {
               "story_id": "SEC-CF-011",
@@ -22903,7 +22982,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "36c10963-0dd3-41cd-b434-39d3246ada5a"
+              "ch_matrix_id": "36c10963-0dd3-41cd-b434-39d3246ada5a",
+              "description": "Enable TLS encryption on mail.chathealthy.ai"
             },
             {
               "story_id": "SEC-HTTPS-001",
@@ -22998,7 +23078,8 @@
                     "Cloudflare (WAF, DDoS, Access)"
                   ]
                 }
-              ]
+              ],
+              "description": "HTTPS everywhere — reject HTTP on all services"
             }
           ],
           "ch_matrix_id": "b07b48f4-7ff3-49ce-839c-23c09a15f0be",
@@ -23009,7 +23090,7 @@
         {
           "feature_id": "SEC-KEYVAULT",
           "name": "Azure Key Vault Provisioning",
-          "epic_id": "EPIC-4",
+          "epic_id": "EPIC-002",
           "layer": "infrastructure",
           "capability": "Security",
           "description": "Provision Azure Key Vault in ChatHealthySecurity resource group. Store all production secrets. No bearer tokens — auth via x509 cert or Managed Identity only.",
@@ -23055,7 +23136,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "ef5fc2c0-b7fe-42b9-848d-465d77755d4c"
+              "ch_matrix_id": "ef5fc2c0-b7fe-42b9-848d-465d77755d4c",
+              "description": "Create Azure Key Vault"
             },
             {
               "story_id": "SEC-KV-002",
@@ -23071,6 +23153,12 @@
                   "ch_matrix_id": "ce9b71d5-a97f-41a9-b0ec-9230a8840d50",
                   "realized_by": [
                     "Azure Key Vault (FIPS 140-2 L2)"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Pipeline must load data before copy"
+                    }
                   ]
                 },
                 {
@@ -23144,7 +23232,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "293fcd98-0f5f-485d-95b1-782392b4470a"
+              "ch_matrix_id": "293fcd98-0f5f-485d-95b1-782392b4470a",
+              "description": "Store all production secrets in Key Vault"
             },
             {
               "story_id": "SEC-KV-003",
@@ -23173,7 +23262,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "b4775bd0-7ee5-42b5-8404-1d5fb20098b4"
+              "ch_matrix_id": "b4775bd0-7ee5-42b5-8404-1d5fb20098b4",
+              "description": "Store mTLS certificates in Key Vault"
             }
           ],
           "ch_matrix_id": "251bda25-de45-455f-ab11-544e2ba30274",
@@ -23184,7 +23274,7 @@
         {
           "feature_id": "SEC-CERTAUTH-REMOTE",
           "name": "x509 Certificate Authentication — Remote (dev/qa/prod)",
-          "epic_id": "EPIC-4",
+          "epic_id": "EPIC-002",
           "layer": "infrastructure",
           "capability": "Security",
           "description": "All non-Azure services (HuggingFace Spaces) authenticate to Key Vault via x509 certificate registered with Azure AD. One certificate per Space. No bearer tokens.",
@@ -23233,7 +23323,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "41c2c1d9-5cc6-4817-b39f-283ea85dc142"
+              "ch_matrix_id": "41c2c1d9-5cc6-4817-b39f-283ea85dc142",
+              "description": "Azure AD app registration with certificate credential"
             },
             {
               "story_id": "SEC-CERT-R-002",
@@ -23286,7 +23377,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "9a589449-17e7-4920-8466-d2ab25593784"
+              "ch_matrix_id": "9a589449-17e7-4920-8466-d2ab25593784",
+              "description": "FindCare HF Spaces authenticate via x509"
             },
             {
               "story_id": "SEC-CERT-R-003",
@@ -23339,7 +23431,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "15c4e728-5e8c-429d-a51c-fe2c0c30e898"
+              "ch_matrix_id": "15c4e728-5e8c-429d-a51c-fe2c0c30e898",
+              "description": "EvaluateCare HF Spaces authenticate via x509"
             },
             {
               "story_id": "SEC-CERT-R-004",
@@ -23392,7 +23485,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "7cf240f0-87c4-4cac-a34f-27c1ebb0ec73"
+              "ch_matrix_id": "7cf240f0-87c4-4cac-a34f-27c1ebb0ec73",
+              "description": "Shared Services HF Spaces authenticate via x509"
             }
           ],
           "ch_matrix_id": "38b9b8e9-c232-4942-80ce-c400d7268dfe",
@@ -23404,7 +23498,7 @@
         {
           "feature_id": "SEC-CERTAUTH-LOCAL",
           "name": "x509 Certificate Authentication — Local (Skip's PC)",
-          "epic_id": "EPIC-4",
+          "epic_id": "EPIC-002",
           "layer": "infrastructure",
           "capability": "Security",
           "description": "Local development authenticates to Azure Key Vault via x509 certificate. Private key stored on local machine, never in git. Replaces all .env files containing secrets.",
@@ -23475,7 +23569,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "89793a4d-5f9e-49cb-b462-ad535b691af8"
+              "ch_matrix_id": "89793a4d-5f9e-49cb-b462-ad535b691af8",
+              "description": "Local x509 certificate for Key Vault auth"
             },
             {
               "story_id": "SEC-CERT-L-002",
@@ -23528,7 +23623,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "e534bcb5-804b-4afb-847c-95bdf77eb622"
+              "ch_matrix_id": "e534bcb5-804b-4afb-847c-95bdf77eb622",
+              "description": "Eliminate all local .env secret files"
             }
           ],
           "ch_matrix_id": "80d8c779-78f5-414c-961c-2168ab7ac3be",
@@ -23540,7 +23636,7 @@
         {
           "feature_id": "SEC-MANAGED-ID",
           "name": "Managed Identity — Azure Functions",
-          "epic_id": "EPIC-4",
+          "epic_id": "EPIC-002",
           "layer": "infrastructure",
           "capability": "Security",
           "description": "Azure Functions authenticate to Key Vault via Managed Identity. Zero credentials — Azure handles auth internally. Most secure option for Azure-hosted resources.",
@@ -23606,7 +23702,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "8045d8db-9673-43fa-83c1-c9e9b42cb9ac"
+              "ch_matrix_id": "8045d8db-9673-43fa-83c1-c9e9b42cb9ac",
+              "description": "Enable Managed Identity on Azure Function Apps"
             }
           ],
           "ch_matrix_id": "fd3f5b15-f6c7-46c9-99e2-e4df4eae340e",
@@ -23617,7 +23714,7 @@
         {
           "feature_id": "SEC-SECRETMGR",
           "name": "SecretManager Component (Shared Services)",
-          "epic_id": "EPIC-4",
+          "epic_id": "EPIC-002",
           "layer": "backend",
           "capability": "Security",
           "description": "SecretManager in Shared Services (:8002) is the single source for all credentials. Fetches from Key Vault, serves to FindCare and EvaluateCare over mTLS. No service holds keys directly. Resolves BL-0.1.4-002 (Bearer Token Lifecycle Management).",
@@ -23689,7 +23786,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "f4ab7fa3-7a07-4792-b304-cf77b3acd649"
+              "ch_matrix_id": "f4ab7fa3-7a07-4792-b304-cf77b3acd649",
+              "description": "SecretManager fetches secrets from Key Vault"
             },
             {
               "story_id": "SEC-SM-002",
@@ -23742,7 +23840,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "43649ea1-6ffa-46f1-bfd5-e38144e9a63a"
+              "ch_matrix_id": "43649ea1-6ffa-46f1-bfd5-e38144e9a63a",
+              "description": "FindCare retrieves secrets from SecretManager"
             },
             {
               "story_id": "SEC-SM-003",
@@ -23773,7 +23872,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "7c49ac03-36b0-4ef1-879c-06394635828a"
+              "ch_matrix_id": "7c49ac03-36b0-4ef1-879c-06394635828a",
+              "description": "EvaluateCare retrieves secrets from SecretManager"
             },
             {
               "story_id": "SEC-SM-004",
@@ -23804,7 +23904,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "ba1e4be0-d1a3-4958-9c4e-f18e6f2bb6fb"
+              "ch_matrix_id": "ba1e4be0-d1a3-4958-9c4e-f18e6f2bb6fb",
+              "description": "ChatHealthyMongoUtilities uses SecretManager for connection strings"
             }
           ],
           "ch_matrix_id": "2a2f5f20-ec7a-4f1d-8a66-0a01f76a04c4",
@@ -23816,7 +23917,7 @@
         {
           "feature_id": "SEC-NETWORK",
           "name": "Azure Network Security — Subnet, Firewall, Private Endpoints",
-          "epic_id": "EPIC-4",
+          "epic_id": "EPIC-002",
           "layer": "infrastructure",
           "capability": "Security",
           "description": "Azure VNet with subnet isolation, Azure Firewall, and private endpoints to all external services (HuggingFace Spaces, MongoDB Atlas, Key Vault). No public internet exposure for service-to-service traffic. Overrides and supersedes EPIC-6 SDT-VNET if contradictions exist.",
@@ -23882,7 +23983,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "6c03ed11-f99a-4330-82c1-19ae4d7e5242"
+              "ch_matrix_id": "6c03ed11-f99a-4330-82c1-19ae4d7e5242",
+              "description": "Azure VNet and subnet provisioning"
             },
             {
               "story_id": "SEC-NET-002",
@@ -23941,7 +24043,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "7eaf6e12-0578-4aaf-a3cf-445f626fedb6"
+              "ch_matrix_id": "7eaf6e12-0578-4aaf-a3cf-445f626fedb6",
+              "description": "Azure Firewall"
             },
             {
               "story_id": "SEC-NET-003",
@@ -23957,6 +24060,12 @@
                   "ch_matrix_id": "6b58e9b5-adb6-47bd-9149-d34dc62456e8",
                   "realized_by": [
                     "Azure VNet / NSG / Firewall"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Pipeline must load data before copy"
+                    }
                   ]
                 },
                 {
@@ -23980,7 +24089,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "34a8d6e4-3858-498c-b688-22079a719184"
+              "ch_matrix_id": "34a8d6e4-3858-498c-b688-22079a719184",
+              "description": "Private endpoint — MongoDB Atlas"
             },
             {
               "story_id": "SEC-NET-004",
@@ -24009,7 +24119,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "c15a5d7a-1043-4b0a-bede-979d4fd3f7df"
+              "ch_matrix_id": "c15a5d7a-1043-4b0a-bede-979d4fd3f7df",
+              "description": "Private endpoint — Azure Key Vault"
             },
             {
               "story_id": "SEC-NET-005",
@@ -24048,7 +24159,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "9508bcaa-61d5-43f3-b437-ace8bdd1a221"
+              "ch_matrix_id": "9508bcaa-61d5-43f3-b437-ace8bdd1a221",
+              "description": "Private connectivity — HuggingFace Spaces"
             }
           ],
           "ch_matrix_id": "1a45ea3e-9015-4e6c-ba79-cd518a596485",
@@ -24059,7 +24171,7 @@
         {
           "feature_id": "SEC-MTLS",
           "name": "mTLS Service-to-Service Authentication",
-          "epic_id": "EPIC-4",
+          "epic_id": "EPIC-002",
           "layer": "infrastructure",
           "capability": "Security",
           "description": "All service-to-service communication uses mutual TLS. Certificates stored in Key Vault. Caddy terminates and enforces mTLS locally. Cross-references EPIC-6 SDT-FC-001, SDT-EC-001, SDT-PIPE-001.",
@@ -24108,7 +24220,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "c9c58083-2dcf-43a7-bcd1-468f6a782682"
+              "ch_matrix_id": "c9c58083-2dcf-43a7-bcd1-468f6a782682",
+              "description": "mTLS between FindCare and EvaluateCare"
             },
             {
               "story_id": "SEC-MTLS-002",
@@ -24139,7 +24252,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "e370e8ff-db80-47be-bc77-b1dd31f0e4d5"
+              "ch_matrix_id": "e370e8ff-db80-47be-bc77-b1dd31f0e4d5",
+              "description": "mTLS between FindCare and Shared Services"
             },
             {
               "story_id": "SEC-MTLS-003",
@@ -24170,7 +24284,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "df751db5-215b-415f-be82-e6b0ef3d2f1e"
+              "ch_matrix_id": "df751db5-215b-415f-be82-e6b0ef3d2f1e",
+              "description": "mTLS between EvaluateCare and Shared Services"
             },
             {
               "story_id": "SEC-MTLS-004",
@@ -24201,7 +24316,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "beaab24f-7076-4f94-a4b7-fcd258e26edf"
+              "ch_matrix_id": "beaab24f-7076-4f94-a4b7-fcd258e26edf",
+              "description": "Caddy enforces mTLS locally"
             }
           ],
           "ch_matrix_id": "3a38eeef-8ad4-46cd-9e71-8db394847332",
@@ -24213,7 +24329,7 @@
         {
           "feature_id": "SDT-PUBLIC-SITE",
           "name": "Public Website (Cloudflare Pages)",
-          "epic_id": "EPIC-4",
+          "epic_id": "EPIC-002",
           "layer": "frontend",
           "capability": "Website",
           "description": "chathealthy.ai — public landing page, chat, roadmap, products. Cloudflare Pages. No authentication.",
@@ -24229,7 +24345,7 @@
         {
           "feature_id": "SDT-ADMIN-SITE",
           "name": "Admin Website (Cloudflare Pages + Access)",
-          "epic_id": "EPIC-4",
+          "epic_id": "EPIC-002",
           "layer": "frontend",
           "capability": "Admin",
           "description": "admin.chathealthy.ai — architecture, QA reports, business docs. Cloudflare Pages behind Cloudflare Access authentication. Separate Cloudflare project, separate subdomain.",
@@ -24245,7 +24361,7 @@
         {
           "feature_id": "SDT-OAUTH",
           "name": "OAuth 2.0 Social Authentication",
-          "epic_id": "EPIC-4",
+          "epic_id": "EPIC-002",
           "layer": "infrastructure",
           "capability": "Security",
           "description": "OAuth 2.0 with PKCE for end-user authentication. Three social identity providers: Google, Facebook, Apple. Layered protocol: authorization code flow with PKCE, ID token validation, session management. Users sign in with existing accounts — no password to manage. Required for EvaluateCare premium tier and Talk About Care sessions.",
@@ -24271,7 +24387,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "e0d102fd-a1a8-4dc3-a775-18f1e8cd04f7"
+              "ch_matrix_id": "e0d102fd-a1a8-4dc3-a775-18f1e8cd04f7",
+              "description": "Google OAuth 2.0 provider"
             },
             {
               "story_id": "SDT-OAUTH-002",
@@ -24291,7 +24408,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "894749b8-54d7-460d-bd56-9bc14c4c81bf"
+              "ch_matrix_id": "894749b8-54d7-460d-bd56-9bc14c4c81bf",
+              "description": "Facebook OAuth 2.0 provider"
             },
             {
               "story_id": "SDT-OAUTH-003",
@@ -24311,7 +24429,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "008e0de5-d5c9-47f1-884f-f95fe03f2c4c"
+              "ch_matrix_id": "008e0de5-d5c9-47f1-884f-f95fe03f2c4c",
+              "description": "Apple Sign In provider"
             },
             {
               "story_id": "SDT-OAUTH-005",
@@ -24331,7 +24450,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "598482ba-0c49-4961-bce7-eb8abcfb3240"
+              "ch_matrix_id": "598482ba-0c49-4961-bce7-eb8abcfb3240",
+              "description": "GitHub OAuth 2.0 provider"
             },
             {
               "story_id": "SDT-OAUTH-006",
@@ -24351,7 +24471,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "d9338ca2-9076-4747-a72a-7c16aa86790e"
+              "ch_matrix_id": "d9338ca2-9076-4747-a72a-7c16aa86790e",
+              "description": "Microsoft OAuth 2.0 provider"
             },
             {
               "story_id": "SDT-OAUTH-004",
@@ -24393,7 +24514,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "81505515-1b2e-4041-9e65-64db1813b3c3"
+              "ch_matrix_id": "81505515-1b2e-4041-9e65-64db1813b3c3",
+              "description": "Session management and token lifecycle"
             }
           ],
           "ch_matrix_id": "946bc18a-dde7-4be8-979d-c99894f225be",
@@ -24405,7 +24527,7 @@
         {
           "feature_id": "SDT-VNET",
           "name": "Azure VNet Integration",
-          "epic_id": "EPIC-4",
+          "epic_id": "EPIC-002",
           "layer": "infrastructure",
           "capability": "Security",
           "description": "SUPERSEDED by EPIC-4 SEC-NETWORK (2026-04-06). VNet, subnets, firewall, and private endpoints are now owned by EPIC-4 Security. This feature is retained for traceability only.",
@@ -24420,10 +24542,12 @@
           ]
         }
       ],
-      "ch_matrix_id": "760cb933-be8a-4ff9-af5d-ac5897056182"
+      "ch_matrix_id": "760cb933-be8a-4ff9-af5d-ac5897056182",
+      "type": "functional",
+      "description": "Security infrastructure protecting all ChatHealthy services — authentication, encryption, network isolation, and compliance."
     },
     {
-      "epic_id": "EPIC-4-UMLS",
+      "epic_id": "EPIC-003",
       "name": "UMLS License Compliance",
       "goal": "Ensure all UMLS-derived content meets license terms before alpha launch",
       "status": "active",
@@ -24432,7 +24556,7 @@
         {
           "feature_id": "UMLS-COMPLIANCE",
           "name": "UMLS License Compliance — Pre-Alpha",
-          "epic_id": "EPIC-4",
+          "epic_id": "EPIC-002",
           "priority": "HIGH",
           "status": "IN_PROGRESS",
           "due": "2026-04-30",
@@ -24477,7 +24601,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "6524fb23-1972-4b32-b2d4-829a3f081a4c"
+              "ch_matrix_id": "6524fb23-1972-4b32-b2d4-829a3f081a4c",
+              "size": "M"
             },
             {
               "story_id": "UMLS-ATTR-001",
@@ -24530,7 +24655,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "ae553ead-d475-4834-8400-09d93e48c52c"
+              "ch_matrix_id": "ae553ead-d475-4834-8400-09d93e48c52c",
+              "size": "M"
             },
             {
               "story_id": "UMLS-GEO-001",
@@ -24561,7 +24687,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "7333e6b7-507c-4f2d-8d0d-2ea23248d0bb"
+              "ch_matrix_id": "7333e6b7-507c-4f2d-8d0d-2ea23248d0bb",
+              "size": "M"
             },
             {
               "story_id": "UMLS-NLM-001",
@@ -24592,20 +24719,24 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "0b6eaedd-cb93-490b-b57d-b2fe22482fe7"
+              "ch_matrix_id": "0b6eaedd-cb93-490b-b57d-b2fe22482fe7",
+              "size": "M"
             }
           ],
           "ch_matrix_id": "df447578-a4d5-44a5-9943-de2636f54ba5",
           "realized_by": [
             "NLM UMLS API",
             "MongoDB Atlas"
-          ]
+          ],
+          "description": "UMLS License Compliance — Pre-Alpha"
         }
       ],
-      "ch_matrix_id": "2cc9d8ae-d2af-4f97-8416-c3b6f80602b5"
+      "ch_matrix_id": "2cc9d8ae-d2af-4f97-8416-c3b6f80602b5",
+      "type": "functional",
+      "description": "UMLS terminology license compliance ensuring proper use of RxNorm, SNOMED CT, LOINC, MeSH, and ICD-10-CM per NLM requirements."
     },
     {
-      "epic_id": "EPIC-8",
+      "epic_id": "EPIC-004",
       "name": "Safety",
       "capacity": "",
       "goal": "Protect users in crisis — emergency detection, IP lockout, admin unlock, audit trail",
@@ -24615,7 +24746,7 @@
         {
           "feature_id": "SAFETY-LOCKOUT",
           "name": "Emergency Lockout System",
-          "epic_id": "EPIC-8",
+          "epic_id": "EPIC-004",
           "layer": "backend",
           "capability": "Safety",
           "description": "Dual-trigger emergency detection (keyword + AI classifier). IP-based lockout on emergency. Admin unlock with shared secret. De-identified audit trail of all safety events.",
@@ -24658,7 +24789,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "0b30c960-25ac-4c0c-ad4c-e2b1502f69b8"
+              "ch_matrix_id": "0b30c960-25ac-4c0c-ad4c-e2b1502f69b8",
+              "description": "Admin unlock with shared secret"
             }
           ],
           "ch_matrix_id": "108d2b45-771a-46af-ad09-df26ea50e406",
@@ -24668,10 +24800,12 @@
           ]
         }
       ],
-      "ch_matrix_id": "f778c4ab-93e2-46de-8144-f568e3a1a182"
+      "ch_matrix_id": "f778c4ab-93e2-46de-8144-f568e3a1a182",
+      "type": "operational",
+      "description": "Safety system detecting medical emergencies in user conversations and routing to 911 with IP-locked audit trail."
     },
     {
-      "epic_id": "EPIC-10",
+      "epic_id": "EPIC-005",
       "name": "Testing",
       "capacity": "",
       "goal": "Automated user simulation testing across all environments. Smoke tests, regression tests, security verification, and user journey validation.",
@@ -24681,7 +24815,7 @@
         {
           "feature_id": "TEST-USER-SIM",
           "name": "User Testing Simulation",
-          "epic_id": "EPIC-10",
+          "epic_id": "EPIC-005",
           "layer": "testing",
           "capability": "QA",
           "description": "Automated Playwright tests that simulate real user journeys through the full application. Tests run against the parent page (DR-019), exercise FindCare search, EvaluateCare handoff, session tokens, and panel layout.",
@@ -24769,6 +24903,12 @@
                   "realized_by": [
                     "pytest",
                     "Playwright"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Providers must be loaded"
+                    }
                   ]
                 },
                 {
@@ -24783,6 +24923,12 @@
                   "realized_by": [
                     "pytest",
                     "Playwright"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SEARCH-001",
+                      "reason": "Search must return results before filter can display"
+                    }
                   ]
                 },
                 {
@@ -24839,6 +24985,12 @@
                   "realized_by": [
                     "pytest",
                     "Playwright"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 },
                 {
@@ -24853,6 +25005,12 @@
                   "realized_by": [
                     "pytest",
                     "Playwright"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 }
               ],
@@ -24868,7 +25026,7 @@
         {
           "feature_id": "TEST-SEC-LOCAL",
           "name": "Security Local Environment Testing",
-          "epic_id": "EPIC-10",
+          "epic_id": "EPIC-005",
           "layer": "testing",
           "capability": "Security",
           "description": "Automated tests verifying local security posture: TLS between components, HTTPS redirect, sensitive page protection.",
@@ -24944,7 +25102,7 @@
         {
           "feature_id": "GOV-AUTO-BUG",
           "name": "Bugs must be automatically created in pytest",
-          "epic_id": "EPIC-10",
+          "epic_id": "EPIC-005",
           "layer": "governance",
           "capability": "Bug Management",
           "description": "When a pytest discovers a defect, it must automatically create a bug record in bugs.json with the correct severity, environment, and governance classification. The test owns the bug creation — no manual entry.",
@@ -24960,7 +25118,7 @@
         {
           "feature_id": "MAINT-SIT-MIGRATE",
           "name": "Migrate All Pytests to Playwright Full-Page SIT",
-          "epic_id": "EPIC-10",
+          "epic_id": "EPIC-005",
           "layer": "testing",
           "capability": "Quality",
           "description": "DR-019: Convert all existing pytest test cases to Playwright browser tests running against the full parent page (dev.chathealthy.ai). No more isolated HF Space testing. Gate: must complete before QA promotion.",
@@ -25010,7 +25168,7 @@
         {
           "feature_id": "DEVOPS-QA-REPORT",
           "name": "QA Report Renderer",
-          "epic_id": "EPIC-10",
+          "epic_id": "EPIC-005",
           "layer": "devops",
           "capability": "SDLC",
           "description": "Dynamic QA report rendered from brain JSON. Accepts epic scope, renders feature checklist with test case status. Hosted on chat backend. Dev and QA only — not prod.",
@@ -25055,7 +25213,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "3a69586d-43e9-47c7-8958-fca66c6bb64c"
+              "ch_matrix_id": "3a69586d-43e9-47c7-8958-fca66c6bb64c",
+              "description": "QA report renderer reads brain JSON and produces HTML"
             },
             {
               "story_id": "DEVOPS-QA-002",
@@ -25074,7 +25233,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "081a23bd-1b9c-400a-a9f8-976148ff2283"
+              "ch_matrix_id": "081a23bd-1b9c-400a-a9f8-976148ff2283",
+              "description": "QA report shows test case status with color coding"
             },
             {
               "story_id": "DEVOPS-QA-003",
@@ -25093,7 +25253,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "16abbabc-9eea-4039-9d60-30b03f4a40d6"
+              "ch_matrix_id": "16abbabc-9eea-4039-9d60-30b03f4a40d6",
+              "description": "QA report includes prior release history"
             },
             {
               "story_id": "DEVOPS-QA-004",
@@ -25122,7 +25283,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "a5fe3058-fa26-4204-9753-64a35a94f8fa"
+              "ch_matrix_id": "a5fe3058-fa26-4204-9753-64a35a94f8fa",
+              "description": "Application loading indicator until app is ready"
             },
             {
               "story_id": "DEVOPS-QA-005",
@@ -25161,7 +25323,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "048eab4b-ce33-4c22-9b36-1a42f7690b8f"
+              "ch_matrix_id": "048eab4b-ce33-4c22-9b36-1a42f7690b8f",
+              "description": "Interactive QA report — edit and submit from browser"
             }
           ],
           "ch_matrix_id": "08472dab-88f1-42d7-bd73-799408a0a743",
@@ -25170,10 +25333,12 @@
           ]
         }
       ],
-      "ch_matrix_id": "3561e18f-baf3-427b-ae0e-bf71db886bc7"
+      "ch_matrix_id": "3561e18f-baf3-427b-ae0e-bf71db886bc7",
+      "type": "functional",
+      "description": "Testing infrastructure — Playwright SIT tests, regression suites, and quality assurance tooling."
     },
     {
-      "epic_id": "EPIC-FINDCARE",
+      "epic_id": "EPIC-006",
       "name": "FindCare",
       "status": "active",
       "description": "User journey for finding and selecting healthcare providers. Depends on EPIC-9 (UX Management) for reusable controls.",
@@ -25182,9 +25347,6 @@
           "name": "Provider Search and Selection",
           "status": "active",
           "description": "Search for providers by specialty, condition, or location. Select individual providers from results for evaluation.",
-          "dependencies": [
-            "EPIC-9"
-          ],
           "stories": [
             {
               "story_id": "FC-SEARCH-001",
@@ -25272,6 +25434,12 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Providers must be loaded"
+                    }
                   ]
                 },
                 {
@@ -25289,6 +25457,12 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Providers must be loaded"
+                    }
                   ]
                 }
               ]
@@ -25541,9 +25715,6 @@
           "name": "Specialty Filter",
           "status": "active",
           "description": "Filter search results by specialty type, prescriber status, and homeopathic status. Uses EPIC-9 reusable filter control.",
-          "dependencies": [
-            "EPIC-9"
-          ],
           "stories": [
             {
               "story_id": "FC-FILT-001",
@@ -25563,6 +25734,12 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SEARCH-001",
+                      "reason": "Search must return results before filter can display"
+                    }
                   ]
                 },
                 {
@@ -25577,6 +25754,12 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    }
                   ]
                 },
                 {
@@ -25591,6 +25774,12 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have homeopathic flag"
+                    }
                   ]
                 },
                 {
@@ -25635,6 +25824,16 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    },
+                    {
+                      "story_id": "FC-SEARCH-001",
+                      "reason": "Search must return results before filter can display"
+                    }
                   ]
                 },
                 {
@@ -25649,6 +25848,16 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Providers must be loaded"
+                    },
+                    {
+                      "story_id": "FC-SEARCH-001",
+                      "reason": "Search must return results before filter can display"
+                    }
                   ]
                 },
                 {
@@ -25681,7 +25890,8 @@
                     "MongoDB Atlas"
                   ]
                 }
-              ]
+              ],
+              "description": "Specialty type filter with prescriber and homeopathic toggles"
             }
           ],
           "realized_by": [
@@ -25695,10 +25905,6 @@
           "name": "Handoff to EvaluateCare",
           "status": "active",
           "description": "Send selected providers to EvaluateCare service with signed session token.",
-          "dependencies": [
-            "EPIC-1",
-            "EPIC-9"
-          ],
           "stories": [
             {
               "story_id": "FC-EVAL-001",
@@ -25717,6 +25923,12 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)",
                     "mTLS (x509)"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 },
                 {
@@ -25771,7 +25983,8 @@
                     "mTLS (x509)"
                   ]
                 }
-              ]
+              ],
+              "description": "Evaluate These Providers button and handoff"
             }
           ],
           "realized_by": [
@@ -25783,7 +25996,7 @@
         {
           "feature_id": "FC-RESULT-MSG",
           "name": "Search Result Presentation — System-Built Summary",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "full-stack",
           "capability": "FindCare",
           "description": "GOV-011 compliance: the system builds the search result summary message from structured data, not the LLM. Message must echo the user's search term, report specialty type count with filter link, and present next page as an actionable link.",
@@ -25818,6 +26031,12 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Providers must be loaded"
+                    }
                   ]
                 },
                 {
@@ -25863,6 +26082,12 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SEARCH-001",
+                      "reason": "Search must return results before filter can display"
+                    }
                   ]
                 },
                 {
@@ -25908,6 +26133,12 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Providers must be loaded"
+                    }
                   ]
                 },
                 {
@@ -26000,6 +26231,12 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SEARCH-001",
+                      "reason": "Search must return results before filter can display"
+                    }
                   ]
                 },
                 {
@@ -26046,7 +26283,7 @@
         {
           "feature_id": "MAINT-IDX-TUNE",
           "name": "Index Tuning — Frontend and Pipeline Clusters",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "infrastructure",
           "capability": "DataOps",
           "description": "DR-016/DR-017/DR-018: Audit, create, and verify all database indexes on frontend and pipeline clusters. Every vector search index referenced in code must exist on every environment. Every promotion must verify indexes. /health must report missing indexes.",
@@ -26225,7 +26462,7 @@
         {
           "feature_id": "PIPE-LIFECYCLE",
           "name": "Pipeline Lifecycle and Error Handling",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "pipeline",
           "capability": "DataOps",
           "description": "Every pipeline step must accept state filter, report status on completion/failure, and release cluster reservation in a finally block. The orchestrator must handle abends gracefully.",
@@ -26471,6 +26708,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Pipeline must load data before copy"
+                    }
                   ]
                 }
               ],
@@ -26794,7 +27037,7 @@
         {
           "feature_id": "PIPE-DATA-MODEL",
           "name": "Provider Data Model — In-Place Enrichment",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "pipeline",
           "capability": "DataOps",
           "description": "BUG-PIPE-004: Provider and enrichment data must be one record. Enrichment updates fields on the provider record in-place. No separate enrichment collection. Per MongoDB best practices — avoid cross-collection joins.",
@@ -26840,7 +27083,7 @@
         {
           "feature_id": "PIPE-INCREMENTAL",
           "name": "Incremental Provider Updates",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "pipeline",
           "capability": "DataOps",
           "description": "Support incremental NPI file updates: full record replacement with county reset, and record deletion for deactivated NPIs.",
@@ -26946,7 +27189,7 @@
         {
           "feature_id": "PIPE-BULLETPROOF",
           "name": "Bulletproof ETL Process",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "pipeline",
           "capability": "DataOps",
           "description": "ChatHealthy.ai needs a bulletproof ETL process that runs successfully 95% of the time given source files exist. Errors must alert Boss immediately. Design priorities in order: reliability, speed, cost. All architecture rules (technical + business) and engineering rules must be complied with.",
@@ -27007,7 +27250,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "c537585c-3d7c-4739-8b26-b0b5ad22a119"
+              "ch_matrix_id": "c537585c-3d7c-4739-8b26-b0b5ad22a119",
+              "size": "M"
             },
             {
               "story_id": "PIPE-BP-002",
@@ -27060,7 +27304,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "9e7ea56b-28e9-4dfd-9eca-5ad1bfdf210d"
+              "ch_matrix_id": "9e7ea56b-28e9-4dfd-9eca-5ad1bfdf210d",
+              "size": "M"
             },
             {
               "story_id": "PIPE-BP-003",
@@ -27091,7 +27336,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "ef600e18-78c1-495d-977f-eeb293c52f34"
+              "ch_matrix_id": "ef600e18-78c1-495d-977f-eeb293c52f34",
+              "size": "M"
             },
             {
               "story_id": "PIPE-BP-004",
@@ -27177,7 +27423,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "ac4ec20c-b2be-4c29-b2d0-c2cdd22da0a2"
+              "ch_matrix_id": "ac4ec20c-b2be-4c29-b2d0-c2cdd22da0a2",
+              "size": "M"
             }
           ],
           "ch_matrix_id": "2f99fe28-3451-4238-9f52-caca02d2b9b2",
@@ -27189,7 +27436,7 @@
         {
           "feature_id": "PIPE-DATA-QUALITY",
           "name": "Provider Data Quality — Bad Data and Out of Scope Flags",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "pipeline",
           "capability": "DataOps",
           "description": "Replace the single county.source='out_of_scope' pattern with two explicit flags on the provider record: bad_data (data quality issues) and out_of_scope (good record but not in scope). Each has a controlled vocabulary of reasons. Queries decide inclusion/exclusion based on reason.",
@@ -27384,6 +27631,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    }
                   ]
                 },
                 {
@@ -27395,6 +27648,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    }
                   ]
                 },
                 {
@@ -27428,6 +27687,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    }
                   ]
                 },
                 {
@@ -27439,6 +27704,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    }
                   ]
                 },
                 {
@@ -27450,6 +27721,16 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    },
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 },
                 {
@@ -27461,6 +27742,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    }
                   ]
                 },
                 {
@@ -27472,6 +27759,16 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    },
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 },
                 {
@@ -27483,6 +27780,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    }
                   ]
                 },
                 {
@@ -27494,6 +27797,16 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    },
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Providers must be loaded"
+                    }
                   ]
                 },
                 {
@@ -27505,6 +27818,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    }
                   ]
                 },
                 {
@@ -27516,6 +27835,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    }
                   ]
                 },
                 {
@@ -27527,6 +27852,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    }
                   ]
                 },
                 {
@@ -27538,6 +27869,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    }
                   ]
                 },
                 {
@@ -27549,6 +27886,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Providers must be loaded"
+                    }
                   ]
                 },
                 {
@@ -27626,6 +27969,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SEARCH-001",
+                      "reason": "Search must return results before filter can display"
+                    }
                   ]
                 },
                 {
@@ -27637,6 +27986,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    }
                   ]
                 },
                 {
@@ -27648,6 +28003,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have homeopathic flag"
+                    }
                   ]
                 },
                 {
@@ -27670,6 +28031,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SEARCH-001",
+                      "reason": "Search must return results before filter can display"
+                    }
                   ]
                 },
                 {
@@ -27692,6 +28059,16 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    },
+                    {
+                      "story_id": "FC-SEARCH-001",
+                      "reason": "Search must return results before filter can display"
+                    }
                   ]
                 },
                 {
@@ -27736,6 +28113,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have homeopathic flag"
+                    }
                   ]
                 },
                 {
@@ -27747,6 +28130,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have homeopathic flag"
+                    }
                   ]
                 },
                 {
@@ -27758,6 +28147,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have homeopathic flag"
+                    }
                   ]
                 },
                 {
@@ -27813,6 +28208,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    }
                   ]
                 },
                 {
@@ -27835,6 +28236,16 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Providers must be loaded"
+                    },
+                    {
+                      "story_id": "FC-SEARCH-001",
+                      "reason": "Search must return results before filter can display"
+                    }
                   ]
                 },
                 {
@@ -27846,6 +28257,16 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    },
+                    {
+                      "story_id": "FC-SEARCH-001",
+                      "reason": "Search must return results before filter can display"
+                    }
                   ]
                 },
                 {
@@ -27868,6 +28289,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have can_prescribe flag"
+                    }
                   ]
                 },
                 {
@@ -27879,6 +28306,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-002",
+                      "reason": "SpecialtyMetaData must have homeopathic flag"
+                    }
                   ]
                 }
               ],
@@ -27894,7 +28327,7 @@
         {
           "feature_id": "PIPE-QUALITY",
           "name": "Inter-Stage Quality Gates",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "description": "Data validation between every pipeline stage. Fail fast on bad data.",
           "priority": "HIGH",
           "status": "IMPLEMENTED",
@@ -27954,7 +28387,9 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "eb4aff6e-b99d-4b35-8ef9-ac3151ad8d59"
+              "ch_matrix_id": "eb4aff6e-b99d-4b35-8ef9-ac3151ad8d59",
+              "description": "Implement QualityGate class",
+              "size": "M"
             }
           ],
           "ch_matrix_id": "abbdba52-f697-43af-adde-1b95c705e34a",
@@ -27966,7 +28401,7 @@
         {
           "feature_id": "PIPE-FATAL",
           "name": "Fatal Error Alerting (v4-008)",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "description": "Ring bell on fatal pipeline errors. PowerShell local, Pushover cloud.",
           "priority": "HIGH",
           "status": "IMPLEMENTED",
@@ -28014,7 +28449,9 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "3068ff7e-06a4-43b4-9b69-b31fd0a35b50"
+              "ch_matrix_id": "3068ff7e-06a4-43b4-9b69-b31fd0a35b50",
+              "description": "Implement FatalAlertBridge",
+              "size": "M"
             }
           ],
           "ch_matrix_id": "2eb00ec9-79e2-47d6-8bff-cdb624d3d0ca",
@@ -28026,7 +28463,7 @@
         {
           "feature_id": "PIPE-SCHEMA",
           "name": "Schema Drift Detection",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "description": "Detect schema changes between pipeline runs via SHA-256 fingerprints.",
           "priority": "HIGH",
           "status": "IMPLEMENTED",
@@ -28086,7 +28523,9 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "c59ebf32-23cc-4e19-b27a-472aa045d2d2"
+              "ch_matrix_id": "c59ebf32-23cc-4e19-b27a-472aa045d2d2",
+              "description": "Implement SchemaDriftDetector",
+              "size": "M"
             }
           ],
           "ch_matrix_id": "2ef1175e-024a-4627-a99a-22a40b782f2d",
@@ -28098,7 +28537,7 @@
         {
           "feature_id": "PIPE-IDEM",
           "name": "Idempotent Pipeline Resume",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "description": "Skip completed stages on restart without re-running.",
           "priority": "HIGH",
           "status": "IMPLEMENTED",
@@ -28146,7 +28585,9 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "eda42ca4-3260-41ca-a706-2d95fb9ab046"
+              "ch_matrix_id": "eda42ca4-3260-41ca-a706-2d95fb9ab046",
+              "description": "Add output_exists_and_valid to PipelineWorkerBase",
+              "size": "M"
             }
           ],
           "ch_matrix_id": "5ef34014-8257-4716-ab91-8082559329e2",
@@ -28158,7 +28599,7 @@
         {
           "feature_id": "PIPE-COMPLY",
           "name": "v4-001D Compliance (DataFetcherBase Discipline)",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "description": "No raw HTTP, no .readall(), no hardcoded URLs in pipeline code.",
           "priority": "HIGH",
           "status": "IMPLEMENTED",
@@ -28230,7 +28671,9 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "93f82952-4cdd-4822-95aa-70669ef3f31a"
+              "ch_matrix_id": "93f82952-4cdd-4822-95aa-70669ef3f31a",
+              "description": "Remediate pipeline code for v4-001D compliance",
+              "size": "M"
             }
           ],
           "ch_matrix_id": "4e4b8e76-3ce5-41a5-9daf-2123486c5f1c",
@@ -28242,7 +28685,7 @@
         {
           "feature_id": "PIPE-COPY",
           "name": "CopyToFrontEnd Parity (BUG-LOAD-001)",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "description": "Verify source==destination counts per collection and per state after every copy.",
           "priority": "CRITICAL",
           "status": "IMPLEMENTED",
@@ -28278,7 +28721,9 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "23f641f1-a183-48b8-ab7d-d6855b1b5dbd"
+              "ch_matrix_id": "23f641f1-a183-48b8-ab7d-d6855b1b5dbd",
+              "description": "Parity verification in CopyToFrontEnd",
+              "size": "M"
             },
             {
               "story_id": "FC-PIPE-COPY-001",
@@ -28300,6 +28745,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Pipeline must load data before copy"
+                    }
                   ]
                 },
                 {
@@ -28314,6 +28765,12 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Pipeline must load data before copy"
+                    }
                   ]
                 }
               ],
@@ -28329,7 +28786,7 @@
         {
           "feature_id": "PIPE-TRACE",
           "name": "Requirement-to-Test Traceability (v4-007/v4-023)",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "description": "Every requirement maps to a test. Traceability matrix enforced.",
           "priority": "HIGH",
           "status": "IMPLEMENTED",
@@ -28377,7 +28834,9 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "c283eb58-881b-48dd-aa40-865941a962da"
+              "ch_matrix_id": "c283eb58-881b-48dd-aa40-865941a962da",
+              "description": "Create and validate traceability matrix",
+              "size": "M"
             },
             {
               "story_id": "PIPE-TR-002",
@@ -28414,7 +28873,7 @@
         {
           "feature_id": "PIPE-SPEC",
           "name": "FindCarePipeline SpecialtyMetaData Orchestration",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "pipeline",
           "capability": "DataOps",
           "description": "FindCarePipeline loads and enriches SpecialtyMetaData from NUCC taxonomy CSV. Specialty records are enriched with filter flags (can_prescribe, homeopathic) for downstream UX filtering.",
@@ -28521,7 +28980,7 @@
         {
           "feature_id": "FC-MOBILE",
           "name": "Mobile Phone Support — Galaxy and iPhone 14+",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "frontend",
           "capability": "UX",
           "description": "Full mobile support for Samsung Galaxy and iPhone 14 forward. Hamburger navigation on all pages, responsive layouts, touch-friendly controls. ChatHealthy.ai must be fully usable on a phone — not a degraded experience.",
@@ -28584,7 +29043,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "0b2a69e0-113d-4787-a1a2-b752ca3ec4ce"
+              "ch_matrix_id": "0b2a69e0-113d-4787-a1a2-b752ca3ec4ce",
+              "description": "Hamburger navigation on all static pages"
             },
             {
               "story_id": "UX-MOB-002",
@@ -28621,7 +29081,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "1962295a-3b6d-4682-bdea-4c51082a8fb5"
+              "ch_matrix_id": "1962295a-3b6d-4682-bdea-4c51082a8fb5",
+              "description": "Home link at bottom of every page (mobile)"
             },
             {
               "story_id": "UX-MOB-003",
@@ -28671,10 +29132,17 @@
                   "realized_by": [
                     "React 18 / Vite 5",
                     "Static HTML/JS (Cloudflare Pages)"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Providers must be loaded"
+                    }
                   ]
                 }
               ],
-              "ch_matrix_id": "77a51b6e-2f8e-4114-a5ab-528554aba40f"
+              "ch_matrix_id": "77a51b6e-2f8e-4114-a5ab-528554aba40f",
+              "description": "Chat window responsive on Galaxy and iPhone 14+"
             },
             {
               "story_id": "UX-MOB-004",
@@ -28705,7 +29173,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "496d198d-8a16-4843-9e82-e37dab482ad3"
+              "ch_matrix_id": "496d198d-8a16-4843-9e82-e37dab482ad3",
+              "description": "Pagination controls touch-friendly"
             },
             {
               "story_id": "UX-MOB-005",
@@ -28747,7 +29216,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "5e230824-fe11-46cb-bc50-1a5d77a39d5e"
+              "ch_matrix_id": "5e230824-fe11-46cb-bc50-1a5d77a39d5e",
+              "description": "Playwright SIT tests on mobile viewports"
             }
           ],
           "ch_matrix_id": "dc3d6a16-a75a-4c71-889d-d1c831da29d9",
@@ -28759,7 +29229,7 @@
         {
           "feature_id": "FC-NATIVE-APPS",
           "name": "Native Mobile Apps — Apple App Store and Google Play",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "frontend",
           "capability": "UX",
           "description": "Publish ChatHealthy.ai as a native app on Apple App Store (iOS) and Google Play Store (Android). PWA wrapper or React Native shell around the existing web experience. Due before November 2026.",
@@ -28778,7 +29248,7 @@
         {
           "feature_id": "UX-FRAME-LAYOUT",
           "name": "Parent Page Frame Layout",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "frontend",
           "capability": "UX",
           "description": "Percentage-based frame layout: header (6%), left panel (1% default, expandable), center (chat iframe 83% + control frame 7%), right panel (1% default, expandable), footer (4%). Design record: gui_frame_layout in design.json.",
@@ -28844,7 +29314,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "5d88c467-bbcd-4b79-ada8-6c7f7863225c"
+              "ch_matrix_id": "5d88c467-bbcd-4b79-ada8-6c7f7863225c",
+              "description": "Percentage-based frame dimensions"
             },
             {
               "story_id": "UX-FRAME-002",
@@ -28903,7 +29374,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "2dcc822a-412f-46fc-b152-d74625d5f0b2"
+              "ch_matrix_id": "2dcc822a-412f-46fc-b152-d74625d5f0b2",
+              "description": "Left and right panel behavior"
             }
           ],
           "ch_matrix_id": "04c97fc8-b520-4f3e-ba98-f9315f76f96d",
@@ -28914,7 +29386,7 @@
         {
           "feature_id": "UX-POSTMESSAGE",
           "name": "postMessage Orchestration Protocol",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "frontend",
           "capability": "UX",
           "description": "Parent page ↔ React iframe communication via postMessage. React sends gui:render, gui:clear, gui:eval-render. Parent sends gui:event back. No page reloads.",
@@ -28957,6 +29429,12 @@
                   "ch_matrix_id": "dc02c716-6429-40d2-b306-962eec8040ff",
                   "realized_by": [
                     "Static HTML/JS (Cloudflare Pages)"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 },
                 {
@@ -28970,7 +29448,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "50e777a0-e50e-4c01-90c9-a3c8377ebe05"
+              "ch_matrix_id": "50e777a0-e50e-4c01-90c9-a3c8377ebe05",
+              "description": "React → Parent postMessage rendering"
             },
             {
               "story_id": "UX-MSG-002",
@@ -28999,7 +29478,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "472ce368-2a0f-4450-a698-e0c172fe1214"
+              "ch_matrix_id": "472ce368-2a0f-4450-a698-e0c172fe1214",
+              "description": "Parent → React event relay"
             }
           ],
           "ch_matrix_id": "11b510b3-b55b-463a-adaa-c83613ab66b1",
@@ -29010,7 +29490,7 @@
         {
           "feature_id": "UX-IFRAME-WIRING",
           "name": "Chat Iframe Wiring and Auto-Detection",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "frontend",
           "capability": "UX",
           "description": "Parent page auto-detects localhost vs deployed environment and sets iframe src accordingly. DR-011: no query params, no workarounds. Retry logic for slow backend startup.",
@@ -29055,7 +29535,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "72daa16c-db70-4ba3-82f3-b8d483b2d12a"
+              "ch_matrix_id": "72daa16c-db70-4ba3-82f3-b8d483b2d12a",
+              "description": "Auto-detect localhost for iframe src"
             },
             {
               "story_id": "UX-IFRAME-002",
@@ -29084,7 +29565,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "1ed81545-49dd-4913-9524-80c565c62a80"
+              "ch_matrix_id": "1ed81545-49dd-4913-9524-80c565c62a80",
+              "description": "Iframe retry on backend startup"
             }
           ],
           "ch_matrix_id": "41e4bd51-dfe3-43cc-97c7-b7844d1a1798",
@@ -29095,7 +29577,7 @@
         {
           "feature_id": "UX-CONTROL-SURFACE",
           "name": "Control Frame — Pagination and Filter Controls",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "frontend",
           "capability": "UX",
           "description": "7% control frame canvas that renders pagination and filter controls on demand. 3D raised button style. Deterministic paging via /search — no LLM round-trip after first page.",
@@ -29195,7 +29677,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "8e1baeef-663a-4786-9288-372ece4a0149"
+              "ch_matrix_id": "8e1baeef-663a-4786-9288-372ece4a0149",
+              "description": "Pagination controls in control frame"
             },
             {
               "story_id": "UX-CTRL-002",
@@ -29228,7 +29711,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "1c5231d3-a72d-400a-b530-8f5b4ad59e9b"
+              "ch_matrix_id": "1c5231d3-a72d-400a-b530-8f5b4ad59e9b",
+              "description": "Responsive rows per page"
             },
             {
               "story_id": "UX-CTRL-003",
@@ -29249,6 +29733,16 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Providers must be loaded"
+                    },
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 },
                 {
@@ -29279,6 +29773,12 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 },
                 {
@@ -29294,6 +29794,12 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Providers must be selected before evaluation"
+                    }
                   ]
                 },
                 {
@@ -29309,7 +29815,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "b14cec9f-5200-4712-be6a-0d00deaf84f4"
+              "ch_matrix_id": "b14cec9f-5200-4712-be6a-0d00deaf84f4",
+              "description": "EvaluateCare trigger button in control frame"
             }
           ],
           "ch_matrix_id": "a083aba4-d8ff-4e80-87e0-35f1e367c8a4",
@@ -29322,7 +29829,7 @@
         {
           "feature_id": "UX-LEAF-PAGES",
           "name": "Leaf Page Management — Right Panel",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "frontend",
           "capability": "UX",
           "description": "Right panel expands to display leaf pages (architecture, roadmap, design docs, security architecture). Boss directive: more control over right panel behavior. Refactor from fixed overlay (legal-panel class) to inline flex panel.",
@@ -29378,7 +29885,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "4d73e161-ee9e-4b26-9bfb-660e69de21fd"
+              "ch_matrix_id": "4d73e161-ee9e-4b26-9bfb-660e69de21fd",
+              "description": "Right panel inline flex refactor"
             }
           ],
           "ch_matrix_id": "c75a23d4-d8da-4455-a12a-62901f7a94be",
@@ -29389,7 +29897,7 @@
         {
           "feature_id": "UX-GENERATED-INDEX",
           "name": "index.html Generated from Brain Design Record",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "frontend",
           "capability": "UX",
           "description": "index.html structure generated from gui_frame_layout design record in design.json by Code/Shared/ops/generate_index_page.py. Runtime JS (postMessage handlers, iframe retry) included in generator output. Per v4-021: brain owns the design, script renders the code.",
@@ -29444,7 +29952,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "f9dff7e3-baba-4d2b-b91e-28486065526c"
+              "ch_matrix_id": "f9dff7e3-baba-4d2b-b91e-28486065526c",
+              "description": "index.html generator script"
             }
           ],
           "ch_matrix_id": "84e62174-8dc5-4fab-ac48-1898397692b5",
@@ -29455,7 +29964,7 @@
         {
           "feature_id": "SDT-FINDCARE-SPACE",
           "name": "FindCare Service (HuggingFace Space)",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "backend",
           "capability": "FindCare",
           "description": "FindCare chat and provider search. Existing HF Space. Port 8000 local, 7860 on HF. Public API for end users, mTLS for service-to-service.",
@@ -29481,7 +29990,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "a355099b-f988-4ae9-826f-e410b10c94fd"
+              "ch_matrix_id": "a355099b-f988-4ae9-826f-e410b10c94fd",
+              "description": "mTLS for service-to-service communication"
             }
           ],
           "ch_matrix_id": "33e70be4-eb1b-44b2-88a8-57f7ca37afb1",
@@ -29492,7 +30002,7 @@
         {
           "feature_id": "SDT-PIPELINE",
           "name": "Data Pipeline (Azure Functions)",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "pipeline",
           "capability": "DataOps",
           "description": "Provider data pipeline on Azure Functions. VNet integrated. Managed by cluster lifecycle manager. mTLS for inter-service calls.",
@@ -29518,7 +30028,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "d286fe13-f4ef-4703-8ed4-041f47444f49"
+              "ch_matrix_id": "d286fe13-f4ef-4703-8ed4-041f47444f49",
+              "description": "mTLS for pipeline service communication"
             }
           ],
           "ch_matrix_id": "f79f5c6b-baf4-43cb-b9a8-3bf1fd1ec7bf",
@@ -29530,7 +30041,7 @@
         {
           "feature_id": "SDT-BRAIN",
           "name": "The Brain — Agentic Infrastructure",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "devops",
           "capability": "Brain",
           "description": "The Brain as a deployed component. Agentic infrastructure for running the company — assignments, governance, audit, grooming, monitoring. MongoDB-backed, API accessible.",
@@ -29583,6 +30094,12 @@
                   ],
                   "realized_by": [
                     "Claude Code hooks (Python 3.11)"
+                  ],
+                  "depends_on": [
+                    {
+                      "story_id": "FC-PIPE-SPEC-001",
+                      "reason": "Providers must be loaded"
+                    }
                   ]
                 },
                 {
@@ -29610,7 +30127,7 @@
         {
           "feature_id": "SDT-LOCAL-DEV",
           "name": "Local Development Topology",
-          "epic_id": "EPIC-FINDCARE",
+          "epic_id": "EPIC-006",
           "layer": "devops",
           "capability": "SDLC",
           "description": "Local dev environment with multi-port topology. Port 80: public site, Port 443: admin site (self-signed cert), Port 5173: React frontend, Port 8000: FindCare, Port 8001: EvaluateCare. All components runnable locally. Cloudflare provides free SSL in production.",
@@ -29640,7 +30157,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "254d6596-4aac-4e10-bece-19cb879e0c1d"
+              "ch_matrix_id": "254d6596-4aac-4e10-bece-19cb879e0c1d",
+              "description": "Static website server on port 80"
             },
             {
               "story_id": "SDT-LOCAL-002",
@@ -29694,7 +30212,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "96d220d9-d34c-4150-abbf-94c20d8c0525"
+              "ch_matrix_id": "96d220d9-d34c-4150-abbf-94c20d8c0525",
+              "description": "EvaluateCare FastAPI on port 8001"
             },
             {
               "story_id": "SDT-LOCAL-003",
@@ -29817,7 +30336,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "0001aa87-0515-4114-9b32-58e125af5df4"
+              "ch_matrix_id": "0001aa87-0515-4114-9b32-58e125af5df4",
+              "description": "One-click startup script for all services"
             },
             {
               "story_id": "SDT-LOCAL-004",
@@ -29862,7 +30382,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "1299a1b9-fd9e-4ade-afa8-f7807731214f"
+              "ch_matrix_id": "1299a1b9-fd9e-4ade-afa8-f7807731214f",
+              "description": "Admin site on port 443 with self-signed cert"
             },
             {
               "story_id": "SDT-LOCAL-005",
@@ -29895,7 +30416,8 @@
                   ]
                 }
               ],
-              "ch_matrix_id": "d8594f1f-5382-4f83-bba6-662bfb730cb5"
+              "ch_matrix_id": "d8594f1f-5382-4f83-bba6-662bfb730cb5",
+              "description": "Playwright SIT tests run against local topology"
             }
           ],
           "ch_matrix_id": "3d49a448-330e-488a-8cf1-2c07cb5a9bb9",
@@ -29905,10 +30427,11 @@
             "Vite 5"
           ]
         }
-      ]
+      ],
+      "type": "operational"
     },
     {
-      "epic_id": "EPIC-TALKCARE",
+      "epic_id": "EPIC-007",
       "name": "Talk About Care",
       "status": "accepted",
       "description": "Multi-participant, AI-assisted healthcare collaboration environment. Users invite family, friends, and caregivers into a shared session where humans and multiple AI models interact in real time. Renamed from 'Talk About Care' in business plan.",
@@ -29917,9 +30440,6 @@
           "name": "ChatRoom UX",
           "status": "accepted",
           "description": "Real-time multi-participant chat room with AI models and human users. AI models have animated avatars. Human users can use their cameras.",
-          "dependencies": [
-            "EPIC-9"
-          ],
           "stories": [
             {
               "story_id": "TC-ROOM-001",
@@ -29977,7 +30497,8 @@
           ],
           "feature_id": "TC-ROOM"
         }
-      ]
+      ],
+      "type": "operational"
     }
   ],
   "sprint_map": [

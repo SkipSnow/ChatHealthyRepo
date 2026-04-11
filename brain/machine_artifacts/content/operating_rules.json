@@ -66,10 +66,16 @@
       "id": "v4-007",
       "title": "System consistency",
       "rule": "Every requirement is a child of a story. Every story is a child of a feature. Every feature is a child of an epic. Every feature has a place on the roadmap. Every roadmap item exists in BOTH Website/roadmap.html AND a roadmap JSON. Every requirement, story, feature, epic, and roadmap item has a status. Every requirement points to a test file where it can be tested as a boolean pass/fail. Every requirement must have a pytest that tests the boolean associated with it and that pytest is a child of each requirement. One pytest can satisfy more than one requirement. A pytest cannot look at a single component but must use Playwright to test the entire UX. Unless the pytest is for pipeline requirements.\n\nWhen a requirement refinement comes in, update the relevant artifact immediately -- same turn. When Skip Snow rejects or corrects any item, Claude must: (1) apply the correction, (2) scan ALL requirements for contradictions, (3) fix or reject contradicting requirements, (4) verify no duplicates, (5) verify parent-child relationships are intact. Every Skip Snow override triggers a full consistency check.\n\nEvery design must exist in brain/machine_artifacts/content/design.json. When adding any backlog item, update both roadmap + assignment in the same operation.",
-      "enforcement": {
-        "type": "requirement_pytest",
-        "path": "brain/machine_artifacts/content/agile_backlog.json"
-      },
+      "enforcement": [
+        {
+          "type": "requirement_pytest",
+          "path": "brain/machine_artifacts/content/agile_backlog.json"
+        },
+        {
+          "type": "backlog_schema",
+          "path": "brain/machine_artifacts/content/agile_backlog.json"
+        }
+      ],
       "ch_matrix_id": "bd81678a-2bb6-4f2e-9e30-9416d189b78d"
     },
     {

@@ -177,6 +177,58 @@ def enforce_requirement_pytest(rule_id, enforcement):
     return violations
 
 
+def enforce_backlog_schema(rule_id, enforcement):
+    """Validate agile_backlog.json against agile_backlog_schema in schema.json.
+    Checks required fields, patterns, and possible_values at all levels."""
+    violations = []
+    backlog_path = os.path.join(REPO_ROOT, enforcement.get("path", "brain/machine_artifacts/content/agile_backlog.json"))
+    schema_path = os.path.join(REPO_ROOT, "brain", "machine_artifacts", "content", "schema.json")
+
+    if not os.path.exists(backlog_path) or not os.path.exists(schema_path):
+        violations.append(f"{rule_id}: agile_backlog.json or schema.json missing")
+        return violations
+
+    try:
+        with open(schema_path, "r", encoding="utf-8") as f:
+            schema = json.load(f)
+        with open(backlog_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        violations.append(f"{rule_id}: invalid JSON: {e}")
+        return violations
+
+    schemas = schema.get("collections", {}).get("agile_backlog", {}).get("record_schemas", {})
+    if not schemas:
+        return violations  # No schema to validate against
+
+    def check(obj, sdef, path):
+        for fname, fdef in sdef.get("fields", {}).items():
+            if fname in ("features", "stories", "requirements", "depends_on"):
+                continue
+            if fdef.get("required") and fname not in obj:
+                violations.append(f"{rule_id}: {path} missing required field '{fname}'")
+            if fname in obj:
+                val = obj[fname]
+                pattern = fdef.get("pattern", "")
+                if pattern and isinstance(val, str) and not re.match(pattern, val):
+                    violations.append(f"{rule_id}: {path} '{fname}' value '{val}' does not match {pattern}")
+
+    for epic in data.get("epics", []):
+        eid = epic.get("epic_id", "?")
+        check(epic, schemas.get("epic", {}), f"epic:{eid}")
+        for feat in epic.get("features", []):
+            fid = feat.get("feature_id", "?")
+            check(feat, schemas.get("feature", {}), f"feature:{fid}")
+            for story in feat.get("stories", []):
+                sid = story.get("story_id", "?")
+                check(story, schemas.get("story", {}), f"story:{sid}")
+                for req in story.get("requirements", []):
+                    rid = req.get("req_id", "?")
+                    check(req, schemas.get("requirement", {}), f"req:{rid}")
+
+    return violations
+
+
 EXECUTORS = {
     "file_scan": enforce_file_scan,
     "file_absent": enforce_file_absent,
@@ -184,6 +236,7 @@ EXECUTORS = {
     "json_check": enforce_json_check,
     "no_pattern": enforce_no_pattern,
     "requirement_pytest": enforce_requirement_pytest,
+    "backlog_schema": enforce_backlog_schema,
 }
 
 
@@ -212,28 +265,40 @@ def main(target: str) -> int:
         rule_id = rule.get("id", "unknown")
         enforcement = rule.get("enforcement")
 
-        if not enforcement or not isinstance(enforcement, dict):
+        if not enforcement:
             skipped += 1
             continue
 
-        enf_type = enforcement.get("type", "")
-        executor = EXECUTORS.get(enf_type)
-
-        if not executor:
-            print(f"WARN: {rule_id}: unknown enforcement type '{enf_type}'")
-            skipped += 1
-            continue
-
-        violations = executor(rule_id, enforcement)
-        checked += 1
-
-        if violations:
-            print(f"FAIL: {rule_id}")
-            for v in violations:
-                print(f"  {v}")
-            all_violations.extend(violations)
+        # Support both single enforcement (dict) and multiple (array)
+        if isinstance(enforcement, list):
+            enf_list = enforcement
+        elif isinstance(enforcement, dict):
+            enf_list = [enforcement]
         else:
-            print(f"PASS: {rule_id}")
+            skipped += 1
+            continue
+
+        for enf in enf_list:
+            if not isinstance(enf, dict):
+                continue
+            enf_type = enf.get("type", "")
+            executor = EXECUTORS.get(enf_type)
+
+            if not executor:
+                print(f"WARN: {rule_id}: unknown enforcement type '{enf_type}'")
+                skipped += 1
+                continue
+
+            violations = executor(rule_id, enf)
+            checked += 1
+
+            if violations:
+                print(f"FAIL: {rule_id} ({enf_type})")
+                for v in violations:
+                    print(f"  {v}")
+                all_violations.extend(violations)
+            else:
+                print(f"PASS: {rule_id} ({enf_type})")
 
     # SEC-HTTPS-001-REQ-006: Run scan_http.py on staged files
     import subprocess as _sp

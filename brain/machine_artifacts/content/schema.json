@@ -173,7 +173,6 @@
             "name": {"type": "string", "required": true},
             "status": {"type": "string", "required": true, "constrained_by": "CV-005"},
             "description": {"type": "string", "required": true},
-            "dependencies": {"type": "array", "items": "string", "required": false, "description": "Array of epic_ids this feature depends on"},
             "realized_by": {"type": "array", "items": "string", "required": false, "description": "Technical components that implement this feature. Free text until architecture component IDs are defined post-alpha. Will reference architecture.json component IDs."},
             "stories": {"type": "array", "items": "story", "required": true, "description": "Array of stories belonging to this feature"}
           }
@@ -198,7 +197,8 @@
             "status": {"type": "string", "required": true, "constrained_by": "CV-005"},
             "pytest_ids": {"type": "array", "items": "string", "min_items": 1, "required_when": "status in (implemented, in_progress)", "description": "References to pytests that validate this requirement. At least one required when implemented."},
             "bug_ids": {"type": "array", "items": "string", "required": false, "description": "Links to bugs filed against this requirement"},
-            "realized_by": {"type": "array", "items": "string", "required": false, "description": "Technical components that implement this requirement. Free text until architecture component IDs are defined post-alpha."}
+            "realized_by": {"type": "array", "items": "string", "required": false, "description": "Technical components that implement this requirement. Free text until architecture component IDs are defined post-alpha."},
+            "depends_on": {"type": "array", "items": {"type": "object", "fields": {"story_id": "string", "reason": "string"}}, "required": false, "description": "Stories this requirement depends on. If the dependency story fails, this requirement cannot pass."}
           }
         }
       }
