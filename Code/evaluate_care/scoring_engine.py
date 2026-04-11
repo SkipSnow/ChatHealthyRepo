@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Skip Snow. All rights reserved.
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # EVAL-SCORE-PROV / EVAL-SCORE-CT — composite scoring engine.
 #
 # Deterministic: same input always yields same output.

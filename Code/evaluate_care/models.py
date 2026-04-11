@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Skip Snow. All rights reserved.
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Pydantic models for the Evaluate Care scoring engine.
 # Covers all input/output schemas for EVAL-SCORE-PROV, EVAL-SCORE-CT, and
 # cross-cutting concerns (provenance, confidence, cache, explainability).

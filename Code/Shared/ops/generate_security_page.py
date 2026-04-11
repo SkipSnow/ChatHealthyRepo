@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2026 Skip Snow. All rights reserved.
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 #
 # Generates Website/security-architecture.html from brain JSON sources of truth.
 # Sources:
@@ -121,7 +121,7 @@ def main():
 
     html = f"""<!DOCTYPE html>
 <!--
-  Copyright (c) 2026 Skip Snow. All rights reserved.
+  Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
   Licensed under the FindCare Evaluation License (FEL-1.0).
 
   GENERATED FILE — do not edit directly.

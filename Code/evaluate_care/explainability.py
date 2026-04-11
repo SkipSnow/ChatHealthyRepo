@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Skip Snow. All rights reserved.
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # EVAL-EXPLAIN — human-readable score explanations.
 
 from __future__ import annotations

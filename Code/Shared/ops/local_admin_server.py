@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2026 Skip Snow. All rights reserved.
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Local HTTPS server for admin content on port 443.
 # Uses self-signed cert from certs/ directory.
 # Usage: python local_admin_server.py
