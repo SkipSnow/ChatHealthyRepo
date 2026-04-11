@@ -1,47 +1,66 @@
 # QA Report — 2026-04-11
-## https://localhost (servers restarted, latest code)
+## https://localhost
 
 ---
 
-## YOUR UAT — Test These Now
+## YOUR UAT (17) — sorted by severity
 
-| Bug | What to test | How |
+| Severity | Bug | What to test |
 |---|---|---|
-| BUG-UX-011 | Apply Filter refreshes results | Uncheck a specialty, click Apply, list changes |
-| BUG-UX-002 | Filter panel scrolls | Search something with many specialties, scroll the list |
-| BUG-UX-015 | Filter labels readable | "Prescribers" and "Homeopathic" not truncated |
-| BUG-UX-010 | No garbage text in chat | Search, no raw specialty list visible |
-| BUG-MODEL-001 | Good specialty results | Search "headache", relevant specialties appear |
-| BUG-EVAL-002 | Only selected providers sent | Select 1, evaluate, verify only 1 shows |
-| BUG-MSG-001 | No duplicate summary | One summary message, not two |
-| BUG-MSG-002 | Uses your words | Search "shrinks", says "shrinks" not "psychiatrists" |
-| BUG-BA-001 | Three numbers correct | Filter header shows specialty type counts, not provider counts |
-| UAT-FILTER-001 | Filter overall | Checkboxes, toggles, Apply, counts |
+| show_stopper | BUG-UX-006 | Session tokens displayed in EvaluateCare right panel |
+| medium | BUG-MSG-001 | No duplicate summary message |
+| medium | BUG-MSG-002 | Summary uses your words not medical terms |
+| medium | BUG-FILTER-002 | Filter text horizontal not sideways |
+| medium | BUG-UX-002 | Filter panel scrolls |
+| medium | BUG-UX-003 | Stop button not orphaned |
+| medium | BUG-UX-004 | Prescriber toggle stays in correct state |
+| medium | BUG-UX-010 | No garbage text in chat |
+| medium | BUG-MODEL-001 | Relevant specialties for search |
+| medium | BUG-EVAL-002 | Only selected providers sent to evaluate |
+| medium | BUG-EVAL-003 | Pick 1, only 1 shows in evaluate |
+| medium | BUG-CODE-001 | General — app works, no visual glitches |
+| medium | BUG-PIPE-002 | Pipeline try/finally (running now) |
+| medium | BUG-PIPE-008 | Both vector indexes (verified ok) |
+| medium | UAT-FILTER-001 | Filter functionality overall |
+| medium | UAT-UX-001 | Timer + stop button together |
+| medium | BUG-BA-001 | Three filter numbers are specialty counts |
 
 ---
 
-## CLAUDE FIXES — Don't Test Yet
+## CLAUDE WORKING (37) — sorted by severity
 
-| Bug | What I'm doing |
-|---|---|
-| BUG-REG-001 | 91 regression criteria — stabilizing all tests |
-| BUG-TEST-001 to 030 | Individual pytest fixes |
-| BUG-GOV-005 | Missing pytests on requirements |
-| BUG-GOV-006 | Guard structured I/O (done, needs verify) |
-| BUG-SEC-005 | 426 body on all servers/environments |
-| BUG-UX-009 | Selection panel scroll (minHeight fix applied) |
+| Severity | Bug | Status |
+|---|---|---|
+| show_stopper | BUG-GOV-005 | Requirements without pytests — scanner built |
+| show_stopper | BUG-UX-011 | Apply Filter — implementing Boss rewrite of requirement |
+| critical | BUG-SEC-005 | 426 body on every server |
+| critical | BUG-UX-014 | Evaluate button cold/hot — just implemented, needs Playwright test |
+| critical | BUG-UX-015 | Filter labels truncated — fix applied |
+| critical | BUG-REG-001 | 69 regression criteria — stabilizing tests |
+| high | BUG-GOV-006 | Guard structured I/O — done |
+| high | BUG-TEST-001 to 030 | 30 individual pytest fixes |
 
 ---
 
-## NEEDS YOUR INPUT — Can't Fix Without You
+## NEEDS YOUR INPUT (39) — sorted by severity
 
-| Bug | What I need |
-|---|---|
-| BUG-DESIGN-001 | Where do pagination controls go? Mockup needed |
-| BUG-UX-007 | Filter format — does it match your Excel mockup? |
-| BUG-UX-014 | Evaluate button — position, cold/hot state, popup. Requirements written, need your approval to build |
-| BUG-CLASSIFY-001 | Empty bug — what's the issue? |
-| BUG-PERF-001 | Empty bug — what's the issue? |
+| Severity | Bug | What I need |
+|---|---|---|
+| show_stopper | BUG-LOAD-001 | DE provider load — pipeline running MS now |
+| show_stopper | BUG-LOAD-002 | Provider count wrong — depends on pipeline |
+| show_stopper | BUG-DATA-001 | Frontend data insufficient — depends on pipeline |
+| show_stopper | BUG-PIPE-010 | Quality pipeline ships without embeddings |
+| critical | BUG-VECTOR-001 | Vector search — indexes now created, needs retest |
+| critical | BUG-LEGAL-001 | CPT codes consumer-facing restriction |
+| critical | BUG-002 | Empty description — what's the issue? |
+| medium | BUG-DESIGN-001 | Pagination controls — where do they go? |
+| medium | BUG-UX-007 | Filter format vs Excel mockup |
+| medium | BUG-UX-001 | 'kids doc in VA' stuck — needs live test |
+| medium | BUG-CLASSIFY-001 | Empty — what's the issue? |
+| medium | BUG-PERF-001 | Empty — what's the issue? |
+| medium | BUG-001 | Empty — what's the issue? |
+| medium | BUG-GOV-002 | Boss constraint check |
+| low | BUG-UX-005 | Low priority |
 
 ---
 
