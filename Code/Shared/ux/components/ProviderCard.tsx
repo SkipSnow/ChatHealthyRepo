@@ -92,10 +92,14 @@ export function ProviderCard({
       {/* Provider info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={nameStyle}>{p.name}</div>
+        {(p.specialty || p.primary_specialty) && (
+          <div style={{ fontSize: '10px', color: '#0b7a75', fontWeight: 500 }}>
+            {p.specialty || p.primary_specialty}
+          </div>
+        )}
         {!compact && p.address && <div style={detailStyle}>{p.address}</div>}
         {!compact && p.county && <div style={detailStyle}>{p.county}</div>}
         {!compact && p.phone && <div style={detailStyle}>Phone: {p.phone}</div>}
-        {compact && <div style={detailStyle}>{p.specialty || p.primary_specialty || ''}</div>}
         <div style={{ ...detailStyle, color: '#9ca3af' }}>NPI: {p.npi}</div>
       </div>
 
