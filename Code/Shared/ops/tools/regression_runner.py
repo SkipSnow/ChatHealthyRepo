@@ -182,12 +182,16 @@ def run_regression(scope_type="all", scope_value=None, concurrency=4):
     completed_count = [0]
     total_tasks = sum(len([p for p in t["pytest_ids"] if p.strip() and p != "NEEDS_TEST"]) for t in testable)
 
+    launch_counter = [0]
+
     async def run_and_stream(t, pid, sem):
         pid = pid.strip()
+        # Stagger launches by 50ms to smooth CPU spike from simultaneous process startup
+        launch_counter[0] += 1
+        await asyncio.sleep(launch_counter[0] * 0.05)
         result = await run_single_test_async(pid, t.get("test_method", ""), t.get("test_timeout_seconds", 0), sem)
         _, status, detail = result
         completed_count[0] += 1
-        # Stream: print immediately as each test completes
         marker = "PASS" if status == "pass" else status.upper()
         print(f"  [{completed_count[0]}/{total_tasks}] {t['req_id']} / {pid}: {marker}", flush=True)
         return t["req_id"], {"pytest_id": pid, "result": status, "detail": detail}
