@@ -1245,7 +1245,7 @@
     {
       "id": "BUG-REG-001",
       "req_id": "PIPE-TR-003-REQ-004",
-      "rule": "BUG: Full regression at 61% pass rate. 51 acceptance criteria — each failed or not-found test must be fixed to reach 100%.",
+      "rule": "BUG: Full regression at 61% pass rate. 91 acceptance criteria — each failed, not-found, or untestable requirement must be fixed to reach 100%.",
       "incident": "First full regression run 2026-04-11. 48 pass, 30 fail, 21 not found. Concurrency 16, staggered 50ms.",
       "date": "2026-04-11",
       "type": "critical",
@@ -1259,7 +1259,7 @@
       "resolution_status": "fixing",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000036-0000-4000-e000-000000000036",
-      "reason": "51 tests either fail or reference non-existent test files. Each criterion must pass for regression to reach 100%.",
+      "reason": "91 tests either fail, reference non-existent test files, or have no pytest_ids. Each criterion must pass for regression to reach 100%.",
       "acceptance_criteria": [
         {
           "req_id": "TEST-SIM-001-REQ-001",
@@ -1595,6 +1595,246 @@
           "req_id": "FC-BACKEND-011-REQ-002",
           "issue": "pytest_id references test that does not exist on disk",
           "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-BP-001-REQ-001",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-BP-004-REQ-001",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-BP-004-REQ-002",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-BP-004-REQ-003",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-BP-004-REQ-007",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-DQ-004-REQ-009",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-DQ-004-REQ-010",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-DQ-004-REQ-011",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-DQ-004-REQ-013",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-DQ-004-REQ-014",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-DQ-004-REQ-016",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-DQ-004-REQ-017",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-DQ-004-REQ-018",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "FINDCARE-FILTER-001",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "FINDCARE-FILTER-002",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "FINDCARE-FILTER-003",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-QG-001-REQ-001",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-QG-001-REQ-002",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-QG-001-REQ-003",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-QG-001-REQ-004",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-FA-001-REQ-001",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-FA-001-REQ-002",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-FA-001-REQ-003",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-SD-001-REQ-001",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-SD-001-REQ-002",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-SD-001-REQ-003",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-SD-001-REQ-004",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-ID-001-REQ-001",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-ID-001-REQ-002",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-ID-001-REQ-003",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-CO-001-REQ-001",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-CO-001-REQ-002",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-CO-001-REQ-003",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-CO-001-REQ-004",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-CO-001-REQ-005",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-CP-001-REQ-001",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-CP-001-REQ-002",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-TR-001-REQ-001",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-TR-001-REQ-002",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-TR-001-REQ-003",
+          "issue": "implemented requirement has no pytest_ids",
+          "action": "create the test",
           "status": "open"
         }
       ]
