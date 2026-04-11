@@ -1,12 +1,12 @@
 {
-  "scope": "story",
-  "scope_value": "FC-FILT-001",
-  "timestamp": "2026-04-11T18:10:01.360958Z",
+  "scope": "feature",
+  "scope_value": "FC-SEARCH",
+  "timestamp": "2026-04-11T18:11:36.162001Z",
   "counts": {
-    "pass": 5,
+    "pass": 7,
     "fail": 2,
     "skip": 0,
-    "not_testable": 2,
+    "not_testable": 17,
     "not_found": 0,
     "error": 0,
     "timeout": 0
@@ -15,19 +15,19 @@
     {
       "epic_id": "EPIC-006",
       "epic_name": "FindCare",
-      "feature_id": "FC-FILTER",
-      "feature_name": "Specialty Filter",
-      "story_id": "FC-FILT-001",
-      "req_id": "FC-FILT-001-REQ-001",
-      "requirement": "Filter panel shows specialty types from search results",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SEARCH-001",
+      "req_id": "FC-SEARCH-001-REQ-001",
+      "requirement": "User can search by free text",
       "pytest_ids": [
-        "test_filter_panel.py::TestFilterPanelDisplay::test_filter_checkboxes_visible_and_labeled"
+        "test_findcare_search.py::TestProviderSearchFreeText::test_free_text_search_returns_results"
       ],
       "status": "implemented",
       "result": "pass",
       "test_details": [
         {
-          "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_filter_checkboxes_visible_and_labeled",
+          "pytest_id": "test_findcare_search.py::TestProviderSearchFreeText::test_free_text_search_returns_results",
           "result": "pass",
           "detail": ""
         }
@@ -36,19 +36,19 @@
     {
       "epic_id": "EPIC-006",
       "epic_name": "FindCare",
-      "feature_id": "FC-FILTER",
-      "feature_name": "Specialty Filter",
-      "story_id": "FC-FILT-001",
-      "req_id": "FC-FILT-001-REQ-002",
-      "requirement": "Prescribers only checkbox filters to prescriber specialties",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SEARCH-001",
+      "req_id": "FC-SEARCH-001-REQ-002",
+      "requirement": "System returns provider name, NPI, address, county, phone",
       "pytest_ids": [
-        "test_filter_panel.py::TestFilterPanelDisplay::test_prescribers_only_filters_to_prescriber_specialties"
+        "test_findcare_search.py::TestProviderResultFields::test_results_contain_npi"
       ],
       "status": "implemented",
       "result": "pass",
       "test_details": [
         {
-          "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_prescribers_only_filters_to_prescriber_specialties",
+          "pytest_id": "test_findcare_search.py::TestProviderResultFields::test_results_contain_npi",
           "result": "pass",
           "detail": ""
         }
@@ -57,19 +57,19 @@
     {
       "epic_id": "EPIC-006",
       "epic_name": "FindCare",
-      "feature_id": "FC-FILTER",
-      "feature_name": "Specialty Filter",
-      "story_id": "FC-FILT-001",
-      "req_id": "FC-FILT-001-REQ-003",
-      "requirement": "Homeopathic only checkbox adds homeopathic specialties",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SEARCH-001",
+      "req_id": "FC-SEARCH-001-REQ-003",
+      "requirement": "Results paginated with forward/back controls",
       "pytest_ids": [
-        "test_filter_panel.py::TestFilterPanelDisplay::test_homeopathic_only_adds_homeopathic_specialties"
+        "test_findcare_search.py::TestProviderSearchPagination::test_pagination_controls_present"
       ],
       "status": "implemented",
       "result": "pass",
       "test_details": [
         {
-          "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_homeopathic_only_adds_homeopathic_specialties",
+          "pytest_id": "test_findcare_search.py::TestProviderSearchPagination::test_pagination_controls_present",
           "result": "pass",
           "detail": ""
         }
@@ -78,19 +78,19 @@
     {
       "epic_id": "EPIC-006",
       "epic_name": "FindCare",
-      "feature_id": "FC-FILTER",
-      "feature_name": "Specialty Filter",
-      "story_id": "FC-FILT-001",
-      "req_id": "FC-FILT-001-REQ-004",
-      "requirement": "Three counts displayed: total types, showing, filtered",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SEARCH-001",
+      "req_id": "FC-SEARCH-001-REQ-004",
+      "requirement": "System identifies matching specialty types from search query",
       "pytest_ids": [
-        "test_filter_panel.py::TestFilterPanelDisplay::test_filter_header_shows_specialty_counts_not_provider_counts"
+        "test_findcare_search.py::TestSpecialtyClassification::test_specialty_types_identified"
       ],
       "status": "implemented",
       "result": "pass",
       "test_details": [
         {
-          "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_filter_header_shows_specialty_counts_not_provider_counts",
+          "pytest_id": "test_findcare_search.py::TestSpecialtyClassification::test_specialty_types_identified",
           "result": "pass",
           "detail": ""
         }
@@ -99,91 +99,328 @@
     {
       "epic_id": "EPIC-006",
       "epic_name": "FindCare",
-      "feature_id": "FC-FILTER",
-      "feature_name": "Specialty Filter",
-      "story_id": "FC-FILT-001",
-      "req_id": "FC-FILT-001-REQ-005",
-      "requirement": "Check all / uncheck all toggle",
-      "pytest_ids": [
-        "test_filter_panel.py::TestFilterPanelDisplay::test_uncheck_all_updates_your_choices_to_zero"
-      ],
-      "status": "implemented",
-      "result": "pass",
-      "test_details": [
-        {
-          "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_uncheck_all_updates_your_choices_to_zero",
-          "result": "pass",
-          "detail": ""
-        }
-      ]
-    },
-    {
-      "epic_id": "EPIC-006",
-      "epic_name": "FindCare",
-      "feature_id": "FC-FILTER",
-      "feature_name": "Specialty Filter",
-      "story_id": "FC-FILT-001",
-      "req_id": "FC-FILT-001-REQ-006",
-      "requirement": "Filter header must display as horizontal grid: [Filter by specialty] [All possible: N] [Prescribers ",
-      "pytest_ids": [
-        "test_filter_panel.py::test_filter_header_labels_not_truncated"
-      ],
-      "status": "open",
-      "result": "fail",
-      "test_details": [
-        {
-          "pytest_id": "test_filter_panel.py::test_filter_header_labels_not_truncated",
-          "result": "fail",
-          "detail": "\nno tests ran in 0.02s\nERROR: not found: C:\\chatHealthy\\findCare\\Code\\ConversationalUX\\FindCareChat\\backend\\tests\\test_filter_panel.py::test_filter_header_labels_not_truncated\n(no match in any of [<Module test_filter_panel.py>])\n\n"
-        }
-      ]
-    },
-    {
-      "epic_id": "EPIC-006",
-      "epic_name": "FindCare",
-      "feature_id": "FC-FILTER",
-      "feature_name": "Specialty Filter",
-      "story_id": "FC-FILT-001",
-      "req_id": "FC-FILT-001-REQ-007",
-      "requirement": "When the user clicks Apply Filter, the system re-queries the database with only the checked specialt",
-      "pytest_ids": [
-        "test_filter_panel.py::test_apply_filter_requeries_with_checked_codes"
-      ],
-      "status": "open",
-      "result": "fail",
-      "test_details": [
-        {
-          "pytest_id": "test_filter_panel.py::test_apply_filter_requeries_with_checked_codes",
-          "result": "fail",
-          "detail": "\nno tests ran in 0.02s\nERROR: not found: C:\\chatHealthy\\findCare\\Code\\ConversationalUX\\FindCareChat\\backend\\tests\\test_filter_panel.py::test_apply_filter_requeries_with_checked_codes\n(no match in any of [<Module test_filter_panel.py>])\n\n"
-        }
-      ]
-    },
-    {
-      "epic_id": "EPIC-006",
-      "epic_name": "FindCare",
-      "feature_id": "FC-FILTER",
-      "feature_name": "Specialty Filter",
-      "story_id": "FC-FILT-001",
-      "req_id": "FC-FILT-001-REQ-008",
-      "requirement": "Toggle button must apply to all items in the filter list, including items above or below the visible",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SEARCH-001",
+      "req_id": "FC-SEARCH-001-REQ-005",
+      "requirement": "Available provider cards show provider specialty on second row, matching the specialty from the filt",
       "pytest_ids": [],
-      "status": "untested",
+      "status": "open",
       "result": "not_testable",
       "detail": ""
     },
     {
       "epic_id": "EPIC-006",
       "epic_name": "FindCare",
-      "feature_id": "FC-FILTER",
-      "feature_name": "Specialty Filter",
-      "story_id": "FC-FILT-001",
-      "req_id": "FC-FILT-001-REQ-009",
-      "requirement": "Label must read 'Uncheck All' when majority are checked, 'Check All' when majority are unchecked.",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SEARCH-001",
+      "req_id": "FC-SEARCH-001-REQ-006",
+      "requirement": "Provider search is a database query against a list of specialty codes — never an AI call. The AI's o",
+      "pytest_ids": [
+        "test_classify_performance.py::test_classify_returns_ordered_specialties"
+      ],
+      "status": "implemented",
+      "result": "fail",
+      "test_details": [
+        {
+          "pytest_id": "test_classify_performance.py::test_classify_returns_ordered_specialties",
+          "result": "fail",
+          "detail": "\nno tests ran in 0.02s\nERROR: not found: C:\\chatHealthy\\findCare\\Code\\ConversationalUX\\FindCareChat\\backend\\tests\\test_classify_performance.py::test_classify_returns_ordered_specialties\n(no match in any of [<Module test_classify_performance.py>])\n\n"
+        }
+      ]
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SEARCH-001",
+      "req_id": "FC-SEARCH-001-REQ-007",
+      "requirement": "The search timer must count elapsed seconds continuously from the moment the user submits a search u",
+      "pytest_ids": [
+        "test_search_timer.py::test_timer_runs_until_results_displayed"
+      ],
+      "status": "implemented",
+      "result": "fail",
+      "test_details": [
+        {
+          "pytest_id": "test_search_timer.py::test_timer_runs_until_results_displayed",
+          "result": "fail",
+          "detail": "\nno tests ran in 0.02s\nERROR: not found: C:\\chatHealthy\\findCare\\Code\\ConversationalUX\\FindCareChat\\backend\\tests\\test_search_timer.py::test_timer_runs_until_results_displayed\n(no match in any of [<Module test_search_timer.py>])\n\n"
+        }
+      ]
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SELECT-001",
+      "req_id": "FC-SELECT-001-REQ-001",
+      "requirement": "Main chat window splits vertically: top = available providers, bottom = selected providers (max 5)",
       "pytest_ids": [],
-      "status": "untested",
+      "status": "open",
       "result": "not_testable",
       "detail": ""
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SELECT-001",
+      "req_id": "FC-SELECT-001-REQ-002",
+      "requirement": "User can drag and drop a provider from top list to bottom list to select",
+      "pytest_ids": [],
+      "status": "open",
+      "result": "not_testable",
+      "detail": ""
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SELECT-001",
+      "req_id": "FC-SELECT-001-REQ-003",
+      "requirement": "User can click an arrow button on a provider row to move it to selected list",
+      "pytest_ids": [],
+      "status": "open",
+      "result": "not_testable",
+      "detail": ""
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SELECT-001",
+      "req_id": "FC-SELECT-001-REQ-004",
+      "requirement": "Selected providers (bottom list) have a delete/erase icon to move back to top list",
+      "pytest_ids": [],
+      "status": "open",
+      "result": "not_testable",
+      "detail": ""
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SELECT-001",
+      "req_id": "FC-SELECT-001-REQ-005",
+      "requirement": "Maximum 5 providers in selected list. Attempting to add a 6th is blocked with feedback",
+      "pytest_ids": [],
+      "status": "open",
+      "result": "not_testable",
+      "detail": ""
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SELECT-001",
+      "req_id": "FC-SELECT-001-REQ-006",
+      "requirement": "Click Evaluate Care with empty selected list shows popup: select at least one provider",
+      "pytest_ids": [],
+      "status": "open",
+      "result": "not_testable",
+      "detail": ""
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SELECT-001",
+      "req_id": "FC-SELECT-001-REQ-007",
+      "requirement": "Only selected providers (bottom list) sent to EvaluateCare on handoff",
+      "pytest_ids": [],
+      "status": "open",
+      "result": "not_testable",
+      "detail": ""
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SELECT-001",
+      "req_id": "FC-SELECT-001-REQ-008",
+      "requirement": "Garbage icon on top list providers dismisses them from view. Garbage shows count badge",
+      "pytest_ids": [],
+      "status": "open",
+      "result": "not_testable",
+      "detail": ""
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SELECT-001",
+      "req_id": "FC-SELECT-001-REQ-009",
+      "requirement": "Dismissed providers stay gone until user asks a new question in chat prompt",
+      "pytest_ids": [],
+      "status": "open",
+      "result": "not_testable",
+      "detail": ""
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SELECT-001",
+      "req_id": "FC-SELECT-001-REQ-010",
+      "requirement": "New chat question flushes garbage: count goes to 0, dismissed providers reappear, user sees it happe",
+      "pytest_ids": [],
+      "status": "open",
+      "result": "not_testable",
+      "detail": ""
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SELECT-001",
+      "req_id": "FC-SELECT-001-REQ-011",
+      "requirement": "When filter applied, top list re-renders with matching providers and all counts update",
+      "pytest_ids": [],
+      "status": "open",
+      "result": "not_testable",
+      "detail": ""
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SELECT-001",
+      "req_id": "FC-SELECT-001-REQ-012",
+      "requirement": "If selected provider no longer matches active filter, row color changes and tooltip shows on hover: ",
+      "pytest_ids": [],
+      "status": "open",
+      "result": "not_testable",
+      "detail": ""
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SELECT-001",
+      "req_id": "FC-SELECT-001-REQ-013",
+      "requirement": "Click on filtered-out selected provider gives choice: keep or delete. Delete moves to garbage",
+      "pytest_ids": [],
+      "status": "open",
+      "result": "not_testable",
+      "detail": ""
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SELECT-001",
+      "req_id": "FC-SELECT-001-REQ-014",
+      "requirement": "Selected list and garbage cache persist across pagination",
+      "pytest_ids": [],
+      "status": "open",
+      "result": "not_testable",
+      "detail": ""
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SELECT-001",
+      "req_id": "FC-SELECT-001-REQ-015",
+      "requirement": "Garbage cache is a JS array for future recoverability",
+      "pytest_ids": [],
+      "status": "open",
+      "result": "not_testable",
+      "detail": ""
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-SELECT-001",
+      "req_id": "FC-SELECT-001-REQ-016",
+      "requirement": "Selected providers list (bottom) shows only provider name, specialty, and NPI. Full details (address",
+      "pytest_ids": [],
+      "status": "open",
+      "result": "not_testable",
+      "detail": ""
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-INDEX-001",
+      "req_id": "FC-INDEX-001-REQ-001",
+      "requirement": "HTTP :80 / returns 301 redirect to HTTPS. This is the one and only page allowed to respond on HTTP.",
+      "pytest_ids": [
+        "test_https_security.py::TestHTTPRedirect::test_http_root_redirects_301"
+      ],
+      "status": "implemented",
+      "result": "pass",
+      "test_details": [
+        {
+          "pytest_id": "test_https_security.py::TestHTTPRedirect::test_http_root_redirects_301",
+          "result": "pass",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-INDEX-001",
+      "req_id": "FC-INDEX-001-REQ-002",
+      "requirement": "HTTP :80 /index.html returns 301 redirect to HTTPS.",
+      "pytest_ids": [
+        "test_https_security.py::TestHTTPRedirect::test_http_index_html_redirects_301"
+      ],
+      "status": "implemented",
+      "result": "pass",
+      "test_details": [
+        {
+          "pytest_id": "test_https_security.py::TestHTTPRedirect::test_http_index_html_redirects_301",
+          "result": "pass",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "epic_id": "EPIC-006",
+      "epic_name": "FindCare",
+      "feature_id": "FC-SEARCH",
+      "feature_name": "Provider Search and Selection",
+      "story_id": "FC-INDEX-001",
+      "req_id": "FC-INDEX-001-REQ-003",
+      "requirement": "Every other HTTP request to any path returns 426 Upgrade Required with message: This server refuses ",
+      "pytest_ids": [
+        "test_https_security.py::TestHTTPRedirect::test_http_static_page_returns_426"
+      ],
+      "status": "implemented",
+      "result": "pass",
+      "test_details": [
+        {
+          "pytest_id": "test_https_security.py::TestHTTPRedirect::test_http_static_page_returns_426",
+          "result": "pass",
+          "detail": ""
+        }
+      ]
     }
   ]
 }
