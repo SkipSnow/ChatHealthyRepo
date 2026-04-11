@@ -11,6 +11,7 @@
 #   python regression_runner.py --story FC-SEARCH-001
 
 import argparse
+import asyncio
 import json
 import os
 import subprocess
@@ -105,20 +106,18 @@ def _is_playwright_test(fpath):
         return False
 
 
-def run_single_test(pytest_ref, test_method="", test_timeout=0):
-    """Run a single pytest reference. Returns (status, output)."""
+async def run_single_test_async(pytest_ref, test_method="", test_timeout=0, semaphore=None):
+    """Run a single pytest reference asynchronously. Returns (pytest_ref, status, output)."""
     pytest_ref = _clean_pytest_ref(pytest_ref)
     fpath = find_test_file(pytest_ref)
     if not fpath:
-        return "not_found", f"Test file not found: {pytest_ref}"
+        return pytest_ref, "not_found", f"Test file not found: {pytest_ref}"
 
-    # Build the full pytest path
     parts = pytest_ref.split("::")
     test_path = fpath
     if len(parts) > 1:
         test_path = fpath + "::" + "::".join(parts[1:])
 
-    # Build command — add Playwright args if needed
     cmd = [sys.executable, "-m", "pytest", test_path, "-x", "--tb=short", "-q"]
     is_pw = test_method in ("playwright", "playwright+pytest") or _is_playwright_test(fpath)
     timeout = test_timeout if test_timeout > 0 else (180 if is_pw else 120)
@@ -126,79 +125,126 @@ def run_single_test(pytest_ref, test_method="", test_timeout=0):
     if is_pw:
         cmd.extend(["--browser", "chromium"])
 
-    try:
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=timeout, cwd=REPO_ROOT,
-        )
-        if result.returncode == 0:
-            return "pass", ""
-        elif result.returncode == 5:
-            return "skip", "No tests collected"
-        else:
-            output = result.stdout + result.stderr
-            return "fail", output[-500:] if len(output) > 500 else output
-    except subprocess.TimeoutExpired:
-        return "timeout", f"Test timed out after {timeout}s"
-    except Exception as e:
-        return "error", str(e)
+    async with semaphore:
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, cwd=REPO_ROOT,
+            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+            output = (stdout or b"").decode(errors="replace") + (stderr or b"").decode(errors="replace")
+            if proc.returncode == 0:
+                return pytest_ref, "pass", ""
+            elif proc.returncode == 5:
+                return pytest_ref, "skip", "No tests collected"
+            else:
+                return pytest_ref, "fail", output[-500:]
+        except asyncio.TimeoutError:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+            return pytest_ref, "timeout", f"Test timed out after {timeout}s"
+        except Exception as e:
+            return pytest_ref, "error", str(e)
 
 
-def run_regression(scope_type="all", scope_value=None):
+def run_regression(scope_type="all", scope_value=None, concurrency=4):
     backlog = load_backlog()
     tests = collect_tests(backlog, scope_type, scope_value)
 
-    print(f"Regression Test Runner — scope: {scope_type}" + (f" {scope_value}" if scope_value else ""))
-    print(f"Requirements found: {len(tests)}")
+    # Filter to only testable, implemented requirements
+    testable = []
+    not_testable = []
+    for t in tests:
+        status = t.get("status", "").lower()
+        if status not in ("implemented", "in_progress"):
+            not_testable.append({**t, "result": "not_implemented", "detail": ""})
+            continue
+        pytest_ids = t["pytest_ids"]
+        if not pytest_ids or not any(p.strip() for p in pytest_ids):
+            not_testable.append({**t, "result": "not_testable", "detail": ""})
+            continue
+        testable.append(t)
+
+    print(f"Regression Test Runner -- scope: {scope_type}" + (f" {scope_value}" if scope_value else ""))
+    print(f"Requirements: {len(tests)} total, {len(testable)} testable, {len(not_testable)} skipped")
+    print(f"Concurrency: {concurrency}")
     print("=" * 70)
 
-    results = []
-    counts = {"pass": 0, "fail": 0, "skip": 0, "not_testable": 0, "not_found": 0, "error": 0, "timeout": 0}
+    # Run all testable requirements concurrently
+    results = list(not_testable)  # Start with skipped ones
+    counts = {"pass": 0, "fail": 0, "skip": 0, "not_testable": len([r for r in not_testable if r["result"] == "not_testable"]),
+              "not_implemented": len([r for r in not_testable if r["result"] == "not_implemented"]),
+              "not_found": 0, "error": 0, "timeout": 0}
+
+    async def run_all():
+        sem = asyncio.Semaphore(concurrency)
+        tasks = []
+        task_map = {}  # task -> requirement
+
+        for t in testable:
+            for pid in t["pytest_ids"]:
+                pid = pid.strip()
+                if not pid or pid == "NEEDS_TEST":
+                    continue
+                task = asyncio.create_task(
+                    run_single_test_async(pid, t.get("test_method", ""), t.get("test_timeout_seconds", 0), sem)
+                )
+                tasks.append(task)
+                task_map[id(task)] = t
+
+        completed = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Group results by requirement
+        req_results = {}  # req_id -> list of (pid, status, detail)
+        for task, result in zip(tasks, completed):
+            t = task_map[id(task)]
+            rid = t["req_id"]
+            if isinstance(result, Exception):
+                req_results.setdefault(rid, {"req": t, "details": []})["details"].append(
+                    {"pytest_id": "?", "result": "error", "detail": str(result)}
+                )
+            else:
+                pid, status, detail = result
+                req_results.setdefault(rid, {"req": t, "details": []})["details"].append(
+                    {"pytest_id": pid, "result": status, "detail": detail}
+                )
+
+        return req_results
+
+    req_results = asyncio.run(run_all())
+
+    # Print results in hierarchy order
     current_epic = ""
     current_feature = ""
-
-    for t in tests:
-        # Print hierarchy headers
+    for t in testable:
+        rid = t["req_id"]
         if t["epic_id"] != current_epic:
             current_epic = t["epic_id"]
             print(f"\n{'='*70}")
-            print(f"EPIC: {t['epic_id']} — {t['epic_name']}")
+            print(f"EPIC: {t['epic_id']} -- {t['epic_name']}")
             print(f"{'='*70}")
             current_feature = ""
-
         if t["feature_id"] != current_feature:
             current_feature = t["feature_id"]
-            print(f"\n  Feature: {t['feature_id']} — {t['feature_name']}")
+            print(f"\n  Feature: {t['feature_id']} -- {t['feature_name']}")
             print(f"  {'-'*60}")
 
-        pytest_ids = t["pytest_ids"]
-        if not pytest_ids or not any(p.strip() for p in pytest_ids):
-            status = "not_testable"
-            counts["not_testable"] += 1
-            print(f"    {t['req_id']}: NOT TESTABLE (no pytest_ids)")
-            results.append({**t, "result": "not_testable", "detail": ""})
-            continue
-
-        # Run each pytest_id for this requirement
-        req_pass = True
-        req_details = []
-        for pid in pytest_ids:
-            pid = pid.strip()
-            if not pid or pid == "NEEDS_TEST":
-                continue
-            status, detail = run_single_test(pid, t.get("test_method", ""), t.get("test_timeout_seconds", 0))
-            req_details.append({"pytest_id": pid, "result": status, "detail": detail})
-            if status != "pass":
-                req_pass = False
-
-        overall = "pass" if req_pass else "fail"
-        counts[overall] += 1
-        marker = "PASS" if req_pass else "FAIL"
-        print(f"    {t['req_id']}: {marker}")
-        for d in req_details:
-            if d["result"] != "pass":
-                print(f"      {d['pytest_id']}: {d['result']}")
-
-        results.append({**t, "result": overall, "test_details": req_details})
+        if rid in req_results:
+            details = req_results[rid]["details"]
+            req_pass = all(d["result"] == "pass" for d in details)
+            overall = "pass" if req_pass else "fail"
+            counts[overall] += 1
+            marker = "PASS" if req_pass else "FAIL"
+            print(f"    {rid}: {marker}")
+            for d in details:
+                if d["result"] != "pass":
+                    print(f"      {d['pytest_id']}: {d['result']}")
+            results.append({**t, "result": overall, "test_details": details})
+        else:
+            counts["not_found"] += 1
+            print(f"    {rid}: NOT FOUND")
+            results.append({**t, "result": "not_found", "detail": ""})
 
     # Summary
     print(f"\n{'='*70}")
@@ -238,16 +284,17 @@ def main():
     group.add_argument("--epic", type=str, help="Run tests for one epic (e.g. EPIC-006)")
     group.add_argument("--feature", type=str, help="Run tests for one feature (e.g. FC-SEARCH)")
     group.add_argument("--story", type=str, help="Run tests for one story (e.g. FC-SEARCH-001)")
+    parser.add_argument("--concurrency", type=int, default=4, help="Max concurrent tests (default 4)")
     args = parser.parse_args()
 
     if args.all:
-        success = run_regression("all")
+        success = run_regression("all", concurrency=args.concurrency)
     elif args.epic:
-        success = run_regression("epic", args.epic)
+        success = run_regression("epic", args.epic, concurrency=args.concurrency)
     elif args.feature:
-        success = run_regression("feature", args.feature)
+        success = run_regression("feature", args.feature, concurrency=args.concurrency)
     elif args.story:
-        success = run_regression("story", args.story)
+        success = run_regression("story", args.story, concurrency=args.concurrency)
 
     sys.exit(0 if success else 1)
 

@@ -25281,7 +25281,7 @@
                 {
                   "req_id": "TEST-REG-001-REQ-008",
                   "requirement": "The runner must execute tests concurrently using asyncio (asyncio.create_subprocess_exec). Tests within a story run in parallel since they are I/O-bound (browser, network, DB). Concurrency limit configurable (default 4). Results collected via asyncio.gather.",
-                  "priority": "should-have",
+                  "priority": "must-have",
                   "status": "NOT_STARTED",
                   "realized_by": [
                     "Python 3.11 (asyncio)"
