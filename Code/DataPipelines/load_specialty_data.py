@@ -206,15 +206,85 @@ class ChatHealthyLoadSpecialtyData:
 
 
 # ------------------------------------------------------------------
+# Specialty enrichment — can_prescribe and homeopathic flags
+# ------------------------------------------------------------------
+
+# Same prefixes as county_enrichment_job.py _PRESCRIBER_TAX_PREFIXES
+_PRESCRIBER_TAX_PREFIXES = (
+    "207", "208", "209", "204",
+    "174400000X",  # Optometrist
+    "363L",  # Nurse Practitioner
+    "363A",  # Physician Assistant
+    "367",   # CRNA / Advanced Practice Midwife
+    "122",   # Dentists
+    "213",   # Podiatrists
+    "176",   # Certified Nurse Midwife
+)
+
+# Homeopathic taxonomy codes — specialties that practice alternative/complementary medicine
+_HOMEOPATHIC_TAX_PREFIXES = (
+    "175F",  # Naturopath
+    "171100000X",  # Acupuncturist
+    "111N",  # Chiropractor
+    "152W",  # Optometrist (some overlap)
+    "175L",  # Homeopath
+    "174H",  # Herbalist (if exists)
+    "171W",  # Massage Therapist (complementary)
+)
+
+
+def enrich_specialty_flags(collection_fqn: str) -> dict:
+    """Enrich SpecialtyMetaData with can_prescribe and homeopathic boolean flags.
+
+    Uses taxonomy code prefix matching — same logic as provider enrichment but
+    applied to specialty types, not individual providers.
+
+    Returns counts of classified specialties.
+    """
+    db_name, coll_name = collection_fqn.split(".", 1)
+    coll = _get_mongo_client()[db_name][coll_name]
+
+    docs = list(coll.find({}, {"_id": 1, "Code": 1, "Display Name": 1}))
+    logging.info("Enriching %d specialties with can_prescribe and homeopathic flags", len(docs))
+
+    ops = []
+    prescribers = 0
+    homeopathic = 0
+
+    for doc in docs:
+        code = doc.get("Code", "")
+        can_prescribe = any(code.startswith(p) for p in _PRESCRIBER_TAX_PREFIXES)
+        is_homeopathic = any(code.startswith(p) for p in _HOMEOPATHIC_TAX_PREFIXES)
+
+        if can_prescribe:
+            prescribers += 1
+        if is_homeopathic:
+            homeopathic += 1
+
+        ops.append(UpdateOne(
+            {"_id": doc["_id"]},
+            {"$set": {"can_prescribe": can_prescribe, "homeopathic": is_homeopathic}},
+        ))
+
+    if ops:
+        result = coll.bulk_write(ops, ordered=False)
+        logging.info("Enriched %d specialties: %d prescribers, %d homeopathic",
+                     len(ops), prescribers, homeopathic)
+
+    return {"total": len(docs), "prescribers": prescribers, "homeopathic": homeopathic}
+
+
+# ------------------------------------------------------------------
 # Entry point called from function_app.py dispatch
 # ------------------------------------------------------------------
 
 def run_load_specialty_data(payload: dict = None) -> dict:
-    _env = os.getenv("ENV_PREFIX", "dev")
+    _env = (payload or {}).get("env_prefix", os.getenv("ENV_PREFIX", "dev"))
     collection_fqn = os.getenv("SPECIALTY_COLLECTION", f"{_env}_PublicHealthData.SpecialtyMetaData")
     loader = ChatHealthyLoadSpecialtyData(collection_fqn)
     loader.fetch_csv()
     blob_name = loader.store_to_blob()
     count = loader.load_to_mongo()
     embedded = loader.generate_embeddings()
-    return {"blob": blob_name, "inserted": count, "embedded": embedded}
+    enrichment = enrich_specialty_flags(collection_fqn)
+    return {"blob": blob_name, "inserted": count, "embedded": embedded, "enrichment": enrichment}
