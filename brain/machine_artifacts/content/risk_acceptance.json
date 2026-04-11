@@ -74,6 +74,19 @@
       "rationale": "Need to move forward. Local is a good base. Security must be in place for dev.",
       "mitigation": "Smoke test validates dev after deploy. Ripcord: HF spaces can be paused/restarted.",
       "ch_matrix_id": "d6000001-0000-4000-e000-000000000006"
+    },
+    {
+      "id": "RISK-007",
+      "date": "2026-04-11",
+      "title": "Dev database operations without pipeline certification",
+      "description": "Boss authorizes Claude to perform database operations (create indexes, drop collections, load data) on the dev frontend and pipeline clusters. Pipeline is not yet certified. Risk is negligible — dev environment, no production impact.",
+      "risk": "Dev data corruption or index misconfiguration. No production impact.",
+      "boss_decision": "ACCEPTED",
+      "accepted_by": "Boss (Skip Snow, CEO)",
+      "rationale": "Pipeline not yet certified. Manual operations needed to test FindCare. Dev environment is disposable.",
+      "scope": "dev environment only. Frontend and pipeline clusters.",
+      "expires": "2026-05-01",
+      "ch_matrix_id": "b0000037-0000-4000-e000-000000000037"
     }
   ],
   "ch_matrix_id": "1001cdca-db77-40c2-ab15-5c0441f5ab2b"

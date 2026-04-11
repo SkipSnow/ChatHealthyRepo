@@ -373,6 +373,34 @@ class operating_rules_worker(governance_worker_base):
         )
         return self._call_gpt(self._SYSTEM_PROMPT, user_prompt)
 
+    def _evaluate_state_change_with_risks(self, tool_name, tool_input, risk_text):
+        """Eval B with risk acceptance context. GPT checks if the action is covered."""
+        detail = tool_input.get("command", tool_input.get("file_path", ""))[:500]
+        risk_section = ""
+        if risk_text:
+            risk_section = (
+                f"\n\nBoss has pre-authorized these risk acceptances:\n{risk_text}\n"
+                f"If the tool call is covered by any of these risk acceptances, "
+                f"set covered_by_risk_acceptance=true.\n"
+            )
+        user_prompt = (
+            f"A tool call is being made:\n"
+            f"Tool: {tool_name}\n"
+            f"Input: {detail}\n\n"
+            f"Does this tool call change state OUTSIDE of files tracked in git? "
+            f"Examples of external state: database writes, API POSTs, "
+            f"system config changes, deploying to cloud services.\n"
+            f"Editing source code files, config files, or JSON files in the project is NOT external state.\n"
+            f"Reading from anywhere (network, disk, API GETs) is NOT a state change.\n"
+            f"Killing or restarting a frontend process (uvicorn, vite, caddy on ports 80, 443, 5173, 8000, 8001) in any non-production environment is NOT external state — "
+            f"it is recycling a non-prod resource per DR-009. This does NOT apply to databases, pipeline processes, or production anything.\n"
+            f"{risk_section}\n"
+            f"Respond JSON: {{\"changes_external_state\": true/false, "
+            f"\"state_description\": \"what state would change\", "
+            f"\"covered_by_risk_acceptance\": true/false}}"
+        )
+        return self._call_gpt(self._SYSTEM_PROMPT, user_prompt)
+
     # Governance infrastructure + Boss-authorized patterns — always pass
     _GOVERNANCE_PATTERNS = [
         r"chathealthy_devops_boot\.py",
@@ -496,10 +524,25 @@ class operating_rules_worker(governance_worker_base):
             return {"comply": True, "allow": True}
 
         # Eval B: everything else — does it change external state?
-        result = self._evaluate_state_change(tool_name, tool_input)
+        # Load risk acceptances so GPT can check if the action is pre-authorized
+        risk_text = ""
+        try:
+            ra_path = os.path.join(str(BRAIN_DIR), "risk_acceptance.json")
+            with open(ra_path, encoding="utf-8") as f:
+                ra = json.load(f)
+            active = [e for e in ra.get("entries", []) if e.get("boss_decision") == "ACCEPTED"]
+            if active:
+                risk_text = "\n".join(
+                    f"- RISK-{e['id']}: {e.get('title', '')} — {e.get('scope', e.get('description', ''))}"
+                    for e in active
+                )
+        except Exception:
+            pass
+
+        result = self._evaluate_state_change_with_risks(tool_name, tool_input, risk_text)
         if result.get("error"):
             return {"comply": True, "allow": True}  # fail open
-        if result.get("changes_external_state"):
+        if result.get("changes_external_state") and not result.get("covered_by_risk_acceptance"):
             return {
                 "comply": False,
                 "allow": False,
