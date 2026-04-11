@@ -20021,7 +20021,7 @@
           "epic_id": "EPIC-6",
           "layer": "infrastructure",
           "capability": "Security",
-          "description": "OAuth 2.0 with PKCE for end-user authentication. Three social identity providers: Google, Facebook, Apple. Layered protocol: authorization code flow with PKCE, ID token validation, session management. Users sign in with existing accounts — no password to manage. Required for EvaluateCare premium tier and Discuss Care sessions.",
+          "description": "OAuth 2.0 with PKCE for end-user authentication. Three social identity providers: Google, Facebook, Apple. Layered protocol: authorization code flow with PKCE, ID token validation, session management. Users sign in with existing accounts — no password to manage. Required for EvaluateCare premium tier and Talk About Care sessions.",
           "priority": "HIGH",
           "status": "accepted",
           "accepted_by": "Boss",
@@ -21905,7 +21905,7 @@
       "epic_id": "EPIC-TALKCARE",
       "name": "Talk About Care",
       "status": "accepted",
-      "description": "Multi-participant, AI-assisted healthcare collaboration environment. Users invite family, friends, and caregivers into a shared session where humans and multiple AI models interact in real time. Renamed from 'Discuss Care' in business plan.",
+      "description": "Multi-participant, AI-assisted healthcare collaboration environment. Users invite family, friends, and caregivers into a shared session where humans and multiple AI models interact in real time. Renamed from 'Talk About Care' in business plan.",
       "features": [
         {
           "name": "ChatRoom UX",

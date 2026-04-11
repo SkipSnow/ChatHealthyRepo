@@ -297,10 +297,10 @@
       {
         "id": "DC-GOV-01",
         "name": "No Providers In The Room",
-        "policy": "Doctors, providers, and licensed clinicians are NEVER participants in a Discuss Care session. The session transcript is shared WITH the doctor after. The doctor is never IN the room.",
+        "policy": "Doctors, providers, and licensed clinicians are NEVER participants in a Talk About Care session. The session transcript is shared WITH the doctor after. The doctor is never IN the room.",
         "rationale": "Provider presence creates clinical decision support risk (FDA), malpractice exposure, and transforms the platform from consumer navigation to clinical tool. This boundary is permanent.",
         "status": "permanent",
-        "scope": "Discuss Care",
+        "scope": "Talk About Care",
         "ch_matrix_id": "0d75b424-e1c7-41e3-b7b0-adf39d02c782"
       },
       {
