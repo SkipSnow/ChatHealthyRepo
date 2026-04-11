@@ -227,6 +227,8 @@ export default function ChatWindow() {
   } | null>(null)
   const lastProvidersRef = useRef<any[]>([])  // Store last provider results for EvaluateCare handoff
   const selection = useSelectionState()  // FC-SELECT-001: available/selected/garbage
+  const selectedRef = useRef<Provider[]>([])  // Ref for closure access in evaluate callback
+  selectedRef.current = selection.state.selected  // Keep ref in sync
   const abortControllerRef = useRef<AbortController | null>(null)
 
   // EvaluateCare handoff — triggered by "Evaluate these providers" button in control frame
@@ -237,9 +239,9 @@ export default function ChatWindow() {
     })
 
     gui.onEvaluateProviders(() => {
-      // FC-SELECT-001: Use selected providers, not all providers
-      const providers = selection.state.selected.length > 0
-        ? selection.state.selected
+      // FC-SELECT-001: Use selected providers via ref (not stale closure state)
+      const providers = selectedRef.current.length > 0
+        ? selectedRef.current
         : lastProvidersRef.current
       if (!providers || providers.length === 0) {
         // FC-SELECT-001-REQ-006: Popup if no providers selected
@@ -556,14 +558,9 @@ export default function ChatWindow() {
         )
       }
 
-      // FC-RESULT-MSG / GOV-011: system-built summary message replaces LLM summary
-      if (data.pagination?.summary_message) {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: data.pagination.summary_message,
-          isSummary: true,
-        } as Message])
-      }
+      // FC-RESULT-MSG / GOV-011: system-built summary — suppressed when selection panel active
+      // The specialty list and provider counts are shown in the filter panel, not chat
+      // BUG-UX-010: was dumping full specialty list as garbage text in chat
 
       // Clinical trials summary — same GOV-011 pattern
       if (data.trials?.summary_message) {
