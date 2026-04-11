@@ -1016,8 +1016,8 @@
       "resolution_status": "in_analysis"
     },
     {
-      "id": "BUG-SEC-003",
-      "rule": "BUG FIXED: EvaluateCare mTLS handoff fails — certs not configured for Gemini/non-Anthropic flow. Root cause was Gemini config issue. Fix: switched to GPT-4.1 and evaluate_proxy in main.py properly configures mTLS certs (findcare.crt, findcare.key, ca.crt) for local, uses EVALCARE_URL for HF.",
+      "id": "BUG-COMM-001",
+      "rule": "BUG: FindCare to EvaluateCare communication fails. Root cause: is_hf variable undefined in evaluate_proxy (main.py line 555). Fixed: replaced with os.getenv(\"SPACE_ID\"). Requires server restart to take effect.",
       "incident": "Skip UAT 2026-04-10. EvaluateCare proxy returns auth failure after switching to Gemini. UAT FAILED 2026-04-11: EvaluateCare error Failed to fetch from localhost:3000. mTLS works server-to-server but browser evaluate button triggers failure.",
       "date": "2026-04-10",
       "environment": [
@@ -1030,7 +1030,7 @@
       "resolution_status": "testing",
       "req_id": "SEC-MTLS-001-REQ-001",
       "type": "medium",
-      "reason": "EvaluateCare mTLS handoff fails — certs not configured for Gemini/non-Anthropic flow. Root cause was Gemini config issue. Fix: switched to GPT-4.1 and evaluate_proxy in main.py properly configures mTL"
+      "reason": "FindCare to EvaluateCare communication fails — is_hf undefined, proxy crashes with 500."
     },
     {
       "id": "BUG-EVAL-003",
