@@ -32,7 +32,7 @@ def _get_chat_frame(page: Page):
     page.goto(BASE_URL, wait_until="networkidle", timeout=CHAT_TIMEOUT)
     page.wait_for_timeout(8000)  # React app inside iframe needs time
     for frame in page.frames:
-        if ":5173" in frame.url or "hf.space" in frame.url:
+        if ":5173" in frame.url or ":3000" in frame.url or "hf.space" in frame.url:
             frame.wait_for_timeout(3000)
             return frame
     # Local dev or direct — try the page itself

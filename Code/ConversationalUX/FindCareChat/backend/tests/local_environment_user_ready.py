@@ -58,7 +58,7 @@ def shared_page():
         # Find chat frame
         chat_frame = page
         for frame in page.frames:
-            if ":5173" in frame.url or "hf.space" in frame.url:
+            if ":5173" in frame.url or ":3000" in frame.url or "hf.space" in frame.url:
                 chat_frame = frame
                 break
 

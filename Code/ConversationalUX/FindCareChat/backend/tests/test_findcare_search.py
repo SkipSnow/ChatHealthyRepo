@@ -43,7 +43,7 @@ def search_page():
 
         chat_frame = page
         for frame in page.frames:
-            if ":5173" in frame.url or "hf.space" in frame.url:
+            if ":5173" in frame.url or ":3000" in frame.url or "hf.space" in frame.url:
                 chat_frame = frame
                 break
 
@@ -137,13 +137,13 @@ class TestProviderSearchPagination:
     """FC-SEARCH-001-REQ-003: Results paginated with forward/back controls."""
 
     def test_pagination_controls_present(self, search_page):
-        """Pagination controls (next page link or Records X-Y) visible."""
+        """Pagination controls (Load more button or remaining count) visible."""
         frame = search_page["frame"]
         page = search_page["page"]
         body_text = frame.locator("body").inner_text()
 
-        next_link = frame.locator("a[href='#action:next-page']")
-        has_pagination = next_link.count() > 0 or "Records" in body_text or "Page" in body_text
+        load_more = frame.locator("button", has_text="Load more")
+        has_pagination = load_more.count() > 0 or "remaining" in body_text or "Records" in body_text
 
         _screenshot(page, "02_pagination_controls")
         assert has_pagination, f"No pagination controls found. Text: {body_text[:500]}"

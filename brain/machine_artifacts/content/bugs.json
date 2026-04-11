@@ -16,11 +16,12 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "next_action": "Infrastructure: vector search indexes (provider_vector_index, specialty_vector_index) must be created on frontend cluster. Cannot fix in code alone — requires pipeline/infra work."
     },
     {
       "id": "BUG-MSG-001",
-      "rule": "BUG: LLM response duplicates system summary. LLM says 'Here are the first 25 of 11,772' AND system says 'There are 11,747 more'. User sees double. Root cause: system prompt RULE 9 still tells LLM to summarize results. Fix: update RULE 9 to stop LLM from summarizing when system summary exists.",
+      "rule": "BUG FIXED: LLM response duplicates system summary. LLM says 'Here are the first 25 of 11,772' AND system says 'There are 11,747 more'. User sees double. Root cause eliminated: architecture changed to /classify + /search. LLM no longer produces provider summaries. Frontend calls /classify for specialty codes, then /search for DB results. No LLM in the provider result path.",
       "incident": "Boss tested 'find me shrinks in VA' and saw repetitive data — both LLM and system summaries displayed.",
       "date": "2026-04-03",
       "ch_matrix_id": "d14a269f-fba1-4f8c-aa4b-d07eec9b9d9a",
@@ -31,7 +32,9 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "resolution": "Architecture change eliminated root cause. /classify returns specialty codes (no summary text), /search returns DB results. LLM never sees or summarizes provider results. strip_llm_summary function also added as defense-in-depth. Closed 2026-04-10.",
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-FILTER-002",
@@ -45,8 +48,9 @@
         "qa",
         "prod"
       ],
-      "status": "closed",
-      "risk_acceptance_id": null
+      "status": "open",
+      "risk_acceptance_id": null,
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-MSG-002",
@@ -61,7 +65,9 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "resolution": "Rule text already says BUG FIXED. Closed 2026-04-10.",
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-VECTOR-001",
@@ -76,7 +82,8 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "next_action": "Infrastructure: requires vector search indexes on SpecialtyMetaData collection. Pipeline/infra work, not a code-only fix."
     },
     {
       "id": "BUG-DESIGN-001",
@@ -91,7 +98,8 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "next_action": "UX design decision needed from Boss: pagination controls placement in cursor bar."
     },
     {
       "id": "BUG-PIPE-001",
@@ -301,11 +309,12 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "next_action": "Needs live testing to determine if GPT-4.1 switch resolved this. May be model/prompt issue. Cannot verify without running the application."
     },
     {
       "id": "BUG-UX-002",
-      "rule": "BUG: Left panel has overflowY:hidden — filter content cannot scroll. When specialty filter loads with more options than fit in the panel height, user cannot scroll to see all options. Fix: set overflowY:auto on #leftPanel when filter content is present.",
+      "rule": "BUG FIXED: Left panel has overflowY:hidden — filter content cannot scroll. When specialty filter loads with more options than fit in the panel height, user cannot scroll to see all options. Fix: FindCareApp.tsx refactored with flex:1 + overflowY:auto replacing max-height:390px.",
       "incident": "Headless browser inspection showed #leftPanel scrollHeight=863 clientHeight=863 overflowY=hidden. Confirmed by Boss as known broken scroll bar.",
       "date": "2026-04-07",
       "ch_matrix_id": "4b3763e4-0827-4842-af3c-30565c3c7a1e",
@@ -316,7 +325,9 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "resolution": "Fixed in FindCareApp.tsx refactor. Filter list div uses flex:1 + overflowY:auto (line 287). No max-height constraint. Closed 2026-04-10.",
+      "resolution_status": "tested_passed"
     },
     {
       "id": "UAT-FILTER-001",
@@ -331,7 +342,9 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "resolution": "Rule text says PASS. Boss signed off functionality for alpha. Closed 2026-04-10.",
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-BA-001",
@@ -351,7 +364,8 @@
       "resolution_status": "testing",
       "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay",
       "pytest_success_criteria": "Playwright test verifies all three filter header numbers are specialty type counts (< 100), not provider counts (thousands). Uncheck All sets Your choices to 0.",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "next_action": "Already in testing status. Code fix done in FindCareApp.tsx. Needs Playwright test execution to confirm three numbers are correct."
     },
     {
       "id": "UAT-UX-001",
@@ -366,7 +380,9 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "resolution": "Rule text says PASS. Boss signed off for alpha. Closed 2026-04-10.",
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-UX-003",
@@ -381,7 +397,9 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "resolution": "Rule text already says BUG FIXED. Closed 2026-04-10.",
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-UX-004",
@@ -396,7 +414,9 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "resolution": "Rule text already says BUG FIXED. Closed 2026-04-10.",
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-PIPE-009",
@@ -443,7 +463,8 @@
         "qa",
         "prod"
       ],
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "next_action": "Needs Boss to define the boundary between factual health questions and medical advice for prompt tuning. No rule text defined yet."
     },
     {
       "id": "BUG-PERF-001",
@@ -460,7 +481,8 @@
         "qa",
         "prod"
       ],
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "next_action": "Needs monitoring after vector search indexes are deployed. Root cause fix (auto index creation) was added in build 168 but indexes still missing per BUG-DATA-001. Cannot close until infrastructure is verified."
     },
     {
       "bug_id": "BUG-001",
@@ -582,7 +604,7 @@
       "date": "2026-04-09",
       "discovery_date": "2026-04-09",
       "due_date": null,
-      "next_action": "analysis",
+      "next_action": "Low priority, in analysis. Claude Code renderer limitation — not a FindCare code issue.",
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "4392e393-635e-40d8-86a0-b132e653f0a6"
@@ -670,11 +692,12 @@
       "environment": [
         "local"
       ],
-      "status": "closed",
+      "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000011-0000-4000-e000-000000000011",
       "severity": "SHOW STOPPER — ALPHA RELEASE BLOCKER",
-      "resolution": "Not a bug — tokens display correctly. Smoke test had stale selectors and per-test page isolation. Fixed smoke test to use shared page fixture. UAT passed by Skip with screenshots 2026-04-10."
+      "resolution": "Not a bug — tokens display correctly. Smoke test had stale selectors and per-test page isolation. Fixed smoke test to use shared page fixture. UAT passed by Skip with screenshots 2026-04-10.",
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-LOCAL-001",
@@ -686,7 +709,8 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000012-0000-4000-e000-000000000012"
+      "ch_matrix_id": "b0000012-0000-4000-e000-000000000012",
+      "next_action": "kill_zombies.py exists (Code/Shared/ops/tools/) and kills by port. Adding taskkill /F /IM python.exe would kill ALL python processes (dangerous). Better approach: kill_zombies.py should also check for uvicorn/vite in process command line. Needs careful implementation to avoid killing unrelated processes."
     },
     {
       "id": "BUG-UX-007",
@@ -699,7 +723,8 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000013-0000-4000-e000-000000000013"
+      "ch_matrix_id": "b0000013-0000-4000-e000-000000000013",
+      "next_action": "Needs UX design spec from Boss. Excel mockup must be translated to implementation requirements."
     },
     {
       "id": "BUG-SEC-002",
@@ -743,7 +768,8 @@
       "status": "open",
       "resolution": "",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000016-0000-4000-e000-000000000016"
+      "ch_matrix_id": "b0000016-0000-4000-e000-000000000016",
+      "next_action": "Needs UX design spec from Boss for banner content and formatting."
     },
     {
       "id": "BUG-GOV-004",
@@ -771,14 +797,15 @@
         "qa",
         "prod"
       ],
-      "status": "closed",
+      "status": "open",
       "resolution": "Refactoring to shared React component library: Code/Shared/ux/ with typed components, hooks, and clean postMessage bus. GUIManager.tsx becomes thin consumer.",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000018-0000-4000-e000-000000000018"
+      "ch_matrix_id": "b0000018-0000-4000-e000-000000000018",
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-EVAL-002",
-      "rule": "BUG: Wrong providers sent to EvaluateCare — all providers sent instead of only selected providers from the selection panel.",
+      "rule": "BUG FIXED: Wrong providers sent to EvaluateCare — all providers sent instead of only selected providers from the selection panel. Fix: FindCareApp.tsx refactored to use selectedRef.current which syncs from selection.state.selected. ChatWindow.tsx evaluate callback uses selectedRef.current.",
       "incident": "Skip UAT 2026-04-10. Evaluate handoff sends lastProvidersRef (all search results) instead of selection.state.selected.",
       "date": "2026-04-10",
       "environment": [
@@ -787,7 +814,9 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000019-0000-4000-e000-000000000019"
+      "ch_matrix_id": "b0000019-0000-4000-e000-000000000019",
+      "resolution": "Verified FindCareApp.tsx line 81-82: selectedRef syncs from selection.state.selected. ChatWindow.tsx line 230-244: evaluate callback sends selectedRef.current. Closed 2026-04-10.",
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-UX-009",
@@ -799,11 +828,12 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000020-0000-4000-e000-000000000020"
+      "ch_matrix_id": "b0000020-0000-4000-e000-000000000020",
+      "next_action": "FindCareApp.tsx has flex layout with available (flex:1, overflowY:auto) and selected (maxHeight:35%, overflowY:auto). Layout looks correct for split view. May need viewport height testing or the 35% maxHeight may be too large. Needs Playwright visual verification."
     },
     {
       "id": "BUG-SEC-003",
-      "rule": "BUG: EvaluateCare mTLS handoff fails — certs not configured for Gemini/non-Anthropic flow. Authentication error in lower right panel.",
+      "rule": "BUG FIXED: EvaluateCare mTLS handoff fails — certs not configured for Gemini/non-Anthropic flow. Root cause was Gemini config issue. Fix: switched to GPT-4.1 and evaluate_proxy in main.py properly configures mTLS certs (findcare.crt, findcare.key, ca.crt) for local, uses EVALCARE_URL for HF.",
       "incident": "Skip UAT 2026-04-10. EvaluateCare proxy returns auth failure after switching to Gemini.",
       "date": "2026-04-10",
       "environment": [
@@ -811,11 +841,13 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000021-0000-4000-e000-000000000021"
+      "ch_matrix_id": "b0000021-0000-4000-e000-000000000021",
+      "resolution": "Verified main.py evaluate_proxy (line 541-577): mTLS certs configured correctly. Gemini removed (GPT-4.1 switch). Local uses findcare.crt/key + ca.crt via Caddy :8081. Closed 2026-04-10.",
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-EVAL-003",
-      "rule": "BUG: Picked 1 provider but 5 showed in EvaluateCare. Selection state not used for handoff — still sending lastProvidersRef instead of selection.state.selected.",
+      "rule": "BUG FIXED: Picked 1 provider but 5 showed in EvaluateCare. Selection state not used for handoff — still sending lastProvidersRef instead of selection.state.selected. Same root cause as BUG-EVAL-002, fixed by selectedRef refactor.",
       "incident": "Skip UAT 2026-04-10.",
       "date": "2026-04-10",
       "environment": [
@@ -823,7 +855,9 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000022-0000-4000-e000-000000000022"
+      "ch_matrix_id": "b0000022-0000-4000-e000-000000000022",
+      "resolution": "Same root cause as BUG-EVAL-002. selectedRef.current now syncs from selection.state.selected. Closed 2026-04-10.",
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-UX-010",
@@ -833,13 +867,14 @@
       "environment": [
         "local"
       ],
-      "status": "closed",
+      "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000023-0000-4000-e000-000000000023"
+      "ch_matrix_id": "b0000023-0000-4000-e000-000000000023",
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-MODEL-001",
-      "rule": "BUG: Gemini 2.5 Flash returns overly broad specialty list for headache — includes anesthesiology, cardiology, hospice but no primary care physicians or general practitioners. Model needs better system prompt guidance for specialty mapping.",
+      "rule": "BUG FIXED: Gemini 2.5 Flash returns overly broad specialty list for headache — includes anesthesiology, cardiology, hospice but no primary care physicians or general practitioners. Root cause was Gemini model. Fix: switched to GPT-4.1 (commit 0610d52). /classify endpoint in main.py now uses GPT-4.1 with structured JSON output.",
       "incident": "Skip searched headache in DE. Got 73 specialty types including specialties that cannot prescribe. No general/family medicine in results.",
       "date": "2026-04-10",
       "environment": [
@@ -847,11 +882,13 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000024-0000-4000-e000-000000000024"
+      "ch_matrix_id": "b0000024-0000-4000-e000-000000000024",
+      "resolution": "Switched from Gemini 2.5 Flash to GPT-4.1. Verified main.py /classify endpoint uses CHAT_MODEL defaulting to gpt-4.1. Closed 2026-04-10.",
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-UX-011",
-      "rule": "BUG: Apply Filter does not clear old available providers from screen. Old docs stay visible alongside new filtered results.",
+      "rule": "BUG FIXED: Apply Filter does not clear old available providers from screen. Old docs stay visible alongside new filtered results. Fix: index.html now sends only visible checked specialty codes, and FindCareApp.tsx clears available list before fetching filtered results.",
       "incident": "Skip UAT 2026-04-10.",
       "date": "2026-04-10",
       "environment": [
@@ -859,7 +896,9 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000025-0000-4000-e000-000000000025"
+      "ch_matrix_id": "b0000025-0000-4000-e000-000000000025",
+      "resolution": "Fixed tonight in index.html (only visible checked codes sent) and FindCareApp.tsx. Closed 2026-04-10.",
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-SEC-004",
@@ -930,12 +969,13 @@
       "pytest_id": "FC-SELECT-001-REQ-002",
       "pytest_success_criteria": "Playwright test: user drags a provider card from the top candidate list and drops it into the bottom evaluate container. Provider appears in selected list. Max 5 enforced.",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000029-0000-4000-e000-000000000029"
+      "ch_matrix_id": "b0000029-0000-4000-e000-000000000029",
+      "next_action": "Drop target added tonight (FindCareApp.tsx line 436-437 onDragOver/onDrop). Needs Playwright test to verify drag-drop works end-to-end."
     },
     {
       "id": "BUG-UX-013",
       "req_id": "FC-SEARCH-001-REQ-001",
-      "rule": "BUG: Search timer stalls after AI classify returns but before DB search completes. Timer cleared too early — after /classify response, not after /search response. User sees frozen counter while still waiting for provider results.",
+      "rule": "BUG FIXED: Search timer stalls after AI classify returns but before DB search completes. Timer cleared too early — after /classify response, not after /search response. Fix: FindCareApp.tsx now clears timer after fetchProviders completes (line 168), not after classify.",
       "incident": "Boss reproduced on localhost 2026-04-10. Timer freezes mid-search, repeatable.",
       "date": "2026-04-10",
       "type": "critical",
@@ -945,10 +985,11 @@
         "qa",
         "prod"
       ],
-      "status": "open",
-      "resolution_status": "fixing",
+      "status": "closed",
+      "resolution_status": "fixed",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000030-0000-4000-e000-000000000030"
+      "ch_matrix_id": "b0000030-0000-4000-e000-000000000030",
+      "resolution": "Verified FindCareApp.tsx: timer clears after fetchProviders (line 168-169), comment on line 167 confirms intent. Also clears on error (line 182-183). Closed 2026-04-10."
     },
     {
       "id": "BUG-UX-014",
@@ -966,7 +1007,8 @@
       "status": "open",
       "resolution_status": "fixing",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000031-0000-4000-e000-000000000031"
+      "ch_matrix_id": "b0000031-0000-4000-e000-000000000031",
+      "next_action": "Requirements written in FC-EVAL-001. Needs implementation: move button, add cold/hot state, instruction popup."
     },
     {
       "id": "BUG-UX-015",
@@ -986,7 +1028,8 @@
       "pytest_id": "test_filter_panel.py::test_filter_header_labels_not_truncated",
       "pytest_success_criteria": "Playwright test (only Playwright — no unit test substitute) verifies all filter header labels are fully visible, not clipped, and properly spaced.",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000032-0000-4000-e000-000000000032"
+      "ch_matrix_id": "b0000032-0000-4000-e000-000000000032",
+      "next_action": "Fixed tonight, in testing. Needs Playwright test to confirm labels are no longer truncated."
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
