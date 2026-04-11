@@ -25257,6 +25257,26 @@
                     "Python 3.11",
                     "pytest"
                   ]
+                },
+                {
+                  "req_id": "TEST-REG-001-REQ-006",
+                  "requirement": "Before running any test that requires a database connection, the runner must check if the cluster is alive. If paused, it must call the cluster manager to resume and wait for IDLE before proceeding.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "realized_by": [
+                    "Python 3.11",
+                    "MongoDB Atlas"
+                  ]
+                },
+                {
+                  "req_id": "TEST-REG-001-REQ-007",
+                  "requirement": "DB test execution must be wrapped in try/finally. The finally block must release any cluster reservation acquired for testing. A test run must never leave the cluster reserved.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "realized_by": [
+                    "Python 3.11",
+                    "MongoDB Atlas"
+                  ]
                 }
               ]
             }
