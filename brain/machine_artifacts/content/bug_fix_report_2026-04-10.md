@@ -11,16 +11,6 @@
 6. **Timer** — counts continuously during search, clears when results appear
 7. **426 rejection** — HTTP requests properly rejected with status code in body
 
-### Bugs Closed (3) — Done, no action needed
-
-| Bug | What |
-|---|---|
-| BUG-UX-013 | Timer stall — fixed |
-| BUG-UX-012 | Drag and drop — fixed |
-| BUG-UX-008 | Banner formatting — fixed |
-
----
-
 ## READY FOR YOUR UAT (18)
 
 These are fixed in code. Test them and tell me pass or fail.
