@@ -21900,6 +21900,57 @@
           ]
         }
       ]
+    },
+    {
+      "epic_id": "EPIC-TALKCARE",
+      "name": "Talk About Care",
+      "status": "accepted",
+      "description": "Multi-participant, AI-assisted healthcare collaboration environment. Users invite family, friends, and caregivers into a shared session where humans and multiple AI models interact in real time. Renamed from 'Discuss Care' in business plan.",
+      "features": [
+        {
+          "name": "ChatRoom UX",
+          "status": "accepted",
+          "description": "Real-time multi-participant chat room with AI models and human users. AI models have animated avatars. Human users can use their cameras.",
+          "dependencies": [
+            "EPIC-9"
+          ],
+          "stories": [
+            {
+              "story_id": "TC-ROOM-001",
+              "title": "LLMs must have animated avatars, users must be allowed to use their cameras",
+              "description": "Each AI model in the chat room has a unique animated avatar representing its identity. Human participants can enable their camera for video presence. The room shows avatars and video feeds alongside chat messages.",
+              "size": "XL",
+              "status": "accepted",
+              "requirements": [
+                {
+                  "req_id": "TC-ROOM-001-REQ-001",
+                  "requirement": "Each LLM participant has a unique animated avatar visible in the chat room",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "TC-ROOM-001-REQ-002",
+                  "requirement": "Human participants can enable/disable their camera",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "TC-ROOM-001-REQ-003",
+                  "requirement": "Camera feed and avatars display alongside chat messages",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "TC-ROOM-001-REQ-004",
+                  "requirement": "Avatars animate when the LLM is speaking/responding",
+                  "priority": "should-have",
+                  "status": "open"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "sprint_map": [
