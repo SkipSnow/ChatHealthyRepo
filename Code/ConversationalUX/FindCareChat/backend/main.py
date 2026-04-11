@@ -286,6 +286,67 @@ async def search(body: SearchRequest):
     result = _find_care.search_providers(**params)
     return result
 
+
+class ClassifyRequest(BaseModel):
+    """GOV-011: AI translates the user's question into structured search parameters.
+    One AI call. System answers with DB query after."""
+    message: str
+
+@app.post("/classify")
+async def classify(body: ClassifyRequest):
+    """One AI call: translate user question into structured search parameters.
+    Returns specialty codes ranked by relevance + location filters.
+    Frontend calls /search with these parameters — no more AI needed."""
+    import sys as _sys
+    _sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared"))
+    from llm_client import chat as llm_chat
+
+    _CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4.1")
+
+    # Get all specialty codes from the DB for the AI to choose from
+    specialty_names = []
+    db = _get_db()
+    if db:
+        try:
+            specs = list(db[f"{_ENV_PREFIX}_PublicHealthData"]["SpecialtyMetaData"].find(
+                {}, {"_id": 0, "Code": 1, "Display Name": 1, "can_prescribe": 1}
+            ).limit(500))
+            specialty_names = [{"code": s.get("Code", ""), "name": s.get("Display Name", "")} for s in specs if s.get("Code")]
+        except Exception:
+            pass
+
+    spec_list = "\n".join(f"- {s['code']}: {s['name']}" for s in specialty_names[:200])
+
+    resp = llm_chat(
+        _CHAT_MODEL,
+        messages=[{"role": "user", "content": body.message}],
+        system=(
+            "You are a healthcare specialty classifier. The user describes a medical need. "
+            "Return ONLY valid JSON with these fields:\n"
+            "- specialties: array of {code, name, rank} ordered most to least relevant (max 10)\n"
+            "- state: two-letter state code or null\n"
+            "- city: city name or null\n"
+            "- county: county name or null\n"
+            "- zip: zip code or null\n\n"
+            "Choose specialty codes ONLY from this list:\n" + spec_list + "\n\n"
+            "If the user mentions a condition, map it to the most appropriate specialties. "
+            "Rank 1 = most likely specialist the user needs. "
+            "Do NOT make up codes. Do NOT include provider names or addresses. JSON only."
+        ),
+        max_tokens=500,
+        response_format={"type": "json_object"},
+    )
+
+    try:
+        import json as _json
+        result = _json.loads(resp.get("content", "{}"))
+    except Exception:
+        result = {"specialties": [], "state": None, "error": "Failed to parse AI response"}
+
+    result["model"] = _CHAT_MODEL
+    result["tokens"] = resp.get("usage", {})
+    return result
+
 def _get_qa_report():
     """Load QA report from MongoDB (source of truth), fall back to file for bootstrap."""
     db = _get_db()
