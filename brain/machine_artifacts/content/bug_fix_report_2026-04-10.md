@@ -7,7 +7,6 @@
 
 | Bug | What to test | How |
 |---|---|---|
-| BUG-COMM-001 | Evaluate handoff works | Select providers, click Evaluate These Providers, no error |
 | BUG-UX-011 | Apply Filter refreshes results | Uncheck a specialty, click Apply, list changes |
 | BUG-UX-002 | Filter panel scrolls | Search something with many specialties, scroll the list |
 | BUG-UX-015 | Filter labels readable | "Prescribers" and "Homeopathic" not truncated |
