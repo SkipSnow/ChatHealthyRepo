@@ -279,54 +279,56 @@ def create_frontend_vector_index_fn(config: dict) -> dict:
         client.close()
 
 
-def migrate_environment(config: dict) -> dict:
-    """Migrate all PublicHealthData collections from one environment to another.
-
-    Same cluster, server-side $out. No data crosses the wire.
-
-    config:
-        src_env    — source environment prefix, e.g. "dev"
-        dst_env    — destination environment prefix, e.g. "qa"
-    """
-    conn = os.environ.get("MONGO_connectionString")
-    if not conn:
-        raise ValueError("MONGO_connectionString not set")
-
-    src_env = config.get("src_env", "dev")
-    dst_env = config.get("dst_env", "qa")
-    src_db_name = f"{src_env}_PublicHealthData"
-    dst_db_name = f"{dst_env}_PublicHealthData"
-
-    client = MongoClient(conn, serverSelectionTimeoutMS=30_000)
-    try:
-        src_db = client[src_db_name]
-        collections = [c for c in src_db.list_collection_names() if not c.startswith("system.")]
-        results = []
-
-        for coll_name in sorted(collections):
-            count_before = src_db[coll_name].count_documents({})
-            logging.info("Migrate: %s.%s (%s docs) → %s.%s",
-                         src_db_name, coll_name, f"{count_before:,}", dst_db_name, coll_name)
-            list(src_db[coll_name].aggregate(
-                [{"$out": {"db": dst_db_name, "coll": coll_name}}],
-                allowDiskUse=True,
-            ))
-            count_after = client[dst_db_name][coll_name].count_documents({})
-            results.append({
-                "collection": coll_name,
-                "source_count": count_before,
-                "copied": count_after,
-            })
-            logging.info("Migrate: %s done — %s docs", coll_name, f"{count_after:,}")
-
-        return {
-            "status": "complete",
-            "src": src_db_name,
-            "dst": dst_db_name,
-            "collections": results,
-        }
-    finally:
-        client.close()
+# DEAD CODE (v4-031) -- unreferenced function 'migrate_environment', marked for deletion
+# def migrate_environment(config: dict) -> dict:
+#     """Migrate all PublicHealthData collections from one environment to another.
+#
+#     Same cluster, server-side $out. No data crosses the wire.
+#
+#     config:
+#         src_env    — source environment prefix, e.g. "dev"
+#         dst_env    — destination environment prefix, e.g. "qa"
+#     """
+#     conn = os.environ.get("MONGO_connectionString")
+#     if not conn:
+#         raise ValueError("MONGO_connectionString not set")
+#
+#     src_env = config.get("src_env", "dev")
+#     dst_env = config.get("dst_env", "qa")
+#     src_db_name = f"{src_env}_PublicHealthData"
+#     dst_db_name = f"{dst_env}_PublicHealthData"
+#
+#     client = MongoClient(conn, serverSelectionTimeoutMS=30_000)
+#     try:
+#         src_db = client[src_db_name]
+#         collections = [c for c in src_db.list_collection_names() if not c.startswith("system.")]
+#         results = []
+#
+#         for coll_name in sorted(collections):
+#             count_before = src_db[coll_name].count_documents({})
+#             logging.info("Migrate: %s.%s (%s docs) → %s.%s",
+#                          src_db_name, coll_name, f"{count_before:,}", dst_db_name, coll_name)
+#             list(src_db[coll_name].aggregate(
+#                 [{"$out": {"db": dst_db_name, "coll": coll_name}}],
+#                 allowDiskUse=True,
+#             ))
+#             count_after = client[dst_db_name][coll_name].count_documents({})
+#             results.append({
+#                 "collection": coll_name,
+#                 "source_count": count_before,
+#                 "copied": count_after,
+#             })
+#             logging.info("Migrate: %s done — %s docs", coll_name, f"{count_after:,}")
+#
+#         return {
+#             "status": "complete",
+#             "src": src_db_name,
+#             "dst": dst_db_name,
+#             "collections": results,
+#         }
+#     finally:
+#         client.close()
+# END DEAD CODE
 
 
 def migrate_small_collections(config: dict) -> dict:

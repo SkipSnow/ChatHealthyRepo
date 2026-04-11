@@ -73,14 +73,16 @@ class ScoringCache:
                     self._store.popitem(last=False)
         return cache_key.key
 
-    def invalidate(self, request: ScoringRequest) -> bool:
-        """Remove a specific entry. Returns True if it existed."""
-        key = CacheKey.build(request).key
-        with self._lock:
-            if key in self._store:
-                del self._store[key]
-                return True
-            return False
+# DEAD CODE (v4-031) -- unreferenced function 'invalidate', marked for deletion
+#     def invalidate(self, request: ScoringRequest) -> bool:
+#         """Remove a specific entry. Returns True if it existed."""
+#         key = CacheKey.build(request).key
+#         with self._lock:
+#             if key in self._store:
+#                 del self._store[key]
+#                 return True
+#             return False
+# END DEAD CODE
 
     def clear(self) -> int:
         """Remove all entries. Returns count of removed entries."""

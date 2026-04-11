@@ -496,27 +496,29 @@ class FindCareService:
             return {"error": "SpecialtyService not configured"}
         return self._specialty.find_specialty_codes(query)
 
-    def get_provider_location(self, npi: str) -> dict:
-        """Return provider location for cross-domain travel calculations.
-
-        Called by EvaluateCareFacade for clinical trial travel info.
-        """
-        db = self._get_db()
-        if db is None:
-            return {"npi": npi, "error": "Database unavailable"}
-        try:
-            provider = db[f"{self._env}_PublicHealthData"]["providers"].find_one(
-                {"npi": npi}, {"practice_address": 1, "npi": 1, "_id": 0}
-            )
-            if provider:
-                addr = provider.get("practice_address", {})
-                return {
-                    "npi": npi,
-                    "lat": addr.get("lat"),
-                    "lng": addr.get("lng"),
-                    "address": ", ".join(x for x in [addr.get("line1"), addr.get("city"), addr.get("state"), addr.get("zip")] if x),
-                }
-            return {"npi": npi, "error": "Provider not found"}
-        except Exception as e:
-            _log.warning("get_provider_location failed for %s: %s", npi, e)
-            return {"npi": npi, "error": str(e)}
+# DEAD CODE (v4-031) -- unreferenced function 'get_provider_location', marked for deletion
+#     def get_provider_location(self, npi: str) -> dict:
+#         """Return provider location for cross-domain travel calculations.
+#
+#         Called by EvaluateCareFacade for clinical trial travel info.
+#         """
+#         db = self._get_db()
+#         if db is None:
+#             return {"npi": npi, "error": "Database unavailable"}
+#         try:
+#             provider = db[f"{self._env}_PublicHealthData"]["providers"].find_one(
+#                 {"npi": npi}, {"practice_address": 1, "npi": 1, "_id": 0}
+#             )
+#             if provider:
+#                 addr = provider.get("practice_address", {})
+#                 return {
+#                     "npi": npi,
+#                     "lat": addr.get("lat"),
+#                     "lng": addr.get("lng"),
+#                     "address": ", ".join(x for x in [addr.get("line1"), addr.get("city"), addr.get("state"), addr.get("zip")] if x),
+#                 }
+#             return {"npi": npi, "error": "Provider not found"}
+#         except Exception as e:
+#             _log.warning("get_provider_location failed for %s: %s", npi, e)
+#             return {"npi": npi, "error": str(e)}
+# END DEAD CODE

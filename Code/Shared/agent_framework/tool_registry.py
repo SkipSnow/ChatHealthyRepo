@@ -56,13 +56,17 @@ class ToolRegistry:
         return None
 
     @property
-    def tool_names(self) -> list[str]:
-        return list(self._tools.keys())
+# DEAD CODE (v4-031) -- unreferenced function 'tool_names', marked for deletion
+#     def tool_names(self) -> list[str]:
+#         return list(self._tools.keys())
+# END DEAD CODE
 
     @property
-    def tool_schemas(self) -> list[dict]:
-        """Return all tool schemas — for the AI agent to understand its capabilities."""
-        return [
-            {"name": t.name, "description": t.description, "parameters": t.parameters}
-            for t in self._tools.values()
-        ]
+# DEAD CODE (v4-031) -- unreferenced function 'tool_schemas', marked for deletion
+#     def tool_schemas(self) -> list[dict]:
+#         """Return all tool schemas — for the AI agent to understand its capabilities."""
+#         return [
+#             {"name": t.name, "description": t.description, "parameters": t.parameters}
+#             for t in self._tools.values()
+#         ]
+# END DEAD CODE

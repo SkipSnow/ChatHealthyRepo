@@ -16,6 +16,7 @@
 #
 # Usage: python pre_deploy_rule_check.py <target>
 
+import ast
 import json
 import os
 import re
@@ -238,6 +239,153 @@ EXECUTORS = {
     "requirement_pytest": enforce_requirement_pytest,
     "backlog_schema": enforce_backlog_schema,
 }
+
+
+# ── v4-031: Two-pass dead code scanner ────────────────────────────────
+
+_SCAN_DIRS = [
+    "Code/ConversationalUX/FindCareChat/backend",
+    "Code/DataPipelines",
+    "Code/Shared",
+    "Code/evaluate_care",
+    "Code/shared_services",
+]
+_SKIP_DIRS = {"node_modules", ".venv", "__pycache__", ".git", "tests", ".pytest_cache"}
+
+# Functions that are part of the scanner itself
+_SCANNER_FUNCTIONS = {"dead_code_scan", "comment_out_dead_code"}
+
+
+def _get_decorator_strings(node):
+    """Extract all decorator strings from a function/class node."""
+    decs = []
+    for d in getattr(node, "decorator_list", []):
+        if isinstance(d, ast.Name):
+            decs.append(d.id)
+        elif isinstance(d, ast.Attribute):
+            # e.g. app.post, app.get, app.route
+            parts = []
+            n = d
+            while isinstance(n, ast.Attribute):
+                parts.append(n.attr)
+                n = n.value
+            if isinstance(n, ast.Name):
+                parts.append(n.id)
+            decs.append(".".join(reversed(parts)))
+        elif isinstance(d, ast.Call):
+            if isinstance(d.func, ast.Attribute):
+                parts = []
+                n = d.func
+                while isinstance(n, ast.Attribute):
+                    parts.append(n.attr)
+                    n = n.value
+                if isinstance(n, ast.Name):
+                    parts.append(n.id)
+                decs.append(".".join(reversed(parts)))
+            elif isinstance(d.func, ast.Name):
+                decs.append(d.func.id)
+    return decs
+
+
+def _is_framework_invoked(name, decorators):
+    """Check if a function is invoked by a framework decorator."""
+    for d in decorators:
+        # FastAPI: app.post, app.get, app.route, app.middleware
+        if "app." in d:
+            return True
+        # Azure: activity_trigger, orchestration_trigger, function_name
+        if "trigger" in d or "function_name" in d:
+            return True
+    # Governance singleton methods (called via getattr from _JSON_FUNCTION_MAP)
+    if name.startswith("check_") and name != "check_url":
+        return True
+    # Pydantic validators
+    if name.startswith("validate_"):
+        return True
+    # Scanner's own functions
+    if name in _SCANNER_FUNCTIONS:
+        return True
+    return False
+
+
+def dead_code_scan(repo_root):
+    """Two-pass dead code scanner (v4-031). Returns list of (file, start, end, name, kind)."""
+    definitions = {}
+    references = set()
+
+    for d in _SCAN_DIRS:
+        dirpath = os.path.join(repo_root, d)
+        if not os.path.isdir(dirpath):
+            continue
+        for root, dirs, files in os.walk(dirpath):
+            dirs[:] = [x for x in dirs if x not in _SKIP_DIRS]
+            for f in files:
+                if not f.endswith(".py") or f.startswith("test_"):
+                    continue
+                fpath = os.path.join(root, f)
+                try:
+                    with open(fpath, encoding="utf-8", errors="replace") as fp:
+                        source = fp.read()
+                    tree = ast.parse(source)
+                except Exception:
+                    continue
+
+                relpath = os.path.relpath(fpath, repo_root).replace(os.sep, "/")
+
+                for node in ast.walk(tree):
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        if not node.name.startswith("_"):
+                            decs = _get_decorator_strings(node)
+                            end = getattr(node, "end_lineno", node.lineno)
+                            definitions.setdefault(node.name, []).append(
+                                (relpath, node.lineno, end, "function", decs)
+                            )
+                    elif isinstance(node, ast.ClassDef):
+                        if not node.name.startswith("_"):
+                            decs = _get_decorator_strings(node)
+                            end = getattr(node, "end_lineno", node.lineno)
+                            definitions.setdefault(node.name, []).append(
+                                (relpath, node.lineno, end, "class", decs)
+                            )
+                    if isinstance(node, ast.Name):
+                        references.add(node.id)
+                    elif isinstance(node, ast.Attribute):
+                        references.add(node.attr)
+
+    dead = []
+    for name, locations in sorted(definitions.items()):
+        if name in references:
+            continue
+        for loc_file, start, end, kind, decs in locations:
+            if _is_framework_invoked(name, decs):
+                continue
+            dead.append((loc_file, start, end, name, kind))
+    dead.sort()
+    return dead
+
+
+def comment_out_dead_code(repo_root, dead_list):
+    """Stage 1: Comment out dead functions with DEAD CODE markers."""
+    by_file = {}
+    for fpath, start, end, name, kind in dead_list:
+        by_file.setdefault(fpath, []).append((start, end, name, kind))
+
+    for fpath, items in by_file.items():
+        full_path = os.path.join(repo_root, fpath)
+        with open(full_path, encoding="utf-8") as f:
+            lines = f.readlines()
+
+        for start, end, name, kind in sorted(items, reverse=True):
+            lines.insert(end, "# END DEAD CODE\n")
+            for i in range(start - 1, end):
+                if lines[i].strip():
+                    lines[i] = "# " + lines[i]
+                else:
+                    lines[i] = "#\n"
+            lines.insert(start - 1, f"# DEAD CODE (v4-031) -- unreferenced {kind} '{name}', marked for deletion\n")
+
+        with open(full_path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
 
 
 def main(target: str) -> int:

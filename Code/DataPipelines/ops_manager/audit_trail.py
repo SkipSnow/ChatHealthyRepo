@@ -89,12 +89,14 @@ class AuditTrail:
             "summary": f"notify {recipient}: {title} (sent={sent})",
         })
 
-    def log_warning(self, warning_type: str, job_id: str, details: dict = None):
-        """Log a warning (e.g., suspiciously fast job)."""
-        self._append({
-            "event_type": "warning",
-            "warning_type": warning_type,
-            "job_id": job_id,
-            "details": details or {},
-            "summary": f"warning: {warning_type} for {job_id}",
-        })
+# DEAD CODE (v4-031) -- unreferenced function 'log_warning', marked for deletion
+#     def log_warning(self, warning_type: str, job_id: str, details: dict = None):
+#         """Log a warning (e.g., suspiciously fast job)."""
+#         self._append({
+#             "event_type": "warning",
+#             "warning_type": warning_type,
+#             "job_id": job_id,
+#             "details": details or {},
+#             "summary": f"warning: {warning_type} for {job_id}",
+#         })
+# END DEAD CODE

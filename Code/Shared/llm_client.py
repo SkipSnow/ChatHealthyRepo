@@ -234,21 +234,23 @@ def chat(model: str, messages: list, tools: Optional[list] = None,
         return _openai_call(model, messages, tools, system, max_tokens, response_format, **kwargs)
 
 
-def get_active_model(prompt_id: str, brain_dir: Optional[str] = None) -> str:
-    """Read the active model for a prompt from prompts.json."""
-    if not brain_dir:
-        brain_dir = str(Path(__file__).resolve().parents[1] / "brain" / "machine_artifacts" / "content")
-    prompts_path = os.path.join(brain_dir, "prompts.json")
-    if not os.path.exists(prompts_path):
-        return "claude-sonnet-4-6"  # fallback
-    try:
-        data = json.loads(open(prompts_path, encoding="utf-8").read())
-        for record in data.get("records", []):
-            if record.get("_record_id") == prompt_id:
-                models = record.get("models", [])
-                for m in models:
-                    if m.get("status") == "active":
-                        return m["name"]
-    except Exception:
-        pass
-    return "claude-sonnet-4-6"  # fallback
+# DEAD CODE (v4-031) -- unreferenced function 'get_active_model', marked for deletion
+# def get_active_model(prompt_id: str, brain_dir: Optional[str] = None) -> str:
+#     """Read the active model for a prompt from prompts.json."""
+#     if not brain_dir:
+#         brain_dir = str(Path(__file__).resolve().parents[1] / "brain" / "machine_artifacts" / "content")
+#     prompts_path = os.path.join(brain_dir, "prompts.json")
+#     if not os.path.exists(prompts_path):
+#         return "claude-sonnet-4-6"  # fallback
+#     try:
+#         data = json.loads(open(prompts_path, encoding="utf-8").read())
+#         for record in data.get("records", []):
+#             if record.get("_record_id") == prompt_id:
+#                 models = record.get("models", [])
+#                 for m in models:
+#                     if m.get("status") == "active":
+#                         return m["name"]
+#     except Exception:
+#         pass
+#     return "claude-sonnet-4-6"  # fallback
+# END DEAD CODE

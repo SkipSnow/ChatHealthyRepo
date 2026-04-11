@@ -137,16 +137,18 @@ class bug_governance_constraints(governance_worker_base):
     def is_release_blocker(self) -> bool:
         return "RELEASE BLOCKER" in (self.rule or "") or "SPRINT BLOCKER" in (self.rule or "")
 
-    def blocks_action(self, action_event: str) -> dict:
-        """Check if this bug should block a governance action event."""
-        if self.is_show_stopper() or self.is_release_blocker():
-            return {
-                "comply": False,
-                "action": "session_abend",
-                "reason": f"{self.id}: {self.severity or 'SHOW STOPPER'} — {(self.rule or self.description)[:150]}",
-                "propensity": "session_abend",
-            }
-        return {"comply": True, "propensity": "allow"}
+# DEAD CODE (v4-031) -- unreferenced function 'blocks_action', marked for deletion
+#     def blocks_action(self, action_event: str) -> dict:
+#         """Check if this bug should block a governance action event."""
+#         if self.is_show_stopper() or self.is_release_blocker():
+#             return {
+#                 "comply": False,
+#                 "action": "session_abend",
+#                 "reason": f"{self.id}: {self.severity or 'SHOW STOPPER'} — {(self.rule or self.description)[:150]}",
+#                 "propensity": "session_abend",
+#             }
+#         return {"comply": True, "propensity": "allow"}
+# END DEAD CODE
 
     def run_governance_process(self, transcript_path: str = "") -> dict:
         """Execute the governance process for this bug instance.
@@ -653,9 +655,11 @@ class chathealthy_devops_boot:
                 if result.get("constraints"):
                     self._constraints.extend(result["constraints"])
 
-    def get_constraints_summary(self, max_chars=4000):
-        text = "\n".join(f"- {c}" for c in self._constraints if c)
-        return text[:max_chars] if len(text) <= max_chars else text[:max_chars] + "\n..."
+# DEAD CODE (v4-031) -- unreferenced function 'get_constraints_summary', marked for deletion
+#     def get_constraints_summary(self, max_chars=4000):
+#         text = "\n".join(f"- {c}" for c in self._constraints if c)
+#         return text[:max_chars] if len(text) <= max_chars else text[:max_chars] + "\n..."
+# END DEAD CODE
 
     # ══════════════════════════════════════════════════════════════════════
     # Matrix-driven compliance
