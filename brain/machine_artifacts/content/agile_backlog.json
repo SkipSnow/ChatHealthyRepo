@@ -28912,6 +28912,13 @@
                   "priority": "must-have",
                   "status": "open",
                   "realized_by": ["Python 3.11", "git hooks"]
+                },
+                {
+                  "req_id": "PIPE-TR-003-REQ-007",
+                  "requirement": "The scanner validates v4-032: every plural-named field in every brain JSON must be an array. Every array member must conform to the singular-named schema. The scanner reads the schema to discover plural/singular pairs and validates the data against them. Implementation may be AI scan or code scan.",
+                  "priority": "must-have",
+                  "status": "open",
+                  "realized_by": ["Python 3.11 (pre_deploy_rule_check.py)"]
                 }
               ]
             }

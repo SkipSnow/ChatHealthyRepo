@@ -98,29 +98,27 @@
     "ai_operations": {
       "path": "brain/machine_artifacts/content/ai_operations.json",
       "purpose": "AI model decisions, SIT reports, GPT findings, usage, budget, dead code enforcement",
-      "record_types": [
-        "model_decision",
-        "sit_report",
-        "sit_finding",
-        "release_approval",
-        "usage_log",
-        "budget"
-      ],
+      "title": "ai_operations_schema",
+      "description": "This ChatHealthy Brain Schema documents AI operational data including model selection decisions, system integration test reports, and dead code enforcement records.",
       "produces_artifact": false,
-      "dead_code_schema": {
-        "title": "dead_code_schema",
-        "description": "Records of unreferenced code found by the v4-031 dead code scanner. Each record represents one function or class marked for deletion.",
-        "fields": {
-          "id": {"type": "string", "required": true, "unique": true, "description": "Sequential ID, e.g. DC-001"},
-          "file": {"type": "string", "required": true, "description": "Relative path from repo root"},
-          "name": {"type": "string", "required": true, "description": "Function or class name"},
-          "kind": {"type": "string", "required": true, "possible_values": ["function", "class"], "description": "Type of code block"},
-          "start_line": {"type": "integer", "required": true},
-          "end_line": {"type": "integer", "required": true},
-          "status": {"type": "string", "required": true, "possible_values": ["commented", "deleted", "restored"], "description": "commented = Stage 1, deleted = Stage 2, restored = Boss decided to keep"},
-          "rule": {"type": "string", "required": true, "default": "v4-031", "description": "Rule that flagged this code"},
-          "scan_date": {"type": "string", "format": "date", "required": true},
-          "justification": {"type": "string", "required": true, "description": "Why the scanner flagged this as dead"}
+      "record_schemas": {
+        "legacy_record": {
+          "description": "Unconstrained legacy records. Will be schema-constrained in a future pass."
+        },
+        "dead_code_record": {
+          "description": "A single unreferenced code block found by the v4-031 dead code scanner, marked for deletion.",
+          "fields": {
+            "id": {"type": "string", "required": true, "unique": true, "description": "Sequential ID, e.g. DC-001"},
+            "file": {"type": "string", "required": true, "description": "Relative path from repo root"},
+            "name": {"type": "string", "required": true, "description": "Function or class name"},
+            "kind": {"type": "string", "required": true, "possible_values": ["function", "class"], "description": "Type of code block"},
+            "start_line": {"type": "integer", "required": true},
+            "end_line": {"type": "integer", "required": true},
+            "status": {"type": "string", "required": true, "possible_values": ["commented", "deleted", "restored"], "description": "commented = Stage 1, deleted = Stage 2, restored = Boss decided to keep"},
+            "rule": {"type": "string", "required": true, "default": "v4-031", "description": "Rule that flagged this code"},
+            "scan_date": {"type": "string", "format": "date", "required": true},
+            "justification": {"type": "string", "required": true, "description": "Why the scanner flagged this as dead"}
+          }
         }
       },
       "biz_artifact_folder": null
