@@ -18813,6 +18813,38 @@
                 }
               ],
               "ch_matrix_id": "36c10963-0dd3-41cd-b434-39d3246ada5a"
+            },
+            {
+              "story_id": "SEC-HTTPS-001",
+              "title": "HTTPS everywhere — reject HTTP on all services",
+              "size": "M",
+              "status": "in_progress",
+              "requirements": [
+                {
+                  "req_id": "SEC-HTTPS-001-REQ-001",
+                  "requirement": "All REST services reject HTTP with 403 or 426",
+                  "priority": "must-have",
+                  "status": "in_progress"
+                },
+                {
+                  "req_id": "SEC-HTTPS-001-REQ-002",
+                  "requirement": "Website :80 redirects to HTTPS only for index.html, rejects all other HTTP",
+                  "priority": "must-have",
+                  "status": "implemented"
+                },
+                {
+                  "req_id": "SEC-HTTPS-001-REQ-003",
+                  "requirement": "Every client REST call checks return code — fail on 4xx/5xx, never silently continue",
+                  "priority": "must-have",
+                  "status": "open"
+                },
+                {
+                  "req_id": "SEC-HTTPS-001-REQ-004",
+                  "requirement": "No HTTP URLs anywhere in production code, CORS, or config",
+                  "priority": "must-have",
+                  "status": "in_progress"
+                }
+              ]
             }
           ],
           "ch_matrix_id": "b07b48f4-7ff3-49ce-839c-23c09a15f0be"
@@ -20631,7 +20663,7 @@
               "requirements": [
                 {
                   "req_id": "UX-IFRAME-001-REQ-001",
-                  "requirement": "When hostname is localhost or 127.0.0.1, iframe src is http://localhost:5173 (DR-011)",
+                  "requirement": "When hostname is localhost or 127.0.0.1, iframe src is https://localhost:3000 (DR-011)",
                   "priority": "must-have",
                   "status": "accepted",
                   "ch_matrix_id": "d14f1126-611e-45fa-995a-88bc945c9892"
@@ -21478,7 +21510,7 @@
               "requirements": [
                 {
                   "req_id": "TEST-SIM-001-REQ-001",
-                  "requirement": "http://localhost loads with status 200 and page title contains ChatHealthy",
+                  "requirement": "https://localhost loads with status 200 and page title contains ChatHealthy",
                   "priority": "must-have",
                   "status": "implemented",
                   "ch_matrix_id": "abd823a4-06f6-4362-b7e1-4bedfa770359"
@@ -21588,7 +21620,7 @@
                 },
                 {
                   "req_id": "TEST-SEC-001-REQ-002",
-                  "requirement": "http://localhost redirects to https://localhost",
+                  "requirement": "https://localhost redirects to https://localhost",
                   "priority": "must-have",
                   "status": "bug",
                   "label": "BUG-TLS-001",

@@ -205,6 +205,12 @@
       "rule": "When the user reports a bug or requests a feature, Claude must BEFORE CODING: (1) Search existing bugs and backlog for duplicates or contradictions, (2) If duplicate found, show it to the user and confirm whether to update the existing record or create new, (3) If contradiction found, work with the user to resolve it — dedup, edit, or deprecate before proceeding, (4) Only after the requirement/bug is clean and non-contradictory may Claude begin coding.",
       "source": "Skip Snow directive 2026-04-10",
       "enforcement": "UserPromptSubmit governance check"
+    },
+    {
+      "id": "v4-029",
+      "rule": "All REST services must reject HTTP requests with a security error (403 or 426 Upgrade Required). Only HTTPS is allowed. The only exception is the website index.html on :80 which redirects to HTTPS. Every client call to any REST service must check the HTTP return code — on 4xx or 5xx the client must fail immediately with a clear error, not silently continue.",
+      "source": "Skip Snow directive 2026-04-10",
+      "enforcement": "code_controlled"
     }
   ],
   "ch_matrix_id": "1f343049-b0e0-46e2-9c19-33c138e9ab46"

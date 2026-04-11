@@ -735,8 +735,8 @@
         "dev",
         "qa"
       ],
-      "status": "fixed",
-      "resolution": "Added framework to /health response. Banner now shows: ENV — vX.X.X fwX.X.X bNNN",
+      "status": "open",
+      "resolution": "",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000016-0000-4000-e000-000000000016"
     },
