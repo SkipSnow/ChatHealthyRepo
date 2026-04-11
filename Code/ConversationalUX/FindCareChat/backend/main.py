@@ -545,9 +545,10 @@ def evaluate_proxy(body: EvaluateRequest):
     EVALCARE_URL defaults to Caddy mTLS port (:8081) locally, HF space in dev/prod."""
     import requests as _req
 
-    # Local: mTLS via Caddy :8081. HF/Dev: direct HTTP (BUG-SEC-002 deferred mTLS on HF to Beta).
-    is_hf = bool(os.getenv("SPACE_ID"))
-    evalcare_url = os.getenv("EVALCARE_URL", "http://localhost:8001" if is_hf else "https://localhost:8081")
+    # EVALCARE_URL must be set in environment. No HTTP default.
+    # Local: HTTPS via Caddy mTLS :8081
+    # HF: HTTPS via HF space URL (set as HF Secret)
+    evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8081")
     certs_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
 
     req_kwargs = {"timeout": 15}

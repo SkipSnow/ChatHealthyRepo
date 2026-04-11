@@ -18824,25 +18824,29 @@
                   "req_id": "SEC-HTTPS-001-REQ-001",
                   "requirement": "All REST services reject HTTP with 403 or 426",
                   "priority": "must-have",
-                  "status": "in_progress"
+                  "status": "implemented",
+                  "pytest_id": "test_https_security.py::TestHTTPRejection (7 tests)"
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-002",
                   "requirement": "Website :80 redirects to HTTPS only for index.html, rejects all other HTTP",
                   "priority": "must-have",
-                  "status": "implemented"
+                  "status": "implemented",
+                  "pytest_id": "test_https_security.py::TestHTTPRedirect (6 tests)"
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-003",
                   "requirement": "Every client REST call must check for HTTP 426 (Upgrade Required) or 403 (Forbidden) — if received, fail immediately with a clear security error. Do not retry, do not silently continue. This specific code means HTTP was used when HTTPS was required.",
                   "priority": "must-have",
-                  "status": "open"
+                  "status": "implemented",
+                  "pytest_id": "test_https_security.py::TestClientSecurityCheck (2 tests)"
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-004",
                   "requirement": "No HTTP URLs anywhere in production code, CORS, or config",
                   "priority": "must-have",
-                  "status": "in_progress"
+                  "status": "implemented",
+                  "pytest_id": "test_https_security.py::TestNoHTTPInCode (1 test)"
                 }
               ]
             }
