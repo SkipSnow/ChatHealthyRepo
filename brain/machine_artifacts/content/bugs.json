@@ -1241,6 +1241,363 @@
       "ch_matrix_id": "b0000032-0000-4000-e000-000000000032",
       "next_action": "Fixed tonight, in testing. Needs Playwright test to confirm labels are no longer truncated.",
       "reason": "Filter header labels truncated and illegible. 'Prescribers' shows as 'Prescr', 'Homeopathic' shows as 'Home'. Labels and values need proper spacing. The header is not intelligently laid out — labels a"
+    },
+    {
+      "id": "BUG-REG-001",
+      "req_id": "PIPE-TR-003-REQ-004",
+      "rule": "BUG: Full regression at 61% pass rate. 51 acceptance criteria — each failed or not-found test must be fixed to reach 100%.",
+      "incident": "First full regression run 2026-04-11. 48 pass, 30 fail, 21 not found. Concurrency 16, staggered 50ms.",
+      "date": "2026-04-11",
+      "type": "critical",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000036-0000-4000-e000-000000000036",
+      "reason": "51 tests either fail or reference non-existent test files. Each criterion must pass for regression to reach 100%.",
+      "acceptance_criteria": [
+        {
+          "req_id": "TEST-SIM-001-REQ-001",
+          "pytest_id": "local_environment_user_ready.py::TestPageLoad::test_page_title",
+          "issue": "test timeout",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "TEST-SIM-001-REQ-005",
+          "pytest_id": "local_environment_user_ready.py::TestProviderSearch::test_providers_have_npis",
+          "issue": "test timeout",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "TEST-SIM-001-REQ-007",
+          "pytest_id": "local_environment_user_ready.py::TestLeftPanel::test_session_token_in_left_panel",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "TEST-SIM-001-REQ-010",
+          "pytest_id": "local_environment_user_ready.py::TestEvaluateCareHandoff::test_evaluate_click",
+          "issue": "test timeout",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-SEARCH-001-REQ-001",
+          "pytest_id": "test_findcare_search.py::TestProviderSearchFreeText::test_free_text_search_returns_results",
+          "issue": "test timeout",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-SEARCH-001-REQ-002",
+          "pytest_id": "test_findcare_search.py::TestProviderResultFields::test_results_contain_npi",
+          "issue": "test timeout",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-SEARCH-001-REQ-003",
+          "pytest_id": "test_findcare_search.py::TestProviderSearchPagination::test_pagination_controls_present",
+          "issue": "test timeout",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-SEARCH-001-REQ-004",
+          "pytest_id": "test_findcare_search.py::TestSpecialtyClassification::test_specialty_types_identified",
+          "issue": "test timeout",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-SEARCH-001-REQ-006",
+          "pytest_id": "test_classify_performance.py::test_classify_returns_ordered_specialties",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-SEARCH-001-REQ-007",
+          "pytest_id": "test_search_timer.py::test_timer_runs_until_results_displayed",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-FILT-001-REQ-001",
+          "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_filter_checkboxes_visible_and_labeled",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-FILT-001-REQ-002",
+          "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_prescribers_only_filters_to_prescriber_specialties",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-FILT-001-REQ-003",
+          "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_homeopathic_only_adds_homeopathic_specialties",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-FILT-001-REQ-004",
+          "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_filter_header_shows_specialty_counts_not_provider_counts",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-FILT-001-REQ-005",
+          "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_uncheck_all_updates_your_choices_to_zero",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-PIPE-COPY-001-REQ-001",
+          "pytest_id": "test_copy_to_frontend.py::test_parity_after_copy",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "PIPE-TR-002-REQ-001",
+          "pytest_id": "pre_deploy_rule_check.py passes with zero violations",
+          "issue": "test not_found",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "UX-MOB-001-REQ-001",
+          "pytest_id": "test_website.py::test_hamburger_menu_mobile",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "UX-MOB-001-REQ-002",
+          "pytest_id": "test_website.py::test_hamburger_menu_opens",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "UX-MOB-001-REQ-003",
+          "pytest_id": "test_website.py::test_hamburger_menu_navigation",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "UX-MOB-002-REQ-001",
+          "pytest_id": "test_website.py::test_back_link_mobile",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "UX-MOB-002-REQ-002",
+          "pytest_id": "test_website.py::test_back_link_navigates",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "UX-CTRL-003-REQ-001",
+          "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "UX-CTRL-003-REQ-002",
+          "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "UX-CTRL-003-REQ-003",
+          "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-001-REQ-001",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-001-REQ-002",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-001-REQ-003",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-001-REQ-004",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-001-REQ-005",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-002-REQ-001",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-002-REQ-002",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-002-REQ-003",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-002-REQ-004",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-002-REQ-005",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-003-REQ-001",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-004-REQ-001",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-005-REQ-002",
+          "pytest_id": "test_tool_router.py::TestToolRouter::test_pydantic_validation",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-005-REQ-003",
+          "pytest_id": "test_tool_router.py::TestToolRouter::test_handle_tool_calls",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-006-REQ-001",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-006-REQ-002",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-006-REQ-003",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-007-REQ-001",
+          "pytest_id": "test_unanswerable_questions.py::TestUnanswerableQuestions",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-007-REQ-002",
+          "pytest_id": "test_unanswerable_questions.py::TestUnanswerableQuestions",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-007-REQ-003",
+          "pytest_id": "test_unanswerable_questions.py::TestUnanswerableQuestions",
+          "issue": "test fail",
+          "action": "fix the test or fix the code",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-008-REQ-001",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-009-REQ-004",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-010-REQ-001",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-010-REQ-002",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-011-REQ-001",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        },
+        {
+          "req_id": "FC-BACKEND-011-REQ-002",
+          "issue": "pytest_id references test that does not exist on disk",
+          "action": "create the test or fix the reference",
+          "status": "open"
+        }
+      ]
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
