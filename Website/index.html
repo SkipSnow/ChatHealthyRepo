@@ -637,7 +637,11 @@
           healthUrl = 'https://' + org + '-' + sn + '.hf.space/health';
         }
         fetch(healthUrl).then(function(r) { return r.json(); }).then(function(d) {
-          banner.textContent = env + ' \u2014 v' + (d.version || '?') + ' fw' + (d.framework || '?') + ' b' + (d.build || '?') + ' #' + (d.commit || '?');
+          banner.innerHTML = '<span style="margin-right:12px;">' + env + '</span>'
+            + '<span style="margin-right:12px;">Version: ' + (d.version || '?') + '</span>'
+            + '<span style="margin-right:12px;">Framework: ' + (d.framework || '?') + '</span>'
+            + '<span style="margin-right:12px;">Build: ' + (d.build || '?') + '</span>'
+            + '<span>Commit: ' + (d.commit || '?').substring(0,7) + '</span>';
         }).catch(function() {});
       }
     })();
