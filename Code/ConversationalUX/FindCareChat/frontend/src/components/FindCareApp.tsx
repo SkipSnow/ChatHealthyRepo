@@ -108,14 +108,13 @@ export default function FindCareApp() {
     setError('')
     selection.flushGarbage()
 
-    // Start timer
+    // Start timer — send elapsed seconds to parent control frame every second
     const start = Date.now()
     timerRef.current = setInterval(() => {
-      setThinkSeconds(Math.round((Date.now() - start) / 1000))
+      const elapsed = Math.round((Date.now() - start) / 1000)
+      setThinkSeconds(elapsed)
+      sendToParent('gui:timer', { seconds: elapsed })
     }, 1000)
-
-    // Send timer to parent control frame
-    sendToParent('gui:timer')
 
     try {
       const resp = await fetch(`${API_URL}/chat`, {
