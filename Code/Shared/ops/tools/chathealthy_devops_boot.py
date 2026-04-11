@@ -404,8 +404,39 @@ class operating_rules_worker(governance_worker_base):
         r"^python3?\s+(-c\s|<<)",  # Inline python scripts
     ]
 
+    # v4-028: Bug/feature detection keywords
+    _BUG_FEATURE_KEYWORDS = [
+        "bug", "broken", "fix", "doesn't work", "not working", "wrong", "fail",
+        "crash", "error", "missing", "lost", "feature", "enhancement", "add",
+        "new", "should", "must", "requirement", "need", "implement", "build",
+    ]
+
+    def _detect_bug_or_feature(self, prompt: str) -> bool:
+        """Detect if user prompt is reporting a bug or requesting a feature."""
+        prompt_lower = prompt.lower()
+        matches = sum(1 for kw in self._BUG_FEATURE_KEYWORDS if kw in prompt_lower)
+        return matches >= 2  # At least 2 keywords to avoid false positives
+
     def run(self, hook_input: dict, action_event: str = "pre_tool_use") -> dict:
         """Polymorphic run — called by singleton when grid says code_controlled."""
+
+        # v4-028: On UserPromptSubmit, check if user is reporting bug/feature
+        if action_event == "user_prompt_submit":
+            prompt = hook_input.get("prompt", hook_input.get("content", hook_input.get("message", "")))
+            if self._detect_bug_or_feature(prompt):
+                return {
+                    "comply": True,
+                    "additionalContext": (
+                        "v4-028 DIRECTIVE: The user appears to be reporting a bug or requesting a feature. "
+                        "BEFORE writing any code, you MUST: "
+                        "(1) Search bugs.json for duplicate or related bugs, "
+                        "(2) Search agile_backlog.json for duplicate or contradicting features/requirements, "
+                        "(3) Show any matches to the user and resolve before coding. "
+                        "This rule exists because requirements and bugs were repeatedly lost or duplicated."
+                    ),
+                }
+            return {"comply": True}
+
         if action_event != "pre_tool_use":
             return {"comply": True}
 
@@ -1161,7 +1192,21 @@ def main():
             boot = chathealthy_devops_boot(load_full=False)
             user_msg = data.get("prompt", data.get("content", data.get("message", "")))
             result = boot.prompt(user_msg, hook_input=data)
-            json.dump(result, sys.stdout)
+            # If any worker returned additionalContext, wrap it for Claude Code
+            additional = ""
+            for w in result.get("workers", []):
+                if w.get("additionalContext"):
+                    additional += w["additionalContext"] + "\n"
+            if additional:
+                output = {
+                    "hookSpecificOutput": {
+                        "hookEventName": "UserPromptSubmit",
+                        "additionalContext": additional.strip(),
+                    }
+                }
+                json.dump(output, sys.stdout)
+            else:
+                json.dump(result, sys.stdout)
             sys.exit(0)
 
         elif args.mode == "tool_call":
