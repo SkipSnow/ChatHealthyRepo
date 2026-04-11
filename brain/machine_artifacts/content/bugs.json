@@ -1194,7 +1194,7 @@
         "prod"
       ],
       "status": "closed",
-      "resolution_status": "fixed",
+      "resolution_status": "tested_passed",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000030-0000-4000-e000-000000000030",
       "resolution": "Verified FindCareApp.tsx: timer clears after fetchProviders (line 168-169), comment on line 167 confirms intent. Also clears on error (line 182-183). Closed 2026-04-10.",
