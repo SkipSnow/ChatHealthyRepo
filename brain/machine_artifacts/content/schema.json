@@ -59,7 +59,8 @@
       "path": "brain/machine_artifacts/content/bugs.json",
       "purpose": "All system bugs. Source of truth for defect tracking. Constrained by CV-008 (bug_type) and CV-009 (bug_resolution_status).",
       "record_schema": {
-        "name": "bug_schema",
+        "title": "bugs_schema",
+        "description": "This ChatHealthy Brain Schema documents all bugs in all environments with their statuses. It is an integral part in ChatHealthy's ability to both track bugs and do full or partial regression testing.",
         "fields": {
           "id": {"type": "string", "required": true, "description": "Unique bug identifier (e.g. BUG-DATA-001)"},
           "req_id": {"type": "string", "required": true, "description": "Reference to the agile_backlog requirement this bug is associated with (e.g. FC-SELECT-001-REQ-002). Every bug must trace to a requirement."},
@@ -151,6 +152,8 @@
       "path": "brain/machine_artifacts/content/agile_backlog.json",
       "purpose": "All epics, features, stories, and boolean testable requirements",
       "produces_artifact": false,
+      "title": "agile_backlog_schema",
+      "description": "This ChatHealthy Brain Schema documents all requirements for ChatHealthy.ai LLC. It is an integral part in ChatHealthy's ability to both track all requirements, map them to the firm's business goals, and facilitate full or partial regression testing.",
       "record_schemas": {
         "epic": {
           "description": "Top-level business component. Contains features[]. Creation requires Boss authority.",
@@ -171,6 +174,7 @@
             "status": {"type": "string", "required": true, "constrained_by": "CV-005"},
             "description": {"type": "string", "required": true},
             "dependencies": {"type": "array", "items": "string", "required": false, "description": "Array of epic_ids this feature depends on"},
+            "realized_by": {"type": "array", "items": "string", "required": false, "description": "Technical components that implement this feature. Free text until architecture component IDs are defined post-alpha. Will reference architecture.json component IDs."},
             "stories": {"type": "array", "items": "story", "required": true, "description": "Array of stories belonging to this feature"}
           }
         },
@@ -193,7 +197,8 @@
             "priority": {"type": "string", "required": true, "possible_values": ["must-have", "should-have", "nice-to-have"]},
             "status": {"type": "string", "required": true, "constrained_by": "CV-005"},
             "pytest_ids": {"type": "array", "items": "string", "min_items": 1, "required_when": "status in (implemented, in_progress)", "description": "References to pytests that validate this requirement. At least one required when implemented."},
-            "bug_ids": {"type": "array", "items": "string", "required": false, "description": "Links to bugs filed against this requirement"}
+            "bug_ids": {"type": "array", "items": "string", "required": false, "description": "Links to bugs filed against this requirement"},
+            "realized_by": {"type": "array", "items": "string", "required": false, "description": "Technical components that implement this requirement. Free text until architecture component IDs are defined post-alpha."}
           }
         }
       }
