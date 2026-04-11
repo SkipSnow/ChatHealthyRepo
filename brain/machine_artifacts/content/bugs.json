@@ -1171,8 +1171,8 @@
         "qa",
         "prod"
       ],
-      "status": "open",
-      "resolution_status": "fixing",
+      "status": "closed",
+      "resolution_status": "tested_passed",
       "pytest_id": "FC-SELECT-001-REQ-002",
       "pytest_success_criteria": "Playwright test: user drags a provider card from the top candidate list and drops it into the bottom evaluate container. Provider appears in selected list. Max 5 enforced.",
       "risk_acceptance_id": null,
