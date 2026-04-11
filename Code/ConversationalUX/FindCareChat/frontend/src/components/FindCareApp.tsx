@@ -39,12 +39,23 @@ function sendToParent(type: string, data: any = {}) {
   }
 }
 
+// ── SEC-HTTPS-001-REQ-003: Check for security violation on every fetch ───
+function checkSecurityViolation(resp: Response, url: string): void {
+  if (resp.status === 403 || resp.status === 426) {
+    throw new Error(`SECURITY: ${url} returned ${resp.status} — HTTPS required. HTTP calls are blocked.`)
+  }
+  if (!resp.ok) {
+    throw new Error(`HTTP ${resp.status} from ${url}`)
+  }
+}
+
 // ── Session token ────────────────────────────────────────────────
 let _sessionToken: any = null
 async function getSessionToken(): Promise<any> {
   if (_sessionToken) return _sessionToken
   try {
     const resp = await fetch(`${API_URL}/session`)
+    checkSecurityViolation(resp, `${API_URL}/session`)
     _sessionToken = await resp.json()
   } catch {
     _sessionToken = { origin: 'FindCare', token: `CH_${crypto.randomUUID()}`, signed: false }
@@ -129,6 +140,7 @@ export default function FindCareApp() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text }),
       })
+      checkSecurityViolation(classifyResp, `${API_URL}/classify`)
       const classified = await classifyResp.json()
 
       if (timerRef.current) clearInterval(timerRef.current)
@@ -179,6 +191,7 @@ export default function FindCareApp() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params),
       })
+      checkSecurityViolation(resp, `${API_URL}/search`)
       const data = await resp.json()
       if (data.providers) {
         selection.setAvailable(data.providers as Provider[])
@@ -203,6 +216,7 @@ export default function FindCareApp() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...searchParams, after_npi: lastNpi, limit: 25 }),
       })
+      checkSecurityViolation(resp, `${API_URL}/search`)
       const data = await resp.json()
       if (data.providers?.length) {
         // Add to available (reducer will filter out selected/garbage)
