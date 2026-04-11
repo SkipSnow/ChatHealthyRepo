@@ -109,8 +109,7 @@ export default function FindCareApp() {
 
       if (msg.type === 'gui:event') {
         if (msg.action === 'filter-apply' && searchParamsRef.current) {
-          // FC-FILT-001-REQ-007: Clear providers first, then re-query
-          selection.setAvailable([])
+          // FC-FILT-001-REQ-007: Re-query with filtered codes
           const params = { ...searchParamsRef.current, specialty_codes: JSON.parse(msg.value || '[]') }
           fetchProviders(params, questionRef.current)
         }
