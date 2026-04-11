@@ -1030,7 +1030,25 @@
       "resolution_status": "testing",
       "req_id": "FC-EVAL-001-REQ-005",
       "type": "medium",
-      "reason": "FindCare to EvaluateCare communication fails — is_hf undefined, proxy crashes with 500."
+      "reason": "FindCare to EvaluateCare communication fails — is_hf undefined, proxy crashes with 500.",
+      "acceptance_criteria": [
+        {
+          "id": 1,
+          "criterion": "All providers moved from FindCare provider selection to EvaluateCare",
+          "status": "open"
+        },
+        {
+          "id": 2,
+          "criterion": "Security token encrypted is present",
+          "status": "open"
+        },
+        {
+          "id": 3,
+          "criterion": "Security token matches FindCare",
+          "status": "open"
+        }
+      ],
+      "pytest_success_criteria": "All 3 acceptance criteria must pass via Playwright end-to-end test."
     },
     {
       "id": "BUG-EVAL-003",
