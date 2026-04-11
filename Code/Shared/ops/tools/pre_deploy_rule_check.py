@@ -373,8 +373,9 @@ def dead_code_scan(repo_root):
         for root, dirs, files in os.walk(dirpath):
             dirs[:] = [x for x in dirs if x not in _SKIP_DIRS]
             for f in files:
-                if not f.endswith(".py") or f.startswith("test_"):
+                if not f.endswith(".py"):
                     continue
+                is_test = f.startswith("test_")
                 fpath = os.path.join(root, f)
                 try:
                     with open(fpath, encoding="utf-8", errors="replace") as fp:
@@ -386,14 +387,15 @@ def dead_code_scan(repo_root):
                 relpath = os.path.relpath(fpath, repo_root).replace(os.sep, "/")
 
                 for node in ast.walk(tree):
-                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    # Collect definitions only from non-test files
+                    if not is_test and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                         if not node.name.startswith("_"):
                             decs = _get_decorator_strings(node)
                             end = getattr(node, "end_lineno", node.lineno)
                             definitions.setdefault(node.name, []).append(
                                 (relpath, node.lineno, end, "function", decs)
                             )
-                    elif isinstance(node, ast.ClassDef):
+                    elif not is_test and isinstance(node, ast.ClassDef):
                         if not node.name.startswith("_"):
                             decs = _get_decorator_strings(node)
                             end = getattr(node, "end_lineno", node.lineno)

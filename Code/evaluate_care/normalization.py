@@ -6,7 +6,44 @@ from __future__ import annotations
 from .models import NormalizationMethod
 
 
+def normalize_min_max(value: float, min_val: float, max_val: float) -> float:
+    """Min-max normalization to [0.0, 1.0]."""
+    if max_val <= min_val:
+        return 0.0
+    return max(0.0, min(1.0, (value - min_val) / (max_val - min_val)))
 
+
+def normalize_boolean(value: float) -> float:
+    """Boolean normalization: >= 1.0 -> 1.0, else 0.0."""
+    return 1.0 if value >= 1.0 else 0.0
+
+
+def normalize_linear_scale(value: float, max_val: float) -> float:
+    """Linear scale normalization: value / max, clamped to [0.0, 1.0]."""
+    if max_val <= 0:
+        return 0.0
+    return max(0.0, min(1.0, value / max_val))
+
+
+def normalize_inverse(value: float, max_val: float) -> float:
+    """Inverse normalization: lower is better. 0 -> 1.0, max -> 0.0."""
+    if max_val <= 0:
+        return 1.0
+    if value <= 0:
+        return 1.0
+    if value >= max_val:
+        return 0.0
+    return 1.0 - (value / max_val)
+
+
+def normalize_categorical(value: float, mapping: dict[float, float]) -> float:
+    """Categorical normalization using a fixed lookup table."""
+    return mapping.get(value, 0.0)
+
+
+def normalize_passthrough(value: float) -> float:
+    """Passthrough — clamp to [0.0, 1.0] but no transformation."""
+    return max(0.0, min(1.0, value))
 
 
 def describe_method(method: NormalizationMethod) -> str:
