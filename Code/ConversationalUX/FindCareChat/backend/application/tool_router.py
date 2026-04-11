@@ -102,3 +102,31 @@ class ToolRouter:
                 "content": json.dumps(result),
             })
         return tool_results
+
+    def handle_normalized_tool_calls(self, tool_calls: list, messages, format_history_fn=None) -> list:
+        """Process normalized tool calls from llm_client (OpenAI format).
+
+        Args:
+            tool_calls: list of {"id": "...", "function": {"name": "...", "arguments": "..."}}
+            messages: conversation messages
+            format_history_fn: optional function to format chat history
+
+        Returns:
+            list of {"role": "tool", "tool_call_id": "...", "content": "..."}
+        """
+        tool_results = []
+        for tc in tool_calls:
+            name = tc["function"]["name"]
+            args_str = tc["function"].get("arguments", "{}")
+            arguments = json.loads(args_str) if isinstance(args_str, str) else args_str
+
+            if name in ("record_user_details", "record_unknown_question") and format_history_fn:
+                arguments["chat_history"] = format_history_fn(messages, truncate=False)
+
+            result = self.dispatch(name, arguments)
+            tool_results.append({
+                "role": "tool",
+                "tool_call_id": tc["id"],
+                "content": json.dumps(result),
+            })
+        return tool_results

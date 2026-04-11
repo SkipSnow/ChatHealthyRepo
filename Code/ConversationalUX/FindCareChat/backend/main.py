@@ -609,49 +609,66 @@ async def _chat_inner(body: ChatRequest, request: Request):
         _safety_service.lock_ip(ip, trigger_message=body.message, history=full_history)
         return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
 
+    # Model from config — single source of truth
+    import sys as _sys
+    _sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared"))
+    from llm_client import chat as llm_chat
+
+    _CHAT_MODEL = os.getenv("CHAT_MODEL", "gemini-2.5-flash")
+
     user_msg_count = sum(1 for m in body.history if m.get("role") == "user")
     system = _system_prompt(follow_up_check=user_msg_count > 0 and user_msg_count % 5 == 0)
     messages = list(body.history) + [{"role": "user", "content": body.message}]
-    client = Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
     total_in = total_out = 0
 
-    _log.info("CHAT call=initial msgs=%d", len(messages))
-    response = client.messages.create(
-        model="claude-sonnet-4-6", max_tokens=4096, system=system, messages=messages, tools=anthropic_tools)
-    total_in  += getattr(response.usage, "input_tokens", 0)
-    total_out += getattr(response.usage, "output_tokens", 0)
+    _log.info("CHAT model=%s call=initial msgs=%d", _CHAT_MODEL, len(messages))
+    response = llm_chat(_CHAT_MODEL, messages, tools=anthropic_tools, system=system, max_tokens=4096)
+    total_in  += response.get("usage", {}).get("input_tokens", 0)
+    total_out += response.get("usage", {}).get("output_tokens", 0)
 
     loop_iter = 0
-    last_provider_result = None  # capture pagination metadata from find_providers
-    last_trials_result = None    # capture clinical trials metadata
+    last_provider_result = None
+    last_trials_result = None
 
-    while response.stop_reason == "tool_use":
-        tool_uses = [b for b in response.content if b.type == "tool_use"]
-        tool_results = _handle_tool_calls(tool_uses, messages)
+    while response.get("stop_reason") in ("tool_calls", "tool_use"):
+        tool_calls = response.get("tool_calls", [])
+        if not tool_calls:
+            break
+        tool_results = _tool_router.handle_normalized_tool_calls(tool_calls, messages, _format_chat_history)
 
         # Capture tool results for system summary
-        for i, block in enumerate(tool_uses):
-            if block.name == "find_providers":
+        for i, tc in enumerate(tool_calls):
+            tc_name = tc["function"]["name"]
+            if tc_name == "find_providers":
                 try:
                     last_provider_result = json.loads(tool_results[i]["content"])
                 except (json.JSONDecodeError, KeyError, IndexError):
                     pass
-            elif block.name == "search_clinical_trials":
+            elif tc_name == "search_clinical_trials":
                 try:
                     last_trials_result = json.loads(tool_results[i]["content"])
                 except (json.JSONDecodeError, KeyError, IndexError):
                     pass
 
-        messages.append({"role": "assistant", "content": response.content})
-        messages.append({"role": "user", "content": tool_results})
-        loop_iter += 1
-        _log.info("CHAT tool_loop iter=%d tools=%s", loop_iter, [b.name for b in tool_uses])
-        response = client.messages.create(
-            model="claude-sonnet-4-6", max_tokens=4096, system=system, messages=messages, tools=anthropic_tools)
-        total_in  += getattr(response.usage, "input_tokens", 0)
-        total_out += getattr(response.usage, "output_tokens", 0)
+        # Append assistant message with tool calls
+        assistant_msg = {"role": "assistant", "content": response.get("content", "")}
+        if tool_calls:
+            assistant_msg["tool_calls"] = [
+                {"id": tc["id"], "type": "function", "function": tc["function"]}
+                for tc in tool_calls
+            ]
+        messages.append(assistant_msg)
+        # Append tool results
+        for tr in tool_results:
+            messages.append(tr)
 
-    text = next((b.text for b in response.content if b.type == "text"), "")
+        loop_iter += 1
+        _log.info("CHAT tool_loop iter=%d tools=%s", loop_iter, [tc["function"]["name"] for tc in tool_calls])
+        response = llm_chat(_CHAT_MODEL, messages, tools=anthropic_tools, system=system, max_tokens=4096)
+        total_in  += response.get("usage", {}).get("input_tokens", 0)
+        total_out += response.get("usage", {}).get("output_tokens", 0)
+
+    text = response.get("content", "")
     text = _url_guardian.guard_text(text)
     text = re.sub(r'(?<!\[)Skip Snow on LinkedIn(?!\])',
                   '[Skip Snow on LinkedIn](https://linkedin.com/in/skipsnow)', text)

@@ -39,6 +39,46 @@ _VENDOR_KEYS = {
 }
 
 
+def _anthropic_to_openai_tools(tools: list) -> list:
+    """Convert Anthropic tool format to OpenAI format."""
+    converted = []
+    for t in tools:
+        if "type" in t and t.get("type") == "function":
+            converted.append(t)  # Already OpenAI format
+        elif "name" in t and "input_schema" in t:
+            # Anthropic format → OpenAI format
+            converted.append({
+                "type": "function",
+                "function": {
+                    "name": t["name"],
+                    "description": t.get("description", ""),
+                    "parameters": t["input_schema"],
+                },
+            })
+        else:
+            converted.append(t)  # Pass through unknown format
+    return converted
+
+
+def _openai_to_anthropic_tools(tools: list) -> list:
+    """Convert OpenAI tool format to Anthropic format."""
+    converted = []
+    for t in tools:
+        if "name" in t and "input_schema" in t:
+            converted.append(t)  # Already Anthropic format
+        elif t.get("type") == "function" and "function" in t:
+            # OpenAI format → Anthropic format
+            func = t["function"]
+            converted.append({
+                "name": func["name"],
+                "description": func.get("description", ""),
+                "input_schema": func.get("parameters", {}),
+            })
+        else:
+            converted.append(t)  # Pass through
+    return converted
+
+
 def _get_vendor(model: str) -> str:
     """Determine vendor from model name."""
     m = model.lower()
@@ -78,7 +118,7 @@ def _anthropic_call(model: str, messages: list, tools: Optional[list] = None,
     if system:
         call_kwargs["system"] = system
     if tools:
-        call_kwargs["tools"] = tools
+        call_kwargs["tools"] = _openai_to_anthropic_tools(tools)
 
     response = client.messages.create(**call_kwargs)
 
@@ -138,7 +178,7 @@ def _openai_call(model: str, messages: list, tools: Optional[list] = None,
         "messages": full_messages,
     }
     if tools:
-        call_kwargs["tools"] = tools
+        call_kwargs["tools"] = _anthropic_to_openai_tools(tools)
     if response_format:
         call_kwargs["response_format"] = response_format
 
