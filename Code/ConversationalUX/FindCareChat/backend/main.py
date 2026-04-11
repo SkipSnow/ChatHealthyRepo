@@ -552,7 +552,7 @@ def evaluate_proxy(body: EvaluateRequest):
     certs_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
 
     req_kwargs = {"timeout": 15}
-    if not is_hf:
+    if not os.getenv("SPACE_ID"):
         findcare_crt = os.path.join(certs_dir, "findcare.crt")
         findcare_key = os.path.join(certs_dir, "findcare.key")
         ca_crt = os.path.join(certs_dir, "ca.crt")
