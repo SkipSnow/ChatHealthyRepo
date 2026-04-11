@@ -122,42 +122,46 @@ export default function FindCareApp() {
     }, 1000)
 
     try {
-      const resp = await fetch(`${API_URL}/chat`, {
+      // GOV-011: One AI call to classify, then system queries DB
+      // Step 1: AI translates question → structured specialties + location
+      const classifyResp = await fetch(`${API_URL}/classify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, history: [] }),
+        body: JSON.stringify({ message: text }),
       })
-      const data = await resp.json()
+      const classified = await classifyResp.json()
 
       if (timerRef.current) clearInterval(timerRef.current)
       sendToParent('gui:timer-clear')
 
-      if (data.error) {
-        setError(data.error)
+      if (classified.error || !classified.specialties?.length) {
+        setError(classified.error || 'Could not identify relevant specialties')
         setPhase('error')
         return
       }
 
-      // Fetch structured providers
-      if (data.pagination?.total_count > 0) {
-        setTotalCount(data.pagination.total_count)
-        setSearchParams(data.pagination.search_params)
-        setHasMore(data.pagination.has_more || false)
-        setLastNpi(data.pagination.last_npi || '')
+      // Step 2: System queries DB with AI-provided parameters — no more AI
+      const codes = classified.specialties.map((s: any) => s.code)
+      const params: any = {
+        specialty_codes: codes,
+        limit: 25,
+      }
+      if (classified.state) params.state = classified.state
+      if (classified.city) params.city = classified.city
+      if (classified.county) params.county = classified.county
 
-        await fetchProviders(
-          { ...data.pagination.search_params, limit: data.pagination.count || 25 },
-          text,
-        )
+      setSearchParams(params)
+      await fetchProviders(params, text)
 
-        // Send filter options to parent
-        if (data.pagination.specialization_options?.length > 1) {
-          sendFilterToParent(data.pagination.specialization_options, data.pagination.search_params)
-        }
-      } else {
-        // No providers — show the LLM response as text
-        setWelcomeHtml(data.response || 'No providers found.')
-        setPhase('welcome')
+      // Send filter options to parent — use the ranked specialties from AI
+      if (classified.specialties.length > 1) {
+        const filterOptions = classified.specialties.map((s: any) => ({
+          code: s.code,
+          name: s.name,
+          can_prescribe: true,  // Default — will be enriched from DB later
+          homeopathic: false,
+        }))
+        sendFilterToParent(filterOptions, params)
       }
     } catch (err: any) {
       if (timerRef.current) clearInterval(timerRef.current)
