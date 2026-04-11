@@ -68,62 +68,6 @@ class URLGuardian:
     # Public API
     # ------------------------------------------------------------------
 
-# DEAD CODE (v4-031) -- unreferenced function 'check_url', marked for deletion
-#     def check_url(self, url: str) -> tuple[bool, Optional[str]]:
-#         """
-#         Check if a URL is reachable.
-#
-#         Returns:
-#             (is_valid, resolved_url)
-#             - (True, None) — URL works as-is
-#             - (True, new_url) — URL redirected to new_url
-#             - (False, None) — URL is broken and no redirect found
-#         """
-#         cached = self._cache_lookup(url)
-#         if cached is not None:
-#             return cached
-#
-#         valid, redirect = self._validate(url)
-#         self._cache_store(url, valid, redirect)
-#         return valid, redirect
-# END DEAD CODE
-
-# DEAD CODE (v4-031) -- unreferenced function 'guard_tool_result', marked for deletion
-#     def guard_tool_result(self, result: dict) -> dict:
-#         """
-#         Validate URLs in a tool result dict.
-#
-#         Looks for a 'links' key containing {label: url} pairs.
-#         Broken URLs are removed from the dict. If a redirect is found,
-#         the URL is updated.
-#
-#         Returns the (possibly modified) result dict.
-#         """
-#         links = result.get("links")
-#         if not isinstance(links, dict):
-#             return result
-#
-#         urls_to_check = {label: url for label, url in links.items()
-#                          if isinstance(url, str) and url.startswith("http")}
-#
-#         if not urls_to_check:
-#             return result
-#
-#         context = result.get("provider_name", "")
-#         validated = self._validate_batch(urls_to_check.values(), context=context)
-#
-#         for label, url in list(urls_to_check.items()):
-#             valid, redirect = validated.get(url, (True, None))
-#             if not valid:
-#                 _log.info("URLGuardian: removing broken link %s -> %s", label, url)
-#                 del links[label]
-#             elif redirect:
-#                 _log.info("URLGuardian: redirecting %s -> %s", url, redirect)
-#                 links[label] = redirect
-#
-#         return result
-# END DEAD CODE
-
     def guard_text(self, text: str) -> str:
         """
         Validate URLs in markdown text.

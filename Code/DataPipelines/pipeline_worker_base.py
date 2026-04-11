@@ -148,55 +148,6 @@ class PipelineWorkerBase(ABC):
         (e.g., status-code writes).  Do not re-raise inside this method."""
 
     # ── Idempotent resume helper ───────────────────────────────────────────────
-
-# DEAD CODE (v4-031) -- unreferenced function 'output_exists_and_valid', marked for deletion
-#     def output_exists_and_valid(self, collection, query: dict = None,
-#                                 min_count: int = 1) -> bool:
-#         """Check if output already exists with sufficient records.
-#
-#         Enables idempotent resume — callers can skip a step when its output
-#         collection already contains at least *min_count* documents matching
-#         *query*.
-#
-#         Parameters
-#         ----------
-#         collection : pymongo.collection.Collection
-#             The output collection to inspect.
-#         query : dict, optional
-#             Filter for ``count_documents``.  Defaults to ``{}``.
-#         min_count : int
-#             Minimum number of documents required to consider the output valid.
-#
-#         Returns
-#         -------
-#         bool
-#             True if the collection contains >= *min_count* matching documents.
-#         """
-#         q = query or {}
-#         try:
-#             count = collection.count_documents(q)
-#             valid = count >= min_count
-#             if valid:
-#                 logging.info(
-#                     "output_exists_and_valid: %s has %d docs (min %d) — "
-#                     "skipping re-processing",
-#                     collection.full_name, count, min_count,
-#                 )
-#             else:
-#                 logging.info(
-#                     "output_exists_and_valid: %s has %d docs (min %d) — "
-#                     "needs processing",
-#                     collection.full_name, count, min_count,
-#                 )
-#             return valid
-#         except Exception as exc:
-#             logging.warning(
-#                 "output_exists_and_valid: error checking %s — %s",
-#                 collection.full_name, exc,
-#             )
-#             return False
-# END DEAD CODE
-
     # ── Abstract — subclasses must implement ──────────────────────────────────
 
     @abstractmethod

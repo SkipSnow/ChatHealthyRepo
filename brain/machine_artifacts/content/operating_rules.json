@@ -235,6 +235,13 @@
       "rule": "In an AI-native system, unused code is a liability and must not exist. No function, class, or method may exist without at least one caller in the codebase (production code or test). If the dead code scanner finds a symbol that is defined but never referenced — and it is not framework-invoked (FastAPI route, Azure trigger, governance hook) — it must be deleted.\n\nStubs, speculative functions, and code built for future use are prohibited. YAGNI (Fowler): implement when you actually need it, never when you foresee it. The cost of reimplementation in an AI-native system is near zero — git history preserves the old code, the requirement documents the intent, and the agent regenerates the function in minutes.\n\nPublic API functions that serve external consumers are not exempt — they must have a pytest that calls them. A test IS a caller.\n\nEnforcement: the dead code scanner runs in two modes. Check-in mode scans staged files and blocks the commit. Full regression mode scans the entire codebase before QA/prod promotion.",
       "source": "Skip Snow directive 2026-04-11, informed by Fowler YAGNI and AI-native dead code research",
       "ch_matrix_id": "b0000034-0000-4000-e000-000000000034"
+    },
+    {
+      "id": "v4-032",
+      "title": "Plural/singular naming convention for arrays",
+      "rule": "Every field named as a plural noun must be an array. Every array must contain members of its singular form. The singular form is the schema-controlled object type.\n\nExamples: features[] contains feature objects. requirements[] contains requirement objects. dead_code_records[] contains dead_code_record objects. pytest_ids[] contains pytest_id strings.\n\nThe schema must declare both the plural field (type: array) and the singular item type (items: singular_name). The scanner validates that every plural field in every brain JSON is an array, and that its members conform to the declared singular schema.\n\nThis convention is machine-enforceable. Implementation may be AI scan or code scan — the rule constrains the data, not the enforcement mechanism.",
+      "source": "Skip Snow directive 2026-04-11",
+      "ch_matrix_id": "b0000035-0000-4000-e000-000000000035"
     }
   ],
   "ch_matrix_id": "1f343049-b0e0-46e2-9c19-33c138e9ab46"
