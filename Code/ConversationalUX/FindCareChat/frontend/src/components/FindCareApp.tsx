@@ -69,6 +69,8 @@ export default function FindCareApp() {
   const selection = useSelectionState()
   const selectedRef = useRef<Provider[]>([])
   selectedRef.current = selection.state.selected
+  const searchParamsRef = useRef<any>(null)
+  const questionRef = useRef('')
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Fetch welcome message on mount
@@ -79,6 +81,10 @@ export default function FindCareApp() {
       .catch(() => setWelcomeHtml('Welcome to ChatHealthy FindCare'))
   }, [])
 
+  // Keep refs in sync for closure access
+  searchParamsRef.current = searchParams
+  questionRef.current = question
+
   // Listen for parent page events (filter apply, evaluate click)
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
@@ -86,10 +92,9 @@ export default function FindCareApp() {
       if (!msg || typeof msg !== 'object') return
 
       if (msg.type === 'gui:event') {
-        if (msg.action === 'filter-apply' && searchParams) {
-          // Re-search with filter applied
-          const params = { ...searchParams, specialty_codes: JSON.parse(msg.value || '[]') }
-          fetchProviders(params, question)
+        if (msg.action === 'filter-apply' && searchParamsRef.current) {
+          const params = { ...searchParamsRef.current, specialty_codes: JSON.parse(msg.value || '[]') }
+          fetchProviders(params, questionRef.current)
         }
         if (msg.action === 'evaluate-providers') {
           handleEvaluate()
@@ -98,7 +103,7 @@ export default function FindCareApp() {
     }
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [searchParams, question])
+  }, [])
 
   // ── Search ─────────────────────────────────────────────────────
   const doSearch = useCallback(async (text: string) => {

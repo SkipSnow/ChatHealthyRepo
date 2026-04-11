@@ -843,6 +843,18 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000024-0000-4000-e000-000000000024"
+    },
+    {
+      "id": "BUG-UX-011",
+      "rule": "BUG: Apply Filter does not clear old available providers from screen. Old docs stay visible alongside new filtered results.",
+      "incident": "Skip UAT 2026-04-10.",
+      "date": "2026-04-10",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000025-0000-4000-e000-000000000025"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

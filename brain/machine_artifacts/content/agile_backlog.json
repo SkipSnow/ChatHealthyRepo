@@ -21678,6 +21678,12 @@
                   "requirement": "System identifies matching specialty types from search query",
                   "priority": "must-have",
                   "status": "implemented"
+                },
+                {
+                  "req_id": "FC-SEARCH-001-REQ-005",
+                  "requirement": "Available provider cards show provider specialty on second row, matching the specialty from the filter that found them",
+                  "priority": "must-have",
+                  "status": "open"
                 }
               ]
             },
