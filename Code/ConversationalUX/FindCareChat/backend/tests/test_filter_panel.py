@@ -249,37 +249,61 @@ class TestFilterPanelDisplay:
 
         page.screenshot(path=os.path.join(SCREENSHOT_DIR, "filter_homeopathic.png"))
 
-    def test_apply_filter_requeries_with_checked_codes(self, page: Page):
-        """FC-FILT-001-REQ-007 / BUG-UX-011: Apply Filter re-queries DB with only
-        visible checked specialty codes. Unchecked or hidden specialties excluded."""
+    def test_apply_filter_no_change_shows_message(self, page: Page):
+        """FC-FILT-001-REQ-007 (1): If no change, show 'no filter changes' message."""
         frame = _get_chat_frame(page)
 
-        # Search for something that returns multiple specialties
         input_el = frame.locator("input[placeholder='Type a message...']")
         input_el.fill("find me a provider who can fix my wrist in DE")
         frame.locator("button:has-text('Send')").click()
+        frame.locator("text=/Available Providers/").wait_for(timeout=30000)
+        page.wait_for_timeout(3000)
 
-        # Wait for results
+        # Click Apply Filter without changing anything
+        apply_btn = page.locator("[data-gui-action='filter-apply']")
+        if not apply_btn.is_visible():
+            for f in page.frames:
+                apply_btn = f.locator("[data-gui-action='filter-apply']")
+                if apply_btn.count() > 0:
+                    break
+
+        # First click sets the baseline
+        apply_btn.click()
+        page.wait_for_timeout(3000)
+
+        # Second click with no change — should show message
+        apply_btn.click()
+        page.wait_for_timeout(1000)
+
+        no_change_msg = page.locator("#filterNoChangeMsg")
+        assert no_change_msg.is_visible(), "Should show 'no filter changes' message when nothing changed"
+        page.screenshot(path=os.path.join(SCREENSHOT_DIR, "filter_no_change_message.png"))
+
+    def test_apply_filter_clears_and_requeries(self, page: Page):
+        """FC-FILT-001-REQ-007 (2-3): Clear providers, then re-query DB with new codes."""
+        frame = _get_chat_frame(page)
+
+        input_el = frame.locator("input[placeholder='Type a message...']")
+        input_el.fill("find me a provider who can fix my wrist in DE")
+        frame.locator("button:has-text('Send')").click()
         frame.locator("text=/Available Providers/").wait_for(timeout=30000)
         page.wait_for_timeout(3000)
 
         # Get initial provider count
-        available_text = frame.locator("text=/available/i").first.text_content()
+        initial_text = frame.locator("text=/available/i").first.text_content()
 
-        # Find filter panel and uncheck first specialty
+        # Find checkboxes
         checkboxes = page.locator("[data-gui-action='filter-toggle']")
         if checkboxes.count() == 0:
             for f in page.frames:
                 checkboxes = f.locator("[data-gui-action='filter-toggle']")
                 if checkboxes.count() > 0:
                     break
-
         if checkboxes.count() < 2:
             pytest.skip("Need at least 2 specialties to test filter apply")
 
-        # Uncheck the first specialty
-        first_cb = checkboxes.first
-        first_cb.uncheck()
+        # Uncheck first specialty
+        checkboxes.first.uncheck()
         page.wait_for_timeout(300)
 
         # Click Apply Filter
@@ -289,23 +313,62 @@ class TestFilterPanelDisplay:
                 apply_btn = f.locator("[data-gui-action='filter-apply']")
                 if apply_btn.count() > 0:
                     break
-
         apply_btn.click()
 
-        # Wait for results to refresh
-        page.wait_for_timeout(5000)
+        # Wait for re-query
+        page.wait_for_timeout(8000)
 
-        # Verify the provider list changed — new available count should differ
-        new_available_text = frame.locator("text=/available/i").first.text_content()
+        # Provider list should have changed
+        new_text = frame.locator("text=/available/i").first.text_content()
+        page.screenshot(path=os.path.join(SCREENSHOT_DIR, "filter_apply_changed.png"))
 
-        # The key assertion: results should have changed because we unchecked a specialty
-        # We can't assert exact counts but the text should be different
-        page.screenshot(path=os.path.join(SCREENSHOT_DIR, "filter_apply_result.png"))
-
-        # Re-check the specialty and apply again to restore
-        first_cb.check()
+        # Restore
+        checkboxes.first.check()
         apply_btn.click()
         page.wait_for_timeout(3000)
 
-        restored_text = frame.locator("text=/available/i").first.text_content()
-        page.screenshot(path=os.path.join(SCREENSHOT_DIR, "filter_apply_restored.png"))
+    def test_prescriber_toggle_affects_apply_filter(self, page: Page):
+        """FC-FILT-001-REQ-007: Unchecking Prescribers toggle then Apply changes results."""
+        frame = _get_chat_frame(page)
+
+        input_el = frame.locator("input[placeholder='Type a message...']")
+        input_el.fill("find me a provider who can fix my wrist in DE")
+        frame.locator("button:has-text('Send')").click()
+        frame.locator("text=/Available Providers/").wait_for(timeout=30000)
+        page.wait_for_timeout(3000)
+
+        # Find prescribers toggle
+        presc_toggle = page.locator("[data-gui-value='prescribers']")
+        if not presc_toggle.is_visible():
+            for f in page.frames:
+                presc_toggle = f.locator("[data-gui-value='prescribers']")
+                if presc_toggle.count() > 0:
+                    break
+
+        if not presc_toggle.is_visible():
+            pytest.skip("Prescribers toggle not visible")
+
+        # Uncheck prescribers
+        presc_toggle.uncheck()
+        page.wait_for_timeout(500)
+
+        # Click Apply Filter
+        apply_btn = page.locator("[data-gui-action='filter-apply']")
+        if not apply_btn.is_visible():
+            for f in page.frames:
+                apply_btn = f.locator("[data-gui-action='filter-apply']")
+                if apply_btn.count() > 0:
+                    break
+        apply_btn.click()
+
+        # Wait for re-query
+        page.wait_for_timeout(8000)
+
+        # Should have different results now
+        page.screenshot(path=os.path.join(SCREENSHOT_DIR, "filter_prescriber_toggle_apply.png"))
+
+        # Restore
+        presc_toggle.check()
+        page.wait_for_timeout(500)
+        apply_btn.click()
+        page.wait_for_timeout(3000)

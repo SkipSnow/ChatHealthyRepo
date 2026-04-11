@@ -905,13 +905,40 @@
               var tag = el.tagName.toLowerCase();
               if (el.getAttribute('data-gui-action') === 'filter-apply') {
                 el.addEventListener('click', function() {
+                  // FC-FILT-001-REQ-007: Collect visible, checked specialty codes
                   var checked = [];
                   leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]:checked').forEach(function(cb) {
-                    // Only include visible items — hidden items were filtered out by prescriber/homeopathic toggle
                     var row = cb.closest('[data-spec-code]');
                     if (row && row.style.display === 'none') return;
                     checked.push(cb.getAttribute('data-gui-value'));
                   });
+
+                  // (1) Detect if there is a change from last applied filter
+                  var lastApplied = leftPanel.dataset.lastAppliedCodes || '';
+                  var currentCodes = JSON.stringify(checked.sort());
+                  if (currentCodes === lastApplied) {
+                    // No change — show message
+                    var noChangeMsg = leftPanel.querySelector('#filterNoChangeMsg');
+                    if (!noChangeMsg) {
+                      var applyBtn = leftPanel.querySelector('[data-gui-action="filter-apply"]');
+                      noChangeMsg = document.createElement('div');
+                      noChangeMsg.id = 'filterNoChangeMsg';
+                      noChangeMsg.style.cssText = 'color:#d97706;font-size:10px;text-align:center;padding:3px;font-weight:600;';
+                      noChangeMsg.textContent = 'No filter changes to apply.';
+                      applyBtn.parentNode.insertBefore(noChangeMsg, applyBtn);
+                      setTimeout(function() { if (noChangeMsg.parentNode) noChangeMsg.remove(); }, 3000);
+                    }
+                    return;
+                  }
+
+                  // Remove any previous no-change message
+                  var oldMsg = leftPanel.querySelector('#filterNoChangeMsg');
+                  if (oldMsg) oldMsg.remove();
+
+                  // Store current codes as last applied
+                  leftPanel.dataset.lastAppliedCodes = currentCodes;
+
+                  // (2-3) Send to iframe — iframe clears providers and re-queries DB
                   var prescriberCb = leftPanel.querySelector('input[data-gui-value="prescribers"]');
                   var prescribersOnly = prescriberCb ? prescriberCb.checked : false;
                   chatFrame.contentWindow.postMessage({
@@ -960,11 +987,8 @@
                   var items = leftPanel.querySelectorAll('[data-spec-code]');
                   var shown = 0;
                   var total = items.length;
-                  // Reset all specialty checkboxes to checked
-                  leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]').forEach(function(cb) {
-                    cb.checked = true;
-                  });
-                  // Show/hide based on switch state
+                  // Show/hide AND check/uncheck based on switch state
+                  // Hidden items get unchecked so Apply Filter detects the change
                   items.forEach(function(item) {
                     var canPresc = item.getAttribute('data-can-prescribe') === 'true';
                     var isHomeo = item.getAttribute('data-homeopathic') === 'true';
@@ -972,6 +996,8 @@
                     if (prescOn && !canPresc) show = false;
                     if (homeoOn && !isHomeo) show = false;
                     item.style.display = show ? '' : 'none';
+                    var cb = item.querySelector('input[data-gui-action="filter-toggle"]');
+                    if (cb) cb.checked = show;
                     if (show) shown++;
                   });
                   // Update counts — filtered count and your choices
