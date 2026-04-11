@@ -4,7 +4,7 @@
 # ClusterLifecycleManager — Infrastructure operations manager.
 # Manages MongoDB Atlas cluster lifecycle. No pipeline business logic.
 #
-# Design: EPIC-3, Pipeline Operations Manager
+# Design: FindCarePipeline, Pipeline Operations Manager
 # Pattern: Ops Manager owns infrastructure. Dev Manager owns pipeline logic.
 # Interface: reserve(cluster, duration) → reservation_id / release(reservation_id)
 #

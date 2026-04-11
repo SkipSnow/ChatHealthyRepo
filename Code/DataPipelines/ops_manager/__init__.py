@@ -2,7 +2,7 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
 # ops_manager — Pipeline Operations Manager agent.
-# EPIC-3: Infrastructure lifecycle management.
+# FindCarePipeline: Infrastructure lifecycle management.
 # The agent uses tools. Tools don't think. The agent thinks.
 
 from .ops_agent import OpsManagerAgent

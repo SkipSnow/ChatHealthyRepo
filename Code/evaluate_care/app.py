@@ -2,7 +2,7 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
 # EvaluateCare Service — FastAPI app on port 8001.
-# Separate service from FindCare (GOV-005, EPIC-6).
+# Separate service from FindCare (GOV-005).
 
 import os
 import sys
