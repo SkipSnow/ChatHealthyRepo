@@ -8,7 +8,6 @@
 | Severity | Bug | What to test |
 |---|---|---|
 | medium | BUG-MSG-003 | Message text wrong |
-| medium | BUG-MSG-002 | Summary uses your words not medical terms |
 | medium | BUG-FILTER-002 | Filter text horizontal not sideways |
 | medium | BUG-UX-002 | Filter panel scrolls |
 | medium | BUG-UX-003 | Stop button not orphaned |

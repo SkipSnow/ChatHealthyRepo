@@ -74,7 +74,7 @@
         "qa",
         "prod"
       ],
-      "status": "open",
+      "status": "closed",
       "risk_acceptance_id": null,
       "resolution": "Rule text already says BUG FIXED. Closed 2026-04-10.",
       "resolution_status": "tested_passed",
