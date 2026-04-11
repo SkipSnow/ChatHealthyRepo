@@ -819,12 +819,11 @@
           var timerEl = document.getElementById('guiTimer');
           if (timerEl) {
             timerEl.remove();
-            frame.style.justifyContent = 'center';
-            frame.style.paddingLeft = '';
-            // Restore default if nothing else is in the frame
-            if (!frame.querySelector('[data-gui-action]')) {
-              frame.innerHTML = '<span class="frame-label" style="color:#ccc;font-size:9px;">CONTROL FRAME</span>';
-            }
+            frame.dataset.hasResults = 'true';
+            // Clear frame — evaluate button will be created by next gui:selection-count
+            frame.innerHTML = '';
+            frame.style.justifyContent = 'flex-end';
+            frame.style.paddingRight = '12px';
           }
         }
 
@@ -833,13 +832,18 @@
         }
 
         // FC-EVAL-001: Evaluate button in control frame — cold/hot based on selection count
+        // Only show after search results exist (gui:filter or gui:timer-clear signals results)
         if (msg.type === 'gui:selection-count') {
+          // Don't show button until we've had search results
+          if (!frame.dataset.hasResults) return;
+
           var evalBtn = document.getElementById('guiEvalBtn');
           var count = msg.count || 0;
           var isCold = count === 0;
 
           if (!evalBtn) {
-            // Create the button on first selection message
+            // Create the button — clear the CONTROL FRAME label first
+            frame.innerHTML = '';
             frame.style.justifyContent = 'flex-end';
             frame.style.paddingRight = '12px';
             var btnContainer = document.createElement('div');
