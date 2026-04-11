@@ -131,6 +131,92 @@ These are utility scripts that were run once for a specific task. They clutter t
 
 ---
 
+## DEAD FUNCTIONS INSIDE LIVE FILES (52 functions)
+
+Found by static analysis: defined but never called or referenced anywhere in the codebase.
+Framework-invoked functions (FastAPI routes, Azure triggers, governance hooks) already filtered out.
+
+### Probably Dead — Old Architecture, Replaced
+
+| File | Line | Function | Why Dead |
+|---|---|---|---|
+| `tool_router.py` | 36 | `register_all` | Old tool registration system. FindCareApp uses direct API calls, not tools. |
+| `specialty_classifier.py` | 115 | `classify_specialties` | Replaced by /classify endpoint using GPT-4.1 |
+| `specialty_ranker.py` | 21 | `rank_specialties` | Replaced by GPT-4.1 ranking in /classify response |
+| `provider_search_service.py` | 499 | `get_provider_location` | Unused location lookup — search uses specialty codes |
+| `url_guardian.py` | 71 | `check_url` | Old tool URL validation — tools no longer used |
+| `url_guardian.py` | 89 | `guard_tool_result` | Old tool result guarding — tools no longer used |
+| `county_economic_enrichment.py` | 205 | `enrich_providers_with_economics` | Economic enrichment not in any pipeline step |
+
+### Probably Keep — Public API, Not Yet Wired
+
+| File | Line | Function | Why Keep |
+|---|---|---|---|
+| `brain_loop.py` | 103 | `write_brain_artifact` | Brain loop system — built, not yet called from hooks |
+| `brain_loop.py` | 201 | `write_assignment` | Brain loop — assignment queue |
+| `brain_loop.py` | 265 | `pick_up_assignment` | Brain loop — assignment pickup |
+| `brain_loop.py` | 336 | `deliver_result` | Brain loop — result delivery |
+| `brain_loop.py` | 360 | `request_feedback` | Brain loop — feedback request |
+| `brain_loop.py` | 385 | `provide_feedback` | Brain loop — feedback response |
+| `brain_loop.py` | 412 | `write_review_pack` | Brain loop — review pack |
+| `brain_loop.py` | 522 | `run_uat` | Brain loop — UAT execution |
+| `brain_loop.py` | 613 | `close_review` | Brain loop — review close |
+| `brain_loop.py` | 639 | `run_regression` | Brain loop — regression testing |
+| `brain_loop.py` | 678 | `get_state` | Brain loop — state query |
+| `brain_loop.py` | 683 | `get_pending_reviews` | Brain loop — pending reviews |
+| `brain_loop.py` | 689 | `sync_all_to_mongo` | Brain loop — MongoDB sync |
+| `normalization.py` | 9 | `normalize_min_max` | EvaluateCare normalization — will be used when scoring wired |
+| `normalization.py` | 16 | `normalize_boolean` | EvaluateCare normalization |
+| `normalization.py` | 21 | `normalize_linear_scale` | EvaluateCare normalization |
+| `normalization.py` | 28 | `normalize_inverse` | EvaluateCare normalization |
+| `normalization.py` | 39 | `normalize_categorical` | EvaluateCare normalization |
+| `normalization.py` | 44 | `normalize_passthrough` | EvaluateCare normalization |
+| `scoring_engine.py` | 54 | `register_measure` | Public API for adding scoring measures |
+| `cache.py` | 76 | `invalidate` | Cache invalidation — needed for data refresh |
+| `cost_guard.py` | 258 | `get_usage_report` | Token usage reporting |
+| `cost_guard.py` | 311 | `set_limit` | Token usage limit setting |
+| `llm_client.py` | 237 | `get_active_model` | Model introspection |
+| `machine_brain.py` | 224 | `store_decision` | Decision storage for future audit trail |
+| `machine_brain.py` | 293 | `backfill_embeddings` | Embedding backfill utility |
+| `machine_brain.py` | 337 | `list_all_decisions` | Decision listing |
+| `pipeline_worker_base.py` | 152 | `output_exists_and_valid` | Idempotency check (PIPE-ID-001) |
+
+### Needs Decision — Could Go Either Way
+
+| File | Line | Function | Question |
+|---|---|---|---|
+| `safety_service.py` | 159 | `session_is_locked` | Session lock check — is this used by the frontend? |
+| `atlas_cluster_manager.py` | 169 | `resume_for_job` | Cluster resume — used by lifecycle manager? |
+| `copy_to_frontend.py` | 282 | `migrate_environment` | Environment migration — still needed? |
+| `otp_manager.py` | 43 | `generate_otp` | OTP generation — used by ExchangeOTP route? |
+| `pipeline_db.py` | 52 | `get_admin_db` | Admin DB access — used anywhere? |
+| `pipeline_db.py` | 57 | `get_collection` | Collection access — used anywhere? |
+| `ops_manager/audit_trail.py` | 92 | `log_warning` | Ops audit trail — used by ops agent? |
+| `agent_framework/tool_registry.py` | 59 | `tool_names` | Agent tool listing — used by ops agent? |
+| `agent_framework/tool_registry.py` | 63 | `tool_schemas` | Agent tool schemas — used by ops agent? |
+| `brain_auth.py` | 78 | `authenticate` | Brain authentication — used by brain_runner? |
+| `brain_auth.py` | 94 | `get_gpt_key` | GPT key retrieval — used by brain_runner? |
+| `framework_version.py` | 31 | `get_active` | Framework version query |
+| `manifest_generator.py` | 257 | `total_entries` | Manifest entry count |
+| `chathealthy_devops_boot.py` | 140 | `blocks_action` | Bug governance method — called via pydantic? |
+| `chathealthy_devops_boot.py` | 656 | `get_constraints_summary` | Constraints summary — called during boot? |
+| `uat_report.py` | 81 | `update_uat_status` | UAT status update — used by QA report? |
+| `uat_report.py` | 119 | `seed_uat_status` | UAT status seeding — one-time? |
+
+---
+
+## UPDATED SUMMARY
+
+| Category | Count | Action |
+|---|---|---|
+| Dead files (already deleted) | 49 | Done |
+| Dead functions — probably dead | 7 | Delete after Boss review |
+| Dead functions — probably keep | 28 | Create requirements, keep |
+| Dead functions — needs decision | 17 | Boss decides |
+| **Total functions to review** | **52** | |
+
+---
+
 ## NOT EXTRANEOUS — Requirements Created
 
 The backend audit created 30 new requirements under FC-BACKEND.

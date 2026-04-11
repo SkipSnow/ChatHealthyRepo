@@ -28862,12 +28862,63 @@
                 }
               ],
               "ch_matrix_id": "d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a"
+            },
+            {
+              "story_id": "PIPE-TR-003",
+              "title": "Dead code scanner — two-pass symbol analysis",
+              "parent_feature": "PIPE-TRACE",
+              "size": "M",
+              "status": "open",
+              "description": "Two-pass scanner: Pass 1 streams every source file, builds a map of all definitions (classes, methods, functions) and all references (calls, imports, attribute access). Pass 2 reconciles — anything defined but never referenced is dead and must be deleted. Two modes: check-in (staged files only, fast) and full regression (entire codebase).",
+              "requirements": [
+                {
+                  "req_id": "PIPE-TR-003-REQ-001",
+                  "requirement": "Pass 1 must stream source files without holding full source in memory. It accumulates a definitions map (name, file, line) and a references set (names used). Memory proportional to symbol count, not source size. DR-008 compliant.",
+                  "priority": "must-have",
+                  "status": "open",
+                  "realized_by": ["Python 3.11 (ast module)"]
+                },
+                {
+                  "req_id": "PIPE-TR-003-REQ-002",
+                  "requirement": "Pass 2 walks the definitions map and checks each against the references set. Any definition with zero references and no framework-invocation decorator (FastAPI route, Azure trigger, governance hook) is reported as dead code.",
+                  "priority": "must-have",
+                  "status": "open",
+                  "realized_by": ["Python 3.11 (ast module)"]
+                },
+                {
+                  "req_id": "PIPE-TR-003-REQ-003",
+                  "requirement": "Check-in mode scans only staged files (git diff --cached). If a staged file adds a function, verify something calls it. If it deletes a function, verify nothing else calls it. Must complete in under 5 seconds for typical commits.",
+                  "priority": "must-have",
+                  "status": "open",
+                  "realized_by": ["Python 3.11 (ast module)", "git"]
+                },
+                {
+                  "req_id": "PIPE-TR-003-REQ-004",
+                  "requirement": "Full regression mode scans the entire codebase with two passes. Run on demand or before promotion to QA/prod. Reports all dead code with file, line, and function name.",
+                  "priority": "must-have",
+                  "status": "open",
+                  "realized_by": ["Python 3.11 (ast module)"]
+                },
+                {
+                  "req_id": "PIPE-TR-003-REQ-005",
+                  "requirement": "The scanner is a single class that holds state (definitions map, references set, findings list). It is not a separate script — it is a method on the existing pre_deploy_rule_check scanner class. One scanner, one class, shared state.",
+                  "priority": "must-have",
+                  "status": "open",
+                  "realized_by": ["Python 3.11"]
+                },
+                {
+                  "req_id": "PIPE-TR-003-REQ-006",
+                  "requirement": "Dead code found during check-in mode blocks the commit. Dead code found during full regression is reported but does not block (informational for promotion review).",
+                  "priority": "must-have",
+                  "status": "open",
+                  "realized_by": ["Python 3.11", "git hooks"]
+                }
+              ]
             }
           ],
           "ch_matrix_id": "634057b5-20e7-4b8b-aa3b-27ac6875f5a3",
           "realized_by": [
-            "Azure Durable Functions (Python 3.12)",
-            "MongoDB Atlas"
+            "Python 3.11 (pre_deploy_rule_check.py)"
           ]
         },
         {

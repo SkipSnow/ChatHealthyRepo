@@ -33,11 +33,6 @@ class ToolRouter:
             self._models[tool_name] = model
         _log.debug("Registered tool: %s -> %s (model: %s)", tool_name, handler.__name__ if hasattr(handler, '__name__') else str(handler), model.__name__ if model else "None")
 
-    def register_all(self, mapping: dict[str, callable]) -> None:
-        """Register multiple tools at once. Use register_with_models for Pydantic validation."""
-        for name, handler in mapping.items():
-            self.register(name, handler)
-
     def register_with_models(self, mapping: list[tuple]) -> None:
         """Register tools with Pydantic models: [(name, handler, model), ...]"""
         for entry in mapping:
