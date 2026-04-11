@@ -18834,7 +18834,7 @@
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-003",
-                  "requirement": "Every client REST call checks return code — fail on 4xx/5xx, never silently continue",
+                  "requirement": "Every client REST call must check for HTTP 426 (Upgrade Required) or 403 (Forbidden) — if received, fail immediately with a clear security error. Do not retry, do not silently continue. This specific code means HTTP was used when HTTPS was required.",
                   "priority": "must-have",
                   "status": "open"
                 },
