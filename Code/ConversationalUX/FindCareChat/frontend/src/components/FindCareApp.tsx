@@ -96,6 +96,11 @@ export default function FindCareApp() {
   searchParamsRef.current = searchParams
   questionRef.current = question
 
+  // FC-EVAL-001: Send selection count to parent for evaluate button cold/hot state
+  useEffect(() => {
+    sendToParent('gui:selection-count', { count: selection.state.selected.length, max: selection.state.maxSelected })
+  }, [selection.state.selected.length])
+
   // Listen for parent page events (filter apply, evaluate click)
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
@@ -287,7 +292,6 @@ export default function FindCareApp() {
         <div style="flex:1;overflow-y:auto;">${items}</div>
         <div style="padding:6px 8px;border-top:1px solid #d8e2e1;">
           <button data-gui-action="filter-apply" style="width:100%;padding:5px;border-radius:4px;border:none;background:linear-gradient(180deg,#0b9a94,#0b7a75);color:#fff;font-size:11px;font-weight:600;cursor:pointer;">Apply Filter</button>
-          <button data-gui-action="evaluate-providers" style="width:100%;padding:5px;border-radius:4px;border:none;background:linear-gradient(180deg,#d97706,#b45309);color:#fff;font-size:11px;font-weight:600;cursor:pointer;margin-top:4px;">Evaluate These Providers</button>
         </div>
       </div>`
 
