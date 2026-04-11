@@ -253,7 +253,9 @@ def verify_frontend_indexes(frontend_client: MongoClient, db_name: str) -> dict:
 
 
 def create_frontend_vector_index_fn(config: dict) -> dict:
-    """Standalone task: create (or verify) the vector search index on the FrontEnd cluster.
+    """Standalone task: create (or verify) ALL vector search indexes on the FrontEnd cluster.
+
+    BUG-PIPE-008: Must create BOTH provider AND specialty vector indexes.
 
     config:
       env_prefix   — database prefix, e.g. "dev" → dev_PublicHealthData (default: "dev")
@@ -267,7 +269,12 @@ def create_frontend_vector_index_fn(config: dict) -> dict:
     coll_name  = config.get("collection", "providers")
     client = MongoClient(frontend_conn, serverSelectionTimeoutMS=30_000)
     try:
-        return _create_frontend_vector_index(client, db_name, coll_name)
+        provider_result = _create_frontend_vector_index(client, db_name, coll_name)
+        specialty_result = _create_specialty_vector_index(client, db_name)
+        return {
+            "provider_index": provider_result,
+            "specialty_index": specialty_result,
+        }
     finally:
         client.close()
 

@@ -506,89 +506,105 @@ def copy_to_frontend_orchestrator(context: df.DurableOrchestrationContext):
     context.set_custom_status("Reserving cluster")
     yield context.call_activity("register_reservation_activity", reservation)
 
-    # Step 2: Wait for cluster IDLE
-    deadline = context.current_utc_datetime + dt.timedelta(minutes=30)
-    while context.current_utc_datetime < deadline:
-        context.set_custom_status("Waiting for cluster IDLE")
-        status = yield context.call_activity("check_cluster_state_activity",
-                                              {"cluster_name": cluster_name})
-        if status.get("cluster_state") == "IDLE":
-            break
-        next_check = context.current_utc_datetime + dt.timedelta(seconds=15)
-        yield context.create_timer(next_check)
+    # BUG-PIPE-002: try/finally guarantees reservation release on any failure
+    pipeline_error = None
+    total_copied = 0
+    results = []
+    parity = {}
+    chunks = []
+    try:
+        # Step 2: Wait for cluster IDLE
+        deadline = context.current_utc_datetime + dt.timedelta(minutes=30)
+        while context.current_utc_datetime < deadline:
+            context.set_custom_status("Waiting for cluster IDLE")
+            status = yield context.call_activity("check_cluster_state_activity",
+                                                  {"cluster_name": cluster_name})
+            if status.get("cluster_state") == "IDLE":
+                break
+            next_check = context.current_utc_datetime + dt.timedelta(seconds=15)
+            yield context.create_timer(next_check)
 
-    # Step 3: Copy static collections
-    context.set_custom_status("Copying static collections")
-    yield context.call_activity("copy_to_frontend_activity", {
-        "env_prefix": env_prefix,
-        "states": [],
-    })
-
-    # Step 4: Drop destination providers (clean slate)
-    context.set_custom_status("Dropping destination providers")
-    yield context.call_activity("drop_destination_activity", {
-        "env_prefix": env_prefix,
-        "collection": "providers",
-    })
-
-    # Step 5: Partition source into chunks by _id range
-    context.set_custom_status(f"Partitioning source (states: {states or 'all'})")
-    partition = yield context.call_activity("partition_source_activity", {
-        "env_prefix": env_prefix,
-        "collection": "providers",
-        "chunk_size": chunk_size,
-        "query": provider_query,
-    })
-    chunks = partition.get("chunks", [])
-    total = partition.get("total", 0)
-
-    # Step 5.5: Pre-warm instances so each worker gets its own container
-    if chunks:
-        context.set_custom_status(f"Pre-warming {len(chunks)} instances")
-        yield context.call_activity("warm_instances_activity", {
-            "num_instances": min(len(chunks), 10),
+        # Step 3: Copy static collections
+        context.set_custom_status("Copying static collections")
+        yield context.call_activity("copy_to_frontend_activity", {
+            "env_prefix": env_prefix,
+            "states": [],
         })
 
-    # Step 6: Fan out — parallel workers, one per chunk
-    context.set_custom_status(f"Copying {total:,} providers across {len(chunks)} workers")
-    copy_tasks = []
-    for chunk in chunks:
-        copy_tasks.append(context.call_activity("copy_chunk_activity", {
+        # Step 4: Drop destination providers (clean slate)
+        context.set_custom_status("Dropping destination providers")
+        yield context.call_activity("drop_destination_activity", {
             "env_prefix": env_prefix,
             "collection": "providers",
-            "job_number": chunk["job_number"],
-            "start_id": chunk["start_id"],
-            "end_id": chunk["end_id"],
-        }))
-    results = yield context.task_all(copy_tasks)
-    total_copied = sum(r.get("copied", 0) for r in results)
-
-    # Step 6.5: Cool down instances
-    yield context.call_activity("cool_instances_activity", {})
-
-    # Step 7: Create vector index
-    context.set_custom_status("Creating vector search index")
-    try:
-        yield context.call_activity("create_frontend_vector_index_activity", {
-            "env_prefix": env_prefix,
         })
-    except Exception:
-        pass
 
-    # Step 8: Parity verification
-    context.set_custom_status("Verifying parity")
-    parity = yield context.call_activity("verify_parity_activity", {
-        "env_prefix": env_prefix,
-        "states": states if isinstance(states, list) and states else None,
-    })
-    parity_pass = parity.get("all_pass", False)
-    if not parity_pass:
-        context.set_custom_status(f"PARITY FAILURE — {parity}")
-        logging.error("CopyToFrontEnd parity check FAILED: %s", parity)
+        # Step 5: Partition source into chunks by _id range
+        context.set_custom_status(f"Partitioning source (states: {states or 'all'})")
+        partition = yield context.call_activity("partition_source_activity", {
+            "env_prefix": env_prefix,
+            "collection": "providers",
+            "chunk_size": chunk_size,
+            "query": provider_query,
+        })
+        chunks = partition.get("chunks", [])
+        total = partition.get("total", 0)
 
-    # Step 9: Release reservation
+        # Step 5.5: Pre-warm instances so each worker gets its own container
+        if chunks:
+            context.set_custom_status(f"Pre-warming {len(chunks)} instances")
+            yield context.call_activity("warm_instances_activity", {
+                "num_instances": min(len(chunks), 10),
+            })
+
+        # Step 6: Fan out — parallel workers, one per chunk
+        context.set_custom_status(f"Copying {total:,} providers across {len(chunks)} workers")
+        copy_tasks = []
+        for chunk in chunks:
+            copy_tasks.append(context.call_activity("copy_chunk_activity", {
+                "env_prefix": env_prefix,
+                "collection": "providers",
+                "job_number": chunk["job_number"],
+                "start_id": chunk["start_id"],
+                "end_id": chunk["end_id"],
+            }))
+        results = yield context.task_all(copy_tasks)
+        total_copied = sum(r.get("copied", 0) for r in results)
+
+        # Step 6.5: Cool down instances
+        yield context.call_activity("cool_instances_activity", {})
+
+        # Step 7: Create vector indexes (BUG-PIPE-008: BOTH provider AND specialty)
+        context.set_custom_status("Creating vector search indexes")
+        try:
+            yield context.call_activity("create_frontend_vector_index_activity", {
+                "env_prefix": env_prefix,
+            })
+        except Exception as idx_err:
+            logging.error("Vector index creation failed: %s", idx_err)
+
+        # Step 8: Parity verification
+        context.set_custom_status("Verifying parity")
+        parity = yield context.call_activity("verify_parity_activity", {
+            "env_prefix": env_prefix,
+            "states": states if isinstance(states, list) and states else None,
+        })
+        parity_pass = parity.get("all_pass", False)
+        if not parity_pass:
+            context.set_custom_status(f"PARITY FAILURE — {parity}")
+            logging.error("CopyToFrontEnd parity check FAILED: %s", parity)
+
+    except Exception as exc:
+        pipeline_error = str(exc)
+        logging.error("CopyToFrontEnd FAILED: %s", exc)
+        context.set_custom_status(f"FAILED — {pipeline_error[:100]}")
+
+    # Step 9: ALWAYS release reservation — success or failure (BUG-PIPE-002)
     context.set_custom_status("Releasing cluster")
     yield context.call_activity("release_reservation_activity", reservation)
+
+    if pipeline_error:
+        context.set_custom_status(f"FAILED — {pipeline_error[:100]}")
+        return {"status": "failed", "error": pipeline_error, "total_copied": total_copied}
 
     context.set_custom_status(f"Done — {total_copied:,} providers in {len(chunks)} chunks")
     return {"status": "complete", "total_copied": total_copied, "chunks": len(chunks), "results": results, "parity": parity}
