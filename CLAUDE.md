@@ -1,4 +1,4 @@
-Read `brain/machine_artifacts/content/chathealthyai_brainboot.json` and follow its instructions.
+The boot class in `Code/Shared/ops/tools/chathealthy_devops_boot.py` governs your session. It runs deterministically on every hook event via `.claude/settings.json`. Follow its output.
 
 ## v4-028: Bug/Feature Governance (MANDATORY)
 
