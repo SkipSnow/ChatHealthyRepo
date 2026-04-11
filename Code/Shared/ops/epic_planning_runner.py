@@ -195,7 +195,7 @@ def _feature_schema() -> dict:
                         "properties": {
                             "feature_id": {"type": "string"},
                             "name": {"type": "string"},
-                            "epic_id": {"type": "string", "enum": ["EPIC-1", "EPIC-2"]},
+                            "epic_id": {"type": "string"},
                             "layer": {"type": "string", "enum": ["frontend", "backend", "both"]},
                             "capability": {"type": "string"},
                             "description": {"type": "string"},
@@ -772,11 +772,15 @@ def run(max_iterations: int = 10):
     features = grow_features(system_prompt, model, user_prompt, manifest, max_iterations)
 
     # Build tree with accepted features
+    # Build epic tree dynamically from features — no hardcoded epic list
+    epic_map = {}
+    for f in features:
+        eid = f.get("epic_id", "EPIC-1")
+        if eid not in epic_map:
+            epic_map[eid] = {"epic_id": eid, "name": eid, "features": []}
+        epic_map[eid]["features"].append(f)
     tree = {
-        "epics": [
-            {"epic_id": "EPIC-1", "name": "Evaluate Care v0.1.4", "features": [f for f in features if f.get("epic_id") == "EPIC-1"]},
-            {"epic_id": "EPIC-2", "name": "Maintenance", "features": [f for f in features if f.get("epic_id") == "EPIC-2"]},
-        ],
+        "epics": list(epic_map.values()),
         "metadata": {"phase": "features_complete"},
     }
     _save_tree(tree)

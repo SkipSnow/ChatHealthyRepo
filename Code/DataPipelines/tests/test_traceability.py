@@ -21,7 +21,7 @@ def test_matrix_valid_json():
     assert len(matrix["entries"]) > 0
 
 def test_all_requirements_have_tests():
-    """PIPE-TR-001-REQ-001: every requirement in EPIC-PIPE has test artifact(s)"""
+    """PIPE-TR-001-REQ-001: every pipeline requirement has test artifact(s)"""
     matrix = _load_matrix()
     for req_id, entry in matrix["entries"].items():
         tests = entry.get("test_artifacts", [])

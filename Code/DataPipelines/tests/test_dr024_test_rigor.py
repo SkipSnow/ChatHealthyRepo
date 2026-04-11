@@ -138,9 +138,9 @@ def test_requirements_are_boolean_testable_outcomes():
     ]
     violations = []
     for epic in data["epics"]:
-        if epic.get("epic_id") != "EPIC-PIPE":
-            continue  # DR-024 enforced on new epics; legacy fixed when touched
         for feat in epic.get("features", []):
+            if not feat.get("feature_id", "").startswith("PIPE-"):
+                continue  # DR-024 enforced on pipeline features; legacy fixed when touched
             for story in feat.get("stories", []):
                 for req in story.get("requirements", []):
                     text = req.get("requirement", "").lower()
@@ -165,9 +165,9 @@ def test_every_requirement_has_existing_test_file():
 
     violations = []
     for epic in data["epics"]:
-        if epic.get("epic_id") != "EPIC-PIPE":
-            continue
         for feat in epic.get("features", []):
+            if not feat.get("feature_id", "").startswith("PIPE-"):
+                continue
             for story in feat.get("stories", []):
                 for req in story.get("requirements", []):
                     test_ref = req.get("test", "")
@@ -242,9 +242,9 @@ def test_traceability_matrix_matches_backlog():
 
     backlog_reqs = set()
     for epic in backlog["epics"]:
-        if epic.get("epic_id") != "EPIC-PIPE":
-            continue
         for feat in epic.get("features", []):
+            if not feat.get("feature_id", "").startswith("PIPE-"):
+                continue
             for story in feat.get("stories", []):
                 for req in story.get("requirements", []):
                     backlog_reqs.add(req["req_id"])
