@@ -306,6 +306,76 @@ class TestClientSecurityCheck:
 
 # ── SEC-HTTPS-001-REQ-004: No HTTP URLs in production code ────────────────
 
+class TestScanHTTP:
+    """SEC-HTTPS-001-REQ-005: scan_http.py standalone scanner tests."""
+
+    SCANNER = os.path.join(BASE_DIR, "Code", "Shared", "ops", "tools", "scan_http.py")
+
+    def test_scan_all_clean(self):
+        """--all scan finds zero violations in production code."""
+        import subprocess
+        result = subprocess.run(["python", self.SCANNER, "--all"],
+            capture_output=True, text=True, timeout=30, cwd=BASE_DIR)
+        assert result.returncode == 0, f"--all scan should pass:\n{result.stdout}"
+
+    def test_scan_staged_runs(self):
+        """--staged mode runs without error."""
+        import subprocess
+        result = subprocess.run(["python", self.SCANNER, "--staged"],
+            capture_output=True, text=True, timeout=10, cwd=BASE_DIR)
+        assert result.returncode == 0
+
+    def test_scan_no_args_shows_usage(self):
+        """No arguments shows usage and exits 2."""
+        import subprocess
+        result = subprocess.run(["python", self.SCANNER],
+            capture_output=True, text=True, timeout=10, cwd=BASE_DIR)
+        assert result.returncode == 2
+        assert "Usage" in result.stdout
+
+    def test_scan_dir_without_recurse_dies(self):
+        """Directory without --recurse exits 2."""
+        import subprocess
+        result = subprocess.run(["python", self.SCANNER, "Code/Shared"],
+            capture_output=True, text=True, timeout=10, cwd=BASE_DIR)
+        assert result.returncode == 2
+        assert "FATAL" in result.stdout
+
+    def test_scan_file_with_recurse_dies(self):
+        """File with --recurse exits 2."""
+        import subprocess
+        result = subprocess.run(["python", self.SCANNER, "Code/Shared/llm_client.py", "--recurse"],
+            capture_output=True, text=True, timeout=10, cwd=BASE_DIR)
+        assert result.returncode == 2
+        assert "FATAL" in result.stdout
+
+    def test_scan_nonexistent_dies(self):
+        """Nonexistent path exits 2."""
+        import subprocess
+        result = subprocess.run(["python", self.SCANNER, "does_not_exist.py"],
+            capture_output=True, text=True, timeout=10, cwd=BASE_DIR)
+        assert result.returncode == 2
+        assert "FATAL" in result.stdout
+
+    def test_scan_dir_with_recurse_works(self):
+        """Directory with --recurse scans successfully."""
+        import subprocess
+        result = subprocess.run(["python", self.SCANNER, "Code/Shared/ux", "--recurse"],
+            capture_output=True, text=True, timeout=10, cwd=BASE_DIR)
+        assert result.returncode == 0
+
+
+class TestPreCommitScan:
+    """SEC-HTTPS-001-REQ-006: pre_deploy_rule_check.py calls scan_http.py."""
+
+    def test_pre_deploy_calls_scan(self):
+        """pre_deploy_rule_check.py contains scan_http.py call with file list."""
+        check_path = os.path.join(BASE_DIR, "Code", "Shared", "ops", "tools", "pre_deploy_rule_check.py")
+        content = open(check_path, encoding="utf-8").read()
+        assert "scan_http.py" in content, "pre_deploy_rule_check must call scan_http.py"
+        assert "staged_files" in content, "pre_deploy_rule_check must pass staged file list"
+
+
 class TestNoHTTPInCode:
     """SEC-HTTPS-001-REQ-004: No http://localhost in production code."""
 

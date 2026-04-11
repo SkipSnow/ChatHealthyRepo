@@ -18847,6 +18847,20 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "pytest_id": "test_https_security.py::TestNoHTTPInCode (1 test)"
+                },
+                {
+                  "req_id": "SEC-HTTPS-001-REQ-005",
+                  "requirement": "Standalone scan_http.py scans staged or specified files for http://localhost. Accepts --staged, --all, file list, or directory with --recurse. Dies ungracefully on bad arguments.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_id": "test_https_security.py::TestScanHTTP"
+                },
+                {
+                  "req_id": "SEC-HTTPS-001-REQ-006",
+                  "requirement": "Pre-commit hook (CHECK 10) calls scan_http.py --staged and blocks commit if http://localhost found in staged files.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_id": "test_https_security.py::TestPreCommitScan"
                 }
               ]
             }

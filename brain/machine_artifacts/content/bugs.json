@@ -855,6 +855,20 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000025-0000-4000-e000-000000000025"
+    },
+    {
+      "id": "BUG-SEC-004",
+      "rule": "BUG: Dev HuggingFace servers not tested or configured for HTTPS enforcement. SEC-HTTPS-001 tested only on local. HF spaces use HF-provided TLS but server-side CORS, 426 rejection, and scan_http.py have not been verified on dev.",
+      "incident": "Architecture gap identified during SEC-HTTPS-001 implementation 2026-04-10.",
+      "date": "2026-04-10",
+      "environment": [
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000026-0000-4000-e000-000000000026"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
