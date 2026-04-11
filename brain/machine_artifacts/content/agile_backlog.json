@@ -24731,6 +24731,71 @@
           "realized_by": [
             "Azure / Cloudflare"
           ]
+        },
+        {
+          "feature_id": "SEC-GUARD-RISK",
+          "name": "Guard Risk Acceptance Integration",
+          "status": "implemented",
+          "description": "PreToolUse guard checks risk_acceptance.json before blocking state changes. GPT evaluates whether the action is covered by a pre-authorized risk. Uses structured JSON schema for input/output.",
+          "realized_by": [
+            "GPT-4.1-mini",
+            "Python 3.11"
+          ],
+          "scalability_note": "Current implementation sends ALL risk acceptance entries to GPT on every tool call. This will not scale beyond ~20 risk acceptances due to token limits and latency. Future: classify risk acceptances by category, only send relevant ones. Known issue, not a current requirement.",
+          "stories": [
+            {
+              "story_id": "SEC-GUARD-RISK-001",
+              "title": "Guard checks risk acceptances before GPT evaluation",
+              "description": "The PreToolUse guard loads risk_acceptance.json, passes all active entries to GPT-4.1-mini with the command being evaluated. GPT checks risks FIRST — if covered, action passes immediately without further evaluation. Structured JSON schema enforces typed output.",
+              "size": "M",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "SEC-GUARD-RISK-001-REQ-001",
+                  "requirement": "Guard loads risk_acceptance.json dynamically on every tool call. No hardcoded risk acceptances.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_boss_constraint.py::TestBossConstraint"
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30,
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "SEC-GUARD-RISK-001-REQ-002",
+                  "requirement": "GPT structured output schema includes: pass (bool), reason (string), risk_accepted (bool), risk_id (string). Strict JSON schema enforced via response_format.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_boss_constraint.py::TestBossConstraint"
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30,
+                  "realized_by": [
+                    "GPT-4.1-mini",
+                    "OpenAI API"
+                  ]
+                },
+                {
+                  "req_id": "SEC-GUARD-RISK-001-REQ-003",
+                  "requirement": "If risk_accepted=true, the action passes immediately. GPT does not evaluate state change further.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_boss_constraint.py::TestBossConstraint"
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30,
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ],
       "ch_matrix_id": "760cb933-be8a-4ff9-af5d-ac5897056182",
