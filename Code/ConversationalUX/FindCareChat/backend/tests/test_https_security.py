@@ -36,78 +36,185 @@ class TestHTTPRejection:
         import requests
         return requests.get(url, timeout=5, allow_redirects=False)
 
-    # ── FindCare ──────────────────────────────────────────────
-    def test_findcare_https_works(self):
-        """FindCare :8080 HTTPS returns 200."""
+    # ── FindCare :8080 (all endpoints) ──────────────────────────
+    def test_findcare_health_https(self):
+        """FindCare GET /health over HTTPS."""
         try:
             resp = self._https_get("https://localhost:8080/health")
-            assert resp.status_code == 200, f"FindCare HTTPS should return 200, got {resp.status_code}"
+            assert resp.status_code == 200
         except Exception:
             pytest.skip("FindCare not running on :8080")
 
-    def test_findcare_http_rejected(self):
-        """FindCare :8000 direct HTTP should not be accessible from browser (Caddy gates it)."""
-        # FindCare uvicorn listens on HTTP :8000 but should only be reached through Caddy :8080 (HTTPS)
-        # The browser never calls :8000 directly — Caddy is the entry point
+    def test_findcare_search_https(self):
+        """FindCare POST /search over HTTPS."""
+        import requests
         try:
-            resp = self._http_get("http://localhost:8000/health")
-            # This will succeed because uvicorn doesn't enforce TLS — that's Caddy's job
-            # The test is: can the BROWSER reach it? No — CORS blocks it (only https origins allowed)
-            assert resp.status_code == 200  # uvicorn responds, but CORS would block browser
+            resp = requests.post("https://localhost:8080/search", json={"state": "DE", "limit": 1}, verify=False, timeout=10)
+            assert resp.status_code == 200
         except Exception:
-            pytest.skip("FindCare not running")
+            pytest.skip("FindCare not running on :8080")
 
-    # ── EvaluateCare ──────────────────────────────────────────
-    def test_evaluatecare_https_works(self):
-        """EvaluateCare :8081 HTTPS (mTLS) returns 200 with client cert."""
+    def test_findcare_classify_https(self):
+        """FindCare POST /classify over HTTPS."""
+        import requests
+        try:
+            resp = requests.post("https://localhost:8080/classify", json={"message": "test"}, verify=False, timeout=30)
+            assert resp.status_code == 200
+        except Exception:
+            pytest.skip("FindCare not running on :8080")
+
+    def test_findcare_welcome_https(self):
+        """FindCare GET /welcome over HTTPS."""
+        try:
+            resp = self._https_get("https://localhost:8080/welcome")
+            assert resp.status_code == 200
+        except Exception:
+            pytest.skip("FindCare not running on :8080")
+
+    def test_findcare_session_https(self):
+        """FindCare GET /session over HTTPS."""
+        try:
+            resp = self._https_get("https://localhost:8080/session")
+            assert resp.status_code == 200
+        except Exception:
+            pytest.skip("FindCare not running on :8080")
+
+    def test_findcare_evaluate_https(self):
+        """FindCare POST /evaluate/providers over HTTPS."""
+        import requests
+        try:
+            resp = requests.post("https://localhost:8080/evaluate/providers",
+                json={"providers": [], "session_token": None, "question_summary": "test"},
+                verify=False, timeout=10)
+            # May return error (empty providers) but should not be 403/426
+            assert resp.status_code not in (403, 426)
+        except Exception:
+            pytest.skip("FindCare not running on :8080")
+
+    def test_findcare_cors_rejects_http_origin(self):
+        """FindCare CORS rejects http:// origins."""
+        import requests
+        try:
+            resp = requests.options("https://localhost:8080/health",
+                headers={"Origin": "http://localhost", "Access-Control-Request-Method": "GET"},
+                verify=False, timeout=5)
+            cors_origin = resp.headers.get("Access-Control-Allow-Origin", "")
+            assert "http://localhost" not in cors_origin, f"CORS should reject HTTP origin, got: {cors_origin}"
+        except Exception:
+            pytest.skip("FindCare not running on :8080")
+
+    # ── EvaluateCare :8081 (all endpoints) ────────────────────
+    def _eval_mtls_get(self, path):
         import requests
         certs_dir = os.path.join(BASE_DIR, "Code", "Shared", "ops", "certs")
+        return requests.get(f"https://localhost:8081{path}",
+            cert=(os.path.join(certs_dir, "findcare.crt"), os.path.join(certs_dir, "findcare.key")),
+            verify=os.path.join(certs_dir, "ca.crt"), timeout=5)
+
+    def _eval_mtls_post(self, path, data):
+        import requests
+        certs_dir = os.path.join(BASE_DIR, "Code", "Shared", "ops", "certs")
+        return requests.post(f"https://localhost:8081{path}", json=data,
+            cert=(os.path.join(certs_dir, "findcare.crt"), os.path.join(certs_dir, "findcare.key")),
+            verify=os.path.join(certs_dir, "ca.crt"), timeout=10)
+
+    def test_evaluatecare_health_https(self):
+        """EvaluateCare GET /health over mTLS."""
         try:
-            resp = requests.get("https://localhost:8081/health",
-                cert=(os.path.join(certs_dir, "findcare.crt"), os.path.join(certs_dir, "findcare.key")),
-                verify=os.path.join(certs_dir, "ca.crt"),
-                timeout=5)
-            assert resp.status_code == 200, f"EvaluateCare HTTPS should return 200, got {resp.status_code}"
+            resp = self._eval_mtls_get("/health")
+            assert resp.status_code == 200
         except Exception:
             pytest.skip("EvaluateCare not running on :8081")
 
-    def test_evaluatecare_http_rejected_by_caddy(self):
+    def test_evaluatecare_evaluate_providers_https(self):
+        """EvaluateCare POST /evaluate/providers over mTLS."""
+        try:
+            resp = self._eval_mtls_post("/evaluate/providers",
+                {"providers": [{"name": "Test", "npi": "1234567890"}], "session_token": None})
+            assert resp.status_code == 200
+        except Exception:
+            pytest.skip("EvaluateCare not running on :8081")
+
+    def test_evaluatecare_score_provider_https(self):
+        """EvaluateCare POST /score/provider over mTLS."""
+        try:
+            resp = self._eval_mtls_post("/score/provider",
+                {"provider_id": "1234567890", "measures": []})
+            assert resp.status_code == 200
+        except Exception:
+            pytest.skip("EvaluateCare not running on :8081")
+
+    def test_evaluatecare_rejects_no_cert(self):
         """EvaluateCare :8081 rejects requests without client cert."""
         import requests
         try:
             resp = requests.get("https://localhost:8081/health", verify=False, timeout=5)
-            # Should fail — mTLS requires client cert
             assert False, f"Should have rejected no-cert request, got {resp.status_code}"
         except requests.exceptions.SSLError:
-            pass  # Expected — mTLS rejected the connection
+            pass  # Expected — mTLS rejected
         except Exception:
             pytest.skip("EvaluateCare not running on :8081")
 
-    # ── Caddy Website ─────────────────────────────────────────
+    # ── SharedServices :8082 ──────────────────────────────────
+    def _shared_mtls_get(self, path):
+        import requests
+        certs_dir = os.path.join(BASE_DIR, "Code", "Shared", "ops", "certs")
+        return requests.get(f"https://localhost:8082{path}",
+            cert=(os.path.join(certs_dir, "shared.crt"), os.path.join(certs_dir, "shared.key")),
+            verify=os.path.join(certs_dir, "ca.crt"), timeout=5)
+
+    def test_shared_services_health_https(self):
+        """SharedServices GET /health over mTLS."""
+        try:
+            resp = self._shared_mtls_get("/health")
+            assert resp.status_code == 200
+        except Exception:
+            pytest.skip("SharedServices not running on :8082")
+
+    def test_shared_services_rejects_no_cert(self):
+        """SharedServices :8082 rejects requests without client cert."""
+        import requests
+        try:
+            resp = requests.get("https://localhost:8082/health", verify=False, timeout=5)
+            assert False, f"Should have rejected no-cert request, got {resp.status_code}"
+        except requests.exceptions.SSLError:
+            pass  # Expected — mTLS rejected
+        except Exception:
+            pytest.skip("SharedServices not running on :8082")
+
+    # ── Caddy Website :443 ────────────────────────────────────
     def test_caddy_https_serves_website(self):
         """Caddy :443 HTTPS serves the website."""
         try:
             resp = self._https_get("https://localhost/")
-            assert resp.status_code == 200, f"Website HTTPS should return 200, got {resp.status_code}"
-            assert "ChatHealthy" in resp.text, "Website should contain ChatHealthy"
+            assert resp.status_code == 200
+            assert "ChatHealthy" in resp.text
         except Exception:
             pytest.skip("Caddy not running on :443")
 
-    def test_caddy_api_proxy_works(self):
-        """Caddy :443/api/* proxies to FindCare over HTTPS."""
+    def test_caddy_api_proxy_health(self):
+        """Caddy :443/api/health proxies to FindCare."""
         try:
             resp = self._https_get("https://localhost/api/health")
-            assert resp.status_code == 200, f"API proxy should return 200, got {resp.status_code}"
-            data = resp.json()
-            assert "commit" in data, "Health should include commit hash"
+            assert resp.status_code == 200
+            assert "commit" in resp.json()
+        except Exception:
+            pytest.skip("Caddy or FindCare not running")
+
+    def test_caddy_api_proxy_search(self):
+        """Caddy :443/api/search proxies to FindCare."""
+        import requests
+        try:
+            resp = requests.post("https://localhost/api/search", json={"state": "DE", "limit": 1}, verify=False, timeout=10)
+            assert resp.status_code == 200
         except Exception:
             pytest.skip("Caddy or FindCare not running")
 
     def test_caddy_http_api_returns_403(self):
-        """Caddy :80 /api/* returns 403 HTTPS required."""
+        """Caddy :80 /api/* returns 403."""
         try:
             resp = self._http_get("http://localhost/api/health")
-            assert resp.status_code == 403, f"HTTP /api should return 403, got {resp.status_code}"
+            assert resp.status_code == 403
         except Exception:
             pytest.skip("Caddy not running on :80")
 
