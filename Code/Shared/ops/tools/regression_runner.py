@@ -69,6 +69,8 @@ def collect_tests(backlog, scope_type, scope_value):
                         "requirement": req.get("requirement", "")[:100],
                         "pytest_ids": pytest_ids,
                         "status": status,
+                        "test_method": req.get("test_method", ""),
+                        "test_timeout_seconds": req.get("test_timeout_seconds", 0),
                     })
 
     return tests
@@ -103,7 +105,7 @@ def _is_playwright_test(fpath):
         return False
 
 
-def run_single_test(pytest_ref):
+def run_single_test(pytest_ref, test_method="", test_timeout=0):
     """Run a single pytest reference. Returns (status, output)."""
     pytest_ref = _clean_pytest_ref(pytest_ref)
     fpath = find_test_file(pytest_ref)
@@ -118,11 +120,11 @@ def run_single_test(pytest_ref):
 
     # Build command — add Playwright args if needed
     cmd = [sys.executable, "-m", "pytest", test_path, "-x", "--tb=short", "-q"]
-    timeout = 120
+    is_pw = test_method in ("playwright", "playwright+pytest") or _is_playwright_test(fpath)
+    timeout = test_timeout if test_timeout > 0 else (180 if is_pw else 120)
 
-    if _is_playwright_test(fpath):
+    if is_pw:
         cmd.extend(["--browser", "chromium"])
-        timeout = 180  # Playwright tests need more time
 
     try:
         result = subprocess.run(
@@ -183,7 +185,7 @@ def run_regression(scope_type="all", scope_value=None):
             pid = pid.strip()
             if not pid or pid == "NEEDS_TEST":
                 continue
-            status, detail = run_single_test(pid)
+            status, detail = run_single_test(pid, t.get("test_method", ""), t.get("test_timeout_seconds", 0))
             req_details.append({"pytest_id": pid, "result": status, "detail": detail})
             if status != "pass":
                 req_pass = False
