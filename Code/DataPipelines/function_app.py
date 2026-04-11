@@ -72,7 +72,7 @@ from provider_load_manager import (
     ensure_preload_indexes_fn,
     ensure_postload_indexes_fn,
     extract_csv_fn,
-    full_provider_pipeline_orchestrator_fn,
+    findcare_pipeline_orchestrator_fn,
     partition_file_fn,
     provider_load_orchestrator_fn,
     provider_worker_fn,
@@ -193,7 +193,7 @@ OPS_TASK_HANDLERS = {
 ASYNC_TASK_ORCHESTRATORS = {
     "LoadProviderData": "provider_load_orchestrator",
     "CountyEnrichment": "county_enrichment_orchestrator",
-    "FullProviderPipeline": "full_provider_pipeline_orchestrator",
+    "FindCarePipeline": "findcare_pipeline_orchestrator",
     "SnapshotCollection": "snapshot_collection_orchestrator",
     "CopyToFrontEnd": "copy_to_frontend_orchestrator",
     "MigrateEnvironment": "migrate_environment_orchestrator",
@@ -212,7 +212,7 @@ PIPELINE_STEP_REGISTRY = {
             4: {"requires_collection": "provider_quality", "min_docs": 1, "note": "Step 4 requires enriched provider_quality from step 3"},
         },
     },
-    "FullProviderPipeline": {
+    "FindCarePipeline": {
         "valid_steps": [0, 1, 2, 3, 4, 5, 6],
         "step_names": {0: "validate", 1: "download", 2: "load", 3: "county_pass1", 4: "county_pass2", 5: "county_pass3", 6: "embed"},
         "preconditions": {},
@@ -455,8 +455,8 @@ def cluster_lifecycle_timer(myTimer: func.TimerRequest) -> None:
 # ── Durable Orchestrators ─────────────────────────────────────────────────────
 
 @app.orchestration_trigger(context_name="context")
-def full_provider_pipeline_orchestrator(context: df.DurableOrchestrationContext):
-    return full_provider_pipeline_orchestrator_fn(context)
+def findcare_pipeline_orchestrator(context: df.DurableOrchestrationContext):
+    return findcare_pipeline_orchestrator_fn(context)
 
 
 @app.orchestration_trigger(context_name="context")
