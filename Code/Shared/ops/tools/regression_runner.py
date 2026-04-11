@@ -284,7 +284,7 @@ def main():
     group.add_argument("--epic", type=str, help="Run tests for one epic (e.g. EPIC-006)")
     group.add_argument("--feature", type=str, help="Run tests for one feature (e.g. FC-SEARCH)")
     group.add_argument("--story", type=str, help="Run tests for one story (e.g. FC-SEARCH-001)")
-    parser.add_argument("--concurrency", type=int, default=4, help="Max concurrent tests (default 4)")
+    parser.add_argument("--concurrency", type=int, default=10, help="Max concurrent tests (default 10)")
     args = parser.parse_args()
 
     if args.all:
