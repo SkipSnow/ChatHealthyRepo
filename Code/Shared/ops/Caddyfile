@@ -31,7 +31,9 @@
 		redir https://{host}/index.html permanent
 	}
 	handle {
-		respond "HTTPS required" 403
+		header Upgrade "TLS/1.2, HTTP/1.1"
+		header Connection "Upgrade"
+		respond "This server refuses HTTP requests and does not accept redirecting on your behalf. Use HTTPS." 426
 	}
 }
 
