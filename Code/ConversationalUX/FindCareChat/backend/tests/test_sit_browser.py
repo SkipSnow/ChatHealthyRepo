@@ -42,7 +42,7 @@ def _get_chat_frame(page: Page):
     page.wait_for_timeout(8000)  # React app inside HF iframe needs time
     # Find the HuggingFace Space iframe
     for frame in page.frames:
-        if "hf.space" in frame.url or ":5173" in frame.url:
+        if "hf.space" in frame.url or ":5173" in frame.url or ":3000" in frame.url:
             frame.wait_for_timeout(3000)
             return frame
     # Local dev or direct — try the page itself

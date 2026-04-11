@@ -431,7 +431,7 @@ export default function FindCareApp() {
           <div
             style={{
               borderTop: '2px solid #d97706', background: '#fffdf7',
-              maxHeight: '35%', overflowY: 'auto',
+              minHeight: 60, maxHeight: '35%', overflowY: 'auto', flexShrink: 0,
             }}
             onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
             onDrop={(e) => { e.preventDefault(); const npi = e.dataTransfer.getData('text/plain'); if (npi) selection.select(npi) }}
