@@ -125,7 +125,7 @@ def resubmit_pipeline(assignment, start_step=1):
     token = inst["bearer_token"]
 
     payload = {
-        "ChatHealthyTask": "FullProviderPipeline",
+        "ChatHealthyTask": "FindCarePipeline",
         "payload": {
             "states": ["DE", "MS", "VA", "CA"],
             "env_prefix": "dev",

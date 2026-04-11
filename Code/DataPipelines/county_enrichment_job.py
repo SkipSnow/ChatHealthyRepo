@@ -245,7 +245,7 @@ def county_enrichment_pass1_orchestrator_fn(context):
     config = {**config, "load_id": load_id}
 
     # Step 1: Ensure county.fips index. Idempotent — no-op if already exists.
-    # Required when Pass 1 is run outside FullProviderPipeline.
+    # Required when Pass 1 is run outside FindCarePipeline.
     context.set_custom_status("Step 1/6: Ensuring county.fips index")
     yield context.call_activity("ensure_postload_indexes_activity", config)
 
@@ -499,7 +499,7 @@ def county_enrichment_orchestrator_fn(context):
     """Standalone county enrichment: Pass 1 → Pass 2 → combined report.
 
     Used when CountyEnrichment is triggered directly via the Router.
-    FullProviderPipeline calls Pass 1 and Pass 2 as separate visible steps instead.
+    FindCarePipeline calls Pass 1 and Pass 2 as separate visible steps instead.
     """
     config = context.get_input() or {}
     load_id = config.get("load_id", context.instance_id)

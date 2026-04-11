@@ -2186,7 +2186,7 @@
         {
           "time": "2026-04-04T02:44:48Z",
           "action": "FAILED",
-          "error": "Orchestrator function 'full_provider_pipeline_orchestrator' failed: Activity function 'check_mongo_health_activity' failed:  RuntimeError: MongoDB health check failed: No replica set members found yet, Timeout: 15.0s, Topology Description: <TopologyDescription id: 69d0760ce0a16575a361b3fa, topology_type: ReplicaSetNoPrimary, servers: [<ServerDescription ('chathealthydatapipeline-shard-00-00.mdwahg.mongodb.net', 27017) server_type: Unknown, rtt: None>, <ServerDescription ('chathealthydatapipeline"
+          "error": "Orchestrator function 'findcare_pipeline_orchestrator' failed: Activity function 'check_mongo_health_activity' failed:  RuntimeError: MongoDB health check failed: No replica set members found yet, Timeout: 15.0s, Topology Description: <TopologyDescription id: 69d0760ce0a16575a361b3fa, topology_type: ReplicaSetNoPrimary, servers: [<ServerDescription ('chathealthydatapipeline-shard-00-00.mdwahg.mongodb.net', 27017) server_type: Unknown, rtt: None>, <ServerDescription ('chathealthydatapipeline"
         },
         {
           "time": "2026-04-04T02:53:53.470043+00:00",

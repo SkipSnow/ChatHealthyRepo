@@ -193,7 +193,7 @@
       <a href="chat-app-design.html" style="color:var(--teal);">Chat App Design</a>.
     </p>
     <p>
-      The top-level entry point is <code>FullProviderPipeline</code> — an 8-step Durable Functions
+      The top-level entry point is <code>FindCarePipeline</code> — an 8-step Durable Functions
       orchestrator that runs health check → load → county enrichment → embeddings in sequence.
       All steps are resumable via the <code>start_step</code> payload parameter (default: 1, full run).
     </p>
@@ -208,7 +208,7 @@
       <strong>SLA: full 8M-record load completes in under 1 hour.</strong> First production run
       (2026-03-19): 8,858,520 records loaded in ~35 minutes with 32 workers on Azure East US 2
       + MongoDB Atlas M30. County enrichment and embedding generation run as Steps 3–8 of
-      FullProviderPipeline after load completes.
+      FindCarePipeline after load completes.
     </div>
 
     <!-- 2. Async Handoff -->
@@ -230,13 +230,13 @@
       </div>
     </div>
 
-    <!-- 2b. FullProviderPipeline -->
-    <h2>2b. FullProviderPipeline &#8212; Outer Orchestrator</h2>
-    <p>Triggered via <code>POST /api/Router</code> with <code>ChatHealthyTask: FullProviderPipeline</code>.
+    <!-- 2b. FindCarePipeline -->
+    <h2>2b. FindCarePipeline &#8212; Outer Orchestrator</h2>
+    <p>Triggered via <code>POST /api/Router</code> with <code>ChatHealthyTask: FindCarePipeline</code>.
     Runs eight steps in sequence. Pass <code>start_step</code> (1&#8211;8) to skip completed steps on resume.</p>
     <div class="diagram">
       <div class="diagram-inner">
-        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>FullProviderPipeline</strong><small>outer Durable orchestrator &#183; no timeout &#183; Azure manages state</small></div></div>
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>FindCarePipeline</strong><small>outer Durable orchestrator &#183; no timeout &#183; Azure manages state</small></div></div>
         <div class="d-down">&#8595; Step 1</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>MongoDB Health Check</strong><small>ping cluster &#183; SparkPost email to admin + RuntimeError if unreachable</small></div></div>
         <div class="d-down">&#8595; Step 2</div>
@@ -303,7 +303,7 @@
 
     <!-- 3b. County Enrichment Flow -->
     <h2>3b. County Enrichment Flow</h2>
-    <p>County enrichment runs as a series of Durable sub-orchestrators called sequentially by FullProviderPipeline.
+    <p>County enrichment runs as a series of Durable sub-orchestrators called sequentially by FindCarePipeline.
     Each pass targets only providers not yet enriched by prior passes. The enrichment SLA (98% of in-scope providers)
     applies only to addressable providers &#8212; those not flagged as out_of_scope.</p>
     <div class="diagram">
@@ -608,7 +608,7 @@
     </div>
 
     <h3>ProviderLoadManager</h3>
-    <p>Durable orchestrator. 9 steps: download ZIP, extract CSV, partition file, drain staging, ensure indexes, write metadata, fan-out up to 200 load workers, reconcile record counts, write report. No timeout. County enrichment is a separate orchestrator triggered by FullProviderPipeline after this orchestrator completes.</p>
+    <p>Durable orchestrator. 9 steps: download ZIP, extract CSV, partition file, drain staging, ensure indexes, write metadata, fan-out up to 200 load workers, reconcile record counts, write report. No timeout. County enrichment is a separate orchestrator triggered by FindCarePipeline after this orchestrator completes.</p>
 
     <h3>ProviderWorker</h3>
     <p>Reads one byte-range slice of the CSV from blob. Partition boundaries are newline-aligned; workers 2–N defensively discard their first row if it has the wrong field count (partial row from alignment fallback). Parses rows. Skips blank/whitespace-only lines. Normalizes fields: taxonomy codes → <code>taxonomies: [{code, primary, group}]</code>; license numbers + states → <code>licenses: [{state, number}]</code>; practice and mailing addresses → sub-documents with ZIP truncated to 5 digits; other identifiers → arrays. Assigns a synthetic <code>record_id = worker_id × MAX_ROWS_PER_WORKER + local_row_index</code> (<code>MAX_ROWS_PER_WORKER = 1,000,000</code>; max 200 workers × 1,000,000 = 200,000,000 — fits in a 32-bit signed int) — unique across all workers, no coordination needed. NPI is the business key. Stamps each document with <code>load_id</code> (= Durable orchestration instance ID) and a stub <code>county: {fips: null}</code> enriched by CountyEnrichment. Batch-upserts to <code>PublicHealthData.providers_staging</code> using <code>$setOnInsert</code> on <code>(load_id, record_id)</code> — safe to retry; duplicates are silently ignored. Returns observability metrics: <code>rows_processed</code>, <code>num_records</code>, <code>rows_failed</code>, <code>duration_seconds</code>, <code>rows_per_second</code>. Updates its metadata record on completion or failure.</p>
@@ -625,7 +625,7 @@
 
     <h3>CountyEnrichmentOrchestrator</h3>
     <p>Separate Durable Function orchestrator — not part of ProviderLoadManager. Triggered by
-    FullProviderPipeline after ProviderLoadManager completes. Multi-pass enrichment triggered by FullProviderPipeline.
+    FindCarePipeline after ProviderLoadManager completes. Multi-pass enrichment triggered by FindCarePipeline.
     Pass 1: mark out_of_scope (with reason), ZIP crosswalk bulk update.
     Pass 2: Census Geocoder batch (practice address).
     Pass 3: Census Geocoder batch (billing address retry).
@@ -748,9 +748,9 @@
     </div>
 
     <!-- 5. API Payload -->
-    <h2>5. FullProviderPipeline — API Payload Fields</h2>
+    <h2>5. FindCarePipeline — API Payload Fields</h2>
     <p>Passed as the <code>payload</code> object in the POST to <code>/api/Router</code>
-    with <code>ChatHealthyTask: FullProviderPipeline</code>. All fields are optional — omit
+    with <code>ChatHealthyTask: FindCarePipeline</code>. All fields are optional — omit
     entirely for a full production run.</p>
     <div class="table-wrap">
       <table>

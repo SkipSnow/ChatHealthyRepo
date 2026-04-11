@@ -25,7 +25,7 @@ new_features = [
         "epic_id": "EPIC-2",
         "layer": "backend",
         "capability": "DataPipelines",
-        "description": "Full end-to-end provider pipeline: load, enrich, embed. Must use current workflow (FullProviderPipeline orchestrator). Single trigger runs the complete chain through to vector embeddings in the frontend cluster.",
+        "description": "Full end-to-end provider pipeline: load, enrich, embed. Must use current workflow (FindCarePipeline orchestrator). Single trigger runs the complete chain through to vector embeddings in the frontend cluster.",
         "evidence": "Code/DataPipelines/provider_load_manager.py (8-step durable workflow). Code/DataPipelines/embedding_worker.py. Code/DataPipelines/copy_to_frontend.py.",
         "priority": "HIGH",
         "status": "accepted",

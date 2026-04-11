@@ -17158,7 +17158,7 @@
                 {
                   "req_id": "PIPE-LC-002-REQ-001",
                   "story_id": "PIPE-LC-002",
-                  "requirement": "The full_provider_pipeline_orchestrator must wrap all steps in try/finally. On any failure, the finally block must release the reservation.",
+                  "requirement": "The findcare_pipeline_orchestrator must wrap all steps in try/finally. On any failure, the finally block must release the reservation.",
                   "source": "Boss directive",
                   "priority": "must-have",
                   "status": "accepted",
@@ -17202,7 +17202,7 @@
                 {
                   "req_id": "PIPE-LC-003-REQ-001",
                   "story_id": "PIPE-LC-003",
-                  "requirement": "The Router API must accept an incremental parameter (boolean, default false) in the FullProviderPipeline payload.",
+                  "requirement": "The Router API must accept an incremental parameter (boolean, default false) in the FindCarePipeline payload.",
                   "source": "Boss directive",
                   "priority": "must-have",
                   "status": "accepted",
@@ -17234,8 +17234,8 @@
             },
             {
               "story_id": "PIPE-LC-004",
-              "title": "BUG-PIPE-005: full_provider_pipeline_orchestrator must try/finally release reservation",
-              "description": "full_provider_pipeline_orchestrator reserves the pipeline cluster. If any activity throws between reserve and release, the reservation is never released and the cluster runs indefinitely. All work steps must be wrapped in try/finally with release_reservation_activity in the finally block.",
+              "title": "BUG-PIPE-005: findcare_pipeline_orchestrator must try/finally release reservation",
+              "description": "findcare_pipeline_orchestrator reserves the pipeline cluster. If any activity throws between reserve and release, the reservation is never released and the cluster runs indefinitely. All work steps must be wrapped in try/finally with release_reservation_activity in the finally block.",
               "parent_feature": "PIPE-LIFECYCLE",
               "sprint": 6,
               "dependencies": [
@@ -17248,8 +17248,8 @@
                 {
                   "req_id": "PIPE-LC-004-REQ-001",
                   "story_id": "PIPE-LC-004",
-                  "requirement": "full_provider_pipeline_orchestrator must wrap all steps between register_reservation_activity and release_reservation_activity in try/finally. The finally block must always call release_reservation_activity. Boolean test: inject exception in any enrichment pass → reservation count == 0 after orchestrator exits.",
-                  "source": "Bug: cluster left running after FullProviderPipeline failure",
+                  "requirement": "findcare_pipeline_orchestrator must wrap all steps between register_reservation_activity and release_reservation_activity in try/finally. The finally block must always call release_reservation_activity. Boolean test: inject exception in any enrichment pass → reservation count == 0 after orchestrator exits.",
+                  "source": "Bug: cluster left running after FindCarePipeline failure",
                   "priority": "must-have",
                   "status": "accepted",
                   "label": "",
@@ -17357,7 +17357,7 @@
             {
               "story_id": "PIPE-LC-009",
               "title": "county_enrichment_orchestrator must not manage cluster reservations",
-              "description": "county_enrichment_orchestrator is a sub-orchestrator called by full_provider_pipeline_orchestrator which owns the reservation. It must never call register_reservation_activity or release_reservation_activity.",
+              "description": "county_enrichment_orchestrator is a sub-orchestrator called by findcare_pipeline_orchestrator which owns the reservation. It must never call register_reservation_activity or release_reservation_activity.",
               "parent_feature": "PIPE-LIFECYCLE",
               "sprint": 6,
               "dependencies": [],

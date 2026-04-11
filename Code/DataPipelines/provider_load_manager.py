@@ -133,7 +133,7 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     # Register cluster reservation — wake the pipeline DB
     reservation = {
         "job_id": load_id,
-        "requester": "FullProviderPipeline",
+        "requester": "FindCarePipeline",
         "cluster_name": config.get("pipeline_cluster", "ChatHealthyDataPipelines"),
         "expected_duration_minutes": config.get("expected_duration_minutes", 240),
     }
@@ -581,7 +581,7 @@ def create_vector_index_fn(config: dict) -> dict:
 
 # ── Full Pipeline Orchestrator ────────────────────────────────────────────────
 
-def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
+def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
     """Top-level orchestrator: health check → load → enrichment → embeddings.
 
     start_step (2–8): skip optional steps before this number. Default 2 (full run).
@@ -617,7 +617,7 @@ def full_provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationConte
     cluster_name = config.get("pipeline_cluster", "ChatHealthyDataPipelines")
     reservation = {
         "job_id": load_id,
-        "requester": "FullProviderPipeline",
+        "requester": "FindCarePipeline",
         "cluster_name": cluster_name,
         "expected_duration_minutes": config.get("expected_duration_minutes", 480),
     }

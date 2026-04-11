@@ -1002,10 +1002,10 @@
 
       <p>Public health data (providers, specialties, ICD-10, procedures, prescriptions) is loaded and enriched by App 3 on a monthly cadence. All pipeline tasks follow the Async Durable Orchestrator pattern: <code>202 &rarr; reserve &rarr; poll &rarr; work &rarr; release (finally) &rarr; pause if last</code>.</p>
 
-      <h3>FullProviderPipeline &mdash; 8-Step Orchestrator</h3>
+      <h3>FindCarePipeline &mdash; 8-Step Orchestrator</h3>
       <div class="diagram">
         <div class="diagram-inner">
-          <div class="d-center"><div class="d-box d-box-wide"><strong>FullProviderPipeline</strong><small>POST /api/Router &middot; returns 202</small></div></div>
+          <div class="d-center"><div class="d-box d-box-wide"><strong>FindCarePipeline</strong><small>POST /api/Router &middot; returns 202</small></div></div>
           <div class="d-down">&darr; Step 1</div>
           <div class="d-center"><div class="d-box d-box-wide"><strong>MongoDB Health Check</strong><small>ping cluster &middot; email admin &middot; fail fast</small></div></div>
           <div class="d-down">&darr; Step 2</div>
@@ -1031,7 +1031,7 @@
       <div class="table-wrap">
         <table>
           <tr><th>Dataset</th><th>Pipeline Task</th><th>Status</th></tr>
-          <tr><td>NPPES NPI providers</td><td>FullProviderPipeline / LoadProviderData</td><td><span class="cap-badge cap-live">LIVE</span></td></tr>
+          <tr><td>NPPES NPI providers</td><td>FindCarePipeline / LoadProviderData</td><td><span class="cap-badge cap-live">LIVE</span></td></tr>
           <tr><td>Provider taxonomy / specialties</td><td>LoadSpecialtyData</td><td><span class="cap-badge cap-live">LIVE</span></td></tr>
           <tr><td>ICD-10-CM diagnosis codes</td><td>LoadICD10</td><td><span class="cap-badge cap-live">LIVE</span></td></tr>
           <tr><td>HUD ZIP&rarr;county crosswalk</td><td>Loaded as prerequisite</td><td><span class="cap-badge cap-live">LIVE</span></td></tr>

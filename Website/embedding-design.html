@@ -203,10 +203,10 @@
 
     <!-- 2. Pipeline Position -->
     <h2>2. Pipeline Position</h2>
-    <p>Embedding is Step 8 of <code>FullProviderPipeline</code>. It runs after all county enrichment passes complete.</p>
+    <p>Embedding is Step 8 of <code>FindCarePipeline</code>. It runs after all county enrichment passes complete.</p>
     <div class="diagram">
       <div class="diagram-inner">
-        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>FullProviderPipeline</strong><small>Steps 1–8 in sequence &mdash; resumable via start_step</small></div></div>
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>FindCarePipeline</strong><small>Steps 1–8 in sequence &mdash; resumable via start_step</small></div></div>
         <div class="d-down">↓ Steps 1–7</div>
         <div class="d-center"><div class="d-box d-box-wide"><strong>Health check, load, county enrichment, NPPES</strong><small>providers_staging populated and fully enriched</small></div></div>
         <div class="d-down">↓ Step 8</div>
