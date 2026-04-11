@@ -25994,7 +25994,7 @@
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-007",
-                  "requirement": "When the user clicks Apply Filter, the system re-queries the database with only the checked specialty codes and refreshes the provider list. Unchecked specialties are excluded from the query. The available provider list clears and replaces with the filtered results.",
+                  "requirement": "When the user clicks Apply Filter: (1) The system must first detect if there is in fact a change. If there is no change the system must display a message above the Apply Filter button that there are no filter changes. (2) If there are filter changes: first clear all providers from the unselected provider box. (3) Then the new filter criteria must make a new DB query and get the new provider list. (4) It is assumed that the original LLM call provides all specialists with their prescribing and homeopathic labels ranked in order of likelihood to be selected (see FC-SEARCH-001-REQ-006). (5) All requirements for the unselected provider list display must then be met (see FC-SELECT-001).",
                   "priority": "must-have",
                   "status": "open",
                   "pytest_ids": [
@@ -26007,12 +26007,12 @@
                   ],
                   "depends_on": [
                     {
-                      "story_id": "FC-PIPE-SPEC-001",
-                      "reason": "Providers must be loaded"
+                      "story_id": "FC-SEARCH-001",
+                      "reason": "LLM classify provides ranked specialties with prescribing/homeopathic labels"
                     },
                     {
-                      "story_id": "FC-SEARCH-001",
-                      "reason": "Search must return results before filter can display"
+                      "story_id": "FC-SELECT-001",
+                      "reason": "Provider list display requirements must be met after filter refresh"
                     }
                   ],
                   "test_method": "playwright",
