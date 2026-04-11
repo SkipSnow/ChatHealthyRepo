@@ -28,8 +28,8 @@ import sys
 
 TARGET_PATTERN = "http://localhost"
 
-# This script defines the search pattern — skip scanning self
-SELF = "scan_http.py"
+# This script defines the search pattern on exactly one line (TARGET_PATTERN =).
+# The scanner scans itself but excuses that one line.
 
 # Patterns to skip
 SKIP_PATTERNS = [
@@ -52,8 +52,6 @@ SCAN_EXTENSIONS = {".py", ".tsx", ".ts", ".js", ".jsx", ".html", ".json", ".yml"
 
 def should_skip(filepath):
     basename = os.path.basename(filepath)
-    if basename == SELF:
-        return True
     for pattern in SKIP_PATTERNS:
         if re.search(pattern, filepath):
             return True
@@ -72,6 +70,9 @@ def scan_file(filepath):
                 if stripped.startswith("#") or stripped.startswith("//"):
                     continue
                 if TARGET_PATTERN in line:
+                    # Excuse the one line in scan_http.py that defines TARGET_PATTERN
+                    if stripped.startswith("TARGET_PATTERN"):
+                        continue
                     violations.append((i, stripped[:120]))
     except Exception:
         pass
@@ -128,13 +129,13 @@ def scan_files(files, label):
                 details.append(f"  {filepath}:{line_num}: {line_text}")
 
     if total_violations > 0:
-        print(f"SEC-HTTPS-001-REQ-004 VIOLATION: {total_violations} http://localhost in {label}:")
+        print(f"SEC-HTTPS-001-REQ-004 VIOLATION: {total_violations} {TARGET_PATTERN} in {label}:")
         for d in details:
             print(d)
         print(f"\nv4-029: No HTTP URLs in production code.")
         return 1
     else:
-        print(f"SEC-HTTPS-001-REQ-004 PASS: 0 http://localhost in {len(files)} {label} files.")
+        print(f"SEC-HTTPS-001-REQ-004 PASS: 0 {TARGET_PATTERN} in {len(files)} {label} files.")
         return 0
 
 
