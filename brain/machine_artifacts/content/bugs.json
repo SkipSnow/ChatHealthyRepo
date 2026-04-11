@@ -2285,6 +2285,25 @@
       "risk_acceptance_id": null,
       "reason": "Message text wrong — content or formatting incorrect.",
       "ch_matrix_id": "b0000040-0000-4000-e000-000000000040"
+    },
+    {
+      "id": "BUG-GOV-007",
+      "req_id": "NEEDS_REQ",
+      "rule": "BUG: Claude does not comply with Idiot Mode (v4-004). When Boss says idiot mode, Claude must confirm each unit of work before executing. Claude continued to take autonomous actions, made multiple changes without asking, manually paused the cluster after being told not to, and did not wait for Boss instructions.",
+      "incident": "Boss switched to Idiot Mode 2026-04-11. Claude continued autonomous behavior — fixing code, committing, pausing cluster, running tests without permission.",
+      "date": "2026-04-11",
+      "type": "critical",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "resolution_status": "in_analysis",
+      "risk_acceptance_id": null,
+      "reason": "Claude non-compliant with Idiot Mode. Does not stop and ask before each action.",
+      "ch_matrix_id": "b0000041-0000-4000-e000-000000000041"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
