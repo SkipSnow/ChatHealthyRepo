@@ -22,13 +22,16 @@
 	admin off
 }
 
-# ── HTTP :80 — redirect only the website, reject everything else ──
+# ── HTTP :80 — redirect index only, reject everything else ────
 :80 {
-	handle /api/* {
-		respond "HTTPS required" 403
+	handle / {
+		redir https://{host}/ permanent
+	}
+	handle /index.html {
+		redir https://{host}/index.html permanent
 	}
 	handle {
-		redir https://{host}{uri} permanent
+		respond "HTTPS required" 403
 	}
 }
 
