@@ -213,8 +213,8 @@ PIPELINE_STEP_REGISTRY = {
         },
     },
     "FindCarePipeline": {
-        "valid_steps": [0, 1, 2, 3, 4, 5, 6],
-        "step_names": {0: "validate", 1: "download", 2: "load", 3: "county_pass1", 4: "county_pass2", 5: "county_pass3", 6: "embed"},
+        "valid_steps": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        "step_names": {0: "reserve", 1: "health_check", 2: "specialty_metadata", 3: "load", 4: "county_pass1", 5: "county_pass2", 6: "county_pass3", 7: "county_pass4_maps", 8: "county_pass6_nppes", 9: "embed", 10: "copy_to_frontend"},
         "preconditions": {},
     },
 }
@@ -809,6 +809,12 @@ def ensure_preload_indexes_activity(config: dict) -> None:
 @app.activity_trigger(input_name="config")
 def ensure_postload_indexes_activity(config: dict) -> None:
     return ensure_postload_indexes_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def load_specialty_data_activity(config: dict) -> dict:
+    """Load SpecialtyMetaData from NUCC CSV → blob → pipeline MongoDB."""
+    return run_load_specialty_data(config)
 
 
 @app.activity_trigger(input_name="config")
