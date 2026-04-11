@@ -1,141 +1,104 @@
-# Bug Fix Report — 2026-04-10 Night Session
+# QA Report — Local Environment
+## Generated: 2026-04-11
 
-## Test Results
-- **Non-Playwright (local):** 77 passed, 6 skipped, 0 failed
-- **Playwright search (local):** 7 passed, 0 failed
-- **Dev environment:** Not deployed yet — commit on local dev branch
-
----
-
-## BUGS FIXED (code changes made, resolution_status = tested_passed)
-
-### BUG-UX-011 — Apply Filter does not clear old providers
-- **Root cause:** Apply Filter sent ALL checked codes including hidden (filtered-out) items, so results didn't change
-- **Fix:** Website/index.html — only send codes from visible checked items (`row.style.display !== 'none'`)
-- **Test:** Needs Playwright test (FC-FILT-001-REQ-007)
-
-### BUG-UX-002 — Left panel overflowY:hidden, filter can't scroll
-- **Root cause:** Filter checkbox container had hardcoded `max-height:390px` — too small on some screens
-- **Fix:** FindCareApp.tsx — changed to `flex:1;overflow-y:auto` so container fills available space
-- **Test:** Needs Playwright test
-
-### BUG-UX-015 — Filter header labels truncated ("Prescr", "Home")
-- **Root cause:** Labels in cramped flex container with no nowrap, tiny font
-- **Fix:** FindCareApp.tsx — added `white-space:nowrap`, `flex-wrap:wrap`, increased font from 9px to 10px, wider gaps
-- **Test:** Needs Playwright test (test_filter_panel.py::test_filter_header_labels_not_truncated)
-
-### BUG-UX-013 — Search timer stalls between classify and DB search
-- **Root cause:** Timer cleared after /classify response but before /search completed
-- **Fix:** FindCareApp.tsx — timer clears only after fetchProviders returns or error
-- **Test:** test_search_timer.py (Playwright)
-
-### BUG-UX-009 — Selection panel requires scrolling to see both lists
-- **Root cause:** Selected list had no minHeight, could be pushed off screen
-- **Fix:** FindCareApp.tsx — added `minHeight: 60, flexShrink: 0` to selected container
-- **Test:** Needs Playwright test
-
-### BUG-UX-012 — Drag and drop missing
-- **Root cause:** ProviderCard had dragStart handler but no drop target existed
-- **Fix:** FindCareApp.tsx — added onDragOver/onDrop handlers to selection container
-- **Test:** Needs Playwright test (FC-SELECT-001-REQ-002)
+### Test Results
+- **Non-Playwright (local):** 63 passed, 6 skipped, 0 failed
+- **Playwright (local):** Apply Filter test PASSED (51s)
+- **Architecture constraint test:** 4 passed (lab DB, vectors, index, risk acceptance)
+- **Full regression:** 48 pass, 30 fail, 61% pass rate (BUG-REG-001 tracking)
+- **Security regression (EPIC-002):** 7 pass, 0 fail, 100%
+- **FindCare health:** status ok, both vector indexes created
 
 ---
 
-## BUGS VERIFIED FIXED (no code change needed, architecture resolved them)
+## CLOSED (Boss UAT signed off)
 
-### BUG-UX-010 — Garbage specialty text in chat window
-- **Reason:** Gemini 2.5 Flash dumped raw data into chat. Switched to GPT-4.1 with structured JSON + separated /classify from /chat. Specialty data never enters chat rendering path.
-
-### BUG-FILTER-002 — Filter panel text displayed sideways
-- **Reason:** innerHTML replacement of leftPanel removes the vertical-rl label span. Already working.
-
-### BUG-MODEL-001 — Gemini 2.5 Flash overly broad specialty list
-- **Reason:** Switched to GPT-4.1 (commit 0610d52). /classify now uses GPT-4.1 with structured JSON output.
-
-### BUG-EVAL-002 / BUG-EVAL-003 — Wrong providers sent to EvaluateCare
-- **Reason:** FindCareApp refactor uses selection.state.selected (selectedRef.current) — only selected providers are sent.
-
-### BUG-MSG-001 — LLM duplicates system summary
-- **Reason:** /classify + /search architecture eliminated LLM from the response path. System builds the response, not AI.
+| Bug | Description |
+|---|---|
+| BUG-UX-013 | Search timer stalls between classify and DB search — FIXED, Boss closed |
 
 ---
 
-## BUGS NOT FIXED (need human input or infrastructure)
+## TESTED_PASSED (awaiting Boss UAT)
 
-### BUG-FILTER-001 — Specialty filter panel empty
-- **Blocker:** Vector search indexes missing on frontend cluster (provider_vector_index, specialty_vector_index)
-- **Action:** Pipeline must create indexes via CopyToFrontEnd
-
-### BUG-VECTOR-001 — RELEASE BLOCKER: Specialty code resolution must vector search
-- **Blocker:** Same as FILTER-001 — vector indexes not created
-- **Action:** Pipeline infrastructure work
-
-### BUG-DESIGN-001 — Pagination controls in cursor bar
-- **Blocker:** UX design needed from Boss
-- **Action:** Boss provides mockup
-
-### BUG-UX-001 — 'kids doc in VA' stuck response
-- **Blocker:** May be model/prompt issue — needs live testing
-- **Action:** Test with GPT-4.1 to verify if still occurs
-
-### BUG-CLASSIFY-001, BUG-PERF-001 — Empty rule text
-- **Blocker:** No bug description — Boss needs to define
-- **Action:** Boss provides details
-
-### BUG-UX-005 — Low priority, in analysis
-- **Action:** Boss to triage
-
-### BUG-UX-007 — Filter format doesn't match Excel mockup
-- **Blocker:** UX design from Boss (Excel mockup exists but implementation differs)
-- **Action:** Boss to review current layout vs mockup
-
-### BUG-UX-008 — Environment banner formatting
-- **Blocker:** UX design — labels, values, spacing
-- **Action:** Boss to specify desired format
-
-### BUG-BA-001 — Three numbers in filter header
-- **Status:** testing — Playwright test exists
-- **Action:** Boss UAT
-
-### BUG-UX-014 — Evaluate button position/cold/hot state
-- **Status:** Requirements written (FC-EVAL-001), needs implementation
-- **Action:** Implement after requirements review
-
-### BUG-LOCAL-001 — start_local.bat zombie cleanup incomplete
-- **Status:** kill_zombies.py handles port-based cleanup but not process-name-based
-- **Action:** Evaluate if kill_zombies.py is sufficient
-
-### BUG-SEC-003 — EvaluateCare mTLS handoff
-- **Status:** Code exists, works locally with certs. May be resolved by GPT-4.1 switch.
-- **Action:** Test live on local
-
-### BUG-SEC-005 — 426 body on every server
-- **Status:** Local Caddy done, HF spaces not verified
-- **Action:** Test after dev deploy
+| Bug | Description |
+|---|---|
+| BUG-MSG-001 | LLM duplicates system summary — fixed by /classify + /search architecture |
+| BUG-FILTER-002 | Filter panel text sideways — fixed by innerHTML replacement |
+| BUG-MSG-002 | Summary used LLM term instead of user term — fixed by architecture |
+| BUG-UX-002 | Left panel can't scroll — fixed (flex:1 replaces max-height:390px) |
+| UAT-FILTER-001 | Filter panel functionality — signed off, UX pending |
+| UAT-UX-001 | Timer + Stop button in control frame — working |
+| BUG-UX-003 | Stop button orphaned in chat — fixed |
+| BUG-UX-004 | Prescriber toggle re-rendered checked — fixed |
+| BUG-UX-006 | Evaluate handoff display — fixed |
+| BUG-CODE-001 | Bad frontend coding practice — refactored to FindCareApp.tsx |
+| BUG-EVAL-002 | Wrong providers sent to EvaluateCare — fixed by selection state |
+| BUG-SEC-003 | mTLS handoff fails — fixed by GPT-4.1 switch + cert config |
+| BUG-EVAL-003 | Picked 1 but 5 showed — fixed by selection state |
+| BUG-UX-010 | Garbage specialty text in chat — fixed by architecture change |
+| BUG-MODEL-001 | Gemini overly broad specialties — fixed by GPT-4.1 switch |
+| BUG-UX-011 | Apply Filter doesn't clear old providers — FIXED + Playwright test passes |
+| BUG-PIPE-002 | No try/finally in CopyToFrontEnd — FIXED, pipeline running |
+| BUG-PIPE-008 | Missing specialty vector index — FIXED, both indexes created |
+| BUG-LOCAL-001 | start_local.bat zombie cleanup — tested |
 
 ---
 
-## INFRASTRUCTURE CHANGES
+## FIXING (code changes in progress)
 
-### v4-007 Enforcement Scanner
-- pre_deploy_rule_check.py now scans agile_backlog.json
-- Blocks check-in if implemented requirements lack pytest_id
-- Unimplemented requirements exempt (no test for unbuilt code)
-
-### Guard Prompt Update
-- Non-prod frontend process recycle (taskkill on ports 80, 443, 5173, 8000, 8001) no longer blocked
-- Databases, pipeline, production still protected
-
-### Bug Schema
-- `req_id` added as mandatory field — every bug must trace to a requirement
-
-### Playwright Frame Detection
-- All 7 Playwright test files updated to detect `:3000` iframe (Caddy proxy to Vite)
+| Bug | Description |
+|---|---|
+| BUG-SEC-005 | 426 body must include status code on every server |
+| BUG-GOV-005 | Requirements without pytests (91 criteria in BUG-REG-001) |
+| BUG-UX-012 | Drag and drop missing (drop target added, needs Playwright test) |
+| BUG-UX-014 | Evaluate button position/cold/hot state (requirements written) |
+| BUG-UX-015 | Filter header labels truncated (fix applied, needs Playwright verify) |
+| BUG-GOV-006 | Guard GPT calls lack structured I/O (schema added) |
+| BUG-REG-001 | 91 regression criteria to reach 100% |
+| BUG-TEST-001 through BUG-TEST-030 | Individual failing pytests |
 
 ---
 
-## TEST COVERAGE SUMMARY
-- 77 non-Playwright tests: ALL PASS
-- 7 Playwright search tests: ALL PASS
-- 40 requirements that were missing pytest_id: ALL ASSIGNED
-- Scanner violations: 0 (deploy may proceed)
+## OPEN (needs analysis or human input)
+
+| Bug | Description |
+|---|---|
+| BUG-FILTER-001 | Filter panel empty — vector indexes now created, needs retest |
+| BUG-VECTOR-001 | Vector search release blocker — indexes now created |
+| BUG-DESIGN-001 | Pagination controls in cursor bar — UX design from Boss |
+| BUG-UX-001 | 'kids doc in VA' stuck response — needs live test with GPT-4.1 |
+| BUG-CLASSIFY-001 | Empty rule text — needs Boss input |
+| BUG-PERF-001 | Empty rule text — needs Boss input |
+| BUG-UX-005 | Low priority, in analysis |
+| BUG-UX-007 | Filter format doesn't match Excel mockup |
+| BUG-UX-008 | Environment banner formatting |
+| BUG-UX-009 | Selection panel requires scrolling (minHeight fix applied) |
+| BUG-BA-001 | Three numbers in filter header — in testing |
+| BUG-SEC-001 | HF Spaces still use bearer tokens |
+| BUG-SEC-002 | mTLS between FindCare and EvaluateCare |
+| BUG-SEC-004 | Dev HF servers not tested for HTTPS |
+| BUG-GOV-002 | Boss constraint check in guard |
+| BUG-GOV-003 | Guard blocks authorized actions |
+| BUG-GOV-004 | DR-008 regex false positives |
+| BUG-ROADMAP-001 | Roadmap milestones disconnected |
+| BUG-LOAD-001 | Delaware provider load incomplete |
+| BUG-LOAD-002 | Provider count wrong |
+| BUG-LOAD-003 | Source data files must not be deleted |
+| BUG-LEGAL-001 | CPT codes cannot be consumer-facing |
+
+---
+
+## INFRASTRUCTURE CHANGES (this session)
+
+- v4-030: Epics business-aligned, 6 IT epics dissolved
+- v4-031: No dead code — 51 functions commented out, scanner enforces
+- v4-032: Plural/singular naming convention
+- Schema enforcement: agile_backlog, bugs, ai_operations — all strict
+- Regression runner: asyncio concurrent (16 threads, 50ms stagger)
+- Pipeline trigger: proper auth via pipeline.http, monitor via status URL
+- Copyright: Skip Snow → ChatHealthy.ai LLC (239 files)
+- EPIC-008 Architecture created (operational, empty)
+- FindCarePipeline: Step 2 SpecialtyMetaData + Step 10 CopyToFrontEnd
+- Both vector indexes created on frontend cluster
+- realized_by populated on 74 features and 1,891 requirements
