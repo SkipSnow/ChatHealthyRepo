@@ -86,34 +86,57 @@ def find_test_file(pytest_ref):
     return None
 
 
+def _clean_pytest_ref(pytest_ref):
+    """Clean up pytest_id references that have extra info like '(7 tests)'."""
+    # Remove parenthetical counts: "TestHTTPRejection (7 tests)" -> "TestHTTPRejection"
+    import re
+    return re.sub(r'\s*\(\d+\s+tests?\)', '', pytest_ref).strip()
+
+
+def _is_playwright_test(fpath):
+    """Check if a test file uses Playwright (needs browser)."""
+    try:
+        with open(fpath, encoding="utf-8", errors="replace") as f:
+            head = f.read(2000)
+        return "playwright" in head.lower() or "from playwright" in head
+    except Exception:
+        return False
+
+
 def run_single_test(pytest_ref):
     """Run a single pytest reference. Returns (status, output)."""
+    pytest_ref = _clean_pytest_ref(pytest_ref)
     fpath = find_test_file(pytest_ref)
     if not fpath:
         return "not_found", f"Test file not found: {pytest_ref}"
 
     # Build the full pytest path
     parts = pytest_ref.split("::")
-    fname = parts[0]
     test_path = fpath
     if len(parts) > 1:
         test_path = fpath + "::" + "::".join(parts[1:])
 
+    # Build command — add Playwright args if needed
+    cmd = [sys.executable, "-m", "pytest", test_path, "-x", "--tb=short", "-q"]
+    timeout = 120
+
+    if _is_playwright_test(fpath):
+        cmd.extend(["--browser", "chromium"])
+        timeout = 180  # Playwright tests need more time
+
     try:
         result = subprocess.run(
-            [sys.executable, "-m", "pytest", test_path, "-x", "--tb=short", "-q"],
-            capture_output=True, text=True, timeout=120, cwd=REPO_ROOT,
+            cmd, capture_output=True, text=True, timeout=timeout, cwd=REPO_ROOT,
         )
         if result.returncode == 0:
             return "pass", ""
         elif result.returncode == 5:
             return "skip", "No tests collected"
         else:
-            # Extract failure info
             output = result.stdout + result.stderr
             return "fail", output[-500:] if len(output) > 500 else output
     except subprocess.TimeoutExpired:
-        return "timeout", "Test timed out after 120s"
+        return "timeout", f"Test timed out after {timeout}s"
     except Exception as e:
         return "error", str(e)
 
