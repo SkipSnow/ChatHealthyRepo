@@ -1245,7 +1245,7 @@
     {
       "id": "BUG-REG-001",
       "req_id": "PIPE-TR-003-REQ-004",
-      "rule": "BUG: Full regression at 61% pass rate. 91 acceptance criteria — each failed, not-found, or untestable requirement must be fixed to reach 100%.",
+      "rule": "BUG: 69 missing or invalid pytest references. Not-found (test files that do not exist) and not-testable (no pytest_ids). Claude cleanup.",
       "incident": "First full regression run 2026-04-11. 48 pass, 30 fail, 21 not found. Concurrency 16, staggered 50ms.",
       "date": "2026-04-11",
       "type": "critical",
@@ -1259,7 +1259,7 @@
       "resolution_status": "fixing",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000036-0000-4000-e000-000000000036",
-      "reason": "91 tests either fail, reference non-existent test files, or have no pytest_ids. Each criterion must pass for regression to reach 100%.",
+      "reason": "69 requirements have bad pytest references or no tests. Each must be fixed.",
       "acceptance_criteria": [
         {
           "req_id": "TEST-SIM-001-REQ-001",
@@ -1272,13 +1272,6 @@
           "req_id": "TEST-SIM-001-REQ-005",
           "pytest_id": "local_environment_user_ready.py::TestProviderSearch::test_providers_have_npis",
           "issue": "test timeout",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "TEST-SIM-001-REQ-007",
-          "pytest_id": "local_environment_user_ready.py::TestLeftPanel::test_session_token_in_left_panel",
-          "issue": "test fail",
           "action": "fix the test or fix the code",
           "status": "open"
         },
@@ -1318,121 +1311,9 @@
           "status": "open"
         },
         {
-          "req_id": "FC-SEARCH-001-REQ-006",
-          "pytest_id": "test_classify_performance.py::test_classify_returns_ordered_specialties",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "FC-SEARCH-001-REQ-007",
-          "pytest_id": "test_search_timer.py::test_timer_runs_until_results_displayed",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "FC-FILT-001-REQ-001",
-          "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_filter_checkboxes_visible_and_labeled",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "FC-FILT-001-REQ-002",
-          "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_prescribers_only_filters_to_prescriber_specialties",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "FC-FILT-001-REQ-003",
-          "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_homeopathic_only_adds_homeopathic_specialties",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "FC-FILT-001-REQ-004",
-          "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_filter_header_shows_specialty_counts_not_provider_counts",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "FC-FILT-001-REQ-005",
-          "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_uncheck_all_updates_your_choices_to_zero",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "FC-PIPE-COPY-001-REQ-001",
-          "pytest_id": "test_copy_to_frontend.py::test_parity_after_copy",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
           "req_id": "PIPE-TR-002-REQ-001",
           "pytest_id": "pre_deploy_rule_check.py passes with zero violations",
           "issue": "test not_found",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "UX-MOB-001-REQ-001",
-          "pytest_id": "test_website.py::test_hamburger_menu_mobile",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "UX-MOB-001-REQ-002",
-          "pytest_id": "test_website.py::test_hamburger_menu_opens",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "UX-MOB-001-REQ-003",
-          "pytest_id": "test_website.py::test_hamburger_menu_navigation",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "UX-MOB-002-REQ-001",
-          "pytest_id": "test_website.py::test_back_link_mobile",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "UX-MOB-002-REQ-002",
-          "pytest_id": "test_website.py::test_back_link_navigates",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "UX-CTRL-003-REQ-001",
-          "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "UX-CTRL-003-REQ-002",
-          "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "UX-CTRL-003-REQ-003",
-          "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
-          "issue": "test fail",
           "action": "fix the test or fix the code",
           "status": "open"
         },
@@ -1509,20 +1390,6 @@
           "status": "open"
         },
         {
-          "req_id": "FC-BACKEND-005-REQ-002",
-          "pytest_id": "test_tool_router.py::TestToolRouter::test_pydantic_validation",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "FC-BACKEND-005-REQ-003",
-          "pytest_id": "test_tool_router.py::TestToolRouter::test_handle_tool_calls",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
           "req_id": "FC-BACKEND-006-REQ-001",
           "issue": "pytest_id references test that does not exist on disk",
           "action": "create the test or fix the reference",
@@ -1538,27 +1405,6 @@
           "req_id": "FC-BACKEND-006-REQ-003",
           "issue": "pytest_id references test that does not exist on disk",
           "action": "create the test or fix the reference",
-          "status": "open"
-        },
-        {
-          "req_id": "FC-BACKEND-007-REQ-001",
-          "pytest_id": "test_unanswerable_questions.py::TestUnanswerableQuestions",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "FC-BACKEND-007-REQ-002",
-          "pytest_id": "test_unanswerable_questions.py::TestUnanswerableQuestions",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
-          "status": "open"
-        },
-        {
-          "req_id": "FC-BACKEND-007-REQ-003",
-          "pytest_id": "test_unanswerable_questions.py::TestUnanswerableQuestions",
-          "issue": "test fail",
-          "action": "fix the test or fix the code",
           "status": "open"
         },
         {
@@ -1838,6 +1684,546 @@
           "status": "open"
         }
       ]
+    },
+    {
+      "id": "BUG-TEST-001",
+      "req_id": "TEST-SIM-001-REQ-001",
+      "rule": "BUG: pytest local_environment_user_ready.py::TestPageLoad::test_page_title fails for requirement TEST-SIM-001-REQ-001.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: timeout.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "local_environment_user_ready.py::TestPageLoad::test_page_title",
+      "pytest_success_criteria": "pytest local_environment_user_ready.py::TestPageLoad::test_page_title must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest local_environment_user_ready.py::TestPageLoad::test_page_title fails — timeout",
+      "ch_matrix_id": "b1000001-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-002",
+      "req_id": "TEST-SIM-001-REQ-005",
+      "rule": "BUG: pytest local_environment_user_ready.py::TestProviderSearch::test_providers_have_npis fails for requirement TEST-SIM-001-REQ-005.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: timeout.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "local_environment_user_ready.py::TestProviderSearch::test_providers_have_npis",
+      "pytest_success_criteria": "pytest local_environment_user_ready.py::TestProviderSearch::test_providers_have_npis must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest local_environment_user_ready.py::TestProviderSearch::test_providers_have_npis fails — timeout",
+      "ch_matrix_id": "b1000002-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-003",
+      "req_id": "TEST-SIM-001-REQ-007",
+      "rule": "BUG: pytest local_environment_user_ready.py::TestLeftPanel::test_session_token_in_left_panel fails for requirement TEST-SIM-001-REQ-007.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "local_environment_user_ready.py::TestLeftPanel::test_session_token_in_left_panel",
+      "pytest_success_criteria": "pytest local_environment_user_ready.py::TestLeftPanel::test_session_token_in_left_panel must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest local_environment_user_ready.py::TestLeftPanel::test_session_token_in_left_panel fails — fail",
+      "ch_matrix_id": "b1000003-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-004",
+      "req_id": "TEST-SIM-001-REQ-010",
+      "rule": "BUG: pytest local_environment_user_ready.py::TestEvaluateCareHandoff::test_evaluate_click fails for requirement TEST-SIM-001-REQ-010.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: timeout.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "local_environment_user_ready.py::TestEvaluateCareHandoff::test_evaluate_click",
+      "pytest_success_criteria": "pytest local_environment_user_ready.py::TestEvaluateCareHandoff::test_evaluate_click must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest local_environment_user_ready.py::TestEvaluateCareHandoff::test_evaluate_click fails — timeout",
+      "ch_matrix_id": "b1000004-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-005",
+      "req_id": "FC-SEARCH-001-REQ-001",
+      "rule": "BUG: pytest test_findcare_search.py::TestProviderSearchFreeText::test_free_text_search_returns_results fails for requirement FC-SEARCH-001-REQ-001.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: timeout.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_findcare_search.py::TestProviderSearchFreeText::test_free_text_search_returns_results",
+      "pytest_success_criteria": "pytest test_findcare_search.py::TestProviderSearchFreeText::test_free_text_search_returns_results must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_findcare_search.py::TestProviderSearchFreeText::test_free_text_search_returns_results fails — timeout",
+      "ch_matrix_id": "b1000005-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-006",
+      "req_id": "FC-SEARCH-001-REQ-002",
+      "rule": "BUG: pytest test_findcare_search.py::TestProviderResultFields::test_results_contain_npi fails for requirement FC-SEARCH-001-REQ-002.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: timeout.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_findcare_search.py::TestProviderResultFields::test_results_contain_npi",
+      "pytest_success_criteria": "pytest test_findcare_search.py::TestProviderResultFields::test_results_contain_npi must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_findcare_search.py::TestProviderResultFields::test_results_contain_npi fails — timeout",
+      "ch_matrix_id": "b1000006-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-007",
+      "req_id": "FC-SEARCH-001-REQ-003",
+      "rule": "BUG: pytest test_findcare_search.py::TestProviderSearchPagination::test_pagination_controls_present fails for requirement FC-SEARCH-001-REQ-003.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: timeout.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_findcare_search.py::TestProviderSearchPagination::test_pagination_controls_present",
+      "pytest_success_criteria": "pytest test_findcare_search.py::TestProviderSearchPagination::test_pagination_controls_present must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_findcare_search.py::TestProviderSearchPagination::test_pagination_controls_present fails — timeout",
+      "ch_matrix_id": "b1000007-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-008",
+      "req_id": "FC-SEARCH-001-REQ-004",
+      "rule": "BUG: pytest test_findcare_search.py::TestSpecialtyClassification::test_specialty_types_identified fails for requirement FC-SEARCH-001-REQ-004.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: timeout.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_findcare_search.py::TestSpecialtyClassification::test_specialty_types_identified",
+      "pytest_success_criteria": "pytest test_findcare_search.py::TestSpecialtyClassification::test_specialty_types_identified must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_findcare_search.py::TestSpecialtyClassification::test_specialty_types_identified fails — timeout",
+      "ch_matrix_id": "b1000008-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-009",
+      "req_id": "FC-SEARCH-001-REQ-006",
+      "rule": "BUG: pytest test_classify_performance.py::test_classify_returns_ordered_specialties fails for requirement FC-SEARCH-001-REQ-006.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_classify_performance.py::test_classify_returns_ordered_specialties",
+      "pytest_success_criteria": "pytest test_classify_performance.py::test_classify_returns_ordered_specialties must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_classify_performance.py::test_classify_returns_ordered_specialties fails — fail",
+      "ch_matrix_id": "b1000009-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-010",
+      "req_id": "FC-SEARCH-001-REQ-007",
+      "rule": "BUG: pytest test_search_timer.py::test_timer_runs_until_results_displayed fails for requirement FC-SEARCH-001-REQ-007.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_search_timer.py::test_timer_runs_until_results_displayed",
+      "pytest_success_criteria": "pytest test_search_timer.py::test_timer_runs_until_results_displayed must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_search_timer.py::test_timer_runs_until_results_displayed fails — fail",
+      "ch_matrix_id": "b1000010-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-011",
+      "req_id": "FC-FILT-001-REQ-001",
+      "rule": "BUG: pytest test_filter_panel.py::TestFilterPanelDisplay::test_filter_checkboxes_visible_and_labeled fails for requirement FC-FILT-001-REQ-001.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_filter_checkboxes_visible_and_labeled",
+      "pytest_success_criteria": "pytest test_filter_panel.py::TestFilterPanelDisplay::test_filter_checkboxes_visible_and_labeled must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_filter_panel.py::TestFilterPanelDisplay::test_filter_checkboxes_visible_and_labeled fails — fail",
+      "ch_matrix_id": "b1000011-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-012",
+      "req_id": "FC-FILT-001-REQ-002",
+      "rule": "BUG: pytest test_filter_panel.py::TestFilterPanelDisplay::test_prescribers_only_filters_to_prescriber_specialties fails for requirement FC-FILT-001-REQ-002.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_prescribers_only_filters_to_prescriber_specialties",
+      "pytest_success_criteria": "pytest test_filter_panel.py::TestFilterPanelDisplay::test_prescribers_only_filters_to_prescriber_specialties must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_filter_panel.py::TestFilterPanelDisplay::test_prescribers_only_filters_to_prescriber_specialties fails — fail",
+      "ch_matrix_id": "b1000012-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-013",
+      "req_id": "FC-FILT-001-REQ-003",
+      "rule": "BUG: pytest test_filter_panel.py::TestFilterPanelDisplay::test_homeopathic_only_adds_homeopathic_specialties fails for requirement FC-FILT-001-REQ-003.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_homeopathic_only_adds_homeopathic_specialties",
+      "pytest_success_criteria": "pytest test_filter_panel.py::TestFilterPanelDisplay::test_homeopathic_only_adds_homeopathic_specialties must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_filter_panel.py::TestFilterPanelDisplay::test_homeopathic_only_adds_homeopathic_specialties fails — fail",
+      "ch_matrix_id": "b1000013-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-014",
+      "req_id": "FC-FILT-001-REQ-004",
+      "rule": "BUG: pytest test_filter_panel.py::TestFilterPanelDisplay::test_filter_header_shows_specialty_counts_not_provider_counts fails for requirement FC-FILT-001-REQ-004.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_filter_header_shows_specialty_counts_not_provider_counts",
+      "pytest_success_criteria": "pytest test_filter_panel.py::TestFilterPanelDisplay::test_filter_header_shows_specialty_counts_not_provider_counts must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_filter_panel.py::TestFilterPanelDisplay::test_filter_header_shows_specialty_counts_not_provider_counts fails — fail",
+      "ch_matrix_id": "b1000014-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-015",
+      "req_id": "FC-FILT-001-REQ-005",
+      "rule": "BUG: pytest test_filter_panel.py::TestFilterPanelDisplay::test_uncheck_all_updates_your_choices_to_zero fails for requirement FC-FILT-001-REQ-005.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_uncheck_all_updates_your_choices_to_zero",
+      "pytest_success_criteria": "pytest test_filter_panel.py::TestFilterPanelDisplay::test_uncheck_all_updates_your_choices_to_zero must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_filter_panel.py::TestFilterPanelDisplay::test_uncheck_all_updates_your_choices_to_zero fails — fail",
+      "ch_matrix_id": "b1000015-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-016",
+      "req_id": "FC-PIPE-COPY-001-REQ-001",
+      "rule": "BUG: pytest test_copy_to_frontend.py::test_parity_after_copy fails for requirement FC-PIPE-COPY-001-REQ-001.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_copy_to_frontend.py::test_parity_after_copy",
+      "pytest_success_criteria": "pytest test_copy_to_frontend.py::test_parity_after_copy must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_copy_to_frontend.py::test_parity_after_copy fails — fail",
+      "ch_matrix_id": "b1000016-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-017",
+      "req_id": "PIPE-TR-002-REQ-001",
+      "rule": "BUG: pytest pre_deploy_rule_check.py passes with zero violations fails for requirement PIPE-TR-002-REQ-001.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: not_found.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "pre_deploy_rule_check.py passes with zero violations",
+      "pytest_success_criteria": "pytest pre_deploy_rule_check.py passes with zero violations must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest pre_deploy_rule_check.py passes with zero violations fails — not_found",
+      "ch_matrix_id": "b1000017-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-018",
+      "req_id": "UX-MOB-001-REQ-001",
+      "rule": "BUG: pytest test_website.py::test_hamburger_menu_mobile fails for requirement UX-MOB-001-REQ-001.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_website.py::test_hamburger_menu_mobile",
+      "pytest_success_criteria": "pytest test_website.py::test_hamburger_menu_mobile must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_website.py::test_hamburger_menu_mobile fails — fail",
+      "ch_matrix_id": "b1000018-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-019",
+      "req_id": "UX-MOB-001-REQ-002",
+      "rule": "BUG: pytest test_website.py::test_hamburger_menu_opens fails for requirement UX-MOB-001-REQ-002.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_website.py::test_hamburger_menu_opens",
+      "pytest_success_criteria": "pytest test_website.py::test_hamburger_menu_opens must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_website.py::test_hamburger_menu_opens fails — fail",
+      "ch_matrix_id": "b1000019-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-020",
+      "req_id": "UX-MOB-001-REQ-003",
+      "rule": "BUG: pytest test_website.py::test_hamburger_menu_navigation fails for requirement UX-MOB-001-REQ-003.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_website.py::test_hamburger_menu_navigation",
+      "pytest_success_criteria": "pytest test_website.py::test_hamburger_menu_navigation must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_website.py::test_hamburger_menu_navigation fails — fail",
+      "ch_matrix_id": "b1000020-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-021",
+      "req_id": "UX-MOB-002-REQ-001",
+      "rule": "BUG: pytest test_website.py::test_back_link_mobile fails for requirement UX-MOB-002-REQ-001.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_website.py::test_back_link_mobile",
+      "pytest_success_criteria": "pytest test_website.py::test_back_link_mobile must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_website.py::test_back_link_mobile fails — fail",
+      "ch_matrix_id": "b1000021-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-022",
+      "req_id": "UX-MOB-002-REQ-002",
+      "rule": "BUG: pytest test_website.py::test_back_link_navigates fails for requirement UX-MOB-002-REQ-002.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_website.py::test_back_link_navigates",
+      "pytest_success_criteria": "pytest test_website.py::test_back_link_navigates must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_website.py::test_back_link_navigates fails — fail",
+      "ch_matrix_id": "b1000022-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-023",
+      "req_id": "UX-CTRL-003-REQ-001",
+      "rule": "BUG: pytest test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff fails for requirement UX-CTRL-003-REQ-001.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
+      "pytest_success_criteria": "pytest test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff fails — fail",
+      "ch_matrix_id": "b1000023-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-024",
+      "req_id": "UX-CTRL-003-REQ-002",
+      "rule": "BUG: pytest test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff fails for requirement UX-CTRL-003-REQ-002.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
+      "pytest_success_criteria": "pytest test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff fails — fail",
+      "ch_matrix_id": "b1000024-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-025",
+      "req_id": "UX-CTRL-003-REQ-003",
+      "rule": "BUG: pytest test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff fails for requirement UX-CTRL-003-REQ-003.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
+      "pytest_success_criteria": "pytest test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff fails — fail",
+      "ch_matrix_id": "b1000025-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-026",
+      "req_id": "FC-BACKEND-005-REQ-002",
+      "rule": "BUG: pytest test_tool_router.py::TestToolRouter::test_pydantic_validation fails for requirement FC-BACKEND-005-REQ-002.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_tool_router.py::TestToolRouter::test_pydantic_validation",
+      "pytest_success_criteria": "pytest test_tool_router.py::TestToolRouter::test_pydantic_validation must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_tool_router.py::TestToolRouter::test_pydantic_validation fails — fail",
+      "ch_matrix_id": "b1000026-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-027",
+      "req_id": "FC-BACKEND-005-REQ-003",
+      "rule": "BUG: pytest test_tool_router.py::TestToolRouter::test_handle_tool_calls fails for requirement FC-BACKEND-005-REQ-003.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_tool_router.py::TestToolRouter::test_handle_tool_calls",
+      "pytest_success_criteria": "pytest test_tool_router.py::TestToolRouter::test_handle_tool_calls must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_tool_router.py::TestToolRouter::test_handle_tool_calls fails — fail",
+      "ch_matrix_id": "b1000027-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-028",
+      "req_id": "FC-BACKEND-007-REQ-001",
+      "rule": "BUG: pytest test_unanswerable_questions.py::TestUnanswerableQuestions fails for requirement FC-BACKEND-007-REQ-001.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_unanswerable_questions.py::TestUnanswerableQuestions",
+      "pytest_success_criteria": "pytest test_unanswerable_questions.py::TestUnanswerableQuestions must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_unanswerable_questions.py::TestUnanswerableQuestions fails — fail",
+      "ch_matrix_id": "b1000028-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-029",
+      "req_id": "FC-BACKEND-007-REQ-002",
+      "rule": "BUG: pytest test_unanswerable_questions.py::TestUnanswerableQuestions fails for requirement FC-BACKEND-007-REQ-002.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_unanswerable_questions.py::TestUnanswerableQuestions",
+      "pytest_success_criteria": "pytest test_unanswerable_questions.py::TestUnanswerableQuestions must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_unanswerable_questions.py::TestUnanswerableQuestions fails — fail",
+      "ch_matrix_id": "b1000029-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-TEST-030",
+      "req_id": "FC-BACKEND-007-REQ-003",
+      "rule": "BUG: pytest test_unanswerable_questions.py::TestUnanswerableQuestions fails for requirement FC-BACKEND-007-REQ-003.",
+      "incident": "Discovered by regression runner 2026-04-11. Test status: fail.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "test_unanswerable_questions.py::TestUnanswerableQuestions",
+      "pytest_success_criteria": "pytest test_unanswerable_questions.py::TestUnanswerableQuestions must pass.",
+      "risk_acceptance_id": null,
+      "reason": "pytest test_unanswerable_questions.py::TestUnanswerableQuestions fails — fail",
+      "ch_matrix_id": "b1000030-0000-4000-e000-000000000000"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
