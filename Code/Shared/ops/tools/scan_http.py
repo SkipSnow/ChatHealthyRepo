@@ -28,10 +28,8 @@ import sys
 
 TARGET_PATTERN = "http://localhost"
 
-# Files allowed to contain the pattern
-ALLOWED_FILES = {
-    "scan_http.py",  # This file — contains the pattern as search target
-}
+# This script defines the search pattern — skip scanning self
+SELF = "scan_http.py"
 
 # Patterns to skip
 SKIP_PATTERNS = [
@@ -54,7 +52,7 @@ SCAN_EXTENSIONS = {".py", ".tsx", ".ts", ".js", ".jsx", ".html", ".json", ".yml"
 
 def should_skip(filepath):
     basename = os.path.basename(filepath)
-    if basename in ALLOWED_FILES:
+    if basename == SELF:
         return True
     for pattern in SKIP_PATTERNS:
         if re.search(pattern, filepath):
