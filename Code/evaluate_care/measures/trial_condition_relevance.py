@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Skip Snow. All rights reserved.
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # EVAL-CT-MEASURE-3 — Clinical Trial Condition Relevance measure.
 
 from ..models import NormalizationMethod

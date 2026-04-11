@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Skip Snow. All rights reserved.
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
 # FC-SEARCH-001: Provider Search Playwright SIT Tests

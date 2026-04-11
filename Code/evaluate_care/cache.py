@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Skip Snow. All rights reserved.
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # EVAL-CACHE — in-memory LRU cache for scored results.
 
 from __future__ import annotations

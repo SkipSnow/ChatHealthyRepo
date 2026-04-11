@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Skip Snow. All rights reserved.
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Generate ops-manager-design-EPIC3-V1.docx from design content.
 
 from docx import Document

@@ -1,4 +1,4 @@
-# Copyright (c) 2026 Skip Snow. All rights reserved.
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Tests for individual measures (EVAL-P-MEASURE-*, EVAL-CT-MEASURE-*, EVAL-P-RX).
 
 import pytest
