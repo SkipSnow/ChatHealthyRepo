@@ -372,3 +372,39 @@ class TestFilterPanelDisplay:
         page.wait_for_timeout(500)
         apply_btn.click()
         page.wait_for_timeout(3000)
+
+    def test_apply_filter_providers_have_npi(self, page: Page):
+        """FC-FILT-001-REQ-007 (4): After Apply, providers have NPI (smoke test data quality)."""
+        frame = _get_chat_frame(page)
+
+        input_el = frame.locator("input[placeholder='Type a message...']")
+        input_el.fill("find me a provider who can fix my wrist in DE")
+        frame.locator("button:has-text('Send')").click()
+        frame.locator("text=/Available Providers/").wait_for(timeout=30000)
+        # Wait for provider cards to render
+        frame.locator("text=/NPI:/").first.wait_for(state="visible", timeout=15000)
+
+        npi_text = frame.locator("text=/NPI:/").first
+        assert npi_text.is_visible(), "Provider cards must show NPI after Apply Filter"
+        page.screenshot(path=os.path.join(SCREENSHOT_DIR, "filter_apply_npi.png"))
+
+    def test_apply_filter_provider_cards_have_actions(self, page: Page):
+        """FC-FILT-001-REQ-007 (5): After Apply, provider cards meet FC-SELECT-001 display (actions visible)."""
+        frame = _get_chat_frame(page)
+
+        input_el = frame.locator("input[placeholder='Type a message...']")
+        input_el.fill("find me a provider who can fix my wrist in DE")
+        frame.locator("button:has-text('Send')").click()
+        frame.locator("text=/Available Providers/").wait_for(timeout=30000)
+        # Wait for provider cards to render
+        frame.locator("text=/NPI:/").first.wait_for(state="visible", timeout=15000)
+
+        # Verify select button (↓) exists on provider cards
+        select_btn = frame.locator("button:has-text('↓')").first
+        assert select_btn.is_visible(), "Provider cards must have select (↓) button"
+
+        # Verify dismiss button (🗑) exists
+        dismiss_btn = frame.locator("button:has-text('🗑')").first
+        assert dismiss_btn.is_visible(), "Provider cards must have dismiss (🗑) button"
+
+        page.screenshot(path=os.path.join(SCREENSHOT_DIR, "filter_apply_actions.png"))
