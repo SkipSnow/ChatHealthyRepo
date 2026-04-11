@@ -488,16 +488,22 @@ export default function ChatWindow() {
         tokensIn: data.tokens_in ?? undefined,
       }])
     } else {
+      // FC-SELECT-001: If providers found, show short summary instead of full listing
+      // The selection panel handles provider display
+      const hasProviders = data.pagination?.total_count > 0
+      const chatContent = hasProviders
+        ? `Found **${data.pagination.total_count}** providers. Use the panel below to select up to 5 for evaluation.`
+        : data.response
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: data.response,
+        content: chatContent,
         thinkSeconds: elapsed,
         tokensIn: data.tokens_in ?? undefined,
       }])
       if (data.emergency) setIsLocked(true)
       if (data.response === 'Session unlocked.') setIsLocked(false)
 
-      // Always fetch structured providers for EvaluateCare handoff
+      // Always fetch structured providers for selection panel
       if (data.pagination?.total_count > 0) {
         fetch(`${API_URL}/search`, {
           method: 'POST',
