@@ -28,8 +28,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger("framework_version")
 
 
-def get_active(client):
-    return client["admin"]["framework_version"].find_one({"to": None})
+# DEAD CODE (v4-031) -- unreferenced function 'get_active', marked for deletion
+# def get_active(client):
+#     return client["admin"]["framework_version"].find_one({"to": None})
+# END DEAD CODE
 
 
 def get_all(client):

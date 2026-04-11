@@ -75,25 +75,29 @@ def has_scope(agent: str, scope: str) -> bool:
     return scope in _AGENT_SCOPES.get(agent, [])
 
 
-def authenticate(bearer_token: str, required_scope: str) -> tuple[bool, str]:
-    """
-    Validate a Bearer token and check scope.
+# DEAD CODE (v4-031) -- unreferenced function 'authenticate', marked for deletion
+# def authenticate(bearer_token: str, required_scope: str) -> tuple[bool, str]:
+#     """
+#     Validate a Bearer token and check scope.
+#
+#     Returns:
+#         (True, agent_name)  if valid and authorised
+#         (False, reason)     if invalid or unauthorised
+#     """
+#     agent = resolve_agent(bearer_token)
+#     if agent is None:
+#         return False, "Invalid or missing API key"
+#     if not has_scope(agent, required_scope):
+#         return False, f"Agent '{agent}' does not have scope '{required_scope}'"
+#     return True, agent
+# END DEAD CODE
 
-    Returns:
-        (True, agent_name)  if valid and authorised
-        (False, reason)     if invalid or unauthorised
-    """
-    agent = resolve_agent(bearer_token)
-    if agent is None:
-        return False, "Invalid or missing API key"
-    if not has_scope(agent, required_scope):
-        return False, f"Agent '{agent}' does not have scope '{required_scope}'"
-    return True, agent
 
-
-def get_gpt_key() -> str:
-    """Return GPT's key — used when generating the OpenAPI spec for the Custom Action."""
-    key = os.getenv("BRAIN_KEY_GPT")
-    if not key:
-        raise EnvironmentError("BRAIN_KEY_GPT is not set")
-    return key
+# DEAD CODE (v4-031) -- unreferenced function 'get_gpt_key', marked for deletion
+# def get_gpt_key() -> str:
+#     """Return GPT's key — used when generating the OpenAPI spec for the Custom Action."""
+#     key = os.getenv("BRAIN_KEY_GPT")
+#     if not key:
+#         raise EnvironmentError("BRAIN_KEY_GPT is not set")
+#     return key
+# END DEAD CODE

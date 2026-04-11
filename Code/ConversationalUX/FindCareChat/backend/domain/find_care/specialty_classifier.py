@@ -112,67 +112,69 @@ Specialties:
         return []
 
 
-def classify_specialties(
-    options: list[dict],
-    db=None,
-) -> list[dict]:
-    """Enrich specialty options with can_prescribe and homeopathic flags.
-
-    Checks cache first. Calls GPT-4.1-mini for uncached codes.
-    Returns the same list with added fields.
-
-    Input:  [{code, name, classification}]
-    Output: [{code, name, classification, can_prescribe, homeopathic}]
-    """
-    if db:
-        cache = _get_db_cache(db)
-    else:
-        cache = _cache
-
-    uncached = []
-    for opt in options:
-        code = opt.get("code", "")
-        if code not in cache:
-            uncached.append(opt)
-
-    # Classify uncached in one batch
-    if uncached:
-        _log.info("Classifying %d uncached specialties via GPT-4.1-mini", len(uncached))
-        classified = _classify_batch(uncached)
-
-        # Merge into cache
-        for item in classified:
-            code = item.get("code", "")
-            if code:
-                cache[code] = {
-                    "can_prescribe": item.get("can_prescribe", False),
-                    "homeopathic": item.get("homeopathic", False),
-                    "source": "gpt-4.1-mini",
-                }
-
-        # Save to MongoDB
-        if db and classified:
-            enriched = []
-            for item in classified:
-                code = item.get("code", "")
-                name = next((o["name"] for o in uncached if o.get("code") == code), "")
-                enriched.append({
-                    "code": code,
-                    "name": name,
-                    "can_prescribe": item.get("can_prescribe", False),
-                    "homeopathic": item.get("homeopathic", False),
-                })
-            _save_classifications(db, enriched)
-
-    # Enrich original options
-    result = []
-    for opt in options:
-        code = opt.get("code", "")
-        cls = cache.get(code, {})
-        result.append({
-            **opt,
-            "can_prescribe": cls.get("can_prescribe", False),
-            "homeopathic": cls.get("homeopathic", False),
-        })
-
-    return result
+# DEAD CODE (v4-031) -- unreferenced function 'classify_specialties', marked for deletion
+# def classify_specialties(
+#     options: list[dict],
+#     db=None,
+# ) -> list[dict]:
+#     """Enrich specialty options with can_prescribe and homeopathic flags.
+#
+#     Checks cache first. Calls GPT-4.1-mini for uncached codes.
+#     Returns the same list with added fields.
+#
+#     Input:  [{code, name, classification}]
+#     Output: [{code, name, classification, can_prescribe, homeopathic}]
+#     """
+#     if db:
+#         cache = _get_db_cache(db)
+#     else:
+#         cache = _cache
+#
+#     uncached = []
+#     for opt in options:
+#         code = opt.get("code", "")
+#         if code not in cache:
+#             uncached.append(opt)
+#
+#     # Classify uncached in one batch
+#     if uncached:
+#         _log.info("Classifying %d uncached specialties via GPT-4.1-mini", len(uncached))
+#         classified = _classify_batch(uncached)
+#
+#         # Merge into cache
+#         for item in classified:
+#             code = item.get("code", "")
+#             if code:
+#                 cache[code] = {
+#                     "can_prescribe": item.get("can_prescribe", False),
+#                     "homeopathic": item.get("homeopathic", False),
+#                     "source": "gpt-4.1-mini",
+#                 }
+#
+#         # Save to MongoDB
+#         if db and classified:
+#             enriched = []
+#             for item in classified:
+#                 code = item.get("code", "")
+#                 name = next((o["name"] for o in uncached if o.get("code") == code), "")
+#                 enriched.append({
+#                     "code": code,
+#                     "name": name,
+#                     "can_prescribe": item.get("can_prescribe", False),
+#                     "homeopathic": item.get("homeopathic", False),
+#                 })
+#             _save_classifications(db, enriched)
+#
+#     # Enrich original options
+#     result = []
+#     for opt in options:
+#         code = opt.get("code", "")
+#         cls = cache.get(code, {})
+#         result.append({
+#             **opt,
+#             "can_prescribe": cls.get("can_prescribe", False),
+#             "homeopathic": cls.get("homeopathic", False),
+#         })
+#
+#     return result
+# END DEAD CODE

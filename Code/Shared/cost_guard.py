@@ -255,76 +255,80 @@ def check_budget(assignment_id: Optional[str] = None) -> dict:
     return result
 
 
-def get_usage_report() -> dict:
-    """
-    Boss calls this to see full spend breakdown.
+# DEAD CODE (v4-031) -- unreferenced function 'get_usage_report', marked for deletion
+# def get_usage_report() -> dict:
+#     """
+#     Boss calls this to see full spend breakdown.
+#
+#     Returns spend by agent, by model, by assignment, and period totals.
+#     """
+#     cfg = _read(_BUDGET_CFG)
+#     log = _read(_USAGE_LOG)
+#     entries = log["entries"]
+#     today = date.today().isoformat()
+#     this_month = today[:7]
+#
+#     def _sum(condition) -> float:
+#         return round(sum(e["cost_usd"] for e in entries if condition(e)), 4)
+#
+#     by_agent = {}
+#     by_model = {}
+#     by_assignment = {}
+#
+#     for e in entries:
+#         agent = e["agent"]
+#         model = e["model"]
+#         asn   = e.get("assignment_id") or "unassigned"
+#
+#         by_agent[agent]            = round(by_agent.get(agent, 0) + e["cost_usd"], 6)
+#         by_model[model]            = round(by_model.get(model, 0) + e["cost_usd"], 6)
+#         by_assignment[asn]         = round(by_assignment.get(asn, 0) + e["cost_usd"], 6)
+#
+#     limits = cfg["limits"]
+#     daily_spent   = _sum(lambda e: e["timestamp"][:10] == today)
+#     monthly_spent = _sum(lambda e: e["timestamp"][:7] == this_month)
+#     total_spent   = _sum(lambda e: True)
+#
+#     return {
+#         "total_usd":      total_spent,
+#         "today_usd":      daily_spent,
+#         "this_month_usd": monthly_spent,
+#         "limits": {
+#             "per_assignment": limits["per_assignment_usd"],
+#             "daily":          limits["daily_usd"],
+#             "monthly":        limits["monthly_usd"],
+#         },
+#         "remaining": {
+#             "today":     round(limits["daily_usd"] - daily_spent, 4),
+#             "this_month": round(limits["monthly_usd"] - monthly_spent, 4),
+#         },
+#         "by_agent":      by_agent,
+#         "by_model":      by_model,
+#         "by_assignment": by_assignment,
+#         "call_count":    len(entries),
+#     }
+# END DEAD CODE
 
-    Returns spend by agent, by model, by assignment, and period totals.
-    """
-    cfg = _read(_BUDGET_CFG)
-    log = _read(_USAGE_LOG)
-    entries = log["entries"]
-    today = date.today().isoformat()
-    this_month = today[:7]
 
-    def _sum(condition) -> float:
-        return round(sum(e["cost_usd"] for e in entries if condition(e)), 4)
-
-    by_agent = {}
-    by_model = {}
-    by_assignment = {}
-
-    for e in entries:
-        agent = e["agent"]
-        model = e["model"]
-        asn   = e.get("assignment_id") or "unassigned"
-
-        by_agent[agent]            = round(by_agent.get(agent, 0) + e["cost_usd"], 6)
-        by_model[model]            = round(by_model.get(model, 0) + e["cost_usd"], 6)
-        by_assignment[asn]         = round(by_assignment.get(asn, 0) + e["cost_usd"], 6)
-
-    limits = cfg["limits"]
-    daily_spent   = _sum(lambda e: e["timestamp"][:10] == today)
-    monthly_spent = _sum(lambda e: e["timestamp"][:7] == this_month)
-    total_spent   = _sum(lambda e: True)
-
-    return {
-        "total_usd":      total_spent,
-        "today_usd":      daily_spent,
-        "this_month_usd": monthly_spent,
-        "limits": {
-            "per_assignment": limits["per_assignment_usd"],
-            "daily":          limits["daily_usd"],
-            "monthly":        limits["monthly_usd"],
-        },
-        "remaining": {
-            "today":     round(limits["daily_usd"] - daily_spent, 4),
-            "this_month": round(limits["monthly_usd"] - monthly_spent, 4),
-        },
-        "by_agent":      by_agent,
-        "by_model":      by_model,
-        "by_assignment": by_assignment,
-        "call_count":    len(entries),
-    }
-
-
-def set_limit(per_assignment_usd: float = None,
-              daily_usd: float = None,
-              monthly_usd: float = None) -> None:
-    """
-    Boss calls this to adjust spending limits at any time.
-
-    Example:
-        set_limit(daily_usd=10.00)          # raise daily limit
-        set_limit(per_assignment_usd=0.25)  # tighten per-assignment
-        set_limit(monthly_usd=100.00)       # raise monthly cap
-    """
-    cfg = _read(_BUDGET_CFG)
-    if per_assignment_usd is not None:
-        cfg["limits"]["per_assignment_usd"] = per_assignment_usd
-    if daily_usd is not None:
-        cfg["limits"]["daily_usd"] = daily_usd
-    if monthly_usd is not None:
-        cfg["limits"]["monthly_usd"] = monthly_usd
-    _write(_BUDGET_CFG, cfg)
-    print(f"[CostGuard] Limits updated: {cfg['limits']}", flush=True)
+# DEAD CODE (v4-031) -- unreferenced function 'set_limit', marked for deletion
+# def set_limit(per_assignment_usd: float = None,
+#               daily_usd: float = None,
+#               monthly_usd: float = None) -> None:
+#     """
+#     Boss calls this to adjust spending limits at any time.
+#
+#     Example:
+#         set_limit(daily_usd=10.00)          # raise daily limit
+#         set_limit(per_assignment_usd=0.25)  # tighten per-assignment
+#         set_limit(monthly_usd=100.00)       # raise monthly cap
+#     """
+#     cfg = _read(_BUDGET_CFG)
+#     if per_assignment_usd is not None:
+#         cfg["limits"]["per_assignment_usd"] = per_assignment_usd
+#     if daily_usd is not None:
+#         cfg["limits"]["daily_usd"] = daily_usd
+#     if monthly_usd is not None:
+#         cfg["limits"]["monthly_usd"] = monthly_usd
+#     _write(_BUDGET_CFG, cfg)
+#     print(f"[CostGuard] Limits updated: {cfg['limits']}", flush=True)
+# END DEAD CODE
