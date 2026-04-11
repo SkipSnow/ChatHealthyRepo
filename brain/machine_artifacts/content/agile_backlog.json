@@ -19544,7 +19544,7 @@
               "sprint": 6,
               "dependencies": [],
               "size": "M",
-              "status": "accepted",
+              "status": "implemented",
               "accepted_by": "Boss",
               "requirements": [
                 {
@@ -19553,9 +19553,12 @@
                   "requirement": "copy_to_frontend_orchestrator must wrap all steps between register_reservation_activity and release_reservation_activity in try/finally. The finally block must always call release_reservation_activity. Boolean test: inject exception in partition step → reservation count == 0 after orchestrator exits.",
                   "source": "Bug: cluster left running after CopyToFrontEnd failure",
                   "priority": "must-have",
-                  "status": "accepted",
+                  "status": "implemented",
                   "label": "",
-                  "ch_matrix_id": "cede0fa5-545e-4cff-aec0-e265f399a777"
+                  "ch_matrix_id": "cede0fa5-545e-4cff-aec0-e265f399a777",
+                  "pytest_ids": [
+                    "test_pipeline_e2e.py::TestCopyToFrontEnd::test_r10_uses_frontend_connection"
+                  ]
                 }
               ],
               "ch_matrix_id": "51eeedcc-8540-4288-8a4c-62cdae0aa856"
@@ -20875,6 +20878,37 @@
                 }
               ],
               "ch_matrix_id": "23f641f1-a183-48b8-ab7d-d6855b1b5dbd"
+            },
+            {
+              "story_id": "FC-PIPE-COPY-001",
+              "title": "CopyToFrontEnd as final pipeline step",
+              "parent_feature": "PIPE-COPY",
+              "size": "L",
+              "status": "implemented",
+              "description": "FindCarePipeline Step 10 copies providers and SpecialtyMetaData to the frontend cluster when copy_to_frontend=true (default true). CopyToFrontEnd must create both provider_vector_index and specialty_vector_index on the frontend cluster.",
+              "requirements": [
+                {
+                  "req_id": "FC-PIPE-COPY-001-REQ-001",
+                  "requirement": "FindCarePipeline Step 10 copies providers and SpecialtyMetaData to frontend cluster when copy_to_frontend=true (default true).",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_copy_to_frontend.py::test_parity_after_copy"
+                  ],
+                  "ch_matrix_id": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"
+                },
+                {
+                  "req_id": "FC-PIPE-COPY-001-REQ-002",
+                  "requirement": "CopyToFrontEnd must create BOTH provider_vector_index AND specialty_vector_index on the frontend cluster.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_data_quality_live.py::TestSpecialtyMetaData::test_specialty_metadata_has_embeddings"
+                  ],
+                  "ch_matrix_id": "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e"
+                }
+              ],
+              "ch_matrix_id": "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f"
             }
           ],
           "ch_matrix_id": "d2c75348-6378-4757-9d58-3a6c18630f2d"
@@ -20919,9 +20953,117 @@
                 }
               ],
               "ch_matrix_id": "c283eb58-881b-48dd-aa40-865941a962da"
+            },
+            {
+              "story_id": "PIPE-TR-002",
+              "title": "pre_deploy_rule_check validates pytest_ids as array",
+              "parent_feature": "PIPE-TRACE",
+              "size": "S",
+              "status": "implemented",
+              "description": "pre_deploy_rule_check.py validates that every implemented requirement has pytest_ids as an array with at least one member. Supports legacy pytest_id string fallback for backward compatibility.",
+              "requirements": [
+                {
+                  "req_id": "PIPE-TR-002-REQ-001",
+                  "requirement": "pre_deploy_rule_check.py must validate pytest_ids as an array (minimum 1 member) for every implemented requirement. Must support legacy pytest_id string fallback. Scanner passes with zero violations.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "pre_deploy_rule_check.py passes with zero violations"
+                  ],
+                  "ch_matrix_id": "a7b2e4c1-3f8d-4a9e-b5c2-1d6e8f0a7b3c"
+                }
+              ],
+              "ch_matrix_id": "d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a"
             }
           ],
           "ch_matrix_id": "634057b5-20e7-4b8b-aa3b-27ac6875f5a3"
+        },
+        {
+          "feature_id": "PIPE-SPEC",
+          "name": "FindCarePipeline SpecialtyMetaData Orchestration",
+          "epic_id": "EPIC-FINDCARE",
+          "layer": "pipeline",
+          "capability": "DataOps",
+          "description": "FindCarePipeline loads and enriches SpecialtyMetaData from NUCC taxonomy CSV. Specialty records are enriched with filter flags (can_prescribe, homeopathic) for downstream UX filtering.",
+          "priority": "HIGH",
+          "status": "implemented",
+          "stories": [
+            {
+              "story_id": "FC-PIPE-SPEC-001",
+              "title": "Load SpecialtyMetaData into pipeline",
+              "parent_feature": "PIPE-SPEC",
+              "size": "M",
+              "status": "implemented",
+              "description": "FindCarePipeline Step 2 loads SpecialtyMetaData from NUCC taxonomy CSV when specialty_metadata=true (default true).",
+              "requirements": [
+                {
+                  "req_id": "FC-PIPE-SPEC-001-REQ-001",
+                  "requirement": "FindCarePipeline Step 2 loads SpecialtyMetaData from NUCC taxonomy CSV when specialty_metadata=true (default true).",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_specialty_classification.py::TestSpecialtyCompleteness::test_has_specialties"
+                  ],
+                  "ch_matrix_id": "b1c2d3e4-f5a6-7b8c-9d0e-1f2a3b4c5d6e"
+                }
+              ],
+              "ch_matrix_id": "c2d3e4f5-a6b7-8c9d-0e1f-2a3b4c5d6e7f"
+            },
+            {
+              "story_id": "FC-PIPE-SPEC-002",
+              "title": "Enrich SpecialtyMetaData with filter flags",
+              "parent_feature": "PIPE-SPEC",
+              "size": "M",
+              "status": "implemented",
+              "description": "Every specialty in SpecialtyMetaData is enriched with can_prescribe and homeopathic boolean flags based on NUCC taxonomy prefix classification.",
+              "requirements": [
+                {
+                  "req_id": "FC-PIPE-SPEC-002-REQ-001",
+                  "requirement": "Every specialty in SpecialtyMetaData must have a can_prescribe boolean flag based on NUCC taxonomy prefix.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_specialty_classification.py::TestSpecialtyCompleteness::test_all_have_can_prescribe"
+                  ],
+                  "ch_matrix_id": "d3e4f5a6-b7c8-9d0e-1f2a-3b4c5d6e7f8a"
+                },
+                {
+                  "req_id": "FC-PIPE-SPEC-002-REQ-002",
+                  "requirement": "Every specialty in SpecialtyMetaData must have a homeopathic boolean flag.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_specialty_classification.py::TestSpecialtyCompleteness::test_all_have_homeopathic"
+                  ],
+                  "ch_matrix_id": "e4f5a6b7-c8d9-0e1f-2a3b-4c5d6e7f8a9b"
+                }
+              ],
+              "ch_matrix_id": "f5a6b7c8-d9e0-1f2a-3b4c-5d6e7f8a9b0c"
+            },
+            {
+              "story_id": "FC-PIPE-RENAME-001",
+              "title": "Pipeline task name is FindCarePipeline",
+              "parent_feature": "PIPE-SPEC",
+              "size": "S",
+              "status": "implemented",
+              "description": "Pipeline task name renamed from FullProviderPipeline to FindCarePipeline. All code, brain JSONs, and website references use the new name. No references to the old name remain.",
+              "requirements": [
+                {
+                  "req_id": "FC-PIPE-RENAME-001-REQ-001",
+                  "requirement": "Pipeline task name is FindCarePipeline (renamed from FullProviderPipeline). All code, brain JSONs, and website references use the new name. No FullProviderPipeline references remain.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_pipeline_rename_compliance.py::test_no_old_prescriber_pipeline_name",
+                    "test_pipeline_rename_compliance.py::test_new_name_in_function_app"
+                  ],
+                  "ch_matrix_id": "7f8a9b0c-1d2e-3f4a-5b6c-7d8e9f0a1b2c"
+                }
+              ],
+              "ch_matrix_id": "8a9b0c1d-2e3f-4a5b-6c7d-8e9f0a1b2c3d"
+            }
+          ],
+          "ch_matrix_id": "a6b7c8d9-e0f1-2a3b-4c5d-6e7f8a9b0c1d"
         },
         {
           "feature_id": "FC-MOBILE",
