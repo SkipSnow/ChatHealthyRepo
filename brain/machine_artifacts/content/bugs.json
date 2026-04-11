@@ -1117,9 +1117,9 @@
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000025-0000-4000-e000-000000000025",
       "resolution": "Fixed tonight in index.html (only visible checked codes sent) and FindCareApp.tsx. Closed 2026-04-10.",
-      "resolution_status": "tested_passed",
+      "resolution_status": "testing",
       "req_id": "FC-FILT-001-REQ-007",
-      "type": "medium",
+      "type": "critical",
       "reason": "Apply Filter does not clear old available providers from screen. Old docs stay visible alongside new filtered results. Fix: index.html now sends only visible checked specialty codes, and FindCareApp.t"
     },
     {
