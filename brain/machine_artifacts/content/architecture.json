@@ -4,8 +4,8 @@
   "record_count": 14,
   "records": [
     {
-      "title": "Discuss Care — Business Component Definition",
-      "component_name": "Discuss Care",
+      "title": "Talk About Care — Business Component Definition",
+      "component_name": "Talk About Care",
       "date": "2026-03-31",
       "author": "Boss (Skip Snow)",
       "status": "CONCEPT",
@@ -13,7 +13,7 @@
       "three_component_architecture": {
         "1": "Find Care — find providers, specialties, navigate the system",
         "2": "Evaluate Care — clinical trials, provider credentials, quality metrics",
-        "3": "Discuss Care — multi-participant AI-assisted healthcare collaboration"
+        "3": "Talk About Care — multi-participant AI-assisted healthcare collaboration"
       },
       "overview": "Multi-participant healthcare collaboration chat. Consumers invite friends, family, and caregivers into a shared AI-assisted session. All participants have access to all healthcare tools. All conversations constrained to healthcare mission.",
       "features": [
@@ -126,7 +126,7 @@
         "find_care": "FREE — 100% free forever. This is the funnel.",
         "evaluate_care": "FREE now. Paywall option once trusted brand established. Premium quality metrics, deeper credential analysis, comparative ratings.",
         "discuss_care": "Premium token markup on AI usage",
-        "principle": "All healthcare navigation is free. Users only pay when they choose premium AI models in Discuss Care sessions. The markup on tokens is the ONLY revenue from users.",
+        "principle": "All healthcare navigation is free. Users only pay when they choose premium AI models in Talk About Care sessions. The markup on tokens is the ONLY revenue from users.",
         "partnership_path": [
           "Stage 1: Sign up for AI vendor partnership/startup programs. Get free credits.",
           "Stage 2: Build relationships with partner team humans. Show real healthcare usage.",
@@ -153,7 +153,7 @@
         "innovation": "All signals are public. LLMs exist. The method of combining them for consumer healthcare navigation is novel.",
         "next_steps": [
           "GPT patent search",
-          "Provisional patent draft in Discuss Care beta session (Boss + Claude + GPT + patent lawyer)",
+          "Provisional patent draft in Talk About Care beta session (Boss + Claude + GPT + patent lawyer)",
           "Patent attorney files and negotiates"
         ],
         "first_use_case_for_discuss_care": "Drafting the provisional patent IS the beta test of the product."
@@ -165,7 +165,7 @@
           "used_by": [
             "Find Care",
             "Evaluate Care",
-            "Discuss Care",
+            "Talk About Care",
             "DataPipelines"
           ],
           "capabilities": [
@@ -227,7 +227,7 @@
           "NVIDIA — infrastructure partnership, GPU credits, investment arm"
         ],
         "revenue_sources": [
-          "Consumer premium token markup (Discuss Care)",
+          "Consumer premium token markup (Talk About Care)",
           "Evaluate Care paywall (post-trust)"
         ],
         "distinction": "Vendor access fees fund growth (capital). Consumer token markup funds operations (revenue). Do not confuse the two in the pitch.",
@@ -252,7 +252,7 @@
       ],
       "_record_id": "component_discuss_care",
       "_source_file": "component_discuss_care.json",
-      "description": "Discuss Care business component: 15 features, floor control, revenue model, moat, patent, governance rules.",
+      "description": "Talk About Care business component: 15 features, floor control, revenue model, moat, patent, governance rules.",
       "ch_matrix_id": "f4606862-2d06-4a51-ba93-f16814f9cc07"
     },
     {

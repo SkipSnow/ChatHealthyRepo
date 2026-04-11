@@ -5,10 +5,10 @@
   "records": [
     {
       "title": "ChatHealthy.ai — Business Architecture",
-      "subtitle": "Find Care. Evaluate Care. Discuss Care.",
+      "subtitle": "Find Care. Evaluate Care. Talk About Care.",
       "version": "1.0",
       "date": "2026-03-31",
-      "executive_summary": "ChatHealthy.ai is a consumer-first healthcare navigation platform structured around a simple but underbuilt reality: people must find care, evaluate options, and make decisions—often with others. Existing solutions fragment this journey across search engines, provider directories, ratings sites, and disconnected conversations. ChatHealthy integrates these steps into a single architecture designed for clarity, trust, and decision support.\n\nThe platform consists of three tightly coupled components. Find Care provides free, high-quality provider discovery. Evaluate Care builds trust through structured analysis of provider quality and clinical options. Discuss Care introduces a new category: multi-participant, AI-assisted healthcare decision-making. This final component transforms passive research into active collaboration, where families and caregivers make decisions together with AI support.\n\nThe business model aligns with governance constraints: no care-chain revenue. Instead, ChatHealthy monetizes through premium AI usage and AI vendor partnerships. AI companies pay to participate in high-value healthcare decision contexts, while users retain control and pay only for optional premium AI engagement. The result is a platform that owns the healthcare decision room without compromising neutrality.",
+      "executive_summary": "ChatHealthy.ai is a consumer-first healthcare navigation platform structured around a simple but underbuilt reality: people must find care, evaluate options, and make decisions—often with others. Existing solutions fragment this journey across search engines, provider directories, ratings sites, and disconnected conversations. ChatHealthy integrates these steps into a single architecture designed for clarity, trust, and decision support.\n\nThe platform consists of three tightly coupled components. Find Care provides free, high-quality provider discovery. Evaluate Care builds trust through structured analysis of provider quality and clinical options. Talk About Care introduces a new category: multi-participant, AI-assisted healthcare decision-making. This final component transforms passive research into active collaboration, where families and caregivers make decisions together with AI support.\n\nThe business model aligns with governance constraints: no care-chain revenue. Instead, ChatHealthy monetizes through premium AI usage and AI vendor partnerships. AI companies pay to participate in high-value healthcare decision contexts, while users retain control and pay only for optional premium AI engagement. The result is a platform that owns the healthcare decision room without compromising neutrality.",
       "mission": "Help people make better healthcare decisions together.",
       "components": {
         "find_care": {
@@ -70,9 +70,9 @@
           "ch_matrix_id": "c9b4f770-395d-472e-875f-48e952c9663f"
         },
         "discuss_care": {
-          "name": "Discuss Care",
+          "name": "Talk About Care",
           "tagline": "Decide together",
-          "description": "Discuss Care is a multi-participant, AI-assisted healthcare collaboration environment. Users invite family, friends, and caregivers into a shared session where humans and multiple AI models interact in real time. All participants have access to the same tools and data, enabling informed, collective decision-making. The system enforces healthcare-specific guardrails and structured interaction to maintain clarity, safety, and focus.",
+          "description": "Talk About Care is a multi-participant, AI-assisted healthcare collaboration environment. Users invite family, friends, and caregivers into a shared session where humans and multiple AI models interact in real time. All participants have access to the same tools and data, enabling informed, collective decision-making. The system enforces healthcare-specific guardrails and structured interaction to maintain clarity, safety, and focus.",
           "features": [
             {
               "id": "DC-01",
@@ -162,14 +162,14 @@
       },
       "value_chain": {
         "flow": "Find -> Evaluate -> Discuss",
-        "description": "Users begin by discovering providers (Find Care), build confidence through structured evaluation (Evaluate Care), and then move into collaborative decision-making with others and AI (Discuss Care). Each step increases engagement, trust, and context depth, culminating in high-value decision sessions.",
+        "description": "Users begin by discovering providers (Find Care), build confidence through structured evaluation (Evaluate Care), and then move into collaborative decision-making with others and AI (Talk About Care). Each step increases engagement, trust, and context depth, culminating in high-value decision sessions.",
         "ch_matrix_id": "3a747786-1773-4524-a056-e6b763ce2fb0"
       },
       "revenue_model": {
         "streams": [
           {
             "name": "AI Token Markup",
-            "description": "Users pay for premium AI usage within Discuss Care sessions",
+            "description": "Users pay for premium AI usage within Talk About Care sessions",
             "driver": "High-value, multi-participant decision contexts",
             "ch_matrix_id": "fe8f73ee-bdf1-4c9b-a17f-df9d39e73b45"
           },
@@ -204,7 +204,7 @@
           "GOV-002: Single-tenant session isolation",
           "GOV-004: AI suggests, humans decide"
         ],
-        "safety": "All components share a unified safety layer including healthcare scope enforcement, emergency detection, AI output constraints, and participant-level consent controls. Discuss Care adds moderation and floor control to ensure safe multi-party interaction."
+        "safety": "All components share a unified safety layer including healthcare scope enforcement, emergency detection, AI output constraints, and participant-level consent controls. Talk About Care adds moderation and floor control to ensure safe multi-party interaction."
       },
       "timeline": {
         "milestones": [
@@ -214,7 +214,7 @@
           },
           {
             "date": "2026-05-31",
-            "milestone": "Discuss Care Beta Sprint 1"
+            "milestone": "Talk About Care Beta Sprint 1"
           },
           {
             "date": "2026-07-31",
@@ -236,24 +236,24 @@
       },
       "diagrams": {
         "component_diagram": {
-          "description": "Three horizontally aligned boxes labeled Find Care, Evaluate Care, Discuss Care. Arrows flow left to right. Below all three is a shared layer labeled Data + AI Infrastructure (NPI, ClinicalTrials, State Boards, LLMs). On top is a Governance Layer spanning all components.",
+          "description": "Three horizontally aligned boxes labeled Find Care, Evaluate Care, Talk About Care. Arrows flow left to right. Below all three is a shared layer labeled Data + AI Infrastructure (NPI, ClinicalTrials, State Boards, LLMs). On top is a Governance Layer spanning all components.",
           "elements": [
             "Box: Find Care",
             "Box: Evaluate Care",
-            "Box: Discuss Care",
+            "Box: Talk About Care",
             "Arrow: Find Care -> Evaluate Care",
-            "Arrow: Evaluate Care -> Discuss Care",
+            "Arrow: Evaluate Care -> Talk About Care",
             "Layer below: Data + AI Infrastructure",
             "Layer above: Governance Layer"
           ],
           "ch_matrix_id": "b6feccd7-a230-44af-890f-cf1e4343e8c4"
         },
         "value_chain_diagram": {
-          "description": "Linear flow with three stages: Discover, Assess, Decide. Each stage maps to Find Care, Evaluate Care, Discuss Care respectively. Increasing user engagement and value density shown as upward gradient.",
+          "description": "Linear flow with three stages: Discover, Assess, Decide. Each stage maps to Find Care, Evaluate Care, Talk About Care respectively. Increasing user engagement and value density shown as upward gradient.",
           "elements": [
             "Stage 1: Discover (Find Care)",
             "Stage 2: Assess (Evaluate Care)",
-            "Stage 3: Decide (Discuss Care)",
+            "Stage 3: Decide (Talk About Care)",
             "Arrow progression left to right",
             "Value gradient increasing"
           ],
@@ -304,10 +304,10 @@
     },
     {
       "title": "ChatHealthy.ai -- Business Architecture",
-      "subtitle": "Find Care. Evaluate Care. Discuss Care.",
+      "subtitle": "Find Care. Evaluate Care. Talk About Care.",
       "version": "1.1",
       "date": "2026-03-31",
-      "executive_summary": "ChatHealthy.ai is a consumer-first healthcare navigation platform built around the full decision lifecycle: finding care, evaluating options, and deciding with others. Today, this journey is fragmented across search, provider directories, ratings sites, and private conversations. ChatHealthy unifies these steps into a single, governed system designed for clarity, trust, and collaborative decision-making.\n\nThe platform consists of three components. Find Care enables precise, intent-driven provider discovery. Evaluate Care builds trust through structured synthesis of provider quality and clinical options. Discuss Care introduces a new category: multi-human, multi-AI healthcare decision collaboration with shared tools, consent, and governance. This is where decisions are actually made.\n\nThe business model follows a platform approach similar to Apple: users pay for premium AI usage, and AI vendors pay for distribution into high-value healthcare decision contexts. ChatHealthy does not take revenue from the care chain. The result is a neutral platform that owns the healthcare decision room while aligning incentives across users and technology providers.",
+      "executive_summary": "ChatHealthy.ai is a consumer-first healthcare navigation platform built around the full decision lifecycle: finding care, evaluating options, and deciding with others. Today, this journey is fragmented across search, provider directories, ratings sites, and private conversations. ChatHealthy unifies these steps into a single, governed system designed for clarity, trust, and collaborative decision-making.\n\nThe platform consists of three components. Find Care enables precise, intent-driven provider discovery. Evaluate Care builds trust through structured synthesis of provider quality and clinical options. Talk About Care introduces a new category: multi-human, multi-AI healthcare decision collaboration with shared tools, consent, and governance. This is where decisions are actually made.\n\nThe business model follows a platform approach similar to Apple: users pay for premium AI usage, and AI vendors pay for distribution into high-value healthcare decision contexts. ChatHealthy does not take revenue from the care chain. The result is a neutral platform that owns the healthcare decision room while aligning incentives across users and technology providers.",
       "mission": "Help people make better healthcare decisions together.",
       "components": {
         "find_care": {
@@ -369,9 +369,9 @@
           "ch_matrix_id": "22fd9410-d3f1-4ff4-b3c5-1cebebf99153"
         },
         "discuss_care": {
-          "name": "Discuss Care",
+          "name": "Talk About Care",
           "tagline": "Decide together",
-          "description": "Discuss Care is a multi-human, multi-AI healthcare collaboration environment where decisions are made. Users invite family, friends, and caregivers into a shared session where all participants--human and AI--can access the same tools, data, and context. The system enforces healthcare guardrails, structured interaction, consent, and moderation to ensure safe, focused, and human-centered decision-making.",
+          "description": "Talk About Care is a multi-human, multi-AI healthcare collaboration environment where decisions are made. Users invite family, friends, and caregivers into a shared session where all participants--human and AI--can access the same tools, data, and context. The system enforces healthcare guardrails, structured interaction, consent, and moderation to ensure safe, focused, and human-centered decision-making.",
           "features": [
             {
               "id": "DC-01",
@@ -480,14 +480,14 @@
       },
       "value_chain": {
         "flow": "Find -> Evaluate -> Discuss",
-        "description": "Users move from discovering providers (Find Care), to understanding and comparing options (Evaluate Care), to making decisions collaboratively (Discuss Care). Each stage increases context, trust, and engagement, culminating in high-value decision sessions.",
+        "description": "Users move from discovering providers (Find Care), to understanding and comparing options (Evaluate Care), to making decisions collaboratively (Talk About Care). Each stage increases context, trust, and engagement, culminating in high-value decision sessions.",
         "ch_matrix_id": "4daca856-a18c-46f0-acd5-2ecbb8a0c0de"
       },
       "revenue_model": {
         "streams": [
           {
             "name": "AI Token Markup",
-            "description": "Users pay for premium AI participation in Discuss Care sessions",
+            "description": "Users pay for premium AI participation in Talk About Care sessions",
             "ch_matrix_id": "689a73f7-1335-4ffa-bf24-106f02bb92e8"
           },
           {
@@ -519,7 +519,7 @@
           "GOV-002: Single-tenant session isolation",
           "GOV-004: AI suggests, humans decide"
         ],
-        "safety": "Unified safety layer across all components including scope restriction to healthcare navigation, emergency detection, explainability constraints, participant-level consent, and moderated multi-party interaction in Discuss Care."
+        "safety": "Unified safety layer across all components including scope restriction to healthcare navigation, emergency detection, explainability constraints, participant-level consent, and moderated multi-party interaction in Talk About Care."
       },
       "timeline": {
         "milestones": [
@@ -529,7 +529,7 @@
           },
           {
             "date": "2026-05-31",
-            "milestone": "Discuss Care Beta Sprint 1"
+            "milestone": "Talk About Care Beta Sprint 1"
           },
           {
             "date": "2026-07-31",
@@ -547,11 +547,11 @@
       },
       "diagrams": {
         "component_diagram": {
-          "description": "Canvas 1200x600. Three horizontal boxes centered: left (blue) 'Find Care', middle (green) 'Evaluate Care', right (purple) 'Discuss Care'. Solid arrows left-to-right between boxes. Below all three, a full-width gray rectangle labeled 'Data + AI Infrastructure (NPI, ClinicalTrials, State Boards, LLMs)'. Above all three, a full-width red bar labeled 'Governance Layer (Safety, Consent, Policy)'.",
+          "description": "Canvas 1200x600. Three horizontal boxes centered: left (blue) 'Find Care', middle (green) 'Evaluate Care', right (purple) 'Talk About Care'. Solid arrows left-to-right between boxes. Below all three, a full-width gray rectangle labeled 'Data + AI Infrastructure (NPI, ClinicalTrials, State Boards, LLMs)'. Above all three, a full-width red bar labeled 'Governance Layer (Safety, Consent, Policy)'.",
           "elements": [
             "Box blue: Find Care (left)",
             "Box green: Evaluate Care (center)",
-            "Box purple: Discuss Care (right)",
+            "Box purple: Talk About Care (right)",
             "Arrow: Find -> Evaluate",
             "Arrow: Evaluate -> Discuss",
             "Bottom layer gray: Data + AI Infrastructure",
@@ -560,7 +560,7 @@
           "ch_matrix_id": "e366dbb5-fb4d-4c24-a3f4-5b2c00ecce7f"
         },
         "value_chain_diagram": {
-          "description": "Horizontal flow 1000x400. Three labeled stages with increasing height bars: left 'Discover (Find Care)' light blue, middle 'Assess (Evaluate Care)' green, right 'Decide (Discuss Care)' purple. Arrow connecting each. Background gradient increases in intensity left to right to indicate rising value.",
+          "description": "Horizontal flow 1000x400. Three labeled stages with increasing height bars: left 'Discover (Find Care)' light blue, middle 'Assess (Evaluate Care)' green, right 'Decide (Talk About Care)' purple. Arrow connecting each. Background gradient increases in intensity left to right to indicate rising value.",
           "elements": [
             "Stage 1: Discover",
             "Stage 2: Assess",
@@ -593,12 +593,12 @@
           "ch_matrix_id": "980054cb-a90b-480a-86b2-561bbf271e93"
         },
         "care_decision_lifecycle": {
-          "description": "Circular diagram 800x800. Five nodes clockwise: 'Identify Need' -> 'Find Care' -> 'Evaluate Care' -> 'Discuss Care' -> 'Decision'. Arrow loops back to Identify Need. Each node color-coded (blue, green, purple progression).",
+          "description": "Circular diagram 800x800. Five nodes clockwise: 'Identify Need' -> 'Find Care' -> 'Evaluate Care' -> 'Talk About Care' -> 'Decision'. Arrow loops back to Identify Need. Each node color-coded (blue, green, purple progression).",
           "elements": [
             "Step 1: Identify Need",
             "Step 2: Find Care",
             "Step 3: Evaluate Care",
-            "Step 4: Discuss Care",
+            "Step 4: Talk About Care",
             "Step 5: Decision",
             "Loop arrow"
           ],
@@ -658,7 +658,7 @@
             "innovation": "All signals are public. LLMs exist. The method of combining them for consumer healthcare navigation is novel.",
             "next_steps": [
               "GPT patent search",
-              "Provisional patent draft in Discuss Care beta session (Boss + Claude + GPT + patent lawyer)",
+              "Provisional patent draft in Talk About Care beta session (Boss + Claude + GPT + patent lawyer)",
               "Patent attorney files and negotiates"
             ],
             "first_use_case_for_discuss_care": "Drafting the provisional patent IS the beta test of the product."
@@ -832,7 +832,7 @@
       "value_chain": "The consumer orchestrates the entire experience. They move fluidly between finding care, evaluating options, and discussing decisions in a single environment. This is not a linear funnel but a dynamic loop, where discovery, analysis, and collaboration reinforce each other. ChatHealthy.ai does not replace providers — it positions the consumer above them, in control of the decision process.",
       "revenue_model": {
         "streams": [
-          "AI token markup on premium model usage within Discuss Care",
+          "AI token markup on premium model usage within Talk About Care",
           "AI vendor access fees to participate in decision sessions",
           "Future premium subscriptions for advanced evaluation insights"
         ],
@@ -1308,7 +1308,7 @@
       },
       "_record_id": "business_model",
       "_source_file": "business_model.json",
-      "description": "Core business model: Find Care (free) + Evaluate Care (paywall) + Discuss Care (premium tokens).",
+      "description": "Core business model: Find Care (free) + Evaluate Care (paywall) + Talk About Care (premium tokens).",
       "business_artifact": "brain/BusinessArtifacts/business_model_v1.pdf",
       "publish": true,
       "ch_matrix_id": "11813941-c8fb-4bfc-ab9a-bfa954ce75b4"
