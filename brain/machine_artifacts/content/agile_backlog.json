@@ -23178,7 +23178,9 @@
                   ],
                   "realized_by": [
                     "Cloudflare (WAF, DDoS, Access)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-002",
@@ -23190,7 +23192,9 @@
                   ],
                   "realized_by": [
                     "Cloudflare (WAF, DDoS, Access)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-003",
@@ -23202,7 +23206,9 @@
                   ],
                   "realized_by": [
                     "Cloudflare (WAF, DDoS, Access)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-004",
@@ -23214,7 +23220,9 @@
                   ],
                   "realized_by": [
                     "Cloudflare (WAF, DDoS, Access)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-005",
@@ -23226,7 +23234,9 @@
                   ],
                   "realized_by": [
                     "Cloudflare (WAF, DDoS, Access)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-006",
@@ -23238,7 +23248,9 @@
                   ],
                   "realized_by": [
                     "Cloudflare (WAF, DDoS, Access)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-007",
@@ -23253,7 +23265,9 @@
                   ],
                   "realized_by": [
                     "Cloudflare (WAF, DDoS, Access)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "description": "HTTPS everywhere — reject HTTP on all services"
@@ -24760,7 +24774,9 @@
                   "realized_by": [
                     "GPT-4.1-mini (classifier)",
                     "FastAPI (Python 3.11)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SAFETY-UNLOCK-001-REQ-002",
@@ -24774,7 +24790,9 @@
                   "realized_by": [
                     "GPT-4.1-mini (classifier)",
                     "FastAPI (Python 3.11)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "0b30c960-25ac-4c0c-ad4c-e2b1502f69b8",
@@ -24835,7 +24853,9 @@
                   "realized_by": [
                     "pytest",
                     "Playwright"
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-002",
@@ -24849,7 +24869,9 @@
                   "realized_by": [
                     "pytest",
                     "Playwright"
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-003",
@@ -24863,7 +24885,9 @@
                   "realized_by": [
                     "pytest",
                     "Playwright"
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-004",
@@ -24877,7 +24901,9 @@
                   "realized_by": [
                     "pytest",
                     "Playwright"
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-005",
@@ -24897,7 +24923,9 @@
                       "story_id": "FC-PIPE-SPEC-001",
                       "reason": "Providers must be loaded"
                     }
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 60
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-006",
@@ -24917,7 +24945,9 @@
                       "story_id": "FC-SEARCH-001",
                       "reason": "Search must return results before filter can display"
                     }
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-007",
@@ -24931,7 +24961,9 @@
                   "realized_by": [
                     "pytest",
                     "Playwright"
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-008",
@@ -24945,7 +24977,9 @@
                   "realized_by": [
                     "pytest",
                     "Playwright"
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-009",
@@ -24959,7 +24993,9 @@
                   "realized_by": [
                     "pytest",
                     "Playwright"
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-010",
@@ -24979,7 +25015,9 @@
                       "story_id": "FC-SELECT-001",
                       "reason": "Providers must be selected before evaluation"
                     }
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-011",
@@ -24999,7 +25037,9 @@
                       "story_id": "FC-SELECT-001",
                       "reason": "Providers must be selected before evaluation"
                     }
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 }
               ],
               "ch_matrix_id": "cbf6661c-31ab-4ac7-9706-d4e2c9b64d20"
@@ -25159,7 +25199,10 @@
           "epic_id": "EPIC-005",
           "status": "NOT_STARTED",
           "description": "Regression test runner that executes pytests ordered by the backlog hierarchy: epic by epic, feature by feature, story by story. Callable at any scope: all, epic, feature, or story. Reads agile_backlog.json to discover test ordering and pytest_ids, then invokes pytest in the correct sequence. Reports results per requirement.",
-          "realized_by": ["Python 3.11", "pytest"],
+          "realized_by": [
+            "Python 3.11",
+            "pytest"
+          ],
           "stories": [
             {
               "story_id": "TEST-REG-001",
@@ -25173,35 +25216,47 @@
                   "requirement": "The runner reads agile_backlog.json and extracts all pytest_ids grouped by epic, feature, story, requirement. Tests execute in hierarchy order: EPIC-001 features first, then EPIC-002, etc.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
-                  "realized_by": ["Python 3.11"]
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
                 },
                 {
                   "req_id": "TEST-REG-001-REQ-002",
                   "requirement": "The runner accepts scope arguments: --all (entire backlog), --epic EPIC-006 (one epic), --feature FC-SEARCH (one feature), --story FC-SEARCH-001 (one story). Default is --all.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
-                  "realized_by": ["Python 3.11"]
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
                 },
                 {
                   "req_id": "TEST-REG-001-REQ-003",
                   "requirement": "Results are reported per requirement: req_id, pytest_id, pass/fail/skip/error. Summary shows counts per story, feature, epic, and overall.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
-                  "realized_by": ["Python 3.11", "pytest"]
+                  "realized_by": [
+                    "Python 3.11",
+                    "pytest"
+                  ]
                 },
                 {
                   "req_id": "TEST-REG-001-REQ-004",
                   "requirement": "Requirements with no pytest_ids (status != implemented) are reported as 'not testable' in the results, not as failures.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
-                  "realized_by": ["Python 3.11"]
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
                 },
                 {
                   "req_id": "TEST-REG-001-REQ-005",
                   "requirement": "The runner produces a machine-readable JSON report in addition to console output. The report follows the backlog hierarchy with pass/fail per requirement.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
-                  "realized_by": ["Python 3.11", "pytest"]
+                  "realized_by": [
+                    "Python 3.11",
+                    "pytest"
+                  ]
                 }
               ]
             }
@@ -25409,7 +25464,9 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 60
                 },
                 {
                   "req_id": "FC-SEARCH-001-REQ-002",
@@ -25423,7 +25480,9 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 60
                 },
                 {
                   "req_id": "FC-SEARCH-001-REQ-003",
@@ -25437,7 +25496,9 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 60
                 },
                 {
                   "req_id": "FC-SEARCH-001-REQ-004",
@@ -25451,7 +25512,9 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 60
                 },
                 {
                   "req_id": "FC-SEARCH-001-REQ-005",
@@ -25482,7 +25545,9 @@
                       "story_id": "FC-PIPE-SPEC-001",
                       "reason": "Providers must be loaded"
                     }
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 60
                 },
                 {
                   "req_id": "FC-SEARCH-001-REQ-007",
@@ -25505,7 +25570,9 @@
                       "story_id": "FC-PIPE-SPEC-001",
                       "reason": "Providers must be loaded"
                     }
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 60
                 }
               ]
             },
@@ -25713,7 +25780,9 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-INDEX-001-REQ-002",
@@ -25727,7 +25796,9 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-INDEX-001-REQ-003",
@@ -25741,7 +25812,9 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ]
             }
@@ -25782,7 +25855,9 @@
                       "story_id": "FC-SEARCH-001",
                       "reason": "Search must return results before filter can display"
                     }
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-002",
@@ -25802,7 +25877,9 @@
                       "story_id": "FC-PIPE-SPEC-002",
                       "reason": "SpecialtyMetaData must have can_prescribe flag"
                     }
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-003",
@@ -25822,7 +25899,9 @@
                       "story_id": "FC-PIPE-SPEC-002",
                       "reason": "SpecialtyMetaData must have homeopathic flag"
                     }
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-004",
@@ -25836,7 +25915,9 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-005",
@@ -25850,7 +25931,9 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-006",
@@ -25876,7 +25959,9 @@
                       "story_id": "FC-SEARCH-001",
                       "reason": "Search must return results before filter can display"
                     }
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-007",
@@ -25900,7 +25985,9 @@
                       "story_id": "FC-SEARCH-001",
                       "reason": "Search must return results before filter can display"
                     }
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-008",
@@ -25971,7 +26058,9 @@
                       "story_id": "FC-SELECT-001",
                       "reason": "Providers must be selected before evaluation"
                     }
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-EVAL-001-REQ-002",
@@ -25984,7 +26073,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)",
                     "mTLS (x509)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-EVAL-001-REQ-003",
@@ -25997,7 +26088,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)",
                     "mTLS (x509)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-EVAL-001-REQ-004",
@@ -26010,7 +26103,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)",
                     "mTLS (x509)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-EVAL-001-REQ-005",
@@ -26023,7 +26118,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)",
                     "mTLS (x509)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "description": "Evaluate These Providers button and handoff"
@@ -26756,7 +26853,9 @@
                       "story_id": "FC-PIPE-SPEC-001",
                       "reason": "Pipeline must load data before copy"
                     }
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 60
                 }
               ],
               "ch_matrix_id": "51eeedcc-8540-4288-8a4c-62cdae0aa856"
@@ -28793,7 +28892,9 @@
                       "story_id": "FC-PIPE-SPEC-001",
                       "reason": "Pipeline must load data before copy"
                     }
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 60
                 },
                 {
                   "req_id": "FC-PIPE-COPY-001-REQ-002",
@@ -28813,7 +28914,9 @@
                       "story_id": "FC-PIPE-SPEC-001",
                       "reason": "Pipeline must load data before copy"
                     }
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 60
                 }
               ],
               "ch_matrix_id": "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f"
@@ -28900,7 +29003,9 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a"
@@ -29016,7 +29121,9 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 60
                 }
               ],
               "ch_matrix_id": "c2d3e4f5-a6b7-8c9d-0e1f-2a3b4c5d6e7f"
@@ -29041,7 +29148,9 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 60
                 },
                 {
                   "req_id": "FC-PIPE-SPEC-002-REQ-002",
@@ -29055,7 +29164,9 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 60
                 }
               ],
               "ch_matrix_id": "f5a6b7c8-d9e0-1f2a-3b4c-5d6e7f8a9b0c"
@@ -29081,7 +29192,9 @@
                   "realized_by": [
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 60
                 }
               ],
               "ch_matrix_id": "8a9b0c1d-2e3f-4a5b-6c7d-8e9f0a1b2c3d"
@@ -29128,7 +29241,9 @@
                   "realized_by": [
                     "React 18 / Vite 5",
                     "Static HTML/JS (Cloudflare Pages)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "UX-MOB-001-REQ-002",
@@ -29142,7 +29257,9 @@
                   "realized_by": [
                     "React 18 / Vite 5",
                     "Static HTML/JS (Cloudflare Pages)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "UX-MOB-001-REQ-003",
@@ -29156,7 +29273,9 @@
                   "realized_by": [
                     "React 18 / Vite 5",
                     "Static HTML/JS (Cloudflare Pages)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "0b2a69e0-113d-4787-a1a2-b752ca3ec4ce",
@@ -29180,7 +29299,9 @@
                   "realized_by": [
                     "React 18 / Vite 5",
                     "Static HTML/JS (Cloudflare Pages)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "UX-MOB-002-REQ-002",
@@ -29194,7 +29315,9 @@
                   "realized_by": [
                     "React 18 / Vite 5",
                     "Static HTML/JS (Cloudflare Pages)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "1962295a-3b6d-4682-bdea-4c51082a8fb5",
@@ -29859,7 +29982,9 @@
                       "story_id": "FC-SELECT-001",
                       "reason": "Providers must be selected before evaluation"
                     }
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "UX-CTRL-003-REQ-002",
@@ -29874,7 +29999,9 @@
                     "FastAPI (Python 3.11)",
                     "React 18 / Vite 5",
                     "MongoDB Atlas"
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "UX-CTRL-003-REQ-003",
@@ -29895,7 +30022,9 @@
                       "story_id": "FC-SELECT-001",
                       "reason": "Providers must be selected before evaluation"
                     }
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "UX-CTRL-003-REQ-004",
@@ -29916,7 +30045,9 @@
                       "story_id": "FC-SELECT-001",
                       "reason": "Providers must be selected before evaluation"
                     }
-                  ]
+                  ],
+                  "test_method": "playwright",
+                  "test_timeout_seconds": 180
                 },
                 {
                   "req_id": "UX-CTRL-003-REQ-005",
@@ -30184,7 +30315,9 @@
                   ],
                   "realized_by": [
                     "Claude Code hooks (Python 3.11)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SDT-BRAIN-SAFETY-001-REQ-002",
@@ -30197,7 +30330,9 @@
                   ],
                   "realized_by": [
                     "Claude Code hooks (Python 3.11)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SDT-BRAIN-SAFETY-001-REQ-003",
@@ -30216,7 +30351,9 @@
                       "story_id": "FC-PIPE-SPEC-001",
                       "reason": "Providers must be loaded"
                     }
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SDT-BRAIN-SAFETY-001-REQ-004",
@@ -30229,7 +30366,9 @@
                   ],
                   "realized_by": [
                     "Claude Code hooks (Python 3.11)"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "959191cc-eaf9-4928-9de3-64c2b486b4a7"
@@ -30270,7 +30409,9 @@
                     "Caddy 2.x",
                     "uvicorn",
                     "Vite 5"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "254d6596-4aac-4e10-bece-19cb879e0c1d",
@@ -30295,7 +30436,9 @@
                     "Caddy 2.x",
                     "uvicorn",
                     "Vite 5"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SDT-LOCAL-002-REQ-002",
@@ -30310,7 +30453,9 @@
                     "Caddy 2.x",
                     "uvicorn",
                     "Vite 5"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SDT-LOCAL-002-REQ-003",
@@ -30325,7 +30470,9 @@
                     "Caddy 2.x",
                     "uvicorn",
                     "Vite 5"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "96d220d9-d34c-4150-abbf-94c20d8c0525",
@@ -30350,7 +30497,9 @@
                     "Caddy 2.x",
                     "uvicorn",
                     "Vite 5"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SDT-LOCAL-003-REQ-002",
@@ -30365,7 +30514,9 @@
                     "Caddy 2.x",
                     "uvicorn",
                     "Vite 5"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SDT-LOCAL-003-REQ-003",
@@ -30404,7 +30555,9 @@
                     "Caddy 2.x",
                     "uvicorn",
                     "Vite 5"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SDT-LOCAL-003-REQ-006",
@@ -30419,7 +30572,9 @@
                     "Caddy 2.x",
                     "uvicorn",
                     "Vite 5"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SDT-LOCAL-003-REQ-007",
@@ -30434,7 +30589,9 @@
                     "Caddy 2.x",
                     "uvicorn",
                     "Vite 5"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "SDT-LOCAL-003-REQ-008",
@@ -30449,7 +30606,9 @@
                     "Caddy 2.x",
                     "uvicorn",
                     "Vite 5"
-                  ]
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "0001aa87-0515-4114-9b32-58e125af5df4",
@@ -30573,7 +30732,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000001"
+                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-001-REQ-002",
@@ -30587,7 +30748,9 @@
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000002"
+                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-001-REQ-003",
@@ -30600,7 +30763,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000003"
+                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000003",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-001-REQ-004",
@@ -30613,7 +30778,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000004"
+                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000004",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-001-REQ-005",
@@ -30626,7 +30793,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000005"
+                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000005",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000010"
@@ -30650,7 +30819,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000001"
+                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-002-REQ-002",
@@ -30663,7 +30834,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000002"
+                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-002-REQ-003",
@@ -30676,7 +30849,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000003"
+                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000003",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-002-REQ-004",
@@ -30689,7 +30864,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000004"
+                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000004",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-002-REQ-005",
@@ -30702,7 +30879,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000005"
+                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000005",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000010"
@@ -30726,7 +30905,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0003-4003-8003-000000000001"
+                  "ch_matrix_id": "a1b2c3d4-0003-4003-8003-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "a1b2c3d4-0003-4003-8003-000000000010"
@@ -30751,7 +30932,9 @@
                     "FastAPI (Python 3.11)",
                     "mTLS (x509)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0004-4004-8004-000000000001"
+                  "ch_matrix_id": "a1b2c3d4-0004-4004-8004-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "a1b2c3d4-0004-4004-8004-000000000010"
@@ -30775,7 +30958,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000001"
+                  "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-005-REQ-002",
@@ -30788,7 +30973,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000002"
+                  "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-005-REQ-003",
@@ -30801,7 +30988,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000003"
+                  "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000003",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000010"
@@ -30826,7 +31015,9 @@
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000001"
+                  "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-006-REQ-002",
@@ -30840,7 +31031,9 @@
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000002"
+                  "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-006-REQ-003",
@@ -30854,7 +31047,9 @@
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000003"
+                  "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000003",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000010"
@@ -30879,7 +31074,9 @@
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000001"
+                  "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-007-REQ-002",
@@ -30892,7 +31089,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000002"
+                  "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-007-REQ-003",
@@ -30906,7 +31105,9 @@
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000003"
+                  "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000003",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000010"
@@ -30931,7 +31132,9 @@
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0008-4008-8008-000000000001"
+                  "ch_matrix_id": "a1b2c3d4-0008-4008-8008-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "a1b2c3d4-0008-4008-8008-000000000010"
@@ -30956,7 +31159,9 @@
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000001"
+                  "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-009-REQ-002",
@@ -30970,7 +31175,9 @@
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000002"
+                  "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-009-REQ-003",
@@ -30984,7 +31191,9 @@
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000003"
+                  "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000003",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-009-REQ-004",
@@ -30997,7 +31206,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000004"
+                  "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000004",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000010"
@@ -31021,7 +31232,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0010-4010-8010-000000000001"
+                  "ch_matrix_id": "a1b2c3d4-0010-4010-8010-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-010-REQ-002",
@@ -31034,7 +31247,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0010-4010-8010-000000000002"
+                  "ch_matrix_id": "a1b2c3d4-0010-4010-8010-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "a1b2c3d4-0010-4010-8010-000000000010"
@@ -31058,7 +31273,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0011-4011-8011-000000000001"
+                  "ch_matrix_id": "a1b2c3d4-0011-4011-8011-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-011-REQ-002",
@@ -31071,7 +31288,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0011-4011-8011-000000000002"
+                  "ch_matrix_id": "a1b2c3d4-0011-4011-8011-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "a1b2c3d4-0011-4011-8011-000000000010"
@@ -31096,7 +31315,9 @@
                     "FastAPI (Python 3.11)",
                     "MongoDB Atlas"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0012-4012-8012-000000000001"
+                  "ch_matrix_id": "a1b2c3d4-0012-4012-8012-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "a1b2c3d4-0012-4012-8012-000000000010"
@@ -31120,7 +31341,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000001"
+                  "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-013-REQ-002",
@@ -31133,7 +31356,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000002"
+                  "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 },
                 {
                   "req_id": "FC-BACKEND-013-REQ-003",
@@ -31146,7 +31371,9 @@
                   "realized_by": [
                     "FastAPI (Python 3.11)"
                   ],
-                  "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000003"
+                  "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000003",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
                 }
               ],
               "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000010"
