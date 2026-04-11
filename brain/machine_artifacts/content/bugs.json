@@ -2224,6 +2224,25 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_unanswerable_questions.py::TestUnanswerableQuestions fails — fail",
       "ch_matrix_id": "b1000030-0000-4000-e000-000000000000"
+    },
+    {
+      "id": "BUG-GOV-006",
+      "req_id": "NEEDS_REQ",
+      "rule": "BUG: Guard GPT-4.1-mini calls use free-text prompts without structured input/output schemas. GPT can return malformed JSON, hallucinate fields, or omit required fields. Must use OpenAI response_format with JSON schema for all GPT evaluations in the guard.",
+      "incident": "Boss identified during RISK-007 guard fix 2026-04-11. All _call_gpt, _evaluate_state_change, _evaluate_state_change_with_risks, and _evaluate_git_commit methods send free-text and parse freeform JSON.",
+      "date": "2026-04-11",
+      "type": "high",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "risk_acceptance_id": null,
+      "reason": "Guard GPT calls lack structured I/O — free-text prompt, freeform JSON parse. Must use response_format with JSON schema.",
+      "ch_matrix_id": "b0000038-0000-4000-e000-000000000038"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

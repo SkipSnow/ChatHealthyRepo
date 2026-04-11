@@ -317,15 +317,67 @@ class operating_rules_worker(governance_worker_base):
                         lines.append(f"[POLICY] {text[:200]}")
         return "\n".join(lines)
 
-    def _call_gpt(self, system_prompt: str, user_prompt: str) -> dict:
-        """Call GPT-4.1-mini. Returns parsed JSON or error dict."""
+    # Structured output schemas for GPT calls (BUG-GOV-006)
+    _STATE_CHANGE_SCHEMA = {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "state_change_evaluation",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "pass": {"type": "boolean", "description": "true if action is allowed, false if blocked"},
+                    "reason": {"type": "string", "description": "why the action is allowed or blocked"},
+                    "changes_external_state": {"type": "boolean"},
+                    "state_description": {"type": "string"},
+                    "risk_accepted": {"type": "boolean", "description": "true if covered by a risk acceptance"},
+                    "risk_id": {"type": "string", "description": "the RISK-NNN id if risk_accepted is true, empty string otherwise"},
+                },
+                "required": ["pass", "reason", "changes_external_state", "state_description", "risk_accepted", "risk_id"],
+                "additionalProperties": False,
+            },
+        },
+    }
+
+    _GIT_COMMIT_SCHEMA = {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "git_commit_evaluation",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "has_violations": {"type": "boolean"},
+                    "violations": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "rule_id": {"type": "string"},
+                                "description": {"type": "string"},
+                                "auto_fixable": {"type": "boolean"},
+                            },
+                            "required": ["rule_id", "description", "auto_fixable"],
+                            "additionalProperties": False,
+                        },
+                    },
+                },
+                "required": ["has_violations", "violations"],
+                "additionalProperties": False,
+            },
+        },
+    }
+
+    def _call_gpt(self, system_prompt: str, user_prompt: str, response_schema: dict = None) -> dict:
+        """Call GPT-4.1-mini with structured output schema. Returns parsed JSON or error dict."""
         try:
             from openai import OpenAI
             client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
+            fmt = response_schema if response_schema else {"type": "json_object"}
             resp = client.chat.completions.create(
                 model="gpt-4.1-mini",
                 max_tokens=300,
-                response_format={"type": "json_object"},
+                response_format=fmt,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
@@ -354,52 +406,33 @@ class operating_rules_worker(governance_worker_base):
         )
         return self._call_gpt(self._SYSTEM_PROMPT, user_prompt)
 
-    def _evaluate_state_change(self, tool_name: str, tool_input: dict) -> dict:
-        """Eval B: any other tool — does it change state outside git?"""
-        detail = tool_input.get("command", tool_input.get("file_path", ""))[:500]
-        user_prompt = (
-            f"A tool call is being made:\n"
-            f"Tool: {tool_name}\n"
-            f"Input: {detail}\n\n"
-            f"Does this tool call change state OUTSIDE of files tracked in git? "
-            f"Examples of external state: database writes, API POSTs, "
-            f"system config changes, deploying to cloud services.\n"
-            f"Editing source code files, config files, or JSON files in the project is NOT external state.\n"
-            f"Reading from anywhere (network, disk, API GETs) is NOT a state change.\n"
-            f"Killing or restarting a frontend process (uvicorn, vite, caddy on ports 80, 443, 5173, 8000, 8001) in any non-production environment is NOT external state — "
-            f"it is recycling a non-prod resource per DR-009. This does NOT apply to databases, pipeline processes, or production anything.\n\n"
-            f"Respond JSON: {{\"changes_external_state\": true/false, "
-            f"\"state_description\": \"what state would change\"}}"
-        )
-        return self._call_gpt(self._SYSTEM_PROMPT, user_prompt)
+    # DEAD CODE (v4-031) -- unreferenced function '_evaluate_state_change', marked for deletion
+    # Replaced by _evaluate_state_change_with_risks which includes risk acceptance context
+    # END DEAD CODE
 
     def _evaluate_state_change_with_risks(self, tool_name, tool_input, risk_text):
-        """Eval B with risk acceptance context. GPT checks if the action is covered."""
+        """Eval B with risk acceptance context. GPT checks risks FIRST."""
         detail = tool_input.get("command", tool_input.get("file_path", ""))[:500]
-        risk_section = ""
-        if risk_text:
-            risk_section = (
-                f"\n\nBoss has pre-authorized these risk acceptances:\n{risk_text}\n"
-                f"If the tool call is covered by any of these risk acceptances, "
-                f"set covered_by_risk_acceptance=true.\n"
-            )
         user_prompt = (
             f"A tool call is being made:\n"
             f"Tool: {tool_name}\n"
             f"Input: {detail}\n\n"
-            f"Does this tool call change state OUTSIDE of files tracked in git? "
-            f"Examples of external state: database writes, API POSTs, "
-            f"system config changes, deploying to cloud services.\n"
-            f"Editing source code files, config files, or JSON files in the project is NOT external state.\n"
-            f"Reading from anywhere (network, disk, API GETs) is NOT a state change.\n"
-            f"Killing or restarting a frontend process (uvicorn, vite, caddy on ports 80, 443, 5173, 8000, 8001) in any non-production environment is NOT external state — "
-            f"it is recycling a non-prod resource per DR-009. This does NOT apply to databases, pipeline processes, or production anything.\n"
-            f"{risk_section}\n"
-            f"Respond JSON: {{\"changes_external_state\": true/false, "
-            f"\"state_description\": \"what state would change\", "
-            f"\"covered_by_risk_acceptance\": true/false}}"
+            f"STEP 1 — CHECK RISK ACCEPTANCES FIRST:\n"
+            f"Boss has pre-authorized these actions. If the tool call is covered by ANY of them, "
+            f"set covered_by_risk_acceptance=true and you are DONE — do not evaluate further.\n"
         )
-        return self._call_gpt(self._SYSTEM_PROMPT, user_prompt)
+        if risk_text:
+            user_prompt += f"{risk_text}\n\n"
+        else:
+            user_prompt += "No active risk acceptances.\n\n"
+        user_prompt += (
+            f"STEP 2 — ONLY if not covered by a risk acceptance:\n"
+            f"Does this tool call change state OUTSIDE of files tracked in git?\n"
+            f"External state: database writes, API POSTs, system config changes, cloud deploys.\n"
+            f"NOT external state: editing source/config/JSON files, reading from anywhere, "
+            f"killing/restarting non-prod frontend processes (ports 80, 443, 5173, 8000, 8001).\n"
+        )
+        return self._call_gpt(self._SYSTEM_PROMPT, user_prompt, self._STATE_CHANGE_SCHEMA)
 
     # Governance infrastructure + Boss-authorized patterns — always pass
     _GOVERNANCE_PATTERNS = [
@@ -542,11 +575,14 @@ class operating_rules_worker(governance_worker_base):
         result = self._evaluate_state_change_with_risks(tool_name, tool_input, risk_text)
         if result.get("error"):
             return {"comply": True, "allow": True}  # fail open
-        if result.get("changes_external_state") and not result.get("covered_by_risk_acceptance"):
+        if result.get("risk_accepted"):
+            _log.info("Action allowed by risk acceptance %s: %s", result.get("risk_id", "?"), result.get("reason", ""))
+            return {"comply": True, "allow": True}
+        if result.get("changes_external_state") and not result.get("pass", False):
             return {
                 "comply": False,
                 "allow": False,
-                "reason": f"State change detected: {result.get('state_description', 'unknown')}. Risk acceptance required from Skip.",
+                "reason": f"State change detected: {result.get('state_description', 'unknown')}. {result.get('reason', '')}",
             }
         return {"comply": True, "allow": True}
 
