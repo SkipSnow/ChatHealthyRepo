@@ -831,6 +831,18 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000023-0000-4000-e000-000000000023"
+    },
+    {
+      "id": "BUG-MODEL-001",
+      "rule": "BUG: Gemini 2.5 Flash returns overly broad specialty list for headache — includes anesthesiology, cardiology, hospice but no primary care physicians or general practitioners. Model needs better system prompt guidance for specialty mapping.",
+      "incident": "Skip searched headache in DE. Got 73 specialty types including specialties that cannot prescribe. No general/family medicine in results.",
+      "date": "2026-04-10",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000024-0000-4000-e000-000000000024"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

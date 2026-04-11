@@ -435,11 +435,20 @@ def health():
             _version_info = _json.loads(open(_vpath, encoding="utf-8").read()).get("current", {})
     except Exception:
         pass
+    # Get git commit hash for build identification
+    _commit = "?"
+    try:
+        import subprocess
+        _commit = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"],
+            cwd=os.path.dirname(__file__), timeout=2, stderr=subprocess.DEVNULL).decode().strip()
+    except Exception:
+        pass
     result = {"status": status, "db": "connected" if _get_db() else "unavailable",
               "env": env_label,
               "build": _version_info.get("build", _BUILD),
               "version": _version_info.get("version", _APP_VERSION),
-              "framework": _version_info.get("framework", "?")}
+              "framework": _version_info.get("framework", "?"),
+              "commit": _commit}
     if idx_check.get("missing"):
         result["missing_indexes"] = idx_check["missing"]
         _log.error("HEALTH CHECK: missing indexes — %s", idx_check["missing"])
