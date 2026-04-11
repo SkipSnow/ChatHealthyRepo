@@ -1028,7 +1028,7 @@
       "ch_matrix_id": "b0000021-0000-4000-e000-000000000021",
       "resolution": "Verified main.py evaluate_proxy (line 541-577): mTLS certs configured correctly. Gemini removed (GPT-4.1 switch). Local uses findcare.crt/key + ca.crt via Caddy :8081. Closed 2026-04-10.",
       "resolution_status": "testing",
-      "req_id": "SEC-MTLS-001-REQ-001",
+      "req_id": "FC-EVAL-001-REQ-005",
       "type": "medium",
       "reason": "FindCare to EvaluateCare communication fails — is_hf undefined, proxy crashes with 500."
     },
