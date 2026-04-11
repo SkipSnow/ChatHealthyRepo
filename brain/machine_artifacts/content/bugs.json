@@ -158,7 +158,7 @@
       "req_id": "PIPE-LC-002-REQ-001",
       "type": "medium",
       "reason": "No try/finally in orchestrators. If a step fails, the reservation is never released and the cluster stays up. Orphan reservations cause unnecessary cost.",
-      "resolution_status": "in_analysis"
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-PIPE-003",
@@ -253,7 +253,7 @@
       "req_id": "NEEDS_REQ",
       "type": "medium",
       "reason": "Load workers insert duplicate NPI records. 70,000 duplicates found. Same worker_id, same record_id — exact duplicate rows. Root cause: bulk_write batch flushed twice, or worker retried after partial s",
-      "resolution_status": "in_analysis"
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-PIPE-007",
@@ -791,7 +791,7 @@
       "req_id": "FC-PIPE-COPY-001-REQ-002",
       "type": "medium",
       "reason": "BUG CRITICAL: CopyToFrontEnd orchestrator never calls _create_specialty_vector_index() after copying SpecialtyMetaData. Function exists (copy_to_frontend.py:196-221) but is dead code. Frontend health",
-      "resolution_status": "in_analysis"
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-PIPE-009",

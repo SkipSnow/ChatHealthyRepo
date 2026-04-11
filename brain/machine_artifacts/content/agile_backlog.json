@@ -29227,6 +29227,72 @@
                 }
               ],
               "ch_matrix_id": "8a9b0c1d-2e3f-4a5b-6c7d-8e9f0a1b2c3d"
+            },
+            {
+              "story_id": "FC-PIPE-TRIGGER-001",
+              "title": "Pipeline trigger and monitor",
+              "description": "Local Python script triggers FindCarePipeline via Router with bearer token from pipeline.http. Monitors status URL until completion. Deletes auth files after run. One pipeline job at a time.",
+              "size": "M",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-PIPE-TRIGGER-001-REQ-001",
+                  "requirement": "pipeline_trigger.py reads bearer token from pipeline.http (gitignored). Calls Router front door with Authorization: Bearer header. Returns 202 + status URL.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_arch_constraints.py::TestArchConstraintVectorIndex::test_risk_acceptance_loaded_by_guard"
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30,
+                  "realized_by": [
+                    "Python 3.11",
+                    "Azure Functions"
+                  ]
+                },
+                {
+                  "req_id": "FC-PIPE-TRIGGER-001-REQ-002",
+                  "requirement": "Script monitors the status URL returned by the 202 response. Polls every N seconds (default 15). Prints status changes as they occur. Exits when orchestration completes, fails, or is terminated.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_arch_constraints.py::TestArchConstraintVectorIndex::test_risk_acceptance_loaded_by_guard"
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30,
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "FC-PIPE-TRIGGER-001-REQ-003",
+                  "requirement": "After run completes (success or failure), script deletes pipeline.http and pipeline_status.http. Auth files must not persist after use.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_arch_constraints.py::TestArchConstraintVectorIndex::test_risk_acceptance_loaded_by_guard"
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30,
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "FC-PIPE-TRIGGER-001-REQ-004",
+                  "requirement": "Only one pipeline job at a time. The existence of pipeline.http indicates a job may be active. No concurrent pipelines.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_arch_constraints.py::TestArchConstraintVectorIndex::test_risk_acceptance_loaded_by_guard"
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30,
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                }
+              ]
             }
           ],
           "ch_matrix_id": "a6b7c8d9-e0f1-2a3b-4c5d-6e7f8a9b0c1d",
