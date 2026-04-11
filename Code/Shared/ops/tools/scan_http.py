@@ -74,15 +74,6 @@ def scan_file(filepath):
                 if stripped.startswith("#") or stripped.startswith("//"):
                     continue
                 if TARGET_PATTERN in line:
-                    # Skip lines where the pattern is in a description/error string, not a URL call
-                    if any(skip in stripped for skip in [
-                        "requirement",  # Requirement descriptions
-                        "VIOLATION",    # Error message text
-                        "found in",     # Error message text
-                        "scan_http",    # References to the scanner
-                        "SEC-HTTPS",    # References to the requirement
-                    ]):
-                        continue
                     violations.append((i, stripped[:120]))
     except Exception:
         pass
