@@ -617,7 +617,7 @@ async def _chat_inner(body: ChatRequest, request: Request):
     _sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared"))
     from llm_client import chat as llm_chat
 
-    _CHAT_MODEL = os.getenv("CHAT_MODEL", "gemini-2.5-flash")
+    _CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4.1")
 
     user_msg_count = sum(1 for m in body.history if m.get("role") == "user")
     system = _system_prompt(follow_up_check=user_msg_count > 0 and user_msg_count % 5 == 0)
