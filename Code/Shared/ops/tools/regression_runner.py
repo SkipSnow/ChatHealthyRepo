@@ -177,73 +177,68 @@ def run_regression(scope_type="all", scope_value=None, concurrency=4):
               "not_implemented": len([r for r in not_testable if r["result"] == "not_implemented"]),
               "not_found": 0, "error": 0, "timeout": 0}
 
+    # Stream results as they complete
+    req_results = {}  # req_id -> {req, details[]}
+    completed_count = [0]
+    total_tasks = sum(len([p for p in t["pytest_ids"] if p.strip() and p != "NEEDS_TEST"]) for t in testable)
+
+    async def run_and_stream(t, pid, sem):
+        pid = pid.strip()
+        result = await run_single_test_async(pid, t.get("test_method", ""), t.get("test_timeout_seconds", 0), sem)
+        _, status, detail = result
+        completed_count[0] += 1
+        # Stream: print immediately as each test completes
+        marker = "PASS" if status == "pass" else status.upper()
+        print(f"  [{completed_count[0]}/{total_tasks}] {t['req_id']} / {pid}: {marker}", flush=True)
+        return t["req_id"], {"pytest_id": pid, "result": status, "detail": detail}
+
     async def run_all():
         sem = asyncio.Semaphore(concurrency)
         tasks = []
-        task_map = {}  # task -> requirement
-
         for t in testable:
             for pid in t["pytest_ids"]:
                 pid = pid.strip()
                 if not pid or pid == "NEEDS_TEST":
                     continue
-                task = asyncio.create_task(
-                    run_single_test_async(pid, t.get("test_method", ""), t.get("test_timeout_seconds", 0), sem)
-                )
-                tasks.append(task)
-                task_map[id(task)] = t
+                tasks.append(run_and_stream(t, pid, sem))
 
-        completed = await asyncio.gather(*tasks, return_exceptions=True)
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Group results by requirement
-        req_results = {}  # req_id -> list of (pid, status, detail)
-        for task, result in zip(tasks, completed):
-            t = task_map[id(task)]
-            rid = t["req_id"]
+        for result in results:
             if isinstance(result, Exception):
-                req_results.setdefault(rid, {"req": t, "details": []})["details"].append(
-                    {"pytest_id": "?", "result": "error", "detail": str(result)}
-                )
-            else:
-                pid, status, detail = result
-                req_results.setdefault(rid, {"req": t, "details": []})["details"].append(
-                    {"pytest_id": pid, "result": status, "detail": detail}
-                )
+                continue
+            rid, detail = result
+            req_results.setdefault(rid, []).append(detail)
 
-        return req_results
+    asyncio.run(run_all())
 
-    req_results = asyncio.run(run_all())
-
-    # Print results in hierarchy order
+    # Build final results in hierarchy order
     current_epic = ""
     current_feature = ""
+    print(f"\n{'='*70}")
+    print("RESULTS BY HIERARCHY")
+    print(f"{'='*70}")
     for t in testable:
         rid = t["req_id"]
         if t["epic_id"] != current_epic:
             current_epic = t["epic_id"]
-            print(f"\n{'='*70}")
-            print(f"EPIC: {t['epic_id']} -- {t['epic_name']}")
-            print(f"{'='*70}")
+            print(f"\n  EPIC: {t['epic_id']} -- {t['epic_name']}")
             current_feature = ""
         if t["feature_id"] != current_feature:
             current_feature = t["feature_id"]
-            print(f"\n  Feature: {t['feature_id']} -- {t['feature_name']}")
-            print(f"  {'-'*60}")
+            print(f"    Feature: {t['feature_id']} -- {t['feature_name']}")
 
         if rid in req_results:
-            details = req_results[rid]["details"]
+            details = req_results[rid]
             req_pass = all(d["result"] == "pass" for d in details)
             overall = "pass" if req_pass else "fail"
             counts[overall] += 1
             marker = "PASS" if req_pass else "FAIL"
-            print(f"    {rid}: {marker}")
-            for d in details:
-                if d["result"] != "pass":
-                    print(f"      {d['pytest_id']}: {d['result']}")
+            print(f"      {rid}: {marker}")
             results.append({**t, "result": overall, "test_details": details})
         else:
             counts["not_found"] += 1
-            print(f"    {rid}: NOT FOUND")
+            print(f"      {rid}: NOT FOUND")
             results.append({**t, "result": "not_found", "detail": ""})
 
     # Summary
@@ -284,7 +279,7 @@ def main():
     group.add_argument("--epic", type=str, help="Run tests for one epic (e.g. EPIC-006)")
     group.add_argument("--feature", type=str, help="Run tests for one feature (e.g. FC-SEARCH)")
     group.add_argument("--story", type=str, help="Run tests for one story (e.g. FC-SEARCH-001)")
-    parser.add_argument("--concurrency", type=int, default=10, help="Max concurrent tests (default 10)")
+    parser.add_argument("--concurrency", type=int, default=16, help="Max concurrent tests (default 16, Windows pipe limit)")
     args = parser.parse_args()
 
     if args.all:
