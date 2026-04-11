@@ -1046,6 +1046,11 @@
           "id": 3,
           "criterion": "Security token matches FindCare",
           "status": "open"
+        },
+        {
+          "id": 4,
+          "criterion": "Each session token is unique — no two handoffs share a token",
+          "status": "open"
         }
       ],
       "pytest_success_criteria": "All 3 acceptance criteria must pass via Playwright end-to-end test."
