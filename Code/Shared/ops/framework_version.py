@@ -26,14 +26,6 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("framework_version")
-
-
-# DEAD CODE (v4-031) -- unreferenced function 'get_active', marked for deletion
-# def get_active(client):
-#     return client["admin"]["framework_version"].find_one({"to": None})
-# END DEAD CODE
-
-
 def get_all(client):
     return list(client["admin"]["framework_version"].find().sort("version", 1))
 

@@ -38,38 +38,6 @@ def _get_col():
             raise EnvironmentError("MONGO_FRONTEND_connectionString is not set.")
         _client = MongoClient(conn)
     return _client[_DB_NAME][_COLLECTION]
-
-
-# DEAD CODE (v4-031) -- unreferenced function 'generate_otp', marked for deletion
-# def generate_otp(agent: str, bearer_key: str) -> str:
-#     """
-#     Generate and store a one-time password that exchanges for a Bearer key.
-#
-#     Args:
-#         agent:      Agent name this OTP is for (e.g. "GPT")
-#         bearer_key: The permanent Bearer key to return on successful exchange
-#
-#     Returns:
-#         OTP string in format XXXX-XXXX  (give this to the agent verbally)
-#     """
-#     chars = string.ascii_uppercase + string.digits
-#     otp = (
-#         ''.join(secrets.choice(chars) for _ in range(4)) + '-' +
-#         ''.join(secrets.choice(chars) for _ in range(4))
-#     )
-#     record = {
-#         "otp":        otp,
-#         "agent":      agent,
-#         "bearer_key": bearer_key,
-#         "created_at": datetime.now(timezone.utc),
-#         "expires_at": datetime.now(timezone.utc) + timedelta(minutes=_TTL_MINUTES),
-#         "used":       False,
-#     }
-#     _get_col().insert_one(record)
-#     return otp
-# END DEAD CODE
-
-
 def exchange_otp(otp: str) -> tuple[bool, str, Optional[str]]:
     """
     Exchange a one-time password for a Bearer key.

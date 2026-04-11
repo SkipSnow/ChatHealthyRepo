@@ -50,13 +50,6 @@ class ScoringEngine:
         for cls in PROVIDER_MEASURES + CLINICAL_TRIAL_MEASURES:
             instance = cls()
             self._measure_registry[instance.name] = instance
-
-# DEAD CODE (v4-031) -- unreferenced function 'register_measure', marked for deletion
-#     def register_measure(self, measure: BaseMeasure) -> None:
-#         """Register a custom measure (extensibility)."""
-#         self._measure_registry[measure.name] = measure
-# END DEAD CODE
-
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------

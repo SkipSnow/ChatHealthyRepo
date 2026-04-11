@@ -252,9 +252,3 @@ class ManifestGenerator:
     @property
     def file_count(self) -> int:
         return len([e for e in self._manifest if e["entity_type"] != "directory"])
-
-    @property
-# DEAD CODE (v4-031) -- unreferenced function 'total_entries', marked for deletion
-#     def total_entries(self) -> int:
-#         return len(self._manifest)
-# END DEAD CODE

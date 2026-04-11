@@ -155,12 +155,3 @@ class SafetyService:
         except Exception as exc:
             _log.error("Admin unlock failed for %s: %s", ip, exc)
         return False
-
-# DEAD CODE (v4-031) -- unreferenced function 'session_is_locked', marked for deletion
-#     def session_is_locked(self, history: list) -> bool:
-#         """Check if conversation history indicates a locked session."""
-#         return any(
-#             m.get("role") == "assistant" and EMERGENCY_RESPONSE in str(m.get("content", ""))
-#             for m in history
-#         )
-# END DEAD CODE

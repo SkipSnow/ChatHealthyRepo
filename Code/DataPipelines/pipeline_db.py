@@ -48,16 +48,3 @@ def get_db(env_prefix: str = None):
     _validate_env(env_prefix)
     return get_mongo()[f"{env_prefix}_PublicHealthData"]
 
-
-# DEAD CODE (v4-031) -- unreferenced function 'get_admin_db', marked for deletion
-# def get_admin_db():
-#     """Get the admin database (brain, manifests, registry)."""
-#     return get_mongo()["admin"]
-# END DEAD CODE
-
-
-# DEAD CODE (v4-031) -- unreferenced function 'get_collection', marked for deletion
-# def get_collection(collection_name: str, env_prefix: str = None):
-#     """Get a collection with ENV_PREFIX routing."""
-#     return get_db(env_prefix)[collection_name]
-# END DEAD CODE
