@@ -18,7 +18,7 @@
       "status": "open",
       "risk_acceptance_id": null,
       "next_action": "Infrastructure: vector search indexes (provider_vector_index, specialty_vector_index) must be created on frontend cluster. Cannot fix in code alone — requires pipeline/infra work.",
-      "req_id": "NEEDS_REQ",
+      "req_id": "IDX-001-REQ-002",
       "type": "medium",
       "reason": "Specialty filter panel empty — specialization_options returns 0 items. Root cause: SpecialtyService.find_specialty_codes returns empty despite SpecialtyMetaData having 45 matches for 'surg' in Display",
       "resolution_status": "in_analysis"
@@ -39,7 +39,7 @@
       "risk_acceptance_id": null,
       "resolution": "Architecture change eliminated root cause. /classify returns specialty codes (no summary text), /search returns DB results. LLM never sees or summarizes provider results. strip_llm_summary function also added as defense-in-depth. Closed 2026-04-10.",
       "resolution_status": "tested_passed",
-      "req_id": "NEEDS_REQ",
+      "req_id": "FC-SEARCH-001-REQ-006",
       "type": "medium",
       "reason": "LLM response duplicates system summary. LLM says 'Here are the first 25 of 11,772' AND system says 'There are 11,747 more'. User sees double. Root cause eliminated: architecture changed to /classify +"
     },
@@ -58,7 +58,7 @@
       "status": "open",
       "risk_acceptance_id": null,
       "resolution_status": "tested_passed",
-      "req_id": "NEEDS_REQ",
+      "req_id": "FC-FILT-001-REQ-001",
       "type": "medium",
       "reason": "Filter panel text displayed sideways. Root cause: leftPanel div had writing-mode:vertical-rl for the blank label, never reset when filter content loaded. Fix: innerHTML replacement removes vertical la"
     },
@@ -78,7 +78,7 @@
       "risk_acceptance_id": null,
       "resolution": "Rule text already says BUG FIXED. Closed 2026-04-10.",
       "resolution_status": "tested_passed",
-      "req_id": "NEEDS_REQ",
+      "req_id": "FC-MSG-001-REQ-001",
       "type": "medium",
       "reason": "Summary used LLM-translated term ('psychiatrist') instead of user's term ('shrinks'). Root cause: specialty_searched came from the LLM's tool call parameter, not the user's original message. Fix: main"
     },
@@ -97,7 +97,7 @@
       "status": "open",
       "risk_acceptance_id": null,
       "next_action": "Infrastructure: requires vector search indexes on SpecialtyMetaData collection. Pipeline/infra work, not a code-only fix.",
-      "req_id": "NEEDS_REQ",
+      "req_id": "IDX-001-REQ-002",
       "type": "critical",
       "reason": "RELEASE BLOCKER — SIT NEXT SPRINT, MUST-HAVE: Specialty code resolution must vector search against SpecialtyMetaData (883 specialty descriptions), not provider records. Current code searches provider ",
       "resolution_status": "in_analysis"
@@ -117,7 +117,7 @@
       "status": "open",
       "risk_acceptance_id": null,
       "next_action": "UX design decision needed from Boss: pagination controls placement in cursor bar.",
-      "req_id": "NEEDS_REQ",
+      "req_id": "UX-CTRL-001-REQ-001",
       "type": "medium",
       "reason": "DESIGN ERROR (Boss): Filtered results with more than one page must show pagination controls in the control frame immediately. Do not make the user ask for page 2 after applying a filter — they already",
       "resolution_status": "in_analysis"
@@ -136,7 +136,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "PIPE-LC-001-REQ-001",
       "type": "medium",
       "reason": "Enrichment steps do not filter by states. Pass 1 ZIP crosswalk processed 8.8M records instead of 1.3M because no state filter was applied. Every enrichment step must accept and enforce the states para",
       "resolution_status": "in_analysis"
@@ -155,7 +155,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "PIPE-LC-002-REQ-001",
       "type": "medium",
       "reason": "No try/finally in orchestrators. If a step fails, the reservation is never released and the cluster stays up. Orphan reservations cause unnecessary cost.",
       "resolution_status": "in_analysis"
@@ -174,7 +174,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "PIPE-LC-003-REQ-002",
       "type": "medium",
       "reason": "Skipping load step (start_step=3) left stale data. 8.8M records from prior runs remained. Load step must drop collection unless incremental=true.",
       "resolution_status": "in_analysis"
@@ -212,7 +212,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "PIPE-DM-001-REQ-001",
       "type": "medium",
       "reason": "Enrichment must be in-place on provider record. Per MongoDB best practices, one document per provider. No separate enrichment collection.",
       "resolution_status": "in_analysis"
@@ -231,7 +231,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "PIPE-BP-004-REQ-002",
       "type": "medium",
       "reason": "DESIGN BUG (Boss): DataFetcherBase skip guard trusted registry without verifying blob existed. Registry said 'already downloaded' but blob was deleted. Pipeline skipped download, extract failed with B",
       "resolution_status": "in_analysis"
@@ -307,7 +307,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "PIPE-CP-001-REQ-002",
       "type": "show_stopper",
       "reason": "SHOW STOPPER — SPRINT BLOCKER — DUE 2026-04-09: Delaware provider load is incomplete. Root cause: CopyToFrontEnd copied only 2,843 of 25,591 DE providers from pipeline cluster to frontend cluster. Pip",
       "resolution_status": "in_analysis"
@@ -326,7 +326,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "PIPE-CP-001-REQ-001",
       "type": "show_stopper",
       "reason": "SHOW STOPPER — ALPHA RELEASE BLOCKER: The question 'how many providers are there in DE' must give a correct answer. If the database has 2,843 and the real answer is ~26,000, the system is giving wrong",
       "resolution_status": "in_analysis"
@@ -364,7 +364,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "UMLS-CPT-001-REQ-001",
       "type": "critical",
       "reason": "BUG (SPRINT BLOCKER — DUE THIS SPRINT): CPT codes CANNOT be used in any consumer-facing feature. UMLS license Category 3 restricts CPT to internal use only (research, development, statistical analysis",
       "resolution_status": "in_analysis"
@@ -384,7 +384,7 @@
       "status": "open",
       "risk_acceptance_id": null,
       "next_action": "Needs live testing to determine if GPT-4.1 switch resolved this. May be model/prompt issue. Cannot verify without running the application.",
-      "req_id": "NEEDS_REQ",
+      "req_id": "FC-SEARCH-001-REQ-001",
       "type": "medium",
       "reason": "'find me a kids doc in VA' produces stuck response 'Thinking... Ok No'. Chat never completes. Either safety check, consent flow, or backend timeout is intercepting and the UI doesn't recover. User see",
       "resolution_status": "in_analysis"
@@ -405,7 +405,7 @@
       "risk_acceptance_id": null,
       "resolution": "Fixed in FindCareApp.tsx refactor. Filter list div uses flex:1 + overflowY:auto (line 287). No max-height constraint. Closed 2026-04-10.",
       "resolution_status": "tested_passed",
-      "req_id": "NEEDS_REQ",
+      "req_id": "FC-FILT-001-REQ-001",
       "type": "medium",
       "reason": "Left panel has overflowY:hidden — filter content cannot scroll. When specialty filter loads with more options than fit in the panel height, user cannot scroll to see all options. Fix: FindCareApp.tsx "
     },
@@ -425,7 +425,7 @@
       "risk_acceptance_id": null,
       "resolution": "Rule text says PASS. Boss signed off functionality for alpha. Closed 2026-04-10.",
       "resolution_status": "tested_passed",
-      "req_id": "NEEDS_REQ",
+      "req_id": "FC-FILT-001-REQ-001",
       "type": "medium",
       "reason": "Filter panel FUNCTIONALITY signed off for alpha by Boss 2026-04-07. Prescriber toggle, homeopathic toggle (Sonnet resolver), specialty checkboxes, counts display, client-side caching, scroll bar — all"
     },
@@ -467,7 +467,7 @@
       "risk_acceptance_id": null,
       "resolution": "Rule text says PASS. Boss signed off for alpha. Closed 2026-04-10.",
       "resolution_status": "tested_passed",
-      "req_id": "NEEDS_REQ",
+      "req_id": "UX-FRAME-001-REQ-004",
       "type": "medium",
       "reason": "Timer + Stop button in guiControlFrame. Styled container with teal text, raised Stop button. Boss signed off for alpha 2026-04-07."
     },
@@ -487,7 +487,7 @@
       "risk_acceptance_id": null,
       "resolution": "Rule text already says BUG FIXED. Closed 2026-04-10.",
       "resolution_status": "tested_passed",
-      "req_id": "NEEDS_REQ",
+      "req_id": "UX-FRAME-001-REQ-004",
       "type": "medium",
       "reason": "Stop button left orphaned in chat area when timer moved to control frame. Timer and Stop button are a unit — both must move together. Fixed by removing thinking bubble from chat and rendering both tim"
     },
@@ -507,7 +507,7 @@
       "risk_acceptance_id": null,
       "resolution": "Rule text already says BUG FIXED. Closed 2026-04-10.",
       "resolution_status": "tested_passed",
-      "req_id": "NEEDS_REQ",
+      "req_id": "FC-FILT-001-REQ-002",
       "type": "medium",
       "reason": "Prescriber toggle checkbox re-rendered as checked when specialty list updated. When user unchecked 'Prescribers only', the list re-render reset the checkbox to checked. Fixed by passing prescribersChe"
     },
@@ -525,7 +525,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "PIPE-BP-004-REQ-002",
       "type": "medium",
       "reason": "Overnight pipeline re-downloads CMS Part D CSV (3.7GB) every run instead of using blob storage. The file is already in blob from previous runs. Must use DataFetcherBase ETag guard pattern — download o",
       "resolution_status": "in_analysis"
@@ -544,7 +544,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "SEC-CERT-R-002-REQ-001",
       "type": "medium",
       "reason": "BUG (PRE-ALPHA REQUIREMENT): HuggingFace Spaces still use bearer tokens for authentication. Security architecture (EPIC-4) requires zero bearer tokens — all auth via x509 certificates registered with ",
       "resolution_status": "in_analysis"
@@ -566,7 +566,7 @@
       ],
       "risk_acceptance_id": null,
       "next_action": "Needs Boss to define the boundary between factual health questions and medical advice for prompt tuning. No rule text defined yet.",
-      "req_id": "NEEDS_REQ",
+      "req_id": "FC-BACKEND-007-REQ-002",
       "type": "medium",
       "reason": "See rule field",
       "resolution_status": "in_analysis"
@@ -588,7 +588,7 @@
       ],
       "risk_acceptance_id": null,
       "next_action": "Needs monitoring after vector search indexes are deployed. Root cause fix (auto index creation) was added in build 168 but indexes still missing per BUG-DATA-001. Cannot close until infrastructure is verified.",
-      "req_id": "NEEDS_REQ",
+      "req_id": "IDX-001-REQ-001",
       "type": "medium",
       "reason": "See rule field",
       "resolution_status": "in_analysis"
@@ -665,7 +665,7 @@
         "prod"
       ],
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "IDX-001-REQ-001",
       "type": "show_stopper",
       "reason": "SHOW STOPPER: Frontend data insufficient to allow application to work with Delaware data. Missing vector search indexes (provider_vector_index, specialty_vector_index), missing npi unique index, missi",
       "resolution_status": "in_analysis"
@@ -692,7 +692,7 @@
         "prod"
       ],
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "PIPE-BP-001-REQ-001",
       "type": "show_stopper",
       "reason": "SHOW STOPPER: Quality pipeline ships provider_quality to frontend without embeddings. 25,591 DE records have zero prescriber_embedding on both pipeline and frontend clusters. The embedding step (Step ",
       "resolution_status": "in_analysis"
@@ -769,7 +769,7 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000007-0000-4000-e000-000000000007",
-      "req_id": "NEEDS_REQ",
+      "req_id": "PIPE-LC-015-REQ-001",
       "type": "medium",
       "reason": "Cluster lifecycle manager does not detect or clean up zombie reservations. Three stale reservations from April 8 were still marked active on April 10. Reservations with expected_end_time in the past s",
       "resolution_status": "in_analysis"
@@ -788,9 +788,9 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000008-0000-4000-e000-000000000008",
-      "req_id": "NEEDS_REQ",
+      "req_id": "FC-PIPE-COPY-001-REQ-002",
       "type": "medium",
-      "reason": "BUG CRITICAL: CopyToFrontEnd orchestrator never calls _create_specialty_vector_index() after copying SpecialtyMetaData. Function exists (copy_to_frontend.py:196-221) but is dead code. Frontend health ",
+      "reason": "BUG CRITICAL: CopyToFrontEnd orchestrator never calls _create_specialty_vector_index() after copying SpecialtyMetaData. Function exists (copy_to_frontend.py:196-221) but is dead code. Frontend health",
       "resolution_status": "in_analysis"
     },
     {
