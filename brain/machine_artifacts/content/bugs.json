@@ -35,7 +35,7 @@
         "qa",
         "prod"
       ],
-      "status": "open",
+      "status": "closed",
       "risk_acceptance_id": null,
       "resolution": "Architecture change eliminated root cause. /classify returns specialty codes (no summary text), /search returns DB results. LLM never sees or summarizes provider results. strip_llm_summary function also added as defense-in-depth. Closed 2026-04-10.",
       "resolution_status": "tested_passed",
@@ -2266,6 +2266,25 @@
       "risk_acceptance_id": null,
       "reason": "Guard GPT calls lack structured I/O — free-text prompt, freeform JSON parse. Must use response_format with JSON schema.",
       "ch_matrix_id": "b0000038-0000-4000-e000-000000000038"
+    },
+    {
+      "id": "BUG-MSG-003",
+      "req_id": "FC-MSG-001-REQ-001",
+      "rule": "BUG: Message text wrong. Content or formatting of the search result message is incorrect.",
+      "incident": "Boss UAT 2026-04-11. Duplicate summary fixed but message text itself is wrong.",
+      "date": "2026-04-11",
+      "type": "medium",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "resolution_status": "in_analysis",
+      "risk_acceptance_id": null,
+      "reason": "Message text wrong — content or formatting incorrect.",
+      "ch_matrix_id": "b0000040-0000-4000-e000-000000000040"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
