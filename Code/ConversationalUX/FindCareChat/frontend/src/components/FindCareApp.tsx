@@ -143,10 +143,9 @@ export default function FindCareApp() {
       checkSecurityViolation(classifyResp, `${API_URL}/classify`)
       const classified = await classifyResp.json()
 
-      if (timerRef.current) clearInterval(timerRef.current)
-      sendToParent('gui:timer-clear')
-
       if (classified.error || !classified.specialties?.length) {
+        if (timerRef.current) clearInterval(timerRef.current)
+        sendToParent('gui:timer-clear')
         setError(classified.error || 'Could not identify relevant specialties')
         setPhase('error')
         return
@@ -164,6 +163,10 @@ export default function FindCareApp() {
 
       setSearchParams(params)
       await fetchProviders(params, text)
+
+      // Timer clears after DB search completes — not after classify
+      if (timerRef.current) clearInterval(timerRef.current)
+      sendToParent('gui:timer-clear')
 
       // Send filter options to parent — use the ranked specialties from AI
       if (classified.specialties.length > 1) {
@@ -250,30 +253,30 @@ export default function FindCareApp() {
     const html = `
       <div data-filter-panel style="display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:#fff;">
         <div style="padding:8px 10px;border-bottom:2px solid #0b7a75;background:#f8fffe;">
-          <div style="display:flex;align-items:center;gap:0;">
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 0;">
             <div style="flex:0 0 auto;padding-right:8px;border-right:1px solid #d8e2e1;">
-              <div style="font-size:11px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Filter by specialty</div>
+              <div style="font-size:10px;font-weight:700;color:#0b7a75;text-transform:uppercase;white-space:nowrap;">Filter by specialty</div>
             </div>
             <div style="flex:0 0 auto;padding:0 8px;border-right:1px solid #d8e2e1;text-align:center;">
-              <div style="font-size:8px;color:#6b7280;text-transform:uppercase;">All possible</div>
+              <div style="font-size:8px;color:#6b7280;text-transform:uppercase;white-space:nowrap;">All possible</div>
               <div style="font-size:13px;font-weight:700;color:#1f2937;">${allCount}</div>
             </div>
             <div style="flex:0 0 auto;padding:0 8px;border-right:1px solid #d8e2e1;text-align:center;">
-              <div style="font-size:8px;color:#6b7280;text-transform:uppercase;">Prescribers</div>
+              <div style="font-size:8px;color:#6b7280;text-transform:uppercase;white-space:nowrap;">Prescribers</div>
               <div style="font-size:13px;font-weight:700;color:#1f2937;" id="filterFilteredCount">${prescCount}</div>
             </div>
             <div style="flex:0 0 auto;padding:0 8px;border-right:1px solid #d8e2e1;text-align:center;">
-              <div style="font-size:8px;color:#6b7280;text-transform:uppercase;">Your choices</div>
+              <div style="font-size:8px;color:#6b7280;text-transform:uppercase;white-space:nowrap;">Your choices</div>
               <div style="font-size:13px;font-weight:700;color:#0b7a75;" id="filterShowing">${prescCount}</div>
             </div>
-            <div style="flex:0 0 auto;padding-left:8px;display:flex;flex-direction:column;gap:2px;">
-              <label style="font-size:9px;color:#1f2937;display:flex;align-items:center;gap:3px;cursor:pointer;">
+            <div style="flex:0 0 auto;padding-left:8px;display:flex;flex-direction:column;gap:3px;">
+              <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;">
                 <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="prescribers" checked
-                  style="accent-color:#0b7a75;width:12px;height:12px;" /> Prescribers
+                  style="accent-color:#0b7a75;width:13px;height:13px;" /> Prescribers
               </label>
-              <label style="font-size:9px;color:#1f2937;display:flex;align-items:center;gap:3px;cursor:pointer;">
+              <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;">
                 <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="homeopathic"
-                  style="accent-color:#0b7a75;width:12px;height:12px;" /> Homeopathic
+                  style="accent-color:#0b7a75;width:13px;height:13px;" /> Homeopathic
               </label>
             </div>
           </div>
@@ -281,7 +284,7 @@ export default function FindCareApp() {
         <div style="padding:3px 10px;border-bottom:1px solid #e5e7eb;background:#fafafa;">
           <button data-gui-action="toggle-all" style="background:none;border:1px solid #0b7a75;border-radius:3px;padding:2px 8px;font-size:10px;color:#0b7a75;cursor:pointer;font-weight:600;">Uncheck All</button>
         </div>
-        <div style="max-height:390px;overflow-y:auto;">${items}</div>
+        <div style="flex:1;overflow-y:auto;">${items}</div>
         <div style="padding:6px 8px;border-top:1px solid #d8e2e1;">
           <button data-gui-action="filter-apply" style="width:100%;padding:5px;border-radius:4px;border:none;background:linear-gradient(180deg,#0b9a94,#0b7a75);color:#fff;font-size:11px;font-weight:600;cursor:pointer;">Apply Filter</button>
           <button data-gui-action="evaluate-providers" style="width:100%;padding:5px;border-radius:4px;border:none;background:linear-gradient(180deg,#d97706,#b45309);color:#fff;font-size:11px;font-weight:600;cursor:pointer;margin-top:4px;">Evaluate These Providers</button>
@@ -424,11 +427,15 @@ export default function FindCareApp() {
             )}
           </div>
 
-          {/* Selected providers — sticky bottom half */}
-          <div style={{
-            borderTop: '2px solid #d97706', background: '#fffdf7',
-            maxHeight: '35%', overflowY: 'auto',
-          }}>
+          {/* Selected providers — sticky bottom half (FC-SELECT-001-REQ-002: drop target) */}
+          <div
+            style={{
+              borderTop: '2px solid #d97706', background: '#fffdf7',
+              maxHeight: '35%', overflowY: 'auto',
+            }}
+            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
+            onDrop={(e) => { e.preventDefault(); const npi = e.dataTransfer.getData('text/plain'); if (npi) selection.select(npi) }}
+          >
             <div style={{
               padding: '4px 12px', background: '#fffbeb',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',

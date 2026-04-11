@@ -135,12 +135,49 @@ def enforce_no_pattern(rule_id, enforcement):
     return violations
 
 
+def enforce_requirement_pytest(rule_id, enforcement):
+    """BUG-GOV-005 / v4-007: Every requirement in agile_backlog.json must have a pytest_id.
+    Scans the one and only JSON where requirements live. Blocks check-in if any
+    requirement is missing pytest_id or has an empty pytest_id."""
+    violations = []
+    path = os.path.join(REPO_ROOT, enforcement.get("path", "brain/machine_artifacts/content/agile_backlog.json"))
+    if not os.path.exists(path):
+        violations.append(f"{rule_id}: agile_backlog.json missing")
+        return violations
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        violations.append(f"{rule_id}: invalid JSON: {e}")
+        return violations
+
+    for epic in data.get("epics", []):
+        epic_id = epic.get("epic_id", "?")
+        for feature in epic.get("features", []):
+            feature_id = feature.get("feature_id", "?")
+            for story in feature.get("stories", []):
+                story_id = story.get("story_id", "?")
+                for req in story.get("requirements", []):
+                    req_id = req.get("req_id", "?")
+                    pytest_id = req.get("pytest_id", "")
+                    if not pytest_id or not pytest_id.strip():
+                        # Unimplemented requirements don't need a real test yet
+                        status = req.get("status", "")
+                        if status not in ("implemented", "in_progress"):
+                            continue
+                        violations.append(
+                            f"{rule_id}: {req_id} ({story_id}) has no pytest_id"
+                        )
+    return violations
+
+
 EXECUTORS = {
     "file_scan": enforce_file_scan,
     "file_absent": enforce_file_absent,
     "file_present": enforce_file_present,
     "json_check": enforce_json_check,
     "no_pattern": enforce_no_pattern,
+    "requirement_pytest": enforce_requirement_pytest,
 }
 
 
@@ -169,7 +206,7 @@ def main(target: str) -> int:
         rule_id = rule.get("id", "unknown")
         enforcement = rule.get("enforcement")
 
-        if not enforcement:
+        if not enforcement or not isinstance(enforcement, dict):
             skipped += 1
             continue
 

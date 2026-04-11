@@ -124,6 +124,15 @@ class TestPageLoad:
         iframe = page.locator("#coreChatFrame")
         assert iframe.count() > 0
 
+    def test_chat_input_ready(self, shared_page):
+        """Chat input prompt exists and is not locked/disabled."""
+        frame = shared_page["frame"]
+        chat_input = frame.locator("input[placeholder*='Type a message'], textarea").first
+        assert chat_input.count() > 0, "Chat input element not found"
+        is_disabled = chat_input.get_attribute("disabled")
+        assert is_disabled is None, f"Chat input is disabled: {is_disabled}"
+        _screenshot(shared_page["page"], "03_chat_input_ready")
+
     def test_welcome_message_was_shown(self, shared_page):
         frame = shared_page["frame"]
         body_text = frame.locator("body").inner_text()
@@ -186,6 +195,24 @@ class TestLeftPanel:
         left_text = page.locator("#leftPanel").inner_text()
         assert "prescriber" in left_text.lower(), \
             f"Prescriber checkbox not found. Text: {left_text[:300]}"
+
+    def test_session_token_in_left_panel(self, shared_page):
+        """Left panel shows session token starting with ch_ and nonce timestamps."""
+        page = shared_page["page"]
+        left_text = page.locator("#leftPanel").inner_text()
+        has_token = "ch_" in left_text.lower() or "CH_" in left_text
+        _screenshot(page, "05_session_token_left")
+        assert has_token, f"Session token (ch_) not found in left panel. Text: {left_text[:300]}"
+
+    def test_left_panel_has_two_buttons(self, shared_page):
+        """Left panel has two buttons below specialty list including Evaluate Care."""
+        page = shared_page["page"]
+        eval_btn = page.locator("[data-gui-action='evaluate-providers']")
+        left_buttons = page.locator("#leftPanel button")
+        _screenshot(page, "06_left_panel_buttons")
+        assert eval_btn.count() > 0, "Evaluate Care button not found"
+        assert left_buttons.count() >= 2, \
+            f"Expected at least 2 buttons in left panel, found {left_buttons.count()}"
 
     def test_evaluate_care_button_exists(self, shared_page):
         page = shared_page["page"]

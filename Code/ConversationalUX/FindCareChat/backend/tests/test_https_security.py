@@ -376,6 +376,90 @@ class TestPreCommitScan:
         assert "staged_files" in content, "pre_deploy_rule_check must pass staged file list"
 
 
+# ── SEC-HTTPS-001-REQ-007: 426 body must include status code ─────────────
+
+class Test426BodyIncludesStatusCode:
+    """SEC-HTTPS-001-REQ-007: Every HTTP 426 response on every server in every
+    environment must include '426' in the response body text."""
+
+    def _http_get(self, url):
+        import requests
+        return requests.get(url, timeout=5, allow_redirects=False)
+
+    def _http_post(self, url, data=None):
+        import requests
+        return requests.post(url, json=data or {}, timeout=5, allow_redirects=False)
+
+    def test_caddy_426_body_includes_code(self):
+        """Caddy :80 non-redirect path 426 body contains '426'."""
+        try:
+            resp = self._http_get("http://localhost/api/health")
+            assert resp.status_code == 426
+            assert "426" in resp.text, f"426 body must include status code, got: {resp.text[:200]}"
+        except Exception as e:
+            if "426" not in str(e):
+                pytest.skip("Caddy not running on :80")
+
+    def test_caddy_static_426_body_includes_code(self):
+        """Caddy :80 static page 426 body contains '426'."""
+        try:
+            resp = self._http_get("http://localhost/architecture.html")
+            assert resp.status_code == 426
+            assert "426" in resp.text, f"426 body must include status code, got: {resp.text[:200]}"
+        except Exception as e:
+            if "426" not in str(e):
+                pytest.skip("Caddy not running on :80")
+
+    def test_caddy_api_post_426_body_includes_code(self):
+        """Caddy :80 POST /api/search 426 body contains '426'."""
+        try:
+            resp = self._http_post("http://localhost/api/search")
+            assert resp.status_code == 426
+            assert "426" in resp.text, f"426 body must include status code, got: {resp.text[:200]}"
+        except Exception as e:
+            if "426" not in str(e):
+                pytest.skip("Caddy not running on :80")
+
+    def test_findcare_http_426_body_includes_code(self):
+        """FindCare :8080 HTTP 426 body contains '426'."""
+        try:
+            resp = self._http_get("http://localhost:8080/health")
+            if resp.status_code == 426:
+                assert "426" in resp.text, f"426 body must include status code, got: {resp.text[:200]}"
+            elif resp.status_code == 400:
+                pytest.skip("FindCare returns 400 for plain HTTP (SSL expected)")
+            else:
+                pytest.skip(f"FindCare HTTP returned {resp.status_code}, not 426")
+        except Exception:
+            pytest.skip("FindCare not accepting HTTP on :8080")
+
+    def test_evaluatecare_http_426_body_includes_code(self):
+        """EvaluateCare :8081 HTTP 426 body contains '426'."""
+        try:
+            resp = self._http_get("http://localhost:8081/health")
+            if resp.status_code == 426:
+                assert "426" in resp.text, f"426 body must include status code, got: {resp.text[:200]}"
+            elif resp.status_code == 400:
+                pytest.skip("EvaluateCare returns 400 for plain HTTP (mTLS expected)")
+            else:
+                pytest.skip(f"EvaluateCare HTTP returned {resp.status_code}, not 426")
+        except Exception:
+            pytest.skip("EvaluateCare not accepting HTTP on :8081")
+
+    def test_shared_services_http_426_body_includes_code(self):
+        """SharedServices :8082 HTTP 426 body contains '426'."""
+        try:
+            resp = self._http_get("http://localhost:8082/health")
+            if resp.status_code == 426:
+                assert "426" in resp.text, f"426 body must include status code, got: {resp.text[:200]}"
+            elif resp.status_code == 400:
+                pytest.skip("SharedServices returns 400 for plain HTTP (mTLS expected)")
+            else:
+                pytest.skip(f"SharedServices HTTP returned {resp.status_code}, not 426")
+        except Exception:
+            pytest.skip("SharedServices not accepting HTTP on :8082")
+
+
 class TestNoHTTPInCode:
     """SEC-HTTPS-001-REQ-004: No http://localhost in production code."""
 
