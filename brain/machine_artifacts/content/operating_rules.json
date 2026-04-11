@@ -74,6 +74,12 @@
         {
           "type": "backlog_schema",
           "path": "brain/machine_artifacts/content/agile_backlog.json"
+        },
+        {
+          "type": "bugs_schema"
+        },
+        {
+          "type": "ai_operations_schema"
         }
       ],
       "ch_matrix_id": "bd81678a-2bb6-4f2e-9e30-9416d189b78d"
