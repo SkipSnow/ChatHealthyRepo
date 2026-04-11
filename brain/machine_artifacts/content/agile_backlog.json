@@ -27154,6 +27154,36 @@
                     "Azure Durable Functions (Python 3.12)",
                     "MongoDB Atlas"
                   ]
+                },
+                {
+                  "req_id": "PIPE-LC-015-REQ-003",
+                  "requirement": "The timer (every 30 seconds) must check for zero reservations. If zero reservations and cluster is IDLE, pause the cluster. This is the auto-shutdown mechanism.",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "realized_by": [
+                    "Azure Durable Functions (Python 3.12)",
+                    "MongoDB Atlas"
+                  ]
+                },
+                {
+                  "req_id": "PIPE-LC-015-REQ-004",
+                  "requirement": "A developer must be able to manually create a reservation (to keep the cluster alive for debugging) and manually remove it (to let the cluster pause).",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "realized_by": [
+                    "Azure Durable Functions (Python 3.12)",
+                    "MongoDB Atlas"
+                  ]
+                },
+                {
+                  "req_id": "PIPE-LC-015-REQ-005",
+                  "requirement": "Failsafe: if the cluster is paused, any remaining reservations must be automatically removed. A paused cluster cannot have active reservations.",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "realized_by": [
+                    "Azure Durable Functions (Python 3.12)",
+                    "MongoDB Atlas"
+                  ]
                 }
               ],
               "ch_matrix_id": "24782adc-64ae-4732-8838-72f8af275ec6"
@@ -31639,6 +31669,80 @@
             }
           ],
           "epic_id": "EPIC-008"
+        },
+        {
+          "feature_id": "ARCH-BRAIN-CONSIST",
+          "name": "Brain Consistency",
+          "status": "NOT_STARTED",
+          "description": "Ensures all brain JSON data is internally consistent, cross-referenced, and free of orphaned records. Enforcement mechanisms run deterministically on boot and at check-in.",
+          "realized_by": [
+            "Python 3.11"
+          ],
+          "stories": [
+            {
+              "story_id": "ARCH-ORPHAN-001",
+              "title": "Orphan Bug Triage",
+              "description": "On every boot, the boot class scans bugs.json for ORPHAN_BUG entries and surfaces them for Boss triage. Orphan bugs are valid in Unattended Mode (v4-033) but MUST be resolved in the next attended session.",
+              "size": "L",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {
+                  "req_id": "ARCH-ORPHAN-001-REQ-001",
+                  "requirement": "On every boot, the boot class MUST scan bugs.json for entries with req_id: ORPHAN_BUG and output a table to the session showing: bug ID, type, rule text (truncated), and last updated date.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "ARCH-ORPHAN-001-REQ-002",
+                  "requirement": "The orphan scan MUST be pure file I/O — no network, no database. If bugs.json is not found, corrupt, or unreadable, the scan MUST fail open with a specific exception message and full stack trace printed to stderr.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "ARCH-ORPHAN-001-REQ-003",
+                  "requirement": "The boot class MUST be a single Python file with __main__ and a ChatHealthyBoot class. run() executes all boot steps. __main__ constructs the class and calls run(). Both MUST have try/catch/finally with stack traces. Both MUST fail open.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "ARCH-ORPHAN-001-REQ-004",
+                  "requirement": "inform_claude() MUST be called by run() to output session context — including the orphan table — to Claude via additionalContext in the hook response.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "ARCH-ORPHAN-001-REQ-005",
+                  "requirement": "chathealthyai_brainboot.json MUST be deleted. brain/machine_artifacts/boot/ directory MUST be deleted. All references to both in chathealthy_devops_boot.py and governance_matrix.json MUST be removed.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "ARCH-ORPHAN-001-REQ-006",
+                  "requirement": "CLAUDE.md MUST state only that the boot class governs the session.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
