@@ -931,7 +931,7 @@
         "dev",
         "qa"
       ],
-      "status": "open",
+      "status": "closed",
       "resolution": "",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000016-0000-4000-e000-000000000016",
@@ -939,7 +939,7 @@
       "req_id": "TEST-SIM-001-REQ-002",
       "type": "medium",
       "reason": "Environment banner does not show build number, version, environment, or framework version. Banner only shows env name until health endpoint responds, then shows env + build + version but missing frame",
-      "resolution_status": "testing"
+      "resolution_status": "tested_passed"
     },
     {
       "id": "BUG-GOV-004",
