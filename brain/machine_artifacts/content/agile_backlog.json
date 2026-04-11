@@ -22704,10 +22704,187 @@
           "realized_by": [
             "Azure / Cloudflare"
           ]
+        },
+        {
+          "feature_id": "UMLS-COMPLIANCE",
+          "name": "UMLS License Compliance — Pre-Alpha",
+          "epic_id": "EPIC-001",
+          "priority": "HIGH",
+          "status": "IN_PROGRESS",
+          "due": "2026-04-30",
+          "stories": [
+            {
+              "story_id": "UMLS-CPT-001",
+              "title": "Remove CPT codes from consumer-facing features",
+              "description": "CPT Category 3 restricts use to internal research/development only. Any CPT code display in user-facing UI must be removed or blocked. Separate AMA commercial license required for public use.",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {
+                  "req_id": "UMLS-CPT-001-REQ-001",
+                  "requirement": "Audit all user-facing output for CPT code exposure",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "ch_matrix_id": "99400763-eaeb-45e0-aca4-2ad08347b77c",
+                  "realized_by": [
+                    "NLM UMLS API",
+                    "MongoDB Atlas"
+                  ]
+                },
+                {
+                  "req_id": "UMLS-CPT-001-REQ-002",
+                  "requirement": "Remove or block CPT code display in FindCare and EvaluateCare UI",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "ch_matrix_id": "c4b3a54a-3fca-455a-9da3-7b6b7e67f8ea",
+                  "realized_by": [
+                    "NLM UMLS API",
+                    "MongoDB Atlas"
+                  ]
+                },
+                {
+                  "req_id": "UMLS-CPT-001-REQ-003",
+                  "requirement": "CPT codes may be used internally for scoring but never shown to consumers",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "ch_matrix_id": "891ce985-e7f1-4765-9760-005c216fae22",
+                  "realized_by": [
+                    "NLM UMLS API",
+                    "MongoDB Atlas"
+                  ]
+                }
+              ],
+              "ch_matrix_id": "6524fb23-1972-4b32-b2d4-829a3f081a4c",
+              "size": "M"
+            },
+            {
+              "story_id": "UMLS-ATTR-001",
+              "title": "Display required copyright and attribution notices",
+              "description": "UMLS license requires copyright notices before user access to any UMLS-derived content. SNOMED CT, LOINC, and other sources have specific attribution text.",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {
+                  "req_id": "UMLS-ATTR-001-REQ-001",
+                  "requirement": "Display UMLS copyright notice before user accesses any UMLS-derived content",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "ch_matrix_id": "a0fe1e4f-a2d6-4ac4-9b75-58ec4594c977",
+                  "realized_by": [
+                    "NLM UMLS API",
+                    "MongoDB Atlas"
+                  ]
+                },
+                {
+                  "req_id": "UMLS-ATTR-001-REQ-002",
+                  "requirement": "Display SNOMED CT attribution on all media containing SNOMED CT content",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "ch_matrix_id": "cd502fdc-cda6-4429-9b82-19f95fe9e93b",
+                  "realized_by": [
+                    "NLM UMLS API",
+                    "MongoDB Atlas"
+                  ]
+                },
+                {
+                  "req_id": "UMLS-ATTR-001-REQ-003",
+                  "requirement": "Display LOINC Regenstrief Institute copyright if LOINC codes are used",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "ch_matrix_id": "85c0a1b9-4155-4b58-b41b-f05da531b493",
+                  "realized_by": [
+                    "NLM UMLS API",
+                    "MongoDB Atlas"
+                  ]
+                },
+                {
+                  "req_id": "UMLS-ATTR-001-REQ-004",
+                  "requirement": "Do not imply NLM or source organizations endorse ChatHealthy",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "ch_matrix_id": "c5566b5c-4072-4e50-90f8-7f4df945e29d",
+                  "realized_by": [
+                    "NLM UMLS API",
+                    "MongoDB Atlas"
+                  ]
+                }
+              ],
+              "ch_matrix_id": "ae553ead-d475-4834-8400-09d93e48c52c",
+              "size": "M"
+            },
+            {
+              "story_id": "UMLS-GEO-001",
+              "title": "Geo-fence US-only vocabularies",
+              "description": "ICD-10-CM (Category 4) and SNOMED CT US Edition are restricted to US use only. Must prevent non-US users from accessing features powered by these vocabularies.",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {
+                  "req_id": "UMLS-GEO-001-REQ-001",
+                  "requirement": "US-only vocabulary features must be geo-fenced to US users",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "ch_matrix_id": "61cf8b17-9142-4fac-b7e8-8d1f93779ab9",
+                  "realized_by": [
+                    "NLM UMLS API",
+                    "MongoDB Atlas"
+                  ]
+                },
+                {
+                  "req_id": "UMLS-GEO-001-REQ-002",
+                  "requirement": "No raw or extractable UMLS vocabulary data exposed via API or UI",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "ch_matrix_id": "8e00e565-c1bc-457b-8890-8b340a3f7774",
+                  "realized_by": [
+                    "NLM UMLS API",
+                    "MongoDB Atlas"
+                  ]
+                }
+              ],
+              "ch_matrix_id": "7333e6b7-507c-4f2d-8d0d-2ea23248d0bb",
+              "size": "M"
+            },
+            {
+              "story_id": "UMLS-NLM-001",
+              "title": "NLM notification and annual reporting",
+              "description": "Must notify NLM before distributing any application using UMLS. Annual usage report due by January 30 each year.",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {
+                  "req_id": "UMLS-NLM-001-REQ-001",
+                  "requirement": "Notify NLM in writing before alpha launch",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "ch_matrix_id": "1d4b4106-b0cd-4bee-a53f-e9b3b0f11364",
+                  "realized_by": [
+                    "NLM UMLS API",
+                    "MongoDB Atlas"
+                  ]
+                },
+                {
+                  "req_id": "UMLS-NLM-001-REQ-002",
+                  "requirement": "Set up annual NLM usage report process due January 30",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "ch_matrix_id": "080a60d2-f618-4e15-8fd9-b8da09e71205",
+                  "realized_by": [
+                    "NLM UMLS API",
+                    "MongoDB Atlas"
+                  ]
+                }
+              ],
+              "ch_matrix_id": "0b6eaedd-cb93-490b-b57d-b2fe22482fe7",
+              "size": "M"
+            }
+          ],
+          "ch_matrix_id": "df447578-a4d5-44a5-9943-de2636f54ba5",
+          "realized_by": [
+            "NLM UMLS API",
+            "MongoDB Atlas"
+          ],
+          "description": "UMLS License Compliance — Pre-Alpha"
         }
       ],
       "ch_matrix_id": "075de9fc-969c-4f5e-9977-0136e167dfcd",
-      "type": "operational",
+      "type": "functional",
       "description": "Evaluate Care scores and ranks healthcare providers and clinical trials by quality measures, giving consumers objective data to make informed decisions."
     },
     {
@@ -24547,195 +24724,6 @@
       "description": "Security infrastructure protecting all ChatHealthy services — authentication, encryption, network isolation, and compliance."
     },
     {
-      "epic_id": "EPIC-003",
-      "name": "UMLS License Compliance",
-      "goal": "Ensure all UMLS-derived content meets license terms before alpha launch",
-      "status": "active",
-      "parent_epic": "EPIC-4",
-      "features": [
-        {
-          "feature_id": "UMLS-COMPLIANCE",
-          "name": "UMLS License Compliance — Pre-Alpha",
-          "epic_id": "EPIC-002",
-          "priority": "HIGH",
-          "status": "IN_PROGRESS",
-          "due": "2026-04-30",
-          "stories": [
-            {
-              "story_id": "UMLS-CPT-001",
-              "title": "Remove CPT codes from consumer-facing features",
-              "description": "CPT Category 3 restricts use to internal research/development only. Any CPT code display in user-facing UI must be removed or blocked. Separate AMA commercial license required for public use.",
-              "status": "NOT_STARTED",
-              "requirements": [
-                {
-                  "req_id": "UMLS-CPT-001-REQ-001",
-                  "requirement": "Audit all user-facing output for CPT code exposure",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "ch_matrix_id": "99400763-eaeb-45e0-aca4-2ad08347b77c",
-                  "realized_by": [
-                    "NLM UMLS API",
-                    "MongoDB Atlas"
-                  ]
-                },
-                {
-                  "req_id": "UMLS-CPT-001-REQ-002",
-                  "requirement": "Remove or block CPT code display in FindCare and EvaluateCare UI",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "ch_matrix_id": "c4b3a54a-3fca-455a-9da3-7b6b7e67f8ea",
-                  "realized_by": [
-                    "NLM UMLS API",
-                    "MongoDB Atlas"
-                  ]
-                },
-                {
-                  "req_id": "UMLS-CPT-001-REQ-003",
-                  "requirement": "CPT codes may be used internally for scoring but never shown to consumers",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "ch_matrix_id": "891ce985-e7f1-4765-9760-005c216fae22",
-                  "realized_by": [
-                    "NLM UMLS API",
-                    "MongoDB Atlas"
-                  ]
-                }
-              ],
-              "ch_matrix_id": "6524fb23-1972-4b32-b2d4-829a3f081a4c",
-              "size": "M"
-            },
-            {
-              "story_id": "UMLS-ATTR-001",
-              "title": "Display required copyright and attribution notices",
-              "description": "UMLS license requires copyright notices before user access to any UMLS-derived content. SNOMED CT, LOINC, and other sources have specific attribution text.",
-              "status": "NOT_STARTED",
-              "requirements": [
-                {
-                  "req_id": "UMLS-ATTR-001-REQ-001",
-                  "requirement": "Display UMLS copyright notice before user accesses any UMLS-derived content",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "ch_matrix_id": "a0fe1e4f-a2d6-4ac4-9b75-58ec4594c977",
-                  "realized_by": [
-                    "NLM UMLS API",
-                    "MongoDB Atlas"
-                  ]
-                },
-                {
-                  "req_id": "UMLS-ATTR-001-REQ-002",
-                  "requirement": "Display SNOMED CT attribution on all media containing SNOMED CT content",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "ch_matrix_id": "cd502fdc-cda6-4429-9b82-19f95fe9e93b",
-                  "realized_by": [
-                    "NLM UMLS API",
-                    "MongoDB Atlas"
-                  ]
-                },
-                {
-                  "req_id": "UMLS-ATTR-001-REQ-003",
-                  "requirement": "Display LOINC Regenstrief Institute copyright if LOINC codes are used",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "ch_matrix_id": "85c0a1b9-4155-4b58-b41b-f05da531b493",
-                  "realized_by": [
-                    "NLM UMLS API",
-                    "MongoDB Atlas"
-                  ]
-                },
-                {
-                  "req_id": "UMLS-ATTR-001-REQ-004",
-                  "requirement": "Do not imply NLM or source organizations endorse ChatHealthy",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "ch_matrix_id": "c5566b5c-4072-4e50-90f8-7f4df945e29d",
-                  "realized_by": [
-                    "NLM UMLS API",
-                    "MongoDB Atlas"
-                  ]
-                }
-              ],
-              "ch_matrix_id": "ae553ead-d475-4834-8400-09d93e48c52c",
-              "size": "M"
-            },
-            {
-              "story_id": "UMLS-GEO-001",
-              "title": "Geo-fence US-only vocabularies",
-              "description": "ICD-10-CM (Category 4) and SNOMED CT US Edition are restricted to US use only. Must prevent non-US users from accessing features powered by these vocabularies.",
-              "status": "NOT_STARTED",
-              "requirements": [
-                {
-                  "req_id": "UMLS-GEO-001-REQ-001",
-                  "requirement": "US-only vocabulary features must be geo-fenced to US users",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "ch_matrix_id": "61cf8b17-9142-4fac-b7e8-8d1f93779ab9",
-                  "realized_by": [
-                    "NLM UMLS API",
-                    "MongoDB Atlas"
-                  ]
-                },
-                {
-                  "req_id": "UMLS-GEO-001-REQ-002",
-                  "requirement": "No raw or extractable UMLS vocabulary data exposed via API or UI",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "ch_matrix_id": "8e00e565-c1bc-457b-8890-8b340a3f7774",
-                  "realized_by": [
-                    "NLM UMLS API",
-                    "MongoDB Atlas"
-                  ]
-                }
-              ],
-              "ch_matrix_id": "7333e6b7-507c-4f2d-8d0d-2ea23248d0bb",
-              "size": "M"
-            },
-            {
-              "story_id": "UMLS-NLM-001",
-              "title": "NLM notification and annual reporting",
-              "description": "Must notify NLM before distributing any application using UMLS. Annual usage report due by January 30 each year.",
-              "status": "NOT_STARTED",
-              "requirements": [
-                {
-                  "req_id": "UMLS-NLM-001-REQ-001",
-                  "requirement": "Notify NLM in writing before alpha launch",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "ch_matrix_id": "1d4b4106-b0cd-4bee-a53f-e9b3b0f11364",
-                  "realized_by": [
-                    "NLM UMLS API",
-                    "MongoDB Atlas"
-                  ]
-                },
-                {
-                  "req_id": "UMLS-NLM-001-REQ-002",
-                  "requirement": "Set up annual NLM usage report process due January 30",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "ch_matrix_id": "080a60d2-f618-4e15-8fd9-b8da09e71205",
-                  "realized_by": [
-                    "NLM UMLS API",
-                    "MongoDB Atlas"
-                  ]
-                }
-              ],
-              "ch_matrix_id": "0b6eaedd-cb93-490b-b57d-b2fe22482fe7",
-              "size": "M"
-            }
-          ],
-          "ch_matrix_id": "df447578-a4d5-44a5-9943-de2636f54ba5",
-          "realized_by": [
-            "NLM UMLS API",
-            "MongoDB Atlas"
-          ],
-          "description": "UMLS License Compliance — Pre-Alpha"
-        }
-      ],
-      "ch_matrix_id": "2cc9d8ae-d2af-4f97-8416-c3b6f80602b5",
-      "type": "functional",
-      "description": "UMLS terminology license compliance ensuring proper use of RxNorm, SNOMED CT, LOINC, MeSH, and ICD-10-CM per NLM requirements."
-    },
-    {
       "epic_id": "EPIC-004",
       "name": "Safety",
       "capacity": "",
@@ -24801,7 +24789,7 @@
         }
       ],
       "ch_matrix_id": "f778c4ab-93e2-46de-8144-f568e3a1a182",
-      "type": "operational",
+      "type": "functional",
       "description": "Safety system detecting medical emergencies in user conversations and routing to 911 with IP-locked audit trail."
     },
     {
@@ -25334,7 +25322,7 @@
         }
       ],
       "ch_matrix_id": "3561e18f-baf3-427b-ae0e-bf71db886bc7",
-      "type": "functional",
+      "type": "operational",
       "description": "Testing infrastructure — Playwright SIT tests, regression suites, and quality assurance tooling."
     },
     {
@@ -28876,49 +28864,65 @@
                   "requirement": "Pass 1 must stream source files without holding full source in memory. It accumulates a definitions map (name, file, line) and a references set (names used). Memory proportional to symbol count, not source size. DR-008 compliant.",
                   "priority": "must-have",
                   "status": "open",
-                  "realized_by": ["Python 3.11 (ast module)"]
+                  "realized_by": [
+                    "Python 3.11 (ast module)"
+                  ]
                 },
                 {
                   "req_id": "PIPE-TR-003-REQ-002",
                   "requirement": "Pass 2 walks the definitions map and checks each against the references set. Any definition with zero references and no framework-invocation decorator (FastAPI route, Azure trigger, governance hook) is reported as dead code.",
                   "priority": "must-have",
                   "status": "open",
-                  "realized_by": ["Python 3.11 (ast module)"]
+                  "realized_by": [
+                    "Python 3.11 (ast module)"
+                  ]
                 },
                 {
                   "req_id": "PIPE-TR-003-REQ-003",
                   "requirement": "Check-in mode scans only staged files (git diff --cached). If a staged file adds a function, verify something calls it. If it deletes a function, verify nothing else calls it. Must complete in under 5 seconds for typical commits.",
                   "priority": "must-have",
                   "status": "open",
-                  "realized_by": ["Python 3.11 (ast module)", "git"]
+                  "realized_by": [
+                    "Python 3.11 (ast module)",
+                    "git"
+                  ]
                 },
                 {
                   "req_id": "PIPE-TR-003-REQ-004",
                   "requirement": "Full regression mode scans the entire codebase with two passes. Run on demand or before promotion to QA/prod. Reports all dead code with file, line, and function name.",
                   "priority": "must-have",
                   "status": "open",
-                  "realized_by": ["Python 3.11 (ast module)"]
+                  "realized_by": [
+                    "Python 3.11 (ast module)"
+                  ]
                 },
                 {
                   "req_id": "PIPE-TR-003-REQ-005",
                   "requirement": "The scanner is a single class that holds state (definitions map, references set, findings list). It is not a separate script — it is a method on the existing pre_deploy_rule_check scanner class. One scanner, one class, shared state.",
                   "priority": "must-have",
                   "status": "open",
-                  "realized_by": ["Python 3.11"]
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
                 },
                 {
                   "req_id": "PIPE-TR-003-REQ-006",
                   "requirement": "Dead code found during check-in mode blocks the commit. Dead code found during full regression is reported but does not block (informational for promotion review).",
                   "priority": "must-have",
                   "status": "open",
-                  "realized_by": ["Python 3.11", "git hooks"]
+                  "realized_by": [
+                    "Python 3.11",
+                    "git hooks"
+                  ]
                 },
                 {
                   "req_id": "PIPE-TR-003-REQ-007",
                   "requirement": "The scanner validates v4-032: every plural-named field in every brain JSON must be an array. Every array member must conform to the singular-named schema. The scanner reads the schema to discover plural/singular pairs and validates the data against them. Implementation may be AI scan or code scan.",
                   "priority": "must-have",
                   "status": "open",
-                  "realized_by": ["Python 3.11 (pre_deploy_rule_check.py)"]
+                  "realized_by": [
+                    "Python 3.11 (pre_deploy_rule_check.py)"
+                  ]
                 }
               ]
             }
@@ -30509,8 +30513,12 @@
                   "requirement": "System must send push email notifications for lead/activity events via SparkPost when configured.",
                   "priority": "should-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000001"
                 },
                 {
@@ -30518,8 +30526,13 @@
                   "requirement": "System must persist significant activity records to MongoDB via commitSignificantActivity.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000002"
                 },
                 {
@@ -30527,8 +30540,12 @@
                   "requirement": "System must truncate and normalize chat history before injecting into tool calls (max 500 chars per message).",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000003"
                 },
                 {
@@ -30536,8 +30553,12 @@
                   "requirement": "HTTP request logging middleware must log method, path, status code, elapsed ms, and client IP for every request.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000004"
                 },
                 {
@@ -30545,8 +30566,12 @@
                   "requirement": "GET /welcome must return the system welcome message.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000005"
                 }
               ],
@@ -30565,8 +30590,12 @@
                   "requirement": "URLGuardian must validate URLs via HEAD request with redirect following. Broken URLs detected, redirects resolved.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000001"
                 },
                 {
@@ -30574,8 +30603,12 @@
                   "requirement": "URLGuardian must validate URLs in tool result dicts (links key). Broken links removed, redirects updated.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000002"
                 },
                 {
@@ -30583,8 +30616,12 @@
                   "requirement": "URLGuardian must validate URLs in markdown text. Broken markdown links defanged (text kept, link removed). Broken bare URLs left as plain text.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000003"
                 },
                 {
@@ -30592,8 +30629,12 @@
                   "requirement": "URLGuardian must use AI content verification (Claude Haiku) to confirm reachable URLs show expected content. Pages with wrong content treated as broken.",
                   "priority": "should-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000004"
                 },
                 {
@@ -30601,8 +30642,12 @@
                   "requirement": "URLGuardian must attempt Google search correction for broken URLs, then AI-verify the top result matches intent.",
                   "priority": "should-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000005"
                 }
               ],
@@ -30621,8 +30666,12 @@
                   "requirement": "CORS allow_origins must include only chathealthy.ai domains. Localhost via allow_origin_regex only.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0003-4003-8003-000000000001"
                 }
               ],
@@ -30641,8 +30690,13 @@
                   "requirement": "GET /session must return a signed session token with origin=FindCare. Falls back to unsigned token if cert unavailable.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)", "mTLS (x509)"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "mTLS (x509)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0004-4004-8004-000000000001"
                 }
               ],
@@ -30661,8 +30715,12 @@
                   "requirement": "ToolRouter must maintain an explicit allowlist registry. Only registered tools can be dispatched.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["test_tool_router.py::TestToolRouter::test_unregistered_tool_blocked"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "test_tool_router.py::TestToolRouter::test_unregistered_tool_blocked"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000001"
                 },
                 {
@@ -30670,8 +30728,12 @@
                   "requirement": "ToolRouter must validate tool inputs via Pydantic models before calling handlers. Invalid inputs rejected with error.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["test_tool_router.py::TestToolRouter::test_pydantic_validation"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "test_tool_router.py::TestToolRouter::test_pydantic_validation"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000002"
                 },
                 {
@@ -30679,8 +30741,12 @@
                   "requirement": "ToolRouter must handle both Anthropic tool_use blocks and OpenAI normalized tool calls, injecting chat_history for tools that need it.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["test_tool_router.py::TestToolRouter::test_handle_tool_calls"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "test_tool_router.py::TestToolRouter::test_handle_tool_calls"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000003"
                 }
               ],
@@ -30699,8 +30765,13 @@
                   "requirement": "record_user_details must accept email, name, notes, message, and consent flags via Pydantic-validated input.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000001"
                 },
                 {
@@ -30708,8 +30779,13 @@
                   "requirement": "If consent_verbatim is true, full chat history is stored with the lead record.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000002"
                 },
                 {
@@ -30717,8 +30793,13 @@
                   "requirement": "If consent_summary is true (not verbatim), conversation is summarized and de-identified before storage.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000003"
                 }
               ],
@@ -30737,8 +30818,13 @@
                   "requirement": "record_unknown_question must accept question, question_class, and consent flag via Pydantic-validated input.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["test_unanswerable_questions.py::TestUnanswerableQuestions"],
-                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas"],
+                  "pytest_ids": [
+                    "test_unanswerable_questions.py::TestUnanswerableQuestions"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000001"
                 },
                 {
@@ -30746,8 +30832,12 @@
                   "requirement": "Response templates must exist for three question classes: healthcare_capability, medical_advice, irrelevant.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["test_unanswerable_questions.py::TestUnanswerableQuestions"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "test_unanswerable_questions.py::TestUnanswerableQuestions"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000002"
                 },
                 {
@@ -30755,8 +30845,13 @@
                   "requirement": "If user consents, chat history must be de-identified before recording. Question and class stored in AboutUs.AboutSkip.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["test_unanswerable_questions.py::TestUnanswerableQuestions"],
-                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas"],
+                  "pytest_ids": [
+                    "test_unanswerable_questions.py::TestUnanswerableQuestions"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000003"
                 }
               ],
@@ -30775,8 +30870,13 @@
                   "requirement": "get_provider_location must return lat, lng, and formatted address for a given NPI from the providers collection.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0008-4008-8008-000000000001"
                 }
               ],
@@ -30795,8 +30895,13 @@
                   "requirement": "is_ip_locked must check MongoDB for active (non-expired, non-unlocked) lock records for the given IP.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["test_safety_unlock.py"],
-                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas"],
+                  "pytest_ids": [
+                    "test_safety_unlock.py"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000001"
                 },
                 {
@@ -30804,8 +30909,13 @@
                   "requirement": "lock_ip must create/update a lock record with 1-hour expiry, trigger message, and chat history.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["test_safety_unlock.py"],
-                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas"],
+                  "pytest_ids": [
+                    "test_safety_unlock.py"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000002"
                 },
                 {
@@ -30813,8 +30923,13 @@
                   "requirement": "try_admin_unlock must unlock an IP when the admin secret key is present in the message.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["test_safety_unlock.py"],
-                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas"],
+                  "pytest_ids": [
+                    "test_safety_unlock.py"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000003"
                 },
                 {
@@ -30822,8 +30937,12 @@
                   "requirement": "session_is_locked must detect locked sessions by scanning conversation history for EMERGENCY_RESPONSE text.",
                   "priority": "should-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000004"
                 }
               ],
@@ -30842,8 +30961,12 @@
                   "requirement": "summarize_conversation must produce a 2-3 sentence summary of chat history via Claude Haiku.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0010-4010-8010-000000000001"
                 },
                 {
@@ -30851,8 +30974,12 @@
                   "requirement": "de_identify must strip PII from chat history in-place per HIPAA Safe Harbor requirements using Claude Haiku.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0010-4010-8010-000000000002"
                 }
               ],
@@ -30871,8 +30998,12 @@
                   "requirement": "get_skip_snow_context must return summary, LinkedIn content, and connect info with markdown links rendered verbatim.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0011-4011-8011-000000000001"
                 },
                 {
@@ -30880,8 +31011,12 @@
                   "requirement": "get_chathealthy_context must return business_plan and anthropic_principles from pre-loaded ME context.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["NEEDS_TEST"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0011-4011-8011-000000000002"
                 }
               ],
@@ -30900,8 +31035,13 @@
                   "requirement": "log_chat must persist IP, message preview (200 chars), history length, tool loop iterations, token counts, response preview, and error to MongoDB. On error, de-identified chat history included.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["test_debug_logger.py::TestDebugLogger"],
-                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas"],
+                  "pytest_ids": [
+                    "test_debug_logger.py::TestDebugLogger"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0012-4012-8012-000000000001"
                 }
               ],
@@ -30920,8 +31060,12 @@
                   "requirement": "get_query_embedding must return a vector from text-embedding-3-large for provider vector search.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["test_embedding_client.py::TestEmbeddingClient"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "test_embedding_client.py::TestEmbeddingClient"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000001"
                 },
                 {
@@ -30929,8 +31073,12 @@
                   "requirement": "get_specialty_vector must return a vector from text-embedding-3-small for specialty matching.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["test_embedding_client.py::TestEmbeddingClient"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "test_embedding_client.py::TestEmbeddingClient"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000002"
                 },
                 {
@@ -30938,8 +31086,12 @@
                   "requirement": "expand_query_terms must return 2-5 keyword stems via Claude Haiku for regex pipeline matching against Specialization and Display Name fields.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_ids": ["test_embedding_client.py::TestEmbeddingClient"],
-                  "realized_by": ["FastAPI (Python 3.11)"],
+                  "pytest_ids": [
+                    "test_embedding_client.py::TestEmbeddingClient"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
                   "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000003"
                 }
               ],
@@ -30953,7 +31105,7 @@
           ]
         }
       ],
-      "type": "operational"
+      "type": "functional"
     },
     {
       "epic_id": "EPIC-007",
@@ -31023,7 +31175,7 @@
           "feature_id": "TC-ROOM"
         }
       ],
-      "type": "operational"
+      "type": "functional"
     }
   ],
   "sprint_map": [
