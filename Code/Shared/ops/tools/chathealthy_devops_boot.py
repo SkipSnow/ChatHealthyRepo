@@ -392,6 +392,7 @@ class operating_rules_worker(governance_worker_base):
         r"huggingface|hf\.space|hf_space|create_hf_space|delete_hf_space",  # HF Spaces ($0.03/hr)
         r"playwright",  # Playwright browser testing
         r"pytest",  # Test runner
+        r"regression_runner\.py",  # Ordered regression test runner
         r"scan_http\.py",  # HTTPS security scanner (read-only)
         r"^python3?\s+(-c\s|<<)",  # Inline python scripts
     ]

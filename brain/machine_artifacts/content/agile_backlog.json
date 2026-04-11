@@ -25154,6 +25154,60 @@
           ]
         },
         {
+          "feature_id": "TEST-REGRESSION",
+          "name": "Ordered Regression Test Runner",
+          "epic_id": "EPIC-005",
+          "status": "NOT_STARTED",
+          "description": "Regression test runner that executes pytests ordered by the backlog hierarchy: epic by epic, feature by feature, story by story. Callable at any scope: all, epic, feature, or story. Reads agile_backlog.json to discover test ordering and pytest_ids, then invokes pytest in the correct sequence. Reports results per requirement.",
+          "realized_by": ["Python 3.11", "pytest"],
+          "stories": [
+            {
+              "story_id": "TEST-REG-001",
+              "title": "Backlog-ordered regression runner",
+              "description": "A script that reads agile_backlog.json, extracts all pytest_ids grouped by epic/feature/story, and runs them in hierarchy order. Supports scope arguments: --all, --epic EPIC-006, --feature FC-SEARCH, --story FC-SEARCH-001.",
+              "size": "L",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {
+                  "req_id": "TEST-REG-001-REQ-001",
+                  "requirement": "The runner reads agile_backlog.json and extracts all pytest_ids grouped by epic, feature, story, requirement. Tests execute in hierarchy order: EPIC-001 features first, then EPIC-002, etc.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "realized_by": ["Python 3.11"]
+                },
+                {
+                  "req_id": "TEST-REG-001-REQ-002",
+                  "requirement": "The runner accepts scope arguments: --all (entire backlog), --epic EPIC-006 (one epic), --feature FC-SEARCH (one feature), --story FC-SEARCH-001 (one story). Default is --all.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "realized_by": ["Python 3.11"]
+                },
+                {
+                  "req_id": "TEST-REG-001-REQ-003",
+                  "requirement": "Results are reported per requirement: req_id, pytest_id, pass/fail/skip/error. Summary shows counts per story, feature, epic, and overall.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "realized_by": ["Python 3.11", "pytest"]
+                },
+                {
+                  "req_id": "TEST-REG-001-REQ-004",
+                  "requirement": "Requirements with no pytest_ids (status != implemented) are reported as 'not testable' in the results, not as failures.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "realized_by": ["Python 3.11"]
+                },
+                {
+                  "req_id": "TEST-REG-001-REQ-005",
+                  "requirement": "The runner produces a machine-readable JSON report in addition to console output. The report follows the backlog hierarchy with pass/fail per requirement.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "realized_by": ["Python 3.11", "pytest"]
+                }
+              ]
+            }
+          ]
+        },
+        {
           "feature_id": "DEVOPS-QA-REPORT",
           "name": "QA Report Renderer",
           "epic_id": "EPIC-005",
