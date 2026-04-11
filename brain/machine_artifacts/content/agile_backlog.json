@@ -31529,7 +31529,7 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "pytest_ids": [
-                    "test_boss_constraint.py::TestBossConstraint"
+                    "test_arch_constraints.py::TestArchConstraintVectorIndex::test_risk_acceptance_loaded_by_guard"
                   ],
                   "test_method": "pytest",
                   "test_timeout_seconds": 30,
@@ -31543,7 +31543,7 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "pytest_ids": [
-                    "test_boss_constraint.py::TestBossConstraint"
+                    "test_arch_constraints.py::TestArchConstraintVectorIndex::test_create_vector_index"
                   ],
                   "test_method": "pytest",
                   "test_timeout_seconds": 30,
@@ -31558,7 +31558,7 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "pytest_ids": [
-                    "test_boss_constraint.py::TestBossConstraint"
+                    "test_arch_constraints.py::TestArchConstraintVectorIndex::test_risk_acceptance_loaded_by_guard"
                   ],
                   "test_method": "pytest",
                   "test_timeout_seconds": 30,
