@@ -230,6 +230,57 @@ def enforce_backlog_schema(rule_id, enforcement):
     return violations
 
 
+def enforce_bugs_schema(rule_id, enforcement):
+    """Validate bugs.json against bugs_schema in schema.json."""
+    violations = []
+    bugs_path = os.path.join(REPO_ROOT, "brain", "machine_artifacts", "content", "bugs.json")
+    schema_path = os.path.join(REPO_ROOT, "brain", "machine_artifacts", "content", "schema.json")
+    try:
+        with open(schema_path, "r", encoding="utf-8") as f:
+            schema = json.load(f)
+        with open(bugs_path, "r", encoding="utf-8") as f:
+            bugs = json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError) as e:
+        violations.append(f"{rule_id}: {e}")
+        return violations
+
+    bug_fields = schema.get("collections", {}).get("bugs", {}).get("record_schema", {}).get("fields", {})
+    for bug in bugs.get("bugs", []):
+        bid = bug.get("id", "?")
+        for fname, fdef in bug_fields.items():
+            if fdef.get("required") and fname not in bug and fdef.get("default") is None:
+                violations.append(f"{rule_id}: bug:{bid} missing required field '{fname}'")
+    return violations
+
+
+def enforce_ai_operations_schema(rule_id, enforcement):
+    """Validate ai_operations.json dead_code_records against dead_code_record schema."""
+    violations = []
+    ops_path = os.path.join(REPO_ROOT, "brain", "machine_artifacts", "content", "ai_operations.json")
+    schema_path = os.path.join(REPO_ROOT, "brain", "machine_artifacts", "content", "schema.json")
+    try:
+        with open(schema_path, "r", encoding="utf-8") as f:
+            schema = json.load(f)
+        with open(ops_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError) as e:
+        violations.append(f"{rule_id}: {e}")
+        return violations
+
+    dc_fields = schema.get("collections", {}).get("ai_operations", {}).get("record_schemas", {}).get("dead_code_record", {}).get("fields", {})
+    for rec in data.get("dead_code_records", []):
+        rid = rec.get("id", "?")
+        for fname, fdef in dc_fields.items():
+            if fdef.get("required") and fname not in rec:
+                violations.append(f"{rule_id}: dc:{rid} missing required field '{fname}'")
+            if fname in rec:
+                possible = fdef.get("possible_values", [])
+                val = rec[fname]
+                if possible and val and isinstance(val, str) and val not in possible:
+                    violations.append(f"{rule_id}: dc:{rid} '{fname}' value '{val}' not in {possible}")
+    return violations
+
+
 EXECUTORS = {
     "file_scan": enforce_file_scan,
     "file_absent": enforce_file_absent,
@@ -238,6 +289,8 @@ EXECUTORS = {
     "no_pattern": enforce_no_pattern,
     "requirement_pytest": enforce_requirement_pytest,
     "backlog_schema": enforce_backlog_schema,
+    "bugs_schema": enforce_bugs_schema,
+    "ai_operations_schema": enforce_ai_operations_schema,
 }
 
 

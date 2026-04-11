@@ -17,7 +17,11 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "next_action": "Infrastructure: vector search indexes (provider_vector_index, specialty_vector_index) must be created on frontend cluster. Cannot fix in code alone — requires pipeline/infra work."
+      "next_action": "Infrastructure: vector search indexes (provider_vector_index, specialty_vector_index) must be created on frontend cluster. Cannot fix in code alone — requires pipeline/infra work.",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Specialty filter panel empty — specialization_options returns 0 items. Root cause: SpecialtyService.find_specialty_codes returns empty despite SpecialtyMetaData having 45 matches for 'surg' in Display",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-MSG-001",
@@ -34,7 +38,10 @@
       "status": "open",
       "risk_acceptance_id": null,
       "resolution": "Architecture change eliminated root cause. /classify returns specialty codes (no summary text), /search returns DB results. LLM never sees or summarizes provider results. strip_llm_summary function also added as defense-in-depth. Closed 2026-04-10.",
-      "resolution_status": "tested_passed"
+      "resolution_status": "tested_passed",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "LLM response duplicates system summary. LLM says 'Here are the first 25 of 11,772' AND system says 'There are 11,747 more'. User sees double. Root cause eliminated: architecture changed to /classify +"
     },
     {
       "id": "BUG-FILTER-002",
@@ -50,7 +57,10 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "resolution_status": "tested_passed"
+      "resolution_status": "tested_passed",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Filter panel text displayed sideways. Root cause: leftPanel div had writing-mode:vertical-rl for the blank label, never reset when filter content loaded. Fix: innerHTML replacement removes vertical la"
     },
     {
       "id": "BUG-MSG-002",
@@ -67,7 +77,10 @@
       "status": "open",
       "risk_acceptance_id": null,
       "resolution": "Rule text already says BUG FIXED. Closed 2026-04-10.",
-      "resolution_status": "tested_passed"
+      "resolution_status": "tested_passed",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Summary used LLM-translated term ('psychiatrist') instead of user's term ('shrinks'). Root cause: specialty_searched came from the LLM's tool call parameter, not the user's original message. Fix: main"
     },
     {
       "id": "BUG-VECTOR-001",
@@ -83,7 +96,11 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "next_action": "Infrastructure: requires vector search indexes on SpecialtyMetaData collection. Pipeline/infra work, not a code-only fix."
+      "next_action": "Infrastructure: requires vector search indexes on SpecialtyMetaData collection. Pipeline/infra work, not a code-only fix.",
+      "req_id": "NEEDS_REQ",
+      "type": "critical",
+      "reason": "RELEASE BLOCKER — SIT NEXT SPRINT, MUST-HAVE: Specialty code resolution must vector search against SpecialtyMetaData (883 specialty descriptions), not provider records. Current code searches provider ",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-DESIGN-001",
@@ -99,7 +116,11 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "next_action": "UX design decision needed from Boss: pagination controls placement in cursor bar."
+      "next_action": "UX design decision needed from Boss: pagination controls placement in cursor bar.",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "DESIGN ERROR (Boss): Filtered results with more than one page must show pagination controls in the control frame immediately. Do not make the user ask for page 2 after applying a filter — they already",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-PIPE-001",
@@ -114,7 +135,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Enrichment steps do not filter by states. Pass 1 ZIP crosswalk processed 8.8M records instead of 1.3M because no state filter was applied. Every enrichment step must accept and enforce the states para",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-PIPE-002",
@@ -129,7 +154,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "No try/finally in orchestrators. If a step fails, the reservation is never released and the cluster stays up. Orphan reservations cause unnecessary cost.",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-PIPE-003",
@@ -144,7 +173,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Skipping load step (start_step=3) left stale data. 8.8M records from prior runs remained. Load step must drop collection unless incremental=true.",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-PIPE-005",
@@ -159,7 +192,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Cluster lifecycle reservations stored on the managed cluster. The pipeline management data (_System.cluster_lifecycle) is on the pipeline cluster — the cluster being managed. This creates chicken-and-",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-PIPE-004",
@@ -174,7 +211,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Enrichment must be in-place on provider record. Per MongoDB best practices, one document per provider. No separate enrichment collection.",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-PIPE-006",
@@ -189,7 +230,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "DESIGN BUG (Boss): DataFetcherBase skip guard trusted registry without verifying blob existed. Registry said 'already downloaded' but blob was deleted. Pipeline skipped download, extract failed with B",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-PIPE-008",
@@ -204,7 +249,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Load workers insert duplicate NPI records. 70,000 duplicates found. Same worker_id, same record_id — exact duplicate rows. Root cause: bulk_write batch flushed twice, or worker retried after partial s",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-PIPE-007",
@@ -219,7 +268,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "ensure_postload_indexes_activity fails with DuplicateKeyError on load_record_unique index. Root cause TBD — drop() should clear indexes, but post-load index creation finds duplicate load_id + record_i",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-ROADMAP-001",
@@ -234,7 +287,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "BUG (HIGH): Roadmap milestones in business_plan.json are disconnected date/label pairs with no references to epics, features, or definition of done. The roadmap generator (generate_roadmap_page.py) mu",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-LOAD-001",
@@ -249,7 +306,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "show_stopper",
+      "reason": "SHOW STOPPER — SPRINT BLOCKER — DUE 2026-04-09: Delaware provider load is incomplete. Root cause: CopyToFrontEnd copied only 2,843 of 25,591 DE providers from pipeline cluster to frontend cluster. Pip",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-LOAD-002",
@@ -264,7 +325,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "show_stopper",
+      "reason": "SHOW STOPPER — ALPHA RELEASE BLOCKER: The question 'how many providers are there in DE' must give a correct answer. If the database has 2,843 and the real answer is ~26,000, the system is giving wrong",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-LOAD-003",
@@ -279,7 +344,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "BUG (DESIGN): Source data files in blob storage must NEVER be deleted after loading. The raw NPPES CSV, CMS Part D CSV, OIG LEIE CSV, and SAM exclusion CSV must remain in blob storage until replaced b",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-LEGAL-001",
@@ -294,7 +363,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "critical",
+      "reason": "BUG (SPRINT BLOCKER — DUE THIS SPRINT): CPT codes CANNOT be used in any consumer-facing feature. UMLS license Category 3 restricts CPT to internal use only (research, development, statistical analysis",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-UX-001",
@@ -310,7 +383,11 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "next_action": "Needs live testing to determine if GPT-4.1 switch resolved this. May be model/prompt issue. Cannot verify without running the application."
+      "next_action": "Needs live testing to determine if GPT-4.1 switch resolved this. May be model/prompt issue. Cannot verify without running the application.",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "'find me a kids doc in VA' produces stuck response 'Thinking... Ok No'. Chat never completes. Either safety check, consent flow, or backend timeout is intercepting and the UI doesn't recover. User see",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-UX-002",
@@ -327,7 +404,10 @@
       "status": "open",
       "risk_acceptance_id": null,
       "resolution": "Fixed in FindCareApp.tsx refactor. Filter list div uses flex:1 + overflowY:auto (line 287). No max-height constraint. Closed 2026-04-10.",
-      "resolution_status": "tested_passed"
+      "resolution_status": "tested_passed",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Left panel has overflowY:hidden — filter content cannot scroll. When specialty filter loads with more options than fit in the panel height, user cannot scroll to see all options. Fix: FindCareApp.tsx "
     },
     {
       "id": "UAT-FILTER-001",
@@ -344,7 +424,10 @@
       "status": "open",
       "risk_acceptance_id": null,
       "resolution": "Rule text says PASS. Boss signed off functionality for alpha. Closed 2026-04-10.",
-      "resolution_status": "tested_passed"
+      "resolution_status": "tested_passed",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Filter panel FUNCTIONALITY signed off for alpha by Boss 2026-04-07. Prescriber toggle, homeopathic toggle (Sonnet resolver), specialty checkboxes, counts display, client-side caching, scroll bar — all"
     },
     {
       "id": "BUG-BA-001",
@@ -365,7 +448,8 @@
       "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay",
       "pytest_success_criteria": "Playwright test verifies all three filter header numbers are specialty type counts (< 100), not provider counts (thousands). Uncheck All sets Your choices to 0.",
       "risk_acceptance_id": null,
-      "next_action": "Already in testing status. Code fix done in FindCareApp.tsx. Needs Playwright test execution to confirm three numbers are correct."
+      "next_action": "Already in testing status. Code fix done in FindCareApp.tsx. Needs Playwright test execution to confirm three numbers are correct.",
+      "reason": "First number in filter header shows provider count (4,676) but should show total possible specialties (universe of all specialty types, not providers). Business analyst requirement error — the three n"
     },
     {
       "id": "UAT-UX-001",
@@ -382,7 +466,10 @@
       "status": "open",
       "risk_acceptance_id": null,
       "resolution": "Rule text says PASS. Boss signed off for alpha. Closed 2026-04-10.",
-      "resolution_status": "tested_passed"
+      "resolution_status": "tested_passed",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Timer + Stop button in guiControlFrame. Styled container with teal text, raised Stop button. Boss signed off for alpha 2026-04-07."
     },
     {
       "id": "BUG-UX-003",
@@ -399,7 +486,10 @@
       "status": "open",
       "risk_acceptance_id": null,
       "resolution": "Rule text already says BUG FIXED. Closed 2026-04-10.",
-      "resolution_status": "tested_passed"
+      "resolution_status": "tested_passed",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Stop button left orphaned in chat area when timer moved to control frame. Timer and Stop button are a unit — both must move together. Fixed by removing thinking bubble from chat and rendering both tim"
     },
     {
       "id": "BUG-UX-004",
@@ -416,7 +506,10 @@
       "status": "open",
       "risk_acceptance_id": null,
       "resolution": "Rule text already says BUG FIXED. Closed 2026-04-10.",
-      "resolution_status": "tested_passed"
+      "resolution_status": "tested_passed",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Prescriber toggle checkbox re-rendered as checked when specialty list updated. When user unchecked 'Prescribers only', the list re-render reset the checkbox to checked. Fixed by passing prescribersChe"
     },
     {
       "id": "BUG-PIPE-009",
@@ -431,7 +524,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Overnight pipeline re-downloads CMS Part D CSV (3.7GB) every run instead of using blob storage. The file is already in blob from previous runs. Must use DataFetcherBase ETag guard pattern — download o",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-SEC-001",
@@ -446,7 +543,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "BUG (PRE-ALPHA REQUIREMENT): HuggingFace Spaces still use bearer tokens for authentication. Security architecture (EPIC-4) requires zero bearer tokens — all auth via x509 certificates registered with ",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-CLASSIFY-001",
@@ -464,7 +565,11 @@
         "prod"
       ],
       "risk_acceptance_id": null,
-      "next_action": "Needs Boss to define the boundary between factual health questions and medical advice for prompt tuning. No rule text defined yet."
+      "next_action": "Needs Boss to define the boundary between factual health questions and medical advice for prompt tuning. No rule text defined yet.",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "See rule field",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-PERF-001",
@@ -482,7 +587,11 @@
         "prod"
       ],
       "risk_acceptance_id": null,
-      "next_action": "Needs monitoring after vector search indexes are deployed. Root cause fix (auto index creation) was added in build 168 but indexes still missing per BUG-DATA-001. Cannot close until infrastructure is verified."
+      "next_action": "Needs monitoring after vector search indexes are deployed. Root cause fix (auto index creation) was added in build 168 but indexes still missing per BUG-DATA-001. Cannot close until infrastructure is verified.",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "See rule field",
+      "resolution_status": "in_analysis"
     },
     {
       "bug_id": "BUG-001",
@@ -503,7 +612,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "high",
+      "reason": "See rule field",
+      "resolution_status": "in_analysis"
     },
     {
       "bug_id": "BUG-002",
@@ -524,7 +637,11 @@
         "prod"
       ],
       "status": "open",
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "critical",
+      "reason": "See rule field",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-DATA-001",
@@ -547,7 +664,11 @@
         "qa",
         "prod"
       ],
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "show_stopper",
+      "reason": "SHOW STOPPER: Frontend data insufficient to allow application to work with Delaware data. Missing vector search indexes (provider_vector_index, specialty_vector_index), missing npi unique index, missi",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-PIPE-010",
@@ -570,7 +691,11 @@
         "qa",
         "prod"
       ],
-      "risk_acceptance_id": null
+      "risk_acceptance_id": null,
+      "req_id": "NEEDS_REQ",
+      "type": "show_stopper",
+      "reason": "SHOW STOPPER: Quality pipeline ships provider_quality to frontend without embeddings. 25,591 DE records have zero prescriber_embedding on both pipeline and frontend clusters. The embedding step (Step ",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-GOV-002",
@@ -588,7 +713,8 @@
       "next_action": "analysis",
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "5ec70c89-55fd-4188-8597-1de0670ad7fe"
+      "ch_matrix_id": "5ec70c89-55fd-4188-8597-1de0670ad7fe",
+      "req_id": "NEEDS_REQ"
     },
     {
       "id": "BUG-UX-005",
@@ -607,7 +733,8 @@
       "next_action": "Low priority, in analysis. Claude Code renderer limitation — not a FindCare code issue.",
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "4392e393-635e-40d8-86a0-b132e653f0a6"
+      "ch_matrix_id": "4392e393-635e-40d8-86a0-b132e653f0a6",
+      "req_id": "NEEDS_REQ"
     },
     {
       "id": "BUG-GOV-003",
@@ -622,7 +749,11 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000003-0000-4000-e000-000000000003"
+      "ch_matrix_id": "b0000003-0000-4000-e000-000000000003",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "PreToolUse guard blocks authorized actions — operating_rules_worker does not check risk_acceptance.json before blocking. GPT-4.1-mini must receive the list of active risk acceptances so it can allow a",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-PIPE-007",
@@ -637,7 +768,11 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000007-0000-4000-e000-000000000007"
+      "ch_matrix_id": "b0000007-0000-4000-e000-000000000007",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Cluster lifecycle manager does not detect or clean up zombie reservations. Three stale reservations from April 8 were still marked active on April 10. Reservations with expected_end_time in the past s",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-PIPE-008",
@@ -652,7 +787,11 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000008-0000-4000-e000-000000000008"
+      "ch_matrix_id": "b0000008-0000-4000-e000-000000000008",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "BUG CRITICAL: CopyToFrontEnd orchestrator never calls _create_specialty_vector_index() after copying SpecialtyMetaData. Function exists (copy_to_frontend.py:196-221) but is dead code. Frontend health ",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-PIPE-009",
@@ -667,7 +806,11 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000009-0000-4000-e000-000000000009"
+      "ch_matrix_id": "b0000009-0000-4000-e000-000000000009",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "SpecialtyMetaData has no vector search index on pipeline cluster. load_specialty_data.py generates embeddings but never creates the vector index.",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-PIPE-010",
@@ -682,7 +825,11 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000010-0000-4000-e000-000000000010"
+      "ch_matrix_id": "b0000010-0000-4000-e000-000000000010",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Index creation must happen AFTER cluster reservation release. CopyToFrontEnd creates provider_vector_index inside reservation window. Atlas vector index creation is async — cluster may pause mid-build",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-UX-006",
@@ -697,7 +844,10 @@
       "ch_matrix_id": "b0000011-0000-4000-e000-000000000011",
       "severity": "SHOW STOPPER — ALPHA RELEASE BLOCKER",
       "resolution": "Not a bug — tokens display correctly. Smoke test had stale selectors and per-test page isolation. Fixed smoke test to use shared page fixture. UAT passed by Skip with screenshots 2026-04-10.",
-      "resolution_status": "tested_passed"
+      "resolution_status": "tested_passed",
+      "req_id": "NEEDS_REQ",
+      "type": "show_stopper",
+      "reason": "Encrypted and clear session tokens not displayed on EvaluateCare right panel. Tokens were working before April 9 crash but not visible after restore."
     },
     {
       "id": "BUG-LOCAL-001",
@@ -710,7 +860,11 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000012-0000-4000-e000-000000000012",
-      "next_action": "kill_zombies.py exists (Code/Shared/ops/tools/) and kills by port. Adding taskkill /F /IM python.exe would kill ALL python processes (dangerous). Better approach: kill_zombies.py should also check for uvicorn/vite in process command line. Needs careful implementation to avoid killing unrelated processes."
+      "next_action": "kill_zombies.py exists (Code/Shared/ops/tools/) and kills by port. Adding taskkill /F /IM python.exe would kill ALL python processes (dangerous). Better approach: kill_zombies.py should also check for uvicorn/vite in process command line. Needs careful implementation to avoid killing unrelated processes.",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "start_local.bat does not thoroughly clean up before starting. Does not kill orphaned python/uvicorn/node processes from previous runs. Only kills by port — misses processes that crashed off-port. Does",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-UX-007",
@@ -724,7 +878,11 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000013-0000-4000-e000-000000000013",
-      "next_action": "Needs UX design spec from Boss. Excel mockup must be translated to implementation requirements."
+      "next_action": "Needs UX design spec from Boss. Excel mockup must be translated to implementation requirements.",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Select specialty filter format does not match Excel mockup. Layout, contrast, and spacing are off. Skip provided a mockup — implement to spec.",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-SEC-002",
@@ -740,7 +898,11 @@
       "status": "deferred",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000014-0000-4000-e000-000000000014",
-      "resolution": "Deferred to Beta. HF Spaces does not support mTLS. Plan: Private Spaces + HF bearer token + signed session token. HF is the authority for transport auth."
+      "resolution": "Deferred to Beta. HF Spaces does not support mTLS. Plan: Private Spaces + HF bearer token + signed session token. HF is the authority for transport auth.",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Mutual authentication PKI at transport layer is missing. FindCare to EvaluateCare calls use plain HTTP, not mTLS. Caddy Caddyfile has mTLS configured on :8081 but the evaluate proxy in main.py calls l",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-EVAL-001",
@@ -753,7 +915,11 @@
       ],
       "status": "deferred",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000015-0000-4000-e000-000000000015"
+      "ch_matrix_id": "b0000015-0000-4000-e000-000000000015",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "BUG DEFERRED: Wrong list of providers sent to EvaluateCare. lastProvidersRef in ChatWindow.tsx is empty when evaluate button is clicked — providers from search results are not being stored in the ref.",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-UX-008",
@@ -769,7 +935,11 @@
       "resolution": "",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000016-0000-4000-e000-000000000016",
-      "next_action": "Needs UX design spec from Boss for banner content and formatting."
+      "next_action": "Needs UX design spec from Boss for banner content and formatting.",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Environment banner does not show build number, version, environment, or framework version. Banner only shows env name until health endpoint responds, then shows env + build + version but missing frame",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-GOV-004",
@@ -784,7 +954,11 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000017-0000-4000-e000-000000000017"
+      "ch_matrix_id": "b0000017-0000-4000-e000-000000000017",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "DR-008 enforcement uses regex (list(*.find()) which cannot distinguish filtered queries from unfiltered. Flags safe code with small result sets. Pre-push hook blocks deploy on false positives. Should ",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-CODE-001",
@@ -801,7 +975,10 @@
       "resolution": "Refactoring to shared React component library: Code/Shared/ux/ with typed components, hooks, and clean postMessage bus. GUIManager.tsx becomes thin consumer.",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000018-0000-4000-e000-000000000018",
-      "resolution_status": "tested_passed"
+      "resolution_status": "tested_passed",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Bad coding practice across ALL FindCare frontend — inline HTML string rendering via postMessage, no component encapsulation, tangled state across ChatWindow.tsx, GUIManager.tsx, and index.html. No reu"
     },
     {
       "id": "BUG-EVAL-002",
@@ -816,7 +993,10 @@
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000019-0000-4000-e000-000000000019",
       "resolution": "Verified FindCareApp.tsx line 81-82: selectedRef syncs from selection.state.selected. ChatWindow.tsx line 230-244: evaluate callback sends selectedRef.current. Closed 2026-04-10.",
-      "resolution_status": "tested_passed"
+      "resolution_status": "tested_passed",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Wrong providers sent to EvaluateCare — all providers sent instead of only selected providers from the selection panel. Fix: FindCareApp.tsx refactored to use selectedRef.current which syncs from selec"
     },
     {
       "id": "BUG-UX-009",
@@ -829,7 +1009,11 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000020-0000-4000-e000-000000000020",
-      "next_action": "FindCareApp.tsx has flex layout with available (flex:1, overflowY:auto) and selected (maxHeight:35%, overflowY:auto). Layout looks correct for split view. May need viewport height testing or the 35% maxHeight may be too large. Needs Playwright visual verification."
+      "next_action": "FindCareApp.tsx has flex layout with available (flex:1, overflowY:auto) and selected (maxHeight:35%, overflowY:auto). Layout looks correct for split view. May need viewport height testing or the 35% maxHeight may be too large. Needs Playwright visual verification.",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Selection panel requires scrolling to see both available and selected lists. Top frame must be scrolled to see bottom frame. Both should be visible without scrolling.",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-SEC-003",
@@ -843,7 +1027,10 @@
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000021-0000-4000-e000-000000000021",
       "resolution": "Verified main.py evaluate_proxy (line 541-577): mTLS certs configured correctly. Gemini removed (GPT-4.1 switch). Local uses findcare.crt/key + ca.crt via Caddy :8081. Closed 2026-04-10.",
-      "resolution_status": "tested_passed"
+      "resolution_status": "tested_passed",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "EvaluateCare mTLS handoff fails — certs not configured for Gemini/non-Anthropic flow. Root cause was Gemini config issue. Fix: switched to GPT-4.1 and evaluate_proxy in main.py properly configures mTL"
     },
     {
       "id": "BUG-EVAL-003",
@@ -857,7 +1044,10 @@
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000022-0000-4000-e000-000000000022",
       "resolution": "Same root cause as BUG-EVAL-002. selectedRef.current now syncs from selection.state.selected. Closed 2026-04-10.",
-      "resolution_status": "tested_passed"
+      "resolution_status": "tested_passed",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Picked 1 provider but 5 showed in EvaluateCare. Selection state not used for handoff — still sending lastProvidersRef instead of selection.state.selected. Same root cause as BUG-EVAL-002, fixed by sel"
     },
     {
       "id": "BUG-UX-010",
@@ -870,7 +1060,10 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000023-0000-4000-e000-000000000023",
-      "resolution_status": "tested_passed"
+      "resolution_status": "tested_passed",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Garbage text in chat window — specialty list rendered as visible text instead of hidden data. Root cause: Gemini 2.5 Flash dumped raw specialty data into chat response. Fix: switched to GPT-4.1 (BUG-M"
     },
     {
       "id": "BUG-MODEL-001",
@@ -884,7 +1077,10 @@
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000024-0000-4000-e000-000000000024",
       "resolution": "Switched from Gemini 2.5 Flash to GPT-4.1. Verified main.py /classify endpoint uses CHAT_MODEL defaulting to gpt-4.1. Closed 2026-04-10.",
-      "resolution_status": "tested_passed"
+      "resolution_status": "tested_passed",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Gemini 2.5 Flash returns overly broad specialty list for headache — includes anesthesiology, cardiology, hospice but no primary care physicians or general practitioners. Root cause was Gemini model. F"
     },
     {
       "id": "BUG-UX-011",
@@ -898,7 +1094,10 @@
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000025-0000-4000-e000-000000000025",
       "resolution": "Fixed tonight in index.html (only visible checked codes sent) and FindCareApp.tsx. Closed 2026-04-10.",
-      "resolution_status": "tested_passed"
+      "resolution_status": "tested_passed",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Apply Filter does not clear old available providers from screen. Old docs stay visible alongside new filtered results. Fix: index.html now sends only visible checked specialty codes, and FindCareApp.t"
     },
     {
       "id": "BUG-SEC-004",
@@ -912,7 +1111,11 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000026-0000-4000-e000-000000000026"
+      "ch_matrix_id": "b0000026-0000-4000-e000-000000000026",
+      "req_id": "NEEDS_REQ",
+      "type": "medium",
+      "reason": "Dev HuggingFace servers not tested or configured for HTTPS enforcement. SEC-HTTPS-001 tested only on local. HF spaces use HF-provided TLS but server-side CORS, 426 rejection, and scan_http.py have not",
+      "resolution_status": "in_analysis"
     },
     {
       "id": "BUG-SEC-005",
@@ -931,7 +1134,9 @@
       "pytest_id": "SEC-HTTPS-001",
       "pytest_success_criteria": "HTTP request to every server in every environment returns 426 with status code visible in response body text.",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000028-0000-4000-e000-000000000028"
+      "ch_matrix_id": "b0000028-0000-4000-e000-000000000028",
+      "req_id": "NEEDS_REQ",
+      "reason": "HTTP 426 Upgrade Required response body must include the status code in the message text on EVERY server in EVERY environment. Clients receiving the rejection must see a visible error code to diagnose"
     },
     {
       "id": "BUG-GOV-005",
@@ -949,7 +1154,9 @@
       "resolution_status": "fixing",
       "next_action": "Audit all requirements in agile_backlog.json for pytest_id and pytest file existence. Create missing tests. Add requirement and tests for governance grid hook loading.",
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000027-0000-4000-e000-000000000027"
+      "ch_matrix_id": "b0000027-0000-4000-e000-000000000027",
+      "req_id": "NEEDS_REQ",
+      "reason": "SHOW STOPPER: Requirements exist in agile_backlog.json without associated pytests. No enhancement or requirement may be asserted by any means (user prompt, backlog entry, or otherwise) without a recor"
     },
     {
       "id": "BUG-UX-012",
@@ -970,7 +1177,8 @@
       "pytest_success_criteria": "Playwright test: user drags a provider card from the top candidate list and drops it into the bottom evaluate container. Provider appears in selected list. Max 5 enforced.",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000029-0000-4000-e000-000000000029",
-      "next_action": "Drop target added tonight (FindCareApp.tsx line 436-437 onDragOver/onDrop). Needs Playwright test to verify drag-drop works end-to-end."
+      "next_action": "Drop target added tonight (FindCareApp.tsx line 436-437 onDragOver/onDrop). Needs Playwright test to verify drag-drop works end-to-end.",
+      "reason": "Drag and drop from provider candidate list to the evaluate container is missing. FC-SELECT-001-REQ-002 requires it but the feature is not implemented. User cannot drag a provider from the top list to "
     },
     {
       "id": "BUG-UX-013",
@@ -989,7 +1197,8 @@
       "resolution_status": "fixed",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000030-0000-4000-e000-000000000030",
-      "resolution": "Verified FindCareApp.tsx: timer clears after fetchProviders (line 168-169), comment on line 167 confirms intent. Also clears on error (line 182-183). Closed 2026-04-10."
+      "resolution": "Verified FindCareApp.tsx: timer clears after fetchProviders (line 168-169), comment on line 167 confirms intent. Also clears on error (line 182-183). Closed 2026-04-10.",
+      "reason": "Search timer stalls after AI classify returns but before DB search completes. Timer cleared too early — after /classify response, not after /search response. Fix: FindCareApp.tsx now clears timer afte"
     },
     {
       "id": "BUG-UX-014",
@@ -1008,7 +1217,8 @@
       "resolution_status": "fixing",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000031-0000-4000-e000-000000000031",
-      "next_action": "Requirements written in FC-EVAL-001. Needs implementation: move button, add cold/hot state, instruction popup."
+      "next_action": "Requirements written in FC-EVAL-001. Needs implementation: move button, add cold/hot state, instruction popup.",
+      "reason": "Evaluate These Providers button is in the wrong location (filter panel) and has no cold/hot state. Button should be right of cursor control, dimmed when no providers selected, show instruction popup o"
     },
     {
       "id": "BUG-UX-015",
@@ -1029,7 +1239,8 @@
       "pytest_success_criteria": "Playwright test (only Playwright — no unit test substitute) verifies all filter header labels are fully visible, not clipped, and properly spaced.",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000032-0000-4000-e000-000000000032",
-      "next_action": "Fixed tonight, in testing. Needs Playwright test to confirm labels are no longer truncated."
+      "next_action": "Fixed tonight, in testing. Needs Playwright test to confirm labels are no longer truncated.",
+      "reason": "Filter header labels truncated and illegible. 'Prescribers' shows as 'Prescr', 'Homeopathic' shows as 'Home'. Labels and values need proper spacing. The header is not intelligently laid out — labels a"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
