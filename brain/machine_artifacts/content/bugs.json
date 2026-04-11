@@ -839,7 +839,7 @@
       "environment": [
         "local"
       ],
-      "status": "open",
+      "status": "closed",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000011-0000-4000-e000-000000000011",
       "severity": "SHOW STOPPER — ALPHA RELEASE BLOCKER",

@@ -7,7 +7,6 @@
 
 | Severity | Bug | What to test |
 |---|---|---|
-| show_stopper | BUG-UX-006 | Session tokens displayed in EvaluateCare right panel |
 | medium | BUG-MSG-001 | No duplicate summary message |
 | medium | BUG-MSG-002 | Summary uses your words not medical terms |
 | medium | BUG-FILTER-002 | Filter text horizontal not sideways |
