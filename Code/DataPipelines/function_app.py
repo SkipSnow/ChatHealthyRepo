@@ -531,11 +531,12 @@ def copy_to_frontend_orchestrator(context: df.DurableOrchestrationContext):
             "states": [],
         })
 
-        # Step 4: Drop destination providers (clean slate)
-        context.set_custom_status("Dropping destination providers")
+        # Step 4: Clear destination providers (state-specific or full drop)
+        context.set_custom_status("Clearing destination providers")
         yield context.call_activity("drop_destination_activity", {
             "env_prefix": env_prefix,
             "collection": "providers",
+            "states": states if isinstance(states, list) and states else None,
         })
 
         # Step 5: Partition source into chunks by _id range

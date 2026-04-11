@@ -352,7 +352,8 @@ def migrate_chunk(config: dict) -> dict:
 
 
 def drop_destination(config: dict) -> dict:
-    """Drop destination collection. Uses pipeline or frontend cluster based on config."""
+    """Drop or clear destination collection. When states specified, only delete those states.
+    When no states, drop entire collection (full reload)."""
     use_pipeline = config.get("use_pipeline_cluster", False)
     if use_pipeline:
         conn = os.environ.get("MONGO_connectionString")
@@ -366,13 +367,21 @@ def drop_destination(config: dict) -> dict:
     env_prefix = config.get("env_prefix", "dev")
     dst_db_name = f"{env_prefix}_PublicHealthData" if env_prefix else "PublicHealthData"
     coll_name = config.get("collection", "providers")
+    states = config.get("states")
 
     client = MongoClient(conn, serverSelectionTimeoutMS=30_000)
     try:
-        client[dst_db_name][coll_name].drop()
+        coll = client[dst_db_name][coll_name]
         cluster = "pipeline" if use_pipeline else "frontend"
-        logging.info("Dropped %s.%s on %s cluster", dst_db_name, coll_name, cluster)
-        return {"dropped": f"{dst_db_name}.{coll_name}", "cluster": cluster}
+        if states and isinstance(states, list) and len(states) > 0:
+            result = coll.delete_many({"practice_address.state": {"$in": states}})
+            logging.info("Deleted %d providers for states %s from %s.%s on %s cluster",
+                         result.deleted_count, states, dst_db_name, coll_name, cluster)
+            return {"deleted_states": states, "deleted_count": result.deleted_count, "cluster": cluster}
+        else:
+            coll.drop()
+            logging.info("Dropped %s.%s on %s cluster", dst_db_name, coll_name, cluster)
+            return {"dropped": f"{dst_db_name}.{coll_name}", "cluster": cluster}
     finally:
         client.close()
 
