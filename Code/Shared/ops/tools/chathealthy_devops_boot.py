@@ -397,6 +397,7 @@ class operating_rules_worker(governance_worker_base):
         r"start_local\.bat",  # Local dev environment launcher
         r"^curl\s",  # Network reads — health checks, status polls
         r"^(tasklist|netstat)",  # Process inspection
+        r"^gh\s+(run|pr|issue)\s+(list|view|watch|status)",  # GitHub CLI read-only commands
         r"uvicorn",  # Local dev servers
         r"npm\s+(run|dev|start)",  # Frontend dev server
         r"caddy",  # HTTPS reverse proxy
