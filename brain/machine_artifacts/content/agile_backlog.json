@@ -18861,6 +18861,14 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "pytest_id": "test_https_security.py::TestPreCommitScan"
+                },
+                {
+                  "req_id": "SEC-HTTPS-001-REQ-007",
+                  "requirement": "Every HTTP 426 Upgrade Required response on every server in every environment must include the status code (426) in the response body text. The user/client must see the numeric code in the message, not just the header.",
+                  "priority": "must-have",
+                  "status": "in_progress",
+                  "pytest_id": "test_https_security.py::Test426BodyIncludesStatusCode",
+                  "bug_id": "BUG-SEC-005"
                 }
               ]
             }
@@ -19921,6 +19929,7 @@
                   "requirement": "Admin can unlock a locked IP by entering the unlock code in the chat. The code is stored in the ADMIN_UNLOCK_KEY environment variable, never in code.",
                   "priority": "must-have",
                   "status": "implemented",
+                  "pytest_id": "test_safety_unlock.py::TestAdminUnlock::test_correct_code_returns_true_format",
                   "ch_matrix_id": "cf3b8700-8ec1-4525-a46e-3a80fa1afd52"
                 },
                 {
@@ -19928,6 +19937,7 @@
                   "requirement": "The unlock code comparison must be case-insensitive. 'unlock$123' and 'UNLOCK$123' and 'Unlock$123' must all work.",
                   "priority": "must-have",
                   "status": "implemented",
+                  "pytest_id": "test_safety_unlock.py::TestAdminUnlock::test_case_insensitive_lowercase",
                   "ch_matrix_id": "c12892aa-567e-4331-bbc2-f8459fc1b2f4"
                 }
               ],
@@ -20227,6 +20237,7 @@
                   "requirement": "AI classifier is the sole primary trigger for emergency detection",
                   "priority": "must-have",
                   "status": "in_progress",
+                  "pytest_id": "test_safety_false_positives.py::TestSafetyFalsePositives::test_ai_is_primary_not_keywords",
                   "ch_matrix_id": "3563c018-62a2-4789-bcfd-4c0cb1b97666"
                 },
                 {
@@ -20234,6 +20245,7 @@
                   "requirement": "Keywords are used ONLY as fallback when AI classifier API call fails",
                   "priority": "must-have",
                   "status": "in_progress",
+                  "pytest_id": "test_safety_false_positives.py::TestSafetyFalsePositives::test_keywords_only_in_except_block",
                   "ch_matrix_id": "48adabb9-58b9-4bbf-82d2-fd9bfb1dd863"
                 },
                 {
@@ -20241,6 +20253,7 @@
                   "requirement": "Provider search queries containing emergency terms do not trigger emergency response",
                   "priority": "must-have",
                   "status": "in_progress",
+                  "pytest_id": "test_safety_false_positives.py::TestSafetyFalsePositives::test_find_doctor_chest_pain",
                   "ch_matrix_id": "617e92b6-f588-4eb9-93c9-c37ab6e9baae"
                 },
                 {
@@ -20248,6 +20261,7 @@
                   "requirement": "Actual emergencies (all three gates: body location + acute onset + life-threat) still trigger correctly",
                   "priority": "must-have",
                   "status": "in_progress",
+                  "pytest_id": "test_safety_false_positives.py::TestSafetyFalsePositives::test_real_emergency_chest_pain",
                   "ch_matrix_id": "c7472482-ec3a-4dfe-8eb0-c027294cf3b6"
                 }
               ],
@@ -20278,6 +20292,7 @@
                   "requirement": "Python HTTP server serves Website/ directory on port 80",
                   "priority": "must-have",
                   "status": "implemented",
+                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal001::test_bat_starts_service_on_port_80",
                   "ch_matrix_id": "3a4ddba5-780e-4ebb-916a-64a76747711e"
                 }
               ],
@@ -20294,6 +20309,7 @@
                   "requirement": "EvaluateCare app.py runs independently on port 8001",
                   "priority": "must-have",
                   "status": "implemented",
+                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal002::test_app_runs_on_port_8001",
                   "ch_matrix_id": "55f6fe49-e280-4e03-a8dc-5a0c5936773b"
                 },
                 {
@@ -20301,6 +20317,7 @@
                   "requirement": "CORS allows localhost origins for all ports",
                   "priority": "must-have",
                   "status": "implemented",
+                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal002::test_cors_allows_localhost_origins",
                   "ch_matrix_id": "5f7e6d5b-4538-4384-930b-cc6dc3c207a1"
                 },
                 {
@@ -20308,6 +20325,7 @@
                   "requirement": "/health endpoint returns service name and version",
                   "priority": "must-have",
                   "status": "implemented",
+                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal002::test_health_endpoint_returns_service_and_version",
                   "ch_matrix_id": "b220deff-a083-47df-8c9d-80948049a44e"
                 }
               ],
@@ -20324,6 +20342,7 @@
                   "requirement": "start_local.bat launches all 4 services in separate windows",
                   "priority": "must-have",
                   "status": "implemented",
+                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal003::test_launches_all_4_services",
                   "ch_matrix_id": "d0bfe895-9f77-4e14-a891-4835727317ea"
                 },
                 {
@@ -20331,6 +20350,7 @@
                   "requirement": "Script must be run as administrator for port 80",
                   "priority": "must-have",
                   "status": "implemented",
+                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal003::test_admin_requirement_documented",
                   "ch_matrix_id": "56ee17e3-a997-42c9-bfb7-328a5dc4b3f2"
                 },
                 {
@@ -20352,6 +20372,7 @@
                   "requirement": "start_local.bat must kill zombies on ALL service ports: 80, 443, 5173, 8000, 8001, 8002",
                   "priority": "must-have",
                   "status": "implemented",
+                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal003::test_kills_zombies_on_all_service_ports",
                   "ch_matrix_id": "c0000003-0000-4000-e000-000000000003"
                 },
                 {
@@ -20359,6 +20380,7 @@
                   "requirement": "start_local.bat must log all service output to %TEMP%/chathealthy_*.log so silent failures are diagnosable",
                   "priority": "must-have",
                   "status": "implemented",
+                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal003::test_logs_output_to_temp",
                   "ch_matrix_id": "c0000004-0000-4000-e000-000000000004"
                 },
                 {
@@ -20366,6 +20388,7 @@
                   "requirement": "start_local.bat verification step must report which log file to check on failure",
                   "priority": "must-have",
                   "status": "implemented",
+                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal003::test_verification_reports_log_on_failure",
                   "ch_matrix_id": "c0000005-0000-4000-e000-000000000005"
                 },
                 {
@@ -20373,6 +20396,7 @@
                   "requirement": "start_local.bat must verify EvaluateCare on :8001 is healthy before reporting success",
                   "priority": "must-have",
                   "status": "implemented",
+                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal003::test_verifies_evaluatecare_on_8001",
                   "ch_matrix_id": "c0000006-0000-4000-e000-000000000006"
                 }
               ],
@@ -20833,6 +20857,7 @@
                   "requirement": "An 'Evaluate these providers' button appears in guiControlFrame when provider search results are displayed",
                   "priority": "must-have",
                   "status": "implemented",
+                  "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
                   "ch_matrix_id": "56022a32-2905-409d-91ca-bee0e964ded6"
                 },
                 {
@@ -20840,6 +20865,7 @@
                   "requirement": "Button is rendered via postMessage (gui:render) alongside pagination controls",
                   "priority": "must-have",
                   "status": "implemented",
+                  "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
                   "ch_matrix_id": "e90e07a0-ff50-4450-85b3-918f8dc1e90e"
                 },
                 {
@@ -20847,6 +20873,7 @@
                   "requirement": "Clicking the button sends the current provider list to EvaluateCare /evaluate/providers via the facade",
                   "priority": "must-have",
                   "status": "implemented",
+                  "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
                   "ch_matrix_id": "06a2189b-896a-4b04-8748-4c6d27d6d141"
                 },
                 {
@@ -20854,6 +20881,7 @@
                   "requirement": "EvaluateCare stub response paints provider names, specialty, and NPI onto the chat screen",
                   "priority": "must-have",
                   "status": "implemented",
+                  "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
                   "ch_matrix_id": "94395424-b01c-463b-b61d-c12b22c3f9c1"
                 },
                 {
@@ -21531,77 +21559,88 @@
                   "requirement": "https://localhost loads with status 200 and page title contains ChatHealthy",
                   "priority": "must-have",
                   "status": "implemented",
-                  "ch_matrix_id": "abd823a4-06f6-4362-b7e1-4bedfa770359"
+                  "ch_matrix_id": "abd823a4-06f6-4362-b7e1-4bedfa770359",
+                  "pytest_id": "local_environment_user_ready.py::TestPageLoad::test_page_title"
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-002",
                   "requirement": "Red dev/staging environment banner is visible",
                   "priority": "must-have",
                   "status": "implemented",
-                  "ch_matrix_id": "bf712039-ec0b-47e0-867f-72e8751fdd09"
+                  "ch_matrix_id": "bf712039-ec0b-47e0-867f-72e8751fdd09",
+                  "pytest_id": "local_environment_user_ready.py::TestPageLoad::test_environment_class"
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-003",
                   "requirement": "Chat iframe loads and shows welcome message with QA report",
                   "priority": "must-have",
                   "status": "implemented",
-                  "ch_matrix_id": "db477386-eff6-4c19-9b5e-0118095697cb"
+                  "ch_matrix_id": "db477386-eff6-4c19-9b5e-0118095697cb",
+                  "pytest_id": "local_environment_user_ready.py::TestPageLoad::test_welcome_message_was_shown"
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-004",
                   "requirement": "Chat input prompt exists and is not locked",
                   "priority": "must-have",
                   "status": "implemented",
-                  "ch_matrix_id": "9d37b1f4-6a95-44ba-ab45-7dfe53c6cf2c"
+                  "ch_matrix_id": "9d37b1f4-6a95-44ba-ab45-7dfe53c6cf2c",
+                  "pytest_id": "local_environment_user_ready.py::TestPageLoad::test_chat_input_ready"
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-005",
                   "requirement": "Provider search for DE foot provider returns results with NPIs",
                   "priority": "must-have",
                   "status": "implemented",
-                  "ch_matrix_id": "4c149d0a-8a82-4aae-ad75-50cb8cb56c71"
+                  "ch_matrix_id": "4c149d0a-8a82-4aae-ad75-50cb8cb56c71",
+                  "pytest_id": "local_environment_user_ready.py::TestProviderSearch::test_providers_have_npis"
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-006",
                   "requirement": "Left panel shows specialty filter checkboxes after search",
                   "priority": "must-have",
                   "status": "implemented",
-                  "ch_matrix_id": "4dc8e677-5572-4aff-ac92-92b7e7512af1"
+                  "ch_matrix_id": "4dc8e677-5572-4aff-ac92-92b7e7512af1",
+                  "pytest_id": "local_environment_user_ready.py::TestLeftPanel::test_specialty_filters_visible"
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-007",
                   "requirement": "Left panel shows session token starting with ch_ and nonce timestamps",
                   "priority": "must-have",
                   "status": "implemented",
-                  "ch_matrix_id": "e387b301-e859-4bd2-9b6f-1b426032f869"
+                  "ch_matrix_id": "e387b301-e859-4bd2-9b6f-1b426032f869",
+                  "pytest_id": "local_environment_user_ready.py::TestLeftPanel::test_session_token_in_left_panel"
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-008",
                   "requirement": "Left panel has two buttons below specialty list including Evaluate Care",
                   "priority": "must-have",
                   "status": "implemented",
-                  "ch_matrix_id": "28690695-68a1-468e-b2ec-66e7d0f8b24e"
+                  "ch_matrix_id": "28690695-68a1-468e-b2ec-66e7d0f8b24e",
+                  "pytest_id": "local_environment_user_ready.py::TestLeftPanel::test_left_panel_has_two_buttons"
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-009",
                   "requirement": "Right panel is empty before Evaluate Care click",
                   "priority": "must-have",
                   "status": "implemented",
-                  "ch_matrix_id": "53701b2d-d7c1-4047-8ffd-76fd6941ca08"
+                  "ch_matrix_id": "53701b2d-d7c1-4047-8ffd-76fd6941ca08",
+                  "pytest_id": "local_environment_user_ready.py::TestRightPanel::test_right_panel_before_evaluate"
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-010",
                   "requirement": "Evaluate Care click triggers handoff and providers move to left panel",
                   "priority": "must-have",
                   "status": "implemented",
-                  "ch_matrix_id": "19d92974-b7cd-492a-8d48-e1f1a4656097"
+                  "ch_matrix_id": "19d92974-b7cd-492a-8d48-e1f1a4656097",
+                  "pytest_id": "local_environment_user_ready.py::TestEvaluateCareHandoff::test_evaluate_click"
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-011",
                   "requirement": "Encrypted and decrypted session tokens visible after handoff",
                   "priority": "must-have",
                   "status": "implemented",
-                  "ch_matrix_id": "12686789-1ed7-4a81-8421-63dd93c48478"
+                  "ch_matrix_id": "12686789-1ed7-4a81-8421-63dd93c48478",
+                  "pytest_id": "local_environment_user_ready.py::TestEvaluateCareHandoff::test_session_verification_in_right_panel"
                 }
               ],
               "ch_matrix_id": "cbf6661c-31ab-4ac7-9706-d4e2c9b64d20"
@@ -21709,31 +21748,50 @@
                   "req_id": "FC-SEARCH-001-REQ-001",
                   "requirement": "User can search by free text",
                   "priority": "must-have",
-                  "status": "implemented"
+                  "status": "implemented",
+                  "pytest_id": "test_findcare_search.py::TestProviderSearchFreeText::test_free_text_search_returns_results"
                 },
                 {
                   "req_id": "FC-SEARCH-001-REQ-002",
                   "requirement": "System returns provider name, NPI, address, county, phone",
                   "priority": "must-have",
-                  "status": "implemented"
+                  "status": "implemented",
+                  "pytest_id": "test_findcare_search.py::TestProviderResultFields::test_results_contain_npi"
                 },
                 {
                   "req_id": "FC-SEARCH-001-REQ-003",
                   "requirement": "Results paginated with forward/back controls",
                   "priority": "must-have",
-                  "status": "implemented"
+                  "status": "implemented",
+                  "pytest_id": "test_findcare_search.py::TestProviderSearchPagination::test_pagination_controls_present"
                 },
                 {
                   "req_id": "FC-SEARCH-001-REQ-004",
                   "requirement": "System identifies matching specialty types from search query",
                   "priority": "must-have",
-                  "status": "implemented"
+                  "status": "implemented",
+                  "pytest_id": "test_findcare_search.py::TestSpecialtyClassification::test_specialty_types_identified"
                 },
                 {
                   "req_id": "FC-SEARCH-001-REQ-005",
                   "requirement": "Available provider cards show provider specialty on second row, matching the specialty from the filter that found them",
                   "priority": "must-have",
                   "status": "open"
+                },
+                {
+                  "req_id": "FC-SEARCH-001-REQ-006",
+                  "requirement": "Provider search is a database query against a list of specialty codes — never an AI call. The AI's only role is to translate the user's natural language into an ordered list of specialty codes, ranked from most likely to be picked to least likely. The database receives the ordered list and returns providers. GOV-011: AI translates, system answers.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_id": "test_classify_performance.py::test_classify_returns_ordered_specialties"
+                },
+                {
+                  "req_id": "FC-SEARCH-001-REQ-007",
+                  "requirement": "The search timer must count elapsed seconds continuously from the moment the user submits a search until provider results are displayed. The timer must not stall, freeze, or clear between the AI classify call and the DB search call. Timer clears only when results render or an error is shown.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_id": "test_search_timer.py::test_timer_runs_until_results_displayed",
+                  "bug_id": "BUG-UX-013"
                 }
               ]
             },
@@ -21892,39 +21950,52 @@
                   "req_id": "FC-FILT-001-REQ-001",
                   "requirement": "Filter panel shows specialty types from search results",
                   "priority": "must-have",
-                  "status": "implemented"
+                  "status": "implemented",
+                  "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_filter_checkboxes_visible_and_labeled"
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-002",
                   "requirement": "Prescribers only checkbox filters to prescriber specialties",
                   "priority": "must-have",
-                  "status": "implemented"
+                  "status": "implemented",
+                  "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_prescribers_only_filters_to_prescriber_specialties"
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-003",
                   "requirement": "Homeopathic only checkbox adds homeopathic specialties",
                   "priority": "must-have",
-                  "status": "implemented"
+                  "status": "implemented",
+                  "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_homeopathic_only_adds_homeopathic_specialties"
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-004",
                   "requirement": "Three counts displayed: total types, showing, filtered",
                   "priority": "must-have",
-                  "status": "implemented"
+                  "status": "implemented",
+                  "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_filter_header_shows_specialty_counts_not_provider_counts"
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-005",
                   "requirement": "Check all / uncheck all toggle",
                   "priority": "must-have",
-                  "status": "implemented"
+                  "status": "implemented",
+                  "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_uncheck_all_updates_your_choices_to_zero"
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-006",
-                  "requirement": "Filter header must display as horizontal grid: [Filter by specialty] [All possible: N] [Prescribers & homeopathic: N (only if homeopathic checked)] [Your choices: N] [Prescribers only checkbox] [Homeopathic only checkbox]. Three labeled counts. Mockup provided by Skip 2026-04-10.",
+                  "requirement": "Filter header must display as horizontal grid: [Filter by specialty] [All possible: N] [Prescribers & homeopathic: N (only if homeopathic checked)] [Your choices: N] [Prescribers only checkbox] [Homeopathic only checkbox]. Three labeled counts with full label text visible — no truncation. Labels and values must be intelligently spaced. Only Playwright can pytest this requirement — no unit test substitute.",
                   "priority": "must-have",
                   "status": "open",
+                  "pytest_id": "test_filter_panel.py::test_filter_header_labels_not_truncated",
                   "mockup": "Excel mockup from Skip: 5-column header row. Col1=label, Col2=all possible count, Col3=prescribers+homeopathic count (conditional), Col4=your checked choices count, Col5=two checkboxes stacked.",
-                  "bug_ref": "BUG-UX-007"
+                  "bug_ref": "BUG-UX-015"
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-007",
+                  "requirement": "When the user clicks Apply Filter, the system re-queries the database with only the checked specialty codes and refreshes the provider list. Unchecked specialties are excluded from the query. The available provider list clears and replaces with the filtered results.",
+                  "priority": "must-have",
+                  "status": "open",
+                  "pytest_id": "test_filter_panel.py::test_apply_filter_requeries_with_checked_codes"
                 }
               ]
             }
@@ -21943,37 +22014,42 @@
               "story_id": "FC-EVAL-001",
               "title": "Evaluate These Providers button and handoff",
               "size": "M",
-              "status": "implemented",
+              "status": "open",
               "requirements": [
                 {
                   "req_id": "FC-EVAL-001-REQ-001",
-                  "requirement": "Evaluate button visible in filter panel after search",
+                  "requirement": "Evaluate These Providers button is positioned to the right of the cursor control bar.",
                   "priority": "must-have",
-                  "status": "implemented"
+                  "status": "open",
+                  "pytest_id": "test_evaluate_button.py::test_button_position_right_of_cursor_control"
                 },
                 {
                   "req_id": "FC-EVAL-001-REQ-002",
-                  "requirement": "Click sends providers to EvaluateCare with signed session token",
+                  "requirement": "When no providers are selected, the button displays in a cold/dimmed visual state — visually distinct from the active state.",
                   "priority": "must-have",
-                  "status": "implemented"
+                  "status": "open",
+                  "pytest_id": "test_evaluate_button.py::test_button_cold_when_no_providers_selected"
                 },
                 {
                   "req_id": "FC-EVAL-001-REQ-003",
-                  "requirement": "Right panel displays provider list from EvaluateCare response",
+                  "requirement": "When the cold button is clicked with no providers selected, a non-modal popup appears with instructions on how to manage providers: click to select, drag and drop to the evaluate container, and dismiss to garbage.",
                   "priority": "must-have",
-                  "status": "implemented"
+                  "status": "open",
+                  "pytest_id": "test_evaluate_button.py::test_cold_click_shows_instruction_popup"
                 },
                 {
                   "req_id": "FC-EVAL-001-REQ-004",
-                  "requirement": "Session verification displayed in right panel",
+                  "requirement": "When providers are selected, the button displays in a hot/active visual state.",
                   "priority": "must-have",
-                  "status": "implemented"
+                  "status": "open",
+                  "pytest_id": "test_evaluate_button.py::test_button_hot_when_providers_selected"
                 },
                 {
                   "req_id": "FC-EVAL-001-REQ-005",
-                  "requirement": "Session GUID displayed below evaluate button",
+                  "requirement": "When the hot button is clicked, the selected providers are sent to EvaluateCare with a signed session token.",
                   "priority": "must-have",
-                  "status": "implemented"
+                  "status": "open",
+                  "pytest_id": "test_evaluate_button.py::test_hot_click_sends_to_evaluate_care"
                 }
               ]
             }

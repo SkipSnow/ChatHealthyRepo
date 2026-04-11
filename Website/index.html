@@ -851,6 +851,9 @@
                 el.addEventListener('click', function() {
                   var checked = [];
                   leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]:checked').forEach(function(cb) {
+                    // Only include visible items — hidden items were filtered out by prescriber/homeopathic toggle
+                    var row = cb.closest('[data-spec-code]');
+                    if (row && row.style.display === 'none') return;
                     checked.push(cb.getAttribute('data-gui-value'));
                   });
                   var prescriberCb = leftPanel.querySelector('input[data-gui-value="prescribers"]');

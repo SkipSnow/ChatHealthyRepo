@@ -62,6 +62,7 @@
         "name": "bug_schema",
         "fields": {
           "id": {"type": "string", "required": true, "description": "Unique bug identifier (e.g. BUG-DATA-001)"},
+          "req_id": {"type": "string", "required": true, "description": "Reference to the agile_backlog requirement this bug is associated with (e.g. FC-SELECT-001-REQ-002). Every bug must trace to a requirement."},
           "type": {"type": "string", "required": true, "constrained_by": "CV-008", "possible_values": ["show_stopper", "critical", "high", "medium", "low", "not_a_bug", "resolved"]},
           "reason": {"type": "string", "required": true, "max_length": 200, "description": "Free text description of the bug"},
           "resolution_status": {"type": "string", "required": true, "constrained_by": "CV-009", "possible_values": ["in_analysis", "fixing", "testing", "tested_passed"]},

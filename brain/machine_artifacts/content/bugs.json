@@ -35,7 +35,7 @@
     },
     {
       "id": "BUG-FILTER-002",
-      "rule": "BUG FIXED: Filter panel text displayed sideways. Root cause: leftPanel div had writing-mode:vertical-rl for the blank label, never reset when filter content loaded. Fix: reset writing-mode to horizontal-tb when gui:filter message received, restore vertical on gui:filter-clear.",
+      "rule": "BUG FIXED: Filter panel text displayed sideways. Root cause: leftPanel div had writing-mode:vertical-rl for the blank label, never reset when filter content loaded. Fix: innerHTML replacement removes vertical label when filter loads, restores on clear.",
       "incident": "Boss saw checkboxes and specialty names rotated 90 degrees in the filter panel.",
       "date": "2026-04-03",
       "ch_matrix_id": "ec9f984a-ba9d-48fb-ba5f-ac496f5a75d6",
@@ -45,7 +45,7 @@
         "qa",
         "prod"
       ],
-      "status": "open",
+      "status": "closed",
       "risk_acceptance_id": null
     },
     {
@@ -335,9 +335,11 @@
     },
     {
       "id": "BUG-BA-001",
+      "req_id": "UAT-FILTER-001",
       "rule": "BUG (BA): First number in filter header shows provider count (4,676) but should show total possible specialties (universe of all specialty types, not providers). Business analyst requirement error — the three numbers should be: (1) total specialty types in the universe, (2) types after filter switches applied, (3) types the user has checked. Provider count is useful but belongs elsewhere, not in position 1.",
-      "incident": "Boss caught during UAT. The number 4,676 is providers, not specialties. The universe should be the total number of specialty types (e.g., 883 in NUCC), not how many providers matched.",
+      "incident": "Boss caught during UAT. The number 4,676 is providers, not specialties. The universe should be the total number of specialty types (e.g., 883 in NUCC), not how many providers matched. Fixed in FindCareApp.tsx refactor — allCount now uses options.length (specialty types from classify), not provider count.",
       "date": "2026-04-07",
+      "type": "high",
       "ch_matrix_id": "90e8b060-f67c-44df-af49-7a95f0e7c21f",
       "environment": [
         "local",
@@ -346,6 +348,9 @@
         "prod"
       ],
       "status": "open",
+      "resolution_status": "testing",
+      "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay",
+      "pytest_success_criteria": "Playwright test verifies all three filter header numbers are specialty type counts (< 100), not provider counts (thousands). Uncheck All sets Your choices to 0.",
       "risk_acceptance_id": null
     },
     {
@@ -822,13 +827,13 @@
     },
     {
       "id": "BUG-UX-010",
-      "rule": "BUG: Garbage text in chat window — specialty list rendered as visible text instead of hidden data. Structured output schema may be wrong or model dumping raw tool data into response.",
-      "incident": "Skip UAT 2026-04-10. Specialty list showing as text in chat.",
+      "rule": "BUG FIXED: Garbage text in chat window — specialty list rendered as visible text instead of hidden data. Root cause: Gemini 2.5 Flash dumped raw specialty data into chat response. Fix: switched to GPT-4.1 (BUG-MODEL-001) with structured JSON output AND separated /classify from /chat. Specialty data never enters chat rendering path.",
+      "incident": "Skip UAT 2026-04-10. Specialty list showing as text in chat. Fixed by architecture change — /classify returns JSON only, frontend uses it for filter/search, never renders as text.",
       "date": "2026-04-10",
       "environment": [
         "local"
       ],
-      "status": "open",
+      "status": "closed",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000023-0000-4000-e000-000000000023"
     },
@@ -869,6 +874,119 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000026-0000-4000-e000-000000000026"
+    },
+    {
+      "id": "BUG-SEC-005",
+      "rule": "BUG: HTTP 426 Upgrade Required response body must include the status code in the message text on EVERY server in EVERY environment. Clients receiving the rejection must see a visible error code to diagnose the issue. Applies to: Caddy proxy, FindCareChat backend, EvaluateCare backend, and any future HTTP-capable server.",
+      "incident": "Identified during SEC-HTTPS-001 HTTPS enforcement work 2026-04-10. Fixed for Caddy local in commit aa9f340. Not yet verified on dev/qa/prod HuggingFace servers (see BUG-SEC-004).",
+      "date": "2026-04-10",
+      "type": "critical",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "SEC-HTTPS-001",
+      "pytest_success_criteria": "HTTP request to every server in every environment returns 426 with status code visible in response body text.",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000028-0000-4000-e000-000000000028"
+    },
+    {
+      "id": "BUG-GOV-005",
+      "rule": "SHOW STOPPER: Requirements exist in agile_backlog.json without associated pytests. No enhancement or requirement may be asserted by any means (user prompt, backlog entry, or otherwise) without a recorded pytest that can verify it. Random sample by Boss found exceptions — requirements with no pytest_id, no test file, or no success criteria. Violates v4-007 (every requirement must have a pytest artifact) and v4-023 (no code without backlog traceability). The governance matrix grid-loading-per-hook behavior itself has no requirement and no test.",
+      "incident": "Boss random-sampled agile_backlog.json requirements and found entries without pytest coverage. The singleton governance grid (chathealthy_devops_boot) loads and consults the governance_matrix on every hook call but this behavior has zero test coverage and zero backlog requirements.",
+      "date": "2026-04-10",
+      "type": "show_stopper",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "next_action": "Audit all requirements in agile_backlog.json for pytest_id and pytest file existence. Create missing tests. Add requirement and tests for governance grid hook loading.",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000027-0000-4000-e000-000000000027"
+    },
+    {
+      "id": "BUG-UX-012",
+      "req_id": "FC-SELECT-001-REQ-002",
+      "rule": "BUG: Drag and drop from provider candidate list to the evaluate container is missing. FC-SELECT-001-REQ-002 requires it but the feature is not implemented. User cannot drag a provider from the top list to the bottom selected list.",
+      "incident": "Boss identified during requirement review 2026-04-10. FC-SELECT-001-REQ-002 exists in backlog but no implementation in FindCareApp.",
+      "date": "2026-04-10",
+      "type": "critical",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "pytest_id": "FC-SELECT-001-REQ-002",
+      "pytest_success_criteria": "Playwright test: user drags a provider card from the top candidate list and drops it into the bottom evaluate container. Provider appears in selected list. Max 5 enforced.",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000029-0000-4000-e000-000000000029"
+    },
+    {
+      "id": "BUG-UX-013",
+      "req_id": "FC-SEARCH-001-REQ-001",
+      "rule": "BUG: Search timer stalls after AI classify returns but before DB search completes. Timer cleared too early — after /classify response, not after /search response. User sees frozen counter while still waiting for provider results.",
+      "incident": "Boss reproduced on localhost 2026-04-10. Timer freezes mid-search, repeatable.",
+      "date": "2026-04-10",
+      "type": "critical",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000030-0000-4000-e000-000000000030"
+    },
+    {
+      "id": "BUG-UX-014",
+      "req_id": "FC-EVAL-001-REQ-001",
+      "rule": "BUG: Evaluate These Providers button is in the wrong location (filter panel) and has no cold/hot state. Button should be right of cursor control, dimmed when no providers selected, show instruction popup on cold click, and active when providers are selected.",
+      "incident": "Boss identified during UAT 2026-04-10. Requirements rewritten in FC-EVAL-001.",
+      "date": "2026-04-10",
+      "type": "critical",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000031-0000-4000-e000-000000000031"
+    },
+    {
+      "id": "BUG-UX-015",
+      "req_id": "FC-FILT-001-REQ-006",
+      "rule": "BUG: Filter header labels truncated and illegible. 'Prescribers' shows as 'Prescr', 'Homeopathic' shows as 'Home'. Labels and values need proper spacing. The header is not intelligently laid out — labels are clipped by overflow. This is a UX rendering bug — only Playwright can pytest it.",
+      "incident": "Boss screenshot during UAT 2026-04-10. Filter header is functional but unreadable.",
+      "date": "2026-04-10",
+      "type": "critical",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "resolution_status": "testing",
+      "pytest_id": "test_filter_panel.py::test_filter_header_labels_not_truncated",
+      "pytest_success_criteria": "Playwright test (only Playwright — no unit test substitute) verifies all filter header labels are fully visible, not clipped, and properly spaced.",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b0000032-0000-4000-e000-000000000032"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
