@@ -193,7 +193,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "ORPHAN_BUG",
       "type": "medium",
       "reason": "Cluster lifecycle reservations stored on the managed cluster. The pipeline management data (_System.cluster_lifecycle) is on the pipeline cluster — the cluster being managed. This creates chicken-and-",
       "resolution_status": "in_analysis"
@@ -250,7 +250,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "ORPHAN_BUG",
       "type": "medium",
       "reason": "Load workers insert duplicate NPI records. 70,000 duplicates found. Same worker_id, same record_id — exact duplicate rows. Root cause: bulk_write batch flushed twice, or worker retried after partial s",
       "resolution_status": "tested_passed"
@@ -269,7 +269,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "ORPHAN_BUG",
       "type": "medium",
       "reason": "ensure_postload_indexes_activity fails with DuplicateKeyError on load_record_unique index. Root cause TBD — drop() should clear indexes, but post-load index creation finds duplicate load_id + record_i",
       "resolution_status": "in_analysis"
@@ -288,7 +288,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "ORPHAN_BUG",
       "type": "medium",
       "reason": "BUG (HIGH): Roadmap milestones in business_plan.json are disconnected date/label pairs with no references to epics, features, or definition of done. The roadmap generator (generate_roadmap_page.py) mu",
       "resolution_status": "in_analysis"
@@ -345,7 +345,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "ORPHAN_BUG",
       "type": "medium",
       "reason": "BUG (DESIGN): Source data files in blob storage must NEVER be deleted after loading. The raw NPPES CSV, CMS Part D CSV, OIG LEIE CSV, and SAM exclusion CSV must remain in blob storage until replaced b",
       "resolution_status": "in_analysis"
@@ -613,7 +613,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "ORPHAN_BUG",
       "type": "high",
       "reason": "See rule field",
       "resolution_status": "in_analysis"
@@ -638,7 +638,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "NEEDS_REQ",
+      "req_id": "ORPHAN_BUG",
       "type": "critical",
       "reason": "See rule field",
       "resolution_status": "in_analysis"
@@ -714,7 +714,7 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "5ec70c89-55fd-4188-8597-1de0670ad7fe",
-      "req_id": "NEEDS_REQ"
+      "req_id": "ORPHAN_BUG"
     },
     {
       "id": "BUG-UX-005",
@@ -734,7 +734,7 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "4392e393-635e-40d8-86a0-b132e653f0a6",
-      "req_id": "NEEDS_REQ"
+      "req_id": "ORPHAN_BUG"
     },
     {
       "id": "BUG-GOV-003",
@@ -750,7 +750,7 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000003-0000-4000-e000-000000000003",
-      "req_id": "NEEDS_REQ",
+      "req_id": "ORPHAN_BUG",
       "type": "medium",
       "reason": "PreToolUse guard blocks authorized actions — operating_rules_worker does not check risk_acceptance.json before blocking. GPT-4.1-mini must receive the list of active risk acceptances so it can allow a",
       "resolution_status": "in_analysis"
@@ -955,7 +955,7 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000017-0000-4000-e000-000000000017",
-      "req_id": "NEEDS_REQ",
+      "req_id": "ORPHAN_BUG",
       "type": "medium",
       "reason": "DR-008 enforcement uses regex (list(*.find()) which cannot distinguish filtered queries from unfiltered. Flags safe code with small result sets. Pre-push hook blocks deploy on false positives. Should ",
       "resolution_status": "in_analysis"
@@ -976,7 +976,7 @@
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000018-0000-4000-e000-000000000018",
       "resolution_status": "tested_passed",
-      "req_id": "NEEDS_REQ",
+      "req_id": "ORPHAN_BUG",
       "type": "medium",
       "reason": "Bad coding practice across ALL FindCare frontend — inline HTML string rendering via postMessage, no component encapsulation, tangled state across ChatWindow.tsx, GUIManager.tsx, and index.html. No reu"
     },
@@ -2250,7 +2250,7 @@
     },
     {
       "id": "BUG-GOV-006",
-      "req_id": "NEEDS_REQ",
+      "req_id": "ORPHAN_BUG",
       "rule": "BUG: Guard GPT-4.1-mini calls use free-text prompts without structured input/output schemas. GPT can return malformed JSON, hallucinate fields, or omit required fields. Must use OpenAI response_format with JSON schema for all GPT evaluations in the guard.",
       "incident": "Boss identified during RISK-007 guard fix 2026-04-11. All _call_gpt, _evaluate_state_change, _evaluate_state_change_with_risks, and _evaluate_git_commit methods send free-text and parse freeform JSON.",
       "date": "2026-04-11",
@@ -2288,7 +2288,7 @@
     },
     {
       "id": "BUG-GOV-007",
-      "req_id": "NEEDS_REQ",
+      "req_id": "ORPHAN_BUG",
       "rule": "BUG: Claude does not comply with Idiot Mode (v4-004). When Boss says idiot mode, Claude must confirm each unit of work before executing. Claude continued to take autonomous actions, made multiple changes without asking, manually paused the cluster after being told not to, and did not wait for Boss instructions.",
       "incident": "Boss switched to Idiot Mode 2026-04-11. Claude continued autonomous behavior — fixing code, committing, pausing cluster, running tests without permission.",
       "date": "2026-04-11",
