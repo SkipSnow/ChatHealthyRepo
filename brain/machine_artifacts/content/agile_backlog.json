@@ -31176,6 +31176,26 @@
         }
       ],
       "type": "functional"
+    },
+    {
+      "epic_id": "EPIC-008",
+      "name": "Architecture",
+      "type": "operational",
+      "status": "NOT_STARTED",
+      "description": "Architecture governance — ensures technical architecture is documented, validated, and enforced. Architecture decisions must be traceable, architecture documents must be current, and architecture violations must be detected and resolved.",
+      "features": [
+        {
+          "feature_id": "ARCH-GOV",
+          "name": "Architecture Governance",
+          "status": "NOT_STARTED",
+          "description": "Governance framework for technical architecture. Ensures architecture.json is authoritative, architecture decisions are recorded, architecture violations are detected, and architecture changes require review.",
+          "realized_by": [
+            "architecture.json",
+            "governance.json"
+          ],
+          "stories": []
+        }
+      ]
     }
   ],
   "sprint_map": [
