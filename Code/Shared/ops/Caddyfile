@@ -22,21 +22,36 @@
 	admin off
 }
 
-# ── Public Website (HTTP — redirect to HTTPS) ─────────
+# ── HTTP :80 — redirect only the website, reject everything else ──
 :80 {
-	root * {$WEBSITE_ROOT:C:/chatHealthy/findCare/Website}
-	file_server
+	handle /api/* {
+		respond "HTTPS required" 403
+	}
+	handle {
+		redir https://{host}{uri} permanent
+	}
 }
 
-# ── Public Website (HTTPS — localhost cert) ────────────
+# ── Public Website (HTTPS only) ───────────────────────
 :443 {
 	tls {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/localhost.crt {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/localhost.key
-	root * {$WEBSITE_ROOT:C:/chatHealthy/findCare/Website}
-	file_server
+
+	# API proxy — same origin, no mixed content
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy localhost:8000
+	}
+
+	# Static website
+	handle {
+		root * {$WEBSITE_ROOT:C:/chatHealthy/findCare/Website}
+		file_server
+	}
 }
 
-# ── React Frontend (proxy to Vite dev server) ──────────
+# ── React Frontend (HTTPS proxy to Vite dev server) ───
 :3000 {
+	tls {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/localhost.crt {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/localhost.key
 	reverse_proxy localhost:5173
 }
 

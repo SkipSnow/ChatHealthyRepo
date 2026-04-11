@@ -38,9 +38,9 @@ async def log_requests(request: Request, call_next):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost", "http://localhost:80", "http://localhost:5173",
-                   "http://localhost:8000", "https://chathealthy.ai", "https://dev.chathealthy.ai"],
-    allow_origin_regex=r"http://localhost(:\d+)?$",
+    allow_origins=["https://localhost", "https://localhost:443", "https://localhost:3000",
+                   "https://localhost:8080", "https://chathealthy.ai", "https://dev.chathealthy.ai"],
+    allow_origin_regex=r"https://localhost(:\d+)?$|https://[a-zA-Z0-9-]+\.chathealthy\.ai$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

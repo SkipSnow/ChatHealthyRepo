@@ -16,6 +16,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=DIRECTORY, **kwargs)
 
 if __name__ == "__main__":
+    print(f"WARNING: This HTTP server is for bootstrap only. Use Caddy (start_local.bat) for HTTPS.")
     print(f"Serving {os.path.abspath(DIRECTORY)} on http://localhost:{PORT}")
     with http.server.HTTPServer(("", PORT), Handler) as httpd:
         try:

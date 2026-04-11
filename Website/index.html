@@ -629,7 +629,7 @@
         // Fetch build/version from backend (same URL as iframe)
         var healthUrl;
         if (isLocal) {
-          healthUrl = 'https://localhost:8080/health';
+          healthUrl = '/api/health';  // Same origin — Caddy proxies to :8000
         } else {
           var org = 'skipsnow';
           var base = 'chathealthyspace';
@@ -724,7 +724,7 @@
       // Build iframe URL from environment — single source of truth
       var src;
       if (isLocal) {
-        src = 'http://localhost:5173';
+        src = 'https://localhost:3000';  // Caddy HTTPS proxy to Vite :5173
       } else {
         var org = 'skipsnow';
         var base = 'chathealthyspace';

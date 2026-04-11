@@ -319,7 +319,7 @@
               },
               "cors_origin_regex": {
                 "type": "str",
-                "default": "http://localhost(:\\d+)?$"
+                "default": "https://localhost(:\\d+)?$"
               },
               "mount_static_files": {
                 "type": "bool",

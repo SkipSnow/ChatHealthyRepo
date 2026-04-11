@@ -232,7 +232,7 @@ export default function ChatWindow() {
   const abortControllerRef = useRef<AbortController | null>(null)
 
   // EvaluateCare handoff — triggered by "Evaluate these providers" button in control frame
-  const EVALCARE_URL = import.meta.env.VITE_EVALCARE_URL ?? 'http://localhost:8001'
+  const EVALCARE_URL = import.meta.env.VITE_EVALCARE_URL ?? 'https://localhost:8081'
   useEffect(() => {
     gui.onStopThinking(() => {
       setThinkingDismissed(true)
