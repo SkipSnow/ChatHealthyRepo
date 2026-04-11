@@ -18850,14 +18850,14 @@
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-005",
-                  "requirement": "Standalone scan_http.py scans staged or specified files for http://localhost. Accepts --staged, --all, file list, or directory with --recurse. Dies ungracefully on bad arguments.",
+                  "requirement": "Standalone scan_http.py scans staged or specified files for insecure HTTP URLs. Accepts --staged, --all, file list, or directory with --recurse. Dies ungracefully on bad arguments.",
                   "priority": "must-have",
                   "status": "implemented",
                   "pytest_id": "test_https_security.py::TestScanHTTP"
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-006",
-                  "requirement": "Pre-commit hook (CHECK 10) calls scan_http.py --staged and blocks commit if http://localhost found in staged files.",
+                  "requirement": "Pre-commit hook (CHECK 10) calls scan_http.py --staged and blocks commit if insecure HTTP URLs found in staged files.",
                   "priority": "must-have",
                   "status": "implemented",
                   "pytest_id": "test_https_security.py::TestPreCommitScan"
@@ -21839,6 +21839,36 @@
                   "requirement": "Selected providers list (bottom) shows only provider name, specialty, and NPI. Full details (address, county, phone) shown in tooltip on hover.",
                   "priority": "must-have",
                   "status": "open"
+                }
+              ]
+            },
+            {
+              "story_id": "FC-INDEX-001",
+              "title": "index.html is the one and only HTTP-allowed page",
+              "description": "index.html served on :80 redirects 301 to HTTPS. It is the sole exception to the 426 rule. Every other HTTP request returns 426 Upgrade Required.",
+              "size": "S",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-INDEX-001-REQ-001",
+                  "requirement": "HTTP :80 / returns 301 redirect to HTTPS. This is the one and only page allowed to respond on HTTP.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_id": "test_https_security.py::TestHTTPRedirect::test_http_root_redirects_301"
+                },
+                {
+                  "req_id": "FC-INDEX-001-REQ-002",
+                  "requirement": "HTTP :80 /index.html returns 301 redirect to HTTPS.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_id": "test_https_security.py::TestHTTPRedirect::test_http_index_html_redirects_301"
+                },
+                {
+                  "req_id": "FC-INDEX-001-REQ-003",
+                  "requirement": "Every other HTTP request to any path returns 426 Upgrade Required with message: This server refuses HTTP requests.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_id": "test_https_security.py::TestHTTPRedirect::test_http_static_page_returns_426"
                 }
               ]
             }

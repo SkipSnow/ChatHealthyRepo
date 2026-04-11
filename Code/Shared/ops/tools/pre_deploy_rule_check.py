@@ -206,7 +206,7 @@ def main(target: str) -> int:
             if scan_result.returncode != 0:
                 print(f"FAIL: SEC-HTTPS-001-REQ-004 (scan_http.py)")
                 print(scan_result.stdout)
-                all_violations.append("SEC-HTTPS-001-REQ-004: http://localhost found in staged files")
+                all_violations.append("SEC-HTTPS-001-REQ-004: insecure HTTP URL found in staged files")
             else:
                 print(f"PASS: SEC-HTTPS-001-REQ-004 (scan_http.py)")
             checked += 1
