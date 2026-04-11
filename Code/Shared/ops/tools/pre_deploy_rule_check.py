@@ -136,9 +136,9 @@ def enforce_no_pattern(rule_id, enforcement):
 
 
 def enforce_requirement_pytest(rule_id, enforcement):
-    """BUG-GOV-005 / v4-007: Every requirement in agile_backlog.json must have a pytest_id.
+    """BUG-GOV-005 / v4-007: Every requirement in agile_backlog.json must have pytest_ids.
     Scans the one and only JSON where requirements live. Blocks check-in if any
-    requirement is missing pytest_id or has an empty pytest_id."""
+    implemented requirement is missing pytest_ids or has an empty array."""
     violations = []
     path = os.path.join(REPO_ROOT, enforcement.get("path", "brain/machine_artifacts/content/agile_backlog.json"))
     if not os.path.exists(path):
@@ -159,8 +159,14 @@ def enforce_requirement_pytest(rule_id, enforcement):
                 story_id = story.get("story_id", "?")
                 for req in story.get("requirements", []):
                     req_id = req.get("req_id", "?")
-                    pytest_id = req.get("pytest_id", "")
-                    if not pytest_id or not pytest_id.strip():
+                    # Support both pytest_ids (array) and legacy pytest_id (string)
+                    pytest_ids = req.get("pytest_ids", [])
+                    if isinstance(pytest_ids, str):
+                        pytest_ids = [pytest_ids] if pytest_ids.strip() else []
+                    legacy = req.get("pytest_id", "")
+                    if legacy and not pytest_ids:
+                        pytest_ids = [legacy] if legacy.strip() else []
+                    if not pytest_ids or not any(p.strip() for p in pytest_ids):
                         # Unimplemented requirements don't need a real test yet
                         status = req.get("status", "")
                         if status not in ("implemented", "in_progress"):

@@ -16658,440 +16658,6 @@
       "ch_matrix_id": "803094a4-cb82-4040-9187-1a174b579573"
     },
     {
-      "epic_id": "EPIC-2",
-      "name": "Maintenance",
-      "capacity": "",
-      "goal": "",
-      "definition_of_done": "",
-      "status": "active",
-      "features": [
-        {
-          "feature_id": "FC-RESULT-MSG",
-          "name": "Search Result Presentation — System-Built Summary",
-          "epic_id": "EPIC-2",
-          "layer": "full-stack",
-          "capability": "FindCare",
-          "description": "GOV-011 compliance: the system builds the search result summary message from structured data, not the LLM. Message must echo the user's search term, report specialty type count with filter link, and present next page as an actionable link.",
-          "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py (_paginated_result); Code/ConversationalUX/FindCareChat/backend/main.py (PaginationMeta); Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx (response display)",
-          "priority": "HIGH",
-          "status": "accepted",
-          "accepted_by": "Boss",
-          "backend_dependencies": [],
-          "stories": [
-            {
-              "story_id": "FC-MSG-001",
-              "title": "Build summary_message from structured search result data",
-              "description": "The backend must construct a summary_message string from the structured tool result fields (specialty_searched, total_count, count, specialization_options, state, city, county). This message is system-built per GOV-011 — the LLM does not write it. Template: \"There are N more '{term}' in '{state}'. We have included M types of providers. Shall I show you [more '{term}'] or would you like to [filter '{term}' by provider type]? You can also search by {zipcode, county, or city — omit the one they already used}.\"",
-              "parent_feature": "FC-RESULT-MSG",
-              "sprint": 1,
-              "dependencies": [],
-              "size": "M",
-              "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py:146 (_paginated_result)",
-              "status": "accepted",
-              "accepted_by": "Boss",
-              "requirements": [
-                {
-                  "req_id": "FC-MSG-001-REQ-001",
-                  "story_id": "FC-MSG-001",
-                  "requirement": "The summary must use the user's search term (specialty_searched), not the generic word 'providers'.",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "GOV-011",
-                  "ch_matrix_id": "61fdafa7-0e8f-4ad6-a23e-954e66afaa01"
-                },
-                {
-                  "req_id": "FC-MSG-001-REQ-002",
-                  "story_id": "FC-MSG-001",
-                  "requirement": "The summary must report the remaining count (total_count minus count of displayed providers), not the total count.",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "GOV-011",
-                  "ch_matrix_id": "61517f54-0bd6-43af-822c-7a5ececd0a74"
-                },
-                {
-                  "req_id": "FC-MSG-001-REQ-003",
-                  "story_id": "FC-MSG-001",
-                  "requirement": "The summary must state how many types of specialists the results represent (len of specialization_options).",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "",
-                  "ch_matrix_id": "f9eb1533-253b-425a-8e64-a842e0d31c3a"
-                },
-                {
-                  "req_id": "FC-MSG-001-REQ-004",
-                  "story_id": "FC-MSG-001",
-                  "requirement": "The summary must include a marker for 'Filter' that the frontend can render as a clickable link to the specialty filter panel.",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "",
-                  "ch_matrix_id": "abbe37d4-287d-410c-ad6f-d6059ce80872"
-                },
-                {
-                  "req_id": "FC-MSG-001-REQ-005",
-                  "story_id": "FC-MSG-001",
-                  "requirement": "The summary must include a marker for 'next page' that the frontend can render as a clickable link to trigger pagination.",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "",
-                  "ch_matrix_id": "c9fe1cc9-1698-486b-8238-c825c95c8a8a"
-                },
-                {
-                  "req_id": "FC-MSG-001-REQ-006",
-                  "story_id": "FC-MSG-001",
-                  "requirement": "The summary must include the state in the message (e.g., \"in 'VA'\") when the user specified a state.",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "",
-                  "ch_matrix_id": "630df2df-cb85-47d5-bf78-8fe7b63a9bf2"
-                },
-                {
-                  "req_id": "FC-MSG-001-REQ-009",
-                  "story_id": "FC-MSG-001",
-                  "requirement": "The summary must echo the user's search term in the action links (e.g., \"more 'shrinks'\", \"filter 'shrinks' by provider type\").",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "",
-                  "ch_matrix_id": "58c2ee70-5588-4f47-80e0-8716b6557d5a"
-                },
-                {
-                  "req_id": "FC-MSG-001-REQ-010",
-                  "story_id": "FC-MSG-001",
-                  "requirement": "The summary must offer location narrowing options (zipcode, county, city) but omit the dimension the user already specified.",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "",
-                  "ch_matrix_id": "eaf63db3-4f07-4fc6-8034-3adcc2ce60d2"
-                },
-                {
-                  "req_id": "FC-MSG-001-REQ-007",
-                  "story_id": "FC-MSG-001",
-                  "requirement": "The summary_message must be included in the PaginationMeta Pydantic model returned by /chat.",
-                  "source": "architecture",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "",
-                  "ch_matrix_id": "529e226f-80b7-4c3f-9af7-2c79bdc77232"
-                },
-                {
-                  "req_id": "FC-MSG-001-REQ-008",
-                  "story_id": "FC-MSG-001",
-                  "requirement": "The summary_message must not be generated when has_more is False (no remaining results to page through).",
-                  "source": "architecture",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "",
-                  "ch_matrix_id": "c63f5a94-16f6-425c-a9d8-b26f1a65efa5"
-                }
-              ],
-              "ch_matrix_id": "3ee0fccf-760c-499d-8dd0-53ee268caa0d"
-            },
-            {
-              "story_id": "FC-MSG-002",
-              "title": "Frontend renders system summary with actionable links",
-              "description": "The frontend must display the system-built summary_message from PaginationMeta. Filter and next page markers must be rendered as clickable actions that trigger the filter panel and pagination respectively.",
-              "parent_feature": "FC-RESULT-MSG",
-              "sprint": 1,
-              "dependencies": [
-                "FC-MSG-001"
-              ],
-              "size": "M",
-              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx:295",
-              "status": "accepted",
-              "accepted_by": "Boss",
-              "requirements": [
-                {
-                  "req_id": "FC-MSG-002-REQ-001",
-                  "story_id": "FC-MSG-002",
-                  "requirement": "The frontend must display the summary_message from PaginationMeta as a separate system message after the LLM's provider listing.",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "GOV-011",
-                  "ch_matrix_id": "2bd56395-af23-44ec-b00b-3d02745a1e6d"
-                },
-                {
-                  "req_id": "FC-MSG-002-REQ-002",
-                  "story_id": "FC-MSG-002",
-                  "requirement": "The [Filter] marker in summary_message must render as a clickable link that highlights or scrolls to the specialty filter panel.",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "",
-                  "ch_matrix_id": "0b609848-733e-406b-9ab7-e72ab19c33c6"
-                },
-                {
-                  "req_id": "FC-MSG-002-REQ-003",
-                  "story_id": "FC-MSG-002",
-                  "requirement": "The [next page] marker in summary_message must render as a clickable link that triggers loading the next page of results.",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "",
-                  "ch_matrix_id": "c3d8ca7f-517e-4f80-ac4c-99c217a79fa6"
-                },
-                {
-                  "req_id": "FC-MSG-002-REQ-004",
-                  "story_id": "FC-MSG-002",
-                  "requirement": "The summary_message must not appear when pagination.has_more is false.",
-                  "source": "architecture",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "",
-                  "ch_matrix_id": "e56501c6-4a9a-47ce-b140-3f0233ee2c43"
-                }
-              ],
-              "ch_matrix_id": "a24f2510-c296-4315-820d-959a758b0285"
-            }
-          ],
-          "ch_matrix_id": "c60d2081-86b7-40d8-96a4-bf723074ae27"
-        },
-        {
-          "feature_id": "FC-FILTER-TOGGLE",
-          "name": "Filter Panel — Check All / Uncheck All Toggle with Scroll",
-          "epic_id": "EPIC-2",
-          "layer": "frontend",
-          "capability": "FindCare",
-          "description": "Toggle checkbox at top of filter panel. If majority checked: label 'Uncheck All', clicking unchecks all. If majority unchecked: label 'Check All', clicking checks all. Must apply to ALL items including those scrolled out of view.",
-          "priority": "HIGH",
-          "status": "untested",
-          "accepted_by": "Boss",
-          "backend_dependencies": [],
-          "stories": [
-            {
-              "story_id": "FC-FILT-001",
-              "title": "Toggle all checkboxes including scrolled items",
-              "description": "The toggle button must affect every checkbox in the filter list, not just visible ones. Need to determine how to SIT test scroll behavior with Playwright.",
-              "parent_feature": "FC-FILTER-TOGGLE",
-              "sprint": 5,
-              "dependencies": [],
-              "size": "S",
-              "status": "untested",
-              "accepted_by": "Boss",
-              "test_note": "UNTESTED: need to figure out how to test scroll behavior with Playwright. Toggle implemented but scroll verification not yet possible.",
-              "requirements": [
-                {
-                  "req_id": "FC-FILT-001-REQ-001",
-                  "story_id": "FC-FILT-001",
-                  "requirement": "Toggle button must apply to all items in the filter list, including items above or below the visible scroll window.",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "untested",
-                  "label": "",
-                  "ch_matrix_id": "6c0f37b9-b035-4d41-b824-7e149fa7e9ec"
-                },
-                {
-                  "req_id": "FC-FILT-001-REQ-002",
-                  "story_id": "FC-FILT-001",
-                  "requirement": "Label must read 'Uncheck All' when majority are checked, 'Check All' when majority are unchecked.",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "untested",
-                  "label": "",
-                  "ch_matrix_id": "5ad85417-a260-46ea-9fc9-7ef6ecc64fad"
-                }
-              ],
-              "ch_matrix_id": "d546cde6-7cc6-4ee1-b164-48b968590b62"
-            }
-          ],
-          "ch_matrix_id": "d57e3cab-0761-49da-9a61-87c586153f71"
-        },
-        {
-          "feature_id": "MAINT-SIT-MIGRATE",
-          "name": "Migrate All Pytests to Playwright Full-Page SIT",
-          "epic_id": "EPIC-2",
-          "layer": "testing",
-          "capability": "Quality",
-          "description": "DR-019: Convert all existing pytest test cases to Playwright browser tests running against the full parent page (dev.chathealthy.ai). No more isolated HF Space testing. Gate: must complete before QA promotion.",
-          "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_pagination.py; Code/ConversationalUX/FindCareChat/backend/tests/test_sit_browser.py",
-          "priority": "HIGH",
-          "status": "accepted",
-          "accepted_by": "Boss",
-          "backend_dependencies": [],
-          "deadline": "2026-04-23",
-          "gate": "QA promotion blocked until complete",
-          "stories": [
-            {
-              "story_id": "SIT-MIG-001",
-              "title": "Convert test_pagination.py to Playwright full-page tests",
-              "description": "All pagination requirement tests must run via Playwright against dev.chathealthy.ai, not FastAPI TestClient.",
-              "parent_feature": "MAINT-SIT-MIGRATE",
-              "sprint": 5,
-              "dependencies": [],
-              "size": "L",
-              "status": "accepted",
-              "accepted_by": "Boss",
-              "requirements": [
-                {
-                  "req_id": "SIT-MIG-001-REQ-001",
-                  "story_id": "SIT-MIG-001",
-                  "requirement": "Every test in test_pagination.py must have a Playwright equivalent that tests through the full parent page.",
-                  "source": "DR-019",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "DR-019",
-                  "ch_matrix_id": "f0a9f0ae-8f6e-4039-bc43-e7d8269887a1"
-                }
-              ],
-              "ch_matrix_id": "f9e31ab5-9b6b-4df2-b56e-8cd50e6dbe74"
-            }
-          ],
-          "ch_matrix_id": "8711dbf7-8101-49c6-a5c5-0257b8e1a4b0"
-        },
-        {
-          "feature_id": "MAINT-IDX-TUNE",
-          "name": "Index Tuning — Frontend and Pipeline Clusters",
-          "epic_id": "EPIC-2",
-          "layer": "infrastructure",
-          "capability": "DataOps",
-          "description": "DR-016/DR-017/DR-018: Audit, create, and verify all database indexes on frontend and pipeline clusters. Every vector search index referenced in code must exist on every environment. Every promotion must verify indexes. /health must report missing indexes.",
-          "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (_REQUIRED_INDEXES, /health); Code/DataPipelines/copy_to_frontend.py (verify_frontend_indexes); Code/DataPipelines/promote_data_fn.py (index verification gate)",
-          "priority": "HIGH",
-          "status": "accepted",
-          "accepted_by": "Boss",
-          "backend_dependencies": [],
-          "stories": [
-            {
-              "story_id": "IDX-001",
-              "title": "Audit and create all required indexes on frontend cluster (dev, qa, prod)",
-              "description": "Enumerate all $vectorSearch references in codebase. Create missing indexes on all three frontend environments. Verify with list_search_indexes.",
-              "parent_feature": "MAINT-IDX-TUNE",
-              "sprint": 5,
-              "dependencies": [],
-              "size": "M",
-              "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py:124 (provider_vector_index); Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py:89 (specialty_vector_index)",
-              "status": "accepted",
-              "accepted_by": "Boss",
-              "requirements": [
-                {
-                  "req_id": "IDX-001-REQ-001",
-                  "story_id": "IDX-001",
-                  "requirement": "provider_vector_index must exist on providers in dev, qa, and prod with vector on embedding (3072d, cosine) and filter fields: practice_address.state, practice_address.city, practice_address.zip, county.name, county.fips.",
-                  "source": "codebase",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "DR-016",
-                  "ch_matrix_id": "97f6a69e-b7a8-49c5-a6ae-3449a3c02dd3"
-                },
-                {
-                  "req_id": "IDX-001-REQ-002",
-                  "story_id": "IDX-001",
-                  "requirement": "specialty_vector_index must exist on SpecialtyMetaData in dev, qa, and prod with vector on embedding (3072d, cosine).",
-                  "source": "codebase",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "DR-016",
-                  "ch_matrix_id": "c6cd0ed5-04e2-4cc9-87ac-5bad6705d5c8"
-                },
-                {
-                  "req_id": "IDX-001-REQ-003",
-                  "story_id": "IDX-001",
-                  "requirement": "All indexes must be in READY status before UAT begins.",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "",
-                  "ch_matrix_id": "0ae2fa48-646a-4afa-ba06-ec05e6c22c18"
-                }
-              ],
-              "ch_matrix_id": "68cee544-519e-47fd-8b74-a2a38df2960d"
-            },
-            {
-              "story_id": "IDX-002",
-              "title": "Propose pipeline cluster indexes",
-              "description": "Resume pipeline cluster, audit current indexes, read all pipeline code (enrichment, embedding, copy operations), and propose an index strategy. Pipeline indexes exist only to support enrichment workflows. Present proposal to Boss for approval before creating anything.",
-              "parent_feature": "MAINT-IDX-TUNE",
-              "sprint": 5,
-              "dependencies": [],
-              "size": "S",
-              "evidence": "Code/DataPipelines/provider_load_manager.py; Code/DataPipelines/copy_to_frontend.py; Code/DataPipelines/county_economic_enrichment.py",
-              "status": "accepted",
-              "accepted_by": "Boss",
-              "requirements": [
-                {
-                  "req_id": "IDX-002-REQ-001",
-                  "story_id": "IDX-002",
-                  "requirement": "Audit existing indexes on pipeline cluster when resumed. Document what exists.",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "",
-                  "ch_matrix_id": "b248dd1a-33f2-4b72-bd93-d685a9d78bb7"
-                },
-                {
-                  "req_id": "IDX-002-REQ-002",
-                  "story_id": "IDX-002",
-                  "requirement": "Read all pipeline code and identify every query pattern used during enrichment workflows. Propose indexes that support those patterns.",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "DR-018",
-                  "ch_matrix_id": "dd012cb6-9463-43f0-bfed-4dc4de7ef232"
-                },
-                {
-                  "req_id": "IDX-002-REQ-003",
-                  "story_id": "IDX-002",
-                  "requirement": "Present index proposal to Boss for approval. Do not create indexes without sign-off.",
-                  "source": "Boss directive",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "",
-                  "ch_matrix_id": "1d28f6cc-b785-46fe-b61d-fda20493075a"
-                }
-              ],
-              "ch_matrix_id": "167b86dc-3f67-467c-87fb-e931a8e2b140"
-            },
-            {
-              "story_id": "IDX-003",
-              "title": "Index verification gate on every environment promotion",
-              "description": "promote_data_fn must verify all required indexes exist on the target environment after promotion. Promotion fails if any index is missing. verify_frontend_indexes runs as final step.",
-              "parent_feature": "MAINT-IDX-TUNE",
-              "sprint": 5,
-              "dependencies": [
-                "IDX-001"
-              ],
-              "size": "S",
-              "evidence": "Code/DataPipelines/promote_data_fn.py (verify_frontend_indexes); Code/DataPipelines/copy_to_frontend.py (verify_frontend_indexes)",
-              "status": "accepted",
-              "accepted_by": "Boss",
-              "requirements": [
-                {
-                  "req_id": "IDX-003-REQ-001",
-                  "story_id": "IDX-003",
-                  "requirement": "promote_data must call verify_frontend_indexes after every promotion and fail with RuntimeError if any required index is missing.",
-                  "source": "DR-016",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "DR-016",
-                  "ch_matrix_id": "62cdecfd-7587-4a6f-85ee-d81c44c68893"
-                },
-                {
-                  "req_id": "IDX-003-REQ-002",
-                  "story_id": "IDX-003",
-                  "requirement": "/health endpoint must return status 'degraded' with missing_indexes list if any required index is absent.",
-                  "source": "DR-016",
-                  "priority": "must-have",
-                  "status": "accepted",
-                  "label": "DR-016",
-                  "ch_matrix_id": "85c01801-e85d-418a-891c-fce394fdd6b0"
-                }
-              ],
-              "ch_matrix_id": "21c00a22-d039-4aa7-b1f8-1cde5862dd28"
-            }
-          ],
-          "ch_matrix_id": "b94cc55e-c61b-4276-aa8b-f3ba71f1ab0b"
-        }
-      ],
-      "ch_matrix_id": "34fe0e47-8d46-48ee-9343-edf688968268"
-    },
-    {
       "epic_id": "EPIC-3",
       "name": "Pipeline Management",
       "capacity": "",
@@ -18825,50 +18391,66 @@
                   "requirement": "All REST services reject HTTP with 403 or 426",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_https_security.py::TestHTTPRejection (7 tests)"
+                  "pytest_ids": [
+                    "test_https_security.py::TestHTTPRejection (7 tests)"
+                  ]
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-002",
                   "requirement": "Website :80 redirects to HTTPS only for index.html, rejects all other HTTP",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_https_security.py::TestHTTPRedirect (6 tests)"
+                  "pytest_ids": [
+                    "test_https_security.py::TestHTTPRedirect (6 tests)"
+                  ]
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-003",
                   "requirement": "Every client REST call must check for HTTP 426 (Upgrade Required) or 403 (Forbidden) — if received, fail immediately with a clear security error. Do not retry, do not silently continue. This specific code means HTTP was used when HTTPS was required.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_https_security.py::TestClientSecurityCheck (2 tests)"
+                  "pytest_ids": [
+                    "test_https_security.py::TestClientSecurityCheck (2 tests)"
+                  ]
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-004",
                   "requirement": "No HTTP URLs anywhere in production code, CORS, or config",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_https_security.py::TestNoHTTPInCode (1 test)"
+                  "pytest_ids": [
+                    "test_https_security.py::TestNoHTTPInCode (1 test)"
+                  ]
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-005",
                   "requirement": "Standalone scan_http.py scans staged or specified files for insecure HTTP URLs. Accepts --staged, --all, file list, or directory with --recurse. Dies ungracefully on bad arguments.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_https_security.py::TestScanHTTP"
+                  "pytest_ids": [
+                    "test_https_security.py::TestScanHTTP"
+                  ]
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-006",
                   "requirement": "Pre-commit hook (CHECK 10) calls scan_http.py --staged and blocks commit if insecure HTTP URLs found in staged files.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_https_security.py::TestPreCommitScan"
+                  "pytest_ids": [
+                    "test_https_security.py::TestPreCommitScan"
+                  ]
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-007",
                   "requirement": "Every HTTP 426 Upgrade Required response on every server in every environment must include the status code (426) in the response body text. The user/client must see the numeric code in the message, not just the header.",
                   "priority": "must-have",
                   "status": "in_progress",
-                  "pytest_id": "test_https_security.py::Test426BodyIncludesStatusCode",
-                  "bug_id": "BUG-SEC-005"
+                  "pytest_ids": [
+                    "test_https_security.py::Test426BodyIncludesStatusCode"
+                  ],
+                  "bug_ids": [
+                    "BUG-SEC-005"
+                  ]
                 }
               ]
             }
@@ -19929,16 +19511,20 @@
                   "requirement": "Admin can unlock a locked IP by entering the unlock code in the chat. The code is stored in the ADMIN_UNLOCK_KEY environment variable, never in code.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_safety_unlock.py::TestAdminUnlock::test_correct_code_returns_true_format",
-                  "ch_matrix_id": "cf3b8700-8ec1-4525-a46e-3a80fa1afd52"
+                  "ch_matrix_id": "cf3b8700-8ec1-4525-a46e-3a80fa1afd52",
+                  "pytest_ids": [
+                    "test_safety_unlock.py::TestAdminUnlock::test_correct_code_returns_true_format"
+                  ]
                 },
                 {
                   "req_id": "SAFETY-UNLOCK-001-REQ-002",
                   "requirement": "The unlock code comparison must be case-insensitive. 'unlock$123' and 'UNLOCK$123' and 'Unlock$123' must all work.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_safety_unlock.py::TestAdminUnlock::test_case_insensitive_lowercase",
-                  "ch_matrix_id": "c12892aa-567e-4331-bbc2-f8459fc1b2f4"
+                  "ch_matrix_id": "c12892aa-567e-4331-bbc2-f8459fc1b2f4",
+                  "pytest_ids": [
+                    "test_safety_unlock.py::TestAdminUnlock::test_case_insensitive_lowercase"
+                  ]
                 }
               ],
               "ch_matrix_id": "0b30c960-25ac-4c0c-ad4c-e2b1502f69b8"
@@ -20237,32 +19823,40 @@
                   "requirement": "AI classifier is the sole primary trigger for emergency detection",
                   "priority": "must-have",
                   "status": "in_progress",
-                  "pytest_id": "test_safety_false_positives.py::TestSafetyFalsePositives::test_ai_is_primary_not_keywords",
-                  "ch_matrix_id": "3563c018-62a2-4789-bcfd-4c0cb1b97666"
+                  "ch_matrix_id": "3563c018-62a2-4789-bcfd-4c0cb1b97666",
+                  "pytest_ids": [
+                    "test_safety_false_positives.py::TestSafetyFalsePositives::test_ai_is_primary_not_keywords"
+                  ]
                 },
                 {
                   "req_id": "SDT-BRAIN-SAFETY-001-REQ-002",
                   "requirement": "Keywords are used ONLY as fallback when AI classifier API call fails",
                   "priority": "must-have",
                   "status": "in_progress",
-                  "pytest_id": "test_safety_false_positives.py::TestSafetyFalsePositives::test_keywords_only_in_except_block",
-                  "ch_matrix_id": "48adabb9-58b9-4bbf-82d2-fd9bfb1dd863"
+                  "ch_matrix_id": "48adabb9-58b9-4bbf-82d2-fd9bfb1dd863",
+                  "pytest_ids": [
+                    "test_safety_false_positives.py::TestSafetyFalsePositives::test_keywords_only_in_except_block"
+                  ]
                 },
                 {
                   "req_id": "SDT-BRAIN-SAFETY-001-REQ-003",
                   "requirement": "Provider search queries containing emergency terms do not trigger emergency response",
                   "priority": "must-have",
                   "status": "in_progress",
-                  "pytest_id": "test_safety_false_positives.py::TestSafetyFalsePositives::test_find_doctor_chest_pain",
-                  "ch_matrix_id": "617e92b6-f588-4eb9-93c9-c37ab6e9baae"
+                  "ch_matrix_id": "617e92b6-f588-4eb9-93c9-c37ab6e9baae",
+                  "pytest_ids": [
+                    "test_safety_false_positives.py::TestSafetyFalsePositives::test_find_doctor_chest_pain"
+                  ]
                 },
                 {
                   "req_id": "SDT-BRAIN-SAFETY-001-REQ-004",
                   "requirement": "Actual emergencies (all three gates: body location + acute onset + life-threat) still trigger correctly",
                   "priority": "must-have",
                   "status": "in_progress",
-                  "pytest_id": "test_safety_false_positives.py::TestSafetyFalsePositives::test_real_emergency_chest_pain",
-                  "ch_matrix_id": "c7472482-ec3a-4dfe-8eb0-c027294cf3b6"
+                  "ch_matrix_id": "c7472482-ec3a-4dfe-8eb0-c027294cf3b6",
+                  "pytest_ids": [
+                    "test_safety_false_positives.py::TestSafetyFalsePositives::test_real_emergency_chest_pain"
+                  ]
                 }
               ],
               "ch_matrix_id": "959191cc-eaf9-4928-9de3-64c2b486b4a7"
@@ -20292,8 +19886,10 @@
                   "requirement": "Python HTTP server serves Website/ directory on port 80",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal001::test_bat_starts_service_on_port_80",
-                  "ch_matrix_id": "3a4ddba5-780e-4ebb-916a-64a76747711e"
+                  "ch_matrix_id": "3a4ddba5-780e-4ebb-916a-64a76747711e",
+                  "pytest_ids": [
+                    "test_local_infrastructure.py::TestSDTLocal001::test_bat_starts_service_on_port_80"
+                  ]
                 }
               ],
               "ch_matrix_id": "254d6596-4aac-4e10-bece-19cb879e0c1d"
@@ -20309,24 +19905,30 @@
                   "requirement": "EvaluateCare app.py runs independently on port 8001",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal002::test_app_runs_on_port_8001",
-                  "ch_matrix_id": "55f6fe49-e280-4e03-a8dc-5a0c5936773b"
+                  "ch_matrix_id": "55f6fe49-e280-4e03-a8dc-5a0c5936773b",
+                  "pytest_ids": [
+                    "test_local_infrastructure.py::TestSDTLocal002::test_app_runs_on_port_8001"
+                  ]
                 },
                 {
                   "req_id": "SDT-LOCAL-002-REQ-002",
                   "requirement": "CORS allows localhost origins for all ports",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal002::test_cors_allows_localhost_origins",
-                  "ch_matrix_id": "5f7e6d5b-4538-4384-930b-cc6dc3c207a1"
+                  "ch_matrix_id": "5f7e6d5b-4538-4384-930b-cc6dc3c207a1",
+                  "pytest_ids": [
+                    "test_local_infrastructure.py::TestSDTLocal002::test_cors_allows_localhost_origins"
+                  ]
                 },
                 {
                   "req_id": "SDT-LOCAL-002-REQ-003",
                   "requirement": "/health endpoint returns service name and version",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal002::test_health_endpoint_returns_service_and_version",
-                  "ch_matrix_id": "b220deff-a083-47df-8c9d-80948049a44e"
+                  "ch_matrix_id": "b220deff-a083-47df-8c9d-80948049a44e",
+                  "pytest_ids": [
+                    "test_local_infrastructure.py::TestSDTLocal002::test_health_endpoint_returns_service_and_version"
+                  ]
                 }
               ],
               "ch_matrix_id": "96d220d9-d34c-4150-abbf-94c20d8c0525"
@@ -20342,16 +19944,20 @@
                   "requirement": "start_local.bat launches all 4 services in separate windows",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal003::test_launches_all_4_services",
-                  "ch_matrix_id": "d0bfe895-9f77-4e14-a891-4835727317ea"
+                  "ch_matrix_id": "d0bfe895-9f77-4e14-a891-4835727317ea",
+                  "pytest_ids": [
+                    "test_local_infrastructure.py::TestSDTLocal003::test_launches_all_4_services"
+                  ]
                 },
                 {
                   "req_id": "SDT-LOCAL-003-REQ-002",
                   "requirement": "Script must be run as administrator for port 80",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal003::test_admin_requirement_documented",
-                  "ch_matrix_id": "56ee17e3-a997-42c9-bfb7-328a5dc4b3f2"
+                  "ch_matrix_id": "56ee17e3-a997-42c9-bfb7-328a5dc4b3f2",
+                  "pytest_ids": [
+                    "test_local_infrastructure.py::TestSDTLocal003::test_admin_requirement_documented"
+                  ]
                 },
                 {
                   "req_id": "SDT-LOCAL-003-REQ-003",
@@ -20372,32 +19978,40 @@
                   "requirement": "start_local.bat must kill zombies on ALL service ports: 80, 443, 5173, 8000, 8001, 8002",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal003::test_kills_zombies_on_all_service_ports",
-                  "ch_matrix_id": "c0000003-0000-4000-e000-000000000003"
+                  "ch_matrix_id": "c0000003-0000-4000-e000-000000000003",
+                  "pytest_ids": [
+                    "test_local_infrastructure.py::TestSDTLocal003::test_kills_zombies_on_all_service_ports"
+                  ]
                 },
                 {
                   "req_id": "SDT-LOCAL-003-REQ-006",
                   "requirement": "start_local.bat must log all service output to %TEMP%/chathealthy_*.log so silent failures are diagnosable",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal003::test_logs_output_to_temp",
-                  "ch_matrix_id": "c0000004-0000-4000-e000-000000000004"
+                  "ch_matrix_id": "c0000004-0000-4000-e000-000000000004",
+                  "pytest_ids": [
+                    "test_local_infrastructure.py::TestSDTLocal003::test_logs_output_to_temp"
+                  ]
                 },
                 {
                   "req_id": "SDT-LOCAL-003-REQ-007",
                   "requirement": "start_local.bat verification step must report which log file to check on failure",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal003::test_verification_reports_log_on_failure",
-                  "ch_matrix_id": "c0000005-0000-4000-e000-000000000005"
+                  "ch_matrix_id": "c0000005-0000-4000-e000-000000000005",
+                  "pytest_ids": [
+                    "test_local_infrastructure.py::TestSDTLocal003::test_verification_reports_log_on_failure"
+                  ]
                 },
                 {
                   "req_id": "SDT-LOCAL-003-REQ-008",
                   "requirement": "start_local.bat must verify EvaluateCare on :8001 is healthy before reporting success",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_local_infrastructure.py::TestSDTLocal003::test_verifies_evaluatecare_on_8001",
-                  "ch_matrix_id": "c0000006-0000-4000-e000-000000000006"
+                  "ch_matrix_id": "c0000006-0000-4000-e000-000000000006",
+                  "pytest_ids": [
+                    "test_local_infrastructure.py::TestSDTLocal003::test_verifies_evaluatecare_on_8001"
+                  ]
                 }
               ],
               "ch_matrix_id": "0001aa87-0515-4114-9b32-58e125af5df4"
@@ -20857,32 +20471,40 @@
                   "requirement": "An 'Evaluate these providers' button appears in guiControlFrame when provider search results are displayed",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
-                  "ch_matrix_id": "56022a32-2905-409d-91ca-bee0e964ded6"
+                  "ch_matrix_id": "56022a32-2905-409d-91ca-bee0e964ded6",
+                  "pytest_ids": [
+                    "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff"
+                  ]
                 },
                 {
                   "req_id": "UX-CTRL-003-REQ-002",
                   "requirement": "Button is rendered via postMessage (gui:render) alongside pagination controls",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
-                  "ch_matrix_id": "e90e07a0-ff50-4450-85b3-918f8dc1e90e"
+                  "ch_matrix_id": "e90e07a0-ff50-4450-85b3-918f8dc1e90e",
+                  "pytest_ids": [
+                    "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff"
+                  ]
                 },
                 {
                   "req_id": "UX-CTRL-003-REQ-003",
                   "requirement": "Clicking the button sends the current provider list to EvaluateCare /evaluate/providers via the facade",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
-                  "ch_matrix_id": "06a2189b-896a-4b04-8748-4c6d27d6d141"
+                  "ch_matrix_id": "06a2189b-896a-4b04-8748-4c6d27d6d141",
+                  "pytest_ids": [
+                    "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff"
+                  ]
                 },
                 {
                   "req_id": "UX-CTRL-003-REQ-004",
                   "requirement": "EvaluateCare stub response paints provider names, specialty, and NPI onto the chat screen",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
-                  "ch_matrix_id": "94395424-b01c-463b-b61d-c12b22c3f9c1"
+                  "ch_matrix_id": "94395424-b01c-463b-b61d-c12b22c3f9c1",
+                  "pytest_ids": [
+                    "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff"
+                  ]
                 },
                 {
                   "req_id": "UX-CTRL-003-REQ-005",
@@ -21560,7 +21182,9 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "ch_matrix_id": "abd823a4-06f6-4362-b7e1-4bedfa770359",
-                  "pytest_id": "local_environment_user_ready.py::TestPageLoad::test_page_title"
+                  "pytest_ids": [
+                    "local_environment_user_ready.py::TestPageLoad::test_page_title"
+                  ]
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-002",
@@ -21568,7 +21192,9 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "ch_matrix_id": "bf712039-ec0b-47e0-867f-72e8751fdd09",
-                  "pytest_id": "local_environment_user_ready.py::TestPageLoad::test_environment_class"
+                  "pytest_ids": [
+                    "local_environment_user_ready.py::TestPageLoad::test_environment_class"
+                  ]
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-003",
@@ -21576,7 +21202,9 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "ch_matrix_id": "db477386-eff6-4c19-9b5e-0118095697cb",
-                  "pytest_id": "local_environment_user_ready.py::TestPageLoad::test_welcome_message_was_shown"
+                  "pytest_ids": [
+                    "local_environment_user_ready.py::TestPageLoad::test_welcome_message_was_shown"
+                  ]
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-004",
@@ -21584,7 +21212,9 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "ch_matrix_id": "9d37b1f4-6a95-44ba-ab45-7dfe53c6cf2c",
-                  "pytest_id": "local_environment_user_ready.py::TestPageLoad::test_chat_input_ready"
+                  "pytest_ids": [
+                    "local_environment_user_ready.py::TestPageLoad::test_chat_input_ready"
+                  ]
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-005",
@@ -21592,7 +21222,9 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "ch_matrix_id": "4c149d0a-8a82-4aae-ad75-50cb8cb56c71",
-                  "pytest_id": "local_environment_user_ready.py::TestProviderSearch::test_providers_have_npis"
+                  "pytest_ids": [
+                    "local_environment_user_ready.py::TestProviderSearch::test_providers_have_npis"
+                  ]
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-006",
@@ -21600,7 +21232,9 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "ch_matrix_id": "4dc8e677-5572-4aff-ac92-92b7e7512af1",
-                  "pytest_id": "local_environment_user_ready.py::TestLeftPanel::test_specialty_filters_visible"
+                  "pytest_ids": [
+                    "local_environment_user_ready.py::TestLeftPanel::test_specialty_filters_visible"
+                  ]
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-007",
@@ -21608,7 +21242,9 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "ch_matrix_id": "e387b301-e859-4bd2-9b6f-1b426032f869",
-                  "pytest_id": "local_environment_user_ready.py::TestLeftPanel::test_session_token_in_left_panel"
+                  "pytest_ids": [
+                    "local_environment_user_ready.py::TestLeftPanel::test_session_token_in_left_panel"
+                  ]
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-008",
@@ -21616,7 +21252,9 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "ch_matrix_id": "28690695-68a1-468e-b2ec-66e7d0f8b24e",
-                  "pytest_id": "local_environment_user_ready.py::TestLeftPanel::test_left_panel_has_two_buttons"
+                  "pytest_ids": [
+                    "local_environment_user_ready.py::TestLeftPanel::test_left_panel_has_two_buttons"
+                  ]
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-009",
@@ -21624,7 +21262,9 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "ch_matrix_id": "53701b2d-d7c1-4047-8ffd-76fd6941ca08",
-                  "pytest_id": "local_environment_user_ready.py::TestRightPanel::test_right_panel_before_evaluate"
+                  "pytest_ids": [
+                    "local_environment_user_ready.py::TestRightPanel::test_right_panel_before_evaluate"
+                  ]
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-010",
@@ -21632,7 +21272,9 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "ch_matrix_id": "19d92974-b7cd-492a-8d48-e1f1a4656097",
-                  "pytest_id": "local_environment_user_ready.py::TestEvaluateCareHandoff::test_evaluate_click"
+                  "pytest_ids": [
+                    "local_environment_user_ready.py::TestEvaluateCareHandoff::test_evaluate_click"
+                  ]
                 },
                 {
                   "req_id": "TEST-SIM-001-REQ-011",
@@ -21640,7 +21282,9 @@
                   "priority": "must-have",
                   "status": "implemented",
                   "ch_matrix_id": "12686789-1ed7-4a81-8421-63dd93c48478",
-                  "pytest_id": "local_environment_user_ready.py::TestEvaluateCareHandoff::test_session_verification_in_right_panel"
+                  "pytest_ids": [
+                    "local_environment_user_ready.py::TestEvaluateCareHandoff::test_session_verification_in_right_panel"
+                  ]
                 }
               ],
               "ch_matrix_id": "cbf6661c-31ab-4ac7-9706-d4e2c9b64d20"
@@ -21719,6 +21363,48 @@
           "status": "accepted",
           "accepted_by": "Boss",
           "ch_matrix_id": "34e8e61b-657c-4ad6-9f99-2bf34cd65a94"
+        },
+        {
+          "feature_id": "MAINT-SIT-MIGRATE",
+          "name": "Migrate All Pytests to Playwright Full-Page SIT",
+          "epic_id": "EPIC-10",
+          "layer": "testing",
+          "capability": "Quality",
+          "description": "DR-019: Convert all existing pytest test cases to Playwright browser tests running against the full parent page (dev.chathealthy.ai). No more isolated HF Space testing. Gate: must complete before QA promotion.",
+          "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/test_pagination.py; Code/ConversationalUX/FindCareChat/backend/tests/test_sit_browser.py",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "backend_dependencies": [],
+          "deadline": "2026-04-23",
+          "gate": "QA promotion blocked until complete",
+          "stories": [
+            {
+              "story_id": "SIT-MIG-001",
+              "title": "Convert test_pagination.py to Playwright full-page tests",
+              "description": "All pagination requirement tests must run via Playwright against dev.chathealthy.ai, not FastAPI TestClient.",
+              "parent_feature": "MAINT-SIT-MIGRATE",
+              "sprint": 5,
+              "dependencies": [],
+              "size": "L",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "SIT-MIG-001-REQ-001",
+                  "story_id": "SIT-MIG-001",
+                  "requirement": "Every test in test_pagination.py must have a Playwright equivalent that tests through the full parent page.",
+                  "source": "DR-019",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "DR-019",
+                  "ch_matrix_id": "f0a9f0ae-8f6e-4039-bc43-e7d8269887a1"
+                }
+              ],
+              "ch_matrix_id": "f9e31ab5-9b6b-4df2-b56e-8cd50e6dbe74"
+            }
+          ],
+          "ch_matrix_id": "8711dbf7-8101-49c6-a5c5-0257b8e1a4b0"
         }
       ],
       "ch_matrix_id": "3561e18f-baf3-427b-ae0e-bf71db886bc7"
@@ -21749,28 +21435,36 @@
                   "requirement": "User can search by free text",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_findcare_search.py::TestProviderSearchFreeText::test_free_text_search_returns_results"
+                  "pytest_ids": [
+                    "test_findcare_search.py::TestProviderSearchFreeText::test_free_text_search_returns_results"
+                  ]
                 },
                 {
                   "req_id": "FC-SEARCH-001-REQ-002",
                   "requirement": "System returns provider name, NPI, address, county, phone",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_findcare_search.py::TestProviderResultFields::test_results_contain_npi"
+                  "pytest_ids": [
+                    "test_findcare_search.py::TestProviderResultFields::test_results_contain_npi"
+                  ]
                 },
                 {
                   "req_id": "FC-SEARCH-001-REQ-003",
                   "requirement": "Results paginated with forward/back controls",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_findcare_search.py::TestProviderSearchPagination::test_pagination_controls_present"
+                  "pytest_ids": [
+                    "test_findcare_search.py::TestProviderSearchPagination::test_pagination_controls_present"
+                  ]
                 },
                 {
                   "req_id": "FC-SEARCH-001-REQ-004",
                   "requirement": "System identifies matching specialty types from search query",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_findcare_search.py::TestSpecialtyClassification::test_specialty_types_identified"
+                  "pytest_ids": [
+                    "test_findcare_search.py::TestSpecialtyClassification::test_specialty_types_identified"
+                  ]
                 },
                 {
                   "req_id": "FC-SEARCH-001-REQ-005",
@@ -21783,15 +21477,21 @@
                   "requirement": "Provider search is a database query against a list of specialty codes — never an AI call. The AI's only role is to translate the user's natural language into an ordered list of specialty codes, ranked from most likely to be picked to least likely. The database receives the ordered list and returns providers. GOV-011: AI translates, system answers.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_classify_performance.py::test_classify_returns_ordered_specialties"
+                  "pytest_ids": [
+                    "test_classify_performance.py::test_classify_returns_ordered_specialties"
+                  ]
                 },
                 {
                   "req_id": "FC-SEARCH-001-REQ-007",
                   "requirement": "The search timer must count elapsed seconds continuously from the moment the user submits a search until provider results are displayed. The timer must not stall, freeze, or clear between the AI classify call and the DB search call. Timer clears only when results render or an error is shown.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_search_timer.py::test_timer_runs_until_results_displayed",
-                  "bug_id": "BUG-UX-013"
+                  "pytest_ids": [
+                    "test_search_timer.py::test_timer_runs_until_results_displayed"
+                  ],
+                  "bug_ids": [
+                    "BUG-UX-013"
+                  ]
                 }
               ]
             },
@@ -21912,21 +21612,27 @@
                   "requirement": "HTTP :80 / returns 301 redirect to HTTPS. This is the one and only page allowed to respond on HTTP.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_https_security.py::TestHTTPRedirect::test_http_root_redirects_301"
+                  "pytest_ids": [
+                    "test_https_security.py::TestHTTPRedirect::test_http_root_redirects_301"
+                  ]
                 },
                 {
                   "req_id": "FC-INDEX-001-REQ-002",
                   "requirement": "HTTP :80 /index.html returns 301 redirect to HTTPS.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_https_security.py::TestHTTPRedirect::test_http_index_html_redirects_301"
+                  "pytest_ids": [
+                    "test_https_security.py::TestHTTPRedirect::test_http_index_html_redirects_301"
+                  ]
                 },
                 {
                   "req_id": "FC-INDEX-001-REQ-003",
                   "requirement": "Every other HTTP request to any path returns 426 Upgrade Required with message: This server refuses HTTP requests.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_https_security.py::TestHTTPRedirect::test_http_static_page_returns_426"
+                  "pytest_ids": [
+                    "test_https_security.py::TestHTTPRedirect::test_http_static_page_returns_426"
+                  ]
                 }
               ]
             }
@@ -21951,51 +21657,85 @@
                   "requirement": "Filter panel shows specialty types from search results",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_filter_checkboxes_visible_and_labeled"
+                  "pytest_ids": [
+                    "test_filter_panel.py::TestFilterPanelDisplay::test_filter_checkboxes_visible_and_labeled"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-002",
                   "requirement": "Prescribers only checkbox filters to prescriber specialties",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_prescribers_only_filters_to_prescriber_specialties"
+                  "pytest_ids": [
+                    "test_filter_panel.py::TestFilterPanelDisplay::test_prescribers_only_filters_to_prescriber_specialties"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-003",
                   "requirement": "Homeopathic only checkbox adds homeopathic specialties",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_homeopathic_only_adds_homeopathic_specialties"
+                  "pytest_ids": [
+                    "test_filter_panel.py::TestFilterPanelDisplay::test_homeopathic_only_adds_homeopathic_specialties"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-004",
                   "requirement": "Three counts displayed: total types, showing, filtered",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_filter_header_shows_specialty_counts_not_provider_counts"
+                  "pytest_ids": [
+                    "test_filter_panel.py::TestFilterPanelDisplay::test_filter_header_shows_specialty_counts_not_provider_counts"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-005",
                   "requirement": "Check all / uncheck all toggle",
                   "priority": "must-have",
                   "status": "implemented",
-                  "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_uncheck_all_updates_your_choices_to_zero"
+                  "pytest_ids": [
+                    "test_filter_panel.py::TestFilterPanelDisplay::test_uncheck_all_updates_your_choices_to_zero"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-006",
                   "requirement": "Filter header must display as horizontal grid: [Filter by specialty] [All possible: N] [Prescribers & homeopathic: N (only if homeopathic checked)] [Your choices: N] [Prescribers only checkbox] [Homeopathic only checkbox]. Three labeled counts with full label text visible — no truncation. Labels and values must be intelligently spaced. Only Playwright can pytest this requirement — no unit test substitute.",
                   "priority": "must-have",
                   "status": "open",
-                  "pytest_id": "test_filter_panel.py::test_filter_header_labels_not_truncated",
                   "mockup": "Excel mockup from Skip: 5-column header row. Col1=label, Col2=all possible count, Col3=prescribers+homeopathic count (conditional), Col4=your checked choices count, Col5=two checkboxes stacked.",
-                  "bug_ref": "BUG-UX-015"
+                  "bug_ref": "BUG-UX-015",
+                  "pytest_ids": [
+                    "test_filter_panel.py::test_filter_header_labels_not_truncated"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-007",
                   "requirement": "When the user clicks Apply Filter, the system re-queries the database with only the checked specialty codes and refreshes the provider list. Unchecked specialties are excluded from the query. The available provider list clears and replaces with the filtered results.",
                   "priority": "must-have",
                   "status": "open",
-                  "pytest_id": "test_filter_panel.py::test_apply_filter_requeries_with_checked_codes"
+                  "pytest_ids": [
+                    "test_filter_panel.py::test_apply_filter_requeries_with_checked_codes"
+                  ]
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-008",
+                  "story_id": "FC-FILT-001",
+                  "requirement": "Toggle button must apply to all items in the filter list, including items above or below the visible scroll window.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "untested",
+                  "label": "",
+                  "ch_matrix_id": "6c0f37b9-b035-4d41-b824-7e149fa7e9ec"
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-009",
+                  "story_id": "FC-FILT-001",
+                  "requirement": "Label must read 'Uncheck All' when majority are checked, 'Check All' when majority are unchecked.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "untested",
+                  "label": "",
+                  "ch_matrix_id": "5ad85417-a260-46ea-9fc9-7ef6ecc64fad"
                 }
               ]
             }
@@ -22021,39 +21761,380 @@
                   "requirement": "Evaluate These Providers button is positioned to the right of the cursor control bar.",
                   "priority": "must-have",
                   "status": "open",
-                  "pytest_id": "test_evaluate_button.py::test_button_position_right_of_cursor_control"
+                  "pytest_ids": [
+                    "test_evaluate_button.py::test_button_position_right_of_cursor_control"
+                  ]
                 },
                 {
                   "req_id": "FC-EVAL-001-REQ-002",
                   "requirement": "When no providers are selected, the button displays in a cold/dimmed visual state — visually distinct from the active state.",
                   "priority": "must-have",
                   "status": "open",
-                  "pytest_id": "test_evaluate_button.py::test_button_cold_when_no_providers_selected"
+                  "pytest_ids": [
+                    "test_evaluate_button.py::test_button_cold_when_no_providers_selected"
+                  ]
                 },
                 {
                   "req_id": "FC-EVAL-001-REQ-003",
                   "requirement": "When the cold button is clicked with no providers selected, a non-modal popup appears with instructions on how to manage providers: click to select, drag and drop to the evaluate container, and dismiss to garbage.",
                   "priority": "must-have",
                   "status": "open",
-                  "pytest_id": "test_evaluate_button.py::test_cold_click_shows_instruction_popup"
+                  "pytest_ids": [
+                    "test_evaluate_button.py::test_cold_click_shows_instruction_popup"
+                  ]
                 },
                 {
                   "req_id": "FC-EVAL-001-REQ-004",
                   "requirement": "When providers are selected, the button displays in a hot/active visual state.",
                   "priority": "must-have",
                   "status": "open",
-                  "pytest_id": "test_evaluate_button.py::test_button_hot_when_providers_selected"
+                  "pytest_ids": [
+                    "test_evaluate_button.py::test_button_hot_when_providers_selected"
+                  ]
                 },
                 {
                   "req_id": "FC-EVAL-001-REQ-005",
                   "requirement": "When the hot button is clicked, the selected providers are sent to EvaluateCare with a signed session token.",
                   "priority": "must-have",
                   "status": "open",
-                  "pytest_id": "test_evaluate_button.py::test_hot_click_sends_to_evaluate_care"
+                  "pytest_ids": [
+                    "test_evaluate_button.py::test_hot_click_sends_to_evaluate_care"
+                  ]
                 }
               ]
             }
           ]
+        },
+        {
+          "feature_id": "FC-RESULT-MSG",
+          "name": "Search Result Presentation — System-Built Summary",
+          "epic_id": "EPIC-FINDCARE",
+          "layer": "full-stack",
+          "capability": "FindCare",
+          "description": "GOV-011 compliance: the system builds the search result summary message from structured data, not the LLM. Message must echo the user's search term, report specialty type count with filter link, and present next page as an actionable link.",
+          "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py (_paginated_result); Code/ConversationalUX/FindCareChat/backend/main.py (PaginationMeta); Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx (response display)",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "backend_dependencies": [],
+          "stories": [
+            {
+              "story_id": "FC-MSG-001",
+              "title": "Build summary_message from structured search result data",
+              "description": "The backend must construct a summary_message string from the structured tool result fields (specialty_searched, total_count, count, specialization_options, state, city, county). This message is system-built per GOV-011 — the LLM does not write it. Template: \"There are N more '{term}' in '{state}'. We have included M types of providers. Shall I show you [more '{term}'] or would you like to [filter '{term}' by provider type]? You can also search by {zipcode, county, or city — omit the one they already used}.\"",
+              "parent_feature": "FC-RESULT-MSG",
+              "sprint": 1,
+              "dependencies": [],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py:146 (_paginated_result)",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "FC-MSG-001-REQ-001",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary must use the user's search term (specialty_searched), not the generic word 'providers'.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "GOV-011",
+                  "ch_matrix_id": "61fdafa7-0e8f-4ad6-a23e-954e66afaa01"
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-002",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary must report the remaining count (total_count minus count of displayed providers), not the total count.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "GOV-011",
+                  "ch_matrix_id": "61517f54-0bd6-43af-822c-7a5ececd0a74"
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-003",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary must state how many types of specialists the results represent (len of specialization_options).",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "",
+                  "ch_matrix_id": "f9eb1533-253b-425a-8e64-a842e0d31c3a"
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-004",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary must include a marker for 'Filter' that the frontend can render as a clickable link to the specialty filter panel.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "",
+                  "ch_matrix_id": "abbe37d4-287d-410c-ad6f-d6059ce80872"
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-005",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary must include a marker for 'next page' that the frontend can render as a clickable link to trigger pagination.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "",
+                  "ch_matrix_id": "c9fe1cc9-1698-486b-8238-c825c95c8a8a"
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-006",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary must include the state in the message (e.g., \"in 'VA'\") when the user specified a state.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "",
+                  "ch_matrix_id": "630df2df-cb85-47d5-bf78-8fe7b63a9bf2"
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-009",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary must echo the user's search term in the action links (e.g., \"more 'shrinks'\", \"filter 'shrinks' by provider type\").",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "",
+                  "ch_matrix_id": "58c2ee70-5588-4f47-80e0-8716b6557d5a"
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-010",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary must offer location narrowing options (zipcode, county, city) but omit the dimension the user already specified.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "",
+                  "ch_matrix_id": "eaf63db3-4f07-4fc6-8034-3adcc2ce60d2"
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-007",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary_message must be included in the PaginationMeta Pydantic model returned by /chat.",
+                  "source": "architecture",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "",
+                  "ch_matrix_id": "529e226f-80b7-4c3f-9af7-2c79bdc77232"
+                },
+                {
+                  "req_id": "FC-MSG-001-REQ-008",
+                  "story_id": "FC-MSG-001",
+                  "requirement": "The summary_message must not be generated when has_more is False (no remaining results to page through).",
+                  "source": "architecture",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "",
+                  "ch_matrix_id": "c63f5a94-16f6-425c-a9d8-b26f1a65efa5"
+                }
+              ],
+              "ch_matrix_id": "3ee0fccf-760c-499d-8dd0-53ee268caa0d"
+            },
+            {
+              "story_id": "FC-MSG-002",
+              "title": "Frontend renders system summary with actionable links",
+              "description": "The frontend must display the system-built summary_message from PaginationMeta. Filter and next page markers must be rendered as clickable actions that trigger the filter panel and pagination respectively.",
+              "parent_feature": "FC-RESULT-MSG",
+              "sprint": 1,
+              "dependencies": [
+                "FC-MSG-001"
+              ],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx:295",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "FC-MSG-002-REQ-001",
+                  "story_id": "FC-MSG-002",
+                  "requirement": "The frontend must display the summary_message from PaginationMeta as a separate system message after the LLM's provider listing.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "GOV-011",
+                  "ch_matrix_id": "2bd56395-af23-44ec-b00b-3d02745a1e6d"
+                },
+                {
+                  "req_id": "FC-MSG-002-REQ-002",
+                  "story_id": "FC-MSG-002",
+                  "requirement": "The [Filter] marker in summary_message must render as a clickable link that highlights or scrolls to the specialty filter panel.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "",
+                  "ch_matrix_id": "0b609848-733e-406b-9ab7-e72ab19c33c6"
+                },
+                {
+                  "req_id": "FC-MSG-002-REQ-003",
+                  "story_id": "FC-MSG-002",
+                  "requirement": "The [next page] marker in summary_message must render as a clickable link that triggers loading the next page of results.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "",
+                  "ch_matrix_id": "c3d8ca7f-517e-4f80-ac4c-99c217a79fa6"
+                },
+                {
+                  "req_id": "FC-MSG-002-REQ-004",
+                  "story_id": "FC-MSG-002",
+                  "requirement": "The summary_message must not appear when pagination.has_more is false.",
+                  "source": "architecture",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "",
+                  "ch_matrix_id": "e56501c6-4a9a-47ce-b140-3f0233ee2c43"
+                }
+              ],
+              "ch_matrix_id": "a24f2510-c296-4315-820d-959a758b0285"
+            }
+          ],
+          "ch_matrix_id": "c60d2081-86b7-40d8-96a4-bf723074ae27"
+        },
+        {
+          "feature_id": "MAINT-IDX-TUNE",
+          "name": "Index Tuning — Frontend and Pipeline Clusters",
+          "epic_id": "EPIC-FINDCARE",
+          "layer": "infrastructure",
+          "capability": "DataOps",
+          "description": "DR-016/DR-017/DR-018: Audit, create, and verify all database indexes on frontend and pipeline clusters. Every vector search index referenced in code must exist on every environment. Every promotion must verify indexes. /health must report missing indexes.",
+          "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (_REQUIRED_INDEXES, /health); Code/DataPipelines/copy_to_frontend.py (verify_frontend_indexes); Code/DataPipelines/promote_data_fn.py (index verification gate)",
+          "priority": "HIGH",
+          "status": "accepted",
+          "accepted_by": "Boss",
+          "backend_dependencies": [],
+          "stories": [
+            {
+              "story_id": "IDX-001",
+              "title": "Audit and create all required indexes on frontend cluster (dev, qa, prod)",
+              "description": "Enumerate all $vectorSearch references in codebase. Create missing indexes on all three frontend environments. Verify with list_search_indexes.",
+              "parent_feature": "MAINT-IDX-TUNE",
+              "sprint": 5,
+              "dependencies": [],
+              "size": "M",
+              "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py:124 (provider_vector_index); Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py:89 (specialty_vector_index)",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "IDX-001-REQ-001",
+                  "story_id": "IDX-001",
+                  "requirement": "provider_vector_index must exist on providers in dev, qa, and prod with vector on embedding (3072d, cosine) and filter fields: practice_address.state, practice_address.city, practice_address.zip, county.name, county.fips.",
+                  "source": "codebase",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "DR-016",
+                  "ch_matrix_id": "97f6a69e-b7a8-49c5-a6ae-3449a3c02dd3"
+                },
+                {
+                  "req_id": "IDX-001-REQ-002",
+                  "story_id": "IDX-001",
+                  "requirement": "specialty_vector_index must exist on SpecialtyMetaData in dev, qa, and prod with vector on embedding (3072d, cosine).",
+                  "source": "codebase",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "DR-016",
+                  "ch_matrix_id": "c6cd0ed5-04e2-4cc9-87ac-5bad6705d5c8"
+                },
+                {
+                  "req_id": "IDX-001-REQ-003",
+                  "story_id": "IDX-001",
+                  "requirement": "All indexes must be in READY status before UAT begins.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "",
+                  "ch_matrix_id": "0ae2fa48-646a-4afa-ba06-ec05e6c22c18"
+                }
+              ],
+              "ch_matrix_id": "68cee544-519e-47fd-8b74-a2a38df2960d"
+            },
+            {
+              "story_id": "IDX-002",
+              "title": "Propose pipeline cluster indexes",
+              "description": "Resume pipeline cluster, audit current indexes, read all pipeline code (enrichment, embedding, copy operations), and propose an index strategy. Pipeline indexes exist only to support enrichment workflows. Present proposal to Boss for approval before creating anything.",
+              "parent_feature": "MAINT-IDX-TUNE",
+              "sprint": 5,
+              "dependencies": [],
+              "size": "S",
+              "evidence": "Code/DataPipelines/provider_load_manager.py; Code/DataPipelines/copy_to_frontend.py; Code/DataPipelines/county_economic_enrichment.py",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "IDX-002-REQ-001",
+                  "story_id": "IDX-002",
+                  "requirement": "Audit existing indexes on pipeline cluster when resumed. Document what exists.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "",
+                  "ch_matrix_id": "b248dd1a-33f2-4b72-bd93-d685a9d78bb7"
+                },
+                {
+                  "req_id": "IDX-002-REQ-002",
+                  "story_id": "IDX-002",
+                  "requirement": "Read all pipeline code and identify every query pattern used during enrichment workflows. Propose indexes that support those patterns.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "DR-018",
+                  "ch_matrix_id": "dd012cb6-9463-43f0-bfed-4dc4de7ef232"
+                },
+                {
+                  "req_id": "IDX-002-REQ-003",
+                  "story_id": "IDX-002",
+                  "requirement": "Present index proposal to Boss for approval. Do not create indexes without sign-off.",
+                  "source": "Boss directive",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "",
+                  "ch_matrix_id": "1d28f6cc-b785-46fe-b61d-fda20493075a"
+                }
+              ],
+              "ch_matrix_id": "167b86dc-3f67-467c-87fb-e931a8e2b140"
+            },
+            {
+              "story_id": "IDX-003",
+              "title": "Index verification gate on every environment promotion",
+              "description": "promote_data_fn must verify all required indexes exist on the target environment after promotion. Promotion fails if any index is missing. verify_frontend_indexes runs as final step.",
+              "parent_feature": "MAINT-IDX-TUNE",
+              "sprint": 5,
+              "dependencies": [
+                "IDX-001"
+              ],
+              "size": "S",
+              "evidence": "Code/DataPipelines/promote_data_fn.py (verify_frontend_indexes); Code/DataPipelines/copy_to_frontend.py (verify_frontend_indexes)",
+              "status": "accepted",
+              "accepted_by": "Boss",
+              "requirements": [
+                {
+                  "req_id": "IDX-003-REQ-001",
+                  "story_id": "IDX-003",
+                  "requirement": "promote_data must call verify_frontend_indexes after every promotion and fail with RuntimeError if any required index is missing.",
+                  "source": "DR-016",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "DR-016",
+                  "ch_matrix_id": "62cdecfd-7587-4a6f-85ee-d81c44c68893"
+                },
+                {
+                  "req_id": "IDX-003-REQ-002",
+                  "story_id": "IDX-003",
+                  "requirement": "/health endpoint must return status 'degraded' with missing_indexes list if any required index is absent.",
+                  "source": "DR-016",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "DR-016",
+                  "ch_matrix_id": "85c01801-e85d-418a-891c-fce394fdd6b0"
+                }
+              ],
+              "ch_matrix_id": "21c00a22-d039-4aa7-b1f8-1cde5862dd28"
+            }
+          ],
+          "ch_matrix_id": "b94cc55e-c61b-4276-aa8b-f3ba71f1ab0b"
         }
       ]
     },
@@ -22522,7 +22603,7 @@
     "features": 24,
     "stories": 101,
     "requirements": 1477,
-    "note": "Summary reflects EPIC-1 and EPIC-2 GPT planning output only. Other epics (3-9) are tracked in their own sections above."
+    "note": "Summary reflects EPIC-1 GPT planning output only. EPIC-2 (Maintenance) dissolved — features moved to EPIC-FINDCARE and EPIC-10. Other epics (3-9) are tracked in their own sections above."
   },
   "ch_matrix_id": "eb04b6f6-fc97-4627-97c8-0724822e5184"
 }

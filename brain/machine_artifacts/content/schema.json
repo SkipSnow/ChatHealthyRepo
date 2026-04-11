@@ -150,7 +150,53 @@
     "agile_backlog": {
       "path": "brain/machine_artifacts/content/agile_backlog.json",
       "purpose": "All epics, features, stories, and boolean testable requirements",
-      "produces_artifact": false
+      "produces_artifact": false,
+      "record_schemas": {
+        "epic": {
+          "description": "Top-level business component. Contains features[]. Creation requires Boss authority.",
+          "fields": {
+            "epic_id": {"type": "string", "required": true, "unique": true, "format": "EPIC-{NNN}", "pattern": "^EPIC-\\d{3}$", "description": "Sequential, assigned by Claude. Never reused. Never user-facing."},
+            "name": {"type": "string", "required": true, "unique": true, "description": "Human-readable business component name (per v4-030). This is what users see."},
+            "type": {"type": "string", "required": true, "possible_values": ["operational", "functional"], "description": "operational = user-facing product capability. functional = business function that supports operations."},
+            "status": {"type": "string", "required": true, "constrained_by": "CV-005"},
+            "description": {"type": "string", "required": true},
+            "features": {"type": "array", "items": "feature", "required": true, "description": "Array of features belonging to this epic"}
+          }
+        },
+        "feature": {
+          "description": "A capability within an epic. Contains stories[].",
+          "fields": {
+            "feature_id": {"type": "string", "required": true, "unique": true, "description": "Short uppercase identifier. Convention: abbreviated epic name + capability (e.g. FC-SEARCH, FC-FILT, EVAL-SCORE). Claude assigns."},
+            "name": {"type": "string", "required": true},
+            "status": {"type": "string", "required": true, "constrained_by": "CV-005"},
+            "description": {"type": "string", "required": true},
+            "dependencies": {"type": "array", "items": "string", "required": false, "description": "Array of epic_ids this feature depends on"},
+            "stories": {"type": "array", "items": "story", "required": true, "description": "Array of stories belonging to this feature"}
+          }
+        },
+        "story": {
+          "description": "A unit of deliverable work within a feature. Contains requirements[].",
+          "fields": {
+            "story_id": {"type": "string", "required": true, "unique": true},
+            "title": {"type": "string", "required": true},
+            "description": {"type": "string", "required": true},
+            "size": {"type": "string", "required": true, "possible_values": ["S", "M", "L", "XL"]},
+            "status": {"type": "string", "required": true, "constrained_by": "CV-005"},
+            "requirements": {"type": "array", "items": "requirement", "required": true, "description": "Array of boolean-testable requirements belonging to this story"}
+          }
+        },
+        "requirement": {
+          "description": "A boolean-testable assertion. Leaf node of the hierarchy.",
+          "fields": {
+            "req_id": {"type": "string", "required": true, "unique": true},
+            "requirement": {"type": "string", "required": true},
+            "priority": {"type": "string", "required": true, "possible_values": ["must-have", "should-have", "nice-to-have"]},
+            "status": {"type": "string", "required": true, "constrained_by": "CV-005"},
+            "pytest_ids": {"type": "array", "items": "string", "min_items": 1, "required_when": "status in (implemented, in_progress)", "description": "References to pytests that validate this requirement. At least one required when implemented."},
+            "bug_ids": {"type": "array", "items": "string", "required": false, "description": "Links to bugs filed against this requirement"}
+          }
+        }
+      }
     },
     "policies": {
       "path": "brain/machine_artifacts/content/policies.json",

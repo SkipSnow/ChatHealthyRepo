@@ -215,6 +215,13 @@
       "rule": "All REST services must reject HTTP requests with a security error (403 or 426 Upgrade Required). Only HTTPS is allowed. The only exception is the website index.html on :80 which redirects to HTTPS. Every client call to any REST service must check the HTTP return code — on 4xx or 5xx the client must fail immediately with a clear error, not silently continue.",
       "source": "Skip Snow directive 2026-04-10",
       "enforcement": "code_controlled"
+    },
+    {
+      "id": "v4-030",
+      "title": "Epic naming and taxonomy",
+      "rule": "Epics are named for the business component they realize, not the technology they use. An epic answers 'what does the user or business get?' — not 'what technology do we build?' Examples of correct epic names: FindCare, Evaluate Care, Talk About Care, Safety. Examples of incorrect epic names: Pipeline Management, UX Management, DevOps, Testing.\n\nTechnical concerns (security, infrastructure, testing, deployment) are cross-cutting shared services. Their stories belong under the business epic they serve. Technical patterns and constraints are captured as development rules (DR-*) or governance policies (GOV-*), not as epics.\n\nWhen a technical story serves exactly one business epic, it belongs in that epic. When it serves multiple business epics, it belongs in the primary consumer's epic with dependency links from the others. There is no 'Maintenance' epic — maintenance stories are bugs or enhancements in the business epic that owns the affected component.\n\nEpic creation: only Boss can authorize the creation of a new epic. Claude may propose an epic but must not create one without explicit Boss approval. Once Boss approves, Claude assigns the epic_id following the format EPIC-NNN (three-digit sequential, next available number) and the human-readable name. Both must be unique — Claude must verify both uniqueness constraints (id and name) before writing.\n\nEpic type: every epic must be classified as 'operational' (user-facing product capability) or 'functional' (business function that supports operations). Type is mandatory per the agile_backlog schema.\n\nEnforcement: any new epic must be a business component. Claude must not create technical epics. Existing technical epics must be redistributed to their business owners.",
+      "source": "Skip Snow directive 2026-04-11",
+      "ch_matrix_id": "b0000033-0000-4000-e000-000000000033"
     }
   ],
   "ch_matrix_id": "1f343049-b0e0-46e2-9c19-33c138e9ab46"

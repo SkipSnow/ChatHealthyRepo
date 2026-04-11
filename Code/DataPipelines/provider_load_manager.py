@@ -582,21 +582,23 @@ def create_vector_index_fn(config: dict) -> dict:
 # ── Full Pipeline Orchestrator ────────────────────────────────────────────────
 
 def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
-    """Top-level orchestrator: health check → load → enrichment → embeddings.
+    """Top-level orchestrator: health check → specialty data → load → enrichment → embeddings → copy to frontend.
 
-    start_step (2–8): skip optional steps before this number. Default 2 (full run).
-    Steps 0 and 1 are MANDATORY and always run.
+    start_step (3–10): skip optional steps before this number. Default 1 (full run).
+    Steps 0, 1 are MANDATORY. Step 2 controlled by specialty_metadata (default True).
 
     Steps:
-      0 — Reserve cluster, wake DB (MANDATORY — always runs)
-      1 — MongoDB health check (MANDATORY — always runs)
-      2 — Download + extract + load provider records
-      3 — County enrichment Pass 1: ZIP crosswalk (bulk updateMany per ZIP)
-      4 — County enrichment Pass 2: Census Geocoder, practice address
-      5 — County enrichment Pass 3: Census Geocoder, billing address
-      6 — County enrichment Pass 4: Google Maps, final fallback (google_maps_enabled=True)
-      7 — County enrichment Pass 6: NPPES registry lookup
-      8 — Generate embeddings + create Atlas Vector Search index (embedding_enabled=True)
+      0  — Reserve cluster, wake DB (MANDATORY — always runs)
+      1  — MongoDB health check (MANDATORY — always runs)
+      2  — Load SpecialtyMetaData from NUCC taxonomy (specialty_metadata=True)
+      3  — Download + extract + load provider records
+      4  — County enrichment Pass 1: ZIP crosswalk (bulk updateMany per ZIP)
+      5  — County enrichment Pass 2: Census Geocoder, practice address
+      6  — County enrichment Pass 3: Census Geocoder, billing address
+      7  — County enrichment Pass 4: Google Maps, final fallback (google_maps_enabled=True)
+      8  — County enrichment Pass 6: NPPES registry lookup
+      9  — Generate embeddings + create Atlas Vector Search index (embedding_enabled=True)
+      10 — CopyToFrontEnd: providers + SpecialtyMetaData + vector indexes (copy_to_frontend=True)
     """
     from county_enrichment_job import _build_enrichment_reconcile
 
@@ -647,13 +649,21 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
 
     try:
         # Step 1: MongoDB health check — MANDATORY, always runs regardless of start_step
-        context.set_custom_status("Step 1/7: Checking MongoDB health")
+        context.set_custom_status("Step 1/10: Checking MongoDB health")
         yield context.call_activity("check_mongo_health_activity", config)
         step_statuses.append({"step": 1, "name": "health_check", "status": "completed_success"})
 
-        # Step 2: Load provider data
-        if start_step <= 2:
-            context.set_custom_status("Step 2/7: Loading provider data")
+        # Step 2: Load SpecialtyMetaData (NUCC taxonomy → pipeline DB)
+        if config.get("specialty_metadata", True):
+            context.set_custom_status("Step 2/10: Loading SpecialtyMetaData")
+            yield context.call_activity("load_specialty_data_activity", {
+                "env_prefix": config.get("env_prefix", "dev"),
+            })
+            step_statuses.append({"step": 2, "name": "load_specialty_data", "status": "completed_success"})
+
+        # Step 3: Load provider data
+        if start_step <= 3:
+            context.set_custom_status("Step 3/10: Loading provider data")
             load_config = {
                 "num_workers": config.get("num_workers", 32),
                 "batch_size": config.get("batch_size", 5000),
@@ -662,47 +672,47 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
                 "incremental": config.get("incremental", False),
             }
             load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
-            step_statuses.append({"step": 2, "name": "load_data", "status": "completed_success"})
+            step_statuses.append({"step": 3, "name": "load_data", "status": "completed_success"})
 
-        # Step 3: County enrichment — Pass 1: ZIP crosswalk
-        if start_step <= 3:
-            context.set_custom_status("Step 3/7: County enrichment — Pass 1: ZIP crosswalk")
+        # Step 4: County enrichment — Pass 1: ZIP crosswalk
+        if start_step <= 4:
+            context.set_custom_status("Step 4/10: County enrichment — Pass 1: ZIP crosswalk")
             pass1_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass1_orchestrator", enrich_config
             )
-            step_statuses.append({"step": 3, "name": "pass1_crosswalk", "status": "completed_success"})
+            step_statuses.append({"step": 4, "name": "pass1_crosswalk", "status": "completed_success"})
 
-        # Step 4: County enrichment — Pass 2: Census Geocoder, practice address
-        if start_step <= 4:
-            context.set_custom_status("Step 4/7: County enrichment — Pass 2: Census Geocoder, practice address")
+        # Step 5: County enrichment — Pass 2: Census Geocoder, practice address
+        if start_step <= 5:
+            context.set_custom_status("Step 5/10: County enrichment — Pass 2: Census Geocoder, practice address")
             pass2_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass2_orchestrator", enrich_config
             )
-            step_statuses.append({"step": 4, "name": "pass2_geocoder", "status": "completed_success"})
+            step_statuses.append({"step": 5, "name": "pass2_geocoder", "status": "completed_success"})
 
-        # Step 5: County enrichment — Pass 3: Census Geocoder, billing address
-        if start_step <= 5:
-            context.set_custom_status("Step 5/7: County enrichment — Pass 3: Census Geocoder, billing address")
+        # Step 6: County enrichment — Pass 3: Census Geocoder, billing address
+        if start_step <= 6:
+            context.set_custom_status("Step 6/10: County enrichment — Pass 3: Census Geocoder, billing address")
             pass3_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass3_orchestrator", enrich_config
             )
-            step_statuses.append({"step": 5, "name": "pass3_billing", "status": "completed_success"})
+            step_statuses.append({"step": 6, "name": "pass3_billing", "status": "completed_success"})
 
-        # Step 6: County enrichment — Pass 4: Google Maps, final fallback
-        if start_step <= 6 and config.get("google_maps_enabled", False):
-            context.set_custom_status("Step 6/8: County enrichment — Pass 4: Google Maps, final fallback")
+        # Step 7: County enrichment — Pass 4: Google Maps, final fallback
+        if start_step <= 7 and config.get("google_maps_enabled", False):
+            context.set_custom_status("Step 7/10: County enrichment — Pass 4: Google Maps, final fallback")
             pass4_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass4_orchestrator", enrich_config
             )
-            step_statuses.append({"step": 6, "name": "pass4_maps", "status": "completed_success"})
+            step_statuses.append({"step": 7, "name": "pass4_maps", "status": "completed_success"})
 
-        # Step 7: County enrichment — Pass 6: NPPES public registry lookup
-        if start_step <= 7:
-            context.set_custom_status("Step 7/8: County enrichment — Pass 6: NPPES registry lookup")
+        # Step 8: County enrichment — Pass 6: NPPES public registry lookup
+        if start_step <= 8:
+            context.set_custom_status("Step 8/10: County enrichment — Pass 6: NPPES registry lookup")
             pass6_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass6_nppes_orchestrator", enrich_config
             )
-            step_statuses.append({"step": 7, "name": "pass6_nppes", "status": "completed_success"})
+            step_statuses.append({"step": 8, "name": "pass6_nppes", "status": "completed_success"})
 
         # Enrichment reconcile report
         if pass1_result or pass2_result or pass3_result or pass6_result:
@@ -714,11 +724,11 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
                 "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
             )
 
-        # Step 8: Generate embeddings
-        if start_step <= 8 and config.get("embedding_enabled", False):
+        # Step 9: Generate embeddings
+        if start_step <= 9 and config.get("embedding_enabled", False):
             num_workers = config.get("num_workers", 32)
             provider_collection = config.get("provider_collection", "dev_PublicHealthData.providers")
-            context.set_custom_status(f"Step 8/8: Generating embeddings ({num_workers} workers)")
+            context.set_custom_status(f"Step 9/10: Generating embeddings ({num_workers} workers)")
             embed_tasks = [
                 context.call_activity(
                     "embed_worker_activity",
@@ -734,10 +744,27 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
                 for i in range(num_workers)
             ]
             embed_results = yield context.task_all(embed_tasks)
-            context.set_custom_status("Step 8/8: Creating vector search index")
+            context.set_custom_status("Step 9/10: Creating vector search index")
             yield context.call_activity(
                 "create_vector_index_activity", {"provider_collection": provider_collection}
             )
+
+        # Step 10: Copy to frontend — providers + SpecialtyMetaData + vector indexes
+        if start_step <= 10 and config.get("copy_to_frontend", True):
+            env_prefix = config.get("env_prefix", "dev")
+            context.set_custom_status("Step 10/10: CopyToFrontEnd — providers + SpecialtyMetaData + indexes")
+            copy_config = {
+                "env_prefix": env_prefix,
+                "cluster_name": cluster_name,
+                "states": config.get("states"),
+                "chunk_size": config.get("copy_chunk_size", 50_000),
+                "expected_duration_minutes": 120,
+                "job_id": f"copy_{load_id}",
+            }
+            copy_result = yield context.call_sub_orchestrator(
+                "copy_to_frontend_orchestrator", copy_config
+            )
+            step_statuses.append({"step": 10, "name": "copy_to_frontend", "status": "completed_success"})
 
     except Exception as exc:
         pipeline_error = str(exc)
