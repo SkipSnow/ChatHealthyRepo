@@ -96,7 +96,7 @@ export function SelectionManager({
         </div>
       </div>
 
-      <div style={{ maxHeight: '150px', overflowY: 'auto', overflowX: 'hidden' }}>
+      <div style={{ maxHeight: '250px', overflowY: 'auto', overflowX: 'hidden' }}>
         {state.available.length === 0 ? (
           <div style={{ padding: '12px', textAlign: 'center', color: '#9ca3af', fontSize: '11px' }}>
             No providers available
