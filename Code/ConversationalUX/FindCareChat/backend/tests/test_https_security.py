@@ -210,11 +210,11 @@ class TestHTTPRejection:
         except Exception:
             pytest.skip("Caddy or FindCare not running")
 
-    def test_caddy_http_api_returns_403(self):
+    def test_caddy_http_api_returns_426(self):
         """Caddy :80 /api/* returns 403."""
         try:
             resp = self._http_get("http://localhost/api/health")
-            assert resp.status_code == 403
+            assert resp.status_code == 426
         except Exception:
             pytest.skip("Caddy not running on :80")
 
@@ -243,41 +243,41 @@ class TestHTTPRedirect:
         resp = requests.get("http://localhost/index.html", timeout=5, allow_redirects=False)
         assert resp.status_code == 301, f"HTTP /index.html should return 301, got {resp.status_code}"
 
-    def test_http_static_page_returns_403(self):
+    def test_http_static_page_returns_426(self):
         """HTTP :80 /architecture.html returns 403 — only / and /index.html redirect."""
         import requests
         resp = requests.get("http://localhost/architecture.html", timeout=5, allow_redirects=False)
-        assert resp.status_code == 403, f"HTTP static page should return 403, got {resp.status_code}"
+        assert resp.status_code == 426, f"HTTP static page should return 426, got {resp.status_code}"
 
-    def test_http_roadmap_returns_403(self):
+    def test_http_roadmap_returns_426(self):
         """HTTP :80 /roadmap.html returns 403."""
         import requests
         resp = requests.get("http://localhost/roadmap.html", timeout=5, allow_redirects=False)
-        assert resp.status_code == 403, f"HTTP /roadmap.html should return 403, got {resp.status_code}"
+        assert resp.status_code == 426, f"HTTP /roadmap.html should return 426, got {resp.status_code}"
 
-    def test_http_css_returns_403(self):
+    def test_http_css_returns_426(self):
         """HTTP :80 /style.css returns 403."""
         import requests
         resp = requests.get("http://localhost/style.css", timeout=5, allow_redirects=False)
-        assert resp.status_code == 403, f"HTTP /style.css should return 403, got {resp.status_code}"
+        assert resp.status_code == 426, f"HTTP /style.css should return 426, got {resp.status_code}"
 
-    def test_http_api_health_returns_403(self):
+    def test_http_api_health_returns_426(self):
         """HTTP :80 /api/health returns 403 Forbidden — not redirect."""
         import requests
         resp = requests.get("http://localhost/api/health", timeout=5, allow_redirects=False)
-        assert resp.status_code == 403, f"HTTP /api/health should return 403, got {resp.status_code}"
+        assert resp.status_code == 426, f"HTTP /api/health should return 426, got {resp.status_code}"
 
-    def test_http_api_search_returns_403(self):
+    def test_http_api_search_returns_426(self):
         """HTTP :80 /api/search returns 403 Forbidden."""
         import requests
         resp = requests.post("http://localhost/api/search", json={}, timeout=5, allow_redirects=False)
-        assert resp.status_code == 403, f"HTTP /api/search should return 403, got {resp.status_code}"
+        assert resp.status_code == 426, f"HTTP /api/search should return 426, got {resp.status_code}"
 
-    def test_http_api_classify_returns_403(self):
+    def test_http_api_classify_returns_426(self):
         """HTTP :80 /api/classify returns 403 Forbidden."""
         import requests
         resp = requests.post("http://localhost/api/classify", json={"message": "test"}, timeout=5, allow_redirects=False)
-        assert resp.status_code == 403, f"HTTP /api/classify should return 403, got {resp.status_code}"
+        assert resp.status_code == 426, f"HTTP /api/classify should return 426, got {resp.status_code}"
 
 
 # ── SEC-HTTPS-001-REQ-003: Client checks for 403/426 security violation ───
@@ -290,7 +290,7 @@ class TestClientSecurityCheck:
         # Simulate by calling HTTP endpoint which returns 403
         import requests
         resp = requests.get("http://localhost/api/health", timeout=5, allow_redirects=False)
-        assert resp.status_code == 403
+        assert resp.status_code == 426
         # The client code should detect this and throw — verified by the status code
 
     def test_426_would_raise_security_error(self):
