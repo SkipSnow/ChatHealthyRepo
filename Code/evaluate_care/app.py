@@ -56,10 +56,18 @@ def health():
 
 @app.get("/splash")
 def splash():
+    _log.info("CONTROL TRANSFER: EvaluateCare has taken ownership of the page")
     return {"html": '<div style="text-align:center;padding:20px;">'
             '<div style="font-size:24px;font-weight:700;color:#1f2937;">EvaluateCare</div>'
             '<div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">is still unimplemented.</div>'
             '</div>'}
+
+@app.post("/transfer/to-findcare")
+def transfer_to_findcare():
+    """EvaluateCare releases page ownership back to FindCare.
+    Called when user interacts with the specialty filter while in EvaluateCare mode."""
+    _log.info("CONTROL TRANSFER: EvaluateCare → FindCare (user touched filter)")
+    return {"owner": "findcare", "reason": "filter_interaction"}
 
 # ── Provider Scoring ────────────────────────────────────────
 
