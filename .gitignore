@@ -62,6 +62,7 @@ Code/Shared/ops/certs/
 /test_*.png
 /umls_signup.png
 Code/ConversationalUX/FindCareChat/backend/tests/test_screenshots/
+test_output/
 
 # Caddy binary — downloaded, not source
 Code/Shared/ops/tools/caddy.exe

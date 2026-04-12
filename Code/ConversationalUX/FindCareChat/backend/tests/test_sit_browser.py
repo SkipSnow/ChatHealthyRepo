@@ -20,7 +20,7 @@ from playwright.sync_api import Page, expect
 BASE_URL = os.getenv("SIT_BASE_URL", "https://dev.chathealthy.ai")
 CHAT_IFRAME_URL = None  # resolved dynamically from the page
 
-SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "test_screenshots")
+SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "test_output")
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 

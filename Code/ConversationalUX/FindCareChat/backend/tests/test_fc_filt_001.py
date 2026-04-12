@@ -13,7 +13,7 @@ import pytest
 from playwright.sync_api import Page, expect
 
 BASE_URL = os.getenv("SIT_BASE_URL", "https://localhost")
-SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "test_screenshots", "fc_filt_001")
+SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "test_output", "fc_filt_001")
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 # Search query that produces multiple specialties with prescribers and non-prescribers

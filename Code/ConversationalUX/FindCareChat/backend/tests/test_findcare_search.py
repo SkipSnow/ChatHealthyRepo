@@ -17,7 +17,7 @@ from playwright.sync_api import sync_playwright, Page
 
 BASE_URL = os.getenv("TEST_BASE_URL", "https://localhost")
 CHAT_TIMEOUT = 120_000
-SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "test_screenshots", "search")
+SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "test_output", "search")
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 
