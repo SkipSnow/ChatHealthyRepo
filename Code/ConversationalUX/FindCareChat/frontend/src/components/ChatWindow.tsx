@@ -88,7 +88,7 @@ export default function ChatWindow() {
           lastProvidersRef.current = data.providers  // Store for EvaluateCare handoff
           const newPageEnd = newPageStart + data.providers.length - 1
           const text = data.providers.map((p: any) =>
-            `**${p.name}**\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
+            `**${p.name}**${p.specialty ? '\n_' + p.specialty + '_' : ''}\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
           ).join('\n\n')
           setMessages(prev => [...prev, {
             role: 'assistant',
@@ -123,7 +123,7 @@ export default function ChatWindow() {
         .then(data => {
           if (data.providers && data.providers.length > 0) {
             const resultText = data.providers.map((p: any) =>
-              `**${p.name}**\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
+              `**${p.name}**${p.specialty ? '\n_' + p.specialty + '_' : ''}\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
             ).join('\n\n')
             const newMessages: Message[] = [{
               role: 'assistant',
@@ -186,7 +186,7 @@ export default function ChatWindow() {
           if (data.providers && data.providers.length > 0) {
             const pageEnd = pageStart + data.providers.length - 1
             const resultText = data.providers.map((p: any) =>
-              `**${p.name}**\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
+              `**${p.name}**${p.specialty ? '\n_' + p.specialty + '_' : ''}\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
             ).join('\n\n')
             setMessages(prev => [...prev, {
               role: 'assistant',
@@ -606,7 +606,7 @@ export default function ChatWindow() {
           if (data.providers && data.providers.length > 0) {
             const pageEnd = pageStart + data.providers.length - 1
             const resultText = data.providers.map((p: any) =>
-              `**${p.name}**\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
+              `**${p.name}**${p.specialty ? '\n_' + p.specialty + '_' : ''}\n${p.address}\n${p.county ? p.county : ''}\nPhone: ${p.phone || 'N/A'}\nNPI: ${p.npi}`
             ).join('\n\n')
             setMessages(prev => [...prev, {
               role: 'assistant',
