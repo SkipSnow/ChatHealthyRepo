@@ -2442,6 +2442,29 @@
       "pytest_id": "",
       "success_criteria_to_close": "Transfer back to FindCare paints FindCare splash in center panel.",
       "ch_matrix_id": ""
+    },
+    {
+      "id": "BUG-UX-019",
+      "req_id": "FC-FILT-001-REQ-006",
+      "rule": "BUG: Apply Filter does not wipe the screen before re-querying. Old providers remain visible until new results return. Sequence MUST be: wipe screen, make new query, paint screen.",
+      "description": "Apply Filter sends new query but old provider list stays visible during the request. Should clear first.",
+      "reason": "FC-FILT-001-REQ-006 not implemented: unpicked provider list is not emptied before new DB request.",
+      "type": "medium",
+      "date": "2026-04-12",
+      "discovery_date": "2026-04-12",
+      "status": "open",
+      "resolution_status": "in_analysis",
+      "next_action": "analysis",
+      "environments": [
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "source": "Boss",
+      "risk_acceptance_id": null,
+      "pytest_id": "",
+      "success_criteria_to_close": "Apply Filter wipes provider list, then re-queries, then paints new results.",
+      "ch_matrix_id": ""
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

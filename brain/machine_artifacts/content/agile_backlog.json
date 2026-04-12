@@ -26045,6 +26045,18 @@
                   "realized_by": [
                     "React 18 / Vite 5"
                   ]
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-017",
+                  "requirement": "When Apply Filter triggers a new provider query, the timer MUST appear in the control frame at the bottom, same location as the initial search timer.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "React 18 / Vite 5"
+                  ]
                 }
               ],
               "description": "Specialty type filter with prescriber and homeopathic toggles"
@@ -32014,6 +32026,84 @@
           ]
         }
       ]
+    },
+    {
+      "name": "UX",
+      "status": "active",
+      "description": "Cross-component user experience concerns that span multiple business components.",
+      "features": [
+        {
+          "feature_id": "UX-TIMERS",
+          "name": "Cross Component Timers",
+          "status": "NOT_STARTED",
+          "description": "Timers that indicate progress to the user across FindCare, EvaluateCare, and other components.",
+          "realized_by": [
+            "React 18 / Vite 5"
+          ],
+          "stories": [
+            {
+              "story_id": "UX-TIMER-001",
+              "title": "Anchor Timer",
+              "description": "One consistent timer must be placed in the same place on the screen across all business components and behave in the same way.",
+              "size": "M",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {
+                  "req_id": "UX-TIMER-001-REQ-001",
+                  "requirement": "Timer keeps last second count until it is invoked again.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "React 18 / Vite 5"
+                  ]
+                },
+                {
+                  "req_id": "UX-TIMER-001-REQ-002",
+                  "requirement": "Timer MUST always be in the same place on the screen.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "React 18 / Vite 5"
+                  ]
+                },
+                {
+                  "req_id": "UX-TIMER-001-REQ-003",
+                  "requirement": "Timer MUST NOT stop even if a user modal dialog box is opened or some other control is active.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "React 18 / Vite 5"
+                  ]
+                },
+                {
+                  "req_id": "UX-TIMER-001-REQ-004",
+                  "requirement": "In non-production environments, all timed events MUST be logged to MongoDB in the correct environment.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "MongoDB Atlas"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "epic_id": "EPIC-008",
+      "type": "epic"
     }
   ],
   "sprint_map": [
