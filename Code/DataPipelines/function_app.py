@@ -37,6 +37,7 @@ from copy_to_frontend import (run_copy_to_frontend, snapshot_collection_fn, crea
                               migrate_small_collections, migrate_chunk, verify_parity,
                               copy_providers_only)
 from promote_data_fn import run_promote_data
+from count_providers_by_state import count_providers_by_state
 from gpt_reader import handle_gpt_reader
 from pipeline_health import check_mongo_health
 # from idle_monitor import check_and_pause  # disabled — see idle_monitor_timer below
@@ -100,6 +101,7 @@ SYNC_TASK_HANDLERS = {
     "CopyProvidersOnly": copy_providers_only,
     "PromoteToFrontEnd": run_promote_to_frontend,
     "VerifyParity": verify_parity,
+    "CountProvidersByState": count_providers_by_state,
 }
 
 # Ops Manager tasks — infrastructure only, no pipeline business logic
