@@ -32022,6 +32022,431 @@
                   ]
                 }
               ]
+            },
+            {
+              "story_id": "DEVOPS-BACKLOG-001",
+              "title": "Backlog hierarchy governance rules",
+              "description": "Formal rules for where epics, features, stories, and requirements belong in the backlog. Defines placement criteria so items land in the right place the first time instead of being shuffled repeatedly.",
+              "size": "L",
+              "status": "DEFERRED",
+              "requirements": [
+                {
+                  "req_id": "DEVOPS-BACKLOG-001-REQ-001",
+                  "requirement": "Requirements pending post-alpha. Backlog hierarchy will be reorganized and formalized after alpha launch.",
+                  "priority": "should-have",
+                  "status": "DEFERRED",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Governance"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "feature_id": "ARCH-AUDIT",
+          "name": "Audit — Technical, Business, Regulatory and Corporate Governance",
+          "status": "active",
+          "description": "This feature encompasses all the audits that must be done to maintain technical and business history, integrity and regulatory and corporate governance.",
+          "realized_by": [
+            "Python 3.11"
+          ],
+          "stories": [
+            {
+              "story_id": "AUDIT-CODEHIST-001",
+              "title": "Codebase History Audit — Deterministic Agent",
+              "description": "A deterministic Python orchestrator dispatches disposable AI workers to analyze git history, brain artifacts, and current code to identify lost capabilities, undocumented changes, and gaps between intent and implementation. The orchestrator is 100% deterministic — all state is on disk, all decisions are file-existence checks. AI is used only inside workers for code analysis. Audits MUST NOT create state changes — they only maintain their own notes and documents, and produce findings and recommendations. The orchestrator loops until all jobs are complete or a human sets the stop command in the control file.",
+              "size": "L",
+              "status": "IN_PROGRESS",
+              "requirements": [
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B001",
+                  "requirement": "The audit MUST examine every version of every file in the git repository to establish a complete lineage of what was built, changed, and removed.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "Claude Code Agent"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B002",
+                  "requirement": "The audit MUST identify every capability that the brain documents as intended but that does not exist in the current codebase. The brain is the authoritative source of intent.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "Claude Code Agent"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B003",
+                  "requirement": "The audit MUST identify every capability that was built and subsequently lost due to uncontrolled changes, code rollbacks, or data loss.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "Claude Code Agent"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B004",
+                  "requirement": "The audit MUST identify every AI call, system prompt, and LLM integration that existed in any previous version and determine whether it is active, intentionally replaced, or lost.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "Claude Code Agent"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B005",
+                  "requirement": "The audit MUST cross-reference all findings against the agile backlog, bugs, design documents, business plan, work log, punch lists, unrealized ideas, and all other brain artifacts to determine whether each loss is documented or undocumented.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "Claude Code Agent"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B006",
+                  "requirement": "The audit MUST produce findings categorized as: undocumented losses, documented but unplanned recoveries, and intentional replacements. Each finding MUST include evidence from git history or brain artifacts.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "Claude Code Agent"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B007",
+                  "requirement": "The audit MUST produce actionable recommendations for each finding, prioritized by user impact, with effort estimates and a proposed recovery approach.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "Claude Code Agent"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B008",
+                  "requirement": "The audit MUST be repeatable. Running the audit again on the same codebase MUST produce the same findings. The audit is idempotent.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B009",
+                  "requirement": "The audit output MUST be consumable by both humans (readable report) and machines (structured JSON). The CEO is the primary consumer.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B010",
+                  "requirement": "The audit MUST NOT modify any source code, database records, brain files, or deployed artifacts. It is a read-only operation. Output is limited to the audit directory only.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B011",
+                  "requirement": "The audit MUST run to completion autonomously without requiring human intervention beyond the initial start command.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B012",
+                  "requirement": "The audit MUST survive infrastructure failures (crashes, restarts, context loss) and resume from the last completed unit of work.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B013",
+                  "requirement": "The audit MUST track and report its own cost (token consumption) as part of its output.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B014",
+                  "requirement": "The audit MUST have numbered findings where the most important findings are at the top with the lowest number and the least important findings have the highest numbers.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "Claude Code Agent"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B015",
+                  "requirement": "The audit MUST make recommendations based on the findings of how to address and remediate each finding.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "Claude Code Agent"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B016",
+                  "requirement": "The audit MUST describe its methodology at the top of the report.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "Claude Code Agent"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B017",
+                  "requirement": "The audit MUST document its assumptions under methodology and above findings.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "Claude Code Agent"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-B018",
+                  "requirement": "Each audit finding MUST be supported with evidence of at least one example from both the codebase (which may be that no code exists) and from the brain (a known best practice, a brain artifact reference, or code with file and line ranges).",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "Claude Code Agent"
+                  ],
+                  "type": "business"
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-T001",
+                  "requirement": "The orchestrator MUST be a pure Python script with no AI dependencies. All decisions MUST be based on file existence checks and JSON parsing. No LLM calls in the orchestrator.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "type": "technical",
+                  "traces_to": [
+                    "B008",
+                    "B010"
+                  ]
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-T002",
+                  "requirement": "The orchestrator MUST loop continuously until all jobs are complete or a human sets the command to stop in the control file. No other mechanism may stop the orchestrator.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "type": "technical",
+                  "traces_to": [
+                    "B011"
+                  ]
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-T003",
+                  "requirement": "All orchestrator state MUST be persisted to disk in a control file (control.json). The orchestrator MUST NOT depend on Claude Code context or conversation memory for any decision.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "type": "technical",
+                  "traces_to": [
+                    "B008",
+                    "B012"
+                  ]
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-T004",
+                  "requirement": "Each job MUST write a checkpoint file to disk upon completion. If the orchestrator restarts after a crash, it MUST skip completed jobs by checking for existing checkpoint files.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "type": "technical",
+                  "traces_to": [
+                    "B012"
+                  ]
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-T005",
+                  "requirement": "AI workers MUST be spawned as disposable agents with no prior context. Each worker receives a self-contained prompt from a file and writes its output to a checkpoint file. Workers have no knowledge of the orchestrator or other workers.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "Claude Code Agent"
+                  ],
+                  "type": "technical",
+                  "traces_to": [
+                    "B008",
+                    "B011"
+                  ]
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-T006",
+                  "requirement": "The orchestrator MUST record token usage and duration from each worker in the control file. Total token spend MUST be visible to the human at all times via the control file.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "type": "technical",
+                  "traces_to": [
+                    "B013"
+                  ]
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-T007",
+                  "requirement": "All worker output MUST use structured JSON with predefined schemas. No free-form text output. Every finding MUST include evidence (commit hash, file path, or brain file reference).",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "Claude Code Agent"
+                  ],
+                  "type": "technical",
+                  "traces_to": [
+                    "B006",
+                    "B009",
+                    "B018"
+                  ]
+                },
+                {
+                  "req_id": "AUDIT-CODEHIST-001-REQ-T008",
+                  "requirement": "The audit output MUST be expressed as a JSON document having a strict schema. The output MUST be in strict compliance with that schema.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "pytest_ids": [
+                    "PENDING_DESIGN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "type": "technical",
+                  "traces_to": [
+                    "B009",
+                    "B014",
+                    "B016",
+                    "B017"
+                  ]
+                }
+              ]
             }
           ]
         }

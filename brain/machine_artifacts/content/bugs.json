@@ -2465,6 +2465,29 @@
       "pytest_id": "",
       "success_criteria_to_close": "Apply Filter wipes provider list, then re-queries, then paints new results.",
       "ch_matrix_id": ""
+    },
+    {
+      "id": "BUG-DEVOPS-001",
+      "req_id": "DEVOPS-DEPLOY-001-REQ-007",
+      "rule": "BUG: Build number bumps in pre-commit hook before the commit, causing version.json to be one ahead of the committed code. When merging dev to qa/prod, the build number is stale. Fix: move build bump from pre-commit to post-commit hook so the committed code has the correct build number and merges carry it cleanly.",
+      "description": "Pre-commit hook bumps build number before commit. Should bump after commit.",
+      "reason": "Build number is inconsistent across environments because it bumps before the commit, not after.",
+      "type": "medium",
+      "date": "2026-04-12",
+      "discovery_date": "2026-04-12",
+      "status": "open",
+      "resolution_status": "in_analysis",
+      "next_action": "analysis",
+      "environments": [
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "source": "Boss",
+      "risk_acceptance_id": null,
+      "pytest_id": "",
+      "success_criteria_to_close": "Build number in version.json matches across dev, qa, and prod after merge. Pre-commit hook does not bump; post-commit hook does.",
+      "ch_matrix_id": ""
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
