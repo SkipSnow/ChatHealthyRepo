@@ -99,6 +99,7 @@ class FindCareService:
             "name": name,
             "npi": p.get("npi", ""),
             "taxonomy_code": primary.get("code", "") if primary else "",
+            "taxonomy_codes": [t.get("code", "") for t in p.get("taxonomies", []) if t.get("code")],
             "address": address,
             "phone": phone,
             "county": county_name,
