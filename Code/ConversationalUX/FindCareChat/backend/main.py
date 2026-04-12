@@ -554,14 +554,30 @@ class EvaluateRequest(BaseModel):
 
 @app.get("/evaluate/splash")
 def evaluate_splash():
-    """Proxy splash call to EvaluateCare service."""
+    """Proxy splash call to EvaluateCare service. Transfers page ownership to EvaluateCare."""
     import requests as _req
     evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8081")
+    _log.info("CONTROL TRANSFER: FindCare → EvaluateCare (user clicked Evaluate)")
     try:
         resp = _req.get(f"{evalcare_url}/splash", timeout=5)
         return resp.json()
     except Exception:
+        _log.error("CONTROL TRANSFER FAILED: EvaluateCare unreachable at %s", evalcare_url)
         return {"html": '<div style="text-align:center;padding:20px;"><div style="font-size:24px;font-weight:700;color:#1f2937;">EvaluateCare</div><div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">Service unavailable</div></div>'}
+
+@app.post("/transfer/to-findcare")
+def transfer_to_findcare():
+    """EvaluateCare calls FindCare facade to return page ownership.
+    Called when user interacts with filter while in EvaluateCare mode.
+    Proxies through EvaluateCare first so both services log the transfer."""
+    import requests as _req
+    evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8081")
+    _log.info("CONTROL TRANSFER: FindCare has taken ownership of the page (from EvaluateCare)")
+    try:
+        _req.post(f"{evalcare_url}/transfer/to-findcare", timeout=5)
+    except Exception:
+        _log.warning("Could not notify EvaluateCare of transfer")
+    return {"owner": "findcare", "splash": WELCOME_MESSAGE}
 
 @app.post("/evaluate/providers")
 def evaluate_proxy(body: EvaluateRequest):

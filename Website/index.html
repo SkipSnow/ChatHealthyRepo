@@ -767,6 +767,8 @@
     (function() {
       var frame = document.getElementById('guiControlFrame');
       var chatFrame = document.getElementById('coreChatFrame');
+      // Page ownership: 'findcare' or 'evaluatecare'
+      var pageOwner = 'findcare';
 
       window.addEventListener('message', function(event) {
         if (!chatFrame || !chatFrame.contentWindow) return;
@@ -869,26 +871,40 @@
                 document.body.appendChild(popup);
               } else {
                 // Hot click — send to evaluate
-                // Fetch EvaluateCare splash from service (via FindCare proxy)
-                var rp = document.getElementById('rightPanel');
+                // Transfer control to EvaluateCare
+                pageOwner = 'evaluatecare';
                 var chatSrc = chatFrame.src || '';
                 var apiBase = chatSrc.replace(/\/static\/.*$/, '').replace(/\/$/, '');
                 if (!apiBase) apiBase = '';
+                // Fetch splash from EvaluateCare service (via FindCare proxy)
                 fetch(apiBase + '/evaluate/splash')
                   .then(function(r) { return r.json(); })
                   .then(function(d) {
-                    if (rp) {
-                      rp.style.alignItems = 'center';
-                      rp.style.justifyContent = 'center';
-                      rp.innerHTML = d.html || '';
+                    // Paint EvaluateCare splash in CENTER panel (iframe area)
+                    chatFrame.style.display = 'none';
+                    var centerArea = chatFrame.parentElement;
+                    var splashDiv = document.getElementById('evalcareSplash');
+                    if (!splashDiv) {
+                      splashDiv = document.createElement('div');
+                      splashDiv.id = 'evalcareSplash';
+                      splashDiv.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#fff;';
+                      centerArea.appendChild(splashDiv);
                     }
+                    splashDiv.style.display = 'flex';
+                    splashDiv.innerHTML = d.html || '';
                   })
                   .catch(function() {
-                    if (rp) {
-                      rp.style.alignItems = 'center';
-                      rp.style.justifyContent = 'center';
-                      rp.innerHTML = '<div style="text-align:center;padding:20px;color:#6b7280;">EvaluateCare unavailable</div>';
+                    chatFrame.style.display = 'none';
+                    var centerArea = chatFrame.parentElement;
+                    var splashDiv = document.getElementById('evalcareSplash');
+                    if (!splashDiv) {
+                      splashDiv = document.createElement('div');
+                      splashDiv.id = 'evalcareSplash';
+                      splashDiv.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#fff;';
+                      centerArea.appendChild(splashDiv);
                     }
+                    splashDiv.style.display = 'flex';
+                    splashDiv.innerHTML = '<div style="text-align:center;padding:20px;color:#6b7280;">EvaluateCare unavailable</div>';
                   });
                 chatFrame.contentWindow.postMessage({ type: 'gui:event', action: 'evaluate-providers' }, '*');
               }
@@ -932,6 +948,22 @@
               var tag = el.tagName.toLowerCase();
               if (el.getAttribute('data-gui-action') === 'filter-apply') {
                 el.addEventListener('click', function() {
+                  // If EvaluateCare owns the page, transfer back to FindCare
+                  if (pageOwner === 'evaluatecare') {
+                    pageOwner = 'findcare';
+                    var chatSrc2 = chatFrame.src || '';
+                    var apiBase2 = chatSrc2.replace(/\/static\/.*$/, '').replace(/\/$/, '');
+                    if (!apiBase2) apiBase2 = '';
+                    fetch(apiBase2 + '/transfer/to-findcare', { method: 'POST' })
+                      .then(function(r) { return r.json(); })
+                      .then(function(d) {
+                        // Restore FindCare center panel
+                        var splashDiv = document.getElementById('evalcareSplash');
+                        if (splashDiv) splashDiv.style.display = 'none';
+                        chatFrame.style.display = '';
+                      });
+                    return;
+                  }
                   // FC-FILT-001-REQ-007: Collect visible, checked specialty codes
                   var checked = [];
                   leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]:checked').forEach(function(cb) {
@@ -1004,6 +1036,21 @@
               }
               if (el.getAttribute('data-gui-action') === 'filter-provider-type') {
                 el.addEventListener('change', function() {
+                  // If EvaluateCare owns the page, transfer back to FindCare
+                  if (pageOwner === 'evaluatecare') {
+                    pageOwner = 'findcare';
+                    var chatSrc3 = chatFrame.src || '';
+                    var apiBase3 = chatSrc3.replace(/\/static\/.*$/, '').replace(/\/$/, '');
+                    if (!apiBase3) apiBase3 = '';
+                    fetch(apiBase3 + '/transfer/to-findcare', { method: 'POST' })
+                      .then(function(r) { return r.json(); })
+                      .then(function(d) {
+                        var splashDiv = document.getElementById('evalcareSplash');
+                        if (splashDiv) splashDiv.style.display = 'none';
+                        chatFrame.style.display = '';
+                      });
+                    return;
+                  }
                   var val = el.getAttribute('data-gui-value');
                   // Switch changed — reset all specialty checkboxes to checked,
                   // then show/hide based on filter state
