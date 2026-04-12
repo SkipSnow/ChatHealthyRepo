@@ -294,58 +294,49 @@ class ClassifyRequest(BaseModel):
 
 @app.post("/classify")
 async def classify(body: ClassifyRequest):
-    """One AI call: translate user question into structured search parameters.
-    Returns specialty codes ranked by relevance + location filters.
-    Frontend calls /search with these parameters — no more AI needed."""
-    import sys as _sys
-    _sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared"))
-    from llm_client import chat as llm_chat
+    """FC-FILT-001-REQ-001: AI vector search for specialties.
+    Replaces the GPT classify call with embedding + vector search.
+    Returns specialty codes ranked by cosine similarity + location extracted by simple parsing."""
 
-    _CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4.1")
+    # Vector search for specialties
+    result = _specialty_service.find_specialty_codes(body.message)
 
-    # Get all specialty codes from the DB for the AI to choose from
-    specialty_names = []
-    db = _get_db()
-    if db:
-        try:
-            specs = list(db[f"{_ENV_PREFIX}_PublicHealthData"]["SpecialtyMetaData"].find(
-                {}, {"_id": 0, "Code": 1, "Display Name": 1, "can_prescribe": 1}
-            ).limit(500))
-            specialty_names = [{"code": s.get("Code", ""), "name": s.get("Display Name", "")} for s in specs if s.get("Code")]
-        except Exception:
-            pass
+    if "error" in result:
+        return {"specialties": [], "error": result["error"]}
 
-    spec_list = "\n".join(f"- {s['code']}: {s['name']}" for s in specialty_names[:200])
+    # Map to the format the frontend expects
+    specialties = [
+        {"code": s["Code"], "name": s["Display Name"],
+         "can_prescribe": s.get("can_prescribe", False),
+         "homeopathic": s.get("homeopathic", False),
+         "rank": s.get("rank", 0)}
+        for s in result.get("specialties", [])
+    ]
 
-    resp = llm_chat(
-        _CHAT_MODEL,
-        messages=[{"role": "user", "content": body.message}],
-        system=(
-            "You are a healthcare specialty classifier. The user describes a medical need. "
-            "Return ONLY valid JSON with these fields:\n"
-            "- specialties: array of {code, name, rank} ordered most to least relevant (max 10)\n"
-            "- state: two-letter state code or null\n"
-            "- city: city name or null\n"
-            "- county: county name or null\n"
-            "- zip: zip code or null\n\n"
-            "Choose specialty codes ONLY from this list:\n" + spec_list + "\n\n"
-            "If the user mentions a condition, map it to the most appropriate specialties. "
-            "Rank 1 = most likely specialist the user needs. "
-            "Do NOT make up codes. Do NOT include provider names or addresses. JSON only."
-        ),
-        max_tokens=500,
-        response_format={"type": "json_object"},
-    )
+    # Simple location extraction — no LLM needed
+    msg = body.message.lower()
+    state = None
+    city = None
+    county = None
+    # State codes
+    for code in ["DE", "MS", "VA", "IN"]:
+        if f" {code.lower()} " in f" {msg} " or msg.endswith(f" {code.lower()}"):
+            state = code
+            break
+    # Full state names
+    state_names = {"delaware": "DE", "mississippi": "MS", "virginia": "VA", "indiana": "IN"}
+    for name, code in state_names.items():
+        if name in msg:
+            state = code
+            break
 
-    try:
-        import json as _json
-        result = _json.loads(resp.get("content", "{}"))
-    except Exception:
-        result = {"specialties": [], "state": None, "error": "Failed to parse AI response"}
-
-    result["model"] = _CHAT_MODEL
-    result["tokens"] = resp.get("usage", {})
-    return result
+    return {
+        "specialties": specialties,
+        "state": state,
+        "city": city,
+        "county": county,
+        "model": "text-embedding-3-large (vector search)",
+    }
 
 def _get_qa_report():
     """Load QA report from MongoDB (source of truth), fall back to file for bootstrap."""
