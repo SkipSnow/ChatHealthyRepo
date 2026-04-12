@@ -145,7 +145,7 @@ _prompt_maker = PromptSystemMaker(brain_dir=_brain_dir, env_prefix=_ENV_PREFIX)
 EMERGENCY_KEYWORDS = _prompt_maker.load_emergency_keywords()
 anthropic_tools = _prompt_maker.load_tool_definitions()
 WELCOME_MESSAGE = PromptSystemMaker.build_welcome_message()
-_BUILD = PromptSystemMaker.get_build_number(_get_db, _ENV_PREFIX)
+# Build number comes from version.json only — single source of truth
 
 _ME_DIR = os.getenv("ME_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "me")
 if not os.path.isdir(_ME_DIR):
@@ -520,8 +520,8 @@ def health():
         pass
     result = {"status": status, "db": "connected" if _get_db() else "unavailable",
               "env": env_label,
-              "build": _version_info.get("build", _BUILD),
-              "version": _version_info.get("version", _APP_VERSION),
+              "build": _version_info.get("build", "?"),
+              "version": _version_info.get("version", "?"),
               "framework": _version_info.get("framework", "?"),
               "commit": _commit}
     if idx_check.get("missing"):

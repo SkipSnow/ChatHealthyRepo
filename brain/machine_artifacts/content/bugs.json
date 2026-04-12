@@ -2419,6 +2419,29 @@
       "pytest_id": "",
       "success_criteria_to_close": "EvaluateCare splash appears only when Evaluate button is clicked, not on page load.",
       "ch_matrix_id": ""
+    },
+    {
+      "id": "BUG-UX-018",
+      "req_id": "ORPHAN_BUG",
+      "rule": "REQUIREMENT MISSING. BUG FIXED: Transfer from EvaluateCare back to FindCare showed the old chat screen instead of the FindCare splash page. When EvaluateCare releases control, the center panel MUST show the FindCare welcome splash, not stale content.",
+      "description": "Transfer back to FindCare restored old iframe instead of painting FindCare splash.",
+      "reason": "Requirement missing for what content to display on control transfer back to FindCare.",
+      "type": "medium",
+      "date": "2026-04-12",
+      "discovery_date": "2026-04-12",
+      "status": "open",
+      "resolution_status": "testing",
+      "next_action": "",
+      "environments": [
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "source": "Boss",
+      "risk_acceptance_id": null,
+      "pytest_id": "",
+      "success_criteria_to_close": "Transfer back to FindCare paints FindCare splash in center panel.",
+      "ch_matrix_id": ""
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
