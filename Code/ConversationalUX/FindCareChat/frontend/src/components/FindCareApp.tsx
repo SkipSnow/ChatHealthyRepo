@@ -290,7 +290,7 @@ export default function FindCareApp() {
         <div style="padding:3px 10px;border-bottom:1px solid #e5e7eb;background:#fafafa;">
           <button data-gui-action="toggle-all" style="background:none;border:1px solid #0b7a75;border-radius:3px;padding:2px 8px;font-size:10px;color:#0b7a75;cursor:pointer;font-weight:600;">Uncheck All</button>
         </div>
-        <div style="flex:1;overflow-y:auto;">${items}</div>
+        <div style="max-height:390px;overflow-y:auto;overflow-x:hidden;">${items}</div>
         <div style="padding:6px 8px;border-top:1px solid #d8e2e1;">
           <button data-gui-action="filter-apply" style="width:100%;padding:5px;border-radius:4px;border:none;background:linear-gradient(180deg,#0b9a94,#0b7a75);color:#fff;font-size:11px;font-weight:600;cursor:pointer;">Apply Filter</button>
         </div>
