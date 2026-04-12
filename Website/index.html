@@ -957,10 +957,12 @@
                     fetch(apiBase2 + '/transfer/to-findcare', { method: 'POST' })
                       .then(function(r) { return r.json(); })
                       .then(function(d) {
-                        // Restore FindCare center panel
+                        // Paint FindCare splash in center panel
                         var splashDiv = document.getElementById('evalcareSplash');
-                        if (splashDiv) splashDiv.style.display = 'none';
-                        chatFrame.style.display = '';
+                        if (splashDiv) {
+                          splashDiv.innerHTML = d.splash || '';
+                          splashDiv.style.display = 'flex';
+                        }
                       });
                     return;
                   }
@@ -1046,8 +1048,10 @@
                       .then(function(r) { return r.json(); })
                       .then(function(d) {
                         var splashDiv = document.getElementById('evalcareSplash');
-                        if (splashDiv) splashDiv.style.display = 'none';
-                        chatFrame.style.display = '';
+                        if (splashDiv) {
+                          splashDiv.innerHTML = d.splash || '';
+                          splashDiv.style.display = 'flex';
+                        }
                       });
                     return;
                   }
