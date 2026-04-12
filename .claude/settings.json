@@ -1,15 +1,5 @@
 {
   "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode boot"
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "hooks": [
@@ -36,6 +26,16 @@
           {
             "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode prompt_result"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode session_end"
           }
         ]
       }
