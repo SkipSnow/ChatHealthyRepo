@@ -482,7 +482,10 @@ def health():
     _version_info = {}
     try:
         import json as _json
+        # Try repo path first, then HF flat path
         _vpath = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "brain", "machine_artifacts", "content", "version.json")
+        if not os.path.exists(_vpath):
+            _vpath = os.path.join(os.path.dirname(__file__), "brain", "machine_artifacts", "content", "version.json")
         if os.path.exists(_vpath):
             _version_info = _json.loads(open(_vpath, encoding="utf-8").read()).get("current", {})
     except Exception:
