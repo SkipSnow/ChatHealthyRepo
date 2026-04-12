@@ -2325,7 +2325,8 @@
       "risk_acceptance_id": null,
       "pytest_id": "",
       "success_criteria_to_close": "StartChatHealthy.bat runs without any interactive prompts or browser redirects and Cursor opens authenticated.",
-      "ch_matrix_id": ""
+      "ch_matrix_id": "",
+      "reason": "BUG: StartChatHealthy.bat requires interactive CLI login (browser OAuth + prompts) before opening Cursor. Need a headless or programmatic way to authenticate with Anthropic so the batch file can run non-interactively."
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

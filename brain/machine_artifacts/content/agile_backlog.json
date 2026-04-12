@@ -25871,112 +25871,180 @@
                   "requirement": "Search for specialty type is an AI vector search using text-embedding-3-large. No regular expressions, no string matching, no classify LLM call, no fallback. The user's prompt is embedded and matched against SpecialtyMetaData embeddings via cosine similarity.",
                   "priority": "must-have",
                   "status": "needs_vetting",
-                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas", "OpenAI text-embedding-3-large"]
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas",
+                    "OpenAI text-embedding-3-large"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-002",
                   "requirement": "Vector search returns structured results: NUCC codes, Display Name, can_prescribe flag, homeopathic flag. The server adds a rank integer (1 = most likely, n = least likely) based on cosine similarity order before sending to the client.",
                   "priority": "must-have",
                   "status": "needs_vetting",
-                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas"]
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-003",
                   "requirement": "Results are ranked 1-to-n by cosine similarity. The query vector is built by embedding the last 5 user prompts concatenated. Each result gets a unique integer rank. All matching results are returned — numCandidates must be large enough to capture the full result set.",
                   "priority": "must-have",
                   "status": "needs_vetting",
-                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas", "OpenAI text-embedding-3-large"]
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas",
+                    "OpenAI text-embedding-3-large"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-004",
                   "requirement": "Client caches all specialty results from the search. No re-query on toggle or filter changes.",
                   "priority": "must-have",
                   "status": "needs_vetting",
-                  "realized_by": ["React 18 / Vite 5"]
+                  "realized_by": [
+                    "React 18 / Vite 5"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-005",
                   "requirement": "When the user toggles prescriber or homeopathic switch, the cached specialty list is filtered client-side. No DB call.",
                   "priority": "must-have",
                   "status": "needs_vetting",
-                  "realized_by": ["React 18 / Vite 5"]
+                  "realized_by": [
+                    "React 18 / Vite 5"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-006",
                   "requirement": "When the user hits Apply Filter, the unpicked provider list is emptied and a new DB request is made for providers matching the selected NUCC codes.",
                   "priority": "must-have",
                   "status": "needs_vetting",
-                  "realized_by": ["FastAPI (Python 3.11)", "React 18 / Vite 5", "MongoDB Atlas"]
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "React 18 / Vite 5",
+                    "MongoDB Atlas"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-007",
                   "requirement": "The provider query uses a traditional MongoDB query ($in on taxonomy codes) with all selected NUCC codes. While the query runs, the screen is empty or displays the timer.",
                   "priority": "must-have",
                   "status": "needs_vetting",
-                  "realized_by": ["FastAPI (Python 3.11)", "React 18 / Vite 5", "MongoDB Atlas"]
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "React 18 / Vite 5",
+                    "MongoDB Atlas"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-008",
                   "requirement": "Filter panel shows specialty types from search results.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "realized_by": ["FastAPI (Python 3.11)", "React 18 / Vite 5", "MongoDB Atlas"]
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "React 18 / Vite 5",
+                    "MongoDB Atlas"
+                  ],
+                  "pytest_ids": [
+                    "test_fc_filt_001.py::TestREQ008_FilterPanel::test_filter_panel_appears_after_search"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-009",
                   "requirement": "Prescribers only checkbox filters to prescriber specialties.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "realized_by": ["FastAPI (Python 3.11)", "React 18 / Vite 5", "MongoDB Atlas"]
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "React 18 / Vite 5",
+                    "MongoDB Atlas"
+                  ],
+                  "pytest_ids": [
+                    "test_fc_filt_001.py::TestREQ009_PrescribersCheckbox::test_prescribers_checkbox_exists"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-010",
                   "requirement": "Homeopathic only checkbox adds homeopathic specialties.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "realized_by": ["FastAPI (Python 3.11)", "React 18 / Vite 5", "MongoDB Atlas"]
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "React 18 / Vite 5",
+                    "MongoDB Atlas"
+                  ],
+                  "pytest_ids": [
+                    "test_fc_filt_001.py::TestREQ010_HomeopathicCheckbox::test_homeopathic_checkbox_exists"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-011",
                   "requirement": "Three counts displayed: total types, showing, filtered.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "realized_by": ["FastAPI (Python 3.11)", "React 18 / Vite 5", "MongoDB Atlas"]
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "React 18 / Vite 5",
+                    "MongoDB Atlas"
+                  ],
+                  "pytest_ids": [
+                    "test_fc_filt_001.py::TestREQ011_ThreeCounts::test_three_counts_are_visible"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-012",
                   "requirement": "Check all / uncheck all toggle.",
                   "priority": "must-have",
                   "status": "implemented",
-                  "realized_by": ["FastAPI (Python 3.11)", "React 18 / Vite 5", "MongoDB Atlas"]
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "React 18 / Vite 5",
+                    "MongoDB Atlas"
+                  ],
+                  "pytest_ids": [
+                    "test_fc_filt_001.py::TestREQ012_ToggleAll::test_uncheck_all_sets_showing_to_zero"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-013",
                   "requirement": "Filter header horizontal grid layout — no truncation, intelligently spaced.",
                   "priority": "must-have",
                   "status": "open",
-                  "realized_by": ["React 18 / Vite 5"]
+                  "realized_by": [
+                    "React 18 / Vite 5"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-014",
                   "requirement": "Apply Filter: detect changes, clear providers, re-query DB, ranked specialties, meet display reqs.",
                   "priority": "must-have",
                   "status": "open",
-                  "realized_by": ["FastAPI (Python 3.11)", "React 18 / Vite 5", "MongoDB Atlas"]
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "React 18 / Vite 5",
+                    "MongoDB Atlas"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-015",
                   "requirement": "If the specialty list has more than 15 items, it MUST display in a scroll window. Toggle button MUST apply to all items including those outside the visible scroll window.",
                   "priority": "must-have",
                   "status": "untested",
-                  "realized_by": ["React 18 / Vite 5"]
+                  "realized_by": [
+                    "React 18 / Vite 5"
+                  ]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-016",
                   "requirement": "Label reads 'Uncheck All' when majority checked, 'Check All' when majority unchecked.",
                   "priority": "must-have",
                   "status": "untested",
-                  "realized_by": ["React 18 / Vite 5"]
+                  "realized_by": [
+                    "React 18 / Vite 5"
+                  ]
                 }
               ],
               "description": "Specialty type filter with prescriber and homeopathic toggles"
