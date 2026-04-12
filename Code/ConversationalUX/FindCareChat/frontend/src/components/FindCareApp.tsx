@@ -210,12 +210,11 @@ export default function FindCareApp() {
       const data = await resp.json()
       if (data.providers) {
         // Enrich providers with specialty name from user's selection (FC-DISPLAY-001-REQ-002)
-        // Match any of the provider's taxonomy codes against the selected specialties
-        const enriched = data.providers.map((p: any) => {
-          const codes = p.taxonomy_codes || [p.taxonomy_code]
-          const match = codes.find((c: string) => specialtyMapRef.current[c])
-          return { ...p, specialty: match ? specialtyMapRef.current[match] : '' }
-        })
+        // Provider's taxonomy_code is guaranteed to be in the selection (queried with $in)
+        const enriched = data.providers.map((p: any) => ({
+          ...p,
+          specialty: specialtyMapRef.current[p.taxonomy_code] || '',
+        }))
         selection.setAvailable(enriched as Provider[])
         if (data.total_count) setTotalCount(data.total_count)
         if (data.last_npi) setLastNpi(data.last_npi)
