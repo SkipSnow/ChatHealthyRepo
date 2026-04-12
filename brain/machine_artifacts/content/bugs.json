@@ -2327,6 +2327,29 @@
       "success_criteria_to_close": "StartChatHealthy.bat runs without any interactive prompts or browser redirects and Cursor opens authenticated.",
       "ch_matrix_id": "",
       "reason": "BUG: StartChatHealthy.bat requires interactive CLI login (browser OAuth + prompts) before opening Cursor. Need a headless or programmatic way to authenticate with Anthropic so the batch file can run non-interactively."
+    },
+    {
+      "id": "BUG-TEST-031",
+      "req_id": "ORPHAN_BUG",
+      "rule": "BUG: Missing pytests for HTML files. Playwright tests cover rendered output but there are no unit or integration tests validating the HTML generation functions themselves.",
+      "description": "HTML rendering functions (splash pages, filter panel, provider cards) have no direct test coverage. Only Playwright end-to-end tests validate the rendered output.",
+      "reason": "Missing pytests for HTML files. No unit tests for HTML generation functions.",
+      "type": "medium",
+      "date": "2026-04-11",
+      "discovery_date": "2026-04-11",
+      "status": "open",
+      "resolution_status": "in_analysis",
+      "next_action": "analysis",
+      "environments": [
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "source": "Boss",
+      "risk_acceptance_id": null,
+      "pytest_id": "",
+      "success_criteria_to_close": "Every HTML generation function has a corresponding pytest.",
+      "ch_matrix_id": ""
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

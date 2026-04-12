@@ -475,11 +475,13 @@ def main():
     report["execution_log"] = execution_log
 
     # Save
-    json_path = BRAIN_DIR / "machine_artifacts" / "document_type_json" / "gpt_sit_report.json"
+    test_output = Path(__file__).resolve().parents[4] / "test_output"
+    test_output.mkdir(exist_ok=True)
+    json_path = test_output / "gpt_sit_report.json"
     json_path.write_text(json.dumps(report, indent=2, default=str, ensure_ascii=False), encoding="utf-8")
     print(f"\nJSON: {json_path}")
 
-    pdf_path = BRAIN_DIR / "BusinessArtifacts" / "gpt_sit_report.pdf"
+    pdf_path = test_output / "gpt_sit_report.pdf"
     generate_pdf(report, str(pdf_path))
     print(f"PDF: {pdf_path}")
 

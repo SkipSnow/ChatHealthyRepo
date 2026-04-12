@@ -355,13 +355,15 @@ if __name__ == "__main__":
     report = generate_report(results)
 
     # Save JSON
-    json_path = os.path.join(PROJECT_ROOT, "brain", "machine_artifacts", "document_type_json", "gpt_reader_qa_report.json")
+    test_output = os.path.join(PROJECT_ROOT, "test_output")
+    os.makedirs(test_output, exist_ok=True)
+    json_path = os.path.join(test_output, "gpt_reader_qa_report.json")
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
     print(f"JSON report: {json_path}")
 
     # Save PDF
-    pdf_path = os.path.join(PROJECT_ROOT, "brain", "BusinessArtifacts", "gpt_reader_qa_report.pdf")
+    pdf_path = os.path.join(test_output, "gpt_reader_qa_report.pdf")
     generate_pdf(report, pdf_path)
     print(f"PDF report: {pdf_path}")
 

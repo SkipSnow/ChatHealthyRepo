@@ -21,7 +21,7 @@ CHAT_TIMEOUT = 120_000  # FindCare LLM call can take 30-60s
 
 
 def _take_screenshot(page: Page, name: str):
-    path = os.path.join(os.path.dirname(__file__), "test_screenshots", f"{name}.png")
+    path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "test_output", f"{name}.png")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     page.screenshot(path=path, full_page=True)
     return path

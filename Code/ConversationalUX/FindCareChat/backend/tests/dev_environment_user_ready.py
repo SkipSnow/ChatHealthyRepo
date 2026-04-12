@@ -25,7 +25,7 @@ from playwright.sync_api import sync_playwright, Page
 
 BASE_URL = os.getenv("TEST_BASE_URL", "https://dev.chathealthy.ai")
 CHAT_TIMEOUT = 180_000  # HF spaces may need cold start time
-SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "test_screenshots", "dev_user_ready")
+SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "test_output", "dev_user_ready")
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 KNOWN_BUGS = []
