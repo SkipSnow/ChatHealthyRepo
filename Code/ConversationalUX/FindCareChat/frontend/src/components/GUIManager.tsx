@@ -112,6 +112,7 @@ const stopThinkingCallbackRef = { current: null as (() => void) | null }
 
 // Cache full specialty list for client-side filter toggles (no server round-trip)
 const cachedFilterOptions = { current: [] as any[] }
+const cachedHomeoGeneralists = { current: [] as any[] }
 const cachedSearchParams = { current: null as any }
 const cachedFilterState = { prescribers: true, homeopathic: false }
 
@@ -202,7 +203,13 @@ export function useGUIManager() {
 
             let options = cachedFilterOptions.current
             if (isPrescribers) options = options.filter(opt => isPrescriberOption(opt))
-            if (isHomeopathic) options = options.filter(opt => isHomeopathicOption(opt))
+            if (isHomeopathic) {
+              // Filter to homeopathic only, then add generalists not already in the list
+              options = options.filter(opt => isHomeopathicOption(opt))
+              const existingCodes = new Set(options.map((o: any) => o.code))
+              const extras = cachedHomeoGeneralists.current.filter((g: any) => !existingCodes.has(g.code))
+              options = [...options, ...extras]
+            }
 
             const html = renderFilterHTML(
               options.length > 0 ? options : cachedFilterOptions.current,
@@ -276,9 +283,11 @@ export function useGUIManager() {
 
   const showFilterPanel = useCallback((options: any[],
                                        searchParams: any,
-                                       totalProviders: number = 0) => {
+                                       totalProviders: number = 0,
+                                       homeoGeneralists: any[] = []) => {
     // Cache full list for client-side filter toggles
     cachedFilterOptions.current = options
+    cachedHomeoGeneralists.current = homeoGeneralists
     cachedSearchParams.current = searchParams
     cachedFilterState.prescribers = true
     cachedFilterState.homeopathic = false

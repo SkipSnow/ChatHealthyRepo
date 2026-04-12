@@ -330,8 +330,28 @@ async def classify(body: ClassifyRequest):
             state = code
             break
 
+    # Load homeopathic generalists for client-side cache
+    homeo_generalists = []
+    try:
+        db = _get_db()
+        if db:
+            for doc in db[f"{_ENV_PREFIX}_PublicHealthData"]["SpecialtyMetaData"].find(
+                {"homeopathic_general": True, "Section": "Individual"},
+                {"_id": 0, "Code": 1, "Display Name": 1, "can_prescribe": 1, "homeopathic": 1}
+            ):
+                homeo_generalists.append({
+                    "code": doc.get("Code", ""),
+                    "name": doc.get("Display Name", ""),
+                    "can_prescribe": doc.get("can_prescribe", False),
+                    "homeopathic": True,
+                    "homeopathic_general": True,
+                })
+    except Exception:
+        pass
+
     return {
         "specialties": specialties,
+        "homeopathic_generalists": homeo_generalists,
         "state": state,
         "city": city,
         "county": county,

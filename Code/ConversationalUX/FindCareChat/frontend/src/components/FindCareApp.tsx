@@ -188,7 +188,15 @@ export default function FindCareApp() {
           can_prescribe: s.can_prescribe ?? true,
           homeopathic: s.homeopathic ?? false,
         }))
-        sendFilterToParent(filterOptions, params)
+        // Cache homeopathic generalists for toggle
+        const homeoGeneralists = (classified.homeopathic_generalists || []).map((s: any) => ({
+          code: s.code,
+          name: s.name,
+          can_prescribe: s.can_prescribe ?? false,
+          homeopathic: true,
+          homeopathic_general: true,
+        }))
+        sendFilterToParent(filterOptions, params, homeoGeneralists)
       }
     } catch (err: any) {
       if (timerRef.current) clearInterval(timerRef.current)
@@ -254,7 +262,7 @@ export default function FindCareApp() {
   }, [searchParams, lastNpi, isLoadingMore, selection.state.available])
 
   // ── Send filter panel to parent ────────────────────────────────
-  const sendFilterToParent = useCallback((options: any[], params: any) => {
+  const sendFilterToParent = useCallback((options: any[], params: any, homeoGeneralists?: any[]) => {
     const prescCount = options.filter((o: any) => o.can_prescribe).length
     const allCount = options.length
 
@@ -308,7 +316,7 @@ export default function FindCareApp() {
         </div>
       </div>`
 
-    sendToParent('gui:filter', { html, searchParams: JSON.stringify(params), applyInitialFilter: true })
+    sendToParent('gui:filter', { html, searchParams: JSON.stringify(params), applyInitialFilter: true, homeopathicGeneralists: homeoGeneralists || [] })
   }, [])
 
   // ── Evaluate handoff ───────────────────────────────────────────

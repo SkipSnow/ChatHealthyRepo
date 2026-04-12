@@ -902,6 +902,8 @@
           leftPanel.innerHTML = msg.html || '';
           // Store search params for filter-apply
           leftPanel.dataset.searchParams = msg.searchParams || '{}';
+          // Cache homeopathic generalists for toggle injection
+          window._homeoGeneralists = msg.homeopathicGeneralists || [];
           // Attach handlers
           var filterActions = leftPanel.querySelectorAll('[data-gui-action]');
           for (var j = 0; j < filterActions.length; j++) {
@@ -988,6 +990,34 @@
                   var homeoCb = leftPanel.querySelector('input[data-gui-value="homeopathic"]');
                   var prescOn = prescCb ? prescCb.checked : false;
                   var homeoOn = homeoCb ? homeoCb.checked : false;
+                  // Inject homeopathic generalists if toggle is ON
+                  if (homeoOn && window._homeoGeneralists && window._homeoGeneralists.length > 0) {
+                    var scrollContainer = leftPanel.querySelector('[style*="overflow-y"]') || leftPanel.querySelector('[style*="max-height"]');
+                    if (scrollContainer) {
+                      var existingCodes = new Set();
+                      leftPanel.querySelectorAll('[data-spec-code]').forEach(function(el) {
+                        existingCodes.add(el.getAttribute('data-spec-code'));
+                      });
+                      window._homeoGeneralists.forEach(function(g) {
+                        if (!existingCodes.has(g.code)) {
+                          var div = document.createElement('div');
+                          div.style.cssText = 'display:block;padding:4px 8px;border-bottom:1px solid #f0f0f0;';
+                          div.setAttribute('data-spec-code', g.code);
+                          div.setAttribute('data-can-prescribe', String(g.can_prescribe || false));
+                          div.setAttribute('data-homeopathic', 'true');
+                          div.setAttribute('data-homeo-injected', 'true');
+                          div.innerHTML = '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;">' +
+                            '<input type="checkbox" data-gui-action="filter-toggle" data-gui-value="' + g.code + '" checked style="accent-color:#0b7a75;width:12px;height:12px;" />' +
+                            '<span style="color:#1f2937;">' + g.name + '</span></label>';
+                          scrollContainer.appendChild(div);
+                        }
+                      });
+                    }
+                  } else {
+                    // Remove injected generalists when toggle is OFF
+                    leftPanel.querySelectorAll('[data-homeo-injected]').forEach(function(el) { el.remove(); });
+                  }
+
                   var items = leftPanel.querySelectorAll('[data-spec-code]');
                   var shown = 0;
                   var total = items.length;
