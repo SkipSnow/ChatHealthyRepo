@@ -4,10 +4,12 @@
 # ChatHealthy DevOps Boot — governance entry point for Claude Code.
 #
 # Four modes, mapped to Claude Code lifecycle hooks:
-#   --mode boot          → SessionStart: load brain, cache digest
-#   --mode prompt        → UserPromptSubmit: predict governance path
+#   --mode prompt        → UserPromptSubmit: boot on first call, then predict governance path
 #   --mode tool_call     → PreToolUse: gate Bash/Edit/Write
 #   --mode prompt_result → Stop: audit Claude's output
+#   --mode session_end   → SessionEnd: clear booted flag for next session
+#
+# No SessionStart hook — Anthropic fires it before OAuth completes.
 #
 # Each brain JSON has a compliance function that returns:
 #   {"comply": True}                              — pass
@@ -46,6 +48,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 BRAIN_DIR = Path(__file__).resolve().parents[4] / "brain" / "machine_artifacts" / "content"
 # BOOT_DIR removed — chathealthyai_brainboot.json deleted per ARCH-ORPHAN-001-REQ-005
 DIGEST_PATH = Path(tempfile.gettempdir()) / "chathealthy_brain_digest.json"
+CLAUDE_DIR = Path(__file__).resolve().parents[4] / ".claude"
+SETTINGS_PATH = CLAUDE_DIR / "ChatHealthySettings.json"
 
 # Current environment — read from ENV_PREFIX or default to dev
 ENV = os.environ.get("ENV_PREFIX", os.environ.get("ENVIRONMENT", "local"))
@@ -653,6 +657,7 @@ class chathealthy_devops_boot:
         self.brain = {}
         self._constraints = []
         self._state = {}  # Singleton state — persists across hook calls
+        self._booted = False  # Boot runs once, on first UserPromptSubmit
 
         if load_full:
             self._load_brain()
@@ -661,6 +666,32 @@ class chathealthy_devops_boot:
         else:
             self._load_digest()
         self._initialized = True
+
+    @staticmethod
+    def _read_settings() -> dict:
+        """Read .claude/ChatHealthySettings.json. Returns empty dict on failure."""
+        try:
+            if SETTINGS_PATH.exists():
+                return json.loads(SETTINGS_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+        return {}
+
+    @staticmethod
+    def _write_settings(settings: dict):
+        """Write .claude/ChatHealthySettings.json."""
+        SETTINGS_PATH.write_text(json.dumps(settings, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    def booted(self) -> Optional[bool]:
+        """Check if boot has already run this session.
+        Returns True if booted, False if not booted, None if settings file
+        or flag is missing (error state — do not boot)."""
+        if self._booted:
+            return True
+        settings = self._read_settings()
+        if not settings or "booted" not in settings:
+            return None  # Settings file or flag missing — error state
+        return settings["booted"]
 
     # ── Brain loading ──────────────────────────────────────────────────────
 
@@ -1103,6 +1134,10 @@ class chathealthy_devops_boot:
                     "continue": False, "stopReason": msg}
 
         self._save_digest()
+        self._booted = True
+        settings = self._read_settings()
+        settings["booted"] = True
+        self._write_settings(settings)
         self._state["boot_complete"] = True
 
         # ARCH-ORPHAN-001-REQ-001: Scan for orphan bugs
@@ -1149,9 +1184,43 @@ class chathealthy_devops_boot:
             import traceback; traceback.print_exc(file=sys.stderr)
             return []
 
+    def _serialize_singleton(self) -> dict:
+        """Serialize essential singleton state for Claude's context.
+        Includes: version, governance matrix, constraints, brain file list."""
+        version_data = self.brain.get("version", {})
+        current = version_data.get("current", {})
+        matrix = self._get_matrix()
+
+        # Compact matrix: only non-"allow" cells (the interesting ones)
+        compact_matrix = {}
+        for stem, row in matrix.items():
+            non_allow = {col: val for col, val in row.items() if val != "allow"}
+            if non_allow:
+                compact_matrix[stem] = non_allow
+
+        return {
+            "version": current.get("version", "?"),
+            "framework": current.get("framework", "?"),
+            "build": current.get("build", "?"),
+            "brain_files": list(self.brain.keys()),
+            "constraint_count": len(self._constraints),
+            "constraints": self._constraints,
+            "governance_matrix_non_allow": compact_matrix,
+            "state": {k: v for k, v in self._state.items() if not k.startswith("_")},
+        }
+
     def inform_claude(self, boot_result: dict) -> str:
-        """ARCH-ORPHAN-001-REQ-004: Build additionalContext for Claude."""
+        """ARCH-ORPHAN-001-REQ-004: Build additionalContext for Claude.
+        Serializes singleton state so Claude always has governance context."""
         lines = []
+
+        # Serialize singleton state
+        singleton_state = self._serialize_singleton()
+        lines.append("GOVERNANCE SINGLETON STATE (serialized at boot):")
+        lines.append(json.dumps(singleton_state, indent=2, default=str))
+        lines.append("")
+
+        # Orphan bug triage
         orphans = boot_result.get("orphan_bugs", [])
         if orphans:
             lines.append(f"ORPHAN BUG TRIAGE: {len(orphans)} orphan bugs need placement before proceeding.")
@@ -1189,9 +1258,44 @@ class chathealthy_devops_boot:
         return {"comply": True, "workers": results}
 
     def prompt(self, user_message: str, hook_input: dict = None) -> dict:
-        """UserPromptSubmit — dispatch code_controlled workers, then log."""
+        """UserPromptSubmit — boot on first call, then dispatch code_controlled workers.
+        Boot moved here from SessionStart to avoid OAuth race condition."""
         self._announce("prompt", "user_prompt_submit", f"user_message[:{min(50, len(user_message))}]")
         self._state["last_prompt"] = user_message
+
+        # Check boot flag — None means settings file/flag missing (error state)
+        boot_state = self.booted()
+        if boot_state is None:
+            return {
+                "comply": True,
+                "_boot_context": (
+                    "ERROR: .claude/ChatHealthySettings.json or boot flag not found. "
+                    "No boot attempted. SessionEnd may not have run on the previous session. "
+                    "To fix: ensure .claude/ChatHealthySettings.json exists with {\"booted\": false}."
+                ),
+            }
+
+        # First prompt triggers boot — singleton flag prevents re-boot
+        if not boot_state:
+            self._load_brain()
+            self._verify_coverage()
+            self._extract_constraints()
+            boot_result = self.boot()
+            claude_context = self.inform_claude(boot_result)
+            # Dispatch workers as normal, then merge boot context
+            worker_result = self.dispatch_code_controlled(hook_input or {}, "user_prompt_submit")
+            # Merge any worker additionalContext with boot context
+            worker_additional = ""
+            for w in worker_result.get("workers", []):
+                if w.get("additionalContext"):
+                    worker_additional += w["additionalContext"] + "\n"
+            combined_context = claude_context
+            if worker_additional:
+                combined_context += "\n" + worker_additional.strip()
+            worker_result["_boot_context"] = combined_context
+            worker_result["_booted"] = True
+            return worker_result
+
         return self.dispatch_code_controlled(hook_input or {}, "user_prompt_submit")
 
     def tool_call(self, tool_name: str, tool_input: dict, transcript_path: str = "") -> dict:
@@ -1268,7 +1372,7 @@ LOG_PATH = Path(tempfile.gettempdir()) / "chathealthy_guard.log"
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", required=True, choices=["boot", "prompt", "tool_call", "prompt_result"])
+    parser.add_argument("--mode", required=True, choices=["prompt", "tool_call", "prompt_result", "session_end"])
     args = parser.parse_args()
 
     try:
@@ -1276,52 +1380,20 @@ def main():
     except Exception:
         data = {}
 
+    exit_code = 0
     try:
-        if args.mode == "boot":
-            boot = chathealthy_devops_boot(load_full=True)
-
-            # Step 0: Check for resume directive in transcript
-            transcript = data.get("transcript_path", "")
-            resume = boot.check_resume_directive(transcript)
-            if resume.get("resume"):
-                mode_names = {1: "Unattended", 2: "Normal", 3: "Idiot"}
-                mode_name = mode_names.get(resume["mode"], "Idiot")
-                print(f"RESUME: {mode_name} Mode. Last context: {resume.get('last_context', '')[:100]}", file=sys.stderr)
-                result = boot.boot()
-                result["resume"] = True
-                result["mode"] = resume["mode"]
-                result["mode_name"] = mode_name
-                result["last_context"] = resume.get("last_context", "")
-                json.dump(result, sys.stdout)
-                sys.exit(0)
-
-            result = boot.boot()
-            # ARCH-ORPHAN-001-REQ-004: Output orphan table and context to Claude
-            claude_context = boot.inform_claude(result)
-            if claude_context:
-                output = {
-                    **result,
-                    "hookSpecificOutput": {
-                        "hookEventName": "SessionStart",
-                        "additionalContext": claude_context,
-                    }
-                }
-                json.dump(output, sys.stdout)
-            else:
-                json.dump(result, sys.stdout)
-            if result.get("status") == "abend":
-                sys.exit(2)
-            sys.exit(0)
-
-        elif args.mode == "prompt":
+        if args.mode == "prompt":
             boot = chathealthy_devops_boot(load_full=False)
             user_msg = data.get("prompt", data.get("content", data.get("message", "")))
             result = boot.prompt(user_msg, hook_input=data)
-            # If any worker returned additionalContext, wrap it for Claude Code
-            additional = ""
+
+            # Build additionalContext — includes boot context on first prompt
+            additional = result.pop("_boot_context", "")
             for w in result.get("workers", []):
                 if w.get("additionalContext"):
-                    additional += w["additionalContext"] + "\n"
+                    if additional:
+                        additional += "\n"
+                    additional += w["additionalContext"]
             if additional:
                 output = {
                     "hookSpecificOutput": {
@@ -1332,7 +1404,6 @@ def main():
                 json.dump(output, sys.stdout)
             else:
                 json.dump(result, sys.stdout)
-            sys.exit(0)
 
         elif args.mode == "tool_call":
             boot = chathealthy_devops_boot(load_full=False)
@@ -1346,18 +1417,21 @@ def main():
                     }
                 }
                 json.dump(output, sys.stdout)
-                sys.exit(2)
-            sys.exit(0)
+                exit_code = 2
 
         elif args.mode == "prompt_result":
             # Guard against infinite loop — if stop hook is already active, exit immediately
-            if data.get("stop_hook_active"):
-                sys.exit(0)
-            boot = chathealthy_devops_boot(load_full=False)
-            result = boot.prompt_result(hook_input=data)
-            json.dump(result, sys.stdout)
-            sys.exit(0)
+            if not data.get("stop_hook_active"):
+                boot = chathealthy_devops_boot(load_full=False)
+                result = boot.prompt_result(hook_input=data)
+                json.dump(result, sys.stdout)
 
+        elif args.mode == "session_end":
+            # Clear booted flag so next session gets a fresh boot.
+            settings = chathealthy_devops_boot._read_settings()
+            settings["booted"] = False
+            chathealthy_devops_boot._write_settings(settings)
+            json.dump({"status": "session_ended", "booted_cleared": True}, sys.stdout)
 
     except Exception:
         import traceback
@@ -1373,7 +1447,10 @@ def main():
             pass
         print(f"BUG-GOV-001: Guard crashed — stack logged to {LOG_PATH}", file=sys.stderr)
         # Don't block on crash — fail open so plugin doesn't die
-        sys.exit(0)
+        exit_code = 0
+    finally:
+        # ALWAYS return control to Cursor/Claude Code — never hang, never block
+        sys.exit(exit_code)
 
 
 if __name__ == "__main__":
