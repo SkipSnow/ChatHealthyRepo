@@ -70,13 +70,20 @@ jobs:
           find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
           cp /tmp/hf_readme.md hf_space/README.md 2>/dev/null || true
 
-          # EvaluateCare code
+          # EvaluateCare — app.py at root, evaluate_care/ as package
+          cp Code/evaluate_care/app.py hf_space/
+          cp Code/evaluate_care/Dockerfile hf_space/
+          cp Code/evaluate_care/requirements.txt hf_space/
+          mkdir -p hf_space/evaluate_care
           rsync -av \
             --exclude='.env' \
             --exclude='__pycache__' \
             --exclude='*.pyc' \
             --exclude='tests/' \
-            Code/evaluate_care/ hf_space/
+            --exclude='app.py' \
+            --exclude='Dockerfile' \
+            --exclude='requirements.txt' \
+            Code/evaluate_care/ hf_space/evaluate_care/
 
           # Shared utilities
           mkdir -p hf_space/shared
