@@ -54,6 +54,13 @@ _engine = ScoringEngine()
 def health():
     return {"status": "ok", "service": "evaluate_care", "version": "0.1.4"}
 
+@app.get("/splash")
+def splash():
+    return {"html": '<div style="text-align:center;padding:20px;">'
+            '<div style="font-size:24px;font-weight:700;color:#1f2937;">EvaluateCare</div>'
+            '<div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">is still unimplemented.</div>'
+            '</div>'}
+
 # ── Provider Scoring ────────────────────────────────────────
 
 class ScoreProviderRequest(BaseModel):
