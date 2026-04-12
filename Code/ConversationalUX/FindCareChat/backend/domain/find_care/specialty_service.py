@@ -96,7 +96,8 @@ class SpecialtyService:
         if not results:
             return {"specialties": [], "message": f"No matching specialty found for '{query}'."}
 
-        # Filter to meaningful matches (score > 0.4 threshold)
+        # Filter out deactivated specialties and low-score matches
+        results = [r for r in results if not r.get("Display Name", "").startswith("Deactivated")]
         meaningful = [r for r in results if r.get("score", 0) > 0.4]
         if not meaningful:
             meaningful = results[:5]  # Fallback: top 5 if nothing crosses threshold
