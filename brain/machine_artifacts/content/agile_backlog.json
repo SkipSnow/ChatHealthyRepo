@@ -31510,6 +31510,51 @@
             "FastAPI (Python 3.11)",
             "MongoDB Atlas"
           ]
+        },
+        {
+          "feature_id": "FC-PROVIDER-UX",
+          "name": "Provider UX Display",
+          "status": "NOT_STARTED",
+          "description": "How provider information is presented to the user across all views.",
+          "realized_by": [
+            "React 18 / Vite 5",
+            "FastAPI (Python 3.11)"
+          ],
+          "stories": [
+            {
+              "story_id": "FC-DISPLAY-001",
+              "title": "Provider display format",
+              "description": "How provider information is displayed in the available and selected provider lists.",
+              "size": "S",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {
+                  "req_id": "FC-DISPLAY-001-REQ-001",
+                  "requirement": "After the provider name, the provider specialty MUST be displayed.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "React 18 / Vite 5"
+                  ]
+                },
+                {
+                  "req_id": "FC-DISPLAY-001-REQ-002",
+                  "requirement": "The specialty name displayed on a provider card MUST come from the user-selected specialty list (the filter), not from the NPI taxonomy record. This ensures consistency between what the user chose and what is displayed.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "React 18 / Vite 5"
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ],
       "type": "functional"
@@ -31781,6 +31826,187 @@
                   "status": "DONE",
                   "realized_by": [
                     "Python 3.11"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "feature_id": "ARCH-DEVOPS",
+          "name": "DevOps — Build, Deploy, and Environment Management",
+          "status": "NOT_STARTED",
+          "description": "A software engineering discipline that unifies development and operations through automation, continuous delivery, and shared responsibility to accelerate the delivery of reliable software systems.",
+          "realized_by": [
+            "Python 3.11",
+            "GitHub Actions",
+            "HuggingFace Spaces",
+            "Cloudflare Pages"
+          ],
+          "stories": [
+            {
+              "story_id": "DEVOPS-DEPLOY-001",
+              "title": "Make and maintain deployment scripts for all environments",
+              "description": "Create and maintain deterministic deployment scripts for local, dev, qa, and prod. Each script builds, packages, and deploys all components (FindCare, EvaluateCare, Website) to their respective targets (HuggingFace Spaces, Cloudflare Pages). Scripts MUST be idempotent, testable, and environment-aware.",
+              "size": "L",
+              "status": "IN_PROGRESS",
+              "requirements": [
+                {
+                  "req_id": "DEVOPS-DEPLOY-001-REQ-001",
+                  "requirement": "A deployment script MUST exist for the local environment that builds, packages, and deploys all components (FindCare, EvaluateCare, Website).",
+                  "priority": "should-have",
+                  "status": "DEFERRED",
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-DEPLOY-001-REQ-002",
+                  "requirement": "A deployment script MUST exist for the dev environment that builds, packages, and deploys all components (FindCare, EvaluateCare, Website).",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-DEPLOY-001-REQ-003",
+                  "requirement": "A deployment script MUST exist for the qa environment that builds, packages, and deploys all components (FindCare, EvaluateCare, Website).",
+                  "priority": "should-have",
+                  "status": "DEFERRED",
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-DEPLOY-001-REQ-004",
+                  "requirement": "A deployment script MUST exist for the prod environment that builds, packages, and deploys all components (FindCare, EvaluateCare, Website).",
+                  "priority": "should-have",
+                  "status": "DEFERRED",
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-DEPLOY-001-REQ-005",
+                  "requirement": "For all environments, the deployment script MUST verify that the frontend database is healthy before completing deployment.",
+                  "priority": "should-have",
+                  "status": "DEFERRED",
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-DEPLOY-001-REQ-006",
+                  "requirement": "For all environments, the deployment script MUST ensure that no zombie processes exist on FindCare, EvaluateCare, Website, and Cloudflare before deployment.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-DEPLOY-001-REQ-007",
+                  "requirement": "For all environments, the deployment script MUST ensure all servers (FindCare on HuggingFace, EvaluateCare on HuggingFace, Website on Cloudflare) are running the current code which MUST be committed and pushed from the correct branch associated with that environment.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-DEPLOY-001-REQ-008",
+                  "requirement": "In all environments, all secret keys, certificates, and all other necessary environment variables MUST be verified as working. This may require building an API to test all secrets.",
+                  "priority": "should-have",
+                  "status": "DEFERRED",
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-DEPLOY-001-REQ-009",
+                  "requirement": "For all environments, the deployment script MUST verify that all servers (FindCare on HuggingFace, EvaluateCare on HuggingFace, Website on Cloudflare) are up and healthy after deployment.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-DEPLOY-001-REQ-010",
+                  "requirement": "For all environments, a headless Playwright smoke test MUST verify every server (FindCare on HuggingFace, EvaluateCare on HuggingFace, Website on Cloudflare) is working as expected. The smoke test MUST perform a search, select at least one provider, and call EvaluateCare.",
+                  "priority": "should-have",
+                  "status": "DEFERRED",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "Playwright"
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-DEPLOY-001-REQ-011",
+                  "requirement": "For all environments, the deployment script MUST build the React frontend (npm run build) before deploying FindCare.",
+                  "priority": "must-have",
+                  "status": "IN_PROGRESS",
+                  "realized_by": [
+                    "Python 3.11",
+                    "Node.js"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-DEPLOY-001-REQ-012",
+                  "requirement": "For all environments, if deployment fails the script MUST roll back to the previous working state and alert the operator.",
+                  "priority": "should-have",
+                  "status": "DEFERRED",
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-DEPLOY-001-REQ-013",
+                  "requirement": "For all environments, the deployment script MUST produce a log. The log MUST contain any errors. The log MUST be sparse otherwise.",
+                  "priority": "should-have",
+                  "status": "DEFERRED",
+                  "realized_by": [
+                    "Python 3.11"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
                   ]
                 }
               ]

@@ -50,6 +50,7 @@ class FindCareService:
         self._get_embedding = get_embedding_fn
         self._specialty = specialty_service
         self._fips_to_county = dict(_fips_to_county)
+        self._taxonomy_name_cache = {}  # code -> Display Name
         self._load_fips_county_map()
 
     def _load_fips_county_map(self) -> None:

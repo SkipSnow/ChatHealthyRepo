@@ -82,6 +82,7 @@ export default function FindCareApp() {
   selectedRef.current = selection.state.selected
   const searchParamsRef = useRef<any>(null)
   const questionRef = useRef('')
+  const specialtyMapRef = useRef<Record<string, string>>({})
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Fetch welcome message on mount
@@ -158,6 +159,11 @@ export default function FindCareApp() {
       }
 
       // Step 2: System queries DB with AI-provided parameters — no more AI
+      // Build taxonomy_code → specialty name lookup from user's selection
+      const specMap: Record<string, string> = {}
+      classified.specialties.forEach((s: any) => { specMap[s.code] = s.name })
+      specialtyMapRef.current = specMap
+
       const codes = classified.specialties.map((s: any) => s.code)
       const params: any = {
         specialty_codes: codes,
@@ -203,7 +209,12 @@ export default function FindCareApp() {
       checkSecurityViolation(resp, `${API_URL}/search`)
       const data = await resp.json()
       if (data.providers) {
-        selection.setAvailable(data.providers as Provider[])
+        // Enrich providers with specialty name from user's selection (FC-DISPLAY-001-REQ-002)
+        const enriched = data.providers.map((p: any) => ({
+          ...p,
+          specialty: specialtyMapRef.current[p.taxonomy_code] || '',
+        }))
+        selection.setAvailable(enriched as Provider[])
         if (data.total_count) setTotalCount(data.total_count)
         if (data.last_npi) setLastNpi(data.last_npi)
         setHasMore((data.providers.length || 0) < (data.total_count || 0))
