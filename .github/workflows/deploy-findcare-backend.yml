@@ -98,6 +98,7 @@ jobs:
           cp Code/Shared/ChatHealthyMongoUtilities.py hf_space/
           cp Code/Shared/prompt_system_maker.py hf_space/
           cp Code/Shared/session_token.py hf_space/
+          cp Code/Shared/llm_client.py hf_space/
 
           # PKI certs deferred to Beta (BUG-SEC-002) — HF doesn't support mTLS
           # Session token signing uses unsigned fallback on HF until Beta
