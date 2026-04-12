@@ -99,6 +99,19 @@
       "rationale": "Pytests need real database operations (GOV-006). Lab database is disposable test infrastructure.",
       "scope": "Any cluster, lab database only. No other databases.",
       "ch_matrix_id": "b0000039-0000-4000-e000-000000000039"
+    },
+    {
+      "id": "RISK-009",
+      "date": "2026-04-11",
+      "title": "Emergency test data — break engineering rules to get embeddings",
+      "description": "Boss authorizes Claude to break multiple engineering rules for up to 3 hours to produce test data with embeddings on the dev frontend cluster. This includes direct database writes, skipping pipeline, manual embedding generation, copying between environments, and any other operations needed to get FindCare specialty select working with real data.",
+      "risk": "High. Data may be inconsistent, pipeline state may diverge from database state, embeddings may not match pipeline-generated ones.",
+      "boss_decision": "ACCEPTED",
+      "accepted_by": "Boss (Skip Snow, CEO)",
+      "rationale": "No embeddings in any environment. Specialty select is broken. Cannot test without data. Pipeline has not delivered embeddings. Time-boxed emergency.",
+      "scope": "dev and qa frontend cluster. All collections in dev_PublicHealthData and qa_PublicHealthData.",
+      "expires": "2026-04-12T01:30:00Z",
+      "ch_matrix_id": "b0000040-0000-4000-e000-000000000040"
     }
   ],
   "ch_matrix_id": "1001cdca-db77-40c2-ab15-5c0441f5ab2b"

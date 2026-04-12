@@ -600,7 +600,8 @@
         {"value": "in_analysis", "definition": "Bug is being investigated. Root cause not yet identified.", "ch_matrix_id": "b2000001-0000-4000-c000-000000000001"},
         {"value": "fixing", "definition": "Root cause identified. Fix in progress.", "ch_matrix_id": "b2000001-0000-4000-c000-000000000002"},
         {"value": "testing", "definition": "Fix applied. Pytest required. Fields: pytest_id (required), pytest_success_criteria (from pytest record, required).", "ch_matrix_id": "b2000001-0000-4000-c000-000000000003"},
-        {"value": "tested_passed", "definition": "Pytest passed. Fields: pytest_id (required), pytest_success_criteria (from pytest record, required).", "ch_matrix_id": "b2000001-0000-4000-c000-000000000004"}
+        {"value": "tested_passed", "definition": "Pytest passed. Fields: pytest_id (required), pytest_success_criteria (from pytest record, required).", "ch_matrix_id": "b2000001-0000-4000-c000-000000000004"},
+        {"value": "closed_reqs_reorganized", "definition": "Bug closed because the requirement it referenced was renumbered or reorganized. The bug is no longer valid against the new requirement structure.", "ch_matrix_id": "b2000001-0000-4000-c000-000000000005"}
       ],
       "invoked_by": {
         "source_files": [
