@@ -25868,7 +25868,7 @@
               "requirements": [
                 {
                   "req_id": "FC-FILT-001-REQ-001",
-                  "requirement": "Search for specialty type is an AI vector search using text-embedding-3-large. No regular expressions, no string matching, no classify LLM call, no fallback. The user's prompt is embedded and matched against SpecialtyMetaData embeddings via cosine similarity.",
+                  "requirement": "Search for specialty type is an AI vector search using text-embedding-3-large. No regular expressions, no string matching, no classify LLM call, no fallback. The user's prompt is embedded and matched against SpecialtyMetaData embeddings via cosine similarity. The embedding and scoring MUST be tuned so that specific injury or condition queries return medically appropriate specialties, not just semantically similar ones. Known bug: BUG-SEARCH-001.",
                   "priority": "must-have",
                   "status": "needs_vetting",
                   "realized_by": [

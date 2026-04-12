@@ -2350,6 +2350,75 @@
       "pytest_id": "",
       "success_criteria_to_close": "Every HTML generation function has a corresponding pytest.",
       "ch_matrix_id": ""
+    },
+    {
+      "id": "BUG-UX-016",
+      "req_id": "ORPHAN_BUG",
+      "rule": "REQUIREMENT MISSING. BUG: Right panel state management — once selected providers are painted in the right panel, the app is in EvaluateCare mode. If the user goes back to the filter (changes toggles, clicks Apply Filter), the app returns to FindCare mode and the right panel must show the EvaluateCare splash page, not stale provider data.",
+      "description": "Right panel does not reset to splash when user re-enters FindCare mode via filter interaction.",
+      "reason": "Right panel state does not track FindCare vs EvaluateCare mode transitions.",
+      "type": "medium",
+      "date": "2026-04-12",
+      "discovery_date": "2026-04-12",
+      "status": "open",
+      "resolution_status": "in_analysis",
+      "next_action": "analysis",
+      "environments": [
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "source": "Boss",
+      "risk_acceptance_id": null,
+      "pytest_id": "",
+      "success_criteria_to_close": "Right panel resets to EvaluateCare splash when user interacts with filter after having selected providers.",
+      "ch_matrix_id": ""
+    },
+    {
+      "id": "BUG-SEARCH-001",
+      "req_id": "FC-FILT-001-REQ-001",
+      "rule": "BUG: Vector search returns irrelevant specialties for specific injury queries. \"Find me a provider for my broken fingernail\" returns podiatrists, dentists, and eyewear suppliers instead of hand surgery or orthopedics. Fix requires tuning — score threshold, re-ranking, or embedding enrichment.",
+      "description": "Vector search semantic matching is too broad for specific injury queries. Returns specialties that match on trauma/injury keywords but are medically irrelevant.",
+      "reason": "Cosine similarity matches semantic neighbors without medical domain specificity.",
+      "type": "medium",
+      "date": "2026-04-12",
+      "discovery_date": "2026-04-12",
+      "status": "open",
+      "resolution_status": "in_analysis",
+      "next_action": "analysis",
+      "environments": [
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "source": "Boss",
+      "risk_acceptance_id": null,
+      "pytest_id": "",
+      "success_criteria_to_close": "Specific injury queries return medically appropriate specialties.",
+      "ch_matrix_id": ""
+    },
+    {
+      "id": "BUG-UX-017",
+      "req_id": "ORPHAN_BUG",
+      "rule": "REQUIREMENT MISSING. BUG FIXED: EvaluateCare splash page was showing on page load instead of when user clicks Evaluate. The right panel belongs to FindCare until the user clicks Evaluate, then it belongs to EvaluateCare. Splash now appears only on Evaluate button click.",
+      "description": "EvaluateCare splash was in the wrong place — showed on page load instead of on Evaluate button click.",
+      "reason": "Requirement missing for page ownership state transitions between FindCare and EvaluateCare.",
+      "type": "medium",
+      "date": "2026-04-12",
+      "discovery_date": "2026-04-12",
+      "status": "closed",
+      "resolution_status": "tested_passed",
+      "next_action": "",
+      "environments": [
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "source": "Boss",
+      "risk_acceptance_id": null,
+      "pytest_id": "",
+      "success_criteria_to_close": "EvaluateCare splash appears only when Evaluate button is clicked, not on page load.",
+      "ch_matrix_id": ""
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
