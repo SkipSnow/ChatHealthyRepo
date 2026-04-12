@@ -77,8 +77,9 @@ class SpecialtyService:
                     "index": "specialty_vector_index",
                     "path": "embedding",
                     "queryVector": query_vector,
-                    "numCandidates": 200,
-                    "limit": 100,
+                    "numCandidates": 883,
+                    "limit": 698,
+                    "filter": {"Section": "Individual"},
                 }},
                 {"$project": {
                     "_id": 0,
