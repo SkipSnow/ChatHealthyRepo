@@ -179,8 +179,8 @@ export default function FindCareApp() {
         const filterOptions = classified.specialties.map((s: any) => ({
           code: s.code,
           name: s.name,
-          can_prescribe: true,  // Default — will be enriched from DB later
-          homeopathic: false,
+          can_prescribe: s.can_prescribe ?? true,
+          homeopathic: s.homeopathic ?? false,
         }))
         sendFilterToParent(filterOptions, params)
       }
