@@ -343,7 +343,8 @@ class PromptSystemMaker:
     @staticmethod
     def build_welcome_message() -> str:
         return (
-            '<h2 style="margin-top:0;">Welcome to ChatHealthy.ai</h2>'
+            '<div style="font-size:12px;">'
+            '<h2 style="margin-top:0;font-size:16px;">Welcome to ChatHealthy.ai</h2>'
             '<p><strong>Thank you for the visit.</strong> We are a new AI native company '
             'formed on March 26<sup>th</sup>, 2026.</p>'
             '<p>Our intention is to give unbiased guidance on the best possible care you can get from the '
@@ -381,6 +382,7 @@ class PromptSystemMaker:
             'users want. And improve our experience.</li>'
             '</ul></li>'
             '</ul>'
+            '</div>'
         )
 
     # ------------------------------------------------------------------
