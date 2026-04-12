@@ -385,10 +385,9 @@ class FindCareService:
         if specialty_query:
             codes = []
 
-            # BUG-VECTOR-001 fix: resolve codes via SpecialtyMetaData (vector + regex),
-            # NOT via provider embeddings. SpecialtyService searches the 883 NUCC specialty
-            # descriptions which match user intent accurately. Provider embeddings contain
-            # address/county/license text that pollutes similarity.
+            # FC-FILT-001-REQ-001: resolve codes via SpecialtyMetaData vector search only.
+            # No regex, no classify call. SpecialtyService embeds the query and matches
+            # against NUCC specialty embeddings via cosine similarity.
             spec_fn = find_specialty_fn or (self.identify_specialty if self._specialty else None)
             if spec_fn:
                 specialty_result = spec_fn(specialty_query)
@@ -400,22 +399,16 @@ class FindCareService:
                 return {"supported": True, "providers": [],
                         "message": f"No matching specialty found for '{specialty_query}'."}
 
-            # Step 2.5: Look up specialization names for the resolved codes
+            # Build specialization_options from vector search results (preserves rank)
             specialization_options = []
-            try:
-                meta_coll = db[f"{self._env}_PublicHealthData"]["SpecialtyMetaData"]
-                for doc in meta_coll.find({"Code": {"$in": codes}},
-                                           {"Code": 1, "Classification": 1, "Specialization": 1,
-                                            "Display Name": 1, "can_prescribe": 1, "homeopathic": 1, "_id": 0}):
-                    specialization_options.append({
-                        "code": doc.get("Code", ""),
-                        "name": doc.get("Display Name") or doc.get("Specialization") or doc.get("Classification", ""),
-                        "classification": doc.get("Classification", ""),
-                        "can_prescribe": doc.get("can_prescribe", False),
-                        "homeopathic": doc.get("homeopathic", False),
-                    })
-            except Exception:
-                pass
+            for s in specialty_result.get("specialties", []):
+                specialization_options.append({
+                    "code": s.get("Code", ""),
+                    "name": s.get("Display Name", ""),
+                    "can_prescribe": s.get("can_prescribe", False),
+                    "homeopathic": s.get("homeopathic", False),
+                    "rank": s.get("rank", 0),
+                })
 
             # Add relevant homeopathic specialties based on query context.
             # GPT-mini evaluates each homeopathic specialty against the search

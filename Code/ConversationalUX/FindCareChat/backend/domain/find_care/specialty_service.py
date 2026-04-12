@@ -1,140 +1,121 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# SpecialtyService — UAT Feature 2: Specialty Identification (NUCC + AI)
+# SpecialtyService — FC-FILT-001: AI vector search for NUCC specialties.
+#
+# REQ-001: Vector search only. No regex, no string matching, no classify call.
+# REQ-002: Returns NUCC codes, Display Name, can_prescribe, homeopathic, rank.
+# REQ-003: Query vector built from last 5 user prompts. Ranked 1..n by cosine.
 #
 # Extracted from main.py as part of ARCH-001 Phase 3.
 # Host-independent — no FastAPI, no HuggingFace dependencies.
-#
-# Design: ARCH-001, business component: FindCare
 
-import json
 import logging
-from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
 _log = logging.getLogger("findcare.specialty")
 
-INDIVIDUAL_PROVIDER_GROUPINGS = [
-    "Allopathic & Osteopathic Physicians",
-    "Behavioral Health & Social Service Providers",
-    "Chiropractic Providers",
-    "Dental Providers",
-    "Dietary & Nutritional Service Providers",
-    "Emergency Medical Service Providers",
-    "Eye and Vision Services Providers",
-    "Nursing Service Providers",
-    "Nursing Service Related Providers",
-    "Other Service Providers",
-    "Pharmacy Service Providers",
-    "Physician Assistants & Advanced Practice Nursing Providers",
-    "Podiatric Medicine & Surgery Service Providers",
-    "Respiratory, Developmental, Rehabilitative and Restorative Service Providers",
-    "Speech, Language and Hearing Service Providers",
-    "Student, Health Care",
-    "Technologists, Technicians & Other Technical Service Providers",
-]
-
 
 class SpecialtyService:
-    """Specialty identification: regex + vector dual pipeline.
+    """Specialty identification via AI vector search.
 
-    Dependencies: MongoDB (read-only), OpenAI embeddings, Anthropic Haiku (query expansion).
+    FC-FILT-001-REQ-001: Embedding-only search against SpecialtyMetaData.
+    No regex, no string matching, no LLM classify call, no fallback.
     """
 
-    def __init__(self, get_db_fn, env_prefix: str, expand_query_fn, get_vector_fn):
+    def __init__(self, get_db_fn, env_prefix: str, get_vector_fn):
         """
         Args:
             get_db_fn: callable returning MongoDB client or None
             env_prefix: environment prefix (dev/qa/prod)
-            expand_query_fn: callable(query) -> list[str] for AI query expansion
-            get_vector_fn: callable(query) -> list[float] for vector embedding
+            get_vector_fn: callable(text) -> list[float] for vector embedding
         """
         self._get_db = get_db_fn
         self._env = env_prefix
-        self._expand_query = expand_query_fn
         self._get_vector = get_vector_fn
 
-    def find_specialty_codes(self, query: str) -> dict:
-        """Find NUCC specialty codes matching a query.
+    def find_specialty_codes(self, query: str, chat_history: Optional[list[str]] = None) -> dict:
+        """Find NUCC specialty codes matching a query via vector search.
 
-        Runs regex + vector pipelines in parallel, merges results.
+        FC-FILT-001-REQ-001: AI vector search using text-embedding-3-large.
+        FC-FILT-001-REQ-002: Returns NUCC codes, Display Name, can_prescribe,
+                             homeopathic, and rank (1 = most likely).
+        FC-FILT-001-REQ-003: Query vector built from last 5 user prompts.
+
+        Args:
+            query: The current user search query.
+            chat_history: Optional list of recent user prompts (up to last 5).
+                         Concatenated with query to build the embedding vector.
+
+        Returns:
+            dict with "specialties" list, each containing:
+                Code, Display Name, can_prescribe, homeopathic, rank
         """
         db = self._get_db()
         if db is None:
             return {"error": "Database unavailable"}
 
-        projection = {"_id": 0, "Code": 1, "Classification": 1, "Specialization": 1, "Display Name": 1}
-        individual_filter = {"Grouping": {"$in": INDIVIDUAL_PROVIDER_GROUPINGS}}
+        # Build query text from chat history + current query (REQ-003)
+        query_parts = []
+        if chat_history:
+            # Last 5 user prompts
+            query_parts.extend(chat_history[-5:])
+        query_parts.append(query)
+        query_text = " ".join(query_parts)
+
+        # Embed the query
+        query_vector = self._get_vector(query_text)
+        if not query_vector:
+            return {"error": "Embedding failed"}
+
         specialty_col = db[f"{self._env}_PublicHealthData"]["SpecialtyMetaData"]
 
-        def regex_pipeline():
-            stems = self._expand_query(query)
-            regex_clauses = [
-                {field: {"$regex": stem, "$options": "i"}}
-                for stem in stems
-                for field in ("Specialization", "Display Name")
-            ]
-            codes = list(specialty_col.find(
-                {"$and": [{"$or": regex_clauses}, individual_filter]}, projection
-            )) if regex_clauses else []
-            return codes, stems
-
-        def vector_pipeline():
-            query_vector = self._get_vector(query)
-            if not query_vector:
-                return [], []
-            top = list(specialty_col.aggregate([
+        # Vector search — return all meaningful matches (REQ-003)
+        try:
+            results = list(specialty_col.aggregate([
                 {"$vectorSearch": {
                     "index": "specialty_vector_index",
                     "path": "embedding",
                     "queryVector": query_vector,
-                    "numCandidates": 100,
-                    "limit": 5,
+                    "numCandidates": 200,
+                    "limit": 100,
                 }},
-                {"$project": {"_id": 0, "Classification": 1, "score": {"$meta": "vectorSearchScore"}}},
+                {"$project": {
+                    "_id": 0,
+                    "Code": 1,
+                    "Display Name": 1,
+                    "can_prescribe": 1,
+                    "homeopathic": 1,
+                    "score": {"$meta": "vectorSearchScore"},
+                }},
             ]))
-            _log.info("vector scores: %s", [(m.get("Classification"), round(m.get("score", 0), 3)) for m in top])
-            # BUG-VECTOR-001: tighter threshold (0.6) and max 3 classifications
-            classifications = list({m["Classification"] for m in top if m.get("score", 0) > 0.6})[:3]
-            codes = list(specialty_col.find(
-                {"$and": [{"Classification": {"$in": classifications}}, individual_filter]}, projection
-            )) if classifications else []
-            return codes, classifications
+        except Exception as exc:
+            _log.error("Vector search failed: %s", exc)
+            return {"error": f"Vector search failed: {exc}"}
 
-        with ThreadPoolExecutor(max_workers=2) as ex:
-            rf = ex.submit(regex_pipeline)
-            vf = ex.submit(vector_pipeline)
-            try:
-                regex_codes, stems = rf.result()
-            except Exception as exc:
-                _log.warning("regex_pipeline failed: %s", exc)
-                regex_codes, stems = [], []
-            try:
-                vector_codes, classifications = vf.result()
-            except Exception as exc:
-                _log.warning("vector_pipeline failed: %s", exc)
-                vector_codes, classifications = [], []
+        if not results:
+            return {"specialties": [], "message": f"No matching specialty found for '{query}'."}
 
-        seen, all_codes = set(), []
-        for doc in vector_codes + regex_codes:
-            if doc["Code"] not in seen:
-                seen.add(doc["Code"])
-                all_codes.append(doc)
+        # Filter to meaningful matches (score > 0.4 threshold)
+        meaningful = [r for r in results if r.get("score", 0) > 0.4]
+        if not meaningful:
+            meaningful = results[:5]  # Fallback: top 5 if nothing crosses threshold
 
-        # Cap results — full NUCC dumps can exceed token budget
-        all_codes = all_codes[:70]
+        _log.info("specialty vector search: query=%r, %d results, %d above threshold",
+                   query, len(results), len(meaningful))
 
-        if "debug" in query.lower():
-            return {
-                "debug": True,
-                "query": query,
-                "stems_used_for_regex": stems,
-                "classifications_from_vector_search": classifications,
-                "total_codes_found": len(all_codes),
-            }
+        # Add rank 1..n (REQ-002) — results already sorted by cosine similarity
+        specialties = []
+        for rank, doc in enumerate(meaningful, start=1):
+            specialties.append({
+                "Code": doc["Code"],
+                "Display Name": doc.get("Display Name", ""),
+                "can_prescribe": doc.get("can_prescribe", False),
+                "homeopathic": doc.get("homeopathic", False),
+                "rank": rank,
+            })
 
-        return {
-            "specialties": [{"Code": c["Code"], "Display Name": c.get("Display Name", "")} for c in all_codes],
-            "matched_classifications": classifications,
-        }
+        _log.info("specialty results: %s",
+                   [(s["Display Name"], s["rank"]) for s in specialties[:5]])
+
+        return {"specialties": specialties}
