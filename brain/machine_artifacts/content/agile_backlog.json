@@ -25863,190 +25863,120 @@
             {
               "story_id": "FC-FILT-001",
               "title": "Specialty type filter with prescriber and homeopathic toggles",
-              "size": "M",
-              "status": "implemented",
+              "size": "L",
+              "status": "IN_PROGRESS",
               "requirements": [
                 {
                   "req_id": "FC-FILT-001-REQ-001",
-                  "requirement": "Filter panel shows specialty types from search results",
+                  "requirement": "Search for specialty type is an AI vector search using text-embedding-3-large. No regular expressions, no string matching, no classify LLM call, no fallback. The user's prompt is embedded and matched against SpecialtyMetaData embeddings via cosine similarity.",
                   "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_filter_panel.py::TestFilterPanelDisplay::test_filter_checkboxes_visible_and_labeled"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "React 18 / Vite 5",
-                    "MongoDB Atlas"
-                  ],
-                  "depends_on": [
-                    {
-                      "story_id": "FC-SEARCH-001",
-                      "reason": "Search must return results before filter can display"
-                    }
-                  ],
-                  "test_method": "playwright",
-                  "test_timeout_seconds": 180
+                  "status": "needs_vetting",
+                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas", "OpenAI text-embedding-3-large"]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-002",
-                  "requirement": "Prescribers only checkbox filters to prescriber specialties",
+                  "requirement": "Vector search returns structured results: NUCC codes, Display Name, can_prescribe flag, homeopathic flag. The server adds a rank integer (1 = most likely, n = least likely) based on cosine similarity order before sending to the client.",
                   "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_filter_panel.py::TestFilterPanelDisplay::test_prescribers_only_filters_to_prescriber_specialties"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "React 18 / Vite 5",
-                    "MongoDB Atlas"
-                  ],
-                  "depends_on": [
-                    {
-                      "story_id": "FC-PIPE-SPEC-002",
-                      "reason": "SpecialtyMetaData must have can_prescribe flag"
-                    }
-                  ],
-                  "test_method": "playwright",
-                  "test_timeout_seconds": 180
+                  "status": "needs_vetting",
+                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas"]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-003",
-                  "requirement": "Homeopathic only checkbox adds homeopathic specialties",
+                  "requirement": "Results are ranked 1-to-n by cosine similarity. The query vector is built by embedding the last 5 user prompts concatenated. Each result gets a unique integer rank. All matching results are returned — numCandidates must be large enough to capture the full result set.",
                   "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_filter_panel.py::TestFilterPanelDisplay::test_homeopathic_only_adds_homeopathic_specialties"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "React 18 / Vite 5",
-                    "MongoDB Atlas"
-                  ],
-                  "depends_on": [
-                    {
-                      "story_id": "FC-PIPE-SPEC-002",
-                      "reason": "SpecialtyMetaData must have homeopathic flag"
-                    }
-                  ],
-                  "test_method": "playwright",
-                  "test_timeout_seconds": 180
+                  "status": "needs_vetting",
+                  "realized_by": ["FastAPI (Python 3.11)", "MongoDB Atlas", "OpenAI text-embedding-3-large"]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-004",
-                  "requirement": "Three counts displayed: total types, showing, filtered",
+                  "requirement": "Client caches all specialty results from the search. No re-query on toggle or filter changes.",
                   "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_filter_panel.py::TestFilterPanelDisplay::test_filter_header_shows_specialty_counts_not_provider_counts"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "React 18 / Vite 5",
-                    "MongoDB Atlas"
-                  ],
-                  "test_method": "playwright",
-                  "test_timeout_seconds": 180
+                  "status": "needs_vetting",
+                  "realized_by": ["React 18 / Vite 5"]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-005",
-                  "requirement": "Check all / uncheck all toggle",
+                  "requirement": "When the user toggles prescriber or homeopathic switch, the cached specialty list is filtered client-side. No DB call.",
                   "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_filter_panel.py::TestFilterPanelDisplay::test_uncheck_all_updates_your_choices_to_zero"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "React 18 / Vite 5",
-                    "MongoDB Atlas"
-                  ],
-                  "test_method": "playwright",
-                  "test_timeout_seconds": 180
+                  "status": "needs_vetting",
+                  "realized_by": ["React 18 / Vite 5"]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-006",
-                  "requirement": "Filter header must display as horizontal grid: [Filter by specialty] [All possible: N] [Prescribers & homeopathic: N (only if homeopathic checked)] [Your choices: N] [Prescribers only checkbox] [Homeopathic only checkbox]. Three labeled counts with full label text visible — no truncation. Labels and values must be intelligently spaced. Only Playwright can pytest this requirement — no unit test substitute.",
+                  "requirement": "When the user hits Apply Filter, the unpicked provider list is emptied and a new DB request is made for providers matching the selected NUCC codes.",
                   "priority": "must-have",
-                  "status": "open",
-                  "mockup": "Excel mockup from Skip: 5-column header row. Col1=label, Col2=all possible count, Col3=prescribers+homeopathic count (conditional), Col4=your checked choices count, Col5=two checkboxes stacked.",
-                  "bug_ref": "BUG-UX-015",
-                  "pytest_ids": [
-                    "test_filter_panel.py::test_filter_header_labels_not_truncated"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "React 18 / Vite 5",
-                    "MongoDB Atlas"
-                  ],
-                  "depends_on": [
-                    {
-                      "story_id": "FC-PIPE-SPEC-002",
-                      "reason": "SpecialtyMetaData must have can_prescribe flag"
-                    },
-                    {
-                      "story_id": "FC-SEARCH-001",
-                      "reason": "Search must return results before filter can display"
-                    }
-                  ],
-                  "test_method": "playwright",
-                  "test_timeout_seconds": 180
+                  "status": "needs_vetting",
+                  "realized_by": ["FastAPI (Python 3.11)", "React 18 / Vite 5", "MongoDB Atlas"]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-007",
-                  "requirement": "When the user clicks Apply Filter: (1) The system must first detect if there is in fact a change. If there is no change the system must display a message above the Apply Filter button that there are no filter changes. (2) If there are filter changes: first clear all providers from the unselected provider box. (3) Then the new filter criteria must make a new DB query and get the new provider list. (4) It is assumed that the original LLM call provides all specialists with their prescribing and homeopathic labels ranked in order of likelihood to be selected (see FC-SEARCH-001-REQ-006). (5) All requirements for the unselected provider list display must then be met (see FC-SELECT-001).",
+                  "requirement": "The provider query uses a traditional MongoDB query ($in on taxonomy codes) with all selected NUCC codes. While the query runs, the screen is empty or displays the timer.",
                   "priority": "must-have",
-                  "status": "open",
-                  "pytest_ids": [
-                    "test_filter_panel.py::test_apply_filter_requeries_with_checked_codes"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "React 18 / Vite 5",
-                    "MongoDB Atlas"
-                  ],
-                  "depends_on": [
-                    {
-                      "story_id": "FC-SEARCH-001",
-                      "reason": "LLM classify provides ranked specialties with prescribing/homeopathic labels"
-                    },
-                    {
-                      "story_id": "FC-SELECT-001",
-                      "reason": "Provider list display requirements must be met after filter refresh"
-                    }
-                  ],
-                  "test_method": "playwright",
-                  "test_timeout_seconds": 180
+                  "status": "needs_vetting",
+                  "realized_by": ["FastAPI (Python 3.11)", "React 18 / Vite 5", "MongoDB Atlas"]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-008",
-                  "story_id": "FC-FILT-001",
-                  "requirement": "Toggle button must apply to all items in the filter list, including items above or below the visible scroll window.",
-                  "source": "Boss directive",
+                  "requirement": "Filter panel shows specialty types from search results.",
                   "priority": "must-have",
-                  "status": "untested",
-                  "label": "",
-                  "ch_matrix_id": "6c0f37b9-b035-4d41-b824-7e149fa7e9ec",
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "React 18 / Vite 5",
-                    "MongoDB Atlas"
-                  ]
+                  "status": "implemented",
+                  "realized_by": ["FastAPI (Python 3.11)", "React 18 / Vite 5", "MongoDB Atlas"]
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-009",
-                  "story_id": "FC-FILT-001",
-                  "requirement": "Label must read 'Uncheck All' when majority are checked, 'Check All' when majority are unchecked.",
-                  "source": "Boss directive",
+                  "requirement": "Prescribers only checkbox filters to prescriber specialties.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "realized_by": ["FastAPI (Python 3.11)", "React 18 / Vite 5", "MongoDB Atlas"]
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-010",
+                  "requirement": "Homeopathic only checkbox adds homeopathic specialties.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "realized_by": ["FastAPI (Python 3.11)", "React 18 / Vite 5", "MongoDB Atlas"]
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-011",
+                  "requirement": "Three counts displayed: total types, showing, filtered.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "realized_by": ["FastAPI (Python 3.11)", "React 18 / Vite 5", "MongoDB Atlas"]
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-012",
+                  "requirement": "Check all / uncheck all toggle.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "realized_by": ["FastAPI (Python 3.11)", "React 18 / Vite 5", "MongoDB Atlas"]
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-013",
+                  "requirement": "Filter header horizontal grid layout — no truncation, intelligently spaced.",
+                  "priority": "must-have",
+                  "status": "open",
+                  "realized_by": ["React 18 / Vite 5"]
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-014",
+                  "requirement": "Apply Filter: detect changes, clear providers, re-query DB, ranked specialties, meet display reqs.",
+                  "priority": "must-have",
+                  "status": "open",
+                  "realized_by": ["FastAPI (Python 3.11)", "React 18 / Vite 5", "MongoDB Atlas"]
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-015",
+                  "requirement": "Toggle button applies to all items including outside scroll window.",
                   "priority": "must-have",
                   "status": "untested",
-                  "label": "",
-                  "ch_matrix_id": "5ad85417-a260-46ea-9fc9-7ef6ecc64fad",
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "React 18 / Vite 5",
-                    "MongoDB Atlas"
-                  ]
+                  "realized_by": ["React 18 / Vite 5"]
+                },
+                {
+                  "req_id": "FC-FILT-001-REQ-016",
+                  "requirement": "Label reads 'Uncheck All' when majority checked, 'Check All' when majority unchecked.",
+                  "priority": "must-have",
+                  "status": "untested",
+                  "realized_by": ["React 18 / Vite 5"]
                 }
               ],
               "description": "Specialty type filter with prescriber and homeopathic toggles"

@@ -165,7 +165,7 @@ class ChatHealthyLoadSpecialtyData:
     # ------------------------------------------------------------------
 
     def generate_embeddings(self) -> int:
-        """Embed each record using text-embedding-3-small and write back to MongoDB.
+        """Embed each record using text-embedding-3-large and write back to MongoDB.
 
         Embedding text: Classification | Specialization | Display Name | Definition
         Returns number of records updated.
@@ -190,11 +190,11 @@ class ChatHealthyLoadSpecialtyData:
                 for d in batch
             ]
             response = openai_client.embeddings.create(
-                model="text-embedding-3-small",
+                model="text-embedding-3-large",
                 input=texts,
             )
             ops = [
-                UpdateOne({"_id": doc["_id"]}, {"$set": {"embedding": item.embedding}})
+                UpdateOne({"_id": doc["_id"]}, {"$set": {"embedding": item.embedding, "embedding_model": "text-embedding-3-large"}})
                 for doc, item in zip(batch, response.data)
             ]
             col.bulk_write(ops, ordered=False)
