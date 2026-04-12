@@ -2304,6 +2304,28 @@
       "risk_acceptance_id": null,
       "reason": "Claude non-compliant with Idiot Mode. Does not stop and ask before each action.",
       "ch_matrix_id": "b0000041-0000-4000-e000-000000000041"
+    },
+    {
+      "id": "BUG-AUTH-001",
+      "req_id": "ARCH-ORPHAN-001-REQ-007",
+      "rule": "BUG: StartChatHealthy.bat requires interactive CLI login (browser OAuth + prompts) before opening Cursor. Need a headless or programmatic way to authenticate with Anthropic so the batch file can run non-interactively.",
+      "description": "The batch file authenticates via claude /login which opens a browser for OAuth and requires interactive input. This is not demo-ready. A headless authentication method is needed — either a long-lived token, a cached credential check, or a silent refresh.",
+      "type": "medium",
+      "date": "2026-04-11",
+      "discovery_date": "2026-04-11",
+      "status": "open",
+      "resolution_status": "in_analysis",
+      "next_action": "analysis",
+      "environments": [
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "source": "Boss",
+      "risk_acceptance_id": null,
+      "pytest_id": "",
+      "success_criteria_to_close": "StartChatHealthy.bat runs without any interactive prompts or browser redirects and Cursor opens authenticated.",
+      "ch_matrix_id": ""
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

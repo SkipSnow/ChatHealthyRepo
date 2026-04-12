@@ -31681,10 +31681,10 @@
           "stories": [
             {
               "story_id": "ARCH-ORPHAN-001",
-              "title": "Orphan Bug Triage — Deferred Boot",
-              "description": "Boot is deferred from SessionStart to the first UserPromptSubmit to avoid OAuth race conditions. On first prompt, the boot class loads brain, scans bugs.json for ORPHAN_BUG entries, serializes singleton state, and surfaces orphans for Boss triage. Orphan bugs are valid in Unattended Mode (v4-033) but MUST be resolved in the next attended session.",
+              "title": "Deferred Boot, Mode Selection, and Orphan Triage",
+              "description": "On the first user prompt, Claude Code MUST boot the governance singleton, ask the user to select an operating mode (1 = Unattended, 2 = Normal, 3 = Idiot), and then present any orphan bugs for triage. There MUST be no SessionStart hook. Known bug: BUG-AUTH-001.",
               "size": "L",
-              "status": "IN_PROGRESS",
+              "status": "DONE_KNOWN_ISSUE",
               "requirements": [
                 {
                   "req_id": "ARCH-ORPHAN-001-REQ-001",
@@ -31761,6 +31761,24 @@
                 {
                   "req_id": "ARCH-ORPHAN-001-REQ-009",
                   "requirement": "SessionEnd hook MUST clear the booted flag in .claude/ChatHealthySettings.json so the next session gets a fresh boot on first prompt. SessionEnd is wrapped in try/except/finally and MUST fail open.",
+                  "priority": "must-have",
+                  "status": "DONE",
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "ARCH-ORPHAN-001-REQ-010",
+                  "requirement": "After boot completes, Claude Code MUST ask the user to select an operating mode: 1 = Unattended, 2 = Normal, 3 = Idiot. Claude Code MUST NOT proceed until the user has made a selection.",
+                  "priority": "must-have",
+                  "status": "DONE",
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "ARCH-ORPHAN-001-REQ-011",
+                  "requirement": "After mode selection, if orphan bugs exist, Claude Code MUST present the orphan table and ask the user to triage each orphan bug by assigning a req_id or closing it. Claude Code MUST NOT proceed to other work until triage is complete or the user explicitly defers it.",
                   "priority": "must-have",
                   "status": "DONE",
                   "realized_by": [

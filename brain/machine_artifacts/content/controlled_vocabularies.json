@@ -155,6 +155,11 @@
           "value": "RELEASE_BLOCKER",
           "definition": "Must be resolved before any release.",
           "ch_matrix_id": "9de7bfd4-6efc-43f5-88a5-efd211574da9"
+        },
+        {
+          "value": "DONE_KNOWN_ISSUE",
+          "definition": "All requirements implemented. One or more known bugs remain open and are tracked by bug ID.",
+          "ch_matrix_id": "c3f8a201-7b4e-4d91-a6e5-1f2d3c4b5a69"
         }
       ],
       "invoked_by": {

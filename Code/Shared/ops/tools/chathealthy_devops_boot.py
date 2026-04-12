@@ -1210,8 +1210,8 @@ class chathealthy_devops_boot:
         }
 
     def inform_claude(self, boot_result: dict) -> str:
-        """ARCH-ORPHAN-001-REQ-004: Build additionalContext for Claude.
-        Serializes singleton state so Claude always has governance context."""
+        """ARCH-ORPHAN-001-REQ-004/010/011: Build additionalContext for Claude.
+        Serializes singleton state, mode selection directive, and orphan triage."""
         lines = []
 
         # Serialize singleton state
@@ -1220,16 +1220,32 @@ class chathealthy_devops_boot:
         lines.append(json.dumps(singleton_state, indent=2, default=str))
         lines.append("")
 
-        # Orphan bug triage
+        # REQ-010: Mode selection directive
+        lines.append("BOOT DIRECTIVE — MODE SELECTION (ARCH-ORPHAN-001-REQ-010):")
+        lines.append("You MUST ask the user to select an operating mode before doing anything else.")
+        lines.append("Present exactly this prompt:")
+        lines.append("")
+        lines.append("  Select operating mode:")
+        lines.append("  1 = Unattended (Claude works independently, orphan bugs are deferred)")
+        lines.append("  2 = Normal (Claude works with Boss, decisions require approval)")
+        lines.append("  3 = Idiot (Boss reviews every action, Claude explains everything)")
+        lines.append("")
+        lines.append("Do NOT proceed until the user replies with 1, 2, or 3.")
+        lines.append("")
+
+        # REQ-011: Orphan bug triage directive
         orphans = boot_result.get("orphan_bugs", [])
         if orphans:
-            lines.append(f"ORPHAN BUG TRIAGE: {len(orphans)} orphan bugs need placement before proceeding.")
+            lines.append(f"BOOT DIRECTIVE — ORPHAN BUG TRIAGE (ARCH-ORPHAN-001-REQ-011):")
+            lines.append(f"After mode selection, you MUST present the {len(orphans)} orphan bugs below")
+            lines.append("and ask the user to triage each one by assigning a req_id or closing it.")
+            lines.append("Do NOT proceed to other work until triage is complete or the user explicitly defers.")
+            lines.append("")
             lines.append("| ID | Type | Description | Date |")
             lines.append("|---|---|---|---|")
             for o in orphans:
                 lines.append(f"| {o['id']} | {o['type']} | {o['rule']} | {o['date']} |")
             lines.append("")
-            lines.append("Triage these with Boss: find or create the correct requirement for each, then update req_id.")
         return "\n".join(lines)
 
     def dispatch_code_controlled(self, hook_input: dict, action_event: str) -> dict:
