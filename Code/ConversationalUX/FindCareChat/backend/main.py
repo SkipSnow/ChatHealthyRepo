@@ -552,6 +552,17 @@ class EvaluateRequest(BaseModel):
     session_token: Optional[dict] = None
     question_summary: str = ""
 
+@app.get("/evaluate/splash")
+def evaluate_splash():
+    """Proxy splash call to EvaluateCare service."""
+    import requests as _req
+    evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8081")
+    try:
+        resp = _req.get(f"{evalcare_url}/splash", timeout=5)
+        return resp.json()
+    except Exception:
+        return {"html": '<div style="text-align:center;padding:20px;"><div style="font-size:24px;font-weight:700;color:#1f2937;">EvaluateCare</div><div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">Service unavailable</div></div>'}
+
 @app.post("/evaluate/providers")
 def evaluate_proxy(body: EvaluateRequest):
     """Proxy evaluate call through FindCare → EvaluateCare.
