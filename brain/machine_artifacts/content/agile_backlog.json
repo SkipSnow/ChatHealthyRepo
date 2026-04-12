@@ -25966,7 +25966,7 @@
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-015",
-                  "requirement": "Toggle button applies to all items including outside scroll window.",
+                  "requirement": "If the specialty list has more than 15 items, it MUST display in a scroll window. Toggle button MUST apply to all items including those outside the visible scroll window.",
                   "priority": "must-have",
                   "status": "untested",
                   "realized_by": ["React 18 / Vite 5"]

@@ -38,11 +38,12 @@ class EmbeddingClient:
             return None
 
     def get_specialty_vector(self, text: str) -> Optional[list]:
-        """Embed via text-embedding-3-small. For specialty matching."""
+        """Embed via text-embedding-3-large. For specialty matching.
+        Same model as provider embeddings — required for cross-collection RAG."""
         try:
-            return self._get_oai().embeddings.create(model="text-embedding-3-small", input=text).data[0].embedding
+            return self._get_oai().embeddings.create(model="text-embedding-3-large", input=text).data[0].embedding
         except Exception as e:
-            _log.warning("Embedding (small) failed: %s", e)
+            _log.warning("Embedding (large/specialty) failed: %s", e)
             return None
 
     def expand_query_terms(self, query: str) -> list[str]:

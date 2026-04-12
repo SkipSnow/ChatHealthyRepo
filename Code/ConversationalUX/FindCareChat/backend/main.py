@@ -175,7 +175,7 @@ _embedding_client = EmbeddingClient()
 
 _specialty_service = SpecialtyService(
     get_db_fn=_get_db, env_prefix=_ENV_PREFIX,
-    expand_query_fn=_embedding_client.expand_query_terms, get_vector_fn=_embedding_client.get_specialty_vector)
+    get_vector_fn=_embedding_client.get_specialty_vector)
 _find_care = FindCareService(
     get_db_fn=_get_db, env_prefix=_ENV_PREFIX,
     get_embedding_fn=_embedding_client.get_query_embedding, specialty_service=_specialty_service)
