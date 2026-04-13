@@ -3,7 +3,7 @@
 #
 # v4-017: Read and enforce ALL rules before any deployment.
 #
-# This script loads every rule from development_rules.json and operating_rules.json.
+# This script loads every rule from engineering_rules.json.
 # Rules that have an "enforcement" field are automatically checked.
 # Rules without enforcement are logged as "no automatable check".
 #
@@ -449,7 +449,7 @@ def main(target: str) -> int:
 
     # Load all rules from brain
     all_rules = []
-    for fname in ["development_rules.json", "operating_rules.json"]:
+    for fname in ["engineering_rules.json"]:
         fpath = os.path.join(BRAIN_DIR, fname)
         if not os.path.exists(fpath):
             continue

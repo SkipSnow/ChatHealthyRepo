@@ -1,7 +1,7 @@
 {
   "collection": "governance",
   "governance_attribute_id": "ch_governance_record_id_cf95f1eb-fe7d-45fb-bc26-f971ea20b45d",
-  "description": "Governance records: sign-offs, corporate cadence, and policies. Policies is a child of governance. Operating rules in operating_rules.json. Risk acceptances in risk_acceptance.json.",
+  "description": "Governance records: sign-offs, corporate cadence, and policies. Policies is a child of governance. Operating rules in engineering_rules.json. Risk acceptances in risk_acceptance.json.",
   "record_count": 2,
   "records": [
     {
@@ -64,7 +64,7 @@
   ],
   "ch_matrix_id": "61a53cd1-9bf7-40e6-b27a-d81378de0c46",
   "policies": {
-    "description": "All ChatHealthy.ai corporate and governance policies. Single source of truth for policies. Engineering operating rules are a separate collection (operating_rules.json) established as a binding standard by GOV-007.",
+    "description": "All ChatHealthy.ai corporate and governance policies. Single source of truth for policies. Engineering operating rules are a separate collection (engineering_rules.json) established as a binding standard by GOV-007.",
     "version": "1.0",
     "date": "2026-04-05",
     "owner": "Skip Snow (Founder/CEO)",
@@ -226,7 +226,7 @@
       {
         "id": "GOV-007",
         "name": "Engineering Rules Are Standards",
-        "policy": "The engineering operating rules (operating_rules.json) constitute a binding standard. All AI agents and development processes must comply with these rules without exception. Any deviation requires a signed risk acceptance from Skip Snow recorded in the RiskAcceptance pseudo-collection. No agent, workflow, or automation may override, ignore, or work around an engineering rule without this authorization.",
+        "policy": "The engineering operating rules (engineering_rules.json) constitute a binding standard. All AI agents and development processes must comply with these rules without exception. Any deviation requires a signed risk acceptance from Skip Snow recorded in the RiskAcceptance pseudo-collection. No agent, workflow, or automation may override, ignore, or work around an engineering rule without this authorization.",
         "rationale": "Engineering rules are learned from real incidents and encode hard-won operational discipline. Treating them as guidelines rather than standards led to repeated violations. Compliance is mandatory, not advisory.",
         "status": "permanent",
         "ch_matrix_id": "90aab1a4-6b92-44f4-be8b-e38e98354c9e"

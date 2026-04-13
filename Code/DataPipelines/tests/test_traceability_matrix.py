@@ -3,7 +3,7 @@
 #
 # Pytest: Traceability matrix completeness — v4-007, v4-023
 # Verifies that the traceability matrix is valid, complete, and that
-# every v4 requirement in operating_rules.json has a corresponding entry.
+# every v4 requirement in engineering_rules.json has a corresponding entry.
 #
 # Run: pytest Code/DataPipelines/tests/test_traceability_matrix.py -v
 
@@ -17,7 +17,7 @@ BRAIN_DIR = os.path.normpath(
                  "machine_artifacts", "content")
 )
 MATRIX_PATH = os.path.join(BRAIN_DIR, "traceability_matrix.json")
-OPERATING_RULES_PATH = os.path.join(BRAIN_DIR, "operating_rules.json")
+OPERATING_RULES_PATH = os.path.join(BRAIN_DIR, "engineering_rules.json")
 TESTS_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__)))
 
 
@@ -75,7 +75,7 @@ def test_test_files_exist():
 # test_no_orphan_requirements
 # ------------------------------------------------------------------
 def test_no_orphan_requirements():
-    """Every v4-* requirement in operating_rules.json must appear in the
+    """Every v4-* requirement in engineering_rules.json must appear in the
     traceability matrix."""
     rules = _load_json(OPERATING_RULES_PATH)
     matrix = _load_json(MATRIX_PATH)
