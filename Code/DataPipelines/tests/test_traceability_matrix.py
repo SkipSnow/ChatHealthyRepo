@@ -87,6 +87,6 @@ def test_no_orphan_requirements():
         if rule_id.startswith("v4-") and rule_id not in matrix_ids:
             orphans.append(rule_id)
     assert not orphans, (
-        f"v4 requirements in operating_rules but missing from "
+        f"v4 requirements in engineering_rules but missing from "
         f"traceability matrix: {orphans}"
     )

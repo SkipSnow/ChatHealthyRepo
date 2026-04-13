@@ -342,7 +342,7 @@
       "author": "Boss",
       "datetime": "2026-04-06T03:37:13Z",
       "title": "Architecture-Compliant Code Enforcement",
-      "description": "No line of code can be written by Claude that is not in compliance with the enterprise business and technical architecture. The system must iterate towards that goal. This is not a hook problem — it is a discipline + audit problem. The architecture docs (policies.json, architecture.json, design.json) are authoritative. Claude must check compliance before writing code. GPT audits after. The gap between today and full enforcement narrows with every session, every audit, and every incident logged to development_rules.json.",
+      "description": "No line of code can be written by Claude that is not in compliance with the enterprise business and technical architecture. The system must iterate towards that goal. This is not a hook problem — it is a discipline + audit problem. The architecture docs (policies.json, architecture.json, design.json) are authoritative. Claude must check compliance before writing code. GPT audits after. The gap between today and full enforcement narrows with every session, every audit, and every incident logged to engineering_rules.json.",
       "recommended_roadmap": {
         "epic": "Cross-cutting — applies to all epics",
         "date_of_delivery": "Iterative — no end date, continuous improvement"

@@ -738,7 +738,7 @@
     },
     {
       "id": "BUG-GOV-003",
-      "rule": "BUG: PreToolUse guard blocks authorized actions — operating_rules_worker does not check risk_acceptance.json before blocking. GPT-4.1-mini must receive the list of active risk acceptances so it can allow actions that Boss has already authorized.",
+      "rule": "BUG: PreToolUse guard blocks authorized actions — engineering_rules_worker does not check risk_acceptance.json before blocking. GPT-4.1-mini must receive the list of active risk acceptances so it can allow actions that Boss has already authorized.",
       "incident": "Boss authorized dropping ChatHealthyFrontEnd.Labs.test (risk=0, test collection). Guard blocked it twice because it has no awareness of risk acceptances.",
       "date": "2026-04-10",
       "environment": [
@@ -752,7 +752,7 @@
       "ch_matrix_id": "b0000003-0000-4000-e000-000000000003",
       "req_id": "ORPHAN_BUG",
       "type": "medium",
-      "reason": "PreToolUse guard blocks authorized actions — operating_rules_worker does not check risk_acceptance.json before blocking. GPT-4.1-mini must receive the list of active risk acceptances so it can allow a",
+      "reason": "PreToolUse guard blocks authorized actions — engineering_rules_worker does not check risk_acceptance.json before blocking. GPT-4.1-mini must receive the list of active risk acceptances so it can allow a",
       "resolution_status": "in_analysis"
     },
     {

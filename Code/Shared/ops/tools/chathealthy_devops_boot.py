@@ -293,7 +293,7 @@ class conversation_log_worker(governance_worker_base):
         return cls()
 
 
-class operating_rules_worker(governance_worker_base):
+class engineering_rules_worker(governance_worker_base):
     """Pydantic worker for engineering_rules.json.
     Polymorphic child — invoked on pre_tool_use when grid says code_controlled.
     Uses GPT-4.1-mini to adjudicate tool calls. No regex."""
@@ -388,7 +388,7 @@ class operating_rules_worker(governance_worker_base):
             )
             return json.loads(resp.choices[0].message.content)
         except Exception as e:
-            _log.warning("operating_rules_worker GPT call failed: %s", e)
+            _log.warning("engineering_rules_worker GPT call failed: %s", e)
             return {"error": str(e), "allow": True}
 
     _SYSTEM_PROMPT: str = (
@@ -600,7 +600,7 @@ class operating_rules_worker(governance_worker_base):
 WORKER_REGISTRY = {
     "bugs": bug_governance_constraints,
     "conversation_log": conversation_log_worker,
-    "engineering_rules": operating_rules_worker,
+    "engineering_rules": engineering_rules_worker,
 }
 
 
