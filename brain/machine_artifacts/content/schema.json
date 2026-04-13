@@ -62,23 +62,108 @@
         "title": "bugs_schema",
         "description": "This ChatHealthy Brain Schema documents all bugs in all environments with their statuses. It is an integral part in ChatHealthy's ability to both track bugs and do full or partial regression testing.",
         "fields": {
-          "id": {"type": "string", "required": true, "description": "Unique bug identifier (e.g. BUG-DATA-001)"},
-          "req_id": {"type": "string", "required": true, "description": "Reference to the agile_backlog requirement this bug is associated with (e.g. FC-SELECT-001-REQ-002). Every bug must trace to a requirement."},
-          "type": {"type": "string", "required": true, "constrained_by": "CV-008", "possible_values": ["show_stopper", "critical", "high", "medium", "low", "not_a_bug", "resolved"]},
-          "reason": {"type": "string", "required": true, "max_length": 200, "description": "Free text description of the bug"},
-          "resolution_status": {"type": "string", "required": true, "constrained_by": "CV-009", "possible_values": ["in_analysis", "fixing", "testing", "tested_passed"]},
-          "pytest_id": {"type": "string", "required_when": "resolution_status in (testing, tested_passed)", "description": "Reference to the pytest that validates the fix"},
-          "pytest_success_criteria": {"type": "string", "required_when": "resolution_status in (testing, tested_passed)", "source": "pytest record", "description": "Success criteria from the pytest record — mandatory, not freetext"},
-          "environment": {"type": "array", "items": "string", "constrained_by": "CV-010", "description": "Environments where this bug exists"},
-          "severity": {"type": "string", "constrained_by": "CV-008", "description": "Legacy field — use type instead"},
-          "date": {"type": "string", "format": "date", "description": "Date bug was logged"},
-          "discovery_date": {"type": "string", "format": "date", "description": "Date bug was discovered"},
-          "due_date": {"type": "string", "format": "date", "description": "Date bug must be resolved by"},
-          "next_action": {"type": "string", "default": "analysis", "description": "Next action to take"},
-          "status": {"type": "string", "description": "Legacy field — use resolution_status instead"},
-          "success_criteria_to_close": {"type": "string", "description": "What must be true to close this bug"},
-          "ch_matrix_id": {"type": "string", "required": true, "description": "Unique governance matrix record ID"},
-          "risk_acceptance_id": {"type": "string", "required": true, "default": null, "description": "Reference to risk_acceptance.json entry. Null until Boss authorizes. Pydantic object checks this — if not null, fix is authorized. If null, escalate."}
+          "id": {
+            "type": "string",
+            "required": true,
+            "description": "Unique bug identifier (e.g. BUG-DATA-001)"
+          },
+          "req_id": {
+            "type": "string",
+            "required": true,
+            "description": "Reference to the agile_backlog requirement this bug is associated with (e.g. FC-SELECT-001-REQ-002). Every bug must trace to a requirement."
+          },
+          "type": {
+            "type": "string",
+            "required": true,
+            "constrained_by": "CV-008",
+            "possible_values": [
+              "show_stopper",
+              "critical",
+              "high",
+              "medium",
+              "low",
+              "not_a_bug",
+              "resolved"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "required": true,
+            "max_length": 200,
+            "description": "Free text description of the bug"
+          },
+          "resolution_status": {
+            "type": "string",
+            "required": true,
+            "constrained_by": "CV-009",
+            "possible_values": [
+              "in_analysis",
+              "fixing",
+              "testing",
+              "tested_passed"
+            ]
+          },
+          "pytest_id": {
+            "type": "string",
+            "required_when": "resolution_status in (testing, tested_passed)",
+            "description": "Reference to the pytest that validates the fix"
+          },
+          "pytest_success_criteria": {
+            "type": "string",
+            "required_when": "resolution_status in (testing, tested_passed)",
+            "source": "pytest record",
+            "description": "Success criteria from the pytest record — mandatory, not freetext"
+          },
+          "environment": {
+            "type": "array",
+            "items": "string",
+            "constrained_by": "CV-010",
+            "description": "Environments where this bug exists"
+          },
+          "severity": {
+            "type": "string",
+            "constrained_by": "CV-008",
+            "description": "Legacy field — use type instead"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date bug was logged"
+          },
+          "discovery_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date bug was discovered"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date bug must be resolved by"
+          },
+          "next_action": {
+            "type": "string",
+            "default": "analysis",
+            "description": "Next action to take"
+          },
+          "status": {
+            "type": "string",
+            "description": "Legacy field — use resolution_status instead"
+          },
+          "success_criteria_to_close": {
+            "type": "string",
+            "description": "What must be true to close this bug"
+          },
+          "ch_matrix_id": {
+            "type": "string",
+            "required": true,
+            "description": "Unique governance matrix record ID"
+          },
+          "risk_acceptance_id": {
+            "type": "string",
+            "required": true,
+            "default": null,
+            "description": "Reference to risk_acceptance.json entry. Null until Boss authorizes. Pydantic object checks this — if not null, fix is authorized. If null, escalate."
+          }
         }
       },
       "produces_artifact": false,
@@ -108,16 +193,65 @@
         "dead_code_record": {
           "description": "A single unreferenced code block found by the v4-031 dead code scanner, marked for deletion.",
           "fields": {
-            "id": {"type": "string", "required": true, "unique": true, "description": "Sequential ID, e.g. DC-001"},
-            "file": {"type": "string", "required": true, "description": "Relative path from repo root"},
-            "name": {"type": "string", "required": true, "description": "Function or class name"},
-            "kind": {"type": "string", "required": true, "possible_values": ["function", "class"], "description": "Type of code block"},
-            "start_line": {"type": "integer", "required": true},
-            "end_line": {"type": "integer", "required": true},
-            "status": {"type": "string", "required": true, "possible_values": ["commented", "deleted", "restored"], "description": "commented = Stage 1, deleted = Stage 2, restored = Boss decided to keep"},
-            "rule": {"type": "string", "required": true, "default": "v4-031", "description": "Rule that flagged this code"},
-            "scan_date": {"type": "string", "format": "date", "required": true},
-            "justification": {"type": "string", "required": true, "description": "Why the scanner flagged this as dead"}
+            "id": {
+              "type": "string",
+              "required": true,
+              "unique": true,
+              "description": "Sequential ID, e.g. DC-001"
+            },
+            "file": {
+              "type": "string",
+              "required": true,
+              "description": "Relative path from repo root"
+            },
+            "name": {
+              "type": "string",
+              "required": true,
+              "description": "Function or class name"
+            },
+            "kind": {
+              "type": "string",
+              "required": true,
+              "possible_values": [
+                "function",
+                "class"
+              ],
+              "description": "Type of code block"
+            },
+            "start_line": {
+              "type": "integer",
+              "required": true
+            },
+            "end_line": {
+              "type": "integer",
+              "required": true
+            },
+            "status": {
+              "type": "string",
+              "required": true,
+              "possible_values": [
+                "commented",
+                "deleted",
+                "restored"
+              ],
+              "description": "commented = Stage 1, deleted = Stage 2, restored = Boss decided to keep"
+            },
+            "rule": {
+              "type": "string",
+              "required": true,
+              "default": "v4-031",
+              "description": "Rule that flagged this code"
+            },
+            "scan_date": {
+              "type": "string",
+              "format": "date",
+              "required": true
+            },
+            "justification": {
+              "type": "string",
+              "required": true,
+              "description": "Why the scanner flagged this as dead"
+            }
           }
         }
       },
@@ -172,49 +306,194 @@
         "epic": {
           "description": "Top-level business component. Contains features[]. Creation requires Boss authority.",
           "fields": {
-            "epic_id": {"type": "string", "required": true, "unique": true, "format": "EPIC-{NNN}", "pattern": "^EPIC-\\d{3}$", "description": "Sequential, assigned by Claude. Never reused. Never user-facing."},
-            "name": {"type": "string", "required": true, "unique": true, "description": "Human-readable business component name (per v4-030). This is what users see."},
-            "type": {"type": "string", "required": true, "possible_values": ["operational", "functional"], "description": "operational = user-facing product capability. functional = business function that supports operations."},
-            "status": {"type": "string", "required": true, "constrained_by": "CV-005"},
-            "description": {"type": "string", "required": true},
-            "features": {"type": "array", "items": "feature", "required": true, "description": "Array of features belonging to this epic"}
+            "epic_id": {
+              "type": "string",
+              "required": true,
+              "unique": true,
+              "format": "EPIC-{NNN}",
+              "pattern": "^EPIC-\\d{3}$",
+              "description": "Sequential, assigned by Claude. Never reused. Never user-facing."
+            },
+            "name": {
+              "type": "string",
+              "required": true,
+              "unique": true,
+              "description": "Human-readable business component name (per v4-030). This is what users see."
+            },
+            "type": {
+              "type": "string",
+              "required": true,
+              "possible_values": [
+                "operational",
+                "functional"
+              ],
+              "description": "operational = user-facing product capability. functional = business function that supports operations."
+            },
+            "status": {
+              "type": "string",
+              "required": true,
+              "constrained_by": "CV-005"
+            },
+            "description": {
+              "type": "string",
+              "required": true
+            },
+            "features": {
+              "type": "array",
+              "items": "feature",
+              "required": true,
+              "description": "Array of features belonging to this epic"
+            }
           }
         },
         "feature": {
           "description": "A capability within an epic. Contains stories[].",
           "fields": {
-            "feature_id": {"type": "string", "required": true, "unique": true, "description": "Short uppercase identifier. Convention: abbreviated epic name + capability (e.g. FC-SEARCH, FC-FILT, EVAL-SCORE). Claude assigns."},
-            "name": {"type": "string", "required": true},
-            "status": {"type": "string", "required": true, "constrained_by": "CV-005"},
-            "description": {"type": "string", "required": true},
-            "realized_by": {"type": "array", "items": "string", "required": false, "description": "Technical components that implement this feature. Free text until architecture component IDs are defined post-alpha. Will reference architecture.json component IDs."},
-            "stories": {"type": "array", "items": "story", "required": true, "description": "Array of stories belonging to this feature"}
+            "feature_id": {
+              "type": "string",
+              "required": true,
+              "unique": true,
+              "description": "Short uppercase identifier. Convention: abbreviated epic name + capability (e.g. FC-SEARCH, FC-FILT, EVAL-SCORE). Claude assigns."
+            },
+            "name": {
+              "type": "string",
+              "required": true
+            },
+            "status": {
+              "type": "string",
+              "required": true,
+              "constrained_by": "CV-005"
+            },
+            "description": {
+              "type": "string",
+              "required": true
+            },
+            "realized_by": {
+              "type": "array",
+              "items": "string",
+              "required": false,
+              "description": "Technical components that implement this feature. Free text until architecture component IDs are defined post-alpha. Will reference architecture.json component IDs."
+            },
+            "stories": {
+              "type": "array",
+              "items": "story",
+              "required": true,
+              "description": "Array of stories belonging to this feature"
+            }
           }
         },
         "story": {
           "description": "A unit of deliverable work within a feature. Contains requirements[].",
           "fields": {
-            "story_id": {"type": "string", "required": true, "unique": true},
-            "title": {"type": "string", "required": true},
-            "description": {"type": "string", "required": true},
-            "size": {"type": "string", "required": true, "possible_values": ["S", "M", "L", "XL"]},
-            "status": {"type": "string", "required": true, "constrained_by": "CV-005"},
-            "requirements": {"type": "array", "items": "requirement", "required": true, "description": "Array of boolean-testable requirements belonging to this story"}
+            "story_id": {
+              "type": "string",
+              "required": true,
+              "unique": true
+            },
+            "title": {
+              "type": "string",
+              "required": true
+            },
+            "description": {
+              "type": "string",
+              "required": true
+            },
+            "size": {
+              "type": "string",
+              "required": true,
+              "possible_values": [
+                "S",
+                "M",
+                "L",
+                "XL"
+              ]
+            },
+            "status": {
+              "type": "string",
+              "required": true,
+              "constrained_by": "CV-005"
+            },
+            "requirements": {
+              "type": "array",
+              "items": "requirement",
+              "required": true,
+              "description": "Array of boolean-testable requirements belonging to this story"
+            }
           }
         },
         "requirement": {
           "description": "A boolean-testable assertion. Leaf node of the hierarchy.",
           "fields": {
-            "req_id": {"type": "string", "required": true, "unique": true},
-            "requirement": {"type": "string", "required": true},
-            "priority": {"type": "string", "required": true, "possible_values": ["must-have", "should-have", "nice-to-have"]},
-            "status": {"type": "string", "required": true, "constrained_by": "CV-005"},
-            "pytest_ids": {"type": "array", "items": "string", "min_items": 1, "required_when": "status in (implemented, in_progress)", "description": "References to pytests that validate this requirement. At least one required when implemented."},
-            "test_method": {"type": "string", "required": false, "possible_values": ["pytest", "playwright", "playwright+pytest"], "description": "How this requirement is tested. Determines runner behavior."},
-            "test_timeout_seconds": {"type": "integer", "required": false, "default": 120, "description": "Timeout in seconds for test execution. Default 120. Playwright tests should use 180+. DB-heavy tests may need more."},
-            "bug_ids": {"type": "array", "items": "string", "required": false, "description": "Links to bugs filed against this requirement"},
-            "realized_by": {"type": "array", "items": "string", "required": false, "description": "Technical components that implement this requirement. Free text until architecture component IDs are defined post-alpha."},
-            "depends_on": {"type": "array", "items": {"type": "object", "fields": {"story_id": "string", "reason": "string"}}, "required": false, "description": "Stories this requirement depends on. If the dependency story fails, this requirement cannot pass."}
+            "req_id": {
+              "type": "string",
+              "required": true,
+              "unique": true
+            },
+            "requirement": {
+              "type": "string",
+              "required": true
+            },
+            "priority": {
+              "type": "string",
+              "required": true,
+              "possible_values": [
+                "must-have",
+                "should-have",
+                "nice-to-have"
+              ]
+            },
+            "status": {
+              "type": "string",
+              "required": true,
+              "constrained_by": "CV-005"
+            },
+            "pytest_ids": {
+              "type": "array",
+              "items": "string",
+              "min_items": 1,
+              "required_when": "status in (implemented, in_progress)",
+              "description": "References to pytests that validate this requirement. At least one required when implemented."
+            },
+            "test_method": {
+              "type": "string",
+              "required": false,
+              "possible_values": [
+                "pytest",
+                "playwright",
+                "playwright+pytest"
+              ],
+              "description": "How this requirement is tested. Determines runner behavior."
+            },
+            "test_timeout_seconds": {
+              "type": "integer",
+              "required": false,
+              "default": 120,
+              "description": "Timeout in seconds for test execution. Default 120. Playwright tests should use 180+. DB-heavy tests may need more."
+            },
+            "bug_ids": {
+              "type": "array",
+              "items": "string",
+              "required": false,
+              "description": "Links to bugs filed against this requirement"
+            },
+            "realized_by": {
+              "type": "array",
+              "items": "string",
+              "required": false,
+              "description": "Technical components that implement this requirement. Free text until architecture component IDs are defined post-alpha."
+            },
+            "depends_on": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "fields": {
+                  "story_id": "string",
+                  "reason": "string"
+                }
+              },
+              "required": false,
+              "description": "Stories this requirement depends on. If the dependency story fails, this requirement cannot pass."
+            }
           }
         }
       }
@@ -224,16 +503,6 @@
       "purpose": "All corporate and governance policies (GOV-001 through GOV-014)",
       "produces_artifact": true,
       "artifact_format": "pdf"
-    },
-    "operating_rules": {
-      "path": "brain/machine_artifacts/content/operating_rules.json",
-      "purpose": "Binding engineering operating rules (v4-001 through v4-020). Compliance mandatory per GOV-007.",
-      "produces_artifact": false
-    },
-    "development_rules": {
-      "path": "brain/machine_artifacts/content/development_rules.json",
-      "purpose": "Incident-driven lessons learned. Orphan rules not yet promoted to operating_rules v4.",
-      "produces_artifact": false
     },
     "controlled_vocabularies": {
       "path": "brain/machine_artifacts/content/controlled_vocabularies.json",
@@ -280,6 +549,11 @@
       "path": "brain/machine_artifacts/content/project_manifest.json",
       "purpose": "Every file in the project catalogued with capabilities, descriptions, and content hashes. Also synced to MongoDB admin.manifest.",
       "produces_artifact": false
+    },
+    "engineering_rules": {
+      "path": "brain/machine_artifacts/content/engineering_rules.json",
+      "description": "Authoritative engineering rules. Combines operating standards (v4-series) and incident-driven lessons (DR-series).",
+      "purpose": "Single source of truth for all engineering rules."
     }
   },
   "entity_types": [

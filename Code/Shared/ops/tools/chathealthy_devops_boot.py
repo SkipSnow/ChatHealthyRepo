@@ -294,21 +294,20 @@ class conversation_log_worker(governance_worker_base):
 
 
 class operating_rules_worker(governance_worker_base):
-    """Pydantic worker for operating_rules.json.
+    """Pydantic worker for engineering_rules.json.
     Polymorphic child — invoked on pre_tool_use when grid says code_controlled.
     Uses GPT-4.1-mini to adjudicate tool calls. No regex."""
 
     def _load_rules_text(self) -> str:
-        """Load engineering rules + development rules + policies as text for GPT."""
+        """Load engineering rules + policies as text for GPT."""
         lines = []
-        for json_name in ("operating_rules", "development_rules"):
-            path = BRAIN_DIR / f"{json_name}.json"
-            if path.exists():
-                data = json.loads(path.read_text(encoding="utf-8"))
-                for r in data.get("rules", []):
-                    rule_id = r.get("id", "?")
-                    rule_text = r.get("rule", "")[:200]
-                    lines.append(f"[{rule_id}] {rule_text}")
+        path = BRAIN_DIR / "engineering_rules.json"
+        if path.exists():
+            data = json.loads(path.read_text(encoding="utf-8"))
+            for r in data.get("rules", []):
+                rule_id = r.get("id", "?")
+                rule_text = r.get("rule", "")[:200]
+                lines.append(f"[{rule_id}] {rule_text}")
         # Policies from governance.json
         gov_path = BRAIN_DIR / "governance.json"
         if gov_path.exists():
@@ -601,7 +600,7 @@ class operating_rules_worker(governance_worker_base):
 WORKER_REGISTRY = {
     "bugs": bug_governance_constraints,
     "conversation_log": conversation_log_worker,
-    "operating_rules": operating_rules_worker,
+    "engineering_rules": operating_rules_worker,
 }
 
 
@@ -627,12 +626,11 @@ class chathealthy_devops_boot:
         "conversation_log": "check_conversation_log",
         "daily_punch_list_with_results_and_accomplishments": "check_daily_punch_list",
         "design": "check_design",
-        "development_rules": "check_development_rules",
+        "engineering_rules": "check_engineering_rules",
         "emergency_keywords": "check_emergency_keywords",
         "external_audits": "check_external_audits",
         "governance": "check_governance",
         "legal": "check_legal",
-        "operating_rules": "check_operating_rules",
         "pipeline_v3_compliance_log": "check_pipeline_v3_compliance_log",
         "pipeline_v3_iteration_log": "check_pipeline_v3_iteration_log",
         "pipeline_v4_design_iterations": "check_pipeline_v4_design_iterations",
@@ -778,7 +776,7 @@ class chathealthy_devops_boot:
 
         # Critical JSONs must not be empty if they're warning or abending
         if label in ("system_abend", "session_abend", "system_warning", "session_warning"):
-            if not constraints and json_stem in ("operating_rules", "policies", "security"):
+            if not constraints and json_stem in ("engineering_rules", "policies", "security"):
                 result["reason"] = f"{json_stem}.json is empty — cannot govern"
                 if "abend" in label:
                     result["comply"] = False
@@ -792,7 +790,7 @@ class chathealthy_devops_boot:
             return []
 
         # Rules-based JSONs
-        if json_stem in ("operating_rules", "development_rules"):
+        if json_stem == "engineering_rules":
             return [r["rule"] for r in data.get("rules", []) if r.get("rule")]
 
         # Policies
@@ -869,11 +867,8 @@ class chathealthy_devops_boot:
     # Per-JSON check functions — all delegate to _check_json with the method column
     # These exist so _JSON_FUNCTION_MAP can reference them by name
 
-    def check_operating_rules(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("operating_rules", action_event)
-
-    def check_development_rules(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("development_rules", action_event)
+    def check_engineering_rules(self, source="", destination="", action_event="session_start") -> dict:
+        return self._check_json("engineering_rules", action_event)
 
     def check_policies(self, source="", destination="", action_event="session_start") -> dict:
         return self._check_json("policies", action_event)

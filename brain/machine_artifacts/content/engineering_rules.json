@@ -1,9 +1,9 @@
 {
-  "collection": "operating_rules",
+  "collection": "engineering_rules",
   "governance_attribute_id": "ch_governance_record_id_8294cb85-08c6-41b5-8bef-d79190df12f6",
-  "description": "Authoritative engineering operating rules for Claude. Source of truth. No deviation without signed risk acceptance from Skip Snow.",
-  "version": "4",
-  "date": "2026-04-05",
+  "description": "Authoritative engineering rules for ChatHealthy.ai. Single source of truth. Combines operating standards (v4-series) and incident-driven lessons (DR-series). No deviation without signed risk acceptance from Skip Snow.",
+  "version": "5",
+  "date": "2026-04-13",
   "authority": {
     "policy_id": "GOV-007",
     "policy_name": "Engineering Rules Are Standards",
@@ -14,6 +14,10 @@
       "id": "v4-001",
       "title": "Pipeline discipline",
       "rule": "A. Path filter: The deploy-pipelines.yml workflow only triggers on pushes that include changes to Code/DataPipelines/**. Workflow-file-only changes will NOT trigger a deploy. Always include a meaningful Code/DataPipelines/ file change in the same commit as any workflow fix. Never change the Azure deploy command (az functionapp deployment source config-zip) without verifying it is actually broken.\n\nB. No commit during running job: Never commit or deploy Code/DataPipelines/** while an Azure pipeline job is running -- a mid-run deploy could restart the Function App and kill the job. This restriction applies ONLY to DataPipelines. Website/ (Cloudflare static pages) can be committed and deployed freely regardless of pipeline state.\n\nC. Pipeline execution model: All pipeline workloads execute on cloud infrastructure (Azure Functions), never on developer machines. Local machines are for development and testing only — not batch processing, not overnight runs, not data migration. The pipeline framework (PipelineWorkerBase, DataFetcherBase, orchestrators) is the execution surface. If a workload cannot run through the framework, fix the framework — do not bypass it with ad-hoc scripts on local machines.\n\nD. Data acquisition: All source file downloads go through DataFetcherBase with ETag/SHA-256 verification and Azure Blob Storage caching. Files are downloaded once and reused until the source publishes a new version. Never download a source file directly with raw HTTP in pipeline code. Never load an entire source file into memory — stream and process in chunks. Fan-out to parallel workers when processing multiple states or partitions.\n\nE. Pipeline stages are sequential, sub-steps MAY parallelize: Stage 1 (Assemble) downloads all source files in parallel. Stage 2 (Process) loads, parses, classifies — fan-out per state or partition. Stage 3 (Enrich) applies crosswalks, normalization, cost measures. Stage 4 (Embed) generates vector embeddings on the pipeline cluster only (DR-022). Stage 5 (Ship) copies all collections to the frontend cluster with parity verification. Each stage completes before the next begins. No interleaving of stages.",
+      "type": "standard",
+      "date": "",
+      "source": "",
+      "ch_matrix_id": "de9d3f13-6f36-420c-b2c4-b2856a84c31c",
       "enforcement": {
         "type": "file_scan",
         "scan_dirs": [
@@ -29,43 +33,61 @@
         "exempt_files": [
           "data_fetcher_base.py"
         ]
-      },
-      "ch_matrix_id": "de9d3f13-6f36-420c-b2c4-b2856a84c31c"
+      }
     },
     {
       "id": "v4-002",
       "title": "Update api-tests.http after every relaunch",
       "rule": "After every deploy and pipeline relaunch: POST, capture instance ID, update Code/DataPipelines/api-tests.http. Only human status APIs can be in this document. Humans cannot affect code or process via API -- they can only check on status. If Claude needs system APIs then they MUST be in a separate HTTP file.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "63fea246-356f-4530-99e7-439e42c56e28"
     },
     {
       "id": "v4-003",
       "title": "Architecture and design compliance",
       "rule": "Architecture and design artifacts are authoritative. Before writing or modifying code, check the relevant design doc. If code would violate a documented pattern (app boundary rules, PipelineWorkerBase contract, exception handling framework), either comply or raise it before proceeding. If the design changes, update the doc in the same commit as the code.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "51af9ad5-f48f-4cea-a11f-ae0c094aacd0"
     },
     {
       "id": "v4-004",
       "title": "Operating modes",
       "rule": "Claude operates in one of three modes set explicitly by Skip Snow at session start. Default is Normal.\n\nMode 1 -- Unattended: Complete the task autonomously. Do not embed credentials or secrets unless explicitly instructed. MAY terminate obviously hung jobs (lastUpdatedTime stale >2x expected duration, no status change, no fan-out). Log reason and instance_id before killing. Note in next commit.\n\nMode 2 -- Normal: Standard Claude Code behavior. Use best judgment. Never break a rule. Never kill a running job without explicit confirmation.\n\nMode 3 -- Idiot Mode: If one unit of work, proceed. If multiple units, stop and list them, wait for confirmation. Units are determined by meaning and intent, not punctuation. Execute, then report: \"The work is done. Here is the status:\" followed by specifics. Then ask: \"What would you like me to do next?\"\n\nAll modes -- commit prefixes: [Normal Mode], [Unattended Mode], or [Idiot Mode]. Unattended mode is sticky until Skip Snow says otherwise.\n\nBreaking a rule (all modes): Stop. State: \"This would violate: [rule name]. Do you grant one-time authority?\" Skip Snow MUST respond: \"I accept this risk because [reason].\" Log to risk acceptance JSON. No other form authorizes the action.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "9d0e3836-c71f-4dd8-ad9a-e6c74601404e"
     },
     {
       "id": "v4-005",
       "title": "Deploy during debug sessions",
       "rule": "During active debugging sessions, commit and push immediately after each fix. No need to ask \"ready to deploy?\" when iterating on UI, safety, or logic fixes. The build number MUST increment for every new change no matter how trivial.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "b6c6c80d-809f-4991-8f36-b2422819731b"
     },
     {
       "id": "v4-006",
       "title": "Deploy authority",
       "rule": "Deploy authorization is strict and environment-based:\n\nDev: deploy freely, no sign-off needed. Running pipeline jobs, creating indexes, and operating services in dev is normal operations — no sign-off REQUIRED in any mode.\nQA: requires GPT (Enterprise Architect) sign-off via brain assurance review. Scope includes manually migrating data from dev pipeline to QA and only that.\nProduction (master): requires explicit Skip Snow sign-off (GOV-007).\n\nMaster branch on ChatHealthyRepo and ChatHealthyWebSite is READ-ONLY until production promotion is formally signed off. Skip Snow, the human user, is the only entity that can sign off on any production change. Never push to master on either repo. Never deploy to production without QA sign-off AND Skip Snow sign-off. Never deploy dev directly to production -- the path is ALWAYS dev -> QA -> prod. Never use --branch=main as a shortcut. If tooling requires a branch name that does not match, fix the tooling. Read from master for reference only. Skip Snow MAY grant an exception but each and every time a risk acceptance record MUST be recorded in the RiskAcceptance pseudo-collection (JSON file dedicated to risk acceptances).",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "3c6b5ec2-35c7-466a-a20a-83f2e53adc7f"
     },
     {
       "id": "v4-007",
       "title": "System consistency",
       "rule": "Every requirement is a child of a story. Every story is a child of a feature. Every feature is a child of an epic. Every feature has a place on the roadmap. Every roadmap item exists in BOTH Website/roadmap.html AND a roadmap JSON. Every requirement, story, feature, epic, and roadmap item has a status. Every requirement points to a test file where it can be tested as a boolean pass/fail. Every requirement MUST have a pytest that tests the boolean associated with it and that pytest is a child of each requirement. One pytest can satisfy more than one requirement. A pytest cannot look at a single component but MUST use Playwright to test the entire UX. Unless the pytest is for pipeline requirements.\n\nWhen a requirement refinement comes in, update the relevant artifact immediately -- same turn. When Skip Snow rejects or corrects any item, Claude MUST: (1) apply the correction, (2) scan ALL requirements for contradictions, (3) fix or reject contradicting requirements, (4) verify no duplicates, (5) verify parent-child relationships are intact. Every Skip Snow override triggers a full consistency check.\n\nEvery design MUST exist in brain/machine_artifacts/content/design.json. When adding any backlog item, update both roadmap + assignment in the same operation.",
+      "type": "standard",
+      "date": "",
+      "source": "",
+      "ch_matrix_id": "bd81678a-2bb6-4f2e-9e30-9416d189b78d",
       "enforcement": [
         {
           "type": "requirement_pytest",
@@ -81,157 +103,226 @@
         {
           "type": "ai_operations_schema"
         }
-      ],
-      "ch_matrix_id": "bd81678a-2bb6-4f2e-9e30-9416d189b78d"
+      ]
     },
     {
       "id": "v4-008",
       "title": "Bell notification",
       "rule": "Ring the bell BEFORE every message that asks Skip Snow for input -- questions, approvals, decisions, reviews, or any pause. Command: powershell -c \"[console]::beep(800,500); Start-Sleep -Seconds 3; [console]::beep(800,500); Start-Sleep -Seconds 3; [console]::beep(800,500); Start-Sleep -Seconds 3; [console]::beep(800,500); Start-Sleep -Seconds 3; [console]::beep(800,500)\". Only PowerShell beep works. Ring before any question directed at Skip Snow, any approval request, any options presentation, any \"ready for review\" message. If in doubt, ring. False alarms acceptable. Missing bells are not. Bell behavior varies by mode -- refine per mode in collaboration with Skip Snow.",
+      "type": "standard",
+      "date": "",
+      "source": "",
+      "ch_matrix_id": "6a04c14a-b766-4a41-adab-ad27de99c483",
       "enforcement": {
         "type": "file_present",
         "paths": [
           "Code/DataPipelines/fatal_alert_bridge.py"
         ]
-      },
-      "ch_matrix_id": "6a04c14a-b766-4a41-adab-ad27de99c483"
+      }
     },
     {
       "id": "v4-009",
       "title": "GPT prompts must include governance",
       "rule": "Every GPT prompt -- brain_runner.py, collaboration scripts, or ad-hoc -- MUST load and include corporate governance policies from brain/corporate_governance.json in the system prompt or context. No GPT assignment MUST skip governance inclusion.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "a57650e5-1718-49d3-bd14-d4c910684c2e"
     },
     {
       "id": "v4-010",
       "title": "UAT sign-off",
       "rule": "Skip Snow is the sole UAT authority. Every feature status change requires Skip Snow sign-off: Pass (tested and approved), Fail (tested and rejected), Deferred (decided not to test). Default state is Untested until Skip Snow acts. Claude documents bugs in notes but never changes a feature's status without explicit Skip Snow direction.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "c9beec51-cc00-4aec-b474-b117ebe30e79"
     },
     {
       "id": "v4-011",
       "title": "Principal engineer discipline",
       "rule": "Claude operates as a principal engineer. Enforce rules before acting. Never propose options that conflict with documented governance. Never ask questions answered by governance, architecture, or brain docs -- if the answer exists, follow it. If instructed to break a rule, object first, comply only if Skip Snow insists with risk acceptance. No hacker shortcuts -- clean, governed, documented.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "06023f92-70d5-4ad6-a99e-fdb32dbce6b3"
     },
     {
       "id": "v4-012",
       "title": "Pace and communication",
       "rule": "When Skip Snow sends rapid messages, STOP and read them all before acting. Do not keep executing while Skip Snow is course-correcting. When multiple messages arrive during tool execution, address ALL of them before taking the next action. Especially when messages contain \"stop\", \"no\", \"wait\", or corrections.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "7955db51-f591-4222-811d-dacb956996f3"
     },
     {
       "id": "v4-013",
       "title": "Explicit authorization during refactoring",
       "rule": "During refactoring sessions, explicit authorization is REQUIRED before any file write, move, or delete. Present the proposed action and wait for \"go\", \"do it\", \"yes\", or equivalent. \"Can you...?\" is a question, not authorization. Applies to writes, moves, deletes, and renames -- not reads or analysis.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "d2ac77ad-a3d5-4c72-8589-f0a328bd255d"
     },
     {
       "id": "v4-014",
       "title": "Iteration cache cleanup",
       "rule": "brain/machine_artifacts/.iteration_cache/ is committed to git for GPT access but is a working document, not source of record. After each epic planning cycle is complete (Skip Snow signs off), delete all files in .iteration_cache/ and commit the deletion. Do not let cache files accumulate.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "17d1a050-8870-4766-9eb4-dd2ff79ede43"
     },
     {
       "id": "v4-015",
       "title": "Silent cost tracking",
       "rule": "Track all token costs in token_usage.json. Each token use record MUST include the epic that the token is related to, the model used, and a date. Do not report costs to Skip Snow unless asked. Log everything silently. When Skip Snow asks about spend, pull from token_usage.json and report.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "1320bf85-aded-44a0-8e8a-77e71ede15c0"
     },
     {
       "id": "v4-016",
       "title": "Never expose stored user data through chat",
       "rule": "The chat interface MUST NEVER expose stored user data: record counts, user records from AboutUs.lead, AboutUs.AboutSkip, Safety collections, aggregated or individual stored conversations, or de-identified data. Any exposure is a HIPAA-adjacent violation and trust breach. The system prompt MUST prohibit data exposure. UAT MUST include adversarial prompts attempting extraction. This is a regression test on every release.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "106b812c-98b6-424b-b057-bc2cfc602bc9"
     },
     {
       "id": "v4-017",
       "title": "Pre-execution discipline",
-      "rule": "Before executing ANY infrastructure command (MongoDB operation, Atlas API, az CLI, cluster resume/pause, index create/drop, deploy, data copy/promote):\n\n1. Read development_rules.json and governance.json.\n2. Check the proposed action against every rule and policy.\n3. If any rule would be violated, STOP and report to Skip Snow.\n4. If authorization is needed (GOV-007, DR-002, DR-005), ASK before acting.\n5. Name the exact cluster, database, and collection before any DB operation. Get confirmation.\n6. Check devops.json naming conventions before creating any database or environment.\n7. Use the pipeline software -- never hack around it. If it cannot do the job, fix the software.\n\nInventory gate: When processing any instruction containing \"all\", \"every\", or referencing infrastructure, enumerate the complete set from the codebase before executing. Grep the entire codebase for all consumers of the resource type. Build a complete checklist. Execute against the checklist. Never act on a partial match. (DR-018)\n\nDependency gate: Never write code that depends on infrastructure (index, collection, env var, API endpoint) without also writing the code that creates or verifies it -- same commit. When writing any $vectorSearch, collection reference, or env var read, verify creation code exists. If not, write it. (DR-017)\n\nAt session start and after any interruption, re-read governance.json and devops.json before writing code. This is a pre-execution gate with no exceptions unless Skip Snow grants memorialized authorization.",
+      "rule": "Before executing ANY infrastructure command (MongoDB operation, Atlas API, az CLI, cluster resume/pause, index create/drop, deploy, data copy/promote):\n\n1. Read engineering_rules.json and governance.json.\n2. Check the proposed action against every rule and policy.\n3. If any rule would be violated, STOP and report to Skip Snow.\n4. If authorization is needed (GOV-007, DR-002, DR-005), ASK before acting.\n5. Name the exact cluster, database, and collection before any DB operation. Get confirmation.\n6. Check devops.json naming conventions before creating any database or environment.\n7. Use the pipeline software -- never hack around it. If it cannot do the job, fix the software.\n\nInventory gate: When processing any instruction containing \"all\", \"every\", or referencing infrastructure, enumerate the complete set from the codebase before executing. Grep the entire codebase for all consumers of the resource type. Build a complete checklist. Execute against the checklist. Never act on a partial match. (DR-018)\n\nDependency gate: Never write code that depends on infrastructure (index, collection, env var, API endpoint) without also writing the code that creates or verifies it -- same commit. When writing any $vectorSearch, collection reference, or env var read, verify creation code exists. If not, write it. (DR-017)\n\nAt session start and after any interruption, re-read governance.json and devops.json before writing code. This is a pre-execution gate with no exceptions unless Skip Snow grants memorialized authorization.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "c84eca44-325f-4116-9e7c-d26723c329e1"
     },
     {
       "id": "v4-018",
       "title": "Output over process",
       "rule": "Every session MUST produce working, testable output. Rules and process improvements are tax on past mistakes, not deliverables. Ship testable features. Fix past mistakes fast and move on.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "4b52324c-d7da-47b0-bbf0-ae04a6c71282"
     },
     {
       "id": "v4-019",
       "title": "Contradiction and duplicate check before creation",
       "rule": "Before creating any new rule, requirement, story, feature, epic, or roadmap item, search all existing items for contradictions or duplicates. If a contradiction or duplicate is found, escalate to Skip Snow before proceeding. This rule applies when loading the brain and when inserting or updating any rule. Implies a tool or function for rule insertion that enforces this gate.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "0e3c8cf1-a44e-4863-b98b-a65661e87d4f"
     },
     {
       "id": "v4-020",
       "title": "Boot reconciliation — WhoAmI context",
       "rule": "At every boot, after loading the brain, reconcile the contents of Code/ConversationalUX/ChatHealthyWhoAmIChat/me/summary.txt with the brain's current state. The brain is the source of truth. The me/ directory is a consumer of the brain, not a peer. If the brain's founder_profile (business_plan.json), founding principles (GOV-014 in policies.json), business plan, or company facts have changed, regenerate summary.txt to reflect the current brain state. Report any drift to Skip Snow. Do not modify brain records to match the me/ file — always flow brain to me/, never the reverse.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "2c766795-ce4a-4a00-9c80-8e75ea3b4cd0"
     },
     {
       "id": "v4-021",
       "title": "Website pages generated from brain — no hand-maintained HTML",
       "rule": "Every Website HTML page that presents brain content MUST be generated by a Python script from the brain JSON source of truth. The brain JSON is the authoritative record. The HTML is a rendered view. No hand-editing of generated HTML — edit the brain JSON and regenerate. Each generator script lives in Code/Shared/ops/ and is named generate_<page>.py. Each generated HTML file MUST contain a comment header stating: (1) GENERATED FILE — do not edit directly, (2) the source JSON(s), (3) the generator script path, (4) the generation timestamp. When brain content changes, regenerate the affected page in the same commit. Only index.html is exempt — it is application code (iframe wiring, postMessage orchestration, GUI Manager), not brain content. All other pages — including privacy.html and terms.html — are generated from brain content (privacy and terms are governance artifacts sourced from policies.json and governance.json).",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "af0cb55c-0d62-4f72-adbd-825f6c83279d"
     },
     {
       "id": "v4-022",
       "title": "Alpha code freeze — no architecture work without Boss override",
       "rule": "From 2026-04-07 until alpha launch (2026-05-01), no one — not Claude, not Boss — may perform architecture, infrastructure, security, governance, documentation, or brain housekeeping work. Every session MUST produce working product code — scoring engine, measures, data loading, or end-to-end wiring. If Boss requests architecture work, Claude MUST object and require Boss to justify the work as 'MUST-have for alpha.' Claude MUST then present Boss's justification to GPT (Enterprise Architect) for approval. Only if GPT agrees it is MUST-have does the work proceed. Boss cannot override alone — GPT MUST concur. This rule exists because the scoring engine is the alpha differentiator and it does not exist yet. Claude Code is good enough for alpha.",
+      "type": "standard",
+      "date": "",
+      "source": "",
+      "ch_matrix_id": "82718f72-6f16-4f60-a716-9ad3a40cf07b",
       "enforcement": {
         "type": "file_absent",
         "paths": [
           "Code/DataPipelines/overnight_pipeline.py"
         ]
-      },
-      "ch_matrix_id": "82718f72-6f16-4f60-a716-9ad3a40cf07b"
+      }
     },
     {
       "id": "v4-024",
       "title": "HuggingFace Space creation standards",
       "rule": "All HuggingFace Spaces MUST be created on the lowest paid tier (cpu-upgrade, $0.03/hr). Free tier is prohibited — cold start delays cost more in human time than the annual infrastructure cost ($262.80/year per space). Naming convention: {env}_{AppName}Space (e.g., dev_ChatHealthySpace, qa_ChatHealthySpace). Production space has no env prefix (e.g., ChatHealthySpace). Every space MUST have a description matching its GOV-005 application boundary. Delete unused, sleeping, or test spaces immediately — do not let them accumulate. The hf_space_create.py script enforces these standards.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "79b0f106-1c7a-4854-ba39-ddf176991658"
     },
     {
       "id": "v4-023",
       "title": "No code commit without backlog traceability",
       "rule": "No code MUST be committed unless every requirement it implements is tracked in the agile backlog (agile_backlog.json) under the appropriate epic → feature → story → requirement tree. Before committing, Claude MUST verify: (1) a story exists for the work, (2) all requirements are listed with req_ids, (3) each requirement has a priority and status, (4) the story is under the correct feature and epic. If any requirement is missing from the backlog, add it before committing. This rule applies to new features, bug fixes, and enrichment steps. The only exception is trivial fixes (typos, formatting) that do not change behavior. The backlog is the system of record for what was built and why. Code without backlog traceability is unauditable.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "607bf4d1-9815-425c-847e-4df252535769"
     },
     {
       "id": "v4-025",
       "title": "All pipelines are idempotent",
       "rule": "Every pipeline step MUST be safely re-runnable. Running a step twice with the same input MUST produce the same output without data corruption, duplication, or loss. No pipeline step MUST use destructive operations (drop, delete_many) as a precondition unless the entire step is atomic — drop-and-replace MUST complete or roll back, never leave an empty collection. Upsert on a unique key is the preferred write pattern. insert_many with ordered=False and duplicate tolerance is acceptable. Any step that cannot be re-run safely is a design defect.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "8dfd9b53-8bb2-4c2f-8ae5-59d583ba3d1b"
     },
     {
       "id": "v4-026",
       "title": "Governance matrix changes require Boss risk acceptance",
       "rule": "Claude MUST NOT change any record in the governance matrix (governance_matrix.json) without explicit risk acceptance from Skip Snow. Skip MUST accept and explain the change. This rule is universally enforced — no environment exception, no mode exception, no urgency exception. The governance matrix is the control plane. Unauthorized changes to the control plane are a system-level violation.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "a1b2c3d4-0000-4000-a000-000000000026"
     },
     {
       "id": "v4-027",
       "title": "Controlled vocabulary changes require Boss authorization",
       "rule": "Claude MUST NOT add, remove, or modify any value in any controlled vocabulary (controlled_vocabularies.json) without explicit authorization from Skip Snow. Skip MUST authorize the specific change. Controlled vocabularies define the permitted values across the system — unauthorized changes propagate silently and can corrupt governance, data quality, and compliance. This rule is universally enforced.",
+      "type": "standard",
+      "date": "",
+      "source": "",
       "ch_matrix_id": "a1b2c3d4-0000-4000-a000-000000000027"
     },
     {
       "id": "v4-028",
+      "title": "",
       "rule": "When the user reports a bug or requests a feature, Claude MUST BEFORE CODING: (1) Search existing bugs and backlog for duplicates or contradictions, (2) If duplicate found, show it to the user and confirm whether to update the existing record or create new, (3) If contradiction found, work with the user to resolve it — dedup, edit, or deprecate before proceeding, (4) Only after the requirement/bug is clean and non-contradictory MAY Claude begin coding.",
+      "type": "standard",
+      "date": "",
       "source": "Skip Snow directive 2026-04-10",
+      "ch_matrix_id": "",
       "enforcement": "UserPromptSubmit governance check"
     },
     {
       "id": "v4-029",
+      "title": "",
       "rule": "All REST services MUST reject HTTP requests with a security error (403 or 426 Upgrade REQUIRED). Only HTTPS is allowed. The only exception is the website index.html on :80 which redirects to HTTPS. Every client call to any REST service MUST check the HTTP return code — on 4xx or 5xx the client MUST fail immediately with a clear error, not silently continue.",
+      "type": "standard",
+      "date": "",
       "source": "Skip Snow directive 2026-04-10",
+      "ch_matrix_id": "",
       "enforcement": "code_controlled"
     },
     {
       "id": "v4-030",
       "title": "Epic naming and taxonomy",
       "rule": "Epics are named for the business component they realize, not the technology they use. An epic answers 'what does the user or business get?' — not 'what technology do we build?' Examples of correct epic names: FindCare, Evaluate Care, Talk About Care, Safety. Examples of incorrect epic names: Pipeline Management, UX Management, DevOps, Testing.\n\nTechnical concerns (security, infrastructure, testing, deployment) are cross-cutting shared services. Their stories belong under the business epic they serve. Technical patterns and constraints are captured as development rules (DR-*) or governance policies (GOV-*), not as epics.\n\nWhen a technical story serves exactly one business epic, it belongs in that epic. When it serves multiple business epics, it belongs in the primary consumer's epic with dependency links from the others. There is no 'Maintenance' epic — maintenance stories are bugs or enhancements in the business epic that owns the affected component.\n\nEpic creation: only Boss can authorize the creation of a new epic. Claude MAY propose an epic but MUST NOT create one without explicit Boss approval. Once Boss approves, Claude assigns the epic_id following the format EPIC-NNN (three-digit sequential, next available number) and the human-readable name. Both MUST be unique — Claude MUST verify both uniqueness constraints (id and name) before writing.\n\nEpic type: every epic MUST be classified as 'operational' (user-facing product capability) or 'functional' (business function that supports operations). Type is mandatory per the agile_backlog schema.\n\nEnforcement: any new epic MUST be a business component. Claude MUST NOT create technical epics. Existing technical epics MUST be redistributed to their business owners.",
+      "type": "standard",
+      "date": "",
       "source": "Skip Snow directive 2026-04-11",
       "ch_matrix_id": "b0000033-0000-4000-e000-000000000033"
     },
@@ -239,6 +330,8 @@
       "id": "v4-031",
       "title": "No dead code",
       "rule": "In an AI-native system, unused code is a liability and MUST NOT exist. No function, class, or method MUST exist without at least one caller in the codebase (production code or test). If the dead code scanner finds a symbol that is defined but never referenced — and it is not framework-invoked (FastAPI route, Azure trigger, governance hook) — it MUST be deleted.\n\nStubs, speculative functions, and code built for future use are prohibited. YAGNI (Fowler): implement when you actually need it, never when you foresee it. The cost of reimplementation in an AI-native system is near zero — git history preserves the old code, the requirement documents the intent, and the agent regenerates the function in minutes.\n\nPublic API functions that serve external consumers are not exempt — they MUST have a pytest that calls them. A test IS a caller.\n\nEnforcement: the dead code scanner runs in two modes. Check-in mode scans staged files and blocks the commit. Full regression mode scans the entire codebase before QA/prod promotion.",
+      "type": "standard",
+      "date": "",
       "source": "Skip Snow directive 2026-04-11, informed by Fowler YAGNI and AI-native dead code research",
       "ch_matrix_id": "b0000034-0000-4000-e000-000000000034"
     },
@@ -246,6 +339,8 @@
       "id": "v4-032",
       "title": "Plural/singular naming convention for arrays",
       "rule": "In every ChatHealthy JSON file, every name that is a plural noun MUST have an array value containing members of its singular form. In the JSON Schema (draft 2020-12), the corresponding property MUST declare the plural (type: array) and the singular item type. Example: requirements contains requirement objects, declared as: {\"type\": \"array\", \"items\": \"requirement\"}",
+      "type": "standard",
+      "date": "",
       "source": "Skip Snow directive 2026-04-11",
       "ch_matrix_id": "b0000035-0000-4000-e000-000000000035"
     },
@@ -253,8 +348,239 @@
       "id": "v4-033",
       "title": "No bug without a requirement",
       "rule": "Every bug in bugs.json MUST have a req_id that points to an existing requirement in agile_backlog.json. In Unattended Mode, if Claude cannot absolutely and positively determine the requirement, req_id MUST be set to ORPHAN_BUG.",
+      "type": "standard",
+      "date": "",
       "source": "Skip Snow directive 2026-04-11",
       "ch_matrix_id": "b0000042-0000-4000-e000-000000000042"
+    },
+    {
+      "id": "DR-004",
+      "title": "When a pattern is established, apply it everywhere in the sa",
+      "rule": "When a pattern is established, apply it everywhere in the same commit. Do not build a correct pattern then forget to use it 10 minutes later.",
+      "type": "incident-driven",
+      "incident": "Built chunked _id range copy for CopyToFrontEnd, then used single $out for MigrateEnvironment. Same problem, forgot to use the same solution.",
+      "date": "2026-04-02",
+      "source": "",
+      "ch_matrix_id": "74b81daf-a853-4d04-bf27-fb346c80f402"
+    },
+    {
+      "id": "DR-006",
+      "title": "State is not a valid partition boundary for data operations.",
+      "rule": "State is not a valid partition boundary for data operations. Record count or _id range is the correct boundary.",
+      "type": "incident-driven",
+      "incident": "Chunked CopyToFrontEnd by state. CA has 500K records, WY has 5K. Chunks were wildly uneven. Boss had to explain why this was wrong.",
+      "date": "2026-04-02",
+      "source": "",
+      "ch_matrix_id": "57b0ca97-8a3d-43fa-b698-a48c7459dc87",
+      "enforcement": {
+        "type": "file_scan",
+        "scan_dirs": [
+          "Code/DataPipelines"
+        ],
+        "pattern": "for state in.*(states|ALL_STATES|state_list)",
+        "context_pattern": "stream_to_temp|copy_chunk|insert_many|sync_collection",
+        "context_lines": 5,
+        "exclude_comments": true
+      }
+    },
+    {
+      "id": "DR-008",
+      "title": "No single operation may materialize more than 10,000 documen",
+      "rule": "No single operation may materialize more than 10,000 documents into a Python list, dict, or variable at once. If the source collection has more than 10,000 documents, use a server-side cursor with batch_size, $bucketAuto, or streaming iteration. list(collection.find()) on a collection with more than 10,000 documents is always a violation.",
+      "type": "incident-driven",
+      "incident": "partition_source aggregated all _ids from millions of records into a Python list. Activity hung and likely timed out.",
+      "date": "2026-04-02",
+      "source": "",
+      "ch_matrix_id": "f291a327-075f-4b25-b31e-751f1b1feb8e",
+      "enforcement": {
+        "type": "file_scan",
+        "scan_dirs": [
+          "Code/DataPipelines"
+        ],
+        "pattern": "list\\(.*\\.find\\(",
+        "exclude_comments": true,
+        "exempt_patterns": [
+          "limit(",
+          "batch_size=",
+          "SAMPLE_SIZE",
+          ".limit("
+        ],
+        "_note": "Catches list(collection.find()) patterns. Exempt if cursor is limited."
+      }
+    },
+    {
+      "id": "DR-009",
+      "title": "Before starting any local server, kill all dead and zombie p",
+      "rule": "Before starting any local server, kill all dead and zombie processes on the target ports first. Verify the port is clear before binding.",
+      "type": "incident-driven",
+      "incident": "Had 12 zombie Python processes running. Old servers on port 8000 served stale code while the new server hadn't finished loading. Caused false 404s and hours of confusion.",
+      "date": "2026-04-02",
+      "source": "",
+      "ch_matrix_id": "c8a64b7c-6cc0-4b0a-801c-28e68c02f946"
+    },
+    {
+      "id": "DR-010",
+      "title": "Never refer to the LLM as Claude, GPT, or any model name whe",
+      "rule": "Never refer to the LLM as Claude, GPT, or any model name when discussing code behavior. Say 'the code' or 'the system prompt'. The LLM is a component, not an actor.",
+      "type": "incident-driven",
+      "incident": "Said 'Claude is ignoring RULE 9' when the actual bug was the vector search route bypassing _paginated_result. The code was wrong, not the model.",
+      "date": "2026-04-02",
+      "source": "",
+      "ch_matrix_id": "92f6f7a6-0876-49d0-8ebb-1fec12fc9d58"
+    },
+    {
+      "id": "DR-011",
+      "title": "When running locally, the parent page iframe must default to",
+      "rule": "When running locally, the parent page iframe must default to localhost automatically. No query params, no workarounds.",
+      "type": "incident-driven",
+      "incident": "Required ?local param to test locally. Boss had to point out the iframe was going to HuggingFace. Should detect localhost and switch automatically.",
+      "date": "2026-04-02",
+      "source": "",
+      "ch_matrix_id": "c4111e39-fecf-463a-a940-9c7742836f59"
+    },
+    {
+      "id": "DR-012",
+      "title": "Never remove a requirement from the implementation to save p",
+      "rule": "Never remove a requirement from the implementation to save performance. If a requirement is expensive, find a cheaper way to implement it. Only Boss can waive requirements.",
+      "type": "incident-driven",
+      "incident": "Removed server-side page_start calculation because it was slow (extra count_documents query). This broke the pagination display — every page showed Records 1-25. Should have moved the tracking to the frontend instead of dropping the requirement.",
+      "date": "2026-04-02",
+      "source": "",
+      "ch_matrix_id": "19cf2f16-3db8-42ba-b3ce-bdda7979d401"
+    },
+    {
+      "id": "DR-013",
+      "title": "AI resolves codes. Database returns data. Vector search must",
+      "rule": "AI resolves codes. Database returns data. Vector search must NEVER return provider records directly to the user. It resolves taxonomy codes, then the deterministic taxonomy query returns the actual data. GOV-011 policy violation: 'The AI turns what the user says into a clear question. The system answers using real data, not guesses.'",
+      "type": "incident-driven",
+      "incident": "Vector search route returned provider records directly from similarity ranking. These results were non-deterministic, inconsistent with taxonomy query counts, and caused pagination to show different data on replay. The AI was answering instead of the system.",
+      "date": "2026-04-02",
+      "source": "",
+      "ch_matrix_id": "cb6566f0-fdab-4c06-a2bd-0b94683be299"
+    },
+    {
+      "id": "DR-016",
+      "title": "Vector search indexes must be verified on every environment ",
+      "rule": "Vector search indexes must be verified on every environment promotion (dev→qa, qa→prod). Required indexes on frontend cluster: provider_vector_index on providers, specialty_vector_index on SpecialtyMetaData. Promotion must fail if indexes are missing.",
+      "type": "incident-driven",
+      "incident": "Indexes were missing on dev and prod frontend clusters. Specialty filter returned empty results. Boss had to find the problem and manually pause the pipeline cluster.",
+      "date": "2026-04-03",
+      "source": "",
+      "ch_matrix_id": "58b9f7f8-9d17-4664-8b1c-4e395f30df5b"
+    },
+    {
+      "id": "DR-019",
+      "title": "All SIT testing must be against the full parent page (dev.ch",
+      "rule": "All SIT testing must be against the full parent page (dev.chathealthy.ai), never the HF Space iframe in isolation. The parent page is the product. The iframe is a component. Test the product.",
+      "type": "incident-driven",
+      "incident": "SIT tests were passing against the iframe but missing bugs visible on the full page — sideways filter text, missing banner build number, filter panel not rendering. These were only visible in the parent page context.",
+      "date": "2026-04-03",
+      "source": "",
+      "ch_matrix_id": "873a417f-544a-43bc-b605-001c290f616b"
+    },
+    {
+      "id": "DR-020",
+      "title": "The pipeline cluster (ChatHealthyDataPipelines) stores ZERO ",
+      "rule": "The pipeline cluster (ChatHealthyDataPipelines) stores ZERO administrative or devops state. All admin, devops, manifest, governance, and brain state lives on the frontend cluster (ChatHealthyFrontEnd). At session startup, only query the frontend cluster for brain data. Never attempt to connect to the pipeline cluster for brain/admin/devops data — even when the pipeline cluster is running.",
+      "type": "incident-driven",
+      "incident": "Session startup attempted to query both clusters. The pipeline cluster has no brain collections and may be paused. All administrative state is on the frontend cluster.",
+      "date": "2026-04-05",
+      "source": "",
+      "ch_matrix_id": "9da38aa2-9b5a-4fcb-a39f-2bd494ed55c8"
+    },
+    {
+      "id": "DR-021",
+      "title": "The admin.manifest must include all MongoDB collections — no",
+      "rule": "The admin.manifest must include all MongoDB collections — not just files. Every database and collection on the frontend cluster must be inventoried in the manifest alongside the file inventory. The manifest is the single source of truth for what exists in the system.",
+      "type": "incident-driven",
+      "incident": "Manifest snapshot_20260330 contained 196 file entries but zero MongoDB collection entries. Collections were undocumented, making it impossible to verify system completeness from the manifest alone.",
+      "date": "2026-04-05",
+      "source": "",
+      "ch_matrix_id": "fdffea59-3698-4f52-90ae-e1d3563cba8e"
+    },
+    {
+      "id": "DR-022",
+      "title": "Never run embedding generation against the frontend cluster.",
+      "rule": "Never run embedding generation against the frontend cluster. Embeddings are generated on the pipeline cluster and copied to the frontend via CopyToFrontEnd. The frontend cluster is for serving user queries, not for expensive batch operations.",
+      "type": "incident-driven",
+      "incident": "During DE data quality work, re-embedded 2,843 providers directly on the frontend cluster. Wasted $2 on incomplete data and ran batch OpenAI calls against the production-serving cluster.",
+      "date": "2026-04-07",
+      "source": "",
+      "ch_matrix_id": "1b4cc7b8-1945-4e21-a228-eead19130f36",
+      "enforcement": {
+        "type": "file_scan",
+        "scan_dirs": [
+          "Code/DataPipelines"
+        ],
+        "pattern": "FRONTEND.*embed|embed.*FRONTEND",
+        "file_filter": "embed",
+        "exclude_comments": true
+      }
+    },
+    {
+      "id": "DR-023",
+      "title": "A design is not complete until it has: epic -> features -> s",
+      "rule": "A design is not complete until it has: epic -> features -> stories -> requirements -> boolean pytestable test cases -> all green. No exceptions. The incident-to-rule-to-test cycle must close: every bug or audit finding traces to a rule violation or missing rule, every rule produces a boolean test, every test maps to a requirement, every requirement has a green pytest before the work is marked done.",
+      "type": "incident-driven",
+      "incident": "Pipeline v4: 11 audit findings existed because rules were documented but no tests enforced them. Raw requests.get, .readall(), hardcoded URLs, and local execution all violated existing rules but shipped because no pytest would have caught them at commit time.",
+      "date": "2026-04-08",
+      "source": "",
+      "ch_matrix_id": "83fada34-e81e-4be4-9f88-8a8787c911fd",
+      "enforcement": {
+        "type": "json_check",
+        "path": "brain/machine_artifacts/content/traceability_matrix.json",
+        "required_fields": [
+          "_record_id",
+          "entries"
+        ],
+        "entries_field": "entries",
+        "min_entries": 1
+      }
+    },
+    {
+      "id": "DR-024",
+      "title": "Every pytest must test every form of the thing being tested.",
+      "rule": "Every pytest must test every form of the thing being tested. A rename test must check the string, the filename, the imports, the comments, and the brain references. A memory fix test must assert bounded memory, not just API substitution. A compliance test must scan every file, not just one. Requirements must describe testable outcomes (e.g. \"must never hold more than 64KB in memory\"), not mechanisms (e.g. \"use streaming\").",
+      "type": "incident-driven",
+      "incident": "Pipeline v4 rename: test checked for string \"PrescriberPipeline\" but missed the filename overnight_pipeline.py. OOM fix: test checked that .readall() was removed but did not check that b\"\".join(chunks) reassembled the same data in memory.",
+      "date": "2026-04-08",
+      "source": "",
+      "ch_matrix_id": "d66582bd-c752-48b0-ab72-4704f8b122ab"
+    },
+    {
+      "id": "DR-025",
+      "title": "You cannot deploy if the deploy would kill running code. If ",
+      "rule": "You cannot deploy if the deploy would kill running code. If a pipeline job is running as designed, wait. If you discover a bug in the running code, terminate the job first, then deploy the fix, then rerun. The pipeline is idempotent — restarting with the fix is always faster than watching a broken job fail. This applies per deployment target: frontend (Cloudflare + HuggingFace) and pipeline (Azure Functions) are independent — deploying one cannot kill the other.",
+      "type": "incident-driven",
+      "incident": "CopyToFrontEnd was stuck for 15+ minutes. Two deploys were blocked by CI guard. Should have terminated immediately when the bug was identified.",
+      "date": "2026-04-08",
+      "source": "",
+      "ch_matrix_id": "3c4327ee-59fe-41e1-afde-3c7c26933a39"
+    },
+    {
+      "id": "DR-026",
+      "title": "Never create a HuggingFace Space except by invoking Code/Sha",
+      "rule": "Never create a HuggingFace Space except by invoking Code/Shared/ops/tools/create_hf_space.py. The tier (cpu-upgrade, 8 vCPU, 32 GB RAM, $0.03/hr) is hardcoded in the script. Pass only the space name as a parameter. No HF Space may be created any other way.",
+      "type": "incident-driven",
+      "incident": "Spaces were created with inconsistent tiers and ad-hoc API calls. Standardized to single script with mandatory tier.",
+      "date": "2026-04-08",
+      "source": "",
+      "ch_matrix_id": "b53d438b-21b5-4e47-95de-1f4b59ff1bb0",
+      "enforcement": {
+        "type": "file_present",
+        "paths": [
+          "Code/Shared/ops/tools/create_hf_space.py"
+        ]
+      }
+    },
+    {
+      "id": "v4-034",
+      "title": "AI-native intent classification",
+      "rule": "No system component MUST use keyword lists, regex patterns, string parsing, or deterministic text matching to determine user intent, classify content, detect emergencies, or make any decision that requires understanding what the user means. Semantic decisions MUST be made by a language model. If the model accuracy is insufficient, the remedy is a better model or a better prompt. Emergency detection, topic routing, specialty identification, safety classification, and all intent-based decisions are model responsibilities. The only permitted use of string matching is for validating structured data the model has already produced (e.g., confirming a state code is in a supported list, validating a NUCC code format). This rule applies retroactively — existing keyword lists and regex-based classifiers MUST be replaced with model-based classification as each component is touched.",
+      "type": "standard",
+      "date": "2026-04-13",
+      "source": "Skip Snow directive 2026-04-13",
+      "ch_matrix_id": "b0000043-0000-4000-e000-000000000043"
     }
   ],
   "ch_matrix_id": "1f343049-b0e0-46e2-9c19-33c138e9ab46"

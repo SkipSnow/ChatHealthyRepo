@@ -10,10 +10,10 @@
   "target_document": "pipeline_architecture_v3",
   "human_business_requirements": "Boss's exact human_business_requirements for PIPE-BULLETPROOF epic:\n1: chatHealthy.ai needs a 'bullet proof ETL process that can successfully run 95% of the time providing that source files exist.\n2: Errors that are fatal must warn Skip Snow by ringing a bell continuously every 5 seconds on skip's computer.\n3: The design requirements are in order of 3.a: precedence { reliability, speed, cost}.\n4: All architecture rules must be complied with { technical and business }\n5: engineering rules must be complied with",
   "rules_checked": {
-    "operating_rules": "v4-001 through v4-024",
+    "engineering_rules_v4": "v4-001 through v4-024",
     "corporate_policies": "GOV-001 through GOV-014, DC-GOV-01, DC-GOV-02",
     "security": "Full security architecture (NIST 800-171, HITRUST CSF)",
-    "development_rules": "DR-004 through DR-022, all BUG-xxx records",
+    "engineering_rules_dr": "DR-004 through DR-022, all BUG-xxx records",
     "governance": "All sign-off records"
   },
   "total_iterations": 25,

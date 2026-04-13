@@ -73,4 +73,5 @@ Analysis/
 # Conversation log — local dev artifact, contains secrets from session
 brain/machine_artifacts/content/conversation_log.json
 regression_report.json
+migrate_dev_to_qa.py
 # test

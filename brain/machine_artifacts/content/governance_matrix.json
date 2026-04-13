@@ -28,13 +28,6 @@
       "post_tool_use": "allow",
       "stop": "allow"
     },
-    "operating_rules": {
-      "session_start": "session_warning",
-      "user_prompt_submit": "code_controlled",
-      "pre_tool_use": "code_controlled",
-      "post_tool_use": "session_abend",
-      "stop": "session_warning"
-    },
     "security": {
       "session_start": "session_warning",
       "user_prompt_submit": "session_warning",
@@ -52,13 +45,6 @@
     "legal": {
       "session_start": "session_warning",
       "user_prompt_submit": "session_warning",
-      "pre_tool_use": "session_abend",
-      "post_tool_use": "session_abend",
-      "stop": "session_warning"
-    },
-    "development_rules": {
-      "session_start": "session_warning",
-      "user_prompt_submit": "allow",
       "pre_tool_use": "session_abend",
       "post_tool_use": "session_abend",
       "stop": "session_warning"
@@ -230,6 +216,13 @@
       "pre_tool_use": "allow",
       "post_tool_use": "allow",
       "stop": "allow"
+    },
+    "engineering_rules": {
+      "session_start": "session_warning",
+      "user_prompt_submit": "code_controlled",
+      "pre_tool_use": "code_controlled",
+      "post_tool_use": "session_abend",
+      "stop": "session_warning"
     }
   },
   "ch_matrix_id": "33fc1888-2d8f-4a00-8598-a7a3d9f2d507"
