@@ -32068,7 +32068,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB001_GitLineage"
                   ],
                   "realized_by": [
                     "Python 3.11",
@@ -32082,7 +32082,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB002_BrainIntent"
                   ],
                   "realized_by": [
                     "Python 3.11",
@@ -32096,7 +32096,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB003_LostCapabilities"
                   ],
                   "realized_by": [
                     "Python 3.11",
@@ -32110,7 +32110,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB004_AICallLineage"
                   ],
                   "realized_by": [
                     "Python 3.11",
@@ -32124,7 +32124,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB005_CrossReference"
                   ],
                   "realized_by": [
                     "Python 3.11",
@@ -32138,7 +32138,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB006_CategorizedFindings"
                   ],
                   "realized_by": [
                     "Python 3.11",
@@ -32152,7 +32152,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB007_ActionableRecommendations"
                   ],
                   "realized_by": [
                     "Python 3.11",
@@ -32166,7 +32166,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB008_Repeatable"
                   ],
                   "realized_by": [
                     "Python 3.11"
@@ -32179,7 +32179,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB009_ConsumableOutput"
                   ],
                   "realized_by": [
                     "Python 3.11"
@@ -32192,7 +32192,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB010_ReadOnly"
                   ],
                   "realized_by": [
                     "Python 3.11"
@@ -32205,7 +32205,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB011_Autonomous"
                   ],
                   "realized_by": [
                     "Python 3.11"
@@ -32218,7 +32218,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB012_SurvivesFailure"
                   ],
                   "realized_by": [
                     "Python 3.11"
@@ -32231,7 +32231,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB013_CostTracking"
                   ],
                   "realized_by": [
                     "Python 3.11"
@@ -32244,7 +32244,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB014_NumberedFindings"
                   ],
                   "realized_by": [
                     "Python 3.11",
@@ -32258,7 +32258,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB015_Recommendations"
                   ],
                   "realized_by": [
                     "Python 3.11",
@@ -32272,7 +32272,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB016_Methodology"
                   ],
                   "realized_by": [
                     "Python 3.11",
@@ -32286,7 +32286,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB017_Assumptions"
                   ],
                   "realized_by": [
                     "Python 3.11",
@@ -32300,7 +32300,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestB018_EvidenceRequired"
                   ],
                   "realized_by": [
                     "Python 3.11",
@@ -32314,7 +32314,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestT001_PurePython"
                   ],
                   "realized_by": [
                     "Python 3.11"
@@ -32331,7 +32331,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestT002_LoopUntilStopOrComplete"
                   ],
                   "realized_by": [
                     "Python 3.11"
@@ -32347,7 +32347,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestT003_StateOnDisk"
                   ],
                   "realized_by": [
                     "Python 3.11"
@@ -32364,7 +32364,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestT004_Checkpoints"
                   ],
                   "realized_by": [
                     "Python 3.11"
@@ -32380,7 +32380,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestT005_DisposableWorkers"
                   ],
                   "realized_by": [
                     "Python 3.11",
@@ -32398,7 +32398,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestT006_TokenTracking"
                   ],
                   "realized_by": [
                     "Python 3.11"
@@ -32414,7 +32414,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestT007_StructuredJSON"
                   ],
                   "realized_by": [
                     "Python 3.11",
@@ -32433,7 +32433,7 @@
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
                   "pytest_ids": [
-                    "PENDING_DESIGN"
+                    "test_lineage_orchestrator.py::TestT008_StrictSchema"
                   ],
                   "realized_by": [
                     "Python 3.11"
