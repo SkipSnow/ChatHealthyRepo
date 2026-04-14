@@ -218,11 +218,7 @@ def _run_cycle_inner():
                 if dt and dt.tzinfo is not None:
                     u[field] = dt.replace(tzinfo=None).isoformat()
 
-    # T001: Check for records older than 24 hours
-    if not _has_old_records(data):
-        _log.info("No records older than 24 hours. Skipping cycle.")
-        return True
-
+    # B005: Archive ALL records to MongoDB every cycle (B wins over T001)
     # T027: Add CH_KEY{GUID} to every utterance
     for u in data.get("utterances", []):
         u["ch_key"] = f"CH_KEY{{{uuid.uuid4()}}}"
@@ -347,15 +343,15 @@ def _run_cycle_inner():
 
     _log.info("Parity check passed: %d utterances, all within 24 hours", len(validated.get("utterances", [])))
 
-    # B001: Schema validation — commented out until timestamps are stable
-    # from conversation_log_agent import _validate_against_schema
-    # violations = _validate_against_schema(validated, schema)
-    # if violations:
-    #     msg = f"Parity check failed: schema violations: {violations}"
-    #     _log.error(msg)
-    #     _write_error(msg)  # T023
-    #     TEMP_PATH.unlink(missing_ok=True)
-    #     return False
+    # B001: Schema validation
+    from conversation_log_agent import _validate_against_schema
+    violations = _validate_against_schema(validated, schema)
+    if violations:
+        msg = f"Parity check failed: schema violations: {violations}"
+        _log.error(msg)
+        _write_error(msg)  # T023
+        TEMP_PATH.unlink(missing_ok=True)
+        return False
 
     # T015: Rename .temp to .json (T019: acquire lock first)
     lock_handle = _acquire_lock(CONVERSATION_LOG_PATH)
