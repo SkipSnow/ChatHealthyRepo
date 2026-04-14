@@ -1,6 +1,6 @@
 ---
 name: conversation-log-archival
-description: Archives conversation log utterances to MongoDB and returns retained records. Use when asked to process conversation log data, archive utterances, or manage the conversation log lifecycle.
+description: Archives conversation log utterances to MongoDB and returns retained records. Use when asked to process conversation log data, archive utterances, or manage the conversation log lifecycle. Deployed via GitHub Actions.
 ---
 
 # Conversation Log Archival
