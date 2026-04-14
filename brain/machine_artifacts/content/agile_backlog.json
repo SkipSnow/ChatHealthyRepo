@@ -32007,6 +32007,20 @@
                   "pytest_ids": [
                     "ORPHAN"
                   ]
+                },
+                {
+                  "req_id": "DEVOPS-DEPLOY-001-REQ-014",
+                  "requirement": "Promotion from dev to QA MUST be gated by a GPT evaluation in pre_deploy_rule_check.py. GPT has the sole authority to block promotion. Boss cannot override this block. This is the only authority GPT has in the governance system.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "GPT-4.1"
+                  ]
                 }
               ]
             },

@@ -112,6 +112,21 @@
       "scope": "dev and qa frontend cluster. All collections in dev_PublicHealthData and qa_PublicHealthData.",
       "expires": "2026-04-12T01:30:00Z",
       "ch_matrix_id": "b0000040-0000-4000-e000-000000000040"
+    },
+    {
+      "id": "RISK-010",
+      "date": "2026-04-14",
+      "title": "Drain ClaudeCodeLog.conversation_log_archive collection during testing",
+      "description": "Delete all documents from conversation_log_archive in ClaudeCodeLog database to reset test state. Indexes are preserved. Collection is new and contains only test data.",
+      "risk": "Loss of archived conversation log test data.",
+      "claude_warning": "Governance guard blocked delete_many on external database.",
+      "boss_decision": "ACCEPTED",
+      "accepted_by": "Boss (Skip Snow, CEO)",
+      "rationale": "Collection is new, contains only test data from development. No production data at risk.",
+      "mitigation": "Indexes preserved. Original conversation_log.json backed up at c:/temp.",
+      "build": "861",
+      "scope": "ClaudeCodeLog.conversation_log_archive delete_many",
+      "ch_matrix_id": "7ef13368-4d12-45a8-a15e-19320f2e5d6b"
     }
   ],
   "ch_matrix_id": "1001cdca-db77-40c2-ab15-5c0441f5ab2b"
