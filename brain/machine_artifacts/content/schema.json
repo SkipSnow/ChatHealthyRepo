@@ -239,6 +239,11 @@
             "type": "array",
             "items": "string",
             "description": "Legacy field — use environment instead"
+          },
+          "orphan": {
+            "type": "boolean",
+            "required": true,
+            "description": "True if this bug does not trace to a real story/requirement."
           }
         }
       },
@@ -528,6 +533,11 @@
               "items": "feature",
               "required": true,
               "description": "Array of features belonging to this epic"
+            },
+            "orphan": {
+              "type": "boolean",
+              "required": true,
+              "description": "True if this item does not yet have a proper home in the hierarchy."
             }
           }
         },
@@ -564,6 +574,11 @@
               "items": "story",
               "required": true,
               "description": "Array of stories belonging to this feature"
+            },
+            "orphan": {
+              "type": "boolean",
+              "required": true,
+              "description": "True if this item does not yet have a proper home in the hierarchy."
             }
           }
         },
@@ -603,11 +618,16 @@
               "items": "requirement",
               "required": true,
               "description": "Array of boolean-testable requirements belonging to this story"
+            },
+            "orphan": {
+              "type": "boolean",
+              "required": true,
+              "description": "True if this item does not yet have a proper home in the hierarchy."
             }
           }
         },
         "requirement": {
-          "description": "A boolean-testable assertion. Leaf node of the hierarchy.",
+          "description": "A boolean-testable assertion. Contains pytest children.",
           "fields": {
             "req_id": {
               "type": "string",
@@ -632,28 +652,13 @@
               "required": true,
               "constrained_by": "CV-005"
             },
-            "pytest_ids": {
+            "pytests": {
               "type": "array",
-              "items": "string",
+              "items": "pytest",
               "min_items": 1,
-              "required_when": "status in (implemented, in_progress)",
-              "description": "References to pytests that validate this requirement. At least one required when implemented."
-            },
-            "test_method": {
-              "type": "string",
-              "required": false,
-              "possible_values": [
-                "pytest",
-                "playwright",
-                "playwright+pytest"
-              ],
-              "description": "How this requirement is tested. Determines runner behavior."
-            },
-            "test_timeout_seconds": {
-              "type": "integer",
-              "required": false,
-              "default": 120,
-              "description": "Timeout in seconds for test execution. Default 120. Playwright tests should use 180+. DB-heavy tests may need more."
+              "max_items": 2,
+              "required": true,
+              "description": "Pytest children that validate this requirement. 1 required, 2 allowed if both playwright and standard pytest needed."
             },
             "bug_ids": {
               "type": "array",
@@ -678,6 +683,36 @@
               },
               "required": false,
               "description": "Stories this requirement depends on. If the dependency story fails, this requirement cannot pass."
+            },
+            "orphan": {
+              "type": "boolean",
+              "required": true,
+              "description": "True if this item does not yet have a proper home in the hierarchy."
+            }
+          }
+        },
+        "pytest": {
+          "description": "A test that validates a requirement. Leaf node of the hierarchy.",
+          "fields": {
+            "pytest_id": {
+              "type": "string",
+              "required": true,
+              "description": "Reference to the pytest function or file that validates this requirement."
+            },
+            "pytest_type": {
+              "type": "string",
+              "required": true,
+              "possible_values": [
+                "playwright",
+                "ordinary",
+                "ORPHAN"
+              ],
+              "description": "Type of test. ORPHAN means no test exists yet."
+            },
+            "orphan": {
+              "type": "boolean",
+              "required": true,
+              "description": "True if this test does not yet exist or is not linked."
             }
           }
         }

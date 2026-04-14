@@ -41,22 +41,7 @@ CH_GUID_PATTERN = re.compile(
     r"^CH-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 )
 
-# B004: Redaction patterns
-_CREDENTIAL_PATTERNS = [
-    re.compile(r"(sk-ant-api\S+)", re.IGNORECASE),
-    re.compile(r"(mongodb\+srv://[^\s\"']+)", re.IGNORECASE),
-    re.compile(r"(ANTHROPIC_API_KEY\s*=\s*\S+)", re.IGNORECASE),
-    re.compile(r"(MONGO_FRONTEND_connectionString\s*=\s*\S+)", re.IGNORECASE),
-    re.compile(r"(password\s*[:=]\s*\S+)", re.IGNORECASE),
-    re.compile(r"(api[_-]?key\s*[:=]\s*\S+)", re.IGNORECASE),
-]
-_PROFANITY_PATTERNS = [
-    re.compile(r"\b(fuck)\b", re.IGNORECASE),
-    re.compile(r"\b(shit)\b", re.IGNORECASE),
-    re.compile(r"\b(damn)\b", re.IGNORECASE),
-    re.compile(r"\b(ass)\b", re.IGNORECASE),
-    re.compile(r"\b(bitch)\b", re.IGNORECASE),
-]
+# B004: AI-powered redaction via GPT-4.1-mini
 
 # B007: Cycle intervals by working_mode
 _CYCLE_INTERVALS = {
@@ -222,14 +207,24 @@ class ConversationLogService:
         header = {k: v for k, v in data.items() if k != "utterances"}
         retained_file = {**header, "utterances": retained}
 
+        # T006: Acquire lock before writing
+        lock_start = time.monotonic()
+        write_handle = self._acquire_write_lock(CONVERSATION_LOG_PATH)
+        if write_handle is None:
+            return
         try:
-            with open(CONVERSATION_LOG_PATH, "w", encoding="utf-8") as f:
-                json.dump(retained_file, f, indent=2, ensure_ascii=False)
-            self._log.info("Wrote %d utterances to conversation_log.json", len(retained))
+            write_handle.seek(0)
+            write_handle.truncate()
+            json.dump(retained_file, write_handle, indent=2, ensure_ascii=False)
+            write_handle.flush()
+            lock_elapsed = time.monotonic() - lock_start
+            self._log.info("Wrote %d utterances to conversation_log.json (lock held %.3fs, SLA: 2s)",
+                           len(retained), lock_elapsed)
         except Exception as e:
             self._log.error("Failed to write conversation_log.json: %s", e)
             self._write_error(f"Failed to write conversation_log.json: {e}")
-            return
+        finally:
+            self._release_lock(write_handle)
 
         self._log.info("=== Cycle complete ===")
 
@@ -257,10 +252,7 @@ class ConversationLogService:
             if "timestamp_utc_1" not in existing_indexes:
                 col.create_index("timestamp_utc")
 
-            # T003: Assign stable ch_key based on content fingerprint
-            # The service generates the GUID, but it must be stable across cycles.
-            # Fingerprint = hash(utterance + timestamp_pst + first 100 chars of content)
-            import hashlib
+            # T003: Dedup by ch_key — deterministic from content fingerprint
             existing_keys = set(
                 doc["ch_key"] for doc in col.find({}, {"ch_key": 1, "_id": 0})
             )
@@ -361,21 +353,94 @@ class ConversationLogService:
             return None
 
     def _redact(self, data):
-        """B004: Redact credentials and profanity."""
-        for u in data.get("utterances", []):
+        """B004: AI-powered redaction of credentials and profanity."""
+        from openai import OpenAI
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
+
+        utterances = data.get("utterances", [])
+        # Batch utterance content for efficiency
+        contents = []
+        indices = []
+        for i, u in enumerate(utterances):
             content = u.get("content", "")
-            if isinstance(content, str):
-                for pattern in _CREDENTIAL_PATTERNS:
-                    content = pattern.sub("[Sensitive content redacted]", content)
-                for pattern in _PROFANITY_PATTERNS:
-                    content = pattern.sub("[expletive redacted]", content)
-                u["content"] = content
+            if isinstance(content, str) and len(content) > 0:
+                contents.append(content)
+                indices.append(i)
+
+        if not contents:
+            return
+
+        # Process in batches of 50 to stay within token limits
+        batch_size = 50
+        for batch_start in range(0, len(contents), batch_size):
+            batch = contents[batch_start:batch_start + batch_size]
+            batch_indices = indices[batch_start:batch_start + batch_size]
+
+            numbered = "\n".join(f"[{i}] {text}" for i, text in enumerate(batch))
+
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-4.1-mini",
+                    temperature=0,
+                    messages=[{
+                        "role": "system",
+                        "content": (
+                            "You are a content redaction engine. You receive numbered text entries. "
+                            "For each entry, return the SAME text with these replacements:\n"
+                            "1. Replace any API keys, passwords, connection strings, tokens, secrets, "
+                            "or credentials with [Sensitive content redacted]\n"
+                            "2. Replace any profanity or vulgar language with [expletive redacted]\n"
+                            "3. Leave all other text EXACTLY as-is. Do not summarize, rephrase, or modify.\n"
+                            "Return each entry on its own line, prefixed with [N] matching the input number.\n"
+                            "If an entry needs no changes, return it unchanged with its number prefix."
+                        ),
+                    }, {
+                        "role": "user",
+                        "content": numbered,
+                    }],
+                )
+                result = response.choices[0].message.content
+
+                # Parse results back
+                for line in result.split("\n"):
+                    line = line.strip()
+                    if not line or not line.startswith("["):
+                        continue
+                    bracket_end = line.find("]")
+                    if bracket_end == -1:
+                        continue
+                    try:
+                        idx = int(line[1:bracket_end])
+                    except ValueError:
+                        continue
+                    redacted = line[bracket_end + 1:].strip()
+                    if 0 <= idx < len(batch):
+                        utterances[batch_indices[idx]]["content"] = redacted
+
+            except Exception as e:
+                self._log.error("AI redaction failed for batch at %d: %s", batch_start, e)
+                self._write_error(f"AI redaction failed: {e}")
 
     def _acquire_lock(self, file_path):
-        """T006: Acquire file lock. Retry every 5s for up to 10 minutes."""
+        """T006: Acquire read lock. Retry every 5s for up to 10 minutes."""
         for attempt in range(120):
             try:
                 f = open(file_path, "r", encoding="utf-8")
+                msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+                return f
+            except (IOError, OSError):
+                if attempt < 119:
+                    time.sleep(5)
+                else:
+                    self._log.error("File locked for 10 minutes: %s", file_path)
+                    self._write_error(f"File locked for 10 minutes: {file_path}")
+                    return None
+
+    def _acquire_write_lock(self, file_path):
+        """T006: Acquire write lock. Retry every 5s for up to 10 minutes."""
+        for attempt in range(120):
+            try:
+                f = open(file_path, "w", encoding="utf-8")
                 msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
                 return f
             except (IOError, OSError):
