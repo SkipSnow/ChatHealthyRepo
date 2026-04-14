@@ -367,7 +367,7 @@ def _load_env():
 
 def _run_agent_test(bearer_token: str, log_content: str | None = None,
                     preserve_hours: int = 24, expect_status: int = 200):
-    """Run the agent via Anthropic Messages API with tool_use."""
+    """Run the agent via Anthropic Messages API tool_runner."""
     _load_env()
     client = Anthropic()
 
@@ -389,14 +389,16 @@ def _run_agent_test(bearer_token: str, log_content: str | None = None,
     cutoff = now_pst - timedelta(hours=preserve_hours)
     preserve_past = cutoff.isoformat()
 
-    # Build the user message
+    # Build the user message — structured JSON so Claude can parse args cleanly
+    args_json = json.dumps({
+        "logContent": log_content,
+        "bearerToken": bearer_token,
+        "mongoConnectionString": mongo_conn,
+        "preservePastTime": preserve_past,
+        "schema": schema_content,
+    })
     user_msg = (
-        f"Process this conversation log for archival.\n"
-        f"bearerToken: {bearer_token}\n"
-        f"mongoConnectionString: {mongo_conn}\n"
-        f"preservePastTime: {preserve_past}\n"
-        f"schema: {schema_content}\n"
-        f"logContent: {log_content}"
+        f"Call process_conversation_log with these exact arguments:\n{args_json}"
     )
 
     print(f"\n{'='*60}")
@@ -406,61 +408,34 @@ def _run_agent_test(bearer_token: str, log_content: str | None = None,
     print(f"  logContent length: {len(log_content)} chars")
     print(f"{'='*60}\n")
 
-    # Call the Messages API with the tool
-    response = client.messages.create(
+    # Use tool_runner — handles the agentic loop internally
+    result = client.beta.messages.tool_runner(
         model="claude-sonnet-4-6",
         max_tokens=16384,
         tools=[process_conversation_log],
         messages=[{"role": "user", "content": user_msg}],
     )
 
-    # Process response — handle tool_use loop
-    while response.stop_reason == "tool_use":
-        tool_results = []
-        for block in response.content:
-            if block.type == "tool_use":
-                print(f"Tool called: {block.name}")
-                print(f"  Args: {list(block.input.keys())}")
+    # tool_runner returns the final message after all tool calls complete
+    final = result.until_done()
 
-                # Execute the tool locally
-                result = process_conversation_log(**block.input)
-
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": result,
-                })
-
-        # Continue conversation with tool results
-        response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=16384,
-            tools=[process_conversation_log],
-            messages=[
-                {"role": "user", "content": user_msg},
-                {"role": "assistant", "content": response.content},
-                {"role": "user", "content": tool_results},
-            ],
-        )
-
-    # Print final response
-    print(f"\nFinal response (stop_reason: {response.stop_reason}):")
-    for block in response.content:
+    print(f"\nFinal response (stop_reason: {final.stop_reason}):")
+    for block in final.content:
         if hasattr(block, "text"):
-            # Try to parse tool result from text
+            text = block.text
+            # Try to find JSON result in text
             try:
-                result = json.loads(block.text)
-                print(f"  Status: {result.get('status', '?')}")
-                if "job_metadata" in result:
-                    meta = result["job_metadata"]
-                    print(f"  Job ID: {meta.get('jobId', '?')}")
-                    print(f"  Counts: {meta.get('counts', {})}")
-                    if meta.get("errors"):
-                        print(f"  Errors: {meta['errors']}")
+                parsed = json.loads(text)
+                print(f"  Status: {parsed.get('status', '?')}")
+                if "retained_file" in parsed:
+                    retained = json.loads(parsed["retained_file"])
+                    print(f"  Retained utterances: {len(retained.get('utterances', []))}")
+                print(f"  Full result keys: {list(parsed.keys())}")
             except (json.JSONDecodeError, TypeError):
-                print(f"  {block.text[:500]}")
+                # Claude's natural language response
+                print(f"  {text[:1000]}")
 
-    return response
+    return final
 
 
 def test_200():
