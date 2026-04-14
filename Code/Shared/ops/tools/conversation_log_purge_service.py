@@ -257,17 +257,25 @@ class ConversationLogService:
             if "timestamp_utc_1" not in existing_indexes:
                 col.create_index("timestamp_utc")
 
-            # T005: Only insert records newer than most recent in MongoDB
-            last_doc = col.find_one(sort=[("timestamp_pst", -1)])
-            last_ts = _parse_datetime(last_doc.get("timestamp_pst", "")) if last_doc else None
+            # T003: Assign stable ch_key based on content fingerprint
+            # The service generates the GUID, but it must be stable across cycles.
+            # Fingerprint = hash(utterance + timestamp_pst + first 100 chars of content)
+            import hashlib
+            existing_keys = set(
+                doc["ch_key"] for doc in col.find({}, {"ch_key": 1, "_id": 0})
+            )
+            self._log.info("MongoDB has %d existing records", len(existing_keys))
 
-            # T009: Add version info to every record
             version = self._version_info.get("current", {})
             now_archived = datetime.now(timezone.utc).isoformat()
             batch = []
             for u in utterances:
-                u_ts = _parse_datetime(u.get("timestamp_pst", ""))
-                if last_ts and u_ts and u_ts <= last_ts:
+                # Generate deterministic ch_key from content
+                fingerprint = f"{u.get('utterance', '')}-{u.get('timestamp_pst', '')}-{str(u.get('content', ''))[:100]}"
+                stable_key = f"CH_KEY{{{uuid.uuid5(uuid.NAMESPACE_DNS, fingerprint)}}}"
+                u["ch_key"] = stable_key
+
+                if stable_key in existing_keys:
                     continue
                 doc = {k: v for k, v in u.items()}
                 doc["_archived_by_job"] = job_id
