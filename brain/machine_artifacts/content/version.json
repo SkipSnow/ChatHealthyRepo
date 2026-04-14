@@ -4,7 +4,8 @@
   "current": {
     "version": "0.1.4",
     "framework": "0.1.3",
-    "build": 843
+    "build": 902,
+    "working_mode": "normal"
   },
   "history": [
     {
