@@ -2,7 +2,7 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
 # ChatHealthyClaudeLogManagementAnthropicAgent
-# Agent function for conversation log archival.
+# Agent function for conversation log archival. Deployed via GitHub Actions.
 
 import json
 import logging
