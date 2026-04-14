@@ -358,11 +358,15 @@ def run_cycle():
 
     _log.info("Parity check passed: %d expected retained, all present with correct timestamps, all >= preservePastTime", len(expected))
 
-    # B001: Validate against schema
+    # B001: Validate against schema — part of parity check
     from conversation_log_agent import _validate_against_schema
     violations = _validate_against_schema(validated, schema)
     if violations:
-        _log.warning("Schema violations: %s", violations)
+        msg = f"Parity check failed: schema violations: {violations}"
+        _log.error(msg)
+        _write_error(msg)  # T023
+        TEMP_PATH.unlink(missing_ok=True)
+        return False
 
     # T015: Rename .temp to .json (T019: acquire lock first)
     lock_handle = _acquire_lock(CONVERSATION_LOG_PATH)
