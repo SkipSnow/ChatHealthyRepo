@@ -336,7 +336,10 @@ def _run_cycle_inner():
             continue
         ts = _parse_datetime(u.get("timestamp_pst", ""))
         if ts and ts < cutoff:
-            msg = f"Parity check failed: record {u.get('ch_key', '?')} timestamp {u.get('timestamp_pst')} is older than 24 hours"
+            diff = cutoff - ts
+            hours, remainder = divmod(int(diff.total_seconds()), 3600)
+            minutes = remainder // 60
+            msg = f"Parity check failed: record {u.get('ch_key', '?')} timestamp {u.get('timestamp_pst')} is older than 24 hours (now={now_check.isoformat()}, cutoff={cutoff.isoformat()}, record is {hours}h {minutes}m before cutoff)"
             _log.error(msg)
             _write_error(msg)
             TEMP_PATH.unlink(missing_ok=True)
