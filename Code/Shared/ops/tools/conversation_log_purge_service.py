@@ -206,6 +206,18 @@ def _run_cycle_inner():
     original_count = len(data.get("utterances", []))
     _log.info("Read %d utterances", original_count)
 
+    # Normalize all timestamps to naive (strip timezone) before any processing.
+    # The file has ISO timestamps with -07:00 offset. All comparisons must be
+    # naive-to-naive. This is done once, here, before anything else.
+    from conversation_log_agent import _parse_datetime as _parse_dt
+    for u in data.get("utterances", []):
+        for field in ("timestamp_pst", "timestamp_utc"):
+            val = u.get(field, "")
+            if val:
+                dt = _parse_dt(val)
+                if dt and dt.tzinfo is not None:
+                    u[field] = dt.replace(tzinfo=None).isoformat()
+
     # T001: Check for records older than 24 hours
     if not _has_old_records(data):
         _log.info("No records older than 24 hours. Skipping cycle.")
