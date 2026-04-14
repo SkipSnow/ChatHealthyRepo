@@ -32825,7 +32825,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B004",
-                  "requirement": "Each day at a configurable time, or as soon thereafter as possible, the conversation log MUST be truncated to the last 24 hours. Entries older than 24 hours MUST be removed.",
+                  "requirement": "Each day the conversation log MUST be truncated to the last 24 hours. Entries older than 24 hours MUST be removed. The operator controls when the cycle runs by starting the Windows service. The service runs one cycle on start and repeats every 24 hours until stopped. If restarted, the cycle begins from that moment.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "pytest_ids": [
@@ -32838,7 +32838,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T001",
-                  "requirement": "The 24-hour retention requirement (REQ-B004) MUST be implemented as an Anthropic-hosted remote agent called by a local service running on the user machine. The local service uploads logContent to the Anthropic Files API, receives a logContentFileId, and passes that file_id to the agent via the Messages API tool_use pattern. The agent processes the file and returns a JSON file containing only the retained records. The local service writes the result to disk. The local service MUST run as a Windows service that starts on boot and operates whether or not Cursor or the Claude Code desktop app is open.",
+                  "requirement": "The 24-hour retention requirement (REQ-B004) MUST be implemented as a local Windows service that calls the agent functions directly. The service reads conversation_log.json, writes ALL records to MongoDB, queries MongoDB for retained records, rebuilds the file, and writes it to disk. The service MUST run as a Windows service that operates whether or not Cursor or the Claude Code desktop app is open.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -32868,7 +32868,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T002",
-                  "requirement": "The remote Anthropic agent MUST write ALL utterance records from the persisted file to MongoDB FIRST, before uploading the retained file or returning the tool result to the client. MongoDB is more reliable than the client — data safety is the priority. If MongoDB is unavailable, the agent MUST return the unwritten records in the tool result so the client can persist them to the queue file for retry on the next invocation.",
+                  "requirement": "The service MUST write ALL utterance records to MongoDB FIRST, before rebuilding the retained file. MongoDB is more reliable than the local filesystem — data safety is the priority. If MongoDB is unavailable, the service MUST persist the unwritten records to the queue file for retry on the next cycle.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -32885,7 +32885,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T004",
-                  "requirement": "The local service MUST write the streamed response from the agent to conversation_log.json.temp, not directly to conversation_log.json.",
+                  "requirement": "The service MUST write the rebuilt retained file to conversation_log.json.temp, not directly to conversation_log.json.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -32901,7 +32901,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T005",
-                  "requirement": "The local service MUST perform a parity check: the number of utterances in the streamed response (retained) MUST be less than or equal to the number of utterances in the original logContent sent to the agent. If the retained count exceeds the original count, the temp file MUST be rejected.",
+                  "requirement": "The service MUST perform a parity check: the number of utterances in the rebuilt retained file MUST be less than or equal to the number of utterances in the original conversation_log.json. If the retained count exceeds the original count, the temp file MUST be rejected.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33001,7 +33001,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T011",
-                  "requirement": "The local service MUST authenticate with the Anthropic remote agent by including the bearerToken POST argument. bearerToken is a CH_GUID in the format CH-xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx.",
+                  "requirement": "The agent function MUST validate a bearerToken argument. bearerToken is a CH_GUID in the format CH-xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33018,7 +33018,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T012",
-                  "requirement": "All communication between the local service and the Anthropic remote agent MUST use TLS 1.2 or above. No unencrypted transport is permitted.",
+                  "requirement": "All communication between the service and MongoDB MUST use TLS 1.2 or above. No unencrypted transport is permitted.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33035,7 +33035,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T013",
-                  "requirement": "The Anthropic remote agent MUST validate the bearerToken POST argument before processing any request. Requests without a valid bearerToken MUST be rejected with HTTP 401 Unauthorized.",
+                  "requirement": "The agent function MUST validate the bearerToken argument before processing any request. Requests without a valid bearerToken MUST be rejected with a 401 status.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33051,7 +33051,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B006",
-                  "requirement": "All communication between the local service and the remote agent MUST be secured. No conversation content may be transmitted or stored without authentication and encryption.",
+                  "requirement": "All communication between the service and MongoDB MUST be secured. No conversation content may be transmitted or stored without authentication and encryption.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "business",
@@ -33064,7 +33064,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T014",
-                  "requirement": "Prior to uploading logContent to the Anthropic Files API, the local service MUST redact all security tokens, API keys, connection strings, passwords, and any other credentials that may appear in logContent.",
+                  "requirement": "Prior to writing utterance records to MongoDB, the service MUST redact all security tokens, API keys, connection strings, passwords, and any other credentials that may appear in the utterance content.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33080,7 +33080,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T015",
-                  "requirement": "The local service MUST call the agent via the Anthropic Messages API tool_use pattern with six arguments: (1) logContentFileId — the Anthropic Files API file_id obtained by uploading conversation_log.json, (2) bearerToken — the CH_GUID authentication token, (3) mongoConnectionString — the MongoDB connection string, (4) preservePastTime — a PST datetime; records before this time are excluded from the client response, records at or after this time are included, (5) schema — the conversation_log JSON schema, and (6) errorLogFileId — the Anthropic Files API file_id of the previous error log (null on first run, read from the most recent agent utterance per T037). The local service MUST read mongoConnectionString from Code/.env.",
+                  "requirement": "The service MUST call the agent function with these arguments: (1) logContent — the conversation_log.json content as a parsed JSON object, (2) bearerToken — the CH_GUID authentication token, (3) mongoConnectionString — the MongoDB connection string, (4) preservePastTime — a PST datetime; records before this time are excluded, records at or after this time are retained. The service MUST read mongoConnectionString from Code/.env.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33114,7 +33114,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T017",
-                  "requirement": "The agent MUST use preservePastTime to determine which records to exclude from the client response. Any utterance with a timestamp_pst before preservePastTime MUST be excluded. Any utterance with a timestamp_pst at or after preservePastTime MUST be streamed to the client.",
+                  "requirement": "The agent function MUST use preservePastTime to determine which records to exclude. Any utterance with a timestamp_pst before preservePastTime MUST be excluded. Any utterance with a timestamp_pst at or after preservePastTime MUST be retained.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33146,7 +33146,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T019",
-                  "requirement": "Upon successful authentication and argument validation, the agent MUST download the conversation log from the Anthropic Files API using logContentFileId and persist it to a local file on the agent's filesystem before any further processing.",
+                  "requirement": "Upon successful authentication and argument validation, the agent function MUST read the conversation log content from the logContent argument.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33179,7 +33179,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T021",
-                  "requirement": "The agent MUST begin streaming the response to the client by writing the JSON header metadata and opening the utterances array. The agent MUST validate the header against schema before streaming. The utterances array is opened but not closed at this stage — retained records will be streamed into it subsequently.",
+                  "requirement": "The service MUST build the retained file as a complete JSON with header metadata and the retained utterances array. The service MUST validate the header against the schema before writing.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33229,7 +33229,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T024",
-                  "requirement": "The conversation_log.json header MUST include a schema address field that identifies the location of its JSON schema. The local service MUST read the schema from this address and include it as the schema POST argument.",
+                  "requirement": "The conversation_log.json header MUST include a schema address field that identifies the location of its JSON schema. The service MUST read the schema from this address for validation.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33259,7 +33259,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B008",
-                  "requirement": "ALL conversation log utterance records MUST be permanently archived to the conversation_log_archive collection in the ClaudeCodeLog database on the Frontend MongoDB cluster. The agent MUST connect using the mongoConnectionString POST argument. Each archived record MUST retain its original timestamp_pst and timestamp_utc.",
+                  "requirement": "ALL conversation log utterance records MUST be permanently archived to the conversation_log_archive collection in the ClaudeCodeLog database on the Frontend MongoDB cluster. The service MUST connect using mongoConnectionString. Each archived record MUST retain its original timestamp_pst and timestamp_utc.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "business",
@@ -33276,7 +33276,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T025",
-                  "requirement": "The agent MUST NOT delete, remove, or modify any content of the persisted file at any point during the job. A job is defined as: all work performed by the agent in response to a single HTTP POST call, including all processing that occurs after the response has been streamed to the client. The persisted file MUST remain intact and unmodified until the entire job is complete.",
+                  "requirement": "The agent function MUST NOT delete, remove, or modify any content of the original conversation_log.json at any point during the job. A job is defined as: all work performed by the service in a single cycle. The original file MUST remain intact and unmodified until the temp file is validated and renamed.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33328,7 +33328,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T028",
-                  "requirement": "After streaming all retained utterance records to the client, the agent MUST close all JSON structures (brackets, braces) and ensure the complete streamed response is legal JSON. The client MUST receive a complete, parseable JSON file that validates against schema.",
+                  "requirement": "The rebuilt retained file MUST be complete, parseable JSON that validates against the schema.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33345,7 +33345,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T029",
-                  "requirement": "The agent MUST complete all processing in this order: (1) build retained file, (2) write ALL records to MongoDB, (3) upload retained file to Anthropic Files API to obtain retainedFileId, (4) inject agent utterance, (5) delete persisted file, (6) return retainedFileId and metadata to the client. The client then downloads the retained file using retainedFileId. In the Anthropic Messages API tool_use pattern, the tool function must finish all work before returning.",
+                  "requirement": "The service MUST complete all processing in this order: (1) read conversation_log.json, (2) write ALL records to MongoDB, (3) query MongoDB for retained records (>= preservePastTime), (4) build retained file with header + retained records + agent utterance + service utterance, (5) write to .temp, (6) validate .temp, (7) rename .temp to .json.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33397,7 +33397,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T032",
-                  "requirement": "After the entire job is complete (HTTP response streamed, connection closed, MongoDB writes finished), the agent MUST delete the persisted file from the agent's filesystem.",
+                  "requirement": "After the entire job is complete (MongoDB writes finished, retained file written and renamed), the service MUST clean up any temporary files.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33427,7 +33427,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B010",
-                  "requirement": "The conversation log archive agent — not the client — MUST inject an utterance of type agent into the retained file before streaming it back to the client. The client receives the file with the agent utterance already included and writes it to disk without modification. The agent utterance MUST include job metadata: jobId (unique identifier), errorLogFileId (Anthropic Files API file_id for the persistent error log), preservePastTime (the cutoff used), counts (original, retained, archived to MongoDB), and any error details.",
+                  "requirement": "The agent function MUST inject an utterance of type agent into the retained file. The agent utterance MUST include job metadata: jobId (unique identifier), preservePastTime (the cutoff used), counts (original, retained, archived to MongoDB), and any error details.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "business",
@@ -33477,7 +33477,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T033",
-                  "requirement": "Client-side file paths (Windows, absolute). All client file operations MUST use these exact paths: READ logContent: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\conversation_log.json. UPLOAD logContent to Anthropic Files API, receive logContentFileId. READ .env: c:\\chatHealthy\\findCare\\Code\\.env. READ schema: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\schema.json. WRITE tool result to temp: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\conversation_log.json.temp. RENAME temp to real: conversation_log.json.temp to conversation_log.json at the same path. WRITE errors: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\errors.json. READ/WRITE queue if MongoDB fails: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\conversation_log_purge_queue.json.",
+                  "requirement": "Service file paths (Windows, absolute). All service file operations MUST use these exact paths: READ logContent: c:\\chatHealthy\findCare\brain\\machine_artifacts\\content\\conversation_log.json. READ .env: c:\\chatHealthy\findCare\\Code\\.env. READ schema: c:\\chatHealthy\findCare\brain\\machine_artifacts\\content\\schema.json. WRITE retained file to temp: c:\\chatHealthy\findCare\brain\\machine_artifacts\\content\\conversation_log.json.temp. RENAME temp to real: conversation_log.json.temp to conversation_log.json at the same path. WRITE errors: c:\\chatHealthy\findCare\brain\\machine_artifacts\\content\\errors.json. READ/WRITE queue if MongoDB fails: c:\\chatHealthy\findCare\brain\\machine_artifacts\\content\\conversation_log_purge_queue.json.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33496,7 +33496,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T034",
-                  "requirement": "Agent-side file paths (Anthropic cloud, Ubuntu, ephemeral per session). All agent file operations MUST use these exact paths: WRITE/READ/DELETE persisted logContent: /tmp/conversation_log_job.json. WRITE error log during session: /tmp/conversation_log_agent.log. The agent MUST upload the error log to the Anthropic Files API before the session ends to persist it across invocations.",
+                  "requirement": "The agent function persists logContent in memory during the job. No ephemeral cloud filesystem is used. All file operations are local to the Windows machine at the paths specified in T033.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33513,7 +33513,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T035",
-                  "requirement": "The agent MUST upload the error log from /tmp/conversation_log_agent.log to the Anthropic Files API at the end of each job. The returned file_id (errorLogFileId) MUST be included in the agent's utterance written to conversation_log.json (per B010). On the next invocation, the client MUST read errorLogFileId from the most recent agent utterance and the agent MUST download the previous error log from the Files API, append new errors, and re-upload.",
+                  "requirement": "The service MUST write errors to c:\\chatHealthy\findCare\brain\\machine_artifacts\\content\\errors.json. Errors persist locally across invocations. No cloud-based error log persistence is required.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
