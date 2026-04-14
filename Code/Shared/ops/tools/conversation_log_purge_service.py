@@ -164,6 +164,19 @@ def _format_pst(dt):
 
 def run_cycle():
     """Execute one purge cycle."""
+    try:
+        return _run_cycle_inner()
+    except Exception as e:
+        _log.error("Cycle crashed: %s", e)
+        import traceback
+        _log.error(traceback.format_exc())
+        for h in _log.handlers:
+            h.flush()
+        _write_error(f"Cycle crashed: {e}")
+        return False
+
+
+def _run_cycle_inner():
     from conversation_log_agent import process_conversation_log
 
     _log.info("=== Cycle started ===")
