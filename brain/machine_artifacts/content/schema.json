@@ -16,7 +16,8 @@
       ],
       "produces_artifact": true,
       "artifact_format": "pdf",
-      "biz_artifact_folder": null
+      "biz_artifact_folder": null,
+      "schema_status": "orphan"
     },
     "architecture": {
       "path": "brain/machine_artifacts/architecture/",
@@ -29,7 +30,8 @@
       ],
       "produces_artifact": true,
       "artifact_format": "pdf",
-      "biz_artifact_folder": "diagrams"
+      "biz_artifact_folder": "diagrams",
+      "schema_status": "orphan"
     },
     "business_plan": {
       "path": "brain/machine_artifacts/business_plan/",
@@ -41,7 +43,8 @@
       ],
       "produces_artifact": true,
       "artifact_format": "docx",
-      "biz_artifact_folder": null
+      "biz_artifact_folder": null,
+      "schema_status": "orphan"
     },
     "sprint_plan": {
       "path": "brain/machine_artifacts/sprint_plan/",
@@ -53,7 +56,8 @@
         "uat_features"
       ],
       "produces_artifact": false,
-      "biz_artifact_folder": null
+      "biz_artifact_folder": null,
+      "schema_status": "orphan"
     },
     "bugs": {
       "path": "brain/machine_artifacts/content/bugs.json",
@@ -167,7 +171,8 @@
         }
       },
       "produces_artifact": false,
-      "biz_artifact_folder": null
+      "biz_artifact_folder": null,
+      "schema_status": "enforced"
     },
     "external_audits": {
       "path": "brain/machine_artifacts/external_audits/",
@@ -178,7 +183,8 @@
       ],
       "produces_artifact": true,
       "artifact_format": "docx",
-      "biz_artifact_folder": null
+      "biz_artifact_folder": null,
+      "schema_status": "orphan"
     },
     "ai_operations": {
       "path": "brain/machine_artifacts/content/ai_operations.json",
@@ -255,7 +261,8 @@
           }
         }
       },
-      "biz_artifact_folder": null
+      "biz_artifact_folder": null,
+      "schema_status": "enforced"
     },
     "devops": {
       "path": "brain/machine_artifacts/devops/",
@@ -265,7 +272,8 @@
         "support_ticket"
       ],
       "produces_artifact": false,
-      "biz_artifact_folder": null
+      "biz_artifact_folder": null,
+      "schema_status": "orphan"
     },
     "legal": {
       "path": "brain/machine_artifacts/legal/",
@@ -277,7 +285,8 @@
       ],
       "produces_artifact": true,
       "artifact_format": "pdf",
-      "biz_artifact_folder": null
+      "biz_artifact_folder": null,
+      "schema_status": "orphan"
     },
     "work_log": {
       "path": "brain/machine_artifacts/work_log/",
@@ -288,7 +297,8 @@
         "activity_state"
       ],
       "produces_artifact": false,
-      "biz_artifact_folder": null
+      "biz_artifact_folder": null,
+      "schema_status": "orphan"
     },
     "prompt_log": {
       "path": "brain/machine_artifacts/content/conversation_log.json",
@@ -317,7 +327,12 @@
             "role": {
               "type": "string",
               "required": true,
-              "possible_values": ["user", "assistant", "agent", "service"],
+              "possible_values": [
+                "user",
+                "assistant",
+                "agent",
+                "service"
+              ],
               "description": "Utterance type"
             },
             "timestamp_pst": {
@@ -355,9 +370,15 @@
               "type": "object",
               "required_when": "role == agent",
               "fields": {
-                "original": {"type": "integer"},
-                "retained": {"type": "integer"},
-                "archived": {"type": "integer"}
+                "original": {
+                  "type": "integer"
+                },
+                "retained": {
+                  "type": "integer"
+                },
+                "archived": {
+                  "type": "integer"
+                }
               },
               "description": "Record counts for the job: original in file, retained for client, archived to MongoDB"
             },
@@ -378,7 +399,8 @@
             }
           }
         }
-      }
+      },
+      "schema_status": "enforced"
     },
     "agile_backlog": {
       "path": "brain/machine_artifacts/content/agile_backlog.json",
@@ -580,64 +602,142 @@
             }
           }
         }
-      }
+      },
+      "schema_status": "enforced"
     },
     "policies": {
       "path": "brain/machine_artifacts/content/policies.json",
       "purpose": "All corporate and governance policies (GOV-001 through GOV-014)",
       "produces_artifact": true,
-      "artifact_format": "pdf"
+      "artifact_format": "pdf",
+      "schema_status": "orphan",
+      "record_schemas": {
+        "placeholder": {
+          "description": "Open schema — field definitions not yet written for policies. Must be completed before enforcement can be enabled.",
+          "fields": {}
+        }
+      }
     },
     "controlled_vocabularies": {
       "path": "brain/machine_artifacts/content/controlled_vocabularies.json",
       "purpose": "Governed controlled vocabularies used across the system",
-      "produces_artifact": false
+      "produces_artifact": false,
+      "schema_status": "orphan",
+      "record_schemas": {
+        "placeholder": {
+          "description": "Open schema — field definitions not yet written for controlled_vocabularies. Must be completed before enforcement can be enabled.",
+          "fields": {}
+        }
+      }
     },
     "emergency_keywords": {
       "path": "brain/machine_artifacts/content/emergency_keywords.json",
       "purpose": "Config-driven keyword list for SafetyService EmergencyDetector",
-      "produces_artifact": false
+      "produces_artifact": false,
+      "schema_status": "orphan",
+      "record_schemas": {
+        "placeholder": {
+          "description": "Open schema — field definitions not yet written for emergency_keywords. Must be completed before enforcement can be enabled.",
+          "fields": {}
+        }
+      }
     },
     "design": {
       "path": "brain/machine_artifacts/content/design.json",
       "purpose": "Feature-level design documents (drug mapping, county enrichment, agent framework, GUI layout)",
-      "produces_artifact": false
+      "produces_artifact": false,
+      "schema_status": "orphan",
+      "record_schemas": {
+        "placeholder": {
+          "description": "Open schema — field definitions not yet written for design. Must be completed before enforcement can be enabled.",
+          "fields": {}
+        }
+      }
     },
     "security": {
       "path": "brain/machine_artifacts/content/security.json",
       "purpose": "Security architecture design, NIST 800-171 and HITRUST CSF compliance mappings, CUI readiness",
       "produces_artifact": true,
-      "artifact_format": "pdf"
+      "artifact_format": "pdf",
+      "schema_status": "orphan",
+      "record_schemas": {
+        "placeholder": {
+          "description": "Open schema — field definitions not yet written for security. Must be completed before enforcement can be enabled.",
+          "fields": {}
+        }
+      }
     },
     "prompts": {
       "path": "brain/machine_artifacts/content/prompts.json",
       "purpose": "All system and user prompts for GPT and Claude agent assignments. Registered per GOV-009.",
-      "produces_artifact": false
+      "produces_artifact": false,
+      "schema_status": "orphan",
+      "record_schemas": {
+        "placeholder": {
+          "description": "Open schema — field definitions not yet written for prompts. Must be completed before enforcement can be enabled.",
+          "fields": {}
+        }
+      }
     },
     "risk_acceptance": {
       "path": "brain/machine_artifacts/content/risk_acceptance.json",
       "purpose": "Formal risk acceptance register. Every deviation from policy requires Boss sign-off recorded here.",
-      "produces_artifact": false
+      "produces_artifact": false,
+      "schema_status": "orphan",
+      "record_schemas": {
+        "placeholder": {
+          "description": "Open schema — field definitions not yet written for risk_acceptance. Must be completed before enforcement can be enabled.",
+          "fields": {}
+        }
+      }
     },
     "token_usage": {
       "path": "brain/machine_artifacts/content/token_usage.json",
       "purpose": "Silent cost tracking. All token costs by epic, model, and date.",
-      "produces_artifact": false
+      "produces_artifact": false,
+      "schema_status": "orphan",
+      "record_schemas": {
+        "placeholder": {
+          "description": "Open schema — field definitions not yet written for token_usage. Must be completed before enforcement can be enabled.",
+          "fields": {}
+        }
+      }
     },
     "unrealized_ideas": {
       "path": "brain/machine_artifacts/content/unrealized_ideas.json",
       "purpose": "Ideas from Boss not yet in the backlog. Tracked here first, promoted when prioritized.",
-      "produces_artifact": false
+      "produces_artifact": false,
+      "schema_status": "orphan",
+      "record_schemas": {
+        "placeholder": {
+          "description": "Open schema — field definitions not yet written for unrealized_ideas. Must be completed before enforcement can be enabled.",
+          "fields": {}
+        }
+      }
     },
     "project_manifest": {
       "path": "brain/machine_artifacts/content/project_manifest.json",
       "purpose": "Every file in the project catalogued with capabilities, descriptions, and content hashes. Also synced to MongoDB admin.manifest.",
-      "produces_artifact": false
+      "produces_artifact": false,
+      "schema_status": "orphan",
+      "record_schemas": {
+        "placeholder": {
+          "description": "Open schema — field definitions not yet written for project_manifest. Must be completed before enforcement can be enabled.",
+          "fields": {}
+        }
+      }
     },
     "engineering_rules": {
       "path": "brain/machine_artifacts/content/engineering_rules.json",
       "description": "Authoritative engineering rules. Combines operating standards (v4-series) and incident-driven lessons (DR-series).",
-      "purpose": "Single source of truth for all engineering rules."
+      "purpose": "Single source of truth for all engineering rules.",
+      "schema_status": "orphan",
+      "record_schemas": {
+        "placeholder": {
+          "description": "Open schema — field definitions not yet written for engineering_rules. Must be completed before enforcement can be enabled.",
+          "fields": {}
+        }
+      }
     }
   },
   "entity_types": [
