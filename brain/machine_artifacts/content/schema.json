@@ -294,7 +294,91 @@
       "path": "brain/machine_artifacts/content/conversation_log.json",
       "purpose": "Rolling 24h conversation log — every prompt and response",
       "produces_artifact": false,
-      "retention": "24_hours"
+      "retention": "24_hours",
+      "record_schemas": {
+        "LogRecords": {
+          "description": "Array of LogRecord objects stored in the utterances field of conversation_log.json.",
+          "type": "array",
+          "items": "LogRecord"
+        },
+        "LogRecord": {
+          "description": "A single utterance in the conversation log. Four types: user (Skip), assistant (Claude), agent (ConversationLogAgent), service (ConversationLogManagerService).",
+          "fields": {
+            "utterance": {
+              "type": "integer",
+              "required": true,
+              "description": "Sequential utterance number"
+            },
+            "userId": {
+              "type": "string",
+              "required": true,
+              "description": "Author identifier: Skip, Claude, ConversationLogAgent, or ConversationLogManagerService"
+            },
+            "role": {
+              "type": "string",
+              "required": true,
+              "possible_values": ["user", "assistant", "agent", "service"],
+              "description": "Utterance type"
+            },
+            "timestamp_pst": {
+              "type": "string",
+              "required": true,
+              "format": "%-m/%-d/%Y %-H:%M:%S.%f",
+              "description": "PST time with microsecond precision. Unique across all records (B007)."
+            },
+            "timestamp_utc": {
+              "type": "string",
+              "required": true,
+              "description": "UTC time with microsecond precision"
+            },
+            "content": {
+              "type": "string",
+              "required": true,
+              "description": "Verbatim text content of the utterance"
+            },
+            "jobId": {
+              "type": "string",
+              "required_when": "role == agent",
+              "description": "Unique job identifier for agent utterances"
+            },
+            "errorLogFileId": {
+              "type": "string",
+              "required_when": "role == agent",
+              "description": "Anthropic Files API file_id for the persistent error log"
+            },
+            "preservePastTime": {
+              "type": "string",
+              "required_when": "role == agent",
+              "description": "The PST datetime cutoff used for this job"
+            },
+            "counts": {
+              "type": "object",
+              "required_when": "role == agent",
+              "fields": {
+                "original": {"type": "integer"},
+                "retained": {"type": "integer"},
+                "archived": {"type": "integer"}
+              },
+              "description": "Record counts for the job: original in file, retained for client, archived to MongoDB"
+            },
+            "action": {
+              "type": "string",
+              "required_when": "role == service",
+              "description": "Service action performed (e.g. started, called_agent, wrote_file)"
+            },
+            "outcome": {
+              "type": "string",
+              "required_when": "role == service",
+              "description": "Result of the service action (success, failure)"
+            },
+            "error": {
+              "type": "string",
+              "required_when": "role in (agent, service) and error occurred",
+              "description": "Error details if the action failed"
+            }
+          }
+        }
+      }
     },
     "agile_backlog": {
       "path": "brain/machine_artifacts/content/agile_backlog.json",
