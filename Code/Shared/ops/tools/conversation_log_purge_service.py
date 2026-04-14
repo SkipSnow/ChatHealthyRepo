@@ -242,17 +242,11 @@ def run_cycle():
     _log.info("Agent returned: archived=%d, retained=%d",
               result["counts"]["archived"], result["counts"]["retained"])
 
-    # T012: The agent already built the retained file and wrote .temp (T013).
-    # The agent already validated .temp (T014).
-    # Now inject service utterance into the .temp file.
-    try:
-        with open(TEMP_PATH, "r", encoding="utf-8") as f:
-            retained_file = json.load(f)
-    except Exception as e:
-        msg = f"Failed to read .temp after agent: {e}"
-        _log.error(msg)
-        _write_error(msg)  # T023
-        return False
+    # T012: Service builds the retained file from agent results
+    retained_file = {
+        **result["header"],
+        "utterances": result["retained_records"],
+    }
 
     # B009: Inject service utterance
     svc_now_utc = datetime.now(timezone.utc)
@@ -284,16 +278,60 @@ def run_cycle():
     }
     retained_file["utterances"].append(service_utterance)
 
-    # T012: Rewrite .temp with service utterance added
+    # T013: Service writes retained file to .temp
     _log.info("Writing %d utterances to .temp", len(retained_file["utterances"]))
     try:
         with open(TEMP_PATH, "w", encoding="utf-8") as f:
             json.dump(retained_file, f, indent=2, ensure_ascii=False)
     except Exception as e:
-        msg = f"Failed to rewrite .temp: {e}"
+        msg = f"Failed to write .temp: {e}"
         _log.error(msg)
         _write_error(msg)  # T023
         return False
+
+    # T014: Service validates .temp is legal JSON
+    try:
+        with open(TEMP_PATH, "r", encoding="utf-8") as f:
+            validated = json.load(f)
+    except Exception as e:
+        msg = f".temp is not valid JSON: {e}"
+        _log.error(msg)
+        _write_error(msg)  # T023
+        TEMP_PATH.unlink(missing_ok=True)
+        return False
+
+    # T014: Real parity check — every retained record from the original file
+    # must be present in the .temp file. The service has the original data in
+    # memory and knows preservePastTime.
+    from conversation_log_agent import _parse_datetime
+    cutoff = _parse_datetime(preserve_past)
+    expected_retained = set()
+    for u in data.get("utterances", []):
+        ts = _parse_datetime(u.get("timestamp_pst", ""))
+        if ts is None or ts >= cutoff:
+            expected_retained.add(u.get("ch_key", ""))
+
+    actual_retained = set()
+    for u in validated.get("utterances", []):
+        ch = u.get("ch_key", "")
+        if ch:
+            actual_retained.add(ch)
+
+    missing = expected_retained - actual_retained
+    if missing:
+        msg = f"Parity check failed: {len(missing)} retained records from original file missing in .temp"
+        _log.error(msg)
+        _write_error(msg)  # T023
+        TEMP_PATH.unlink(missing_ok=True)
+        return False
+
+    _log.info("Parity check passed: %d expected retained, all present", len(expected_retained))
+
+    # B001: Validate against schema
+    from conversation_log_agent import _validate_against_schema
+    violations = _validate_against_schema(validated, schema)
+    if violations:
+        _log.warning("Schema violations: %s", violations)
 
     # T015: Rename .temp to .json (T019: acquire lock first)
     lock_handle = _acquire_lock(CONVERSATION_LOG_PATH)
