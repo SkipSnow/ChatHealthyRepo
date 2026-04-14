@@ -259,7 +259,7 @@ def _call_anthropic_agent(data, bearer, mongo_conn, preserve_past, schema_json):
                 "anthropic-version": "2023-06-01",
                 "anthropic-beta": "files-api-2025-04-14",
             },
-            files=[("file", ("payload.json", payload_bytes, "application/json"))],
+            files=[("file", ("payload.json", payload_bytes, "text/plain"))],
             timeout=60,
         )
         resp.raise_for_status()
