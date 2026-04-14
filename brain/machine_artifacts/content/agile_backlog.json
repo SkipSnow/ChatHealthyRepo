@@ -32838,7 +32838,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T001",
-                  "requirement": "The 24-hour retention requirement (REQ-B004) MUST be implemented as an Anthropic-hosted remote agent called by a local service running on the user machine. The agent receives logContent via streamed HTTP POST, processes it, and streams back a JSON file containing only the retained records. The local service writes the streamed response to disk. The local service MUST run as a Windows service that starts on boot and operates whether or not Cursor or the Claude Code desktop app is open.",
+                  "requirement": "The 24-hour retention requirement (REQ-B004) MUST be implemented as an Anthropic-hosted remote agent called by a local service running on the user machine. The local service uploads logContent to the Anthropic Files API, receives a logContentFileId, and passes that file_id to the agent via the Messages API tool_use pattern. The agent processes the file and returns a JSON file containing only the retained records. The local service writes the result to disk. The local service MUST run as a Windows service that starts on boot and operates whether or not Cursor or the Claude Code desktop app is open.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -32868,7 +32868,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T002",
-                  "requirement": "The remote Anthropic agent MUST write ALL utterance records from the persisted file to MongoDB after the HTTP connection to the client is closed. If MongoDB is unavailable, the remote agent MUST store the records in a queue and retry on the next invocation, sending all queued records along with the current batch.",
+                  "requirement": "The remote Anthropic agent MUST write ALL utterance records from the persisted file to MongoDB after building the retained file response and before returning the tool result to the client. If MongoDB is unavailable, the agent MUST return the unwritten records in the tool result so the client can persist them to the queue file for retry on the next invocation.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33064,7 +33064,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T014",
-                  "requirement": "Prior to sending logContent to the remote agent, the local service MUST redact all security tokens, API keys, connection strings, passwords, and any other credentials that may appear in logContent.",
+                  "requirement": "Prior to uploading logContent to the Anthropic Files API, the local service MUST redact all security tokens, API keys, connection strings, passwords, and any other credentials that may appear in logContent.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33080,7 +33080,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T015",
-                  "requirement": "The local service MUST send to the agent a streamed HTTP POST with five arguments: (1) logContent — the conversation_log.json content (streamed), (2) bearerToken — the CH_GUID authentication token, (3) mongoConnectionString — the MongoDB connection string, (4) preservePastTime — a PST datetime; records before this time are excluded from the client response, records at or after this time are streamed to the client, and (5) schema — the conversation_log JSON schema. The local service MUST read mongoConnectionString from Code/.env.",
+                  "requirement": "The local service MUST call the agent via the Anthropic Messages API tool_use pattern with six arguments: (1) logContentFileId — the Anthropic Files API file_id obtained by uploading conversation_log.json, (2) bearerToken — the CH_GUID authentication token, (3) mongoConnectionString — the MongoDB connection string, (4) preservePastTime — a PST datetime; records before this time are excluded from the client response, records at or after this time are included, (5) schema — the conversation_log JSON schema, and (6) errorLogFileId — the Anthropic Files API file_id of the previous error log (null on first run, read from the most recent agent utterance per T037). The local service MUST read mongoConnectionString from Code/.env.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33130,7 +33130,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T018",
-                  "requirement": "If any of the required POST arguments defined in T015 is missing or malformed, the agent MUST return HTTP 400 Bad Request with a message identifying which argument failed validation. The agent MUST NOT process the request further.",
+                  "requirement": "If any of the required arguments defined in T015 is missing or malformed (except errorLogFileId which may be null on first run), the agent MUST return HTTP 400 Bad Request with a message identifying which argument failed validation. The agent MUST NOT process the request further.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33146,7 +33146,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T019",
-                  "requirement": "Upon successful authentication and argument validation, the agent MUST persist logContent to a local file on the agent's filesystem before any further processing.",
+                  "requirement": "Upon successful authentication and argument validation, the agent MUST download the conversation log from the Anthropic Files API using logContentFileId and persist it to a local file on the agent's filesystem before any further processing.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33345,7 +33345,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T029",
-                  "requirement": "After streaming the complete JSON response to the client, the agent MUST close the HTTP connection. All subsequent processing (MongoDB writes, file cleanup) MUST occur after the connection is closed.",
+                  "requirement": "The agent MUST complete all processing (build retained file, write to MongoDB, inject agent utterance, delete persisted file) before returning the tool result. In the Anthropic Messages API tool_use pattern, there is no separate HTTP connection — the tool function must finish all work before returning.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33477,7 +33477,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T033",
-                  "requirement": "Client-side file paths (Windows, absolute). All client file operations MUST use these exact paths: READ logContent: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\conversation_log.json. READ .env: c:\\chatHealthy\\findCare\\Code\\.env. READ schema: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\schema.json. WRITE streamed response to temp: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\conversation_log.json.temp. RENAME temp to real: conversation_log.json.temp to conversation_log.json at the same path. WRITE errors: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\errors.json. READ/WRITE queue if MongoDB fails: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\conversation_log_purge_queue.json.",
+                  "requirement": "Client-side file paths (Windows, absolute). All client file operations MUST use these exact paths: READ logContent: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\conversation_log.json. UPLOAD logContent to Anthropic Files API, receive logContentFileId. READ .env: c:\\chatHealthy\\findCare\\Code\\.env. READ schema: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\schema.json. WRITE tool result to temp: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\conversation_log.json.temp. RENAME temp to real: conversation_log.json.temp to conversation_log.json at the same path. WRITE errors: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\errors.json. READ/WRITE queue if MongoDB fails: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\conversation_log_purge_queue.json.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
