@@ -30984,14 +30984,14 @@
           ],
           "stories": [
             {
-              "story_id": "ARCH-ORPHAN-001",
-              "title": "Deferred Boot, Mode Selection, and Orphan Triage",
-              "description": "On the first user prompt, Claude Code MUST boot the governance singleton, ask the user to select an operating mode (1 = Unattended, 2 = Normal, 3 = Idiot), and then present any orphan bugs for triage. There MUST be no SessionStart hook. Known bug: BUG-AUTH-001.",
+              "story_id": "ARCH-DEVOPS-BOOT-001",
+              "title": "Deferred Boot and Mode Selection",
+              "description": "On the first user prompt, Claude Code MUST boot the governance singleton and ask the user to select an operating mode (1 = Unattended, 2 = Normal, 3 = Idiot). There MUST be no SessionStart hook. Known bug: BUG-AUTH-001.",
               "size": "L",
               "status": "DONE_KNOWN_ISSUE",
               "requirements": [
                 {
-                  "req_id": "ARCH-ORPHAN-001-REQ-003",
+                  "req_id": "ARCH-DEVOPS-BOOT-001-REQ-003",
                   "requirement": "The boot class MUST be a single Python file with __main__ and a chathealthy_devops_boot class. main() dispatches to the class by mode (prompt, tool_call, prompt_result, session_end). There is no boot mode — boot is triggered by the prompt handler on first call. Every mode handler MUST be wrapped in try/except/finally. The finally block MUST always call sys.exit() to return control to Cursor/Claude Code. All modes MUST fail open on exception.",
                   "priority": "must-have",
                   "status": "DONE",
@@ -31000,7 +31000,7 @@
                   ]
                 },
                 {
-                  "req_id": "ARCH-ORPHAN-001-REQ-004",
+                  "req_id": "ARCH-DEVOPS-BOOT-001-REQ-004",
                   "requirement": "inform_claude() MUST serialize singleton state (version, framework, build, brain file list, constraints, non-allow governance matrix cells) and the orphan table into additionalContext in the hook response. Called from the prompt() path on first boot.",
                   "priority": "must-have",
                   "status": "DONE",
@@ -31009,7 +31009,7 @@
                   ]
                 },
                 {
-                  "req_id": "ARCH-ORPHAN-001-REQ-005",
+                  "req_id": "ARCH-DEVOPS-BOOT-001-REQ-005",
                   "requirement": "chathealthyai_brainboot.json MUST be deleted. brain/machine_artifacts/boot/ directory MUST be deleted. All references to both in chathealthy_devops_boot.py and governance_matrix.json MUST be removed.",
                   "priority": "must-have",
                   "status": "DONE",
@@ -31018,7 +31018,7 @@
                   ]
                 },
                 {
-                  "req_id": "ARCH-ORPHAN-001-REQ-006",
+                  "req_id": "ARCH-DEVOPS-BOOT-001-REQ-006",
                   "requirement": "CLAUDE.md MUST state only that the boot class governs the session.",
                   "priority": "must-have",
                   "status": "DONE",
@@ -31027,7 +31027,7 @@
                   ]
                 },
                 {
-                  "req_id": "ARCH-ORPHAN-001-REQ-007",
+                  "req_id": "ARCH-DEVOPS-BOOT-001-REQ-007",
                   "requirement": "There MUST be no SessionStart hook in .claude/settings.json.",
                   "priority": "must-have",
                   "status": "DONE",
@@ -31036,7 +31036,7 @@
                   ]
                 },
                 {
-                  "req_id": "ARCH-ORPHAN-001-REQ-008",
+                  "req_id": "ARCH-DEVOPS-BOOT-001-REQ-008",
                   "requirement": "Boot MUST only occur once per session. On SessionEnd, the boot flag in .claude/ChatHealthySettings.json MUST be set to FALSE. On a successful boot from within Anthropic's UserPromptSubmit hook, the flag MUST be set to TRUE. Each subsequent call from the hook MUST check the flag to determine whether the session needs to be booted. If ChatHealthySettings.json or the boot flag cannot be found, an error message MUST be output to the user and no boot is attempted. If SessionEnd does not fire (crash, force-quit), the next session's first prompt will hit the error state and inform the user.",
                   "priority": "must-have",
                   "status": "DONE",
@@ -31045,7 +31045,7 @@
                   ]
                 },
                 {
-                  "req_id": "ARCH-ORPHAN-001-REQ-009",
+                  "req_id": "ARCH-DEVOPS-BOOT-001-REQ-009",
                   "requirement": "SessionEnd hook MUST clear the booted flag in .claude/ChatHealthySettings.json so the next session gets a fresh boot on first prompt. SessionEnd is wrapped in try/except/finally and MUST fail open.",
                   "priority": "must-have",
                   "status": "DONE",
@@ -31054,7 +31054,7 @@
                   ]
                 },
                 {
-                  "req_id": "ARCH-ORPHAN-001-REQ-010",
+                  "req_id": "ARCH-DEVOPS-BOOT-001-REQ-010",
                   "requirement": "After boot completes, Claude Code MUST ask the user to select an operating mode: 1 = Unattended, 2 = Normal, 3 = Idiot. Claude Code MUST NOT proceed until the user has made a selection.",
                   "priority": "must-have",
                   "status": "DONE",
@@ -31063,7 +31063,7 @@
                   ]
                 },
                 {
-                  "req_id": "ARCH-ORPHAN-001-REQ-011",
+                  "req_id": "ARCH-DEVOPS-BOOT-001-REQ-011",
                   "requirement": "After mode selection, if orphan bugs exist, Claude Code MUST present the orphan table and ask the user to triage each orphan bug by assigning a req_id or closing it. Claude Code MUST NOT proceed to other work until triage is complete or the user explicitly defers it.",
                   "priority": "must-have",
                   "status": "DONE",
@@ -33370,7 +33370,7 @@
               "status": "NOT_STARTED",
               "requirements": [
                 {
-                  "req_id": "ARCH-ORPHAN-001-REQ-001",
+                  "req_id": "ARCH-DEVOPS-BOOT-001-REQ-001",
                   "requirement": "On first UserPromptSubmit (deferred boot), the boot class MUST scan bugs.json for entries with req_id: ORPHAN_BUG and output a table to the session showing: bug ID, type, rule text (truncated), and last updated date.",
                   "priority": "must-have",
                   "status": "DONE",
@@ -33379,7 +33379,7 @@
                   ]
                 },
                 {
-                  "req_id": "ARCH-ORPHAN-001-REQ-002",
+                  "req_id": "ARCH-DEVOPS-BOOT-001-REQ-002",
                   "requirement": "The orphan scan MUST be pure file I/O — no network, no database. If bugs.json is not found, corrupt, or unreadable, the scan MUST fail open with a specific exception message and full stack trace printed to stderr.",
                   "priority": "must-have",
                   "status": "DONE",
@@ -33576,7 +33576,7 @@
         }
       ],
       "epic_id": "EPIC-008",
-      "type": "epic"
+      "type": "operational"
     },
     {
       "epic_id": "EPIC-009",
@@ -34272,8 +34272,9 @@
   "regression_tests": {
     "epic_id": "EPIC-10",
     "name": "Pipeline Regression Tests",
-    "goal": "Automated regression suite that catches data quality, load parity, and enrichment failures before they reach production. Every pipeline run must pass these tests.",
-    "status": "active",
+    "type": "functional",
+    "description": "Automated regression suite that catches data quality, load parity, and enrichment failures before they reach production. Every pipeline run must pass these tests.",
+    "status": "IN_PROGRESS",
     "features": [
       {
         "feature_id": "REG-LOAD-PARITY",
@@ -34317,7 +34318,10 @@
                 "ch_matrix_id": "da5b2aab-ac6c-4256-a08b-917bb6a6e361"
               }
             ],
-            "ch_matrix_id": "6205c226-6b8a-46b5-8af0-9595c3fdecb7"
+            "ch_matrix_id": "6205c226-6b8a-46b5-8af0-9595c3fdecb7",
+            "description": "Provider load parity: source CSV vs pipeline DB",
+            "size": "S",
+            "status": "IN_PROGRESS"
           }
         ],
         "ch_matrix_id": "186cbf4f-dd66-448d-be8e-a5dc3413feda"
@@ -34371,7 +34375,10 @@
                 "ch_matrix_id": "8d53d319-e419-4341-98ed-3c9a85b18ef4"
               }
             ],
-            "ch_matrix_id": "8b863bc9-40a1-4ad0-8763-edf5ca28acdf"
+            "ch_matrix_id": "8b863bc9-40a1-4ad0-8763-edf5ca28acdf",
+            "description": "Schema integrity tests",
+            "size": "S",
+            "status": "IN_PROGRESS"
           },
           {
             "story_id": "REG-DQ-002",
@@ -34406,7 +34413,10 @@
                 "ch_matrix_id": "12a5d851-e5c0-4d52-be9d-c7b0be0931ea"
               }
             ],
-            "ch_matrix_id": "cea29c4f-db83-44f8-9a3e-43fc47bce61f"
+            "ch_matrix_id": "cea29c4f-db83-44f8-9a3e-43fc47bce61f",
+            "description": "Data quality flag tests",
+            "size": "S",
+            "status": "IN_PROGRESS"
           },
           {
             "story_id": "REG-DQ-003",
@@ -34441,7 +34451,10 @@
                 "ch_matrix_id": "d4d2fbbc-bf9b-46b3-b2f8-1bf03af01657"
               }
             ],
-            "ch_matrix_id": "b3b7f84c-eb88-4def-9bec-32dd7edef31b"
+            "ch_matrix_id": "b3b7f84c-eb88-4def-9bec-32dd7edef31b",
+            "description": "County enrichment tests",
+            "size": "S",
+            "status": "IN_PROGRESS"
           },
           {
             "story_id": "REG-DQ-004",
@@ -34469,7 +34482,10 @@
                 "ch_matrix_id": "42999419-5075-4bab-b116-6ea161530130"
               }
             ],
-            "ch_matrix_id": "d8055ef1-b521-42d3-9dca-c00260c1f660"
+            "ch_matrix_id": "d8055ef1-b521-42d3-9dca-c00260c1f660",
+            "description": "Embedding tests",
+            "size": "S",
+            "status": "IN_PROGRESS"
           },
           {
             "story_id": "REG-DQ-005",
@@ -34504,7 +34520,10 @@
                 "ch_matrix_id": "4f567ced-d9f6-4c4b-92f2-1ced3cbd6d0e"
               }
             ],
-            "ch_matrix_id": "66894883-eaa2-42f2-b02b-ba4790b0f7a1"
+            "ch_matrix_id": "66894883-eaa2-42f2-b02b-ba4790b0f7a1",
+            "description": "Prescriber classification tests",
+            "size": "S",
+            "status": "IN_PROGRESS"
           },
           {
             "story_id": "REG-DQ-006",
@@ -34532,7 +34551,10 @@
                 "ch_matrix_id": "ad46ab14-0825-4552-bd73-a291072a78b3"
               }
             ],
-            "ch_matrix_id": "6586d816-f2a7-426f-b6ab-9bf7e85a66bb"
+            "ch_matrix_id": "6586d816-f2a7-426f-b6ab-9bf7e85a66bb",
+            "description": "SpecialtyMetaData integrity tests",
+            "size": "S",
+            "status": "IN_PROGRESS"
           }
         ],
         "ch_matrix_id": "bafa28c6-8ca1-46b8-a227-60b21a2f4e1f"
@@ -34579,7 +34601,10 @@
                 "ch_matrix_id": "c97dfe60-1441-4e68-b294-f7b489b50e97"
               }
             ],
-            "ch_matrix_id": "3e0bc86c-6731-4e8f-89db-850f69c12d27"
+            "ch_matrix_id": "3e0bc86c-6731-4e8f-89db-850f69c12d27",
+            "description": "Controlled vocabulary structure and code compliance",
+            "size": "S",
+            "status": "IN_PROGRESS"
           }
         ],
         "ch_matrix_id": "965486b4-3f28-4926-a9dc-a16fb888e375"
@@ -34603,6 +34628,46 @@
       }
     ],
     "ch_matrix_id": "0e860297-4630-4c88-902b-8e15f446b4ff"
+  },
+  "orphan_catchall": {
+    "epic_id": "EPIC-ORPHAN",
+    "name": "Orphan Catchall",
+    "type": "functional",
+    "description": "Parent for any feature, story, or requirement that does not yet have a proper home in the hierarchy. Items here should be triaged and moved to the correct epic/feature.",
+    "status": "IN_PROGRESS",
+    "features": [
+      {
+        "feature_id": "ORPHAN-CATCHALL",
+        "name": "Orphan Catchall Feature",
+        "status": "IN_PROGRESS",
+        "description": "Catchall feature for orphaned stories and requirements.",
+        "realized_by": [],
+        "stories": [
+          {
+            "story_id": "ORPHAN",
+            "title": "Orphan Catchall Story",
+            "description": "Catchall story for orphaned requirements. Items here need triage.",
+            "size": "S",
+            "status": "IN_PROGRESS",
+            "requirements": [
+              {
+                "req_id": "ORPHAN",
+                "requirement": "Placeholder requirement for orphaned bugs and work items that do not yet trace to a proper requirement.",
+                "priority": "must-have",
+                "status": "NOT_STARTED",
+                "type": "technical",
+                "pytest_ids": [
+                  "ORPHAN"
+                ],
+                "realized_by": []
+              }
+            ]
+          }
+        ],
+        "epic_id": "EPIC-ORPHAN"
+      }
+    ],
+    "ch_matrix_id": null
   },
   "gate_recommendation": "proceed_with_warning",
   "summary": {

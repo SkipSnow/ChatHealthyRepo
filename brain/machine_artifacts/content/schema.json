@@ -76,6 +76,11 @@
             "required": true,
             "description": "Reference to the agile_backlog requirement this bug is associated with (e.g. FC-SELECT-001-REQ-002). Every bug must trace to a requirement."
           },
+          "story_id": {
+            "type": "string",
+            "required": true,
+            "description": "Reference to the agile_backlog story this bug is associated with. Every bug must trace to a story."
+          },
           "type": {
             "type": "string",
             "required": true,
@@ -104,7 +109,9 @@
               "in_analysis",
               "fixing",
               "testing",
-              "tested_passed"
+              "tested_passed",
+              "deferred",
+              "closed_reqs_reorganized"
             ]
           },
           "pytest_id": {
@@ -167,6 +174,71 @@
             "required": true,
             "default": null,
             "description": "Reference to risk_acceptance.json entry. Null until Boss authorizes. Pydantic object checks this — if not null, fix is authorized. If null, escalate."
+          },
+          "rule": {
+            "type": "string",
+            "description": "The rule or assertion that was violated"
+          },
+          "incident": {
+            "type": "string",
+            "description": "Description of the incident that triggered the bug"
+          },
+          "resolution": {
+            "type": "string",
+            "description": "How the bug was resolved"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description of the bug"
+          },
+          "title": {
+            "type": "string",
+            "description": "Short title for the bug"
+          },
+          "bug_id": {
+            "type": "string",
+            "description": "Legacy field — use id instead"
+          },
+          "impact": {
+            "type": "string",
+            "description": "Impact of the bug on the system or user"
+          },
+          "expected": {
+            "type": "string",
+            "description": "Expected behavior"
+          },
+          "actual": {
+            "type": "string",
+            "description": "Actual behavior observed"
+          },
+          "fix": {
+            "type": "string",
+            "description": "Description of the fix applied"
+          },
+          "reproduction": {
+            "type": "string",
+            "description": "Steps to reproduce the bug"
+          },
+          "root_cause": {
+            "type": "string",
+            "description": "Root cause analysis"
+          },
+          "source": {
+            "type": "string",
+            "description": "Where the bug was discovered"
+          },
+          "requirement": {
+            "type": "string",
+            "description": "The requirement text associated with this bug"
+          },
+          "acceptance_criteria": {
+            "type": "string",
+            "description": "Acceptance criteria for closing the bug"
+          },
+          "environments": {
+            "type": "array",
+            "items": "string",
+            "description": "Legacy field — use environment instead"
           }
         }
       },
