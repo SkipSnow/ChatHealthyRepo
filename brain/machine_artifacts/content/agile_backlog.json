@@ -33427,7 +33427,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B010",
-                  "requirement": "The conversation log archive agent MUST write an utterance of type agent to conversation_log.json at the end of each job. The utterance MUST include job metadata: jobId (unique identifier), errorLogFileId (Anthropic Files API file_id for the persistent error log), preservePastTime (the cutoff used), counts (original, retained, archived to MongoDB), and any error details.",
+                  "requirement": "The conversation log archive agent — not the client — MUST inject an utterance of type agent into the retained file before streaming it back to the client. The client receives the file with the agent utterance already included and writes it to disk without modification. The agent utterance MUST include job metadata: jobId (unique identifier), errorLogFileId (Anthropic Files API file_id for the persistent error log), preservePastTime (the cutoff used), counts (original, retained, archived to MongoDB), and any error details.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "business",
