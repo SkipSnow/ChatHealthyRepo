@@ -281,6 +281,45 @@ def enforce_ai_operations_schema(rule_id, enforcement):
     return violations
 
 
+def enforce_conversation_log_schema(rule_id, enforcement):
+    """Validate that schema.json defines LogRecords/LogRecord for the prompt_log collection."""
+    violations = []
+    schema_path = os.path.join(REPO_ROOT, "brain", "machine_artifacts", "content", "schema.json")
+    try:
+        with open(schema_path, "r", encoding="utf-8") as f:
+            schema = json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError) as e:
+        violations.append(f"{rule_id}: {e}")
+        return violations
+
+    prompt_log = schema.get("collections", {}).get("prompt_log", {})
+    if not prompt_log:
+        violations.append(f"{rule_id}: schema.json missing prompt_log collection definition")
+        return violations
+
+    record_schemas = prompt_log.get("record_schemas", {})
+    if not record_schemas:
+        violations.append(f"{rule_id}: prompt_log collection missing record_schemas")
+        return violations
+
+    if "LogRecord" not in record_schemas:
+        violations.append(f"{rule_id}: prompt_log record_schemas missing LogRecord definition")
+        return violations
+
+    log_record = record_schemas["LogRecord"]
+    fields = log_record.get("fields", {})
+    if not fields:
+        violations.append(f"{rule_id}: LogRecord has no fields defined")
+        return violations
+
+    required_fields = ["userId", "role", "timestamp_pst", "timestamp_utc", "content", "utterance"]
+    for fname in required_fields:
+        if fname not in fields:
+            violations.append(f"{rule_id}: LogRecord missing required field definition '{fname}'")
+
+    return violations
+
+
 EXECUTORS = {
     "file_scan": enforce_file_scan,
     "file_absent": enforce_file_absent,
@@ -291,6 +330,7 @@ EXECUTORS = {
     "backlog_schema": enforce_backlog_schema,
     "bugs_schema": enforce_bugs_schema,
     "ai_operations_schema": enforce_ai_operations_schema,
+    "conversation_log_schema": enforce_conversation_log_schema,
 }
 
 

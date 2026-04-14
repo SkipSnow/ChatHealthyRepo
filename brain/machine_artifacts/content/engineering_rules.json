@@ -102,6 +102,10 @@
         },
         {
           "type": "ai_operations_schema"
+        },
+        {
+          "type": "conversation_log_schema",
+          "path": "brain/machine_artifacts/content/conversation_log.json"
         }
       ]
     },
