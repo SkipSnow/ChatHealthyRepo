@@ -236,7 +236,7 @@ def _call_anthropic_agent(data, bearer, mongo_conn, preserve_past, schema_json):
     headers = {
         "x-api-key": api_key,
         "anthropic-version": "2023-06-01",
-        "anthropic-beta": "managed-agents-2026-04-01",
+        "anthropic-beta": "managed-agents-2026-04-01,agent-api-2026-03-01",
         "content-type": "application/json",
     }
 
