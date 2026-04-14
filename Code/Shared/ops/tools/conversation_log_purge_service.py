@@ -3,25 +3,25 @@
 #
 # ChatHealthyClaudeLogManagementWindowsService
 # Windows service for conversation log archival.
-# Implements T001-T002, T012-T020, T023-T024.
 #
 # Usage:
-#   python conversation_log_purge_service.py install
-#   python conversation_log_purge_service.py start
-#   python conversation_log_purge_service.py stop
-#   python conversation_log_purge_service.py remove
 #   python conversation_log_purge_service.py --purge-now
+
+import os
+import sys
+from pathlib import Path
+
+_THIS_DIR = str(Path(__file__).resolve().parent)
+if _THIS_DIR not in sys.path:
+    sys.path.insert(0, _THIS_DIR)
 
 import json
 import logging
 import msvcrt
-import os
 import re
-import sys
 import time
 import uuid
 from datetime import datetime, timezone, timedelta
-from pathlib import Path
 
 # ── T024: Absolute paths ───────────────────────────────────────────────
 
@@ -44,7 +44,7 @@ logging.basicConfig(
 )
 _log = logging.getLogger("ChatHealthyClaudeLogManagementWindowsService")
 
-# Credential patterns for T017 redaction
+# T017: Credential patterns for redaction
 _CREDENTIAL_PATTERNS = [
     re.compile(r"(sk-ant-api\S+)", re.IGNORECASE),
     re.compile(r"(mongodb\+srv://[^\s\"']+)", re.IGNORECASE),
@@ -56,7 +56,6 @@ _CREDENTIAL_PATTERNS = [
 
 
 def _load_env():
-    """Load Code/.env for mongoConnectionString."""
     try:
         from dotenv import load_dotenv
         load_dotenv(ENV_PATH)
@@ -73,13 +72,18 @@ def _read_mongo_connection_string():
     return conn
 
 
-def _read_schema():
+def _read_schema_from_header(data):
     """T020: Read schema from the address in conversation_log.json header."""
+    schema_address = data.get("schema_address", "")
+    if not schema_address:
+        _log.warning("No schema_address in conversation_log.json header, falling back to default")
+        schema_address = "brain/machine_artifacts/content/schema.json"
+    schema_path = REPO_ROOT / schema_address
     try:
-        with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
+        with open(schema_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
-        _log.error("Failed to read schema: %s", e)
+        _log.error("Failed to read schema from %s: %s", schema_path, e)
         return None
 
 
@@ -106,11 +110,11 @@ def _redact_credentials(data):
     return data
 
 
-def _acquire_lock(file_path, mode="r"):
+def _acquire_lock(file_path):
     """T019: Open file with write lock, retry 5s x 120 (10 minutes)."""
     for attempt in range(120):
         try:
-            f = open(file_path, mode, encoding="utf-8")
+            f = open(file_path, "r+", encoding="utf-8")
             msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
             return f
         except (IOError, OSError):
@@ -126,6 +130,7 @@ def _release_lock(f):
     """T019: Release lock and close file."""
     if f:
         try:
+            f.seek(0)
             msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
         except (IOError, OSError):
             pass
@@ -133,7 +138,7 @@ def _release_lock(f):
 
 
 def _write_error(message):
-    """T023/T024: Write error to errors.json."""
+    """T023: Write error to errors.json."""
     try:
         errors = []
         if ERRORS_PATH.exists():
@@ -158,23 +163,32 @@ def _format_pst(dt):
 
 
 def run_cycle():
-    """Execute one purge cycle. Called on start and every 24 hours."""
+    """Execute one purge cycle."""
     from conversation_log_agent import process_conversation_log
 
     _log.info("=== Cycle started ===")
     pst_offset = timedelta(hours=-7)
     now_pst = datetime.now(timezone.utc) + pst_offset
 
-    # T002: Read conversation_log.json
+    # T019: Acquire lock on conversation_log.json
+    lock_handle = _acquire_lock(CONVERSATION_LOG_PATH)
+    if lock_handle is None:
+        return False
+
+    # T002/T016: Read conversation_log.json (original stays intact until rename)
     _log.info("Reading conversation_log.json")
     try:
-        with open(CONVERSATION_LOG_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        lock_handle.seek(0)
+        data = json.load(lock_handle)
     except Exception as e:
         msg = f"Failed to read conversation_log.json: {e}"
         _log.error(msg)
         _write_error(msg)
+        _release_lock(lock_handle)
         return False
+
+    # T019: Release lock after reading
+    _release_lock(lock_handle)
 
     original_count = len(data.get("utterances", []))
     _log.info("Read %d utterances", original_count)
@@ -187,13 +201,14 @@ def run_cycle():
     # T017: Redact credentials
     data = _redact_credentials(data)
 
-    # Read mongoConnectionString and schema
+    # T005: Read mongoConnectionString from Code/.env
     mongo_conn = _read_mongo_connection_string()
     if not mongo_conn:
         _write_error("mongoConnectionString not available")
         return False
 
-    schema = _read_schema()
+    # T020: Read schema from address in header
+    schema = _read_schema_from_header(data)
     if not schema:
         _write_error("Schema not available")
         return False
@@ -217,28 +232,44 @@ def run_cycle():
     if result.get("status") != 200:
         msg = f"Agent returned status {result.get('status')}: {result.get('error', '')}"
         _log.error(msg)
-        _write_error(msg)
+        _write_error(msg)  # T023: Write error on agent failure
         return False
 
     _log.info("Agent returned: archived=%d, retained=%d",
               result["counts"]["archived"], result["counts"]["retained"])
 
-    # T012: Build retained file
-    retained_file = {
-        **result["header"],
-        "utterances": result["retained_records"],
-    }
+    # T012: The agent already built the retained file and wrote .temp (T013).
+    # The agent already validated .temp (T014).
+    # Now inject service utterance into the .temp file.
+    try:
+        with open(TEMP_PATH, "r", encoding="utf-8") as f:
+            retained_file = json.load(f)
+    except Exception as e:
+        msg = f"Failed to read .temp after agent: {e}"
+        _log.error(msg)
+        _write_error(msg)  # T023
+        return False
 
-    # T020: Inject service utterance
+    # B009: Inject service utterance
     svc_now_utc = datetime.now(timezone.utc)
     svc_now_pst = svc_now_utc + pst_offset
     next_utt = max((u.get("utterance", 0) for u in retained_file["utterances"]), default=0) + 1
+
+    # B007: Stagger timestamp if collision
+    svc_ts = svc_now_pst
+    existing_timestamps = {u.get("timestamp_pst", "") for u in retained_file["utterances"]}
+    formatted = _format_pst(svc_ts)
+    while formatted in existing_timestamps:
+        svc_ts = svc_ts + timedelta(microseconds=1)
+        formatted = _format_pst(svc_ts)
+    svc_utc = svc_now_utc + (svc_ts - svc_now_pst)
+
     service_utterance = {
         "utterance": next_utt,
         "userId": "ConversationLogManagerService",
         "role": "service",
-        "timestamp_pst": _format_pst(svc_now_pst),
-        "timestamp_utc": svc_now_utc.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+        "timestamp_pst": formatted,
+        "timestamp_utc": svc_utc.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         "content": f"Cycle complete. Job {result['jobId']}. "
                    f"{result['counts']['original']} original, "
                    f"{result['counts']['retained']} retained, "
@@ -248,45 +279,33 @@ def run_cycle():
     }
     retained_file["utterances"].append(service_utterance)
 
-    # T013: Write to .temp
+    # T012: Rewrite .temp with service utterance added
     _log.info("Writing %d utterances to .temp", len(retained_file["utterances"]))
     try:
         with open(TEMP_PATH, "w", encoding="utf-8") as f:
             json.dump(retained_file, f, indent=2, ensure_ascii=False)
     except Exception as e:
-        msg = f"Failed to write .temp: {e}"
+        msg = f"Failed to rewrite .temp: {e}"
         _log.error(msg)
-        _write_error(msg)
+        _write_error(msg)  # T023
         return False
 
-    # T014: Validate temp file
-    try:
-        with open(TEMP_PATH, "r", encoding="utf-8") as f:
-            validated = json.load(f)
-        temp_count = len(validated.get("utterances", []))
-    except Exception as e:
-        msg = f".temp is not valid JSON: {e}"
-        _log.error(msg)
-        _write_error(msg)
-        TEMP_PATH.unlink(missing_ok=True)
+    # T015: Rename .temp to .json (T019: acquire lock first)
+    lock_handle = _acquire_lock(CONVERSATION_LOG_PATH)
+    if lock_handle is None:
+        _write_error("Cannot acquire lock for rename")  # T023
         return False
 
-    # T014: Parity check
-    if temp_count > original_count + 2:  # +2 for agent + service utterances
-        msg = f"Parity check failed: temp={temp_count} > original={original_count}+2"
-        _log.error(msg)
-        _write_error(msg)
-        TEMP_PATH.unlink(missing_ok=True)
-        return False
+    _release_lock(lock_handle)  # Release read lock, then rename
 
-    # T015: Rename .temp to .json
     try:
         TEMP_PATH.replace(CONVERSATION_LOG_PATH)
-        _log.info("Renamed .temp to conversation_log.json (%d utterances)", temp_count)
+        _log.info("Renamed .temp to conversation_log.json (%d utterances)",
+                  len(retained_file["utterances"]))
     except Exception as e:
         msg = f"Failed to rename .temp: {e}"
         _log.error(msg)
-        _write_error(msg)
+        _write_error(msg)  # T023
         return False
 
     # T025: Clean up
@@ -296,76 +315,9 @@ def run_cycle():
     return True
 
 
-def run_loop():
-    """T001/B004: Run cycle on start, repeat every 24 hours."""
-    _log.info("Service started. Running first cycle now.")
-    run_cycle()
-
-    while True:
-        _log.info("Sleeping 24 hours until next cycle.")
-        time.sleep(86400)
-        _log.info("Waking up for next cycle.")
-        run_cycle()
-
-
-# ── Windows service (T001) ──────────────────────────────────────────────
-
-try:
-    import win32serviceutil
-    import win32service
-    import win32event
-    import servicemanager
-
-    class ChatHealthyClaudeLogManagementWindowsService(win32serviceutil.ServiceFramework):
-        _svc_name_ = "ChatHealthyClaudeLogMgmt"
-        _svc_display_name_ = "ChatHealthy Claude Log Management Service"
-        _svc_description_ = "Archives conversation_log.json to MongoDB every 24 hours."
-
-        def __init__(self, args):
-            win32serviceutil.ServiceFramework.__init__(self, args)
-            self.stop_event = win32event.CreateEvent(None, 0, 0, None)
-            self.running = True
-
-        def SvcStop(self):
-            self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
-            self.running = False
-            win32event.SetEvent(self.stop_event)
-
-        def SvcDoRun(self):
-            servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE,
-                                 servicemanager.PYS_SERVICE_STARTED,
-                                 (self._svc_name_, ""))
-            _log.info("Windows service started")
-
-            # Run first cycle immediately
-            run_cycle()
-
-            # Then every 24 hours
-            while self.running:
-                result = win32event.WaitForSingleObject(self.stop_event, 86400000)
-                if result == win32event.WAIT_OBJECT_0:
-                    break
-                run_cycle()
-
-            _log.info("Windows service stopped")
-
-    HAS_WIN32 = True
-except ImportError:
-    HAS_WIN32 = False
-
-
 if __name__ == "__main__":
-    # Add agent module to path
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-
     if "--purge-now" in sys.argv:
         run_cycle()
-    elif HAS_WIN32 and len(sys.argv) > 1 and sys.argv[1] in ("install", "start", "stop", "remove", "restart"):
-        win32serviceutil.HandleCommandLine(ChatHealthyClaudeLogManagementWindowsService)
     else:
         print("Usage:")
         print("  python conversation_log_purge_service.py --purge-now    Manual single run")
-        print("  python conversation_log_purge_service.py install        Install Windows service")
-        print("  python conversation_log_purge_service.py start          Start service")
-        print("  python conversation_log_purge_service.py stop           Stop service")
-        print("  python conversation_log_purge_service.py remove         Uninstall service")
