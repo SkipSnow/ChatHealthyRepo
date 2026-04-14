@@ -111,6 +111,7 @@ def process_conversation_log(logContent, bearerToken, mongoConnectionString,
     agent_utc = now_utc + (agent_ts - now_pst)
 
     agent_utterance = {
+        "ch_key": f"CH_KEY{{{uuid.uuid4()}}}",
         "utterance": next_utt,
         "userId": "ConversationLogAgent",
         "role": "agent",
@@ -203,9 +204,12 @@ def _write_to_mongodb(utterances, mongo_conn, job_id):
             _log.info("Created collection %s.%s", MONGO_DB, MONGO_COLLECTION)
         col = db[MONGO_COLLECTION]
         existing_indexes = {idx["name"] for idx in col.list_indexes()}
+        if "ch_key_1" not in existing_indexes:
+            col.create_index("ch_key", unique=True)
+            _log.info("Created unique index on ch_key")
         if "timestamp_pst_1" not in existing_indexes:
-            col.create_index("timestamp_pst", unique=True)
-            _log.info("Created unique index on timestamp_pst")
+            col.create_index("timestamp_pst")
+            _log.info("Created index on timestamp_pst")
         if "timestamp_utc_1" not in existing_indexes:
             col.create_index("timestamp_utc")
             _log.info("Created index on timestamp_utc")

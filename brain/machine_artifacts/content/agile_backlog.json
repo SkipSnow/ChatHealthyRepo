@@ -32564,6 +32564,19 @@
                     "Python 3.11",
                     "Twilio"
                   ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T027",
+                  "requirement": "The service MUST add a CH_KEY{GUID} to every utterance record before passing logContent to the agent. The CH_KEY is the unique key in the conversation_log_archive collection, replacing timestamp_pst as the unique index.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
                 }
               ]
             },
