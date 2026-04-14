@@ -289,9 +289,10 @@ def _parse_datetime(ts):
     if not ts:
         return None
     if isinstance(ts, datetime):
-        return ts
+        return ts.replace(tzinfo=None)
     try:
-        return datetime.fromisoformat(str(ts))
+        dt = datetime.fromisoformat(str(ts))
+        return dt.replace(tzinfo=None)
     except ValueError:
         pass
     try:
