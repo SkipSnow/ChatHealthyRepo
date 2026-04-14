@@ -91,7 +91,7 @@ def _has_old_records(data):
     """T001: Check if conversation_log.json has records older than 24 hours."""
     from conversation_log_agent import _parse_datetime
     pst_offset = timedelta(hours=-7)
-    cutoff = datetime.now(timezone.utc) + pst_offset - timedelta(hours=24)
+    cutoff = (datetime.now(timezone.utc) + pst_offset - timedelta(hours=24)).replace(tzinfo=None)
     for u in data.get("utterances", []):
         ts = _parse_datetime(u.get("timestamp_pst", ""))
         if ts and ts < cutoff:
