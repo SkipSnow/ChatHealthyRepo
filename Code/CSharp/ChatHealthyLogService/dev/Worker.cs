@@ -17,8 +17,8 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
             FileName = PythonExe,
             Arguments = $"\"{MainScript}\"",
             UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
+            RedirectStandardOutput = false,
+            RedirectStandardError = false,
             CreateNoWindow = true,
         };
 

@@ -137,9 +137,9 @@ def enforce_no_pattern(rule_id, enforcement):
 
 
 def enforce_requirement_pytest(rule_id, enforcement):
-    """BUG-GOV-005 / v4-007: Every requirement in agile_backlog.json must have pytest_ids.
+    """BUG-GOV-005 / v4-007: Every requirement in agile_backlog.json must have pytests.
     Scans the one and only JSON where requirements live. Blocks check-in if any
-    implemented requirement is missing pytest_ids or has an empty array."""
+    implemented requirement is missing pytests children."""
     violations = []
     path = os.path.join(REPO_ROOT, enforcement.get("path", "brain/machine_artifacts/content/agile_backlog.json"))
     if not os.path.exists(path):
@@ -160,20 +160,14 @@ def enforce_requirement_pytest(rule_id, enforcement):
                 story_id = story.get("story_id", "?")
                 for req in story.get("requirements", []):
                     req_id = req.get("req_id", "?")
-                    # Support both pytest_ids (array) and legacy pytest_id (string)
-                    pytest_ids = req.get("pytest_ids", [])
-                    if isinstance(pytest_ids, str):
-                        pytest_ids = [pytest_ids] if pytest_ids.strip() else []
-                    legacy = req.get("pytest_id", "")
-                    if legacy and not pytest_ids:
-                        pytest_ids = [legacy] if legacy.strip() else []
-                    if not pytest_ids or not any(p.strip() for p in pytest_ids):
-                        # Unimplemented requirements don't need a real test yet
+                    # v4-007: Check pytests children (new format)
+                    pytests = req.get("pytests", [])
+                    if not pytests:
                         status = req.get("status", "")
-                        if status not in ("implemented", "in_progress"):
+                        if status not in ("implemented", "in_progress", "DONE"):
                             continue
                         violations.append(
-                            f"{rule_id}: {req_id} ({story_id}) has no pytest_id"
+                            f"{rule_id}: {req_id} ({story_id}) has no pytests"
                         )
     return violations
 
