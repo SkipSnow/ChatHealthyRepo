@@ -261,7 +261,7 @@ def process_conversation_log(
     bearerToken: str,
     mongoConnectionString: str,
     preservePastTime: str,
-    schema: str,
+    logSchema: str,
     errorLogFileId: str = "",
 ) -> str:
     """Process the ChatHealthy conversation log for archival.
@@ -276,7 +276,7 @@ def process_conversation_log(
         bearerToken: CH_GUID authentication token in format CH-xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx.
         mongoConnectionString: MongoDB connection string for the Frontend cluster.
         preservePastTime: PST datetime cutoff. Records before this time are excluded. Records at or after are included.
-        schema: The conversation_log JSON schema as a JSON string.
+        logSchema: The conversation_log JSON schema as a JSON string.
         errorLogFileId: Anthropic Files API file_id of the previous error log. Empty string on first run.
     """
     job_id = f"JOB-{uuid.uuid4().hex[:12]}"
@@ -298,7 +298,7 @@ def process_conversation_log(
         return json.dumps({"status": 401, "error": "Unauthorized", "jobId": job_id})
 
     # ── T018: Validate all args ─────────────────────────────────────────
-    arg_error = _validate_args(logContentFileId, mongoConnectionString, preservePastTime, schema)
+    arg_error = _validate_args(logContentFileId, mongoConnectionString, preservePastTime, logSchema)
     if arg_error:
         arg_error["jobId"] = job_id
         _log.warning("Job %s: 400 Bad Request — %s: %s", job_id, arg_error["field"], arg_error["detail"])
@@ -384,7 +384,7 @@ def process_conversation_log(
     response_data["utterances"] = retained
 
     # T028: Validate against schema
-    violations = _validate_against_schema(response_data, schema)
+    violations = _validate_against_schema(response_data, logSchema)
     if violations:
         _log.warning("Job %s: Schema violations: %s", job_id, violations)
         _write_agent_error_log(f"Schema violations: {violations}")
@@ -481,7 +481,7 @@ def _run_agent_test(bearer_token: str, log_content: str | None = None,
         "bearerToken": bearer_token,
         "mongoConnectionString": mongo_conn,
         "preservePastTime": preserve_past,
-        "schema": schema_content,
+        "logSchema": schema_content,
         "errorLogFileId": "",
     })
     user_msg = f"Call process_conversation_log with these exact arguments:\n{args_json}"
