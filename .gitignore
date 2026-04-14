@@ -48,6 +48,11 @@ dist/
 Code/ConversationalUX/FindCareChat/backend/static/
 .env.local
 
+# .NET build output
+**/bin/
+**/obj/
+**/out/
+
 # Runtime logs
 *.log
 
