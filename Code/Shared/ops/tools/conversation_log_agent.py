@@ -141,23 +141,40 @@ def _write_to_mongodb(utterances: list, mongo_conn: str, job_id: str) -> dict:
         if last_doc:
             last_ts = _parse_timestamp_pst(last_doc.get("timestamp_pst", ""))
 
+        # Build batch of new records
+        now_archived = datetime.now(timezone.utc).isoformat()
+        batch = []
         for u in utterances:
             u_ts = _parse_timestamp_pst(u.get("timestamp_pst", ""))
             if last_ts and u_ts and u_ts <= last_ts:
                 continue
+            doc = {k: v for k, v in u.items()}
+            doc["_archived_by_job"] = job_id
+            doc["_archived_at"] = now_archived
+            batch.append(doc)
+
+        # T027: insert_many with ordered=False — skips duplicates, continues batch
+        if batch:
             try:
-                doc = {k: v for k, v in u.items()}
-                doc["_archived_by_job"] = job_id
-                doc["_archived_at"] = datetime.now(timezone.utc).isoformat()
-                col.insert_one(doc)
-                archived += 1
-            except DuplicateKeyError:
-                _log.warning("Duplicate skipped: %s", u.get("timestamp_pst", "?"))
+                result = col.insert_many(batch, ordered=False)
+                archived = len(result.inserted_ids)
             except PyMongoError as e:
-                msg = f"MongoDB insert error: {e}"
-                _log.error(msg)
-                _write_agent_error_log(msg)
-                errors.append(msg)
+                # BulkWriteError contains partial success — count what got through
+                if hasattr(e, "details"):
+                    archived = e.details.get("nInserted", 0)
+                    for err in e.details.get("writeErrors", []):
+                        if err.get("code") == 11000:  # duplicate key
+                            _log.warning("Duplicate skipped: %s", err.get("errmsg", "")[:80])
+                        else:
+                            msg = f"MongoDB batch error: {err.get('errmsg', '')}"
+                            _log.error(msg)
+                            _write_agent_error_log(msg)
+                            errors.append(msg)
+                else:
+                    msg = f"MongoDB batch error: {e}"
+                    _log.error(msg)
+                    _write_agent_error_log(msg)
+                    errors.append(msg)
         client.close()
     except PyMongoError as e:
         msg = f"MongoDB connection error: {e}"
@@ -407,7 +424,7 @@ def _run_test(bearer_token: str, log_content: str | None = None,
                 agent_result = json.loads(block.text)
             except (json.JSONDecodeError, TypeError):
                 pass
-            print(f"  {block.text[:500]}")
+            print(f"  {block.text[:500].encode('ascii', 'replace').decode()}")
 
     # If 200, rebuild from MongoDB
     if expect_status == 200 and agent_result and agent_result.get("status") == 200:
