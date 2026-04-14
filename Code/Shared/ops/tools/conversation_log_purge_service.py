@@ -23,6 +23,8 @@ import time
 import uuid
 from datetime import datetime, timezone, timedelta
 
+import requests
+
 # ── T024: Absolute paths ───────────────────────────────────────────────
 
 REPO_ROOT = Path(r"c:\chatHealthy\findCare")
@@ -33,6 +35,13 @@ ENV_PATH = REPO_ROOT / "Code" / ".env"
 ERRORS_PATH = REPO_ROOT / "brain" / "machine_artifacts" / "content" / "errors.json"
 QUEUE_PATH = REPO_ROOT / "brain" / "machine_artifacts" / "content" / "conversation_log_purge_queue.json"
 SERVICE_LOG = REPO_ROOT / "test_output" / "conversation_log_service.log"
+AGENT_CODE_PATH = REPO_ROOT / "Code" / "Shared" / "ops" / "tools" / "conversation_log_agent.py"
+
+# ── Anthropic Managed Agent configuration ──────────────────────────────
+
+ANTHROPIC_API_URL = "https://api.anthropic.com"
+ANTHROPIC_AGENT_ID = "agent_011Ca3nM1rAxub5dRdEsGLmt"
+ANTHROPIC_ENVIRONMENT_ID = "env_01TB8UMfx9MvFUU632wBiPQD"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -55,12 +64,67 @@ _CREDENTIAL_PATTERNS = [
 ]
 
 
+# ── Helper functions (formerly imported from conversation_log_agent) ───
+
+def _parse_datetime(ts):
+    if not ts:
+        return None
+    if isinstance(ts, datetime):
+        return ts
+    try:
+        return datetime.fromisoformat(str(ts))
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(str(ts), "%m/%d/%Y %H:%M:%S.%f")
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(str(ts), "%m/%d/%Y %H:%M:%S")
+    except ValueError:
+        pass
+    return None
+
+
+def _validate_against_schema(data, schema):
+    """B001: Validate utterances against the conversation log schema."""
+    violations = []
+    try:
+        prompt_log = schema.get("collections", {}).get("prompt_log", {})
+        record_schemas = prompt_log.get("record_schemas", {})
+        log_record = record_schemas.get("LogRecord", {})
+        fields = log_record.get("fields", {})
+        if not fields:
+            return violations
+        for u in data.get("utterances", []):
+            uid = u.get("utterance", "?")
+            for fname, fdef in fields.items():
+                if fdef.get("required") and fname not in u:
+                    violations.append(f"utterance:{uid} missing '{fname}'")
+                if fname in u:
+                    possible = fdef.get("possible_values", [])
+                    val = u[fname]
+                    if possible and val and isinstance(val, str) and val not in possible:
+                        violations.append(f"utterance:{uid} '{fname}'='{val}' not in {possible}")
+    except Exception as e:
+        violations.append(f"Schema validation error: {e}")
+    return violations
+
+
 def _load_env():
     try:
         from dotenv import load_dotenv
         load_dotenv(ENV_PATH)
     except ImportError:
         pass
+
+
+def _read_anthropic_api_key():
+    _load_env()
+    key = os.environ.get("Anthropic_API_KEY", "")
+    if not key:
+        _log.error("Anthropic_API_KEY not found in environment")
+    return key
 
 
 def _read_mongo_connection_string():
@@ -89,7 +153,6 @@ def _read_schema_from_header(data):
 
 def _has_old_records(data):
     """T001: Check if conversation_log.json has records older than 24 hours."""
-    from conversation_log_agent import _parse_datetime
     pst_offset = timedelta(hours=-7)
     cutoff = (datetime.now(timezone.utc) + pst_offset - timedelta(hours=24)).replace(tzinfo=None)
     for u in data.get("utterances", []):
@@ -162,6 +225,159 @@ def _format_pst(dt):
     return dt.strftime("%-m/%-d/%Y %-H:%M:%S.%f")
 
 
+# ── Anthropic Managed Agent API call ──────────────────────────────────
+
+def _call_anthropic_agent(data, bearer, mongo_conn, preserve_past, schema_json):
+    """Call the ChatHealthyClaudeLogManagementAnthropicAgent on Anthropic Managed Agents."""
+    api_key = _read_anthropic_api_key()
+    if not api_key:
+        return {"status": 500, "error": "Anthropic API key not available"}
+
+    headers = {
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "managed-agents-2026-04-01",
+        "content-type": "application/json",
+    }
+
+    # Read the agent code from disk to send to the container
+    try:
+        agent_code = AGENT_CODE_PATH.read_text(encoding="utf-8")
+    except Exception as e:
+        return {"status": 500, "error": f"Cannot read agent code: {e}"}
+
+    # Step 1: Create a session
+    _log.info("Creating Anthropic managed agent session")
+    try:
+        resp = requests.post(
+            f"{ANTHROPIC_API_URL}/v1/sessions",
+            headers=headers,
+            json={
+                "agent": ANTHROPIC_AGENT_ID,
+                "environment_id": ANTHROPIC_ENVIRONMENT_ID,
+                "title": f"Log archival {datetime.now(timezone.utc).isoformat()}",
+            },
+            timeout=60,
+        )
+        resp.raise_for_status()
+        session = resp.json()
+        session_id = session["id"]
+        _log.info("Session created: %s", session_id)
+    except Exception as e:
+        return {"status": 500, "error": f"Failed to create session: {e}"}
+
+    # Step 2: Build the payload message
+    payload = {
+        "logContent": data,
+        "bearerToken": bearer,
+        "mongoConnectionString": mongo_conn,
+        "preservePastTime": preserve_past,
+        "schema": schema_json,
+    }
+
+    message_text = (
+        "Here is the agent code. Write it to /tmp/conversation_log_agent.py and execute it.\n\n"
+        f"```python\n{agent_code}\n```\n\n"
+        "Now execute this Python script that calls the agent function with the provided arguments "
+        "and prints the JSON result to stdout:\n\n"
+        "```python\n"
+        "import json, sys\n"
+        "sys.path.insert(0, '/tmp')\n"
+        "from conversation_log_agent import process_conversation_log\n\n"
+        f"payload = {json.dumps(payload)}\n\n"
+        "result = process_conversation_log(\n"
+        "    logContent=payload['logContent'],\n"
+        "    bearerToken=payload['bearerToken'],\n"
+        "    mongoConnectionString=payload['mongoConnectionString'],\n"
+        "    preservePastTime=payload['preservePastTime'],\n"
+        "    schema=payload['schema'],\n"
+        ")\n"
+        "print('===AGENT_RESULT_START===')\n"
+        "print(json.dumps(result, default=str))\n"
+        "print('===AGENT_RESULT_END===')\n"
+        "```\n\n"
+        "After execution, print the exact JSON output between the markers. "
+        "Do not modify the result. Do not add commentary between the markers."
+    )
+
+    # Step 3: Send user message
+    _log.info("Sending data to agent session %s", session_id)
+    try:
+        resp = requests.post(
+            f"{ANTHROPIC_API_URL}/v1/sessions/{session_id}/events",
+            headers=headers,
+            json={
+                "events": [{
+                    "type": "user.message",
+                    "content": [{"type": "text", "text": message_text}],
+                }],
+            },
+            timeout=60,
+        )
+        resp.raise_for_status()
+    except Exception as e:
+        return {"status": 500, "error": f"Failed to send message: {e}"}
+
+    # Step 4: Stream events and collect the agent's response
+    _log.info("Streaming agent response from session %s", session_id)
+    full_text = ""
+    try:
+        resp = requests.get(
+            f"{ANTHROPIC_API_URL}/v1/sessions/{session_id}/stream",
+            headers={
+                **headers,
+                "Accept": "text/event-stream",
+            },
+            stream=True,
+            timeout=300,
+        )
+        resp.raise_for_status()
+
+        for line in resp.iter_lines(decode_unicode=True):
+            if not line or not line.startswith("data: "):
+                continue
+            json_str = line[6:]
+            try:
+                event = json.loads(json_str)
+            except json.JSONDecodeError:
+                continue
+
+            event_type = event.get("type", "")
+            if event_type == "agent.message":
+                for block in event.get("content", []):
+                    if block.get("type") == "text":
+                        full_text += block.get("text", "")
+            elif event_type == "session.status_idle":
+                _log.info("Agent session idle — processing complete")
+                break
+            elif event_type == "error":
+                return {"status": 500, "error": f"Agent error: {event.get('error', '')}"}
+
+    except Exception as e:
+        return {"status": 500, "error": f"Failed to stream response: {e}"}
+
+    # Step 5: Extract the JSON result from the agent's response
+    start_marker = "===AGENT_RESULT_START==="
+    end_marker = "===AGENT_RESULT_END==="
+    start_idx = full_text.find(start_marker)
+    end_idx = full_text.find(end_marker)
+
+    if start_idx == -1 or end_idx == -1:
+        _log.error("Agent response missing result markers. Response length: %d", len(full_text))
+        _log.error("Response tail: %s", full_text[-500:] if len(full_text) > 500 else full_text)
+        return {"status": 500, "error": "Agent response missing result markers"}
+
+    result_json = full_text[start_idx + len(start_marker):end_idx].strip()
+    try:
+        result = json.loads(result_json)
+        return result
+    except json.JSONDecodeError as e:
+        _log.error("Failed to parse agent result JSON: %s", e)
+        return {"status": 500, "error": f"Failed to parse agent result: {e}"}
+
+
+# ── Main cycle ─────────────────────────────────────────────────────────
+
 def run_cycle():
     """Execute one purge cycle."""
     try:
@@ -177,8 +393,6 @@ def run_cycle():
 
 
 def _run_cycle_inner():
-    from conversation_log_agent import process_conversation_log
-
     _log.info("=== Cycle started ===")
     pst_offset = timedelta(hours=-7)
     now_pst = (datetime.now(timezone.utc) + pst_offset).replace(tzinfo=None)
@@ -207,14 +421,11 @@ def _run_cycle_inner():
     _log.info("Read %d utterances", original_count)
 
     # Normalize all timestamps to naive (strip timezone) before any processing.
-    # The file has ISO timestamps with -07:00 offset. All comparisons must be
-    # naive-to-naive. This is done once, here, before anything else.
-    from conversation_log_agent import _parse_datetime as _parse_dt
     for u in data.get("utterances", []):
         for field in ("timestamp_pst", "timestamp_utc"):
             val = u.get(field, "")
             if val:
-                dt = _parse_dt(val)
+                dt = _parse_datetime(val)
                 if dt and dt.tzinfo is not None:
                     u[field] = dt.replace(tzinfo=None).isoformat()
 
@@ -244,14 +455,14 @@ def _run_cycle_inner():
     # Generate bearerToken
     bearer = f"CH-{uuid.uuid4().hex[:8]}-{uuid.uuid4().hex[:4]}-4{uuid.uuid4().hex[:3]}-{uuid.uuid4().hex[:4]}-{uuid.uuid4().hex[:12]}"
 
-    # T002: Call agent function
-    _log.info("Calling agent with preservePastTime=%s", preserve_past)
-    result = process_conversation_log(
-        logContent=data,
-        bearerToken=bearer,
-        mongoConnectionString=mongo_conn,
-        preservePastTime=preserve_past,
-        schema=json.dumps(schema),
+    # T002: Call Anthropic managed agent
+    _log.info("Calling Anthropic agent with preservePastTime=%s", preserve_past)
+    result = _call_anthropic_agent(
+        data=data,
+        bearer=bearer,
+        mongo_conn=mongo_conn,
+        preserve_past=preserve_past,
+        schema_json=json.dumps(schema),
     )
 
     if result.get("status") != 200:
@@ -322,7 +533,6 @@ def _run_cycle_inner():
         return False
 
     # T014: Parity check — every record in .temp must be within 24 hours
-    from conversation_log_agent import _parse_datetime
     now_check = (datetime.now(timezone.utc) + pst_offset).replace(tzinfo=None)
     cutoff = now_check - timedelta(hours=24)
     _log.info("Parity check: now=%s, cutoff (24h ago)=%s", now_check.isoformat(), cutoff.isoformat())
@@ -344,7 +554,6 @@ def _run_cycle_inner():
     _log.info("Parity check passed: %d utterances, all within 24 hours", len(validated.get("utterances", [])))
 
     # B001: Schema validation
-    from conversation_log_agent import _validate_against_schema
     violations = _validate_against_schema(validated, schema)
     if violations:
         msg = f"Parity check failed: schema violations: {violations}"
