@@ -181,7 +181,7 @@ def _run_cycle_inner():
 
     _log.info("=== Cycle started ===")
     pst_offset = timedelta(hours=-7)
-    now_pst = datetime.now(timezone.utc) + pst_offset
+    now_pst = (datetime.now(timezone.utc) + pst_offset).replace(tzinfo=None)
 
     # T019: Acquire lock on conversation_log.json
     lock_handle = _acquire_lock(CONVERSATION_LOG_PATH)
@@ -262,7 +262,7 @@ def _run_cycle_inner():
     }
 
     # B009: Inject service utterance
-    svc_now_utc = datetime.now(timezone.utc)
+    svc_now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
     svc_now_pst = svc_now_utc + pst_offset
     next_utt = max((u.get("utterance", 0) for u in retained_file["utterances"]), default=0) + 1
 
