@@ -147,7 +147,19 @@ def _write_to_mongodb(utterances, mongo_conn, job_id):
     try:
         client = MongoClient(mongo_conn, serverSelectionTimeoutMS=10000)
         db = client[MONGO_DB]
+
+        # Ensure collection and indexes exist
+        if MONGO_COLLECTION not in db.list_collection_names():
+            db.create_collection(MONGO_COLLECTION)
+            _log.info("Created collection %s.%s", MONGO_DB, MONGO_COLLECTION)
         col = db[MONGO_COLLECTION]
+        existing_indexes = {idx["name"] for idx in col.list_indexes()}
+        if "timestamp_pst_1" not in existing_indexes:
+            col.create_index("timestamp_pst", unique=True)
+            _log.info("Created unique index on timestamp_pst")
+        if "timestamp_utc_1" not in existing_indexes:
+            col.create_index("timestamp_utc")
+            _log.info("Created index on timestamp_utc")
 
         # T007: Query most recent timestamp_pst
         last_doc = col.find_one(sort=[("timestamp_pst", -1)])
