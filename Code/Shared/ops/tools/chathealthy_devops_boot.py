@@ -211,16 +211,12 @@ class conversation_log_worker(governance_worker_base):
 
     def _make_timestamps(self):
         from datetime import datetime, timezone, timedelta
-        import os
         now_utc = datetime.now(timezone.utc)
         now_pst = now_utc + timedelta(hours=-7)
-        # B003: %-m/%-d/%Y %-H:%M:%S.%f with microsecond precision
-        if os.name == "nt":
-            pst = now_pst.strftime("%#m/%#d/%Y %#H:%M:%S.") + f"{now_pst.microsecond:06d}"
-        else:
-            pst = now_pst.strftime("%-m/%-d/%Y %-H:%M:%S.%f")
-        utc = now_utc.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-        return (pst, utc)
+        return (
+            now_pst.strftime("%Y-%m-%dT%H:%M:%S-07:00"),
+            now_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        )
 
     def _load_log(self):
         log_path = BRAIN_DIR / "conversation_log.json"
