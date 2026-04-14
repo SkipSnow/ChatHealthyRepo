@@ -23225,34 +23225,6 @@
                   "test_timeout_seconds": 30
                 },
                 {
-                  "req_id": "SEC-HTTPS-001-REQ-005",
-                  "requirement": "Standalone scan_http.py scans staged or specified files for insecure HTTP URLs. Accepts --staged, --all, file list, or directory with --recurse. Dies ungracefully on bad arguments.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_https_security.py::TestScanHTTP"
-                  ],
-                  "realized_by": [
-                    "Cloudflare (WAF, DDoS, Access)"
-                  ],
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "SEC-HTTPS-001-REQ-006",
-                  "requirement": "Pre-commit hook (CHECK 10) calls scan_http.py --staged and blocks commit if insecure HTTP URLs found in staged files.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_https_security.py::TestPreCommitScan"
-                  ],
-                  "realized_by": [
-                    "Cloudflare (WAF, DDoS, Access)"
-                  ],
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
                   "req_id": "SEC-HTTPS-001-REQ-007",
                   "requirement": "Every HTTP 426 Upgrade Required response on every server in every environment must include the status code (426) in the response body text. The user/client must see the numeric code in the message, not just the header.",
                   "priority": "must-have",
@@ -24878,6 +24850,80 @@
                 }
               ],
               "ch_matrix_id": "959191cc-eaf9-4928-9de3-64c2b486b4a7"
+            },
+            {
+              "story_id": "FC-BACKEND-009",
+              "title": "Safety IP locking and admin unlock",
+              "description": "After emergency detection, lock the IP address for 1 hour. Admin can unlock with secret key. Session lock check via conversation history. Audit trail preserved in MongoDB.",
+              "parent_feature": "FC-BACKEND",
+              "size": "M",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-BACKEND-009-REQ-001",
+                  "requirement": "is_ip_locked must check MongoDB for active (non-expired, non-unlocked) lock records for the given IP.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_safety_unlock.py"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-009-REQ-002",
+                  "requirement": "lock_ip must create/update a lock record with 1-hour expiry, trigger message, and chat history.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_safety_unlock.py"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-009-REQ-003",
+                  "requirement": "try_admin_unlock must unlock an IP when the admin secret key is present in the message.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_safety_unlock.py"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000003",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-009-REQ-004",
+                  "requirement": "session_is_locked must detect locked sessions by scanning conversation history for EMERGENCY_RESPONSE text.",
+                  "priority": "should-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000004",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                }
+              ],
+              "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000010"
             }
           ],
           "ch_matrix_id": "108d2b45-771a-46af-ad09-df26ea50e406",
@@ -25222,7 +25268,8 @@
           "realized_by": [
             "pytest",
             "Playwright"
-          ]
+          ],
+          "stories": []
         },
         {
           "feature_id": "MAINT-SIT-MIGRATE",
@@ -29135,108 +29182,6 @@
               "ch_matrix_id": "c283eb58-881b-48dd-aa40-865941a962da",
               "description": "Create and validate traceability matrix",
               "size": "M"
-            },
-            {
-              "story_id": "PIPE-TR-002",
-              "title": "pre_deploy_rule_check validates pytest_ids as array",
-              "parent_feature": "PIPE-TRACE",
-              "size": "S",
-              "status": "implemented",
-              "description": "pre_deploy_rule_check.py validates that every implemented requirement has pytest_ids as an array with at least one member. Supports legacy pytest_id string fallback for backward compatibility.",
-              "requirements": [
-                {
-                  "req_id": "PIPE-TR-002-REQ-001",
-                  "requirement": "pre_deploy_rule_check.py must validate pytest_ids as an array (minimum 1 member) for every implemented requirement. Must support legacy pytest_id string fallback. Scanner passes with zero violations.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "pre_deploy_rule_check.py passes with zero violations"
-                  ],
-                  "ch_matrix_id": "a7b2e4c1-3f8d-4a9e-b5c2-1d6e8f0a7b3c",
-                  "realized_by": [
-                    "Azure Durable Functions (Python 3.12)",
-                    "MongoDB Atlas"
-                  ],
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                }
-              ],
-              "ch_matrix_id": "d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a"
-            },
-            {
-              "story_id": "PIPE-TR-003",
-              "title": "Dead code scanner — two-pass symbol analysis",
-              "parent_feature": "PIPE-TRACE",
-              "size": "M",
-              "status": "open",
-              "description": "Two-pass scanner: Pass 1 streams every source file, builds a map of all definitions (classes, methods, functions) and all references (calls, imports, attribute access). Pass 2 reconciles — anything defined but never referenced is dead and must be deleted. Two modes: check-in (staged files only, fast) and full regression (entire codebase).",
-              "requirements": [
-                {
-                  "req_id": "PIPE-TR-003-REQ-001",
-                  "requirement": "Pass 1 must stream source files without holding full source in memory. It accumulates a definitions map (name, file, line) and a references set (names used). Memory proportional to symbol count, not source size. DR-008 compliant.",
-                  "priority": "must-have",
-                  "status": "open",
-                  "realized_by": [
-                    "Python 3.11 (ast module)"
-                  ]
-                },
-                {
-                  "req_id": "PIPE-TR-003-REQ-002",
-                  "requirement": "Pass 2 walks the definitions map and checks each against the references set. Any definition with zero references and no framework-invocation decorator (FastAPI route, Azure trigger, governance hook) is reported as dead code.",
-                  "priority": "must-have",
-                  "status": "open",
-                  "realized_by": [
-                    "Python 3.11 (ast module)"
-                  ]
-                },
-                {
-                  "req_id": "PIPE-TR-003-REQ-003",
-                  "requirement": "Check-in mode scans only staged files (git diff --cached). If a staged file adds a function, verify something calls it. If it deletes a function, verify nothing else calls it. Must complete in under 5 seconds for typical commits.",
-                  "priority": "must-have",
-                  "status": "open",
-                  "realized_by": [
-                    "Python 3.11 (ast module)",
-                    "git"
-                  ]
-                },
-                {
-                  "req_id": "PIPE-TR-003-REQ-004",
-                  "requirement": "Full regression mode scans the entire codebase with two passes. Run on demand or before promotion to QA/prod. Reports all dead code with file, line, and function name.",
-                  "priority": "must-have",
-                  "status": "open",
-                  "realized_by": [
-                    "Python 3.11 (ast module)"
-                  ]
-                },
-                {
-                  "req_id": "PIPE-TR-003-REQ-005",
-                  "requirement": "The scanner is a single class that holds state (definitions map, references set, findings list). It is not a separate script — it is a method on the existing pre_deploy_rule_check scanner class. One scanner, one class, shared state.",
-                  "priority": "must-have",
-                  "status": "open",
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "PIPE-TR-003-REQ-006",
-                  "requirement": "Dead code found during check-in mode blocks the commit. Dead code found during full regression is reported but does not block (informational for promotion review).",
-                  "priority": "must-have",
-                  "status": "open",
-                  "realized_by": [
-                    "Python 3.11",
-                    "git hooks"
-                  ]
-                },
-                {
-                  "req_id": "PIPE-TR-003-REQ-007",
-                  "requirement": "The scanner validates v4-032: every plural-named field in every brain JSON must be an array. Every array member must conform to the singular-named schema. The scanner reads the schema to discover plural/singular pairs and validates the data against them. Implementation may be AI scan or code scan.",
-                  "priority": "must-have",
-                  "status": "open",
-                  "realized_by": [
-                    "Python 3.11 (pre_deploy_rule_check.py)"
-                  ]
-                }
-              ]
             }
           ],
           "ch_matrix_id": "634057b5-20e7-4b8b-aa3b-27ac6875f5a3",
@@ -30828,689 +30773,6 @@
           ]
         },
         {
-          "feature_id": "FC-BACKEND",
-          "name": "Backend Shared Services and Infrastructure",
-          "epic_id": "EPIC-006",
-          "layer": "backend",
-          "capability": "FindCare",
-          "description": "Backend shared services that support FindCare: push notifications, activity audit, request logging, CORS, URL validation, tool routing, lead capture, unknown question handling, consent framework, about content, safety IP locking, debug logging, embedding infrastructure, session tokens, and cross-domain provider location. Created during code audit 2026-04-10.",
-          "priority": "HIGH",
-          "status": "implemented",
-          "accepted_by": "Claude (code audit)",
-          "stories": [
-            {
-              "story_id": "FC-BACKEND-001",
-              "title": "Core backend infrastructure — notifications, audit, logging, CORS",
-              "description": "Push notifications via SparkPost, activity audit trail to MongoDB, chat history formatting, request logging middleware, CORS security policy, welcome endpoint.",
-              "parent_feature": "FC-BACKEND",
-              "size": "M",
-              "status": "implemented",
-              "requirements": [
-                {
-                  "req_id": "FC-BACKEND-001-REQ-001",
-                  "requirement": "System must send push email notifications for lead/activity events via SparkPost when configured.",
-                  "priority": "should-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000001",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-001-REQ-002",
-                  "requirement": "System must persist significant activity records to MongoDB via commitSignificantActivity.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "MongoDB Atlas"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000002",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-001-REQ-003",
-                  "requirement": "System must truncate and normalize chat history before injecting into tool calls (max 500 chars per message).",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000003",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-001-REQ-004",
-                  "requirement": "HTTP request logging middleware must log method, path, status code, elapsed ms, and client IP for every request.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000004",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-001-REQ-005",
-                  "requirement": "GET /welcome must return the system welcome message.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000005",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                }
-              ],
-              "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000010"
-            },
-            {
-              "story_id": "FC-BACKEND-002",
-              "title": "URL Guardian — validate and sanitize URLs in LLM responses",
-              "description": "Three-stage URL validation (HEAD check, AI content verification, Google search correction) with TTL cache. Defangs broken URLs in markdown text and tool results. Prevents users from clicking broken links.",
-              "parent_feature": "FC-BACKEND",
-              "size": "L",
-              "status": "implemented",
-              "requirements": [
-                {
-                  "req_id": "FC-BACKEND-002-REQ-001",
-                  "requirement": "URLGuardian must validate URLs via HEAD request with redirect following. Broken URLs detected, redirects resolved.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000001",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-002-REQ-002",
-                  "requirement": "URLGuardian must validate URLs in tool result dicts (links key). Broken links removed, redirects updated.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000002",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-002-REQ-003",
-                  "requirement": "URLGuardian must validate URLs in markdown text. Broken markdown links defanged (text kept, link removed). Broken bare URLs left as plain text.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000003",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-002-REQ-004",
-                  "requirement": "URLGuardian must use AI content verification (Claude Haiku) to confirm reachable URLs show expected content. Pages with wrong content treated as broken.",
-                  "priority": "should-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000004",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-002-REQ-005",
-                  "requirement": "URLGuardian must attempt Google search correction for broken URLs, then AI-verify the top result matches intent.",
-                  "priority": "should-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000005",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                }
-              ],
-              "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000010"
-            },
-            {
-              "story_id": "FC-BACKEND-003",
-              "title": "CORS security policy",
-              "description": "CORS restricted to chathealthy.ai domains and localhost. No wildcard origins.",
-              "parent_feature": "FC-BACKEND",
-              "size": "S",
-              "status": "implemented",
-              "requirements": [
-                {
-                  "req_id": "FC-BACKEND-003-REQ-001",
-                  "requirement": "CORS allow_origins must include only chathealthy.ai domains. Localhost via allow_origin_regex only.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0003-4003-8003-000000000001",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                }
-              ],
-              "ch_matrix_id": "a1b2c3d4-0003-4003-8003-000000000010"
-            },
-            {
-              "story_id": "FC-BACKEND-004",
-              "title": "Session token generation for cross-component calls",
-              "description": "GET /session generates a signed session token using FindCare x509 cert. Client stores in memory, passes on cross-component calls (e.g., to EvaluateCare).",
-              "parent_feature": "FC-BACKEND",
-              "size": "S",
-              "status": "implemented",
-              "requirements": [
-                {
-                  "req_id": "FC-BACKEND-004-REQ-001",
-                  "requirement": "GET /session must return a signed session token with origin=FindCare. Falls back to unsigned token if cert unavailable.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "mTLS (x509)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0004-4004-8004-000000000001",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                }
-              ],
-              "ch_matrix_id": "a1b2c3d4-0004-4004-8004-000000000010"
-            },
-            {
-              "story_id": "FC-BACKEND-005",
-              "title": "Tool Router — GOV-004 allowlist enforcement",
-              "description": "Pydantic-validated allowlist tool dispatch. Only registered tools can be called. GOV-004: 'The model may suggest. The system must decide.'",
-              "parent_feature": "FC-BACKEND",
-              "size": "M",
-              "status": "implemented",
-              "requirements": [
-                {
-                  "req_id": "FC-BACKEND-005-REQ-001",
-                  "requirement": "ToolRouter must maintain an explicit allowlist registry. Only registered tools can be dispatched.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_tool_router.py::TestToolRouter::test_unregistered_tool_blocked"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000001",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-005-REQ-002",
-                  "requirement": "ToolRouter must validate tool inputs via Pydantic models before calling handlers. Invalid inputs rejected with error.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_tool_router.py::TestToolRouter::test_pydantic_validation"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000002",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-005-REQ-003",
-                  "requirement": "ToolRouter must handle both Anthropic tool_use blocks and OpenAI normalized tool calls, injecting chat_history for tools that need it.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_tool_router.py::TestToolRouter::test_handle_tool_calls"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000003",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                }
-              ],
-              "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000010"
-            },
-            {
-              "story_id": "FC-BACKEND-006",
-              "title": "Lead Capture — contact record creation with consent (UAT Feature 6)",
-              "description": "Record user contact details with two-tier consent: verbatim transcript, de-identified summary, or contact-only. Dedup by email. Delegates to ConsentService.",
-              "parent_feature": "FC-BACKEND",
-              "size": "M",
-              "status": "implemented",
-              "requirements": [
-                {
-                  "req_id": "FC-BACKEND-006-REQ-001",
-                  "requirement": "record_user_details must accept email, name, notes, message, and consent flags via Pydantic-validated input.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "MongoDB Atlas"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000001",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-006-REQ-002",
-                  "requirement": "If consent_verbatim is true, full chat history is stored with the lead record.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "MongoDB Atlas"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000002",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-006-REQ-003",
-                  "requirement": "If consent_summary is true (not verbatim), conversation is summarized and de-identified before storage.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "MongoDB Atlas"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000003",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                }
-              ],
-              "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000010"
-            },
-            {
-              "story_id": "FC-BACKEND-007",
-              "title": "Unknown Question Handling (UAT Feature 12)",
-              "description": "Classify unanswerable questions into healthcare_capability, medical_advice, or irrelevant. Present consent template. Record with de-identification if user consents.",
-              "parent_feature": "FC-BACKEND",
-              "size": "M",
-              "status": "implemented",
-              "requirements": [
-                {
-                  "req_id": "FC-BACKEND-007-REQ-001",
-                  "requirement": "record_unknown_question must accept question, question_class, and consent flag via Pydantic-validated input.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_unanswerable_questions.py::TestUnanswerableQuestions"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "MongoDB Atlas"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000001",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-007-REQ-002",
-                  "requirement": "Response templates must exist for three question classes: healthcare_capability, medical_advice, irrelevant.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_unanswerable_questions.py::TestUnanswerableQuestions"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000002",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-007-REQ-003",
-                  "requirement": "If user consents, chat history must be de-identified before recording. Question and class stored in AboutUs.AboutSkip.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_unanswerable_questions.py::TestUnanswerableQuestions"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "MongoDB Atlas"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000003",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                }
-              ],
-              "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000010"
-            },
-            {
-              "story_id": "FC-BACKEND-008",
-              "title": "Cross-domain provider location for travel calculations",
-              "description": "FindCareService.get_provider_location returns provider lat/lng/address for a given NPI. Called by EvaluateCareFacade for clinical trial travel time calculations.",
-              "parent_feature": "FC-BACKEND",
-              "size": "S",
-              "status": "implemented",
-              "requirements": [
-                {
-                  "req_id": "FC-BACKEND-008-REQ-001",
-                  "requirement": "get_provider_location must return lat, lng, and formatted address for a given NPI from the providers collection.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "MongoDB Atlas"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0008-4008-8008-000000000001",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                }
-              ],
-              "ch_matrix_id": "a1b2c3d4-0008-4008-8008-000000000010"
-            },
-            {
-              "story_id": "FC-BACKEND-009",
-              "title": "Safety IP locking and admin unlock",
-              "description": "After emergency detection, lock the IP address for 1 hour. Admin can unlock with secret key. Session lock check via conversation history. Audit trail preserved in MongoDB.",
-              "parent_feature": "FC-BACKEND",
-              "size": "M",
-              "status": "implemented",
-              "requirements": [
-                {
-                  "req_id": "FC-BACKEND-009-REQ-001",
-                  "requirement": "is_ip_locked must check MongoDB for active (non-expired, non-unlocked) lock records for the given IP.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_safety_unlock.py"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "MongoDB Atlas"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000001",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-009-REQ-002",
-                  "requirement": "lock_ip must create/update a lock record with 1-hour expiry, trigger message, and chat history.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_safety_unlock.py"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "MongoDB Atlas"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000002",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-009-REQ-003",
-                  "requirement": "try_admin_unlock must unlock an IP when the admin secret key is present in the message.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_safety_unlock.py"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "MongoDB Atlas"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000003",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-009-REQ-004",
-                  "requirement": "session_is_locked must detect locked sessions by scanning conversation history for EMERGENCY_RESPONSE text.",
-                  "priority": "should-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000004",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                }
-              ],
-              "ch_matrix_id": "a1b2c3d4-0009-4009-8009-000000000010"
-            },
-            {
-              "story_id": "FC-BACKEND-010",
-              "title": "Consent Framework — two-tier HIPAA consent (UAT Feature 7)",
-              "description": "Two-tier consent: Tier 1 = verbatim transcript, Tier 2 = de-identified summary. ConsentService summarizes via Claude Haiku and de-identifies via HIPAA Safe Harbor.",
-              "parent_feature": "FC-BACKEND",
-              "size": "M",
-              "status": "implemented",
-              "requirements": [
-                {
-                  "req_id": "FC-BACKEND-010-REQ-001",
-                  "requirement": "summarize_conversation must produce a 2-3 sentence summary of chat history via Claude Haiku.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0010-4010-8010-000000000001",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-010-REQ-002",
-                  "requirement": "de_identify must strip PII from chat history in-place per HIPAA Safe Harbor requirements using Claude Haiku.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0010-4010-8010-000000000002",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                }
-              ],
-              "ch_matrix_id": "a1b2c3d4-0010-4010-8010-000000000010"
-            },
-            {
-              "story_id": "FC-BACKEND-011",
-              "title": "About Content — Skip Snow and ChatHealthy context (UAT Feature 4)",
-              "description": "Static content service for about intents. Returns Skip Snow professional context with LinkedIn link, and ChatHealthy business plan and principles.",
-              "parent_feature": "FC-BACKEND",
-              "size": "S",
-              "status": "implemented",
-              "requirements": [
-                {
-                  "req_id": "FC-BACKEND-011-REQ-001",
-                  "requirement": "get_skip_snow_context must return summary, LinkedIn content, and connect info with markdown links rendered verbatim.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0011-4011-8011-000000000001",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-011-REQ-002",
-                  "requirement": "get_chathealthy_context must return business_plan and anthropic_principles from pre-loaded ME context.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "NEEDS_TEST"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0011-4011-8011-000000000002",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                }
-              ],
-              "ch_matrix_id": "a1b2c3d4-0011-4011-8011-000000000010"
-            },
-            {
-              "story_id": "FC-BACKEND-012",
-              "title": "Debug Logging — chat call metadata to MongoDB",
-              "description": "DebugLogger persists chat call metadata (IP, message preview, tokens, errors) to {ENV}_Debug.chat_calls. On error, de-identified chat history is included.",
-              "parent_feature": "FC-BACKEND",
-              "size": "S",
-              "status": "implemented",
-              "requirements": [
-                {
-                  "req_id": "FC-BACKEND-012-REQ-001",
-                  "requirement": "log_chat must persist IP, message preview (200 chars), history length, tool loop iterations, token counts, response preview, and error to MongoDB. On error, de-identified chat history included.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_debug_logger.py::TestDebugLogger"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)",
-                    "MongoDB Atlas"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0012-4012-8012-000000000001",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                }
-              ],
-              "ch_matrix_id": "a1b2c3d4-0012-4012-8012-000000000010"
-            },
-            {
-              "story_id": "FC-BACKEND-013",
-              "title": "Embedding Infrastructure — centralized AI embedding and query expansion",
-              "description": "EmbeddingClient provides text-embedding-3-large (provider vector search), text-embedding-3-small (specialty matching), and Claude Haiku query expansion (regex pipeline).",
-              "parent_feature": "FC-BACKEND",
-              "size": "M",
-              "status": "implemented",
-              "requirements": [
-                {
-                  "req_id": "FC-BACKEND-013-REQ-001",
-                  "requirement": "get_query_embedding must return a vector from text-embedding-3-large for provider vector search.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_embedding_client.py::TestEmbeddingClient"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000001",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-013-REQ-002",
-                  "requirement": "get_specialty_vector must return a vector from text-embedding-3-small for specialty matching.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_embedding_client.py::TestEmbeddingClient"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000002",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                },
-                {
-                  "req_id": "FC-BACKEND-013-REQ-003",
-                  "requirement": "expand_query_terms must return 2-5 keyword stems via Claude Haiku for regex pipeline matching against Specialization and Display Name fields.",
-                  "priority": "must-have",
-                  "status": "implemented",
-                  "pytest_ids": [
-                    "test_embedding_client.py::TestEmbeddingClient"
-                  ],
-                  "realized_by": [
-                    "FastAPI (Python 3.11)"
-                  ],
-                  "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000003",
-                  "test_method": "pytest",
-                  "test_timeout_seconds": 30
-                }
-              ],
-              "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000010"
-            }
-          ],
-          "ch_matrix_id": "a1b2c3d4-0000-4000-8000-000000000100",
-          "realized_by": [
-            "FastAPI (Python 3.11)",
-            "MongoDB Atlas"
-          ]
-        },
-        {
           "feature_id": "FC-PROVIDER-UX",
           "name": "Provider UX Display",
           "status": "NOT_STARTED",
@@ -31728,24 +30990,6 @@
               "size": "L",
               "status": "DONE_KNOWN_ISSUE",
               "requirements": [
-                {
-                  "req_id": "ARCH-ORPHAN-001-REQ-001",
-                  "requirement": "On first UserPromptSubmit (deferred boot), the boot class MUST scan bugs.json for entries with req_id: ORPHAN_BUG and output a table to the session showing: bug ID, type, rule text (truncated), and last updated date.",
-                  "priority": "must-have",
-                  "status": "DONE",
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "ARCH-ORPHAN-001-REQ-002",
-                  "requirement": "The orphan scan MUST be pure file I/O — no network, no database. If bugs.json is not found, corrupt, or unreadable, the scan MUST fail open with a specific exception message and full stack trace printed to stderr.",
-                  "priority": "must-have",
-                  "status": "DONE",
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
                 {
                   "req_id": "ARCH-ORPHAN-001-REQ-003",
                   "requirement": "The boot class MUST be a single Python file with __main__ and a chathealthy_devops_boot class. main() dispatches to the class by mode (prompt, tool_call, prompt_result, session_end). There is no boot mode — boot is triggered by the prompt handler on first call. Every mode handler MUST be wrapped in try/except/finally. The finally block MUST always call sys.exit() to return control to Cursor/Claude Code. All modes MUST fail open on exception.",
@@ -32445,6 +31689,54 @@
                     "B014",
                     "B016",
                     "B017"
+                  ]
+                }
+              ]
+            },
+            {
+              "story_id": "PIPE-TR-003",
+              "title": "Dead code scanner — two-pass symbol analysis",
+              "parent_feature": "PIPE-TRACE",
+              "size": "M",
+              "status": "open",
+              "description": "Two-pass scanner: Pass 1 streams every source file, builds a map of all definitions (classes, methods, functions) and all references (calls, imports, attribute access). Pass 2 reconciles — anything defined but never referenced is dead and must be deleted. Two modes: check-in (staged files only, fast) and full regression (entire codebase).",
+              "requirements": [
+                {
+                  "req_id": "PIPE-TR-003-REQ-001",
+                  "requirement": "Pass 1 must stream source files without holding full source in memory. It accumulates a definitions map (name, file, line) and a references set (names used). Memory proportional to symbol count, not source size. DR-008 compliant.",
+                  "priority": "must-have",
+                  "status": "open",
+                  "realized_by": [
+                    "Python 3.11 (ast module)"
+                  ]
+                },
+                {
+                  "req_id": "PIPE-TR-003-REQ-002",
+                  "requirement": "Pass 2 walks the definitions map and checks each against the references set. Any definition with zero references and no framework-invocation decorator (FastAPI route, Azure trigger, governance hook) is reported as dead code.",
+                  "priority": "must-have",
+                  "status": "open",
+                  "realized_by": [
+                    "Python 3.11 (ast module)"
+                  ]
+                },
+                {
+                  "req_id": "PIPE-TR-003-REQ-003",
+                  "requirement": "Check-in mode scans only staged files (git diff --cached). If a staged file adds a function, verify something calls it. If it deletes a function, verify nothing else calls it. Must complete in under 5 seconds for typical commits.",
+                  "priority": "must-have",
+                  "status": "open",
+                  "realized_by": [
+                    "Python 3.11 (ast module)",
+                    "git"
+                  ]
+                },
+                {
+                  "req_id": "PIPE-TR-003-REQ-006",
+                  "requirement": "Dead code found during check-in mode blocks the commit. Dead code found during full regression is reported but does not block (informational for promotion review).",
+                  "priority": "must-have",
+                  "status": "open",
+                  "realized_by": [
+                    "Python 3.11",
+                    "git hooks"
                   ]
                 }
               ]
@@ -34256,6 +33548,148 @@
               ]
             }
           ]
+        },
+        {
+          "feature_id": "ARCH-SCAN",
+          "name": "Code and Security Scanning",
+          "status": "NOT_STARTED",
+          "description": "Pre-commit and pre-push scanning for security, code quality, and compliance.",
+          "stories": [
+            {
+              "story_id": "ARCH-SCAN-BUGSCAN",
+              "title": "Bug Scan",
+              "description": "Scan for orphan bugs and bug integrity.",
+              "size": "S",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {
+                  "req_id": "ARCH-ORPHAN-001-REQ-001",
+                  "requirement": "On first UserPromptSubmit (deferred boot), the boot class MUST scan bugs.json for entries with req_id: ORPHAN_BUG and output a table to the session showing: bug ID, type, rule text (truncated), and last updated date.",
+                  "priority": "must-have",
+                  "status": "DONE",
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "ARCH-ORPHAN-001-REQ-002",
+                  "requirement": "The orphan scan MUST be pure file I/O — no network, no database. If bugs.json is not found, corrupt, or unreadable, the scan MUST fail open with a specific exception message and full stack trace printed to stderr.",
+                  "priority": "must-have",
+                  "status": "DONE",
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                }
+              ]
+            },
+            {
+              "story_id": "ARCH-SCAN-SECSCAN",
+              "title": "Security Code Scan",
+              "description": "Scan code for security violations.",
+              "size": "S",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {
+                  "req_id": "SEC-HTTPS-001-REQ-005",
+                  "requirement": "Standalone scan_http.py scans staged or specified files for insecure HTTP URLs. Accepts --staged, --all, file list, or directory with --recurse. Dies ungracefully on bad arguments.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_https_security.py::TestScanHTTP"
+                  ],
+                  "realized_by": [
+                    "Cloudflare (WAF, DDoS, Access)"
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "SEC-HTTPS-001-REQ-006",
+                  "requirement": "Pre-commit hook (CHECK 10) calls scan_http.py --staged and blocks commit if insecure HTTP URLs found in staged files.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_https_security.py::TestPreCommitScan"
+                  ],
+                  "realized_by": [
+                    "Cloudflare (WAF, DDoS, Access)"
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                }
+              ]
+            },
+            {
+              "story_id": "ARCH-SCAN-PYTEST",
+              "title": "Pytest Scans",
+              "description": "Scan for pytest coverage and compliance.",
+              "size": "S",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {
+                  "req_id": "PIPE-TR-002-REQ-001",
+                  "requirement": "pre_deploy_rule_check.py must validate pytest_ids as an array (minimum 1 member) for every implemented requirement. Must support legacy pytest_id string fallback. Scanner passes with zero violations.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "pre_deploy_rule_check.py passes with zero violations"
+                  ],
+                  "ch_matrix_id": "a7b2e4c1-3f8d-4a9e-b5c2-1d6e8f0a7b3c",
+                  "realized_by": [
+                    "Azure Durable Functions (Python 3.12)",
+                    "MongoDB Atlas"
+                  ],
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                }
+              ]
+            },
+            {
+              "story_id": "ARCH-SCAN-JSON",
+              "title": "JSON Scan",
+              "description": "Scan brain JSON files for schema compliance and structural integrity.",
+              "size": "S",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {
+                  "req_id": "PIPE-TR-003-REQ-007",
+                  "requirement": "The scanner validates v4-032: every plural-named field in every brain JSON must be an array. Every array member must conform to the singular-named schema. The scanner reads the schema to discover plural/singular pairs and validates the data against them. Implementation may be AI scan or code scan.",
+                  "priority": "must-have",
+                  "status": "open",
+                  "realized_by": [
+                    "Python 3.11 (pre_deploy_rule_check.py)"
+                  ]
+                }
+              ]
+            },
+            {
+              "story_id": "ARCH-SCAN-GENERAL",
+              "title": "General Scanning Requirements",
+              "description": "Requirements that apply to all scanning.",
+              "size": "S",
+              "status": "NOT_STARTED",
+              "requirements": [
+                {
+                  "req_id": "PIPE-TR-003-REQ-004",
+                  "requirement": "Full regression mode scans the entire codebase with two passes. Run on demand or before promotion to QA/prod. Reports all dead code with file, line, and function name.",
+                  "priority": "must-have",
+                  "status": "open",
+                  "realized_by": [
+                    "Python 3.11 (ast module)"
+                  ]
+                },
+                {
+                  "req_id": "PIPE-TR-003-REQ-005",
+                  "requirement": "The scanner is a single class that holds state (definitions map, references set, findings list). It is not a separate script — it is a method on the existing pre_deploy_rule_check scanner class. One scanner, one class, shared state.",
+                  "priority": "must-have",
+                  "status": "open",
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -34336,6 +33770,624 @@
       ],
       "epic_id": "EPIC-008",
       "type": "epic"
+    },
+    {
+      "epic_id": "EPIC-009",
+      "name": "Shared Services",
+      "type": "functional",
+      "status": "active",
+      "description": "Backend shared services and infrastructure used by all products.",
+      "features": [
+        {
+          "feature_id": "FC-BACKEND",
+          "name": "Backend Shared Services and Infrastructure",
+          "epic_id": "EPIC-006",
+          "layer": "backend",
+          "capability": "FindCare",
+          "description": "Backend shared services that support FindCare: push notifications, activity audit, request logging, CORS, URL validation, tool routing, lead capture, unknown question handling, consent framework, about content, safety IP locking, debug logging, embedding infrastructure, session tokens, and cross-domain provider location. Created during code audit 2026-04-10.",
+          "priority": "HIGH",
+          "status": "implemented",
+          "accepted_by": "Claude (code audit)",
+          "stories": [
+            {
+              "story_id": "FC-BACKEND-001",
+              "title": "Core backend infrastructure — notifications, audit, logging, CORS",
+              "description": "Push notifications via SparkPost, activity audit trail to MongoDB, chat history formatting, request logging middleware, CORS security policy, welcome endpoint.",
+              "parent_feature": "FC-BACKEND",
+              "size": "M",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-BACKEND-001-REQ-001",
+                  "requirement": "System must send push email notifications for lead/activity events via SparkPost when configured.",
+                  "priority": "should-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-001-REQ-002",
+                  "requirement": "System must persist significant activity records to MongoDB via commitSignificantActivity.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-001-REQ-003",
+                  "requirement": "System must truncate and normalize chat history before injecting into tool calls (max 500 chars per message).",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000003",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-001-REQ-004",
+                  "requirement": "HTTP request logging middleware must log method, path, status code, elapsed ms, and client IP for every request.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000004",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-001-REQ-005",
+                  "requirement": "GET /welcome must return the system welcome message.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000005",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                }
+              ],
+              "ch_matrix_id": "a1b2c3d4-0001-4001-8001-000000000010"
+            },
+            {
+              "story_id": "FC-BACKEND-002",
+              "title": "URL Guardian — validate and sanitize URLs in LLM responses",
+              "description": "Three-stage URL validation (HEAD check, AI content verification, Google search correction) with TTL cache. Defangs broken URLs in markdown text and tool results. Prevents users from clicking broken links.",
+              "parent_feature": "FC-BACKEND",
+              "size": "L",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-BACKEND-002-REQ-001",
+                  "requirement": "URLGuardian must validate URLs via HEAD request with redirect following. Broken URLs detected, redirects resolved.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-002-REQ-002",
+                  "requirement": "URLGuardian must validate URLs in tool result dicts (links key). Broken links removed, redirects updated.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-002-REQ-003",
+                  "requirement": "URLGuardian must validate URLs in markdown text. Broken markdown links defanged (text kept, link removed). Broken bare URLs left as plain text.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000003",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-002-REQ-004",
+                  "requirement": "URLGuardian must use AI content verification (Claude Haiku) to confirm reachable URLs show expected content. Pages with wrong content treated as broken.",
+                  "priority": "should-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000004",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-002-REQ-005",
+                  "requirement": "URLGuardian must attempt Google search correction for broken URLs, then AI-verify the top result matches intent.",
+                  "priority": "should-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000005",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                }
+              ],
+              "ch_matrix_id": "a1b2c3d4-0002-4002-8002-000000000010"
+            },
+            {
+              "story_id": "FC-BACKEND-003",
+              "title": "CORS security policy",
+              "description": "CORS restricted to chathealthy.ai domains and localhost. No wildcard origins.",
+              "parent_feature": "FC-BACKEND",
+              "size": "S",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-BACKEND-003-REQ-001",
+                  "requirement": "CORS allow_origins must include only chathealthy.ai domains. Localhost via allow_origin_regex only.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0003-4003-8003-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                }
+              ],
+              "ch_matrix_id": "a1b2c3d4-0003-4003-8003-000000000010"
+            },
+            {
+              "story_id": "FC-BACKEND-004",
+              "title": "Session token generation for cross-component calls",
+              "description": "GET /session generates a signed session token using FindCare x509 cert. Client stores in memory, passes on cross-component calls (e.g., to EvaluateCare).",
+              "parent_feature": "FC-BACKEND",
+              "size": "S",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-BACKEND-004-REQ-001",
+                  "requirement": "GET /session must return a signed session token with origin=FindCare. Falls back to unsigned token if cert unavailable.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "mTLS (x509)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0004-4004-8004-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                }
+              ],
+              "ch_matrix_id": "a1b2c3d4-0004-4004-8004-000000000010"
+            },
+            {
+              "story_id": "FC-BACKEND-005",
+              "title": "Tool Router — GOV-004 allowlist enforcement",
+              "description": "Pydantic-validated allowlist tool dispatch. Only registered tools can be called. GOV-004: 'The model may suggest. The system must decide.'",
+              "parent_feature": "FC-BACKEND",
+              "size": "M",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-BACKEND-005-REQ-001",
+                  "requirement": "ToolRouter must maintain an explicit allowlist registry. Only registered tools can be dispatched.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_tool_router.py::TestToolRouter::test_unregistered_tool_blocked"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-005-REQ-002",
+                  "requirement": "ToolRouter must validate tool inputs via Pydantic models before calling handlers. Invalid inputs rejected with error.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_tool_router.py::TestToolRouter::test_pydantic_validation"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-005-REQ-003",
+                  "requirement": "ToolRouter must handle both Anthropic tool_use blocks and OpenAI normalized tool calls, injecting chat_history for tools that need it.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_tool_router.py::TestToolRouter::test_handle_tool_calls"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000003",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                }
+              ],
+              "ch_matrix_id": "a1b2c3d4-0005-4005-8005-000000000010"
+            },
+            {
+              "story_id": "FC-BACKEND-006",
+              "title": "Lead Capture — contact record creation with consent (UAT Feature 6)",
+              "description": "Record user contact details with two-tier consent: verbatim transcript, de-identified summary, or contact-only. Dedup by email. Delegates to ConsentService.",
+              "parent_feature": "FC-BACKEND",
+              "size": "M",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-BACKEND-006-REQ-001",
+                  "requirement": "record_user_details must accept email, name, notes, message, and consent flags via Pydantic-validated input.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-006-REQ-002",
+                  "requirement": "If consent_verbatim is true, full chat history is stored with the lead record.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-006-REQ-003",
+                  "requirement": "If consent_summary is true (not verbatim), conversation is summarized and de-identified before storage.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000003",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                }
+              ],
+              "ch_matrix_id": "a1b2c3d4-0006-4006-8006-000000000010"
+            },
+            {
+              "story_id": "FC-BACKEND-007",
+              "title": "Unknown Question Handling (UAT Feature 12)",
+              "description": "Classify unanswerable questions into healthcare_capability, medical_advice, or irrelevant. Present consent template. Record with de-identification if user consents.",
+              "parent_feature": "FC-BACKEND",
+              "size": "M",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-BACKEND-007-REQ-001",
+                  "requirement": "record_unknown_question must accept question, question_class, and consent flag via Pydantic-validated input.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_unanswerable_questions.py::TestUnanswerableQuestions"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-007-REQ-002",
+                  "requirement": "Response templates must exist for three question classes: healthcare_capability, medical_advice, irrelevant.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_unanswerable_questions.py::TestUnanswerableQuestions"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-007-REQ-003",
+                  "requirement": "If user consents, chat history must be de-identified before recording. Question and class stored in AboutUs.AboutSkip.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_unanswerable_questions.py::TestUnanswerableQuestions"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000003",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                }
+              ],
+              "ch_matrix_id": "a1b2c3d4-0007-4007-8007-000000000010"
+            },
+            {
+              "story_id": "FC-BACKEND-008",
+              "title": "Cross-domain provider location for travel calculations",
+              "description": "FindCareService.get_provider_location returns provider lat/lng/address for a given NPI. Called by EvaluateCareFacade for clinical trial travel time calculations.",
+              "parent_feature": "FC-BACKEND",
+              "size": "S",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-BACKEND-008-REQ-001",
+                  "requirement": "get_provider_location must return lat, lng, and formatted address for a given NPI from the providers collection.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0008-4008-8008-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                }
+              ],
+              "ch_matrix_id": "a1b2c3d4-0008-4008-8008-000000000010"
+            },
+            {
+              "story_id": "FC-BACKEND-010",
+              "title": "Consent Framework — two-tier HIPAA consent (UAT Feature 7)",
+              "description": "Two-tier consent: Tier 1 = verbatim transcript, Tier 2 = de-identified summary. ConsentService summarizes via Claude Haiku and de-identifies via HIPAA Safe Harbor.",
+              "parent_feature": "FC-BACKEND",
+              "size": "M",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-BACKEND-010-REQ-001",
+                  "requirement": "summarize_conversation must produce a 2-3 sentence summary of chat history via Claude Haiku.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0010-4010-8010-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-010-REQ-002",
+                  "requirement": "de_identify must strip PII from chat history in-place per HIPAA Safe Harbor requirements using Claude Haiku.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0010-4010-8010-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                }
+              ],
+              "ch_matrix_id": "a1b2c3d4-0010-4010-8010-000000000010"
+            },
+            {
+              "story_id": "FC-BACKEND-011",
+              "title": "About Content — Skip Snow and ChatHealthy context (UAT Feature 4)",
+              "description": "Static content service for about intents. Returns Skip Snow professional context with LinkedIn link, and ChatHealthy business plan and principles.",
+              "parent_feature": "FC-BACKEND",
+              "size": "S",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-BACKEND-011-REQ-001",
+                  "requirement": "get_skip_snow_context must return summary, LinkedIn content, and connect info with markdown links rendered verbatim.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0011-4011-8011-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-011-REQ-002",
+                  "requirement": "get_chathealthy_context must return business_plan and anthropic_principles from pre-loaded ME context.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "NEEDS_TEST"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0011-4011-8011-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                }
+              ],
+              "ch_matrix_id": "a1b2c3d4-0011-4011-8011-000000000010"
+            },
+            {
+              "story_id": "FC-BACKEND-012",
+              "title": "Debug Logging — chat call metadata to MongoDB",
+              "description": "DebugLogger persists chat call metadata (IP, message preview, tokens, errors) to {ENV}_Debug.chat_calls. On error, de-identified chat history is included.",
+              "parent_feature": "FC-BACKEND",
+              "size": "S",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-BACKEND-012-REQ-001",
+                  "requirement": "log_chat must persist IP, message preview (200 chars), history length, tool loop iterations, token counts, response preview, and error to MongoDB. On error, de-identified chat history included.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_debug_logger.py::TestDebugLogger"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)",
+                    "MongoDB Atlas"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0012-4012-8012-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                }
+              ],
+              "ch_matrix_id": "a1b2c3d4-0012-4012-8012-000000000010"
+            },
+            {
+              "story_id": "FC-BACKEND-013",
+              "title": "Embedding Infrastructure — centralized AI embedding and query expansion",
+              "description": "EmbeddingClient provides text-embedding-3-large (provider vector search), text-embedding-3-small (specialty matching), and Claude Haiku query expansion (regex pipeline).",
+              "parent_feature": "FC-BACKEND",
+              "size": "M",
+              "status": "implemented",
+              "requirements": [
+                {
+                  "req_id": "FC-BACKEND-013-REQ-001",
+                  "requirement": "get_query_embedding must return a vector from text-embedding-3-large for provider vector search.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_embedding_client.py::TestEmbeddingClient"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000001",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-013-REQ-002",
+                  "requirement": "get_specialty_vector must return a vector from text-embedding-3-small for specialty matching.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_embedding_client.py::TestEmbeddingClient"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000002",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                },
+                {
+                  "req_id": "FC-BACKEND-013-REQ-003",
+                  "requirement": "expand_query_terms must return 2-5 keyword stems via Claude Haiku for regex pipeline matching against Specialization and Display Name fields.",
+                  "priority": "must-have",
+                  "status": "implemented",
+                  "pytest_ids": [
+                    "test_embedding_client.py::TestEmbeddingClient"
+                  ],
+                  "realized_by": [
+                    "FastAPI (Python 3.11)"
+                  ],
+                  "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000003",
+                  "test_method": "pytest",
+                  "test_timeout_seconds": 30
+                }
+              ],
+              "ch_matrix_id": "a1b2c3d4-0013-4013-8013-000000000010"
+            }
+          ],
+          "ch_matrix_id": "a1b2c3d4-0000-4000-8000-000000000100",
+          "realized_by": [
+            "FastAPI (Python 3.11)",
+            "MongoDB Atlas"
+          ]
+        }
+      ]
     }
   ],
   "sprint_map": [
