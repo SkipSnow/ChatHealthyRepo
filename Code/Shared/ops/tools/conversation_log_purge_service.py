@@ -301,31 +301,49 @@ def run_cycle():
         return False
 
     # T014: Real parity check — every retained record from the original file
-    # must be present in the .temp file. The service has the original data in
-    # memory and knows preservePastTime.
+    # must be present in the .temp file with matching timestamps.
     from conversation_log_agent import _parse_datetime
     cutoff = _parse_datetime(preserve_past)
-    expected_retained = set()
+
+    # Build expected set from original file: ch_key → (timestamp_pst, timestamp_utc)
+    expected = {}
     for u in data.get("utterances", []):
         ts = _parse_datetime(u.get("timestamp_pst", ""))
         if ts is None or ts >= cutoff:
-            expected_retained.add(u.get("ch_key", ""))
+            ch = u.get("ch_key", "")
+            if ch:
+                expected[ch] = (u.get("timestamp_pst", ""), u.get("timestamp_utc", ""))
 
-    actual_retained = set()
+    # Check every expected record is in .temp with matching timestamps
+    actual = {}
     for u in validated.get("utterances", []):
         ch = u.get("ch_key", "")
         if ch:
-            actual_retained.add(ch)
+            actual[ch] = (u.get("timestamp_pst", ""), u.get("timestamp_utc", ""))
 
-    missing = expected_retained - actual_retained
-    if missing:
-        msg = f"Parity check failed: {len(missing)} retained records from original file missing in .temp"
+    missing = []
+    corrupted = []
+    for ch, (exp_pst, exp_utc) in expected.items():
+        if ch not in actual:
+            missing.append(ch)
+        else:
+            act_pst, act_utc = actual[ch]
+            if act_pst != exp_pst or act_utc != exp_utc:
+                corrupted.append(f"{ch}: expected pst={exp_pst} utc={exp_utc}, got pst={act_pst} utc={act_utc}")
+
+    if missing or corrupted:
+        msgs = []
+        if missing:
+            msgs.append(f"{len(missing)} retained records missing")
+        if corrupted:
+            msgs.append(f"{len(corrupted)} records have corrupted timestamps: {corrupted[:3]}")
+        msg = f"Parity check failed: {'; '.join(msgs)}"
         _log.error(msg)
         _write_error(msg)  # T023
         TEMP_PATH.unlink(missing_ok=True)
         return False
 
-    _log.info("Parity check passed: %d expected retained, all present", len(expected_retained))
+    _log.info("Parity check passed: %d expected retained, all present with correct timestamps", len(expected))
 
     # B001: Validate against schema
     from conversation_log_agent import _validate_against_schema
