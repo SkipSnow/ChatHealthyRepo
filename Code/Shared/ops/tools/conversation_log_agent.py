@@ -3,7 +3,7 @@
 #
 # BRAIN-CONVERSATION-LOG Agent
 # Anthropic tool-use agent for conversation log archival.
-# Satisfies requirements B001-B012, T001-T038.
+# Satisfies requirements B001-B013, T001-T040.
 #
 # Usage:
 #   python conversation_log_agent.py --test     Run test against real conversation_log.json
@@ -47,6 +47,18 @@ MONGO_COLLECTION = "conversation_log_archive"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 _log = logging.getLogger("conversation_log_agent")
 
+# ── Shared Anthropic client (used by tool for Files API) ────────────────
+
+_anthropic_client = None
+
+
+def _get_anthropic_client() -> Anthropic:
+    global _anthropic_client
+    if _anthropic_client is None:
+        _anthropic_client = Anthropic()
+    return _anthropic_client
+
+
 # ── CH_GUID validation (T013, T016) ─────────────────────────────────────
 
 CH_GUID_PATTERN = re.compile(
@@ -59,25 +71,26 @@ def _validate_bearer_token(token: str) -> bool:
     return bool(token and CH_GUID_PATTERN.match(token))
 
 
-def _validate_args(log_content: str, mongo_conn: str, preserve_past: str, schema_str: str) -> dict | None:
-    """T018: Validate all POST args. Returns error dict or None if valid."""
-    # logContent must be valid JSON
-    try:
-        json.loads(log_content)
-    except (json.JSONDecodeError, TypeError):
-        return {"status": 400, "error": "Bad Request", "field": "logContent", "detail": "Not valid JSON"}
+def _validate_args(log_content_file_id: str, mongo_conn: str,
+                   preserve_past: str, schema_str: str) -> dict | None:
+    """T018: Validate all args. Returns error dict or None if valid."""
+    # logContentFileId must be non-empty
+    if not log_content_file_id or not log_content_file_id.strip():
+        return {"status": 400, "error": "Bad Request", "field": "logContentFileId",
+                "detail": "Empty or missing"}
 
     # mongoConnectionString must be non-empty
     if not mongo_conn or not mongo_conn.strip():
-        return {"status": 400, "error": "Bad Request", "field": "mongoConnectionString", "detail": "Empty or missing"}
+        return {"status": 400, "error": "Bad Request", "field": "mongoConnectionString",
+                "detail": "Empty or missing"}
 
-    # preservePastTime must be parseable as a PST datetime
+    # preservePastTime must be parseable as a datetime
     if not preserve_past or not preserve_past.strip():
-        return {"status": 400, "error": "Bad Request", "field": "preservePastTime", "detail": "Empty or missing"}
+        return {"status": 400, "error": "Bad Request", "field": "preservePastTime",
+                "detail": "Empty or missing"}
     try:
         datetime.fromisoformat(preserve_past)
     except (ValueError, TypeError):
-        # Try the custom format %-m/%-d/%Y %-H:%M:%S.%f
         try:
             datetime.strptime(preserve_past, "%m/%d/%Y %H:%M:%S.%f")
         except (ValueError, TypeError):
@@ -88,7 +101,8 @@ def _validate_args(log_content: str, mongo_conn: str, preserve_past: str, schema
     try:
         json.loads(schema_str)
     except (json.JSONDecodeError, TypeError):
-        return {"status": 400, "error": "Bad Request", "field": "schema", "detail": "Not valid JSON"}
+        return {"status": 400, "error": "Bad Request", "field": "schema",
+                "detail": "Not valid JSON"}
 
     return None
 
@@ -109,12 +123,10 @@ def _parse_timestamp_pst(ts: str) -> datetime | None:
         return datetime.fromisoformat(ts)
     except ValueError:
         pass
-    # Try custom format: M/D/YYYY H:MM:SS.ffffff
     try:
         return datetime.strptime(ts, "%m/%d/%Y %H:%M:%S.%f")
     except ValueError:
         pass
-    # Try without microseconds
     try:
         return datetime.strptime(ts, "%m/%d/%Y %H:%M:%S")
     except ValueError:
@@ -131,8 +143,24 @@ def _write_agent_error_log(message: str):
         _log.error("Failed to write agent error log: %s", e)
 
 
-def _write_to_mongodb(utterances: list, mongo_conn: str, preserve_past_str: str, job_id: str) -> dict:
-    """T029-T031: Write ALL records to MongoDB after HTTP connection closed.
+def _download_file(file_id: str) -> str:
+    """T019: Download file content from Anthropic Files API."""
+    client = _get_anthropic_client()
+    response = client.beta.files.download(file_id)
+    return response.text
+
+
+def _upload_file(content: str, filename: str) -> str:
+    """Upload content to Anthropic Files API, return file_id."""
+    client = _get_anthropic_client()
+    response = client.beta.files.upload(
+        file=(filename, content.encode("utf-8"), "application/json"),
+    )
+    return response.id
+
+
+def _write_to_mongodb(utterances: list, mongo_conn: str, job_id: str) -> dict:
+    """T029-T031: Write ALL records to MongoDB. MongoDB FIRST (T002/T029).
     Returns counts dict with archived count and any errors."""
     errors = []
     archived = 0
@@ -156,7 +184,6 @@ def _write_to_mongodb(utterances: list, mongo_conn: str, preserve_past_str: str,
                 continue
 
             try:
-                # Build the document — include both timestamps (B008)
                 doc = {k: v for k, v in u.items()}
                 doc["_archived_by_job"] = job_id
                 doc["_archived_at"] = datetime.now(timezone.utc).isoformat()
@@ -194,7 +221,7 @@ def _validate_against_schema(data: dict, schema_str: str) -> list:
         fields = log_record.get("fields", {})
 
         if not fields:
-            return violations  # Schema not fully defined yet
+            return violations
 
         for u in data.get("utterances", []):
             uid = u.get("utterance", "?")
@@ -212,31 +239,58 @@ def _validate_against_schema(data: dict, schema_str: str) -> list:
     return violations
 
 
-# ── The Tool (all 50 requirements) ──────────────────────────────────────
+def _upload_error_log() -> str | None:
+    """T035: Upload error log to Anthropic Files API. Returns file_id or None."""
+    if not AGENT_ERROR_LOG.exists():
+        return None
+    try:
+        content = AGENT_ERROR_LOG.read_text(encoding="utf-8")
+        if not content.strip():
+            return None
+        return _upload_file(content, "conversation_log_agent_error.log")
+    except Exception as e:
+        _log.error("Failed to upload error log: %s", e)
+        return None
+
+
+# ── The Tool (all 53 requirements) ──────────────────────────────────────
 
 @beta_tool
 def process_conversation_log(
-    logContent: str,
+    logContentFileId: str,
     bearerToken: str,
     mongoConnectionString: str,
     preservePastTime: str,
     schema: str,
+    errorLogFileId: str = "",
 ) -> str:
     """Process the ChatHealthy conversation log for archival.
 
-    Validates authentication, separates retained records from archived records
-    based on preservePastTime, streams the retained file back, and writes ALL
-    records to MongoDB for permanent archival.
+    Downloads the conversation log from Anthropic Files API, separates retained
+    records from excluded records based on preservePastTime, writes ALL records
+    to MongoDB for permanent archival, uploads the retained file to Files API,
+    and returns the retainedFileId for the client to download.
 
     Args:
-        logContent: The conversation_log.json content as a JSON string.
+        logContentFileId: Anthropic Files API file_id of the uploaded conversation_log.json.
         bearerToken: CH_GUID authentication token in format CH-xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx.
         mongoConnectionString: MongoDB connection string for the Frontend cluster.
-        preservePastTime: PST datetime cutoff. Records before this time are excluded from the response. Records at or after are included.
+        preservePastTime: PST datetime cutoff. Records before this time are excluded. Records at or after are included.
         schema: The conversation_log JSON schema as a JSON string.
+        errorLogFileId: Anthropic Files API file_id of the previous error log. Empty string on first run.
     """
     job_id = f"JOB-{uuid.uuid4().hex[:12]}"
     _log.info("Job %s started", job_id)
+
+    # ── T035: Download previous error log if exists ─────────────────────
+    if errorLogFileId and errorLogFileId.strip():
+        try:
+            prev_errors = _download_file(errorLogFileId)
+            with open(AGENT_ERROR_LOG, "w", encoding="utf-8") as f:
+                f.write(prev_errors)
+            _log.info("Job %s: Downloaded previous error log", job_id)
+        except Exception as e:
+            _log.warning("Job %s: Could not download previous error log: %s", job_id, e)
 
     # ── T016: Validate bearerToken ──────────────────────────────────────
     if not _validate_bearer_token(bearerToken):
@@ -244,31 +298,33 @@ def process_conversation_log(
         return json.dumps({"status": 401, "error": "Unauthorized", "jobId": job_id})
 
     # ── T018: Validate all args ─────────────────────────────────────────
-    arg_error = _validate_args(logContent, mongoConnectionString, preservePastTime, schema)
+    arg_error = _validate_args(logContentFileId, mongoConnectionString, preservePastTime, schema)
     if arg_error:
         arg_error["jobId"] = job_id
         _log.warning("Job %s: 400 Bad Request — %s: %s", job_id, arg_error["field"], arg_error["detail"])
         return json.dumps(arg_error)
 
-    # ── T019: Persist logContent to local file ──────────────────────────
+    # ── T019: Download logContent from Files API and persist locally ─────
     try:
+        log_content = _download_file(logContentFileId)
         with open(AGENT_PERSISTED_FILE, "w", encoding="utf-8") as f:
-            f.write(logContent)
-        _log.info("Job %s: Persisted logContent to %s", job_id, AGENT_PERSISTED_FILE)
+            f.write(log_content)
+        _log.info("Job %s: Downloaded and persisted logContent (%d chars)", job_id, len(log_content))
     except Exception as e:
-        msg = f"Failed to persist logContent: {e}"
+        msg = f"Failed to download logContent from Files API: {e}"
         _log.error("Job %s: %s", job_id, msg)
         _write_agent_error_log(msg)
         return json.dumps({"status": 500, "error": "Internal Server Error", "detail": msg, "jobId": job_id})
 
     # ── T020: Parse header from utterances ──────────────────────────────
     try:
-        with open(AGENT_PERSISTED_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        data = json.loads(log_content)
     except Exception as e:
-        msg = f"Failed to read persisted file: {e}"
+        msg = f"logContent is not valid JSON: {e}"
         _log.error("Job %s: %s", job_id, msg)
-        return json.dumps({"status": 500, "error": "Internal Server Error", "detail": msg, "jobId": job_id})
+        _write_agent_error_log(msg)
+        return json.dumps({"status": 400, "error": "Bad Request", "field": "logContentFileId",
+                           "detail": msg, "jobId": job_id})
 
     utterances = data.get("utterances", [])
     header = {k: v for k, v in data.items() if k != "utterances"}
@@ -285,38 +341,32 @@ def process_conversation_log(
             retained.append(u)
 
     retained_count = len(retained)
-    _log.info("Job %s: %d retained, %d excluded by preservePastTime", job_id, retained_count, original_count - retained_count)
+    _log.info("Job %s: %d retained, %d excluded", job_id, retained_count, original_count - retained_count)
 
-    # ── T030/T031: Write ALL records to MongoDB ─────────────────────────
-    # MongoDB writes happen before building the response so the agent utterance
-    # includes accurate counts.
-    mongo_result = _write_to_mongodb(utterances, mongoConnectionString, preservePastTime, job_id)
-
-    # ── T032: Delete persisted file ─────────────────────────────────────
-    try:
-        AGENT_PERSISTED_FILE.unlink(missing_ok=True)
-        _log.info("Job %s: Deleted persisted file", job_id)
-    except Exception as e:
-        _log.warning("Job %s: Failed to delete persisted file: %s", job_id, e)
-        _write_agent_error_log(f"Failed to delete persisted file: {e}")
+    # ── T002/T029: Write ALL records to MongoDB FIRST ───────────────────
+    mongo_result = _write_to_mongodb(utterances, mongoConnectionString, job_id)
 
     # ── B010: Build agent utterance and inject into retained file ────────
-    # The agent writes its own utterance — the client does not.
     pst_offset = timedelta(hours=-7)
     now_utc = datetime.now(timezone.utc)
     now_pst = now_utc + pst_offset
     next_utterance = max((u.get("utterance", 0) for u in retained), default=0) + 1
 
+    # T035: Upload error log, get file_id
+    new_error_log_file_id = _upload_error_log()
+
     agent_utterance = {
         "utterance": next_utterance,
         "userId": "ConversationLogAgent",
         "role": "agent",
-        "timestamp_pst": now_pst.strftime("%-m/%-d/%Y %-H:%M:%S.%f") if os.name != "nt"
-                         else now_pst.strftime("%#m/%#d/%Y %#H:%M:%S.") + f"{now_pst.microsecond:06d}",
+        "timestamp_pst": now_pst.strftime("%#m/%#d/%Y %#H:%M:%S.") + f"{now_pst.microsecond:06d}"
+                         if os.name == "nt"
+                         else now_pst.strftime("%-m/%-d/%Y %-H:%M:%S.%f"),
         "timestamp_utc": now_utc.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-        "content": f"Archive job {job_id} complete. {original_count} original, {retained_count} retained, {mongo_result['archived']} archived to MongoDB.",
+        "content": f"Archive job {job_id} complete. {original_count} original, "
+                   f"{retained_count} retained, {mongo_result['archived']} archived to MongoDB.",
         "jobId": job_id,
-        "errorLogFileId": None,  # T035: Will be set when Files API integration is added
+        "errorLogFileId": new_error_log_file_id,
         "preservePastTime": preservePastTime,
         "counts": {
             "original": original_count,
@@ -328,30 +378,57 @@ def process_conversation_log(
         agent_utterance["error"] = "; ".join(mongo_result["errors"])
 
     retained.append(agent_utterance)
-    retained_count += 1
 
-    # ── T021/T026/T028: Build response JSON ─────────────────────────────
+    # ── T021/T026/T028: Build retained file JSON ────────────────────────
     response_data = dict(header)
     response_data["utterances"] = retained
 
     # T028: Validate against schema
     violations = _validate_against_schema(response_data, schema)
     if violations:
-        _log.warning("Job %s: Schema violations in response: %s", job_id, violations)
+        _log.warning("Job %s: Schema violations: %s", job_id, violations)
         _write_agent_error_log(f"Schema violations: {violations}")
 
-    response_json = json.dumps(response_data, indent=2, ensure_ascii=False)
+    retained_json = json.dumps(response_data, indent=2, ensure_ascii=False)
+
+    # ── T029 step 3: Upload retained file to Files API ──────────────────
+    try:
+        retained_file_id = _upload_file(retained_json, "conversation_log_retained.json")
+        _log.info("Job %s: Uploaded retained file → %s", job_id, retained_file_id)
+    except Exception as e:
+        msg = f"Failed to upload retained file to Files API: {e}"
+        _log.error("Job %s: %s", job_id, msg)
+        _write_agent_error_log(msg)
+        # Fall back to returning the file inline
+        return json.dumps({
+            "status": 200,
+            "retainedFileId": None,
+            "retained_file_inline": retained_json,
+            "jobId": job_id,
+            "error": msg,
+        }, ensure_ascii=False)
+
+    # ── T032: Delete persisted file ─────────────────────────────────────
+    try:
+        AGENT_PERSISTED_FILE.unlink(missing_ok=True)
+    except Exception as e:
+        _log.warning("Job %s: Failed to delete persisted file: %s", job_id, e)
 
     _log.info("Job %s complete: original=%d, retained=%d, archived=%d, errors=%d",
-              job_id, original_count, retained_count, mongo_result["archived"], len(mongo_result["errors"]))
+              job_id, original_count, len(retained), mongo_result["archived"],
+              len(mongo_result["errors"]))
 
-    # ── T029: Return tool result ────────────────────────────────────────
-    # The retained_file already contains the agent utterance (B010).
-    # The client just writes this file to disk — no additional work needed.
+    # ── T029 step 6: Return retainedFileId to client ────────────────────
     return json.dumps({
         "status": 200,
-        "retained_file": response_json,
-    }, ensure_ascii=False)
+        "retainedFileId": retained_file_id,
+        "jobId": job_id,
+        "counts": {
+            "original": original_count,
+            "retained": len(retained),
+            "archived": mongo_result["archived"],
+        },
+    })
 
 
 # ── Test harness ────────────────────────────────────────────────────────
@@ -367,7 +444,8 @@ def _load_env():
 
 def _run_agent_test(bearer_token: str, log_content: str | None = None,
                     preserve_hours: int = 24, expect_status: int = 200):
-    """Run the agent via Anthropic Messages API tool_runner."""
+    """Run the agent via Anthropic Messages API tool_runner.
+    Uploads logContent to Files API first, then calls the tool with the file_id."""
     _load_env()
     client = Anthropic()
 
@@ -389,50 +467,57 @@ def _run_agent_test(bearer_token: str, log_content: str | None = None,
     cutoff = now_pst - timedelta(hours=preserve_hours)
     preserve_past = cutoff.isoformat()
 
-    # Build the user message — structured JSON so Claude can parse args cleanly
+    # T033/T015: Upload logContent to Files API → get logContentFileId
+    print("Uploading logContent to Anthropic Files API...")
+    upload_response = client.beta.files.upload(
+        file=("conversation_log.json", log_content.encode("utf-8"), "application/json"),
+    )
+    log_content_file_id = upload_response.id
+    print(f"  logContentFileId: {log_content_file_id}")
+
+    # Build the user message with file_id reference
     args_json = json.dumps({
-        "logContent": log_content,
+        "logContentFileId": log_content_file_id,
         "bearerToken": bearer_token,
         "mongoConnectionString": mongo_conn,
         "preservePastTime": preserve_past,
         "schema": schema_content,
+        "errorLogFileId": "",
     })
-    user_msg = (
-        f"Call process_conversation_log with these exact arguments:\n{args_json}"
-    )
+    user_msg = f"Call process_conversation_log with these exact arguments:\n{args_json}"
 
     print(f"\n{'='*60}")
     print(f"Testing agent — expect HTTP {expect_status}")
     print(f"  bearerToken: {bearer_token[:20]}...")
     print(f"  preservePastTime: {preserve_past}")
-    print(f"  logContent length: {len(log_content)} chars")
+    print(f"  logContentFileId: {log_content_file_id}")
     print(f"{'='*60}\n")
 
     # Use tool_runner — handles the agentic loop internally
     result = client.beta.messages.tool_runner(
         model="claude-sonnet-4-6",
-        max_tokens=16384,
+        max_tokens=4096,
         tools=[process_conversation_log],
         messages=[{"role": "user", "content": user_msg}],
     )
 
-    # tool_runner returns the final message after all tool calls complete
     final = result.until_done()
 
     print(f"\nFinal response (stop_reason: {final.stop_reason}):")
     for block in final.content:
         if hasattr(block, "text"):
             text = block.text
-            # Try to find JSON result in text
             try:
                 parsed = json.loads(text)
                 print(f"  Status: {parsed.get('status', '?')}")
-                if "retained_file" in parsed:
-                    retained = json.loads(parsed["retained_file"])
-                    print(f"  Retained utterances: {len(retained.get('utterances', []))}")
-                print(f"  Full result keys: {list(parsed.keys())}")
+                print(f"  Job ID: {parsed.get('jobId', '?')}")
+                if parsed.get("retainedFileId"):
+                    print(f"  retainedFileId: {parsed['retainedFileId']}")
+                if parsed.get("counts"):
+                    print(f"  Counts: {parsed['counts']}")
+                if parsed.get("error"):
+                    print(f"  Error: {parsed['error']}")
             except (json.JSONDecodeError, TypeError):
-                # Claude's natural language response
                 print(f"  {text[:1000]}")
 
     return final
