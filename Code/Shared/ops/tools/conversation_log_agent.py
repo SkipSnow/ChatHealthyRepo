@@ -20,9 +20,7 @@ _log = logging.getLogger("ChatHealthyClaudeLogManagementAnthropicAgent")
 MONGO_DB = "ClaudeCodeLog"
 MONGO_COLLECTION = "conversation_log_archive"
 
-# T024: Absolute paths
 REPO_ROOT = Path(r"c:\chatHealthy\findCare")
-TEMP_PATH = REPO_ROOT / "brain" / "machine_artifacts" / "content" / "conversation_log.json.temp"
 
 CH_GUID_PATTERN = re.compile(
     r"^CH-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
@@ -132,40 +130,6 @@ def process_conversation_log(logContent, bearerToken, mongoConnectionString,
 
     retained_records.append(agent_utterance)
 
-    # ── T013: Agent writes retained file to .temp ──────────────────────
-    retained_file = {**header, "utterances": retained_records}
-    try:
-        with open(TEMP_PATH, "w", encoding="utf-8") as f:
-            json.dump(retained_file, f, indent=2, ensure_ascii=False)
-        _log.info("Job %s: Wrote %d utterances to .temp", job_id, len(retained_records))
-    except Exception as e:
-        msg = f"Failed to write .temp: {e}"
-        _log.error("Job %s: %s", job_id, msg)
-        return {"status": 500, "error": msg, "jobId": job_id}
-
-    # ── T014: Agent validates .temp ────────────────────────────────────
-    try:
-        with open(TEMP_PATH, "r", encoding="utf-8") as f:
-            validated = json.load(f)
-        temp_count = len(validated.get("utterances", []))
-    except Exception as e:
-        msg = f".temp is not valid JSON: {e}"
-        _log.error("Job %s: %s", job_id, msg)
-        TEMP_PATH.unlink(missing_ok=True)
-        return {"status": 500, "error": msg, "jobId": job_id}
-
-    # T014: Parity check
-    if temp_count > original_count + 2:  # +2 for agent + service utterances
-        msg = f"Parity check failed: temp={temp_count} > original={original_count}+2"
-        _log.error("Job %s: %s", job_id, msg)
-        TEMP_PATH.unlink(missing_ok=True)
-        return {"status": 500, "error": msg, "jobId": job_id}
-
-    # B001: Validate against schema
-    violations = _validate_against_schema(validated, schema)
-    if violations:
-        _log.warning("Job %s: Schema violations: %s", job_id, violations)
-
     # ── T009: Return last written timestamp ─────────────────────────────
     _log.info("Job %s complete: original=%d, retained=%d, archived=%d, errors=%d",
               job_id, original_count, len(retained_records),
@@ -177,7 +141,6 @@ def process_conversation_log(logContent, bearerToken, mongoConnectionString,
         "header": header,
         "retained_records": retained_records,
         "last_written_ts": mongo_result["last_written_ts"],
-        "temp_file_path": str(TEMP_PATH),
         "counts": {
             "original": original_count,
             "retained": len(retained_records),

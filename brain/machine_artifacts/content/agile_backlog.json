@@ -32171,7 +32171,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B007",
-                  "requirement": "No two utterance records in conversation_log.json MAY share the same timestamp. The timestamp MUST be unique across all records. If two utterances occur within the same microsecond, the log writer MUST stagger the timestamp by at least one microsecond. This timestamp is the unique key in the conversation_log_archive collection in the ClaudeCodeLog database.",
+                  "requirement": "No two utterance records in conversation_log.json MAY share the same timestamp. The timestamp MUST be unique across all records. If two utterances occur within the same microsecond, the log writer MUST stagger the timestamp by at least one microsecond. The CH_KEY{GUID} added by the service is the unique key in the conversation_log_archive collection in the ClaudeCodeLog database.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "business",
@@ -32317,7 +32317,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T008",
-                  "requirement": "If a record is rejected by the unique timestamp_pst index (duplicate key), the agent MUST skip that record, log a warning, and continue the batch. The agent MUST NOT abort the job.",
+                  "requirement": "If a record is rejected by the unique ch_key index (duplicate key), the agent MUST skip that record, log a warning, and continue the batch. The agent MUST NOT abort the job.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -32371,7 +32371,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T012",
-                  "requirement": "The service MUST build the retained file as a complete, parseable JSON with header metadata and the retained utterances array.",
+                  "requirement": "The service MUST build the retained file as a complete, parseable JSON with header metadata and the retained utterances array returned by the agent.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -32384,7 +32384,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T013",
-                  "requirement": "The agent MUST write the retained file to conversation_log.json.temp, not directly to conversation_log.json.",
+                  "requirement": "The service MUST write the retained file to conversation_log.json.temp, not directly to conversation_log.json.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -32397,7 +32397,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T014",
-                  "requirement": "The agent MUST validate that the temp file is legal JSON and compliant with the schema. The agent MUST perform a parity check: retained count MUST be less than or equal to original count.",
+                  "requirement": "The service MUST validate that the temp file is legal JSON and compliant with the schema. The service MUST perform a parity check: every utterance from the original file whose timestamp_pst is at or after preservePastTime MUST be present in the temp file, matched by ch_key. If any are missing, the temp file MUST be rejected.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -32540,7 +32540,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T025",
-                  "requirement": "After the job is complete, the agent MUST clean up any temporary files.",
+                  "requirement": "After the job is complete, the service MUST clean up any temporary files.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
