@@ -271,9 +271,28 @@ def _call_anthropic_agent(data, bearer, mongo_conn, preserve_past, schema_json):
     except Exception as e:
         return {"status": 500, "error": f"Failed to create session: {e}"}
 
-    # Step 3: Send two messages — first the payload as a file write, then the execution command
-    # Message 1: Write the payload to disk via the agent's write tool
-    _log.info("Sending payload write command to session %s", session_id)
+    # Step 3: Encode payload as base64 so the model doesn't have to echo it
+    import base64
+    payload_b64 = base64.b64encode(payload_json.encode("utf-8")).decode("ascii")
+
+    runner_code = (
+        "import json, sys, base64\n"
+        "sys.path.insert(0, '/tmp')\n"
+        "from conversation_log_agent import process_conversation_log\n\n"
+        f"payload = json.loads(base64.b64decode('{payload_b64}').decode('utf-8'))\n\n"
+        "result = process_conversation_log(\n"
+        "    logContent=payload['logContent'],\n"
+        "    bearerToken=payload['bearerToken'],\n"
+        "    mongoConnectionString=payload['mongoConnectionString'],\n"
+        "    preservePastTime=payload['preservePastTime'],\n"
+        "    schema=payload['schema'],\n"
+        ")\n"
+        "print('===AGENT_RESULT_START===')\n"
+        "print(json.dumps(result, default=str))\n"
+        "print('===AGENT_RESULT_END===')\n"
+    )
+
+    _log.info("Sending execution command to session %s", session_id)
     try:
         resp = requests.post(
             f"{ANTHROPIC_API_URL}/v1/sessions/{session_id}/events",
@@ -282,29 +301,12 @@ def _call_anthropic_agent(data, bearer, mongo_conn, preserve_past, schema_json):
                 "events": [{
                     "type": "user.message",
                     "content": [{"type": "text", "text": (
-                        "Do these steps in exact order. No commentary until step 4.\n\n"
-                        "Step 1: pip install pymongo dnspython -q\n\n"
-                        "Step 2: cp /workspace/skills/conversation-log-archival/conversation_log_agent.py /tmp/conversation_log_agent.py\n\n"
-                        f"Step 3: Write this JSON to /tmp/payload.json:\n{payload_json}\n\n"
-                        "Step 4: Write and execute /tmp/runner.py:\n"
-                        "```python\n"
-                        "import json, sys\n"
-                        "sys.path.insert(0, '/tmp')\n"
-                        "from conversation_log_agent import process_conversation_log\n"
-                        "with open('/tmp/payload.json', 'r') as f:\n"
-                        "    payload = json.load(f)\n"
-                        "result = process_conversation_log(\n"
-                        "    logContent=payload['logContent'],\n"
-                        "    bearerToken=payload['bearerToken'],\n"
-                        "    mongoConnectionString=payload['mongoConnectionString'],\n"
-                        "    preservePastTime=payload['preservePastTime'],\n"
-                        "    schema=payload['schema'],\n"
-                        ")\n"
-                        "print('===AGENT_RESULT_START===')\n"
-                        "print(json.dumps(result, default=str))\n"
-                        "print('===AGENT_RESULT_END===')\n"
-                        "```\n\n"
-                        "Step 5: Show ONLY the text between the markers. No other output."
+                        "Do these steps in exact order:\n\n"
+                        "1. pip install pymongo dnspython -q\n"
+                        "2. cp /workspace/skills/conversation-log-archival/conversation_log_agent.py /tmp/conversation_log_agent.py\n"
+                        "3. Write this exact code to /tmp/runner.py and execute it with: python /tmp/runner.py\n\n"
+                        f"```python\n{runner_code}```\n\n"
+                        "4. Show ONLY the text between ===AGENT_RESULT_START=== and ===AGENT_RESULT_END===. No other output."
                     )}],
                 }],
             },
