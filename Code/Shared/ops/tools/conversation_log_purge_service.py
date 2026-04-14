@@ -198,6 +198,10 @@ def run_cycle():
         _log.info("No records older than 24 hours. Skipping cycle.")
         return True
 
+    # T027: Add CH_KEY{GUID} to every utterance
+    for u in data.get("utterances", []):
+        u["ch_key"] = f"CH_KEY{{{uuid.uuid4()}}}"
+
     # T017: Redact credentials
     data = _redact_credentials(data)
 
@@ -265,6 +269,7 @@ def run_cycle():
     svc_utc = svc_now_utc + (svc_ts - svc_now_pst)
 
     service_utterance = {
+        "ch_key": f"CH_KEY{{{uuid.uuid4()}}}",
         "utterance": next_utt,
         "userId": "ConversationLogManagerService",
         "role": "service",

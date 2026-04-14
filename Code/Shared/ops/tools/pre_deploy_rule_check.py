@@ -312,7 +312,7 @@ def enforce_conversation_log_schema(rule_id, enforcement):
         violations.append(f"{rule_id}: LogRecord has no fields defined")
         return violations
 
-    required_fields = ["userId", "role", "timestamp_pst", "timestamp_utc", "content", "utterance"]
+    required_fields = ["ch_key", "userId", "role", "timestamp_pst", "timestamp_utc", "content", "utterance"]
     for fname in required_fields:
         if fname not in fields:
             violations.append(f"{rule_id}: LogRecord missing required field definition '{fname}'")

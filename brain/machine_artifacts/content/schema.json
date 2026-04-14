@@ -314,6 +314,13 @@
         "LogRecord": {
           "description": "A single utterance in the conversation log. Four types: user (Skip), assistant (Claude), agent (ConversationLogAgent), service (ConversationLogManagerService).",
           "fields": {
+            "ch_key": {
+              "type": "string",
+              "required": true,
+              "unique": true,
+              "format": "CH_KEY{GUID}",
+              "description": "Unique key for every utterance. Added by the service before passing to the agent. Format: CH_KEY{uuid4}. This is the unique index in conversation_log_archive."
+            },
             "utterance": {
               "type": "integer",
               "required": true,
