@@ -327,7 +327,9 @@ def _run_cycle_inner():
 
     # T014: Parity check — every record in .temp must be within 24 hours
     from conversation_log_agent import _parse_datetime
-    cutoff = (datetime.now(timezone.utc) + pst_offset).replace(tzinfo=None) - timedelta(hours=24)
+    now_check = (datetime.now(timezone.utc) + pst_offset).replace(tzinfo=None)
+    cutoff = now_check - timedelta(hours=24)
+    _log.info("Parity check: now=%s, cutoff (24h ago)=%s", now_check.isoformat(), cutoff.isoformat())
 
     for u in validated.get("utterances", []):
         if u.get("role") in ("agent", "service"):
