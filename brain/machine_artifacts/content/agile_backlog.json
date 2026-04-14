@@ -33411,6 +33411,172 @@
                   "realized_by": [
                     "Python 3.11"
                   ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-B009",
+                  "requirement": "Every utterance in conversation_log.json MUST include a userId field identifying the author. The utterance types are: user (userId: Skip), assistant (userId: Claude), agent (userId: ConversationLogAgent), service (userId: ConversationLogManagerService).",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "business",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-B010",
+                  "requirement": "The conversation log archive agent MUST write an utterance of type agent to conversation_log.json at the end of each job. The utterance MUST include job metadata: jobId (unique identifier), errorLogFileId (Anthropic Files API file_id for the persistent error log), preservePastTime (the cutoff used), counts (original, retained, archived to MongoDB), and any error details.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "business",
+                  "traces_to": [
+                    "B009"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-B011",
+                  "requirement": "The Windows ConversationLogManagerService MUST write an utterance of type service to conversation_log.json recording its actions: when it started, when it called the agent, whether it successfully wrote the retained file, and any errors.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "business",
+                  "traces_to": [
+                    "B009"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-B012",
+                  "requirement": "The entire conversation log archive process MUST be auditable. Every action taken by the agent and the service MUST be recorded as utterances in conversation_log.json with timestamps, userId, and outcome details. An auditor MUST be able to reconstruct the complete history of every archive job from the conversation log alone.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "business",
+                  "traces_to": [
+                    "B009",
+                    "B010",
+                    "B011"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T033",
+                  "requirement": "Client-side file paths (Windows, absolute). All client file operations MUST use these exact paths: READ logContent: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\conversation_log.json. READ .env: c:\\chatHealthy\\findCare\\Code\\.env. READ schema: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\schema.json. WRITE streamed response to temp: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\conversation_log.json.temp. RENAME temp to real: conversation_log.json.temp to conversation_log.json at the same path. WRITE errors: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\errors.json. READ/WRITE queue if MongoDB fails: c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\conversation_log_purge_queue.json.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "traces_to": [
+                    "T004",
+                    "T007",
+                    "T009",
+                    "T024"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T034",
+                  "requirement": "Agent-side file paths (Anthropic cloud, Ubuntu, ephemeral per session). All agent file operations MUST use these exact paths: WRITE/READ/DELETE persisted logContent: /tmp/conversation_log_job.json. WRITE error log during session: /tmp/conversation_log_agent.log. The agent MUST upload the error log to the Anthropic Files API before the session ends to persist it across invocations.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "traces_to": [
+                    "T019",
+                    "T032"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T035",
+                  "requirement": "The agent MUST upload the error log from /tmp/conversation_log_agent.log to the Anthropic Files API at the end of each job. The returned file_id (errorLogFileId) MUST be included in the agent's utterance written to conversation_log.json (per B010). On the next invocation, the client MUST read errorLogFileId from the most recent agent utterance and the agent MUST download the previous error log from the Files API, append new errors, and re-upload.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "traces_to": [
+                    "B010",
+                    "T034"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T036",
+                  "requirement": "The conversation_log collection definition in brain/machine_artifacts/content/schema.json MUST be updated to include a record_schemas section defining LogRecords as an array of LogRecord. Each LogRecord MUST define fields: userId (required, string), role (required, string, possible_values: user|assistant|agent|service), timestamp_pst (required, string, microsecond precision per B003), timestamp_utc (required, string), content (required, string), utterance (required, integer). Agent-type LogRecords MUST additionally define: jobId (string), errorLogFileId (string), preservePastTime (string), counts (object: original, retained, archived), error (string). Service-type LogRecords MUST additionally define: action (string), outcome (string), error (string). This follows the same record_schemas pattern used by bugs, agile_backlog, and ai_operations collections.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "traces_to": [
+                    "B001",
+                    "B009"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T037",
+                  "requirement": "The client MUST read the most recent agent type utterance from conversation_log.json to obtain errorLogFileId for the next invocation. If no agent utterance exists (first run), errorLogFileId is null.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "traces_to": [
+                    "B010",
+                    "T035"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T038",
+                  "requirement": "The prompt_log protocol timestamp_rules in schema.json MUST be updated to reflect B003 microsecond precision: timestamp_pst format %-m/%-d/%Y %-H:%M:%S.%f, timestamp_utc format with microseconds.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "traces_to": [
+                    "B003"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
                 }
               ]
             },
