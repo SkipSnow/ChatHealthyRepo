@@ -35,7 +35,7 @@ ENV_PATH = REPO_ROOT / "Code" / ".env"
 ERRORS_PATH = REPO_ROOT / "brain" / "machine_artifacts" / "content" / "errors.json"
 QUEUE_PATH = REPO_ROOT / "brain" / "machine_artifacts" / "content" / "conversation_log_purge_queue.json"
 SERVICE_LOG = REPO_ROOT / "test_output" / "conversation_log_service.log"
-AGENT_CODE_PATH = REPO_ROOT / "Code" / "Shared" / "ops" / "tools" / "conversation_log_agent.py"
+# Agent code is deployed to Anthropic via skill, not sent in message
 
 # ── Anthropic Managed Agent configuration ──────────────────────────────
 
@@ -240,13 +240,35 @@ def _call_anthropic_agent(data, bearer, mongo_conn, preserve_past, schema_json):
         "content-type": "application/json",
     }
 
-    # Read the agent code from disk to send to the container
-    try:
-        agent_code = AGENT_CODE_PATH.read_text(encoding="utf-8")
-    except Exception as e:
-        return {"status": 500, "error": f"Cannot read agent code: {e}"}
+    # Step 1: Upload payload as a file to Anthropic
+    payload = {
+        "logContent": data,
+        "bearerToken": bearer,
+        "mongoConnectionString": mongo_conn,
+        "preservePastTime": preserve_past,
+        "schema": schema_json,
+    }
+    payload_bytes = json.dumps(payload).encode("utf-8")
 
-    # Step 1: Create a session
+    _log.info("Uploading payload to Anthropic Files API (%d bytes)", len(payload_bytes))
+    try:
+        resp = requests.post(
+            f"{ANTHROPIC_API_URL}/v1/files",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "anthropic-beta": "files-api-2025-04-14",
+            },
+            files=[("file", ("payload.json", payload_bytes, "application/json"))],
+            timeout=60,
+        )
+        resp.raise_for_status()
+        file_id = resp.json()["id"]
+        _log.info("Payload uploaded: %s", file_id)
+    except Exception as e:
+        return {"status": 500, "error": f"Failed to upload payload: {e}"}
+
+    # Step 2: Create a session
     _log.info("Creating Anthropic managed agent session")
     try:
         resp = requests.post(
@@ -266,25 +288,20 @@ def _call_anthropic_agent(data, bearer, mongo_conn, preserve_past, schema_json):
     except Exception as e:
         return {"status": 500, "error": f"Failed to create session: {e}"}
 
-    # Step 2: Build the payload message
-    payload = {
-        "logContent": data,
-        "bearerToken": bearer,
-        "mongoConnectionString": mongo_conn,
-        "preservePastTime": preserve_past,
-        "schema": schema_json,
-    }
-
+    # Step 3: Send message — the agent code is in the skill, data is in the uploaded file
     message_text = (
-        "Here is the agent code. Write it to /tmp/conversation_log_agent.py and execute it.\n\n"
-        f"```python\n{agent_code}\n```\n\n"
-        "Now execute this Python script that calls the agent function with the provided arguments "
-        "and prints the JSON result to stdout:\n\n"
+        "A payload file has been uploaded to the container. Do exactly these steps:\n\n"
+        "1. Run: pip install pymongo dnspython -q\n"
+        "2. The agent code is at /workspace/skills/conversation-log-archival/conversation_log_agent.py — "
+        "copy it to /tmp/conversation_log_agent.py\n"
+        "3. Read the payload from /uploads/payload.json\n"
+        "4. Write and execute /tmp/runner.py:\n\n"
         "```python\n"
         "import json, sys\n"
         "sys.path.insert(0, '/tmp')\n"
         "from conversation_log_agent import process_conversation_log\n\n"
-        f"payload = {json.dumps(payload)}\n\n"
+        "with open('/uploads/payload.json', 'r') as f:\n"
+        "    payload = json.load(f)\n\n"
         "result = process_conversation_log(\n"
         "    logContent=payload['logContent'],\n"
         "    bearerToken=payload['bearerToken'],\n"
@@ -296,12 +313,10 @@ def _call_anthropic_agent(data, bearer, mongo_conn, preserve_past, schema_json):
         "print(json.dumps(result, default=str))\n"
         "print('===AGENT_RESULT_END===')\n"
         "```\n\n"
-        "After execution, print the exact JSON output between the markers. "
-        "Do not modify the result. Do not add commentary between the markers."
+        "5. Show me ONLY the output between the markers. No commentary."
     )
 
-    # Step 3: Send user message
-    _log.info("Sending data to agent session %s", session_id)
+    _log.info("Sending message to agent session %s", session_id)
     try:
         resp = requests.post(
             f"{ANTHROPIC_API_URL}/v1/sessions/{session_id}/events",
@@ -309,7 +324,14 @@ def _call_anthropic_agent(data, bearer, mongo_conn, preserve_past, schema_json):
             json={
                 "events": [{
                     "type": "user.message",
-                    "content": [{"type": "text", "text": message_text}],
+                    "content": [
+                        {"type": "text", "text": message_text},
+                        {
+                            "type": "document",
+                            "source": {"type": "file", "file_id": file_id},
+                            "title": "payload.json",
+                        },
+                    ],
                 }],
             },
             timeout=60,
@@ -331,7 +353,7 @@ def _call_anthropic_agent(data, bearer, mongo_conn, preserve_past, schema_json):
                 "Accept": "text/event-stream",
             },
             stream=True,
-            timeout=300,
+            timeout=600,
         )
         resp.raise_for_status()
 
