@@ -2531,6 +2531,24 @@
       "type": "high",
       "reason": "Full end-to-end Agentic AI corporate error handling not implemented. Network failures, API timeouts, orphaned files, and partial writes are not fully handled or reported.",
       "resolution_status": "in_analysis"
+    },
+    {
+      "id": "BUG-DEVOPS-002",
+      "rule": "BUG: GPT promotion gate from dev to QA does not exist in pre_deploy_rule_check.py. The deterministic code allows promotion without GPT evaluation. GPT is the sole authority for blocking promotion and Boss cannot override it, but no code enforces this.",
+      "incident": "Boss attempted to promote to QA and discovered no GPT gate exists.",
+      "date": "2026-04-14",
+      "ch_matrix_id": "97114166-36d7-4734-bb79-78da0f7a7e3c",
+      "environment": [
+        "local",
+        "dev"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "next_action": "Implement gpt_promotion_gate enforcement type in pre_deploy_rule_check.py.",
+      "req_id": "DEVOPS-DEPLOY-001-REQ-014",
+      "type": "show_stopper",
+      "reason": "GPT promotion gate from dev to QA does not exist. No code enforces GPT authority over promotion.",
+      "resolution_status": "in_analysis"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

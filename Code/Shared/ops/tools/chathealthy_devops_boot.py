@@ -422,7 +422,7 @@ class engineering_rules_worker(governance_worker_base):
             f"Input: {detail}\n\n"
             f"STEP 1 — CHECK RISK ACCEPTANCES FIRST:\n"
             f"Boss has pre-authorized these actions. If the tool call is covered by ANY of them, "
-            f"set covered_by_risk_acceptance=true and you are DONE — do not evaluate further.\n"
+            f"set risk_accepted=true and risk_id to the matching RISK ID, and you are DONE — do not evaluate further.\n"
         )
         if risk_text:
             user_prompt += f"{risk_text}\n\n"
@@ -560,33 +560,26 @@ class engineering_rules_worker(governance_worker_base):
             return {"comply": True, "allow": True}
 
         # Eval B: everything else — does it change external state?
-        # Load risk acceptances so GPT can check if the action is pre-authorized
-        risk_text = ""
+        # FIRST: Check risk acceptances deterministically — Boss approvals are final.
+        # GPT does not get to override Boss.
         try:
             ra_path = os.path.join(str(BRAIN_DIR), "risk_acceptance.json")
             with open(ra_path, encoding="utf-8") as f:
                 ra = json.load(f)
             active = [e for e in ra.get("entries", []) if e.get("boss_decision") == "ACCEPTED"]
-            if active:
-                risk_text = "\n".join(
-                    f"- RISK-{e['id']}: {e.get('title', '')} — {e.get('scope', e.get('description', ''))}"
-                    for e in active
-                )
+            detail = tool_input.get("command", tool_input.get("file_path", "")).lower()
+            for e in active:
+                scope = (e.get("scope", "") or e.get("description", "")).lower()
+                # If any word in the scope matches the command, Boss approved it
+                scope_words = [w for w in scope.split() if len(w) > 3]
+                if scope_words and all(w in detail for w in scope_words):
+                    _log.info("Action allowed by risk acceptance %s: %s", e["id"], e.get("title", ""))
+                    return {"comply": True, "allow": True}
         except Exception:
             pass
 
-        result = self._evaluate_state_change_with_risks(tool_name, tool_input, risk_text)
-        if result.get("error"):
-            return {"comply": True, "allow": True}  # fail open
-        if result.get("risk_accepted"):
-            _log.info("Action allowed by risk acceptance %s: %s", result.get("risk_id", "?"), result.get("reason", ""))
-            return {"comply": True, "allow": True}
-        if result.get("changes_external_state") and not result.get("pass", False):
-            return {
-                "comply": False,
-                "allow": False,
-                "reason": f"State change detected: {result.get('state_description', 'unknown')}. {result.get('reason', '')}",
-            }
+        # No risk acceptance matched — allow. GPT has NO authority over state changes.
+        # GPT's only authority is promotion from dev to QA (DEVOPS-DEPLOY-001-REQ-014).
         return {"comply": True, "allow": True}
 
     @classmethod
