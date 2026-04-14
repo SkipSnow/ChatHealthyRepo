@@ -32868,7 +32868,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T002",
-                  "requirement": "The remote Anthropic agent MUST write ALL utterance records from the persisted file to MongoDB after building the retained file response and before returning the tool result to the client. If MongoDB is unavailable, the agent MUST return the unwritten records in the tool result so the client can persist them to the queue file for retry on the next invocation.",
+                  "requirement": "The remote Anthropic agent MUST write ALL utterance records from the persisted file to MongoDB FIRST, before uploading the retained file or returning the tool result to the client. MongoDB is more reliable than the client — data safety is the priority. If MongoDB is unavailable, the agent MUST return the unwritten records in the tool result so the client can persist them to the queue file for retry on the next invocation.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33345,7 +33345,7 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T029",
-                  "requirement": "The agent MUST complete all processing (build retained file, write to MongoDB, inject agent utterance, delete persisted file) before returning the tool result. In the Anthropic Messages API tool_use pattern, there is no separate HTTP connection — the tool function must finish all work before returning.",
+                  "requirement": "The agent MUST complete all processing in this order: (1) build retained file, (2) write ALL records to MongoDB, (3) upload retained file to Anthropic Files API to obtain retainedFileId, (4) inject agent utterance, (5) delete persisted file, (6) return retainedFileId and metadata to the client. The client then downloads the retained file using retainedFileId. In the Anthropic Messages API tool_use pattern, the tool function must finish all work before returning.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
@@ -33576,6 +33576,40 @@
                   ],
                   "realized_by": [
                     "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T039",
+                  "requirement": "If the client fails to download the retained file or fails to complete the rename operation, the client MUST write an error to c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\errors.json. The operator checks errors.json daily. The operator manually truncates the file with Claude's help.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "traces_to": [
+                    "T007",
+                    "T033"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T040",
+                  "requirement": "When the client detects a failure per T039, the client MUST send a text message to the operator via Twilio alerting them to the failure. DEFERRED — requires Twilio account setup.",
+                  "priority": "should-have",
+                  "status": "DEFERRED",
+                  "type": "technical",
+                  "traces_to": [
+                    "T039"
+                  ],
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "Twilio"
                   ]
                 }
               ]
