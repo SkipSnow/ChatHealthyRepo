@@ -99,7 +99,7 @@
 
 ### /chat endpoint + _chat_inner (lines 579-800)
 - Purpose: Main chat loop — safety check, LLM call, tool loop, URL guarding, pagination/trials metadata, GOV-011 summary building
-- Requirement: Multiple — FC-SEARCH-001 (provider search), FC-MSG-001 (summary message), SDT-BRAIN-SAFETY-001 (safety filter)
+- Requirement: Multiple — FC-SEARCH-001 (provider search), FC-MSG-001 (summary message), SAFETY-LOCKOUT-002 (safety filter)
 
 ### _extract_user_search_term (line 603)
 - Purpose: GOV-011-STD-002 — extract colloquial search term from user message using GPT-4.1-mini
@@ -360,11 +360,11 @@
 
 ### SafetyService class (line 35)
 - Purpose: Dual-trigger emergency detection with IP locking and audit (UAT Feature 5)
-- Requirement: SDT-BRAIN-SAFETY-001 (AI-primary emergency detection, keywords as fallback)
+- Requirement: SAFETY-LOCKOUT-002 (AI-primary emergency detection, keywords as fallback)
 
 ### is_emergency (line 49)
 - Purpose: AI-primary emergency detection with three-gate prompt. Keywords fallback when AI unavailable.
-- Requirement: SDT-BRAIN-SAFETY-001-REQ-001 (AI is sole primary trigger), SDT-BRAIN-SAFETY-001-REQ-002 (keywords only as fallback)
+- Requirement: SAFETY-LOCKOUT-002-REQ-001 (AI is sole primary trigger), SAFETY-LOCKOUT-002-REQ-002 (keywords only as fallback)
 
 ### is_ip_locked (line 102)
 - Purpose: Check if IP is locked due to prior emergency

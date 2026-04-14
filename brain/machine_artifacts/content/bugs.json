@@ -2488,6 +2488,29 @@
       "pytest_id": "",
       "success_criteria_to_close": "Build number in version.json matches across dev, qa, and prod after merge. Pre-commit hook does not bump; post-commit hook does.",
       "ch_matrix_id": ""
+    },
+    {
+      "id": "BUG-GOV-008",
+      "req_id": "BRAIN-CONVERSATION-LOG-REQ-B001",
+      "rule": "BUG: conversation_log_worker truncates content at 500 characters and strips system reminders. The conversation log MUST be a verbatim record of what was said. Truncation makes it lossy and unreliable as a source of truth for design documents and collaborative editing.",
+      "description": "conversation_log_worker._clean_content() truncates at MAX_CONTENT_LEN=500 and regex-strips system-reminder tags. This destroys content.",
+      "reason": "The conversation log is the only persistent record of user-Claude dialog. Truncation makes it impossible to recover design iterations or decisions from the log.",
+      "type": "high",
+      "date": "2026-04-13",
+      "discovery_date": "2026-04-13",
+      "status": "open",
+      "resolution_status": "fixing",
+      "next_action": "fix",
+      "environments": [
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "source": "Boss",
+      "risk_acceptance_id": null,
+      "pytest_id": "",
+      "success_criteria_to_close": "conversation_log stores verbatim content with no truncation. System reminders may be stripped but content MUST NOT be truncated.",
+      "ch_matrix_id": ""
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

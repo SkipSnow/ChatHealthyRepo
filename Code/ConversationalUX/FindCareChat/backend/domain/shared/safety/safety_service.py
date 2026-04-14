@@ -49,7 +49,7 @@ class SafetyService:
     def is_emergency(self, message: str) -> bool:
         """AI-primary emergency detection. Keywords are fallback only when AI is unavailable.
 
-        SDT-BRAIN-SAFETY-001: Removed keyword OR trigger — false positives on provider
+        SAFETY-LOCKOUT-002: Removed keyword OR trigger — false positives on provider
         search queries like 'find me a doctor for chest pain'. The AI classifier with
         its three-gate prompt (body location + acute onset + life-threat) is precise.
         Keywords remain as degraded-mode fallback when the API call fails.
