@@ -23212,7 +23212,7 @@
                 },
                 {
                   "req_id": "SEC-HTTPS-001-REQ-004",
-                  "requirement": "No HTTP URLs anywhere in production code, CORS, or config",
+                  "requirement": "No HTTP URLs anywhere in production code, CORS, or config. All traffic MUST be HTTPS with mutual authentication.",
                   "priority": "must-have",
                   "status": "implemented",
                   "pytest_ids": [
