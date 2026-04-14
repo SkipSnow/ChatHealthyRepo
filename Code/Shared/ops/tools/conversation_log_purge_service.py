@@ -114,7 +114,7 @@ def _acquire_lock(file_path):
     """T019: Open file with write lock, retry 5s x 120 (10 minutes)."""
     for attempt in range(120):
         try:
-            f = open(file_path, "r+", encoding="utf-8")
+            f = open(file_path, "r", encoding="utf-8")
             msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
             return f
         except (IOError, OSError):
