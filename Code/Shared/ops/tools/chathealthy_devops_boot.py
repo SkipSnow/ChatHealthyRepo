@@ -242,6 +242,7 @@ class conversation_log_worker(governance_worker_base):
             last_num = max((u["utterance"] for u in log.get("utterances", [])), default=0)
             log["utterances"].append({
                 "utterance": last_num + 1,
+                "userId": actor,
                 "timestamp_pst": pst,
                 "timestamp_utc": utc,
                 "actor": actor,
