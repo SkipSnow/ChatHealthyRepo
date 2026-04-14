@@ -343,7 +343,20 @@ def run_cycle():
         TEMP_PATH.unlink(missing_ok=True)
         return False
 
-    _log.info("Parity check passed: %d expected retained, all present with correct timestamps", len(expected))
+    # T014: Verify every record in .temp is >= preservePastTime (no old records leaked through)
+    for u in validated.get("utterances", []):
+        role = u.get("role", "")
+        if role in ("agent", "service"):
+            continue  # agent/service utterances are new, skip
+        ts = _parse_datetime(u.get("timestamp_pst", ""))
+        if ts and ts < cutoff:
+            msg = f"Parity check failed: record {u.get('ch_key', '?')} has timestamp_pst {u.get('timestamp_pst')} older than preservePastTime {preserve_past}"
+            _log.error(msg)
+            _write_error(msg)  # T023
+            TEMP_PATH.unlink(missing_ok=True)
+            return False
+
+    _log.info("Parity check passed: %d expected retained, all present with correct timestamps, all >= preservePastTime", len(expected))
 
     # B001: Validate against schema
     from conversation_log_agent import _validate_against_schema
