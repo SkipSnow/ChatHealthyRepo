@@ -2549,6 +2549,26 @@
       "type": "show_stopper",
       "reason": "GPT promotion gate from dev to QA does not exist. No code enforces GPT authority over promotion.",
       "resolution_status": "in_analysis"
+    },
+    {
+      "id": "BUG-DEVOPS-003",
+      "rule": "BUG: v4-019 (multiple brain collections modified) is implemented as a warning but should be a blocking error. The pre-commit hook prints a reminder but does not block the commit. Contradictions between brain collections should block.",
+      "incident": "Boss observed v4-019 printing as a warning during commit and identified it should block.",
+      "date": "2026-04-14",
+      "ch_matrix_id": "85d10458-db8c-42e6-bd0f-10621357e853",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "next_action": "Change v4-019 from warning to blocking error in pre-commit hook.",
+      "req_id": "SEC-HTTPS-001-REQ-004",
+      "type": "show_stopper",
+      "reason": "v4-019 multiple brain collections modified is a warning but should be a blocking error.",
+      "resolution_status": "in_analysis"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
