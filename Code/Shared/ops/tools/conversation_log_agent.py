@@ -261,22 +261,22 @@ def process_conversation_log(
     bearerToken: str,
     mongoConnectionString: str,
     preservePastTime: str,
-    logSchema: str,
+    logSchemaFileId: str,
     errorLogFileId: str = "",
 ) -> str:
     """Process the ChatHealthy conversation log for archival.
 
-    Downloads the conversation log from Anthropic Files API, separates retained
-    records from excluded records based on preservePastTime, writes ALL records
-    to MongoDB for permanent archival, uploads the retained file to Files API,
-    and returns the retainedFileId for the client to download.
+    Downloads the conversation log and schema from Anthropic Files API, separates
+    retained records from excluded records based on preservePastTime, writes ALL
+    records to MongoDB for permanent archival, uploads the retained file to Files
+    API, and returns the retainedFileId for the client to download.
 
     Args:
         logContentFileId: Anthropic Files API file_id of the uploaded conversation_log.json.
         bearerToken: CH_GUID authentication token in format CH-xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx.
         mongoConnectionString: MongoDB connection string for the Frontend cluster.
         preservePastTime: PST datetime cutoff. Records before this time are excluded. Records at or after are included.
-        logSchema: The conversation_log JSON schema as a JSON string.
+        logSchemaFileId: Anthropic Files API file_id of the uploaded schema.json.
         errorLogFileId: Anthropic Files API file_id of the previous error log. Empty string on first run.
     """
     job_id = f"JOB-{uuid.uuid4().hex[:12]}"
@@ -296,6 +296,16 @@ def process_conversation_log(
     if not _validate_bearer_token(bearerToken):
         _log.warning("Job %s: 401 Unauthorized — bad bearerToken", job_id)
         return json.dumps({"status": 401, "error": "Unauthorized", "jobId": job_id})
+
+    # ── Download schema from Files API ────────────────────────────────────
+    try:
+        logSchema = _download_file(logSchemaFileId)
+        _log.info("Job %s: Downloaded schema (%d chars)", job_id, len(logSchema))
+    except Exception as e:
+        msg = f"Failed to download schema from Files API: {e}"
+        _log.error("Job %s: %s", job_id, msg)
+        return json.dumps({"status": 400, "error": "Bad Request", "field": "logSchemaFileId",
+                           "detail": msg, "jobId": job_id})
 
     # ── T018: Validate all args ─────────────────────────────────────────
     arg_error = _validate_args(logContentFileId, mongoConnectionString, preservePastTime, logSchema)
@@ -475,13 +485,21 @@ def _run_agent_test(bearer_token: str, log_content: str | None = None,
     log_content_file_id = upload_response.id
     print(f"  logContentFileId: {log_content_file_id}")
 
-    # Build the user message with file_id reference
+    # Upload schema to Files API → get logSchemaFileId
+    print("Uploading schema to Anthropic Files API...")
+    schema_upload = client.beta.files.upload(
+        file=("schema.json", schema_content.encode("utf-8"), "application/json"),
+    )
+    log_schema_file_id = schema_upload.id
+    print(f"  logSchemaFileId: {log_schema_file_id}")
+
+    # Build the user message with file_id references — all args are small strings now
     args_json = json.dumps({
         "logContentFileId": log_content_file_id,
         "bearerToken": bearer_token,
         "mongoConnectionString": mongo_conn,
         "preservePastTime": preserve_past,
-        "logSchema": schema_content,
+        "logSchemaFileId": log_schema_file_id,
         "errorLogFileId": "",
     })
     user_msg = f"Call process_conversation_log with these exact arguments:\n{args_json}"
