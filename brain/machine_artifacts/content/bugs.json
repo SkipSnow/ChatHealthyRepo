@@ -2511,6 +2511,26 @@
       "pytest_id": "",
       "success_criteria_to_close": "conversation_log stores verbatim content with no truncation. System reminders may be stripped but content MUST NOT be truncated.",
       "ch_matrix_id": ""
+    },
+    {
+      "id": "BUG-AGENT-001",
+      "rule": "BUG: Full end-to-end Agentic AI corporate error handling not implemented. The conversation log archive agent and its Windows service client do not handle all failure modes: network loss during file upload/download, Anthropic API timeouts, Files API failures, partial MongoDB writes, orphaned files on Anthropic Files API. No automated operator notification (email/text) exists. Errors are logged to errors.json but require manual daily review. The system cannot self-recover from all failure scenarios without human intervention.",
+      "incident": "Architecture review identified that the agent/client pipeline has no automated alerting or self-healing for network and API failures.",
+      "date": "2026-04-13",
+      "ch_matrix_id": "d7df3ff1-7916-4760-8d65-51a344333ecf",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "next_action": "Implement email account for the service, Twilio text alerts (T040), automated retry with exponential backoff, orphaned file cleanup on Anthropic Files API.",
+      "req_id": "BRAIN-CONVERSATION-LOG-REQ-B013",
+      "type": "high",
+      "reason": "Full end-to-end Agentic AI corporate error handling not implemented. Network failures, API timeouts, orphaned files, and partial writes are not fully handled or reported.",
+      "resolution_status": "in_analysis"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

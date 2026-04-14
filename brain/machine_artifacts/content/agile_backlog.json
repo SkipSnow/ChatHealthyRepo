@@ -33579,6 +33579,19 @@
                   ]
                 },
                 {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-B013",
+                  "requirement": "Network failures, API timeouts, and all other errors that prevent the conversation log archive process from completing MUST be handled, reported, and recoverable. The operator MUST be notified of failures through an automated channel (email, text, or equivalent). Until automated notification is implemented, errors MUST be logged to errors.json and checked daily.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "business",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T039",
                   "requirement": "If the client fails to download the retained file or fails to complete the rename operation, the client MUST write an error to c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\errors.json. The operator checks errors.json daily. The operator manually truncates the file with Claude's help.",
                   "priority": "must-have",
