@@ -192,7 +192,6 @@ class conversation_log_worker(governance_worker_base):
     Polymorphic child — invoked by the singleton when the grid says code_controlled
     on user_prompt_submit. Logs the user's prompt to conversation_log.json."""
 
-    MAX_CONTENT_LEN: int = 500
     SYSTEM_REMINDER_PATTERN: object = None  # set in __init__
 
     def __init__(self, **kwargs):
@@ -200,13 +199,14 @@ class conversation_log_worker(governance_worker_base):
         self.SYSTEM_REMINDER_PATTERN = re.compile(r"<system-reminder>.*?</system-reminder>", re.DOTALL)
 
     def _clean_content(self, content: str) -> str:
+        """Clean content for logging. BUG-GOV-008: content MUST be verbatim.
+        Only binary data is omitted. System reminders are stripped.
+        No truncation — the log is the source of truth."""
         if not content:
             return ""
         content = self.SYSTEM_REMINDER_PATTERN.sub("", content).strip()
         if content.startswith("data:") or "base64," in content:
             return "[binary content omitted]"
-        if len(content) > self.MAX_CONTENT_LEN:
-            content = content[:self.MAX_CONTENT_LEN] + f" [truncated — {len(content)} chars]"
         return content
 
     def _make_timestamps(self):
@@ -638,6 +638,7 @@ class chathealthy_devops_boot:
         "project_manifest": "check_project_manifest",
         "prompts": "check_prompts",
         "bugs": "check_bugs",
+        "regression_report": None,  # Test results snapshot — not a constraint source
         "risk_acceptance": "check_risk_acceptance",
         "schema": "check_schema",
         "security": "check_security",

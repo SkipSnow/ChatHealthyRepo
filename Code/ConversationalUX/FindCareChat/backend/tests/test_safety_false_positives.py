@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# SDT-BRAIN-SAFETY-001: Verify keyword false positives are eliminated.
+# SAFETY-LOCKOUT-002: Verify keyword false positives are eliminated.
 #
 # REQ-001: AI classifier is the sole primary trigger
 # REQ-002: Keywords are fallback only when AI fails
@@ -24,7 +24,7 @@ load_dotenv(_env_path, override=True)
 
 
 class TestSafetyFalsePositives(unittest.TestCase):
-    """SDT-BRAIN-SAFETY-001: Provider search queries must not trigger emergency."""
+    """SAFETY-LOCKOUT-002: Provider search queries must not trigger emergency."""
 
     @classmethod
     def setUpClass(cls):
