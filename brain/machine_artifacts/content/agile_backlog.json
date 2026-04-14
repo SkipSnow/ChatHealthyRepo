@@ -32789,62 +32789,46 @@
                   "requirement": "conversation_log.json MUST be controlled by a JSON schema. The file MUST be in strict compliance with that schema at all times.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
+                  "type": "business",
                   "pytest_ids": [
                     "ORPHAN"
                   ],
                   "realized_by": [
                     "Python 3.11"
-                  ],
-                  "type": "business"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B002",
                   "requirement": "Any text that the user can see on screen, even if later obliterated, MUST be stored verbatim in conversation_log.json. Any text that Claude streams to the screen MUST be stored verbatim. This includes code changes, design documents, and any other visible content. No truncation, no summarization, no omission. System-internal messages not visible to the user are excluded. Claude Code transient status text such as thinking indicators (e.g. \"* philosophizing\", \"* reasoning\") MUST NOT be stored in the log.",
                   "priority": "must-have",
                   "status": "IN_PROGRESS",
+                  "type": "business",
                   "pytest_ids": [
                     "ORPHAN"
                   ],
                   "realized_by": [
                     "Python 3.11"
-                  ],
-                  "type": "business"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B003",
                   "requirement": "Each log entry MUST include a date and time as an independent JSON element in PST time using the format mask %-m/%-d/%Y %-H:%M:%S.%f (e.g., 4/13/2026 18:26:46.283417). Leading zeros on month, day, and hour are eliminated. Microseconds provide 6-digit precision.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
+                  "type": "business",
                   "pytest_ids": [
                     "ORPHAN"
                   ],
                   "realized_by": [
                     "Python 3.11"
-                  ],
-                  "type": "business"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B004",
                   "requirement": "Each day the conversation log MUST be truncated to the last 24 hours. Entries older than 24 hours MUST be removed. The operator controls when the cycle runs by starting the Windows service. The service runs one cycle on start and repeats every 24 hours until stopped. If restarted, the cycle begins from that moment.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ],
-                  "type": "business"
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T001",
-                  "requirement": "The 24-hour retention requirement (REQ-B004) MUST be implemented as a local Windows service that calls the agent functions directly. The service reads conversation_log.json, writes ALL records to MongoDB, queries MongoDB for retained records, rebuilds the file, and writes it to disk. The service MUST run as a Windows service that operates whether or not Cursor or the Claude Code desktop app is open.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B004"
-                  ],
+                  "type": "business",
                   "pytest_ids": [
                     "ORPHAN"
                   ],
@@ -32867,376 +32851,11 @@
                   ]
                 },
                 {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T002",
-                  "requirement": "The service MUST write ALL utterance records to MongoDB FIRST, before rebuilding the retained file. MongoDB is more reliable than the local filesystem — data safety is the priority. If MongoDB is unavailable, the service MUST persist the unwritten records to the queue file for retry on the next cycle.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B005"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11",
-                    "MongoDB Atlas"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T004",
-                  "requirement": "The service MUST write the rebuilt retained file to conversation_log.json.temp, not directly to conversation_log.json.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B004"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T005",
-                  "requirement": "The service MUST perform a parity check: the number of utterances in the rebuilt retained file MUST be less than or equal to the number of utterances in the original conversation_log.json. If the retained count exceeds the original count, the temp file MUST be rejected.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B004",
-                    "B002"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T006",
-                  "requirement": "The local service MUST validate that the temp file is legal JSON and compliant with the conversation_log schema before renaming it.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B001",
-                    "B004"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T007",
-                  "requirement": "After parity check and schema validation pass, the local service MUST rename conversation_log.json.temp to conversation_log.json, replacing the original.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B004"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T008",
-                  "requirement": "All code that writes to conversation_log.json MUST open the file with a write lock and close the file after every write. No process may hold the file open between writes.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B002"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T009",
-                  "requirement": "If the local purge service finds conversation_log.json in a locked state, it MUST retry every 5 seconds for 10 minutes. If the file is still locked after 10 minutes, the service MUST write an error entry to brain/machine_artifacts/content/errors.json and skip the purge for this cycle.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B004",
-                    "T008"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T010",
-                  "requirement": "The conversation_log_worker code that writes log entries MUST use the same file locking logic. If the file is locked by the purge service, the writer MUST retry every 5 seconds for 10 minutes. If the file is still locked after 10 minutes, the writer MUST write an error entry to brain/machine_artifacts/content/errors.json. The writer MUST NOT give up or lose the entry.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B002",
-                    "T008"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T011",
-                  "requirement": "The agent function MUST validate a bearerToken argument. bearerToken is a CH_GUID in the format CH-xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B002",
-                    "B005"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T012",
-                  "requirement": "All communication between the service and MongoDB MUST use TLS 1.2 or above. No unencrypted transport is permitted.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B002",
-                    "B005"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T013",
-                  "requirement": "The agent function MUST validate the bearerToken argument before processing any request. Requests without a valid bearerToken MUST be rejected with a 401 status.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "T011"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B006",
-                  "requirement": "All communication between the service and MongoDB MUST be secured. No conversation content may be transmitted or stored without authentication and encryption.",
+                  "requirement": "All communication between the service and MongoDB MUST be secured. No conversation content may be transmitted or stored without authentication and encryption. The service CANNOT write to MongoDB, only read from it.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "business",
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T014",
-                  "requirement": "Prior to writing utterance records to MongoDB, the service MUST redact all security tokens, API keys, connection strings, passwords, and any other credentials that may appear in the utterance content.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B006"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T015",
-                  "requirement": "The service MUST call the agent function with these arguments: (1) logContent — the conversation_log.json content as a parsed JSON object, (2) bearerToken — the CH_GUID authentication token, (3) mongoConnectionString — the MongoDB connection string, (4) preservePastTime — a PST datetime; records before this time are excluded, records at or after this time are retained. The service MUST read mongoConnectionString from Code/.env.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B004",
-                    "T011"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T016",
-                  "requirement": "If bearerToken validation fails, the agent MUST return HTTP 401 Unauthorized and MUST NOT process the request further. No logContent may be parsed, stored, or forwarded.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "T013",
-                    "B006"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T017",
-                  "requirement": "The agent function MUST use preservePastTime to determine which records to exclude. Any utterance with a timestamp_pst before preservePastTime MUST be excluded. Any utterance with a timestamp_pst at or after preservePastTime MUST be retained.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B004"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T018",
-                  "requirement": "If any of the required arguments defined in T015 is missing or malformed (except errorLogFileId which may be null on first run), the agent MUST return HTTP 400 Bad Request with a message identifying which argument failed validation. The agent MUST NOT process the request further.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "T015"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T019",
-                  "requirement": "Upon successful authentication and argument validation, the agent function MUST read the conversation log content from the logContent argument.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B004"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T020",
-                  "requirement": "The agent MUST read the persisted file and parse the JSON, separating the header metadata (all top-level fields other than the utterances array) from the utterance records.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B001",
-                    "B004"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T021",
-                  "requirement": "The service MUST build the retained file as a complete JSON with header metadata and the retained utterances array. The service MUST validate the header against the schema before writing.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B001",
-                    "B004"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T022",
-                  "requirement": "The agent MUST NOT stream utterance records whose timestamp_pst is before preservePastTime to the client. The agent MUST retain all utterance records in the persisted file for subsequent MongoDB archival.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B004"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T023",
-                  "requirement": "The POST MUST include schema as a distinct argument containing the conversation_log JSON schema. schema is volatile and MUST NOT be hardcoded in the agent.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B001",
-                    "T015"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T024",
-                  "requirement": "The conversation_log.json header MUST include a schema address field that identifies the location of its JSON schema. The service MUST read the schema from this address for validation.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B001",
-                    "T023"
-                  ],
                   "pytest_ids": [
                     "ORPHAN"
                   ],
@@ -33259,318 +32878,24 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B008",
-                  "requirement": "ALL conversation log utterance records MUST be permanently archived to the conversation_log_archive collection in the ClaudeCodeLog database on the Frontend MongoDB cluster. The service MUST connect using mongoConnectionString. Each archived record MUST retain its original timestamp_pst and timestamp_utc.",
+                  "requirement": "ALL conversation log utterance records MUST be permanently archived to the conversation_log_archive collection in the ClaudeCodeLog database on the Frontend MongoDB cluster. The agent MUST connect using mongoConnectionString which it will recieve from the service. Each archived record MUST retain its original timestamp_pst and timestamp_utc.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "business",
-                  "traces_to": [
-                    "B005"
-                  ],
                   "pytest_ids": [
                     "ORPHAN"
                   ],
                   "realized_by": [
                     "Python 3.11",
                     "MongoDB Atlas"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T025",
-                  "requirement": "The agent function MUST NOT delete, remove, or modify any content of the original conversation_log.json at any point during the job. A job is defined as: all work performed by the service in a single cycle. The original file MUST remain intact and unmodified until the temp file is validated and renamed.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B005",
-                    "T019"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T026",
-                  "requirement": "The agent MUST stream to the client all utterance records whose timestamp_pst is at or after preservePastTime. The agent MUST stream these records in their original order as they appear in logContent.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B004",
-                    "T017"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T027",
-                  "requirement": "When writing records to the conversation_log_archive collection in ClaudeCodeLog, if a record is rejected by the unique timestamp_pst index (duplicate key), the agent MUST skip that record, log a warning, and continue inserting the remaining records in the batch. The agent MUST NOT abort the job or fail the batch due to a duplicate key rejection.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B008",
-                    "B007"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11",
-                    "MongoDB Atlas"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T028",
-                  "requirement": "The rebuilt retained file MUST be complete, parseable JSON that validates against the schema.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B001",
-                    "T021"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T029",
-                  "requirement": "The service MUST complete all processing in this order: (1) read conversation_log.json, (2) write ALL records to MongoDB, (3) query MongoDB for retained records (>= preservePastTime), (4) build retained file with header + retained records + agent utterance + service utterance, (5) write to .temp, (6) validate .temp, (7) rename .temp to .json.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "T001"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T030",
-                  "requirement": "The agent MUST write ALL utterance records from the persisted file to the conversation_log_archive collection in ClaudeCodeLog using mongoConnectionString. Each record MUST include both timestamp_pst and timestamp_utc.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B005",
-                    "B008"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11",
-                    "MongoDB Atlas"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T031",
-                  "requirement": "Before writing records to MongoDB, the agent MUST query conversation_log_archive for the most recent timestamp_pst in the collection. The agent MUST only insert records whose timestamp_pst is after the most recent stored value, skipping records that already exist.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B008",
-                    "T030"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11",
-                    "MongoDB Atlas"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T032",
-                  "requirement": "After the entire job is complete (MongoDB writes finished, retained file written and renamed), the service MUST clean up any temporary files.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "T019",
-                    "T025"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
                   ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B009",
-                  "requirement": "Every utterance in conversation_log.json MUST include a userId field identifying the author. The utterance types are: user (userId: Skip), assistant (userId: Claude), agent (userId: ConversationLogAgent), service (userId: ConversationLogManagerService).",
+                  "requirement": "Every action on conversation_log.json MUST be recorded in the log with who did it, what they did, and when. The log MUST be a complete audit trail.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "business",
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-B010",
-                  "requirement": "The agent function MUST inject an utterance of type agent into the retained file. The agent utterance MUST include job metadata: jobId (unique identifier), preservePastTime (the cutoff used), counts (original, retained, archived to MongoDB), and any error details.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "business",
-                  "traces_to": [
-                    "B009"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-B011",
-                  "requirement": "The Windows ConversationLogManagerService MUST write an utterance of type service to conversation_log.json recording its actions: when it started, when it called the agent, whether it successfully wrote the retained file, and any errors.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "business",
-                  "traces_to": [
-                    "B009"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-B012",
-                  "requirement": "The entire conversation log archive process MUST be auditable. Every action taken by the agent and the service MUST be recorded as utterances in conversation_log.json with timestamps, userId, and outcome details. An auditor MUST be able to reconstruct the complete history of every archive job from the conversation log alone.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "business",
-                  "traces_to": [
-                    "B009",
-                    "B010",
-                    "B011"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T033",
-                  "requirement": "Service file paths (Windows, absolute). All service file operations MUST use these exact paths: READ logContent: c:\\chatHealthy\findCare\brain\\machine_artifacts\\content\\conversation_log.json. READ .env: c:\\chatHealthy\findCare\\Code\\.env. READ schema: c:\\chatHealthy\findCare\brain\\machine_artifacts\\content\\schema.json. WRITE retained file to temp: c:\\chatHealthy\findCare\brain\\machine_artifacts\\content\\conversation_log.json.temp. RENAME temp to real: conversation_log.json.temp to conversation_log.json at the same path. WRITE errors: c:\\chatHealthy\findCare\brain\\machine_artifacts\\content\\errors.json. READ/WRITE queue if MongoDB fails: c:\\chatHealthy\findCare\brain\\machine_artifacts\\content\\conversation_log_purge_queue.json.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "T004",
-                    "T007",
-                    "T009",
-                    "T024"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T034",
-                  "requirement": "The agent function persists logContent in memory during the job. No ephemeral cloud filesystem is used. All file operations are local to the Windows machine at the paths specified in T033.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "T019",
-                    "T032"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T035",
-                  "requirement": "The service MUST write errors to c:\\chatHealthy\findCare\brain\\machine_artifacts\\content\\errors.json. Errors persist locally across invocations. No cloud-based error log persistence is required.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B010",
-                    "T034"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T036",
-                  "requirement": "The conversation_log collection definition in brain/machine_artifacts/content/schema.json MUST be updated to include a record_schemas section defining LogRecords as an array of LogRecord. Each LogRecord MUST define fields: userId (required, string), role (required, string, possible_values: user|assistant|agent|service), timestamp_pst (required, string, microsecond precision per B003), timestamp_utc (required, string), content (required, string), utterance (required, integer). Agent-type LogRecords MUST additionally define: jobId (string), errorLogFileId (string), preservePastTime (string), counts (object: original, retained, archived), error (string). Service-type LogRecords MUST additionally define: action (string), outcome (string), error (string). This follows the same record_schemas pattern used by bugs, agile_backlog, and ai_operations collections.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B001",
-                    "B009"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T037",
-                  "requirement": "The client MUST read the most recent agent type utterance from conversation_log.json to obtain errorLogFileId for the next invocation. If no agent utterance exists (first run), errorLogFileId is null.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B010",
-                    "T035"
-                  ],
-                  "pytest_ids": [
-                    "ORPHAN"
-                  ],
-                  "realized_by": [
-                    "Python 3.11"
-                  ]
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T038",
-                  "requirement": "The prompt_log protocol timestamp_rules in schema.json MUST be updated to reflect B003 microsecond precision: timestamp_pst format %-m/%-d/%Y %-H:%M:%S.%f, timestamp_utc format with microseconds.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
-                  "type": "technical",
-                  "traces_to": [
-                    "B003"
-                  ],
                   "pytest_ids": [
                     "ORPHAN"
                   ],
@@ -33580,9 +32905,9 @@
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B013",
-                  "requirement": "Network failures, API timeouts, and all other errors that prevent the conversation log archive process from completing MUST be handled, reported, and recoverable. The operator MUST be notified of failures through an automated channel (email, text, or equivalent). Until automated notification is implemented, errors MUST be logged to errors.json and checked daily.",
-                  "priority": "must-have",
-                  "status": "NOT_STARTED",
+                  "requirement": "Network failures, API timeouts, and all other errors that prevent the conversation log archive process from completing MUST be handled, reported, and recoverable. The operator MUST be notified of failures through an automated channel (email, text, or equivalent). DEFERRED.",
+                  "priority": "should-have",
+                  "status": "DEFERRED",
                   "type": "business",
                   "pytest_ids": [
                     "ORPHAN"
@@ -33592,15 +32917,11 @@
                   ]
                 },
                 {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T039",
-                  "requirement": "If the client fails to download the retained file or fails to complete the rename operation, the client MUST write an error to c:\\chatHealthy\\findCare\\brain\\machine_artifacts\\content\\errors.json. The operator checks errors.json daily. The operator manually truncates the file with Claude's help.",
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T001",
+                  "requirement": "A service named ChatHealthyClaudeLogManagementWindowsService MUST run as a Windows service. The service runs one cycle when the operator starts the service, but is configured to start each time the computer is booted. From that moment it repeats every 24 hours until the operator stops it. The service must check the file conversation_log.json and ensure that there are records older than 24 hours old in order to invoke the Anthropic agent named ChatHealthyClaudeLogManagementAnthropicAgent.",
                   "priority": "must-have",
                   "status": "NOT_STARTED",
                   "type": "technical",
-                  "traces_to": [
-                    "T007",
-                    "T033"
-                  ],
                   "pytest_ids": [
                     "ORPHAN"
                   ],
@@ -33609,14 +32930,327 @@
                   ]
                 },
                 {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T040",
-                  "requirement": "When the client detects a failure per T039, the client MUST send a text message to the operator via Twilio alerting them to the failure. DEFERRED — requires Twilio account setup.",
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T002",
+                  "requirement": "The service MUST read conversation_log.json from disk and send the content to the agent function.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T003",
+                  "requirement": "The agent function MUST validate the bearerToken argument before processing. bearerToken is a CH_GUID in the format CH-xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx. If invalid, the agent MUST return a 401 status and MUST NOT process the request further.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T004",
+                  "requirement": "If any required argument is missing or malformed, the agent MUST return a 400 status identifying which argument failed. The agent MUST NOT process the request further.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T005",
+                  "requirement": "The agent function MUST accept these arguments: (1) logContent — the conversation_log.json content, (2) bearerToken — the CH_GUID, (3) mongoConnectionString — the MongoDB connection string, (4) preservePastTime — a PST datetime cutoff, (5) schema — the conversation_log JSON schema. The service MUST read mongoConnectionString from Code/.env.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T006",
+                  "requirement": "The agent MUST write ALL utterance records to MongoDB FIRST using batch insert_many with ordered=False. MongoDB is the priority — data safety before anything else. Each record MUST include both timestamp_pst and timestamp_utc.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "MongoDB Atlas"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T007",
+                  "requirement": "Before writing records to MongoDB, the agent MUST query conversation_log_archive for the most recent timestamp_pst. The agent MUST only insert records newer than the most recent stored value.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "MongoDB Atlas"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T008",
+                  "requirement": "If a record is rejected by the unique timestamp_pst index (duplicate key), the agent MUST skip that record, log a warning, and continue the batch. The agent MUST NOT abort the job.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "MongoDB Atlas"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T009",
+                  "requirement": "The agent MUST return the timestamp_pst of the last record it wrote to MongoDB.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T010",
+                  "requirement": "The agent MUST query MongoDB for all records whose timestamp_pst is at or after preservePastTime, in chronological order, and not attempt to write records that already exist.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11",
+                    "MongoDB Atlas"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T011",
+                  "requirement": "The agent MUST inject an agent utterance with job metadata: jobId, preservePastTime, counts (original, retained, archived), and any errors.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T012",
+                  "requirement": "The service MUST build the retained file as a complete, parseable JSON with header metadata and the retained utterances array.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T013",
+                  "requirement": "The agent MUST write the retained file to conversation_log.json.temp, not directly to conversation_log.json.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T014",
+                  "requirement": "The agent MUST validate that the temp file is legal JSON and compliant with the schema. The agent MUST perform a parity check: retained count MUST be less than or equal to original count.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T015",
+                  "requirement": "After validation passes, the service MUST rename conversation_log.json.temp to conversation_log.json, replacing the original.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T016",
+                  "requirement": "The service MUST NOT modify the original conversation_log.json at any point during the job. The original MUST remain intact until the temp file is validated and renamed.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T017",
+                  "requirement": "Prior to writing utterance records to MongoDB, the service MUST redact all security tokens, API keys, connection strings, passwords, and any other credentials that may appear in the utterance content.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T018",
+                  "requirement": "All communication between these components (agent, service, and MongoDB) MUST use TLS 1.2 or above.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T019",
+                  "requirement": "All code that writes to conversation_log.json — whether the service, the agent, or the conversation_log_worker in chathealthy_devops_boot.py — MUST open the file with a write lock and close the file after every write. No process may hold the file open between writes. If the file is locked, retry every 5 seconds for 10 minutes. If still locked, write an error to errors.json and skip the write. The conversation_log_worker MUST NOT lose the entry. The Claude user must be informed and acknowledge the error, and either authorize it to be ignored or work with Claude to resolve it.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T020",
+                  "requirement": "The conversation_log.json header MUST include a schema address field. The service MUST read the schema from this address.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T021",
+                  "requirement": "The schema in schema.json MUST define LogRecords as an array of LogRecord with fields per B003 and B009.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T022",
+                  "requirement": "The prompt_log protocol timestamp_rules in schema.json MUST reflect B003 microsecond precision.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T023",
+                  "requirement": "If the agent fails to write the retained file or rename it, the service MUST write an error to errors.json.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T024",
+                  "requirement": "Service file paths (Windows, absolute): conversation_log.json, Code/.env, schema.json, conversation_log.json.temp, errors.json, conversation_log_purge_queue.json — all at their exact paths under c:\\chatHealthy\\findCare\\.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T025",
+                  "requirement": "After the job is complete, the agent MUST clean up any temporary files.",
+                  "priority": "must-have",
+                  "status": "NOT_STARTED",
+                  "type": "technical",
+                  "pytest_ids": [
+                    "ORPHAN"
+                  ],
+                  "realized_by": [
+                    "Python 3.11"
+                  ]
+                },
+                {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T026",
+                  "requirement": "When the client detects a failure per T023, the client MUST send a text message to the operator via Twilio alerting them to the failure. DEFERRED — requires Twilio account setup.",
                   "priority": "should-have",
                   "status": "DEFERRED",
                   "type": "technical",
-                  "traces_to": [
-                    "T039"
-                  ],
                   "pytest_ids": [
                     "ORPHAN"
                   ],
