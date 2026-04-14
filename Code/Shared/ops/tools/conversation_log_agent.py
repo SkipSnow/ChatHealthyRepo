@@ -3,7 +3,6 @@
 #
 # ChatHealthyClaudeLogManagementAnthropicAgent
 # Agent function for conversation log archival.
-# Implements T003-T011, T013-T014, T025.
 
 import json
 import logging
@@ -11,6 +10,7 @@ import os
 import re
 import uuid
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError, PyMongoError
@@ -19,6 +19,10 @@ _log = logging.getLogger("ChatHealthyClaudeLogManagementAnthropicAgent")
 
 MONGO_DB = "ClaudeCodeLog"
 MONGO_COLLECTION = "conversation_log_archive"
+
+# T024: Absolute paths
+REPO_ROOT = Path(r"c:\chatHealthy\findCare")
+TEMP_PATH = REPO_ROOT / "brain" / "machine_artifacts" / "content" / "conversation_log.json.temp"
 
 CH_GUID_PATTERN = re.compile(
     r"^CH-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
@@ -36,7 +40,8 @@ def process_conversation_log(logContent, bearerToken, mongoConnectionString,
         preservePastTime    - PST datetime cutoff (str, ISO or custom format)
         schema              - conversation_log JSON schema (dict or str)
 
-    Returns dict with status, jobId, counts, retained_records, last_written_ts, errors.
+    Returns dict with status, jobId, counts, header, retained_records,
+    last_written_ts, temp_file_path, errors.
     """
     job_id = f"JOB-{uuid.uuid4().hex[:12]}"
     _log.info("Job %s started", job_id)
@@ -96,12 +101,21 @@ def process_conversation_log(logContent, bearerToken, mongoConnectionString,
     now_pst = now_utc + pst_offset
     next_utt = max((u.get("utterance", 0) for u in retained_records), default=0) + 1
 
+    # B007: Stagger timestamp if collision
+    agent_ts = now_pst
+    existing_timestamps = {u.get("timestamp_pst", "") for u in retained_records}
+    formatted = _format_pst(agent_ts)
+    while formatted in existing_timestamps:
+        agent_ts = agent_ts + timedelta(microseconds=1)
+        formatted = _format_pst(agent_ts)
+    agent_utc = now_utc + (agent_ts - now_pst)
+
     agent_utterance = {
         "utterance": next_utt,
         "userId": "ConversationLogAgent",
         "role": "agent",
-        "timestamp_pst": _format_pst(now_pst),
-        "timestamp_utc": now_utc.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+        "timestamp_pst": formatted,
+        "timestamp_utc": agent_utc.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         "content": f"Archive job {job_id} complete. {original_count} original, "
                    f"{len(retained_records)} retained, {mongo_result['archived']} archived.",
         "jobId": job_id,
@@ -117,6 +131,40 @@ def process_conversation_log(logContent, bearerToken, mongoConnectionString,
 
     retained_records.append(agent_utterance)
 
+    # ── T013: Agent writes retained file to .temp ──────────────────────
+    retained_file = {**header, "utterances": retained_records}
+    try:
+        with open(TEMP_PATH, "w", encoding="utf-8") as f:
+            json.dump(retained_file, f, indent=2, ensure_ascii=False)
+        _log.info("Job %s: Wrote %d utterances to .temp", job_id, len(retained_records))
+    except Exception as e:
+        msg = f"Failed to write .temp: {e}"
+        _log.error("Job %s: %s", job_id, msg)
+        return {"status": 500, "error": msg, "jobId": job_id}
+
+    # ── T014: Agent validates .temp ────────────────────────────────────
+    try:
+        with open(TEMP_PATH, "r", encoding="utf-8") as f:
+            validated = json.load(f)
+        temp_count = len(validated.get("utterances", []))
+    except Exception as e:
+        msg = f".temp is not valid JSON: {e}"
+        _log.error("Job %s: %s", job_id, msg)
+        TEMP_PATH.unlink(missing_ok=True)
+        return {"status": 500, "error": msg, "jobId": job_id}
+
+    # T014: Parity check
+    if temp_count > original_count + 2:  # +2 for agent + service utterances
+        msg = f"Parity check failed: temp={temp_count} > original={original_count}+2"
+        _log.error("Job %s: %s", job_id, msg)
+        TEMP_PATH.unlink(missing_ok=True)
+        return {"status": 500, "error": msg, "jobId": job_id}
+
+    # B001: Validate against schema
+    violations = _validate_against_schema(validated, schema)
+    if violations:
+        _log.warning("Job %s: Schema violations: %s", job_id, violations)
+
     # ── T009: Return last written timestamp ─────────────────────────────
     _log.info("Job %s complete: original=%d, retained=%d, archived=%d, errors=%d",
               job_id, original_count, len(retained_records),
@@ -128,6 +176,7 @@ def process_conversation_log(logContent, bearerToken, mongoConnectionString,
         "header": header,
         "retained_records": retained_records,
         "last_written_ts": mongo_result["last_written_ts"],
+        "temp_file_path": str(TEMP_PATH),
         "counts": {
             "original": original_count,
             "retained": len(retained_records),
@@ -239,6 +288,32 @@ def _query_retained(mongo_conn, cutoff):
     except PyMongoError as e:
         _log.error("MongoDB query error: %s", e)
         return []
+
+
+# ── Schema validation (B001) ───────────────────────────────────────────
+
+def _validate_against_schema(data, schema):
+    violations = []
+    try:
+        prompt_log = schema.get("collections", {}).get("prompt_log", {})
+        record_schemas = prompt_log.get("record_schemas", {})
+        log_record = record_schemas.get("LogRecord", {})
+        fields = log_record.get("fields", {})
+        if not fields:
+            return violations
+        for u in data.get("utterances", []):
+            uid = u.get("utterance", "?")
+            for fname, fdef in fields.items():
+                if fdef.get("required") and fname not in u:
+                    violations.append(f"utterance:{uid} missing '{fname}'")
+                if fname in u:
+                    possible = fdef.get("possible_values", [])
+                    val = u[fname]
+                    if possible and val and isinstance(val, str) and val not in possible:
+                        violations.append(f"utterance:{uid} '{fname}'='{val}' not in {possible}")
+    except Exception as e:
+        violations.append(f"Schema validation error: {e}")
+    return violations
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────

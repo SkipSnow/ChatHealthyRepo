@@ -807,8 +807,8 @@
         "timestamp_rules": [
           "Every utterance has both timestamp_pst and timestamp_utc.",
           "Grooming decisions use timestamp_utc only. timestamp_pst is for display.",
-          "timestamp_utc format: YYYY-MM-DDTHH:MM:SSZ",
-          "timestamp_pst format: YYYY-MM-DDTHH:MM:SS±HH:MM"
+          "timestamp_utc format: YYYY-MM-DDTHH:MM:SS.ffffffZ (microsecond precision per B003)",
+          "timestamp_pst format: %-m/%-d/%Y %-H:%M:%S.%f (microsecond precision per B003, no leading zeros)"
         ]
       },
       "publish": false,
