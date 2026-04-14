@@ -199,11 +199,8 @@ def run_cycle():
         return True
 
     # T027: Add CH_KEY{GUID} to every utterance
-    # Enrich any record missing userId with 'Unknown'
     for u in data.get("utterances", []):
         u["ch_key"] = f"CH_KEY{{{uuid.uuid4()}}}"
-        if "userId" not in u:
-            u["userId"] = "Unknown"
 
     # T017: Redact credentials
     data = _redact_credentials(data)
