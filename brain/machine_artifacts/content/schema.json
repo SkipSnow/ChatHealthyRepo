@@ -326,11 +326,6 @@
               "required": true,
               "description": "Sequential utterance number"
             },
-            "userId": {
-              "type": "string",
-              "required": true,
-              "description": "Author identifier: Skip, Claude, ConversationLogAgent, or ConversationLogManagerService"
-            },
             "role": {
               "type": "string",
               "required": true,
@@ -403,6 +398,11 @@
               "type": "string",
               "required_when": "role in (agent, service) and error occurred",
               "description": "Error details if the action failed"
+            },
+            "actor": {
+              "type": "string",
+              "required": true,
+              "description": "Author identifier: Skip, Claude, ConversationLogAgent, or ConversationLogManagerService"
             }
           }
         }

@@ -290,7 +290,7 @@ def _run_cycle_inner():
     service_utterance = {
         "ch_key": f"CH_KEY{{{uuid.uuid4()}}}",
         "utterance": next_utt,
-        "userId": "ConversationLogManagerService",
+        "actor": "ConversationLogManagerService",
         "role": "service",
         "timestamp_pst": formatted,
         "timestamp_utc": svc_utc.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),

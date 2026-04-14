@@ -111,7 +111,7 @@ def process_conversation_log(logContent, bearerToken, mongoConnectionString,
     agent_utterance = {
         "ch_key": f"CH_KEY{{{uuid.uuid4()}}}",
         "utterance": next_utt,
-        "userId": "ConversationLogAgent",
+        "actor": "ConversationLogAgent",
         "role": "agent",
         "timestamp_pst": formatted,
         "timestamp_utc": agent_utc.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
