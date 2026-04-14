@@ -316,10 +316,10 @@
           "fields": {
             "ch_key": {
               "type": "string",
-              "required": true,
+              "required": false,
               "unique": true,
               "format": "CH_KEY{GUID}",
-              "description": "Unique key for every utterance. Added by the service before passing to the agent. Format: CH_KEY{uuid4}. This is the unique index in conversation_log_archive."
+              "description": "Unique key for every utterance. Added by the service before passing to the agent. Not present on records written by Claude or the conversation_log_worker. Required in MongoDB (unique index) but optional in the file."
             },
             "utterance": {
               "type": "integer",
