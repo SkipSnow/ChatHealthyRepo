@@ -353,7 +353,13 @@ def _run_cycle_inner():
             missing.append(ch)
         else:
             act_pst, act_utc = actual[ch]
-            if act_pst != exp_pst or act_utc != exp_utc:
+            exp_pst_dt = _parse_datetime(exp_pst)
+            act_pst_dt = _parse_datetime(act_pst)
+            exp_utc_dt = _parse_datetime(exp_utc)
+            act_utc_dt = _parse_datetime(act_utc)
+            pst_match = (exp_pst_dt == act_pst_dt) if (exp_pst_dt and act_pst_dt) else (exp_pst == act_pst)
+            utc_match = (exp_utc_dt == act_utc_dt) if (exp_utc_dt and act_utc_dt) else (exp_utc == act_utc)
+            if not pst_match or not utc_match:
                 corrupted.append(f"{ch}: expected pst={exp_pst} utc={exp_utc}, got pst={act_pst} utc={act_utc}")
 
     if missing or corrupted:
