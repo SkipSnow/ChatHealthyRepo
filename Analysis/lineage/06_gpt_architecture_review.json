@@ -1,0 +1,146 @@
+{
+  "reviewer": "GPT-4.1",
+  "architecture_assessment": {
+    "overall_verdict": "approve_with_concerns",
+    "strengths": [
+      "Centralized prompt routing eliminates UI/backend bypasses and enforces consistent business logic.",
+      "Explicit inclusion of prompt history and user context supports stateful, context-aware interactions.",
+      "Structured output with strict schema enables deterministic validation and downstream tool integration.",
+      "Prompt factory pattern allows for flexible, maintainable prompt generation and routing logic.",
+      "AI triage with deterministic fallback supports robust handling of ambiguous or edge-case queries."
+    ],
+    "risks": [
+      "Over-reliance on a single prompt factory may create a bottleneck or single point of failure.",
+      "Some audit findings (e.g., compliance, security, UI/UX) are not addressed and require parallel workstreams.",
+      "Deterministic rules and AI routing logic may become complex and hard to maintain as requirements grow.",
+      "Strict schema enforcement may limit flexibility for future narrative or unstructured outputs.",
+      "The architecture does not directly address infrastructure, compliance, or feature backlog items."
+    ],
+    "key_insight": "The proposed architecture represents a significant improvement in routing, context management, and output validation, directly addressing several critical audit findings related to state, bypasses, and output safety. However, it does not address legal/compliance, security, or certain UI/UX and feature backlog issues, which must be handled in parallel. The 'one prompt via prompt factory' approach is sound for core conversational logic but should be complemented with modularity, extensibility, and clear separation of concerns to avoid future technical debt."
+  },
+  "finding_assessments": [
+    {
+      "finding": 1,
+      "claimed_addressed": true,
+      "actual_assessment": "fully_addressed",
+      "reasoning": "By routing all user input through a single prompt and prompt factory, the architecture ensures that all backend capabilities are reachable and no UI can bypass critical business logic. This directly resolves the bypass issue.",
+      "refinement_needed": "None for this finding; ensure all UI components are required to use the central prompt entry point."
+    },
+    {
+      "finding": 2,
+      "claimed_addressed": true,
+      "actual_assessment": "fully_addressed",
+      "reasoning": "Explicit inclusion of prompt history as an input ensures context carry-forward is preserved, addressing the statelessness regression.",
+      "refinement_needed": "Ensure prompt history is correctly persisted and passed through all relevant layers."
+    },
+    {
+      "finding": 3,
+      "claimed_addressed": false,
+      "actual_assessment": "not_addressed",
+      "reasoning": "UMLS CPT compliance is a legal and output filtering issue, not directly related to prompt routing or architecture.",
+      "refinement_needed": "Integrate a compliance filter layer post-prompt to block restricted codes and add required attributions."
+    },
+    {
+      "finding": 4,
+      "claimed_addressed": false,
+      "actual_assessment": "not_addressed",
+      "reasoning": "UI component mounting and retirement is a frontend/UX concern, not determined by prompt architecture.",
+      "refinement_needed": "Coordinate UI/UX refactor to formally retire or replace ChatWindow and document lost/gained capabilities."
+    },
+    {
+      "finding": 5,
+      "claimed_addressed": true,
+      "actual_assessment": "fully_addressed",
+      "reasoning": "Structured output with strict schema provides a natural validation point for URLs, enabling the restoration of URL Guardian logic.",
+      "refinement_needed": "Ensure URL validation is enforced at the schema validation layer before output is rendered to users."
+    },
+    {
+      "finding": 6,
+      "claimed_addressed": true,
+      "actual_assessment": "partially_addressed",
+      "reasoning": "AI triage can handle specialty routing, but deterministic regex fallback is not explicitly described. If vector search fails, fallback must be explicitly implemented.",
+      "refinement_needed": "Add explicit deterministic fallback (e.g., regex) in the routing logic for specialty lookup failures."
+    },
+    {
+      "finding": 7,
+      "claimed_addressed": true,
+      "actual_assessment": "partially_addressed",
+      "reasoning": "AI triage can rank specialties, but the specialty ranker logic is currently dead-coded. The architecture enables this, but implementation is required.",
+      "refinement_needed": "Reactivate and integrate the specialty ranker logic into the AI routing path."
+    },
+    {
+      "finding": 8,
+      "claimed_addressed": true,
+      "actual_assessment": "fully_addressed",
+      "reasoning": "The prompt factory can generate both narrative and structured outputs, restoring the ability to provide narrative responses as needed.",
+      "refinement_needed": "Ensure UI components can render narrative responses (e.g., Markdown) as well as structured data."
+    },
+    {
+      "finding": 9,
+      "claimed_addressed": false,
+      "actual_assessment": "not_addressed",
+      "reasoning": "mTLS and infrastructure security are outside the scope of prompt architecture.",
+      "refinement_needed": "Implement mTLS at the infrastructure/network layer."
+    },
+    {
+      "finding": 10,
+      "claimed_addressed": false,
+      "actual_assessment": "not_addressed",
+      "reasoning": "Dead code in internal tooling is unrelated to prompt architecture.",
+      "refinement_needed": "Review and refactor internal tooling as a separate workstream."
+    },
+    {
+      "finding": 11,
+      "claimed_addressed": true,
+      "actual_assessment": "fully_addressed",
+      "reasoning": "Dynamic context loading is enabled by making user context an explicit input and loading it based on routing choice.",
+      "refinement_needed": "Ensure context loading logic is efficient and intent-driven."
+    },
+    {
+      "finding": 12,
+      "claimed_addressed": false,
+      "actual_assessment": "not_addressed",
+      "reasoning": "Google Maps integration is a feature backlog item, not related to prompt architecture.",
+      "refinement_needed": "Implement as a separate feature."
+    },
+    {
+      "finding": 13,
+      "claimed_addressed": false,
+      "actual_assessment": "not_addressed",
+      "reasoning": "EvaluateCare scoring and related features are not addressed by prompt architecture.",
+      "refinement_needed": "Implement scoring engine and related features as separate modules."
+    }
+  ],
+  "suggested_improvements": [
+    {
+      "title": "Explicit Fallback for Specialty Routing",
+      "description": "Implement a deterministic regex-based fallback in the specialty routing logic to handle cases where vector search fails or is unavailable.",
+      "priority": "high"
+    },
+    {
+      "title": "Integrate Compliance Filtering Layer",
+      "description": "Add a post-prompt compliance filter to block restricted codes (e.g., CPT), enforce attribution, and support geo-fencing as required by UMLS/NLM.",
+      "priority": "critical"
+    },
+    {
+      "title": "UI/UX Refactor for Narrative Rendering",
+      "description": "Ensure the frontend can render both structured and narrative (Markdown) responses, restoring lost LLM chat capabilities.",
+      "priority": "high"
+    },
+    {
+      "title": "Modularize Prompt Factory",
+      "description": "Design the prompt factory to be modular and extensible, allowing for future expansion of routes, tools, and output types without creating a monolithic bottleneck.",
+      "priority": "medium"
+    },
+    {
+      "title": "Restore and Test Specialty Ranker",
+      "description": "Reactivate the specialty ranker logic, integrate it into the AI routing path, and add test coverage to ensure correct ranking of specialties.",
+      "priority": "medium"
+    },
+    {
+      "title": "Parallel Workstreams for Security and Feature Backlog",
+      "description": "Establish parallel workstreams to address infrastructure security (mTLS), compliance, and feature backlog items not covered by the prompt architecture.",
+      "priority": "critical"
+    }
+  ]
+}

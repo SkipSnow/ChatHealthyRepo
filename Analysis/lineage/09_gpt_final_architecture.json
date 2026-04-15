@@ -1,0 +1,87 @@
+{
+  "opinion_on_interface_first": {
+    "verdict": "agree",
+    "reasoning": "The interface-first, lift-with-experience approach is pragmatic and minimizes premature abstraction. It avoids the common pitfall of over-engineering a superclass before real duplication or cross-cutting concerns emerge. This approach encourages clear contracts and separation of concerns, and it allows the architecture to evolve based on actual usage patterns rather than assumptions. However, it does require discipline to revisit and refactor as duplication appears, and it may lead to some short-term inefficiency as similar logic is implemented in multiple places before being lifted.",
+    "comparison_to_prior_recommendation": "My previous recommendation (thin facade + middleware) was more prescriptive: start with a minimal base class that does routing/dispatch, and push all cross-cutting logic into middleware. The interface-first approach is even more conservative, starting with no implementation at all—just a contract. Both approaches avoid centralization, but interface-first delays even the minimal logic in the base class until justified by real duplication. The difference is subtle but meaningful: interface-first maximizes flexibility and minimizes up-front commitment."
+  },
+  "risks": [
+    "Delayed consolidation: If teams do not proactively refactor, duplicated logic may persist longer than necessary.",
+    "Interface drift: Without a strong process, subclasses may diverge in subtle ways, making later consolidation harder.",
+    "Onboarding cost: New contributors may find it harder to understand the system if patterns are not yet established.",
+    "Missed cross-cutting enforcement: Some global requirements (e.g., compliance, logging) may be inconsistently applied until middleware is fully in place.",
+    "Refactoring debt: Lifting shared logic later can be disruptive if not planned for."
+  ],
+  "benefits": [
+    "Avoids premature abstraction and over-engineering.",
+    "Maximizes flexibility for each epic to evolve independently.",
+    "Forces explicit contracts, improving clarity and testability.",
+    "Reduces risk of a monolithic base class becoming a bottleneck or single point of failure.",
+    "Encourages real-world-driven architecture evolution, not speculative design.",
+    "Easier to reason about and test each epic in isolation early on."
+  ],
+  "final_architecture_recommendation": {
+    "pattern": "Interface-First with Middleware and Experience-Driven Lifting",
+    "description": "Start with a pure interface class that defines the contract for prompt routing and execution. Each epic implements its own subclass, adhering strictly to the interface. Cross-cutting concerns (history, context, validation, compliance) are handled in middleware layers that wrap the subclasses. As real duplication or shared needs emerge across epics, common logic is lifted into an abstract base class, but only when justified by experience. This pattern combines the flexibility and clarity of interface-first with the discipline of middleware for global concerns, and the adaptability to consolidate when patterns are proven.",
+    "components": [
+      {
+        "name": "PromptFactoryInterface",
+        "responsibility": "Defines the contract for routing and execution (e.g., route(input), execute(input) -> output)",
+        "implementation_notes": "No implementation, just method signatures and docstrings"
+      },
+      {
+        "name": "EpicPromptFactory (per epic)",
+        "responsibility": "Implements the interface for a specific epic's routing and prompt logic",
+        "implementation_notes": "Each epic owns its own subclass; must pass interface tests"
+      },
+      {
+        "name": "Middleware Stack",
+        "responsibility": "Handles cross-cutting concerns (history, context, validation, compliance, logging)",
+        "implementation_notes": "Composable, order-defined, wraps each EpicPromptFactory; can be extended or reordered as needed"
+      },
+      {
+        "name": "AbstractPromptFactoryBase (optional, emerges over time)",
+        "responsibility": "Holds shared logic once duplication is proven across epics",
+        "implementation_notes": "Created only when two or more epics have real, tested duplication; refactor subclasses to inherit"
+      }
+    ],
+    "implementation_order": [
+      {
+        "step": 1,
+        "what": "Define PromptFactoryInterface with clear method signatures and documentation",
+        "effort": "S",
+        "addresses_findings": []
+      },
+      {
+        "step": 2,
+        "what": "Implement EpicPromptFactory subclasses for each epic, adhering strictly to the interface",
+        "effort": "M",
+        "addresses_findings": [1, 2, 5]
+      },
+      {
+        "step": 3,
+        "what": "Develop and integrate middleware stack for history, context, validation, and compliance",
+        "effort": "M",
+        "addresses_findings": [2, 3, 5]
+      },
+      {
+        "step": 4,
+        "what": "Route all user input through the middleware-wrapped prompt factory (replace direct /classify and /search calls)",
+        "effort": "M",
+        "addresses_findings": [1, 2, 5]
+      },
+      {
+        "step": 5,
+        "what": "Monitor for duplication across epics; when found, lift shared logic into AbstractPromptFactoryBase and refactor",
+        "effort": "M",
+        "addresses_findings": []
+      },
+      {
+        "step": 6,
+        "what": "Add observability and fallback mechanisms at the prompt factory entry point",
+        "effort": "S",
+        "addresses_findings": []
+      }
+    ]
+  },
+  "key_insight": "The interface-first, experience-driven lifting approach is a disciplined way to avoid both premature abstraction and monolithic centralization. It maximizes flexibility and clarity early, while providing a clear path to consolidation as real patterns emerge. The key to success is rigorous adherence to interface contracts, proactive middleware for cross-cutting concerns, and a commitment to refactor as duplication appears. This approach is well-suited to a complex, evolving product with multiple epics and high compliance demands."
+}

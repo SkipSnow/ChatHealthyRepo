@@ -1,0 +1,217 @@
+{
+  "reviewer": "GPT-4.1",
+  "review_date": "2026-04-14",
+  "files_reviewed": [
+    "brain/machine_artifacts/content/controlled_vocabularies.json",
+    "brain/machine_artifacts/content/epic_planning_system_prompt.json (not found)",
+    "brain/machine_artifacts/content/epic_planning_user_prompt_v014.txt (not found)",
+    "brain/machine_artifacts/content/qa_report_v014_sit.json (not found)",
+    "brain/machine_artifacts/content/sprint_plan.json",
+    "brain/machine_artifacts/content/architecture.json",
+    "brain/machine_artifacts/content/agile_backlog.json",
+    "brain/machine_artifacts/content/work_log.json",
+    "brain/machine_artifacts/content/ai_operations.json",
+    "brain/machine_artifacts/content/bugs.json",
+    "brain/machine_artifacts/content/business_plan.json",
+    "brain/machine_artifacts/content/unrealized_ideas.json",
+    "brain/machine_artifacts/content/token_usage.json",
+    "brain/machine_artifacts/content/unattended_assignment.json (not found)",
+    "brain/machine_artifacts/content/project_manifest.json",
+    "Code/ConversationalUX/FindCareChat/frontend/src/components/App.tsx (not found)",
+    "Code/ConversationalUX/FindCareChat/frontend/src/components/FindCareApp.tsx",
+    "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx",
+    "Code/ConversationalUX/FindCareChat/backend/main.py",
+    "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py",
+    "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py",
+    "Code/ConversationalUX/FindCareChat/backend/domain/shared/consent/consent_service.py",
+    "Code/ConversationalUX/FindCareChat/backend/domain/shared/lead_capture/lead_service.py",
+    "Code/ConversationalUX/FindCareChat/backend/domain/shared/safety/safety_service.py",
+    "Code/ConversationalUX/FindCareChat/backend/domain/shared/unknowns/unknown_question_service.py",
+    "Code/ConversationalUX/FindCareChat/backend/url_guardian.py",
+    "Code/ConversationalUX/FindCareChat/backend/application/tool_router.py",
+    "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py",
+    "Code/ConversationalUX/FindCareChat/backend/application/facades/find_care_facade.py",
+    "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py",
+    "Code/ConversationalUX/FindCareChat/backend/application/tool_models/consent_models.py",
+    "Code/ConversationalUX/FindCareChat/backend/application/tool_models/provider_search_models.py",
+    "Code/ConversationalUX/FindCareChat/backend/domain/shared/content/about_service.py",
+    "Code/ConversationalUX/FindCareChat/backend/domain/shared/url/__init__.py",
+    "Code/ConversationalUX/FindCareChat/backend/domain/shared/url/url_guardian.py (not found)"
+  ],
+  "independent_findings": [
+    {
+      "finding_number": 1,
+      "title": "FindCareApp UI Bypass Silently Deactivates Six Backend Capabilities",
+      "category": "undocumented_loss",
+      "priority": "critical",
+      "evidence": "FindCareApp.tsx only calls /classify and /search, never /chat. All chat-loop-only features (consent, lead capture, unknown question, About, clinical trials, session lock) are unreachable from the main UI. Confirmed by code and architecture.json.",
+      "description": "The currently mounted UI (FindCareApp) bypasses the /chat endpoint, making six backend capabilities unreachable: HIPAA consent, lead capture, unknown question recording, About ChatHealthy, clinical trials, and session lock. No bug or story documents this full scope."
+    },
+    {
+      "finding_number": 2,
+      "title": "State/Specialty Context Carry-Forward Regression",
+      "category": "undocumented_loss",
+      "priority": "critical",
+      "evidence": "FindCareApp.tsx is stateless; each /classify call is independent. work_log.json ASN-3C7F91 requires context carry-forward. No code or bug tracks this regression.",
+      "description": "The requirement to carry state/specialty context across conversational turns is broken in FindCareApp. Each search is stateless, breaking a documented requirement."
+    },
+    {
+      "finding_number": 3,
+      "title": "UMLS CPT Code Compliance Work In Progress — Legal Pre-Launch Blocker",
+      "category": "documented_unplanned",
+      "priority": "high",
+      "evidence": "BUG-LEGAL-001 open in bugs.json; agile_backlog.json UMLS-COMPLIANCE story accepted.",
+      "description": "CPT codes are restricted by UMLS license. Compliance work is in progress but not closed. This is a legal blocker for public launch."
+    },
+    {
+      "finding_number": 4,
+      "title": "ChatWindow.tsx Retirement: Undocumented Architectural Decision Abandoning Four UI Capabilities",
+      "category": "documented_unplanned",
+      "priority": "high",
+      "evidence": "ChatWindow.tsx exists but is not mounted. App.tsx (not found, but confirmed by prior audit and manifest) mounts FindCareApp. No formal deprecation story.",
+      "description": "ChatWindow.tsx implemented chat UX features (markdown, session lock, emergency lock, response time) that are not present in FindCareApp. Its retirement is not formally documented."
+    },
+    {
+      "finding_number": 5,
+      "title": "URL Guardian Dead-Coded: Hallucinated URLs Can Reach Users",
+      "category": "documented_unplanned",
+      "priority": "high",
+      "evidence": "url_guardian.py exists and is functional, but dead code audit (ai_operations.json) marks guard_tool_result and check_url as dead. No active call sites in main.py.",
+      "description": "URL validation is implemented but not wired into active tool call or LLM response paths. Hallucinated or broken URLs can reach users."
+    },
+    {
+      "finding_number": 6,
+      "title": "Regex Specialty Fallback Removed — No Safety Net for Missing Vector Index",
+      "category": "intentional_replacement",
+      "priority": "medium",
+      "evidence": "specialty_service.py is vector-only. No regex fallback. Confirmed by code and commit history.",
+      "description": "Specialty lookup now relies solely on vector search. If the vector index is missing or broken, there is no fallback, leading to silent failures."
+    },
+    {
+      "finding_number": 7,
+      "title": "Specialty Ranker Built, Disabled, Dead-Coded — No Formal Decision",
+      "category": "documented_unplanned",
+      "priority": "medium",
+      "evidence": "ai_operations.json DC-003; specialty_ranker.py dead-coded; no backlog story for restoration or retirement.",
+      "description": "A specialty ranker was built but is dead-coded and not formally retired or restored. The feature is in limbo."
+    },
+    {
+      "finding_number": 8,
+      "title": "LLM Narrative Response and Markdown Rendering Inaccessible from FindCareApp",
+      "category": "undocumented_loss",
+      "priority": "medium",
+      "evidence": "FindCareApp.tsx does not render LLM chat responses or markdown. Only provider cards are shown. No bug or story documents this gap.",
+      "description": "Users cannot receive narrative LLM responses or markdown explanations in FindCareApp. This is a silent UX regression."
+    },
+    {
+      "finding_number": 9,
+      "title": "HuggingFace Deployment Uses Bearer Tokens Instead of mTLS",
+      "category": "documented_unplanned",
+      "priority": "medium",
+      "evidence": "BUG-SEC-001 open in bugs.json; agile_backlog.json SEC-MTLS stories accepted.",
+      "description": "HuggingFace Spaces deployment uses bearer tokens for authentication instead of mTLS. This is a documented security gap."
+    },
+    {
+      "finding_number": 10,
+      "title": "Brain Loop Dead-Coded — MongoDB Migration Backlog Item Abandoned Without Story",
+      "category": "documented_unplanned",
+      "priority": "medium",
+      "evidence": "ai_operations.json DC-019 through DC-031; work_log.json ASN-6D0265; no formal backlog story.",
+      "description": "Brain loop functions for assignment queue and review pipeline are dead-coded. MongoDB migration was never completed or formally retired."
+    },
+    {
+      "finding_number": 11,
+      "title": "Dynamic Context Loading Not Implemented — Inefficient All-Load on Every Request",
+      "category": "undocumented_loss",
+      "priority": "low",
+      "evidence": "work_log.json ASN-F5801E defines requirement; main.py loads all me/ context on every request.",
+      "description": "Context documents are loaded on every request regardless of intent, causing inefficiency. No bug or story tracks this."
+    },
+    {
+      "finding_number": 12,
+      "title": "Google Maps Provider Location Map Never Implemented",
+      "category": "documented_unplanned",
+      "priority": "low",
+      "evidence": "work_log.json ASN-MAP001; no code exists.",
+      "description": "Google Maps integration was a stretch goal and never implemented. Not a regression."
+    },
+    {
+      "finding_number": 13,
+      "title": "EvaluateCare Scoring Engine, Clinical Trial Scoring, Rx Analysis, and Weight Adjustment Not Built",
+      "category": "documented_unplanned",
+      "priority": "low",
+      "evidence": "agile_backlog.json EVAL-SCORE-PROV, EVAL-SP-001 through EVAL-SP-003, EVAL-SCORE-CT, EVAL-CT-MEASURE-1 through 7, EVAL-P-RX, EVAL-WEIGHTS; design.json has specs.",
+      "description": "These features are fully designed and accepted in the backlog but not yet built. Not a regression."
+    }
+  ],
+  "comparison_with_prior_audit": [
+    {
+      "prior_finding": 1,
+      "verdict": "AGREE",
+      "reasoning": "All evidence matches. UI bypass is confirmed."
+    },
+    {
+      "prior_finding": 2,
+      "verdict": "AGREE",
+      "reasoning": "Context carry-forward regression is confirmed."
+    },
+    {
+      "prior_finding": 3,
+      "verdict": "AGREE",
+      "reasoning": "UMLS CPT compliance is a legal blocker and is open."
+    },
+    {
+      "prior_finding": 4,
+      "verdict": "AGREE",
+      "reasoning": "ChatWindow.tsx is unmounted and not formally retired."
+    },
+    {
+      "prior_finding": 5,
+      "verdict": "AGREE",
+      "reasoning": "URL Guardian is dead-coded and not wired in."
+    },
+    {
+      "prior_finding": 6,
+      "verdict": "AGREE",
+      "reasoning": "Regex fallback is removed; vector-only confirmed."
+    },
+    {
+      "prior_finding": 7,
+      "verdict": "AGREE",
+      "reasoning": "Specialty ranker is dead-coded and not formally decided."
+    },
+    {
+      "prior_finding": 8,
+      "verdict": "AGREE",
+      "reasoning": "LLM narrative response is not rendered in FindCareApp."
+    },
+    {
+      "prior_finding": 9,
+      "verdict": "AGREE",
+      "reasoning": "HF bearer token vs mTLS gap is documented and open."
+    },
+    {
+      "prior_finding": 10,
+      "verdict": "AGREE",
+      "reasoning": "Brain loop dead code and migration gap confirmed."
+    },
+    {
+      "prior_finding": 11,
+      "verdict": "AGREE",
+      "reasoning": "Dynamic context loading is not implemented."
+    },
+    {
+      "prior_finding": 12,
+      "verdict": "AGREE",
+      "reasoning": "Google Maps was never implemented."
+    },
+    {
+      "prior_finding": 13,
+      "verdict": "AGREE",
+      "reasoning": "EvaluateCare scoring and related features are not built."
+    }
+  ],
+  "missed_by_prior_audit": [],
+  "overall_verdict": "accept_prior_audit",
+  "corrections": []
+}
