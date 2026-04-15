@@ -1,0 +1,67 @@
+@startuml
+title 5.1 Provider Search — Happy Path
+skinparam shadowing false
+skinparam defaultFontSize 10
+skinparam sequenceMessageAlign center
+
+actor User
+participant "FindCareApp\n(React)" as UI
+participant "PromptDispatcher" as Dispatcher
+participant "SafetyMiddleware" as SafeMW
+participant "HistoryMiddleware" as HistMW
+participant "ContextMiddleware" as CtxMW
+participant "FindCarePromptFactory" as FCPF
+participant "SpecialtyService" as SS
+participant "FindCareService" as FCS
+participant "ValidationMiddleware" as ValMW
+participant "ConsentMiddleware" as ConMW
+
+User -> UI: "Find me a bone doc in Virginia"
+UI -> Dispatcher: dispatch(PromptInput)
+note right: user_message, prompt_history=[],\nsession_state={message_count: 0}
+
+' Middleware chain - pre-dispatch
+Dispatcher -> SafeMW: process(input, next)
+SafeMW -> SafeMW: is_emergency("Find me a bone doc...")
+note right: GPT-4.1-mini classifier\n→ FALSE (safe prefix match)
+SafeMW -> HistMW: next(input)
+HistMW -> HistMW: append to prompt_history
+HistMW -> CtxMW: next(input)
+CtxMW -> CtxMW: load_me_context(intent="provider_search")
+note right: Selective context loading\nbased on detected intent
+
+' Routing
+CtxMW -> FCPF: route(input)
+FCPF -> FCPF: classify intent
+note right: Deterministic rules first:\nmatches "find" + care provider pattern\n→ PROVIDER_SEARCH
+FCPF --> CtxMW: PromptRoute(epic="findcare",\nintent="provider_search")
+
+' Execution
+CtxMW -> FCPF: execute(input)
+FCPF -> SS: find_specialty_codes("bone doc")
+SS -> SS: get_specialty_vector("bone doc")
+note right: text-embedding-3-large\n→ 3072-dim vector
+SS -> SS: $vectorSearch on SpecialtyMetaData
+SS --> FCPF: {specialties: [{Code: "213E00000X",\nDisplay Name: "Podiatrist", rank: 1}, ...]}
+
+FCPF -> FCS: search_providers(\n  specialty_codes=["213E00000X"],\n  state="VA", limit=25)
+FCS -> FCS: _facet_query(collection,\n  {taxonomy_code: {$in: codes},\n   state: "VA"}, limit=25)
+note right: MongoDB $facet:\n1. count pipeline\n2. page pipeline (keyset)
+FCS --> FCPF: {providers: [...], total_count: 42,\nhas_more: true, first_npi: "...",\nlast_npi: "...", summary_message: "..."}
+
+FCPF -> FCPF: build PromptOutput
+FCPF --> CtxMW: PromptOutput(\n  response_type="structured",\n  providers=[...],\n  pagination={total: 42, has_more: true})
+
+' Middleware chain - post-dispatch
+CtxMW --> ValMW: output
+ValMW -> ValMW: validate output schema
+ValMW --> ConMW: output
+ConMW -> ConMW: check message_count
+note right: count=1, not 5th message\n→ no consent trigger
+ConMW --> Dispatcher: output
+
+Dispatcher --> UI: PromptOutput
+UI -> UI: render provider cards
+UI -> User: Shows 25 providers\n+ "42 bone docs found in Virginia"
+
+@enduml

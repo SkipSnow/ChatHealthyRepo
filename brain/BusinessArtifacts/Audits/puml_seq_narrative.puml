@@ -1,0 +1,49 @@
+@startuml
+title 5.2 Conversational Question — Narrative Response
+skinparam shadowing false
+skinparam defaultFontSize 10
+
+actor User
+participant "FindCareApp" as UI
+participant "PromptDispatcher" as Dispatcher
+participant "SafetyMiddleware" as SafeMW
+participant "HistoryMiddleware" as HistMW
+participant "NarrativePromptFactory" as NPF
+participant "AboutService" as About
+participant "llm_client" as LLM
+participant "ValidationMiddleware" as ValMW
+
+User -> UI: "What does a physiatrist do?"
+UI -> Dispatcher: dispatch(PromptInput)
+
+Dispatcher -> SafeMW: process(input, next)
+SafeMW -> SafeMW: is_emergency → false\n(safe prefix: "what does")
+SafeMW -> HistMW: next(input)
+
+HistMW -> NPF: route(input)
+NPF -> NPF: classify intent
+note right: Deterministic rules:\nno provider/location keywords\nno clinical trial keywords\n→ NARRATIVE_QUESTION
+
+NPF --> HistMW: PromptRoute(epic="narrative",\nintent="medical_info")
+
+HistMW -> NPF: execute(input)
+NPF -> LLM: chat(model="gpt-4.1",\nmessages=[{user: "What does..."}],\nsystem=build_system_prompt())
+note right: System prompt includes\nRULE 3: medical advice disclaimer\nRULE 8: inclusivity guidelines
+
+LLM --> NPF: {content: "A physiatrist is a\nphysician specializing in\nphysical medicine and\nrehabilitation (PM&R)...",\nstop_reason: "end_turn"}
+
+NPF -> NPF: build PromptOutput
+NPF --> HistMW: PromptOutput(\n  response_type="narrative",\n  text="A physiatrist is...\n  **Note**: This is general\n  information, not medical\n  advice.")
+
+HistMW --> ValMW: output
+ValMW -> ValMW: guard_text(text)
+note right: URLGuardian checks\nany URLs in narrative\nfor validity
+ValMW --> Dispatcher: output
+
+Dispatcher --> UI: PromptOutput
+UI -> UI: detect response_type="narrative"
+UI -> UI: render Markdown text
+note right: ReactMarkdown component\nrenders formatted response\n(not provider cards)
+UI -> User: Narrative explanation\nwith Markdown formatting
+
+@enduml
