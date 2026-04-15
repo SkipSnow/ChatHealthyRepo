@@ -2861,6 +2861,25 @@
       "resolution_status": "ist_testing",
       "next_action": "Kill existing zombies, restart service, verify single Python process.",
       "orphan": false
+    },
+    {
+      "id": "BUG-LOG-003",
+      "rule": "BUG: Conversation log hook and purge service share a JSON file with no locking. Hook reads/appends/writes while purge service reads/truncates/writes the same file. Race conditions cause lost utterances — only 47 of ~500+ prompts captured in a 3-hour session. File was found empty (0 bytes) after purge cycle. Fix: replace file-based log with Apache Kafka (local install). Hook produces to Kafka topic, purge service consumes. Industry standard, open source, local latency.",
+      "incident": "conversation_log.json found at 0 bytes after purge cycle. 3,298 transcript entries but only 69 logged. File contention between hook writer and purge service.",
+      "date": "2026-04-15",
+      "ch_matrix_id": "d3a8ccab-d820-4a75-91ec-d3e019636f13",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "req_id": "BRAIN-CONVERSATION-LOG-REQ-B001",
+      "story_id": "BRAIN-CONVERSATION-LOG",
+      "type": "critical",
+      "reason": "File contention between hook and purge service causes lost utterances. Need Kafka.",
+      "resolution_status": "in_analysis",
+      "next_action": "Install Apache Kafka locally. Refactor hook to Kafka producer, purge service to Kafka consumer.",
+      "orphan": false
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

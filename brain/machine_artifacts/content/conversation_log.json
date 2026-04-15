@@ -1,0 +1,34 @@
+{
+  "collection": "conversation_log",
+  "path": "brain/machine_artifacts/content/conversation_log.json",
+  "purpose": "Rolling 24h conversation log.",
+  "produces_artifact": false,
+  "schema_address": "brain/machine_artifacts/content/schema.json",
+  "retention": "24_hours",
+  "utterances": [
+    {
+      "utterance": 1,
+      "timestamp_pst": "2026-04-15T06:54:45-07:00",
+      "timestamp_utc": "2026-04-15T13:54:45Z",
+      "actor": "Skip",
+      "role": "user",
+      "content": "verification after restore"
+    },
+    {
+      "utterance": 2,
+      "timestamp_pst": "2026-04-15T06:54:56-07:00",
+      "timestamp_utc": "2026-04-15T13:54:56Z",
+      "actor": "Claude",
+      "role": "assistant",
+      "content": "Hook is working again. Now about your idea — writing each utterance to its own file in a directory is a much better architecture:\n\n1. **No file contention** — hook writes one small file, purge service reads the directory\n2. **No corruption risk** — a single failed write loses one utterance, not the whole log\n3. **No locking needed** — each file is written once, never modified\n4. **Purge = delete old files** — trivial, no JSON surgery\n\nThat's a proper message queue pattern. But that's a bigger refactor — it changes the hook worker, the purge service, and the schema. Want me to create a bug/requirement for it and do the temp-file fix for now, or do you want to build the directory-based approach right now?"
+    },
+    {
+      "utterance": 3,
+      "timestamp_pst": "2026-04-15T06:55:28-07:00",
+      "timestamp_utc": "2026-04-15T13:55:28Z",
+      "actor": "Skip",
+      "role": "user",
+      "content": "yeah but what happens if the lock blocks you?"
+    }
+  ]
+}

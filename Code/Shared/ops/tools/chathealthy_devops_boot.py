@@ -232,6 +232,10 @@ class conversation_log_worker(governance_worker_base):
         }
 
     def _save_utterance(self, actor: str, role: str, content: str) -> dict:
+        """Save utterance to conversation_log.json.
+        TODO: BUG-LOG-003 — Replace with Kafka producer. Current implementation
+        has no file locking and can lose utterances under contention with the
+        purge service."""
         content = self._clean_content(content)
         if not content:
             return {"comply": True, "logged": False}
