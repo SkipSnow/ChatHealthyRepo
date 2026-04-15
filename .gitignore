@@ -73,7 +73,7 @@ test_output/
 Code/Shared/ops/tools/caddy.exe
 
 # Analysis videos — large, not source
-Analysis/
+Analysis/*.mp4
 
 # Conversation log — local dev artifact, contains secrets from session
 brain/machine_artifacts/content/conversation_log.json

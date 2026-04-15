@@ -1,0 +1,154 @@
+{
+  "reviewer": "GPT-4.1",
+  "refinement_assessment": {
+    "overall_verdict": "approve_with_concerns",
+    "centralization_risk_resolved": false,
+    "reasoning": "The subclass-per-epic refinement introduces meaningful modularity and separation of concerns within the prompt factory pattern. Each epic-specific subclass encapsulates its own routing, tools, and output schemas, reducing the risk of a monolithic, unmaintainable codebase and enabling parallel development. However, the architecture still relies on a single prompt factory entry point and a shared superclass for cross-cutting concerns (history, context, validation, compliance). This means the system retains a central bottleneck and single point of failure at the superclass and routing layer. While the risk of code-level bottlenecks and maintenance complexity is mitigated, operational and architectural centralization risks (e.g., outages, deployment blockers, global logic bugs) remain. The pattern is a significant improvement, but does not fully resolve the centralization risk.",
+    "new_benefits": [
+      "Improved modularity and maintainability via epic-specific subclasses",
+      "Clear separation of business logic per epic, enabling parallel workstreams",
+      "Easier onboarding and code ownership for teams aligned to epics",
+      "Reduced risk of accidental cross-epic logic entanglement",
+      "Facilitates targeted testing and schema validation per epic"
+    ],
+    "new_risks": [
+      "Superclass remains a single point of failure for cross-cutting logic",
+      "Potential for inconsistent implementation of shared concerns if subclass contracts are not strictly enforced",
+      "Risk of version skew or interface drift between subclasses and superclass",
+      "Operational bottleneck if the prompt factory entry point is overloaded or misconfigured",
+      "Complexity in managing upgrades or hotfixes that span multiple epics"
+    ],
+    "key_insight": "The subclass-per-epic refinement substantially improves code modularity, maintainability, and team scalability, but does not fully eliminate architectural centralization risk. The prompt factory superclass and single entry point remain critical dependencies; any failure or bug here can impact all conversational flows. To further mitigate risk, consider introducing redundancy, horizontal scaling, and explicit interface contracts between superclass and subclasses, as well as robust monitoring and fallback mechanisms."
+  },
+  "revised_finding_assessments": [
+    {
+      "finding": 1,
+      "previous_assessment": "fully_addressed",
+      "revised_assessment": "fully_addressed",
+      "reasoning": "The subclass-per-epic pattern maintains the guarantee that all UI/backend flows are routed through the central prompt factory, preserving the fix for UI bypass. No change."
+    },
+    {
+      "finding": 2,
+      "previous_assessment": "fully_addressed",
+      "revised_assessment": "fully_addressed",
+      "reasoning": "Context and history management remain centralized in the superclass, ensuring stateful interactions. No change."
+    },
+    {
+      "finding": 3,
+      "previous_assessment": "not_addressed",
+      "revised_assessment": "not_addressed",
+      "reasoning": "Compliance filtering (e.g., UMLS CPT) is still not directly addressed by the prompt factory pattern, whether modular or not. Requires explicit compliance filter layer."
+    },
+    {
+      "finding": 4,
+      "previous_assessment": "not_addressed",
+      "revised_assessment": "not_addressed",
+      "reasoning": "UI/UX component retirement is unaffected by backend prompt factory modularity."
+    },
+    {
+      "finding": 5,
+      "previous_assessment": "fully_addressed",
+      "revised_assessment": "fully_addressed",
+      "reasoning": "Strict schema enforcement per-epic can further improve URL validation, as each subclass can enforce output schemas relevant to its domain."
+    },
+    {
+      "finding": 6,
+      "previous_assessment": "partially_addressed",
+      "revised_assessment": "partially_addressed",
+      "reasoning": "Specialty routing fallback logic is still an implementation detail; modularity makes it easier to add, but does not guarantee it is present."
+    },
+    {
+      "finding": 7,
+      "previous_assessment": "partially_addressed",
+      "revised_assessment": "partially_addressed",
+      "reasoning": "Specialty ranker logic is still dead-coded; modularity may ease restoration, but does not address the gap."
+    },
+    {
+      "finding": 8,
+      "previous_assessment": "fully_addressed",
+      "revised_assessment": "fully_addressed",
+      "reasoning": "Epic-specific subclasses can generate both narrative and structured outputs, preserving this capability."
+    },
+    {
+      "finding": 9,
+      "previous_assessment": "not_addressed",
+      "revised_assessment": "not_addressed",
+      "reasoning": "Infrastructure security (mTLS) is outside the scope of prompt factory modularity."
+    },
+    {
+      "finding": 10,
+      "previous_assessment": "not_addressed",
+      "revised_assessment": "not_addressed",
+      "reasoning": "Dead code in internal tooling is unrelated to prompt factory structure."
+    },
+    {
+      "finding": 11,
+      "previous_assessment": "fully_addressed",
+      "revised_assessment": "fully_addressed",
+      "reasoning": "Dynamic context loading remains feasible and is potentially easier to optimize per-epic."
+    },
+    {
+      "finding": 12,
+      "previous_assessment": "not_addressed",
+      "revised_assessment": "not_addressed",
+      "reasoning": "Feature backlog items (e.g., Google Maps) are unaffected by prompt factory modularity."
+    },
+    {
+      "finding": 13,
+      "previous_assessment": "not_addressed",
+      "revised_assessment": "not_addressed",
+      "reasoning": "EvaluateCare scoring and related features are still not implemented; modularity may help future development but does not address the current gap."
+    }
+  ],
+  "revised_improvements": [
+    {
+      "title": "Explicit Fallback for Specialty Routing",
+      "description": "Implement a deterministic regex-based fallback in the specialty routing logic to handle cases where vector search fails or is unavailable. Now easier to localize in the FindCarePromptFactory subclass.",
+      "priority": "high",
+      "status": "revised"
+    },
+    {
+      "title": "Integrate Compliance Filtering Layer",
+      "description": "Add a post-prompt compliance filter to block restricted codes (e.g., CPT), enforce attribution, and support geo-fencing as required by UMLS/NLM. Consider implementing this as a cross-cutting concern in the prompt factory superclass or as a middleware layer.",
+      "priority": "critical",
+      "status": "unchanged"
+    },
+    {
+      "title": "UI/UX Refactor for Narrative Rendering",
+      "description": "Ensure the frontend can render both structured and narrative (Markdown) responses, restoring lost LLM chat capabilities. No change.",
+      "priority": "high",
+      "status": "unchanged"
+    },
+    {
+      "title": "Modularize Prompt Factory",
+      "description": "Design the prompt factory to be modular and extensible, allowing for future expansion of routes, tools, and output types without creating a monolithic bottleneck. The subclass-per-epic refinement implements this recommendation; now focus on enforcing interface contracts and test coverage between superclass and subclasses.",
+      "priority": "medium",
+      "status": "revised"
+    },
+    {
+      "title": "Restore and Test Specialty Ranker",
+      "description": "Reactivate the specialty ranker logic, integrate it into the AI routing path, and add test coverage to ensure correct ranking of specialties. No change.",
+      "priority": "medium",
+      "status": "unchanged"
+    },
+    {
+      "title": "Parallel Workstreams for Security and Feature Backlog",
+      "description": "Establish parallel workstreams to address infrastructure security (mTLS), compliance, and feature backlog items not covered by the prompt architecture. No change.",
+      "priority": "critical",
+      "status": "unchanged"
+    },
+    {
+      "title": "Introduce Redundancy and Observability for Prompt Factory",
+      "description": "Implement horizontal scaling, health checks, and failover for the prompt factory entry point. Add robust monitoring and alerting for superclass and routing failures. Consider circuit breakers or fallback paths if the central factory is degraded.",
+      "priority": "high",
+      "status": "new"
+    },
+    {
+      "title": "Define and Enforce Interface Contracts",
+      "description": "Specify and enforce strict interface contracts between the prompt factory superclass and epic-specific subclasses. Use automated tests to ensure all subclasses correctly implement required methods for routing, context, and schema validation.",
+      "priority": "medium",
+      "status": "new"
+    }
+  ],
+  "architecture_recommendation": "Adopt the subclass-per-epic prompt factory pattern as described, as it significantly improves modularity, maintainability, and team scalability. However, do not assume this fully resolves centralization risk. To further mitigate bottleneck and single point of failure concerns, implement horizontal scaling and redundancy for the prompt factory entry point, and ensure the superclass is robustly tested and monitored. Define strict interface contracts between the superclass and subclasses, and enforce them with automated tests. Consider extracting cross-cutting concerns (e.g., compliance filtering, context management) into middleware or service layers where feasible. Maintain clear documentation and ownership boundaries for each epic-specific subclass. Continue to address compliance, security, and feature backlog items in parallel workstreams, as these remain outside the scope of prompt factory modularity."
+}
