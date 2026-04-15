@@ -1005,10 +1005,13 @@ def enrichment_report_activity(config: dict) -> dict:
 
 @app.orchestration_trigger(context_name="context")
 def prescriber_pipeline_orchestrator(context: df.DurableOrchestrationContext):
-    """Prescriber behavior pipeline — 3 steps, sequential.
+    """Prescriber behavior pipeline — 6 steps, sequential.
     Step 1: Fetch CMS Part D + OIG LEIE + SAM.gov → Blob Storage
     Step 2: Load → provider_quality (left outer join from providers)
-    Step 3: Enrich → drug indications (LLM), exclusion flags, location
+    Step 3: Crosswalk — molecule→indication→ICD-10 (RxNorm + UMLS)
+    Step 4: Enrich — OIG/SAM exclusion flags
+    Step 5: Specialty normalization — peer benchmarks + cost bands
+    Step 6: Embed — vector embeddings (text-embedding-3-large)
 
     Cluster lifecycle: reserve → poll IDLE → try work → finally release.
     """
@@ -1017,7 +1020,7 @@ def prescriber_pipeline_orchestrator(context: df.DurableOrchestrationContext):
     config = context.get_input() or {}
     env_prefix = config.get("env_prefix", "dev")
     states = config.get("states", ["DE"])
-    steps = config.get("steps", [1, 2, 3])
+    steps = config.get("steps", [1, 2, 3, 4, 5, 6])
     cluster_name = config.get("cluster_name", "ChatHealthyDataPipelines")
 
     results = {}
@@ -1068,11 +1071,32 @@ def prescriber_pipeline_orchestrator(context: df.DurableOrchestrationContext):
                 "prescriber_load_activity",
                 {"env_prefix": env_prefix, "states": states})
 
-        # Step 3: Enrich
+        # Step 3: Crosswalk — molecule→indication→ICD-10 (RxNorm + UMLS)
         if 3 in steps:
-            context.set_custom_status("Step 3: Enrich")
+            context.set_custom_status("Step 3: Crosswalk")
+            results["crosswalk"] = yield context.call_activity(
+                "prescriber_crosswalk_activity",
+                {"env_prefix": env_prefix, "states": states})
+
+        # Step 4: Enrich — OIG/SAM exclusion flags
+        if 4 in steps:
+            context.set_custom_status("Step 4: Exclusion flags")
             results["enrich"] = yield context.call_activity(
                 "prescriber_enrich_activity",
+                {"env_prefix": env_prefix, "states": states})
+
+        # Step 5: Specialty normalization — peer benchmarks
+        if 5 in steps:
+            context.set_custom_status("Step 5: Specialty baselines")
+            results["specialty"] = yield context.call_activity(
+                "prescriber_specialty_activity",
+                {"env_prefix": env_prefix, "states": states})
+
+        # Step 6: Embed — vector embeddings (text-embedding-3-large)
+        if 6 in steps:
+            context.set_custom_status("Step 6: Embed")
+            results["embed"] = yield context.call_activity(
+                "prescriber_embed_activity",
                 {"env_prefix": env_prefix, "states": states})
 
     except Exception as exc:
@@ -1133,11 +1157,102 @@ def prescriber_load_activity(config: dict) -> dict:
 
 
 @app.activity_trigger(input_name="config")
+def prescriber_crosswalk_activity(config: dict) -> dict:
+    """Step 3: Crosswalk enrichment — molecule→indication→ICD-10 via RxNorm + UMLS."""
+    from crosswalk_builder import enrich_providers_with_crosswalk
+    return enrich_providers_with_crosswalk(
+        env_prefix=config.get("env_prefix", "dev"),
+        states=config.get("states", ["DE"]),
+    )
+
+
+@app.activity_trigger(input_name="config")
 def prescriber_enrich_activity(config: dict) -> dict:
-    """Step 3: Enrich — drug indications, exclusion flags, location, taxonomy."""
+    """Step 4: Exclusion flags — OIG LEIE + SAM.gov."""
     from prescriber_enrichment_job import enrich_all
     return enrich_all(
         env_prefix=config.get("env_prefix", "dev"),
         states=config.get("states", ["DE"]),
         batch_size=100,
     )
+
+
+@app.activity_trigger(input_name="config")
+def prescriber_specialty_activity(config: dict) -> dict:
+    """Step 5: Specialty normalization — peer benchmarks and cost measure bands."""
+    from crosswalk_builder import compute_specialty_baselines
+    return compute_specialty_baselines(
+        env_prefix=config.get("env_prefix", "dev"),
+        states=config.get("states", ["DE"]),
+    )
+
+
+@app.activity_trigger(input_name="config")
+def prescriber_embed_activity(config: dict) -> dict:
+    """Step 6: Embed — vector embeddings for prescriber drug/molecule search.
+    Uses text-embedding-3-large (3072d) — same model as all other embeddings
+    so prescriber data can be RAG'd together with provider data."""
+    import os
+    from pymongo import UpdateOne
+    from openai import OpenAI
+    from pipeline_db import get_db
+    from embedding_worker import EMBED_MODEL  # text-embedding-3-large
+
+    env_prefix = config.get("env_prefix", "dev")
+    states = config.get("states", ["DE"])
+    db = get_db(env_prefix)
+    quality_coll = db["provider_quality"]
+    oai = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+    cursor = quality_coll.find(
+        {"measures.prescriber_behavior.drugs": {"$exists": True, "$ne": []}},
+        {"npi": 1, "measures.prescriber_behavior.drugs": 1}
+    )
+
+    batch = []
+    embedded = 0
+
+    for doc in cursor:
+        npi = doc["npi"]
+        drugs = doc.get("measures", {}).get("prescriber_behavior", {}).get("drugs", [])
+
+        parts = []
+        for d in drugs:
+            parts.append(d.get("molecule", ""))
+            parts.extend(d.get("brand_names", []))
+            parts.extend(d.get("generic_names", []))
+            for ind in d.get("indications", []):
+                parts.append(ind.get("indication", ""))
+
+        text = " ".join(p for p in parts if p)
+        if not text:
+            continue
+        text = text[:8000]
+
+        try:
+            resp = oai.embeddings.create(model=EMBED_MODEL, input=text)
+            vector = resp.data[0].embedding
+
+            batch.append(UpdateOne(
+                {"npi": npi},
+                {"$set": {
+                    "prescriber_embedding": vector,
+                    "prescriber_embedding_text": text[:500],
+                    "prescriber_embedding_model": EMBED_MODEL,
+                }}
+            ))
+            embedded += 1
+
+            if len(batch) >= 50:
+                quality_coll.bulk_write(batch, ordered=False)
+                logging.info("Prescriber embed: %d NPIs", embedded)
+                batch = []
+
+        except Exception as e:
+            logging.warning("Prescriber embedding failed for NPI %s: %s", npi, e)
+
+    if batch:
+        quality_coll.bulk_write(batch, ordered=False)
+
+    logging.info("Prescriber embedding complete: %d NPIs, model=%s", embedded, EMBED_MODEL)
+    return {"status": "complete", "npis_embedded": embedded, "model": EMBED_MODEL}
