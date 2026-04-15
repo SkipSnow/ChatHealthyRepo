@@ -188,113 +188,93 @@ class bug_governance_constraints(governance_worker_base):
 
 
 class conversation_log_worker(governance_worker_base):
-    """Pydantic worker for conversation_log.json.
-    Polymorphic child — invoked by the singleton when the grid says code_controlled
-    on user_prompt_submit. Logs the user's prompt to conversation_log.json."""
+    """Pydantic worker for conversation log.
+    T001: POST raw payload to localhost sidecar. Complete in <100ms.
+    No parsing, no redaction, no transformation, no file writes.
+    Emergency fallback to local file if sidecar unreachable."""
 
-    SYSTEM_REMINDER_PATTERN: object = None  # set in __init__
+    SIDECAR_URL: str = "http://127.0.0.1:8100/produce"
+    SIDECAR_TIMEOUT: int = 2  # seconds — generous, but hook must still be fast
+    FALLBACK_PATH: object = BRAIN_DIR / "conversation_log_fallback.jsonl"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs) if BaseModel is not object else None
-        self.SYSTEM_REMINDER_PATTERN = re.compile(r"<system-reminder>.*?</system-reminder>", re.DOTALL)
 
-    def _clean_content(self, content: str) -> str:
-        """Clean content for logging. BUG-GOV-008: content MUST be verbatim.
-        Only binary data is omitted. System reminders are stripped.
-        No truncation — the log is the source of truth."""
-        if not content:
-            return ""
-        content = self.SYSTEM_REMINDER_PATTERN.sub("", content).strip()
-        if content.startswith("data:") or "base64," in content:
-            return "[binary content omitted]"
-        return content
-
-    def _make_timestamps(self):
-        from datetime import datetime, timezone, timedelta
-        now_utc = datetime.now(timezone.utc)
-        now_pst = now_utc + timedelta(hours=-7)
-        return (
-            now_pst.strftime("%Y-%m-%dT%H:%M:%S-07:00"),
-            now_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        )
-
-    def _load_log(self):
-        log_path = BRAIN_DIR / "conversation_log.json"
-        if log_path.exists():
-            return json.loads(log_path.read_text(encoding="utf-8"))
-        return {
-            "collection": "conversation_log",
-            "path": "brain/machine_artifacts/content/conversation_log.json",
-            "purpose": "Rolling 24h conversation log.",
-            "produces_artifact": False,
-            "retention": "24_hours",
-            "utterances": [],
-        }
-
-    def _save_utterance(self, actor: str, role: str, content: str) -> dict:
-        """Save utterance to conversation_log.json.
-        TODO: BUG-LOG-003 — Replace with Kafka producer. Current implementation
-        has no file locking and can lose utterances under contention with the
-        purge service."""
-        content = self._clean_content(content)
-        if not content:
-            return {"comply": True, "logged": False}
-        log_path = BRAIN_DIR / "conversation_log.json"
+    def _post_to_sidecar(self, hook_input: dict, hook_event: str) -> dict:
+        """T001: POST raw payload to sidecar. No transformation."""
+        import urllib.request
+        import urllib.error
         try:
-            log = self._load_log()
-            pst, utc = self._make_timestamps()
-            last_num = max((u["utterance"] for u in log.get("utterances", [])), default=0)
-            log["utterances"].append({
-                "utterance": last_num + 1,
-                "timestamp_pst": pst,
-                "timestamp_utc": utc,
-                "actor": actor,
-                "role": role,
-                "content": content,
-            })
-            log_path.write_text(json.dumps(log, indent=2, ensure_ascii=False), encoding="utf-8")
-            return {"comply": True, "logged": True}
+            payload = json.dumps(hook_input).encode("utf-8")
+            req = urllib.request.Request(
+                self.SIDECAR_URL,
+                data=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-Hook-Event": hook_event,
+                },
+                method="POST",
+            )
+            resp = urllib.request.urlopen(req, timeout=self.SIDECAR_TIMEOUT)
+            return {"comply": True, "logged": True, "status": resp.status}
+        except (urllib.error.URLError, OSError) as e:
+            # T001: Sidecar unreachable — emergency fallback
+            _log.warning("Sidecar unreachable: %s — writing to fallback log", e)
+            return self._fallback_write(hook_input, hook_event)
         except Exception as e:
             _log.warning("conversation_log_worker failed: %s", e)
             return {"comply": True, "logged": False, "error": str(e)}
 
+    def _fallback_write(self, hook_input: dict, hook_event: str) -> dict:
+        """T001: Emergency append-only fallback when sidecar is down."""
+        try:
+            from datetime import datetime, timezone
+            entry = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "hook_event": hook_event,
+                "payload": hook_input,
+            }
+            with open(self.FALLBACK_PATH, "a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            return {"comply": True, "logged": True, "fallback": True}
+        except Exception as e:
+            _log.warning("Fallback write failed: %s", e)
+            return {"comply": True, "logged": False, "error": str(e)}
+
     def run(self, hook_input: dict, action_event: str = "user_prompt_submit") -> dict:
-        """Polymorphic run — called by singleton when grid says code_controlled."""
-        if action_event == "user_prompt_submit":
-            prompt = hook_input.get("prompt", hook_input.get("content", hook_input.get("message", "")))
-            return self._save_utterance("Skip", "user", prompt)
-
-        if action_event == "stop":
-            transcript_path = hook_input.get("transcript_path", "")
-            if not transcript_path or not Path(transcript_path).exists():
-                return {"comply": True, "logged": False}
-            try:
-                lines = Path(transcript_path).read_text(encoding="utf-8").strip().split("\n")
-                for line in reversed(lines):
-                    try:
-                        entry = json.loads(line)
-                        if entry.get("type") == "assistant" and entry.get("message"):
-                            msg = entry["message"]
-                            if isinstance(msg.get("content"), list):
-                                text_parts = [
-                                    block.get("text", "")
-                                    for block in msg["content"]
-                                    if block.get("type") == "text"
-                                ]
-                                return self._save_utterance("Claude", "assistant", " ".join(text_parts).strip())
-                            elif isinstance(msg.get("content"), str):
-                                return self._save_utterance("Claude", "assistant", msg["content"])
-                    except (json.JSONDecodeError, KeyError):
-                        continue
-            except Exception as e:
-                _log.warning("conversation_log_worker stop failed: %s", e)
-            return {"comply": True, "logged": False}
-
+        """T001: POST raw hook_input to sidecar. No processing in the hook."""
+        if action_event in ("user_prompt_submit", "stop"):
+            return self._post_to_sidecar(hook_input, action_event)
         return {"comply": True}
 
     @classmethod
     def from_dict(cls, data: dict):
         return cls()
+
+
+class _legacy_conversation_log_worker_stop:
+    """Legacy stop handler — kept for reference but no longer used.
+    The consumer (PID 2) now reads the transcript via Kafka."""
+    pass
+
+
+# Keep the old from_dict for backward compat with the worker registry
+class _conversation_log_worker_compat:
+    """Shim so the WORKER_REGISTRY entry still works."""
+    @classmethod
+    def from_dict(cls, data: dict):
+        return conversation_log_worker()
+
+
+# Override the old transcript-reading stop logic — now the hook just
+# POSTs the raw hook_input (which includes transcript_path) and the
+# consumer handles transcript reading.
+
+# The run() method above handles both user_prompt_submit and stop
+# by POSTing the raw payload to the sidecar. The consumer (PID 2)
+# is responsible for parsing the transcript_path from stop events.
+
+# ── end conversation_log_worker ──────────────────────────────────────
 
 
 class engineering_rules_worker(governance_worker_base):
