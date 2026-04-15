@@ -531,7 +531,17 @@
             "status": {
               "type": "string",
               "required": true,
-              "constrained_by": "CV-005"
+              "constrained_by": "CV-005",
+              "possible_values": [
+                "not_started",
+                "in_progress",
+                "done",
+                "done_known_issue",
+                "to_test",
+                "blocked",
+                "deferred"
+              ],
+              "description": "Work lifecycle status."
             },
             "description": {
               "type": "string",
@@ -547,6 +557,17 @@
               "type": "boolean",
               "required": true,
               "description": "True if this item does not yet have a proper home in the hierarchy."
+            },
+            "approval": {
+              "type": "string",
+              "required": true,
+              "constrained_by": "CV-011",
+              "possible_values": [
+                "approved",
+                "proposed",
+                "rejected"
+              ],
+              "description": "Boss approval status. Only Boss can set to approved."
             }
           }
         },
@@ -566,7 +587,17 @@
             "status": {
               "type": "string",
               "required": true,
-              "constrained_by": "CV-005"
+              "constrained_by": "CV-005",
+              "possible_values": [
+                "not_started",
+                "in_progress",
+                "done",
+                "done_known_issue",
+                "to_test",
+                "blocked",
+                "deferred"
+              ],
+              "description": "Work lifecycle status."
             },
             "description": {
               "type": "string",
@@ -588,6 +619,17 @@
               "type": "boolean",
               "required": true,
               "description": "True if this item does not yet have a proper home in the hierarchy."
+            },
+            "approval": {
+              "type": "string",
+              "required": true,
+              "constrained_by": "CV-011",
+              "possible_values": [
+                "approved",
+                "proposed",
+                "rejected"
+              ],
+              "description": "Boss approval status. Only Boss can set to approved."
             }
           }
         },
@@ -620,7 +662,17 @@
             "status": {
               "type": "string",
               "required": true,
-              "constrained_by": "CV-005"
+              "constrained_by": "CV-005",
+              "possible_values": [
+                "not_started",
+                "in_progress",
+                "done",
+                "done_known_issue",
+                "to_test",
+                "blocked",
+                "deferred"
+              ],
+              "description": "Work lifecycle status."
             },
             "requirements": {
               "type": "array",
@@ -632,6 +684,17 @@
               "type": "boolean",
               "required": true,
               "description": "True if this item does not yet have a proper home in the hierarchy."
+            },
+            "approval": {
+              "type": "string",
+              "required": true,
+              "constrained_by": "CV-011",
+              "possible_values": [
+                "approved",
+                "proposed",
+                "rejected"
+              ],
+              "description": "Boss approval status. Only Boss can set to approved."
             }
           }
         },
@@ -659,7 +722,17 @@
             "status": {
               "type": "string",
               "required": true,
-              "constrained_by": "CV-005"
+              "constrained_by": "CV-005",
+              "possible_values": [
+                "not_started",
+                "in_progress",
+                "done",
+                "done_known_issue",
+                "to_test",
+                "blocked",
+                "deferred"
+              ],
+              "description": "Work lifecycle status."
             },
             "pytests": {
               "type": "array",
@@ -697,6 +770,17 @@
               "type": "boolean",
               "required": true,
               "description": "True if this item does not yet have a proper home in the hierarchy."
+            },
+            "approval": {
+              "type": "string",
+              "required": true,
+              "constrained_by": "CV-011",
+              "possible_values": [
+                "approved",
+                "proposed",
+                "rejected"
+              ],
+              "description": "Boss approval status. Only Boss can set to approved."
             }
           }
         },
