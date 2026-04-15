@@ -22,6 +22,8 @@ __pycache__/
 .claude/backups/
 .claude/file-history/
 .claude/ide/
+.claude/ChatHealthySettings.json
+.claude/ChatHealthySettings.json.bak
 .claude/plans/
 .claude/sessions/
 .claude/session-env/

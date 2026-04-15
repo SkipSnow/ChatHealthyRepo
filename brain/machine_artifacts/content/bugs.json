@@ -2823,6 +2823,25 @@
       "resolution_status": "ist_working",
       "next_action": "Split copy_to_frontend into separate hard-coded scripts per environment.",
       "orphan": false
+    },
+    {
+      "id": "BUG-LOG-001",
+      "rule": "BUG: Conversation log purge service crashes every cycle with \"can't compare offset-naive and offset-aware datetimes\". _parse_datetime() returns timezone-aware datetimes from ISO strings with timezone suffixes (Z, -07:00), but now_pst and cutoff are naive (tzinfo stripped). The comparison at _query_retained line 320 (ts >= cutoff) throws TypeError. Service is running but archiving nothing since April 14.",
+      "incident": "errors.json shows repeated \"Cycle crashed: can't compare offset-naive and offset-aware datetimes\" on 2026-04-14. No records archived during current session despite 7+ hours of work.",
+      "date": "2026-04-15",
+      "ch_matrix_id": "34dff228-0211-44f8-9b84-1b84ea594dbb",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "req_id": "BRAIN-CONVERSATION-LOG-REQ-T001",
+      "story_id": "BRAIN-CONVERSATION-LOG",
+      "type": "high",
+      "reason": "Conversation log archive service crash loop — offset-naive vs offset-aware datetime comparison in _query_retained.",
+      "resolution_status": "fixing",
+      "next_action": "Fix _parse_datetime to always return naive datetimes.",
+      "orphan": false
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

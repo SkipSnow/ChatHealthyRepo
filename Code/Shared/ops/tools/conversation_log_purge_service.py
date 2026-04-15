@@ -481,12 +481,20 @@ class ConversationLogService:
 # ── Module-level helpers (stateless) ───────────────────────────────────
 
 def _parse_datetime(ts):
+    """Parse timestamp string to naive datetime (no tzinfo).
+    BUG-LOG-001: All datetimes must be naive to avoid offset-naive vs offset-aware
+    comparison errors. Strip tzinfo from any parsed result."""
     if not ts:
         return None
     if isinstance(ts, datetime):
-        return ts
+        return ts.replace(tzinfo=None) if ts.tzinfo else ts
+    s = str(ts)
+    # Handle 'Z' suffix (UTC) — fromisoformat doesn't accept 'Z' on Python <3.11
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
     try:
-        return datetime.fromisoformat(str(ts))
+        dt = datetime.fromisoformat(s)
+        return dt.replace(tzinfo=None)
     except ValueError:
         pass
     try:
