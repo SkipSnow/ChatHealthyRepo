@@ -148,6 +148,28 @@ class PipelineWorkerBase(ABC):
         (e.g., status-code writes).  Do not re-raise inside this method."""
 
     # ── Idempotent resume helper ───────────────────────────────────────────────
+
+    @staticmethod
+    def output_exists_and_valid(collection, *, min_count: int = 1) -> bool:
+        """Return True when *collection* already contains >= *min_count* docs.
+
+        Used by orchestrators before launching a worker — if the output is
+        already present and meets the minimum threshold the step can be
+        skipped (idempotent resume).
+        """
+        try:
+            count = collection.count_documents({})
+            ok = count >= min_count
+            if ok:
+                logging.info(
+                    "output_exists_and_valid: %s has %d docs (>= %d) — skip",
+                    getattr(collection, "full_name", "?"), count, min_count,
+                )
+            return ok
+        except Exception as exc:
+            logging.warning("output_exists_and_valid: check failed (%s)", exc)
+            return False
+
     # ── Abstract — subclasses must implement ──────────────────────────────────
 
     @abstractmethod

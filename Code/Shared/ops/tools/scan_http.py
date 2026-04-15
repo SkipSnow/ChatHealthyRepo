@@ -26,6 +26,7 @@ TARGET = "http://"
 # The 4 named web servers that are allowed to redirect index.html from HTTP
 ALLOWED_HOSTS = [
     "localhost",
+    "127.0.0.1",
     "dev.chathealthy.ai",
     "qa.chathealthy.ai",
     "chathealthy.ai",
@@ -36,7 +37,8 @@ ALLOWED_HOSTS = [
 # 2. http://www.w3.org/2000/svg — XML namespace required by SVG spec
 # 3. http://169.254.169.254 — Azure Instance Metadata Service (always HTTP by spec)
 ALLOWED_PATTERNS = [
-    re.compile(r"http://(" + "|".join(re.escape(h) for h in ALLOWED_HOSTS) + r")(:\d+)?(/index\.html|/)?$"),
+    re.compile(r"http://(localhost|127\.0\.0\.1)(:\d+)?(/.*)?$"),  # Local services (sidecar, dev servers)
+    re.compile(r"http://(" + "|".join(re.escape(h) for h in ALLOWED_HOSTS if h not in ("localhost", "127.0.0.1")) + r")(:\d+)?(/index\.html|/)?$"),
     re.compile(r"http://www\.w3\.org/"),           # XML/SVG namespaces
     re.compile(r"http://169\.254\.169\.254/"),      # Azure IMDS
 ]

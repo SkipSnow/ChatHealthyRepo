@@ -10,6 +10,10 @@ from quality_gate import QualityGate, QualityGateFailure
 class MockCollection:
     def __init__(self, docs):
         self._docs = docs
+
+    def estimated_document_count(self):
+        return len(self._docs)
+
     def count_documents(self, query):
         if not query:
             return len(self._docs)
@@ -30,6 +34,34 @@ class MockCollection:
             if match:
                 count += 1
         return count
+
+    def aggregate(self, pipeline, **kwargs):
+        """Minimal $facet aggregation mock for null-check tests."""
+        if not pipeline or "$facet" not in pipeline[0]:
+            return []
+        facets = pipeline[0]["$facet"]
+        result = {}
+        for facet_name, stages in facets.items():
+            # Each facet is [$match, $count]
+            match_query = stages[0].get("$match", {})
+            matched = 0
+            for doc in self._docs:
+                ok = True
+                for k, v in match_query.items():
+                    if isinstance(v, dict):
+                        if "$in" in v and doc.get(k) not in v["$in"]:
+                            ok = False
+                        if "$exists" in v:
+                            if v["$exists"] and k not in doc:
+                                ok = False
+                            if not v["$exists"] and k in doc:
+                                ok = False
+                    elif doc.get(k) != v:
+                        ok = False
+                if ok:
+                    matched += 1
+            result[facet_name] = [{"n": matched}] if matched > 0 else []
+        return [result]
 
 def test_min_row_count_fail():
     """PIPE-QG-001-REQ-001: must raise when count < min_rows"""

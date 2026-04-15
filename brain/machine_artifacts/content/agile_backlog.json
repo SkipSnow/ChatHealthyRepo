@@ -51346,6 +51346,29 @@
                   ]
                 },
                 {
+                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T011",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "The consumer (PID 2) MUST batch writes to MongoDB. It MUST accumulate messages and flush to MongoDB using insert_many when either the batch reaches 50 messages or 30 seconds have elapsed since the last flush, whichever comes first. Individual insert_one calls per utterance are prohibited.",
+                  "source": "Boss",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "approval": "proposed",
+                  "ch_matrix_id": "3f0dbafc-5ba5-4ea3-894a-833a170d4131",
+                  "realized_by": [
+                    "Apache Kafka (Docker)",
+                    "Python 3.11 (consumer)",
+                    "MongoDB Atlas"
+                  ],
+                  "orphan": false,
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "ORPHAN",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-012",
                   "story_id": "BRAIN-CONVERSATION-LOG",
                   "requirement": "conversation_log.json needs to be reviewed by Boss and Claude for possible rationalization.",
