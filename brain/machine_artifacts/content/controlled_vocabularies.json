@@ -113,53 +113,43 @@
     },
     {
       "vocabulary_id": "CV-005",
-      "name": "feature_statuses",
-      "definition": "Status values for features and test cases in QA reports and the agile backlog.",
+      "name": "backlog_work_status",
+      "definition": "Constrained work status values for epics, features, stories, and requirements in agile_backlog.json. Tracks implementation lifecycle.",
       "members": [
         {
-          "value": "NOT_STARTED",
+          "value": "not_started",
           "definition": "Work has not begun.",
-          "ch_matrix_id": "4fa1c303-24c8-46fd-8a60-9e1e92cd7200"
+          "ch_matrix_id": "af1b9668-fd22-40d6-9a9b-3884a246b716"
         },
         {
-          "value": "IN_PROGRESS",
-          "definition": "Work is underway.",
-          "ch_matrix_id": "be3e71e6-136b-4557-9838-43da02d59fe4"
+          "value": "in_progress",
+          "definition": "Work is actively underway.",
+          "ch_matrix_id": "d5503030-c2ac-46c3-b2ea-56276c16cf78"
         },
         {
-          "value": "TO_TEST",
+          "value": "done",
+          "definition": "Work is complete.",
+          "ch_matrix_id": "3333e570-cf47-4b14-ab47-86a970909190"
+        },
+        {
+          "value": "done_known_issue",
+          "definition": "All work complete but known bugs remain open and are tracked.",
+          "ch_matrix_id": "8224d5e5-053d-4150-814f-7adbfac1ef45"
+        },
+        {
+          "value": "to_test",
           "definition": "Code is written, awaiting testing.",
-          "ch_matrix_id": "7beda308-9201-48fd-823c-8c82328bae69"
+          "ch_matrix_id": "bb116d27-200c-43f2-89d6-81d956b3bb9e"
         },
         {
-          "value": "UNTESTED",
-          "definition": "Code exists but cannot be tested yet (dependency or tooling gap).",
-          "ch_matrix_id": "b99f3d28-4e98-4377-949c-700e21b9e259"
+          "value": "blocked",
+          "definition": "Work cannot proceed due to a dependency or blocker.",
+          "ch_matrix_id": "b84f50d1-cf14-4b00-aea9-67c28795df5f"
         },
         {
-          "value": "PASS",
-          "definition": "Tested and approved by Boss.",
-          "ch_matrix_id": "9789bc93-5e34-4b42-b6c9-c2d4475d40df"
-        },
-        {
-          "value": "FAIL",
-          "definition": "Tested and rejected by Boss.",
-          "ch_matrix_id": "818731e7-5577-4dff-be66-27b1f7ce491a"
-        },
-        {
-          "value": "DEFERRED",
+          "value": "deferred",
           "definition": "Intentionally postponed to a later sprint.",
-          "ch_matrix_id": "e8124422-27f8-4fd9-b699-75baf41d0511"
-        },
-        {
-          "value": "RELEASE_BLOCKER",
-          "definition": "Must be resolved before any release.",
-          "ch_matrix_id": "9de7bfd4-6efc-43f5-88a5-efd211574da9"
-        },
-        {
-          "value": "DONE_KNOWN_ISSUE",
-          "definition": "All requirements implemented. One or more known bugs remain open and are tracked by bug ID.",
-          "ch_matrix_id": "c3f8a201-7b4e-4d91-a6e5-1f2d3c4b5a69"
+          "ch_matrix_id": "12491fa9-87c0-4a8c-b4fc-661aad8ca32f"
         }
       ],
       "invoked_by": {
@@ -765,6 +755,35 @@
         "stories": []
       },
       "ch_matrix_id": "c1000001-0000-4000-d000-000000000000"
+    },
+    {
+      "vocabulary_id": "CV-011",
+      "name": "backlog_approval_status",
+      "definition": "Constrained approval status for epics, features, stories, and requirements. Only Boss can set to approved. Claude and GPT may only propose.",
+      "risk_level": "low",
+      "reason": "Required to prevent Claude/GPT from self-approving requirements.",
+      "members": [
+        {
+          "value": "approved",
+          "definition": "Boss has reviewed and approved this item.",
+          "ch_matrix_id": "f2cd6777-ce7d-417a-aec7-9dfc150e0067"
+        },
+        {
+          "value": "proposed",
+          "definition": "Claude or GPT proposed this item. Awaiting Boss review.",
+          "ch_matrix_id": "fb3288b2-8910-47a0-829b-3bd1598c5c99"
+        },
+        {
+          "value": "rejected",
+          "definition": "Boss has reviewed and rejected this item.",
+          "ch_matrix_id": "1b3f1a00-1897-423c-9ce2-7e4c9001757d"
+        }
+      ],
+      "invoked_by": {
+        "source_files": [],
+        "stories": []
+      },
+      "ch_matrix_id": "e1648d62-c95d-4512-8b53-a9f53b1d20e1"
     }
   ],
   "ch_matrix_id": "c279a5f7-f10a-4103-b5f4-06a45ebb071a"
