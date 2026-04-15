@@ -585,6 +585,12 @@
       "date": "2026-04-13",
       "source": "Skip Snow directive 2026-04-13",
       "ch_matrix_id": "b0000043-0000-4000-e000-000000000043"
+    },
+    {
+      "id": "v4-035",
+      "rule": "Every story MUST separate its requirements into Business requirements (B-prefix) and Technical requirements (T-prefix). Business requirements describe WHAT the system must do from the user or business perspective. They MUST NOT reference specific technologies, frameworks, file formats, APIs, or implementation patterns. Technical requirements describe HOW the system realizes the business requirements. They reference specific technologies, architectures, and implementation decisions. When the technical architecture changes, only T-requirements are rewritten. B-requirements are the contract with the business and MUST remain stable across implementation changes.",
+      "source": "Boss directive — conversation log rationalization 2026-04-15",
+      "ch_matrix_id": "448f5cfd-be53-4b1d-aff8-4bed287a2a59"
     }
   ],
   "ch_matrix_id": "1f343049-b0e0-46e2-9c19-33c138e9ab46"

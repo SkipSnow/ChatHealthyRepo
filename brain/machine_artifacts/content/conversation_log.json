@@ -8,27 +8,83 @@
   "utterances": [
     {
       "utterance": 1,
-      "timestamp_pst": "2026-04-15T06:54:45-07:00",
-      "timestamp_utc": "2026-04-15T13:54:45Z",
-      "actor": "Skip",
-      "role": "user",
-      "content": "verification after restore"
+      "timestamp_pst": "2026-04-15T08:13:14-07:00",
+      "timestamp_utc": "2026-04-15T15:13:14Z",
+      "actor": "Claude",
+      "role": "assistant",
+      "content": "Three things need fixing from this reboot:\n\n1. **Docker Desktop** didn't auto-start — you may have removed it from startup during a purge\n2. **Log service** is `DEMAND_START` — should be `AUTO_START` so it runs on boot\n3. **Conversation log gets emptied** by the purge service — the Kafka architecture will fix this permanently, but until then the hook keeps hitting an empty file\n\nItems 1 and 2 need admin. Want me to give you the commands, or should we focus on building the Kafka solution which fixes all three problems at once?"
     },
     {
       "utterance": 2,
-      "timestamp_pst": "2026-04-15T06:54:56-07:00",
-      "timestamp_utc": "2026-04-15T13:54:56Z",
-      "actor": "Claude",
-      "role": "assistant",
-      "content": "Hook is working again. Now about your idea — writing each utterance to its own file in a directory is a much better architecture:\n\n1. **No file contention** — hook writes one small file, purge service reads the directory\n2. **No corruption risk** — a single failed write loses one utterance, not the whole log\n3. **No locking needed** — each file is written once, never modified\n4. **Purge = delete old files** — trivial, no JSON surgery\n\nThat's a proper message queue pattern. But that's a bigger refactor — it changes the hook worker, the purge service, and the schema. Want me to create a bug/requirement for it and do the temp-file fix for now, or do you want to build the directory-based approach right now?"
+      "timestamp_pst": "2026-04-15T08:14:53-07:00",
+      "timestamp_utc": "2026-04-15T15:14:53Z",
+      "actor": "Skip",
+      "role": "user",
+      "content": "No first revisit the requiements and rewrite the techncal requierments and insure that the biz requiements remain and take out of them any technial fumes we left in them."
     },
     {
       "utterance": 3,
-      "timestamp_pst": "2026-04-15T06:55:28-07:00",
-      "timestamp_utc": "2026-04-15T13:55:28Z",
+      "timestamp_pst": "2026-04-15T08:17:50-07:00",
+      "timestamp_utc": "2026-04-15T15:17:50Z",
+      "actor": "Claude",
+      "role": "assistant",
+      "content": "Done. 22 old requirements replaced with 21 clean ones:\n\n- **10 business requirements (B001-B010)** — WHAT the system must do, no implementation details\n- **10 technical requirements (T001-T010)** — HOW, reflecting the Kafka/sidecar/consumer architecture from the Perplexity review\n- **1 rationalization requirement** — marked done/approved (this review)\n\nTechnical fumes removed from business requirements:\n- No more \"CH_KEY{GUID}\" format in B002 — just \"globally unique key\"\n- No more \"every cycle\" batch language — B003 says \"durably captured\"\n- No more \"local file\" — B005 says \"local storage\"\n- No more cycle frequency — B007 just says \"start on boot\"\n- No more \"Cursor\" references anywhere\n\nWant to review any of them before I commit?"
+    },
+    {
+      "utterance": 4,
+      "timestamp_pst": "2026-04-15T08:17:51-07:00",
+      "timestamp_utc": "2026-04-15T15:17:51Z",
       "actor": "Skip",
       "role": "user",
-      "content": "yeah but what happens if the lock blocks you?"
+      "content": "so from a biz requiement perspective we are just saying we need a safe business key."
+    },
+    {
+      "utterance": 5,
+      "timestamp_pst": "2026-04-15T08:17:58-07:00",
+      "timestamp_utc": "2026-04-15T15:17:58Z",
+      "actor": "Claude",
+      "role": "assistant",
+      "content": "Yes. B002 says the record needs a unique key — it doesn't say what format, what algorithm, or where to generate it. The consumer (T003) decides the implementation: `CH_KEY_` + GUID. If you change your mind on the format later, the business requirement doesn't change."
+    },
+    {
+      "utterance": 6,
+      "timestamp_pst": "2026-04-15T08:18:15-07:00",
+      "timestamp_utc": "2026-04-15T15:18:15Z",
+      "actor": "Skip",
+      "role": "user",
+      "content": "yup"
+    },
+    {
+      "utterance": 7,
+      "timestamp_pst": "2026-04-15T08:18:20-07:00",
+      "timestamp_utc": "2026-04-15T15:18:20Z",
+      "actor": "Claude",
+      "role": "assistant",
+      "content": "Want me to commit and push?"
+    },
+    {
+      "utterance": 8,
+      "timestamp_pst": "2026-04-15T08:18:40-07:00",
+      "timestamp_utc": "2026-04-15T15:18:40Z",
+      "actor": "Skip",
+      "role": "user",
+      "content": "And I imagine all the T requierments get thown out the window."
+    },
+    {
+      "utterance": 9,
+      "timestamp_pst": "2026-04-15T08:18:51-07:00",
+      "timestamp_utc": "2026-04-15T15:18:51Z",
+      "actor": "Claude",
+      "role": "assistant",
+      "content": "When we build the Kafka solution, yes — the old T requirements are already gone. The new T requirements (T001-T010) describe the Kafka architecture. When we implement, the code realizes these new T's. If we change the architecture again later (say, move from Kafka to something else), only the T's change — the B's stay.\n\nThat's the whole point of the split. The B's are the contract with the business. The T's are the engineering plan that can be rewritten.\n\nCommit?"
+    },
+    {
+      "utterance": 10,
+      "timestamp_pst": "2026-04-15T08:19:41-07:00",
+      "timestamp_utc": "2026-04-15T15:19:41Z",
+      "actor": "Skip",
+      "role": "user",
+      "content": "yup and we need a 'rule' to stipulate that all our requiements should take that form."
     }
   ]
 }
