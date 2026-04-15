@@ -78,7 +78,7 @@ Code/Shared/ops/tools/caddy.exe
 Analysis/*.mp4
 
 # Conversation log — local dev artifact, contains secrets from session
-brain/machine_artifacts/content/conversation_log.json
+# conversation_log.json is a brain artifact — DO NOT gitignore
 regression_report.json
 migrate_dev_to_qa.py
 # C# build artifacts

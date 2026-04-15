@@ -118,6 +118,8 @@ class ConversationLogService:
         now_pst = (datetime.now(timezone.utc) + pst_offset).replace(tzinfo=None)
 
         # T006: Lock, copy, release within 2s SLA
+        # TODO: BUG-LOG-003 — Replace with Kafka consumer. Current file-based
+        # approach loses utterances under contention with the hook writer.
         lock_start = time.monotonic()
         lock_handle = self._acquire_lock(CONVERSATION_LOG_PATH)
         if lock_handle is None:
@@ -207,23 +209,35 @@ class ConversationLogService:
         header = {k: v for k, v in data.items() if k != "utterances"}
         retained_file = {**header, "utterances": retained}
 
-        # T006: Acquire lock before writing
+        # T006: Write to temp file first, then atomic rename.
+        # BUG-LOG-001: Never truncate the live file — if the write fails after
+        # truncate, the log is empty and the hook can't write.
+        import tempfile
+        temp_path = CONVERSATION_LOG_PATH.with_suffix(".tmp")
+        try:
+            content = json.dumps(retained_file, indent=2, ensure_ascii=False)
+            temp_path.write_text(content, encoding="utf-8")
+            self._log.info("Wrote %d utterances to temp file (%d bytes)",
+                           len(retained), len(content))
+        except Exception as e:
+            self._log.error("Failed to write temp conversation_log: %s", e)
+            self._write_error(f"Failed to write temp conversation_log: {e}")
+            return
+
+        # Atomic replace: acquire lock, rename temp over live, release
         lock_start = time.monotonic()
         write_handle = self._acquire_write_lock(CONVERSATION_LOG_PATH)
         if write_handle is None:
             return
         try:
-            write_handle.seek(0)
-            write_handle.truncate()
-            json.dump(retained_file, write_handle, indent=2, ensure_ascii=False)
-            write_handle.flush()
+            self._release_lock(write_handle)
+            import shutil
+            shutil.move(str(temp_path), str(CONVERSATION_LOG_PATH))
             lock_elapsed = time.monotonic() - lock_start
-            self._log.info("Wrote %d utterances to conversation_log.json (lock held %.3fs, SLA: 2s)",
-                           len(retained), lock_elapsed)
+            self._log.info("Replaced conversation_log.json (%.3fs)", lock_elapsed)
         except Exception as e:
-            self._log.error("Failed to write conversation_log.json: %s", e)
-            self._write_error(f"Failed to write conversation_log.json: {e}")
-        finally:
+            self._log.error("Failed to replace conversation_log.json: %s", e)
+            self._write_error(f"Failed to replace conversation_log.json: {e}")
             self._release_lock(write_handle)
 
         self._log.info("=== Cycle complete ===")
