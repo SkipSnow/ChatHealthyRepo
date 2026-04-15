@@ -44402,6 +44402,29 @@
                       "orphan": false
                     }
                   ]
+                },
+                {
+                  "req_id": "FC-PIPE-COPY-001-REQ-003",
+                  "story_id": "FC-PIPE-COPY-001",
+                  "requirement": "CopyToFrontEnd scripts must be 100% hard-coded per environment (dev, qa, prod) — separate scripts for each environment. No parameterized environment switching. The only secret fetched at runtime is the MongoDB connection string from Azure Key Vault (or .env locally). All collection names, cluster targets, index definitions, and pipeline steps must be explicit in each script. This eliminates the risk of accidentally copying dev data to prod or vice versa through a misconfigured parameter.",
+                  "source": "Boss",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "SAFETY",
+                  "ch_matrix_id": "a4fbbe4b-26ed-4a75-bf2b-870a8bded00c",
+                  "realized_by": [
+                    "Azure Durable Functions (Python 3.12)",
+                    "MongoDB Atlas"
+                  ],
+                  "orphan": false,
+                  "resolution_status": "ist_working",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "ORPHAN",
+                      "orphan": true
+                    }
+                  ]
                 }
               ],
               "ch_matrix_id": "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",

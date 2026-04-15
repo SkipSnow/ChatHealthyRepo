@@ -1153,7 +1153,7 @@ class chathealthy_devops_boot:
                 data = json.load(f)
             orphans = []
             for bug in data.get("bugs", []):
-                if bug.get("req_id") == "ORPHAN_BUG":
+                if bug.get("orphan") is True:
                     orphans.append({
                         "id": bug.get("id", "?"),
                         "type": bug.get("type", "?"),
