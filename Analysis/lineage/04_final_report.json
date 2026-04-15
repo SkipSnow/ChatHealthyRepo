@@ -483,5 +483,163 @@
       ],
       "note": "Token cost for jobs 00-03 provided as approximately 175000. Job 04 adds approximately 8000 tokens for synthesis. Total estimate: 183000."
     }
+  },
+  "architecture_recommendation": {
+    "title": "Interface-First Prompt Factory with Middleware and Experience-Driven Lifting",
+    "authors": [
+      "Skip Snow, CTO — proposed diagram, subclass-per-epic refinement, interface-first approach",
+      "Claude Opus 4.6 (1M context) — audit execution, finding mapping, facilitation",
+      "GPT-4.1 (OpenAI) — independent audit validation, architecture review, risk assessment"
+    ],
+    "collaboration_summary": "The CTO proposed a prompt architecture where one prompt factory handles all routing via a diagram (PromptngArchittecture Find CAe.pptx). Claude mapped the 13 audit findings against the architecture, identifying 7 of 13 addressed. GPT independently validated all 13 audit findings (21 iterations, 35 files reviewed, 2.7M tokens), then reviewed the architecture across 4 rounds: (1) initial review — approved with centralization concern, (2) subclass-per-epic — centralization mitigated but superclass remains SPOF, (3) thin facade — GPT recommended routing-only superclass with middleware, (4) interface-first — GPT agreed with CTO's final position: pure interface, lift shared logic only when proven by experience.",
+    "pattern": "Interface-First with Middleware and Experience-Driven Lifting",
+    "description": "Start with a pure interface class defining the contract for prompt routing and execution. Each epic implements its own subclass. Cross-cutting concerns (history, context, validation, compliance) are handled in middleware. As real duplication emerges across epics, shared logic is lifted into an abstract base class — but only when justified by experience, not assumption.",
+    "components": [
+      {
+        "name": "PromptFactoryInterface",
+        "responsibility": "Defines contract: route(input), execute(input) -> structured_output",
+        "notes": "No implementation — just method signatures"
+      },
+      {
+        "name": "EpicPromptFactory (per epic)",
+        "responsibility": "Implements interface for one epic's routing and prompt logic",
+        "notes": "Each epic owns its own subclass"
+      },
+      {
+        "name": "Middleware Stack",
+        "responsibility": "History, context, validation, compliance, logging",
+        "notes": "Composable, wraps each EpicPromptFactory"
+      },
+      {
+        "name": "AbstractPromptFactoryBase (emerges over time)",
+        "responsibility": "Shared logic lifted from subclasses when duplication is proven",
+        "notes": "Created only when 2+ epics have real, tested duplication"
+      }
+    ],
+    "finding_mapping": [
+      {
+        "finding": 1,
+        "addressed": true,
+        "assessment": "fully_addressed"
+      },
+      {
+        "finding": 2,
+        "addressed": true,
+        "assessment": "fully_addressed"
+      },
+      {
+        "finding": 3,
+        "addressed": false,
+        "assessment": "not_addressed — legal/compliance, handled by middleware"
+      },
+      {
+        "finding": 4,
+        "addressed": false,
+        "assessment": "not_addressed — UX decision"
+      },
+      {
+        "finding": 5,
+        "addressed": true,
+        "assessment": "fully_addressed"
+      },
+      {
+        "finding": 6,
+        "addressed": true,
+        "assessment": "partially_addressed — needs explicit fallback"
+      },
+      {
+        "finding": 7,
+        "addressed": true,
+        "assessment": "partially_addressed — needs reactivation"
+      },
+      {
+        "finding": 8,
+        "addressed": true,
+        "assessment": "fully_addressed"
+      },
+      {
+        "finding": 9,
+        "addressed": false,
+        "assessment": "not_addressed — infrastructure"
+      },
+      {
+        "finding": 10,
+        "addressed": false,
+        "assessment": "not_addressed — internal tooling"
+      },
+      {
+        "finding": 11,
+        "addressed": true,
+        "assessment": "fully_addressed"
+      },
+      {
+        "finding": 12,
+        "addressed": false,
+        "assessment": "not_addressed — feature backlog"
+      },
+      {
+        "finding": 13,
+        "addressed": false,
+        "assessment": "not_addressed — feature backlog"
+      }
+    ],
+    "implementation_order": [
+      {
+        "step": 1,
+        "what": "Define PromptFactoryInterface",
+        "effort": "S",
+        "addresses": []
+      },
+      {
+        "step": 2,
+        "what": "Implement EpicPromptFactory subclasses per epic",
+        "effort": "M",
+        "addresses": [
+          1,
+          2,
+          5
+        ]
+      },
+      {
+        "step": 3,
+        "what": "Develop middleware stack (history, context, validation, compliance)",
+        "effort": "M",
+        "addresses": [
+          2,
+          3,
+          5
+        ]
+      },
+      {
+        "step": 4,
+        "what": "Route ALL user input through middleware-wrapped prompt factory",
+        "effort": "M",
+        "addresses": [
+          1,
+          2,
+          5
+        ]
+      },
+      {
+        "step": 5,
+        "what": "Monitor for duplication, lift shared logic when proven",
+        "effort": "M",
+        "addresses": []
+      },
+      {
+        "step": 6,
+        "what": "Add observability and fallback at entry point",
+        "effort": "S",
+        "addresses": []
+      }
+    ],
+    "gpt_validation": {
+      "independent_audit_verdict": "accept_prior_audit",
+      "all_13_findings": "AGREE",
+      "architecture_verdict": "approve_with_concerns -> agree (after 4 rounds)",
+      "iterations": 21,
+      "files_reviewed": 35,
+      "tokens_consumed": 2746172
+    }
   }
 }
