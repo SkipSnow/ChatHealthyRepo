@@ -655,52 +655,74 @@ def migrate_environment_orchestrator(context: df.DurableOrchestrationContext):
         next_check = context.current_utc_datetime + dt.timedelta(seconds=15)
         yield context.create_timer(next_check)
 
-    # Step 1: Migrate small collections via $out
-    context.set_custom_status(f"Migrating small collections {src_env} → {dst_env}")
-    small_result = yield context.call_activity("migrate_small_collections_activity", {
-        "src_env": src_env,
-        "dst_env": dst_env,
-    })
-
-    # Step 2: Chunked copy for providers
-    context.set_custom_status("Partitioning providers")
+    # PIPE-LC-007: try/finally guarantees reservation release on success or failure
+    pipeline_error = None
+    total_copied = 0
+    small_result = {}
+    chunks = []
     src_db_name = f"{src_env}_PublicHealthData"
     dst_db_name = f"{dst_env}_PublicHealthData"
 
-    partition = yield context.call_activity("partition_source_activity", {
-        "env_prefix": src_env,
-        "collection": "providers",
-        "chunk_size": chunk_size,
-    })
-    chunks = partition.get("chunks", [])
-    total = partition.get("total", 0)
-
-    # Drop destination providers before copying
-    context.set_custom_status("Dropping destination providers")
-    yield context.call_activity("drop_destination_activity", {
-        "env_prefix": dst_env,
-        "collection": "providers",
-        "use_pipeline_cluster": True,
-    })
-
-    # Fan out — one chunk at a time
-    total_copied = 0
-    for chunk in chunks:
-        jn = chunk["job_number"]
-        context.set_custom_status(f"Providers {jn+1}/{len(chunks)} — {total_copied:,}/{total:,}")
-        r = yield context.call_activity("migrate_chunk_activity", {
+    try:
+        # Step 1: Migrate small collections via $out
+        context.set_custom_status(f"Migrating small collections {src_env} → {dst_env}")
+        small_result = yield context.call_activity("migrate_small_collections_activity", {
             "src_env": src_env,
             "dst_env": dst_env,
-            "collection": "providers",
-            "job_number": jn,
-            "start_id": chunk["start_id"],
-            "end_id": chunk["end_id"],
         })
-        total_copied += r.get("copied", 0)
 
-    # Release
-    context.set_custom_status("Releasing cluster")
-    yield context.call_activity("release_reservation_activity", reservation)
+        # Step 2: Chunked copy for providers
+        context.set_custom_status("Partitioning providers")
+
+        partition = yield context.call_activity("partition_source_activity", {
+            "env_prefix": src_env,
+            "collection": "providers",
+            "chunk_size": chunk_size,
+        })
+        chunks = partition.get("chunks", [])
+        total = partition.get("total", 0)
+
+        # Drop destination providers before copying
+        context.set_custom_status("Dropping destination providers")
+        yield context.call_activity("drop_destination_activity", {
+            "env_prefix": dst_env,
+            "collection": "providers",
+            "use_pipeline_cluster": True,
+        })
+
+        # Fan out — one chunk at a time
+        for chunk in chunks:
+            jn = chunk["job_number"]
+            context.set_custom_status(f"Providers {jn+1}/{len(chunks)} — {total_copied:,}/{total:,}")
+            r = yield context.call_activity("migrate_chunk_activity", {
+                "src_env": src_env,
+                "dst_env": dst_env,
+                "collection": "providers",
+                "job_number": jn,
+                "start_id": chunk["start_id"],
+                "end_id": chunk["end_id"],
+            })
+            total_copied += r.get("copied", 0)
+
+    except Exception as exc:
+        pipeline_error = str(exc)
+        logging.error("MigrateEnvironment FAILED: %s", exc)
+        context.set_custom_status(f"FAILED — {pipeline_error[:100]}")
+
+    finally:
+        # ALWAYS release reservation — cluster pauses when last reservation drops
+        context.set_custom_status("Releasing cluster")
+        yield context.call_activity("release_reservation_activity", reservation)
+
+    if pipeline_error:
+        context.set_custom_status(f"FAILED — {pipeline_error[:100]}")
+        return {
+            "status": "failed",
+            "error": pipeline_error,
+            "src": src_db_name,
+            "dst": dst_db_name,
+            "providers_copied": total_copied,
+        }
 
     context.set_custom_status(f"Done — {total_copied:,} providers + small collections")
     return {
@@ -987,11 +1009,16 @@ def prescriber_pipeline_orchestrator(context: df.DurableOrchestrationContext):
     Step 1: Fetch CMS Part D + OIG LEIE + SAM.gov → Blob Storage
     Step 2: Load → provider_quality (left outer join from providers)
     Step 3: Enrich → drug indications (LLM), exclusion flags, location
+
+    Cluster lifecycle: reserve → poll IDLE → try work → finally release.
     """
+    import datetime as dt
+
     config = context.get_input() or {}
     env_prefix = config.get("env_prefix", "dev")
     states = config.get("states", ["DE"])
     steps = config.get("steps", [1, 2, 3])
+    cluster_name = config.get("cluster_name", "ChatHealthyDataPipelines")
 
     results = {}
 
@@ -1003,23 +1030,63 @@ def prescriber_pipeline_orchestrator(context: df.DurableOrchestrationContext):
         if steps == [0]:
             return results
 
-    # Step 1: Fetch
-    if 1 in steps:
-        results["fetch"] = yield context.call_activity(
-            "prescriber_fetch_activity",
-            {"env_prefix": env_prefix})
+    # Reserve cluster (wakes it if paused)
+    reservation = {
+        "job_id": f"prescriber_{env_prefix}_{int(time.time())}",
+        "requester": "PrescriberPipeline",
+        "cluster_name": cluster_name,
+        "expected_duration_minutes": config.get("expected_duration_minutes", 120),
+    }
+    context.set_custom_status("Reserving cluster")
+    yield context.call_activity("register_reservation_activity", reservation)
 
-    # Step 2: Load
-    if 2 in steps:
-        results["load"] = yield context.call_activity(
-            "prescriber_load_activity",
-            {"env_prefix": env_prefix, "states": states})
+    # Poll until cluster is IDLE
+    deadline = context.current_utc_datetime + dt.timedelta(minutes=30)
+    while context.current_utc_datetime < deadline:
+        context.set_custom_status("Waiting for cluster IDLE")
+        status = yield context.call_activity("check_cluster_state_activity",
+                                              {"cluster_name": cluster_name})
+        if status.get("cluster_state") == "IDLE":
+            break
+        next_check = context.current_utc_datetime + dt.timedelta(seconds=15)
+        yield context.create_timer(next_check)
 
-    # Step 3: Enrich
-    if 3 in steps:
-        results["enrich"] = yield context.call_activity(
-            "prescriber_enrich_activity",
-            {"env_prefix": env_prefix, "states": states})
+    # try/finally guarantees reservation release on success or failure
+    pipeline_error = None
+    try:
+        # Step 1: Fetch
+        if 1 in steps:
+            context.set_custom_status("Step 1: Fetch")
+            results["fetch"] = yield context.call_activity(
+                "prescriber_fetch_activity",
+                {"env_prefix": env_prefix})
+
+        # Step 2: Load
+        if 2 in steps:
+            context.set_custom_status("Step 2: Load")
+            results["load"] = yield context.call_activity(
+                "prescriber_load_activity",
+                {"env_prefix": env_prefix, "states": states})
+
+        # Step 3: Enrich
+        if 3 in steps:
+            context.set_custom_status("Step 3: Enrich")
+            results["enrich"] = yield context.call_activity(
+                "prescriber_enrich_activity",
+                {"env_prefix": env_prefix, "states": states})
+
+    except Exception as exc:
+        pipeline_error = str(exc)
+        logging.error("PrescriberPipeline FAILED: %s", exc)
+        context.set_custom_status(f"FAILED — {pipeline_error[:100]}")
+
+    finally:
+        # ALWAYS release reservation — cluster pauses when last reservation drops
+        context.set_custom_status("Releasing cluster")
+        yield context.call_activity("release_reservation_activity", reservation)
+
+    if pipeline_error:
+        results["error"] = pipeline_error
 
     return results
 

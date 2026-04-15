@@ -23,8 +23,8 @@
       "type": "medium",
       "reason": "Specialty filter panel empty — specialization_options returns 0 items. Root cause: SpecialtyService.find_specialty_codes returns empty despite SpecialtyMetaData having 45 matches for 'surg' in Display",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "IDX-001",
+      "orphan": false
     },
     {
       "id": "BUG-MSG-001",
@@ -45,8 +45,8 @@
       "req_id": "FC-SEARCH-001-REQ-006",
       "type": "medium",
       "reason": "LLM response duplicates system summary. LLM says 'Here are the first 25 of 11,772' AND system says 'There are 11,747 more'. User sees double. Root cause eliminated: architecture changed to /classify +",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-SEARCH-001",
+      "orphan": false
     },
     {
       "id": "BUG-FILTER-002",
@@ -66,8 +66,8 @@
       "req_id": "FC-FILT-001-REQ-001",
       "type": "medium",
       "reason": "Filter panel text displayed sideways. Root cause: leftPanel div had writing-mode:vertical-rl for the blank label, never reset when filter content loaded. Fix: innerHTML replacement removes vertical la",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-FILT-001",
+      "orphan": false
     },
     {
       "id": "BUG-MSG-002",
@@ -88,8 +88,8 @@
       "req_id": "FC-MSG-001-REQ-001",
       "type": "medium",
       "reason": "Summary used LLM-translated term ('psychiatrist') instead of user's term ('shrinks'). Root cause: specialty_searched came from the LLM's tool call parameter, not the user's original message. Fix: main",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-MSG-001",
+      "orphan": false
     },
     {
       "id": "BUG-VECTOR-001",
@@ -110,8 +110,8 @@
       "type": "critical",
       "reason": "RELEASE BLOCKER — SIT NEXT SPRINT, MUST-HAVE: Specialty code resolution must vector search against SpecialtyMetaData (883 specialty descriptions), not provider records. Current code searches provider ",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "IDX-001",
+      "orphan": false
     },
     {
       "id": "BUG-DESIGN-001",
@@ -132,8 +132,8 @@
       "type": "medium",
       "reason": "DESIGN ERROR (Boss): Filtered results with more than one page must show pagination controls in the control frame immediately. Do not make the user ask for page 2 after applying a filter — they already",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "UX-CTRL-001",
+      "orphan": false
     },
     {
       "id": "BUG-PIPE-001",
@@ -153,8 +153,8 @@
       "type": "medium",
       "reason": "Enrichment steps do not filter by states. Pass 1 ZIP crosswalk processed 8.8M records instead of 1.3M because no state filter was applied. Every enrichment step must accept and enforce the states para",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "PIPE-LC-001",
+      "orphan": false
     },
     {
       "id": "BUG-PIPE-002",
@@ -174,8 +174,8 @@
       "type": "medium",
       "reason": "No try/finally in orchestrators. If a step fails, the reservation is never released and the cluster stays up. Orphan reservations cause unnecessary cost.",
       "resolution_status": "tested_passed",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "PIPE-LC-002",
+      "orphan": false
     },
     {
       "id": "BUG-PIPE-003",
@@ -195,8 +195,8 @@
       "type": "medium",
       "reason": "Skipping load step (start_step=3) left stale data. 8.8M records from prior runs remained. Load step must drop collection unless incremental=true.",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "PIPE-LC-003",
+      "orphan": false
     },
     {
       "id": "BUG-PIPE-005",
@@ -237,8 +237,8 @@
       "type": "medium",
       "reason": "Enrichment must be in-place on provider record. Per MongoDB best practices, one document per provider. No separate enrichment collection.",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "PIPE-DM-001",
+      "orphan": false
     },
     {
       "id": "BUG-PIPE-006",
@@ -258,8 +258,8 @@
       "type": "medium",
       "reason": "DESIGN BUG (Boss): DataFetcherBase skip guard trusted registry without verifying blob existed. Registry said 'already downloaded' but blob was deleted. Pipeline skipped download, extract failed with B",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "PIPE-BP-004",
+      "orphan": false
     },
     {
       "id": "BUG-PIPE-008",
@@ -342,8 +342,8 @@
       "type": "show_stopper",
       "reason": "SHOW STOPPER — SPRINT BLOCKER — DUE 2026-04-09: Delaware provider load is incomplete. Root cause: CopyToFrontEnd copied only 2,843 of 25,591 DE providers from pipeline cluster to frontend cluster. Pip",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "PIPE-CP-001",
+      "orphan": false
     },
     {
       "id": "BUG-LOAD-002",
@@ -363,8 +363,8 @@
       "type": "show_stopper",
       "reason": "SHOW STOPPER — ALPHA RELEASE BLOCKER: The question 'how many providers are there in DE' must give a correct answer. If the database has 2,843 and the real answer is ~26,000, the system is giving wrong",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "PIPE-CP-001",
+      "orphan": false
     },
     {
       "id": "BUG-LOAD-003",
@@ -405,8 +405,8 @@
       "type": "critical",
       "reason": "BUG (SPRINT BLOCKER — DUE THIS SPRINT): CPT codes CANNOT be used in any consumer-facing feature. UMLS license Category 3 restricts CPT to internal use only (research, development, statistical analysis",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "UMLS-CPT-001",
+      "orphan": false
     },
     {
       "id": "BUG-UX-001",
@@ -427,8 +427,8 @@
       "type": "medium",
       "reason": "'find me a kids doc in VA' produces stuck response 'Thinking... Ok No'. Chat never completes. Either safety check, consent flow, or backend timeout is intercepting and the UI doesn't recover. User see",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-SEARCH-001",
+      "orphan": false
     },
     {
       "id": "BUG-UX-002",
@@ -449,8 +449,8 @@
       "req_id": "FC-FILT-001-REQ-001",
       "type": "medium",
       "reason": "Left panel has overflowY:hidden — filter content cannot scroll. When specialty filter loads with more options than fit in the panel height, user cannot scroll to see all options. Fix: FindCareApp.tsx ",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-FILT-001",
+      "orphan": false
     },
     {
       "id": "UAT-FILTER-001",
@@ -471,12 +471,12 @@
       "req_id": "FC-FILT-001-REQ-001",
       "type": "medium",
       "reason": "Filter panel FUNCTIONALITY signed off for alpha by Boss 2026-04-07. Prescriber toggle, homeopathic toggle (Sonnet resolver), specialty checkboxes, counts display, client-side caching, scroll bar — all",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-FILT-001",
+      "orphan": false
     },
     {
       "id": "BUG-BA-001",
-      "req_id": "UAT-FILTER-001",
+      "req_id": "ORPHAN_BUG",
       "rule": "BUG (BA): First number in filter header shows provider count (4,676) but should show total possible specialties (universe of all specialty types, not providers). Business analyst requirement error — the three numbers should be: (1) total specialty types in the universe, (2) types after filter switches applied, (3) types the user has checked. Provider count is useful but belongs elsewhere, not in position 1.",
       "incident": "Boss caught during UAT. The number 4,676 is providers, not specialties. The universe should be the total number of specialty types (e.g., 883 in NUCC), not how many providers matched. Fixed in FindCareApp.tsx refactor — allCount now uses options.length (specialty types from classify), not provider count.",
       "date": "2026-04-07",
@@ -517,8 +517,8 @@
       "req_id": "UX-FRAME-001-REQ-004",
       "type": "medium",
       "reason": "Timer + Stop button in guiControlFrame. Styled container with teal text, raised Stop button. Boss signed off for alpha 2026-04-07.",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "UX-FRAME-001",
+      "orphan": false
     },
     {
       "id": "BUG-UX-003",
@@ -539,8 +539,8 @@
       "req_id": "UX-FRAME-001-REQ-004",
       "type": "medium",
       "reason": "Stop button left orphaned in chat area when timer moved to control frame. Timer and Stop button are a unit — both must move together. Fixed by removing thinking bubble from chat and rendering both tim",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "UX-FRAME-001",
+      "orphan": false
     },
     {
       "id": "BUG-UX-004",
@@ -561,8 +561,8 @@
       "req_id": "FC-FILT-001-REQ-002",
       "type": "medium",
       "reason": "Prescriber toggle checkbox re-rendered as checked when specialty list updated. When user unchecked 'Prescribers only', the list re-render reset the checkbox to checked. Fixed by passing prescribersChe",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-FILT-001",
+      "orphan": false
     },
     {
       "id": "BUG-PIPE-009",
@@ -582,8 +582,8 @@
       "type": "medium",
       "reason": "Overnight pipeline re-downloads CMS Part D CSV (3.7GB) every run instead of using blob storage. The file is already in blob from previous runs. Must use DataFetcherBase ETag guard pattern — download o",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "PIPE-BP-004",
+      "orphan": false
     },
     {
       "id": "BUG-SEC-001",
@@ -603,8 +603,8 @@
       "type": "medium",
       "reason": "BUG (PRE-ALPHA REQUIREMENT): HuggingFace Spaces still use bearer tokens for authentication. Security architecture (EPIC-4) requires zero bearer tokens — all auth via x509 certificates registered with ",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "SEC-CERT-R-002",
+      "orphan": false
     },
     {
       "id": "BUG-CLASSIFY-001",
@@ -627,8 +627,8 @@
       "type": "medium",
       "reason": "See rule field",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-BACKEND-007",
+      "orphan": false
     },
     {
       "id": "BUG-PERF-001",
@@ -651,8 +651,8 @@
       "type": "medium",
       "reason": "See rule field",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "IDX-001",
+      "orphan": false
     },
     {
       "bug_id": "BUG-001",
@@ -731,8 +731,8 @@
       "type": "show_stopper",
       "reason": "SHOW STOPPER: Frontend data insufficient to allow application to work with Delaware data. Missing vector search indexes (provider_vector_index, specialty_vector_index), missing npi unique index, missi",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "IDX-001",
+      "orphan": false
     },
     {
       "id": "BUG-PIPE-010",
@@ -759,8 +759,8 @@
       "type": "show_stopper",
       "reason": "SHOW STOPPER: Quality pipeline ships provider_quality to frontend without embeddings. 25,591 DE records have zero prescriber_embedding on both pipeline and frontend clusters. The embedding step (Step ",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "PIPE-BP-001",
+      "orphan": false
     },
     {
       "id": "BUG-GOV-002",
@@ -844,8 +844,8 @@
       "type": "medium",
       "reason": "Cluster lifecycle manager does not detect or clean up zombie reservations. Three stale reservations from April 8 were still marked active on April 10. Reservations with expected_end_time in the past s",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "PIPE-LC-015",
+      "orphan": false
     },
     {
       "id": "BUG-PIPE-009",
@@ -865,8 +865,8 @@
       "type": "medium",
       "reason": "SpecialtyMetaData has no vector search index on pipeline cluster. load_specialty_data.py generates embeddings but never creates the vector index.",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "IDX-001",
+      "orphan": false
     },
     {
       "id": "BUG-PIPE-010",
@@ -886,8 +886,8 @@
       "type": "medium",
       "reason": "Index creation must happen AFTER cluster reservation release. CopyToFrontEnd creates provider_vector_index inside reservation window. Atlas vector index creation is async — cluster may pause mid-build",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "PIPE-LC-004",
+      "orphan": false
     },
     {
       "id": "BUG-UX-006",
@@ -905,8 +905,8 @@
       "req_id": "FC-EVAL-001-REQ-005",
       "type": "show_stopper",
       "reason": "Encrypted and clear session tokens not displayed on EvaluateCare right panel. Tokens were working before April 9 crash but not visible after restore.",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-EVAL-001",
+      "orphan": false
     },
     {
       "id": "BUG-LOCAL-001",
@@ -924,8 +924,8 @@
       "type": "medium",
       "reason": "start_local.bat does not thoroughly clean up before starting. Does not kill orphaned python/uvicorn/node processes from previous runs. Only kills by port — misses processes that crashed off-port. Does",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "SDT-LOCAL-003",
+      "orphan": false
     },
     {
       "id": "BUG-UX-007",
@@ -944,8 +944,8 @@
       "type": "medium",
       "reason": "Select specialty filter format does not match Excel mockup. Layout, contrast, and spacing are off. Skip provided a mockup — implement to spec.",
       "resolution_status": "closed_reqs_reorganized",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-FILT-001",
+      "orphan": false
     },
     {
       "id": "BUG-SEC-002",
@@ -966,8 +966,8 @@
       "type": "medium",
       "reason": "Mutual authentication PKI at transport layer is missing. FindCare to EvaluateCare calls use plain HTTP, not mTLS. Caddy Caddyfile has mTLS configured on :8081 but the evaluate proxy in main.py calls l",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "SEC-MTLS-001",
+      "orphan": false
     },
     {
       "id": "BUG-EVAL-001",
@@ -985,8 +985,8 @@
       "type": "medium",
       "reason": "BUG DEFERRED: Wrong list of providers sent to EvaluateCare. lastProvidersRef in ChatWindow.tsx is empty when evaluate button is clicked — providers from search results are not being stored in the ref.",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-SELECT-001",
+      "orphan": false
     },
     {
       "id": "BUG-UX-008",
@@ -1007,8 +1007,8 @@
       "type": "medium",
       "reason": "Environment banner does not show build number, version, environment, or framework version. Banner only shows env name until health endpoint responds, then shows env + build + version but missing frame",
       "resolution_status": "tested_passed",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "TEST-SIM-001",
+      "orphan": false
     },
     {
       "id": "BUG-GOV-004",
@@ -1070,8 +1070,8 @@
       "req_id": "FC-SELECT-001-REQ-007",
       "type": "medium",
       "reason": "Wrong providers sent to EvaluateCare — all providers sent instead of only selected providers from the selection panel. Fix: FindCareApp.tsx refactored to use selectedRef.current which syncs from selec",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-SELECT-001",
+      "orphan": false
     },
     {
       "id": "BUG-UX-009",
@@ -1089,8 +1089,8 @@
       "type": "medium",
       "reason": "Selection panel requires scrolling to see both available and selected lists. Top frame must be scrolled to see bottom frame. Both should be visible without scrolling.",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-SELECT-001",
+      "orphan": false
     },
     {
       "id": "BUG-COMM-001",
@@ -1131,8 +1131,8 @@
         }
       ],
       "pytest_success_criteria": "All 3 acceptance criteria must pass via Playwright end-to-end test.",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-EVAL-001",
+      "orphan": false
     },
     {
       "id": "BUG-EVAL-003",
@@ -1150,8 +1150,8 @@
       "req_id": "FC-SELECT-001-REQ-007",
       "type": "medium",
       "reason": "Picked 1 provider but 5 showed in EvaluateCare. Selection state not used for handoff — still sending lastProvidersRef instead of selection.state.selected. Same root cause as BUG-EVAL-002, fixed by sel",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-SELECT-001",
+      "orphan": false
     },
     {
       "id": "BUG-UX-010",
@@ -1168,8 +1168,8 @@
       "req_id": "FC-SEARCH-001-REQ-006",
       "type": "medium",
       "reason": "Garbage text in chat window — specialty list rendered as visible text instead of hidden data. Root cause: Gemini 2.5 Flash dumped raw specialty data into chat response. Fix: switched to GPT-4.1 (BUG-M",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-SEARCH-001",
+      "orphan": false
     },
     {
       "id": "BUG-MODEL-001",
@@ -1187,8 +1187,8 @@
       "req_id": "FC-SEARCH-001-REQ-004",
       "type": "medium",
       "reason": "Gemini 2.5 Flash returns overly broad specialty list for headache — includes anesthesiology, cardiology, hospice but no primary care physicians or general practitioners. Root cause was Gemini model. F",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-SEARCH-001",
+      "orphan": false
     },
     {
       "id": "BUG-UX-011",
@@ -1206,8 +1206,8 @@
       "req_id": "FC-FILT-001-REQ-007",
       "type": "critical",
       "reason": "Apply Filter does not clear old available providers from screen. Old docs stay visible alongside new filtered results. Fix: index.html now sends only visible checked specialty codes, and FindCareApp.t",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-FILT-001",
+      "orphan": false
     },
     {
       "id": "BUG-SEC-004",
@@ -1226,8 +1226,8 @@
       "type": "medium",
       "reason": "Dev HuggingFace servers not tested or configured for HTTPS enforcement. SEC-HTTPS-001 tested only on local. HF spaces use HF-provided TLS but server-side CORS, 426 rejection, and scan_http.py have not",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "SEC-HTTPS-001",
+      "orphan": false
     },
     {
       "id": "BUG-SEC-005",
@@ -1249,8 +1249,8 @@
       "ch_matrix_id": "b0000028-0000-4000-e000-000000000028",
       "req_id": "SEC-HTTPS-001-REQ-007",
       "reason": "HTTP 426 Upgrade Required response body must include the status code in the message text on EVERY server in EVERY environment. Clients receiving the rejection must see a visible error code to diagnose",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "SEC-HTTPS-001",
+      "orphan": false
     },
     {
       "id": "BUG-GOV-005",
@@ -1271,8 +1271,8 @@
       "ch_matrix_id": "b0000027-0000-4000-e000-000000000027",
       "req_id": "PIPE-TR-001-REQ-001",
       "reason": "SHOW STOPPER: Requirements exist in agile_backlog.json without associated pytests. No enhancement or requirement may be asserted by any means (user prompt, backlog entry, or otherwise) without a recor",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "PIPE-TR-001",
+      "orphan": false
     },
     {
       "id": "BUG-UX-012",
@@ -1295,8 +1295,8 @@
       "ch_matrix_id": "b0000029-0000-4000-e000-000000000029",
       "next_action": "Drop target added tonight (FindCareApp.tsx line 436-437 onDragOver/onDrop). Needs Playwright test to verify drag-drop works end-to-end.",
       "reason": "Drag and drop from provider candidate list to the evaluate container is missing. FC-SELECT-001-REQ-002 requires it but the feature is not implemented. User cannot drag a provider from the top list to ",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-SELECT-001",
+      "orphan": false
     },
     {
       "id": "BUG-UX-013",
@@ -1317,8 +1317,8 @@
       "ch_matrix_id": "b0000030-0000-4000-e000-000000000030",
       "resolution": "Verified FindCareApp.tsx: timer clears after fetchProviders (line 168-169), comment on line 167 confirms intent. Also clears on error (line 182-183). Closed 2026-04-10.",
       "reason": "Search timer stalls after AI classify returns but before DB search completes. Timer cleared too early — after /classify response, not after /search response. Fix: FindCareApp.tsx now clears timer afte",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-SEARCH-001",
+      "orphan": false
     },
     {
       "id": "BUG-UX-014",
@@ -1339,8 +1339,8 @@
       "ch_matrix_id": "b0000031-0000-4000-e000-000000000031",
       "next_action": "Requirements written in FC-EVAL-001. Needs implementation: move button, add cold/hot state, instruction popup.",
       "reason": "Evaluate These Providers button is in the wrong location (filter panel) and has no cold/hot state. Button should be right of cursor control, dimmed when no providers selected, show instruction popup o",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-EVAL-001",
+      "orphan": false
     },
     {
       "id": "BUG-UX-015",
@@ -1363,8 +1363,8 @@
       "ch_matrix_id": "b0000032-0000-4000-e000-000000000032",
       "next_action": "Fixed tonight, in testing. Needs Playwright test to confirm labels are no longer truncated.",
       "reason": "Filter header labels truncated and illegible. 'Prescribers' shows as 'Prescr', 'Homeopathic' shows as 'Home'. Labels and values need proper spacing. The header is not intelligently laid out — labels a",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-FILT-001",
+      "orphan": false
     },
     {
       "id": "BUG-REG-001",
@@ -1808,8 +1808,8 @@
           "status": "open"
         }
       ],
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "ARCH-SCAN-GENERAL",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-001",
@@ -1828,8 +1828,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest local_environment_user_ready.py::TestPageLoad::test_page_title fails — timeout",
       "ch_matrix_id": "b1000001-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "TEST-SIM-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-002",
@@ -1848,8 +1848,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest local_environment_user_ready.py::TestProviderSearch::test_providers_have_npis fails — timeout",
       "ch_matrix_id": "b1000002-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "TEST-SIM-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-003",
@@ -1868,8 +1868,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest local_environment_user_ready.py::TestLeftPanel::test_session_token_in_left_panel fails — fail",
       "ch_matrix_id": "b1000003-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "TEST-SIM-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-004",
@@ -1888,8 +1888,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest local_environment_user_ready.py::TestEvaluateCareHandoff::test_evaluate_click fails — timeout",
       "ch_matrix_id": "b1000004-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "TEST-SIM-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-005",
@@ -1908,8 +1908,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_findcare_search.py::TestProviderSearchFreeText::test_free_text_search_returns_results fails — timeout",
       "ch_matrix_id": "b1000005-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-SEARCH-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-006",
@@ -1928,8 +1928,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_findcare_search.py::TestProviderResultFields::test_results_contain_npi fails — timeout",
       "ch_matrix_id": "b1000006-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-SEARCH-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-007",
@@ -1948,8 +1948,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_findcare_search.py::TestProviderSearchPagination::test_pagination_controls_present fails — timeout",
       "ch_matrix_id": "b1000007-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-SEARCH-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-008",
@@ -1968,8 +1968,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_findcare_search.py::TestSpecialtyClassification::test_specialty_types_identified fails — timeout",
       "ch_matrix_id": "b1000008-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-SEARCH-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-009",
@@ -1988,8 +1988,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_classify_performance.py::test_classify_returns_ordered_specialties fails — fail",
       "ch_matrix_id": "b1000009-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-SEARCH-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-010",
@@ -2008,8 +2008,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_search_timer.py::test_timer_runs_until_results_displayed fails — fail",
       "ch_matrix_id": "b1000010-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-SEARCH-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-011",
@@ -2028,8 +2028,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_filter_panel.py::TestFilterPanelDisplay::test_filter_checkboxes_visible_and_labeled fails — fail",
       "ch_matrix_id": "b1000011-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-FILT-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-012",
@@ -2048,8 +2048,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_filter_panel.py::TestFilterPanelDisplay::test_prescribers_only_filters_to_prescriber_specialties fails — fail",
       "ch_matrix_id": "b1000012-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-FILT-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-013",
@@ -2068,8 +2068,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_filter_panel.py::TestFilterPanelDisplay::test_homeopathic_only_adds_homeopathic_specialties fails — fail",
       "ch_matrix_id": "b1000013-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-FILT-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-014",
@@ -2088,8 +2088,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_filter_panel.py::TestFilterPanelDisplay::test_filter_header_shows_specialty_counts_not_provider_counts fails — fail",
       "ch_matrix_id": "b1000014-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-FILT-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-015",
@@ -2108,8 +2108,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_filter_panel.py::TestFilterPanelDisplay::test_uncheck_all_updates_your_choices_to_zero fails — fail",
       "ch_matrix_id": "b1000015-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-FILT-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-016",
@@ -2128,8 +2128,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_copy_to_frontend.py::test_parity_after_copy fails — fail",
       "ch_matrix_id": "b1000016-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-PIPE-COPY-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-017",
@@ -2148,8 +2148,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest pre_deploy_rule_check.py passes with zero violations fails — not_found",
       "ch_matrix_id": "b1000017-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "ARCH-SCAN-PYTEST",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-018",
@@ -2168,8 +2168,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_website.py::test_hamburger_menu_mobile fails — fail",
       "ch_matrix_id": "b1000018-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "UX-MOB-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-019",
@@ -2188,8 +2188,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_website.py::test_hamburger_menu_opens fails — fail",
       "ch_matrix_id": "b1000019-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "UX-MOB-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-020",
@@ -2208,8 +2208,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_website.py::test_hamburger_menu_navigation fails — fail",
       "ch_matrix_id": "b1000020-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "UX-MOB-001",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-021",
@@ -2228,8 +2228,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_website.py::test_back_link_mobile fails — fail",
       "ch_matrix_id": "b1000021-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "UX-MOB-002",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-022",
@@ -2248,8 +2248,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_website.py::test_back_link_navigates fails — fail",
       "ch_matrix_id": "b1000022-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "UX-MOB-002",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-023",
@@ -2268,8 +2268,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff fails — fail",
       "ch_matrix_id": "b1000023-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "UX-CTRL-003",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-024",
@@ -2288,8 +2288,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff fails — fail",
       "ch_matrix_id": "b1000024-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "UX-CTRL-003",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-025",
@@ -2308,8 +2308,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff fails — fail",
       "ch_matrix_id": "b1000025-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "UX-CTRL-003",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-026",
@@ -2328,8 +2328,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_tool_router.py::TestToolRouter::test_pydantic_validation fails — fail",
       "ch_matrix_id": "b1000026-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-BACKEND-005",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-027",
@@ -2348,8 +2348,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_tool_router.py::TestToolRouter::test_handle_tool_calls fails — fail",
       "ch_matrix_id": "b1000027-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-BACKEND-005",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-028",
@@ -2368,8 +2368,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_unanswerable_questions.py::TestUnanswerableQuestions fails — fail",
       "ch_matrix_id": "b1000028-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-BACKEND-007",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-029",
@@ -2388,8 +2388,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_unanswerable_questions.py::TestUnanswerableQuestions fails — fail",
       "ch_matrix_id": "b1000029-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-BACKEND-007",
+      "orphan": false
     },
     {
       "id": "BUG-TEST-030",
@@ -2408,8 +2408,8 @@
       "risk_acceptance_id": null,
       "reason": "pytest test_unanswerable_questions.py::TestUnanswerableQuestions fails — fail",
       "ch_matrix_id": "b1000030-0000-4000-e000-000000000000",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-BACKEND-007",
+      "orphan": false
     },
     {
       "id": "BUG-GOV-006",
@@ -2450,8 +2450,8 @@
       "risk_acceptance_id": null,
       "reason": "Message text wrong — content or formatting incorrect.",
       "ch_matrix_id": "b0000040-0000-4000-e000-000000000040",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-MSG-001",
+      "orphan": false
     },
     {
       "id": "BUG-GOV-007",
@@ -2476,7 +2476,7 @@
     },
     {
       "id": "BUG-AUTH-001",
-      "req_id": "ARCH-ORPHAN-001-REQ-007",
+      "req_id": "ORPHAN_BUG",
       "rule": "BUG: StartChatHealthy.bat requires interactive CLI login (browser OAuth + prompts) before opening Cursor. Need a headless or programmatic way to authenticate with Anthropic so the batch file can run non-interactively.",
       "description": "The batch file authenticates via claude /login which opens a browser for OAuth and requires interactive input. This is not demo-ready. A headless authentication method is needed — either a long-lived token, a cached credential check, or a silent refresh.",
       "type": "medium",
@@ -2571,8 +2571,8 @@
       "pytest_id": "",
       "success_criteria_to_close": "Specific injury queries return medically appropriate specialties.",
       "ch_matrix_id": "",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-FILT-001",
+      "orphan": false
     },
     {
       "id": "BUG-UX-017",
@@ -2646,8 +2646,8 @@
       "pytest_id": "",
       "success_criteria_to_close": "Apply Filter wipes provider list, then re-queries, then paints new results.",
       "ch_matrix_id": "",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "FC-FILT-001",
+      "orphan": false
     },
     {
       "id": "BUG-DEVOPS-001",
@@ -2671,8 +2671,8 @@
       "pytest_id": "",
       "success_criteria_to_close": "Build number in version.json matches across dev, qa, and prod after merge. Pre-commit hook does not bump; post-commit hook does.",
       "ch_matrix_id": "",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "DEVOPS-DEPLOY-001",
+      "orphan": false
     },
     {
       "id": "BUG-GOV-008",
@@ -2696,8 +2696,8 @@
       "pytest_id": "",
       "success_criteria_to_close": "conversation_log stores verbatim content with no truncation. System reminders may be stripped but content MUST NOT be truncated.",
       "ch_matrix_id": "",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "BRAIN-CONVERSATION-LOG",
+      "orphan": false
     },
     {
       "id": "BUG-AGENT-001",
@@ -2714,7 +2714,7 @@
       "status": "open",
       "risk_acceptance_id": null,
       "next_action": "Implement email account for the service, Twilio text alerts (T040), automated retry with exponential backoff, orphaned file cleanup on Anthropic Files API.",
-      "req_id": "BRAIN-CONVERSATION-LOG-REQ-B013",
+      "req_id": "ORPHAN_BUG",
       "type": "high",
       "reason": "Full end-to-end Agentic AI corporate error handling not implemented. Network failures, API timeouts, orphaned files, and partial writes are not fully handled or reported.",
       "resolution_status": "in_analysis",
@@ -2738,8 +2738,8 @@
       "type": "show_stopper",
       "reason": "GPT promotion gate from dev to QA does not exist. No code enforces GPT authority over promotion.",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "DEVOPS-DEPLOY-001",
+      "orphan": false
     },
     {
       "id": "BUG-DEVOPS-003",
@@ -2760,8 +2760,8 @@
       "type": "show_stopper",
       "reason": "v4-019 multiple brain collections modified is a warning but should be a blocking error.",
       "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "story_id": "SEC-HTTPS-001",
+      "orphan": false
     },
     {
       "id": "BUG-DEVOPS-004",
@@ -2793,14 +2793,35 @@
         "qa",
         "prod"
       ],
-      "status": "open",
+      "status": "closed",
       "risk_acceptance_id": null,
       "req_id": "ARCH-SCAN-JSON-REQ-002",
       "story_id": "ARCH-SCAN-JSON",
       "type": "critical",
       "reason": "No pre-commit validation of CV-constrained fields in brain JSONs. Invalid values pass unchecked into the brain.",
-      "resolution_status": "new",
-      "next_action": "Implement CV validation in JSON scanner and wire into pre-commit hook.",
+      "resolution_status": "fixed",
+      "next_action": "",
+      "orphan": false
+    },
+    {
+      "id": "BUG-PIPE-011",
+      "rule": "BUG CRITICAL: CopyToFrontEnd orchestrator uses parameterized env_prefix to switch between dev/qa/prod. A misconfigured parameter could copy dev data to prod or overwrite production with test data. The script must be hard-coded per environment — separate scripts for dev, qa, and prod. Only the MongoDB connection string should be fetched at runtime from Key Vault.",
+      "incident": "Architecture review identified that copy_to_frontend_orchestrator accepts env_prefix as a runtime parameter, creating cross-environment contamination risk.",
+      "date": "2026-04-15",
+      "ch_matrix_id": "b713ca34-d22e-4470-936b-c58de6de6841",
+      "environment": [
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "req_id": "FC-PIPE-COPY-001-REQ-003",
+      "story_id": "FC-PIPE-COPY-001",
+      "type": "critical",
+      "reason": "Parameterized env_prefix in CopyToFrontEnd creates cross-environment contamination risk. Must be hard-coded per environment.",
+      "resolution_status": "ist_working",
+      "next_action": "Split copy_to_frontend into separate hard-coded scripts per environment.",
       "orphan": false
     }
   ],
