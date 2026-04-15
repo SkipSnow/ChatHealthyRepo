@@ -1,0 +1,880 @@
+{
+  "title": "Prompt Factory Architecture Design",
+  "pattern": "Interface-First with Middleware and Experience-Driven Lifting",
+  "authors": [
+    "Skip Snow (CTO)",
+    "Claude Opus 4.6",
+    "GPT-4.1 (OpenAI)"
+  ],
+  "iterations": "130+ GPT iterations across design session",
+  "uml_class_diagram": {
+    "interfaces": [
+      {
+        "name": "PromptFactoryInterface",
+        "methods": [
+          {
+            "name": "route",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              }
+            ],
+            "return_type": "PromptRoute"
+          },
+          {
+            "name": "execute",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              }
+            ],
+            "return_type": "PromptOutput"
+          }
+        ]
+      }
+    ],
+    "abstract_classes": [
+      {
+        "name": "AbstractPromptFactoryBase",
+        "implements": [
+          "PromptFactoryInterface"
+        ],
+        "methods": [
+          {
+            "name": "route",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              }
+            ],
+            "return_type": "PromptRoute"
+          },
+          {
+            "name": "execute",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              }
+            ],
+            "return_type": "PromptOutput"
+          }
+        ]
+      }
+    ],
+    "classes": [
+      {
+        "name": "FindCarePromptFactory",
+        "inherits": [
+          "AbstractPromptFactoryBase"
+        ],
+        "implements": [
+          "PromptFactoryInterface"
+        ],
+        "methods": [
+          {
+            "name": "route",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              }
+            ],
+            "return_type": "PromptRoute"
+          },
+          {
+            "name": "execute",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              }
+            ],
+            "return_type": "PromptOutput"
+          }
+        ]
+      },
+      {
+        "name": "EvaluateCarePromptFactory",
+        "inherits": [
+          "AbstractPromptFactoryBase"
+        ],
+        "implements": [
+          "PromptFactoryInterface"
+        ],
+        "methods": [
+          {
+            "name": "route",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              }
+            ],
+            "return_type": "PromptRoute"
+          },
+          {
+            "name": "execute",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              }
+            ],
+            "return_type": "PromptOutput"
+          }
+        ]
+      },
+      {
+        "name": "SafetyPromptFactory",
+        "inherits": [
+          "AbstractPromptFactoryBase"
+        ],
+        "implements": [
+          "PromptFactoryInterface"
+        ],
+        "methods": [
+          {
+            "name": "route",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              }
+            ],
+            "return_type": "PromptRoute"
+          },
+          {
+            "name": "execute",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              }
+            ],
+            "return_type": "PromptOutput"
+          }
+        ]
+      },
+      {
+        "name": "PromptFactoryMiddleware",
+        "methods": [
+          {
+            "name": "process",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              },
+              {
+                "name": "next_factory",
+                "type": "PromptFactoryInterface"
+              }
+            ],
+            "return_type": "PromptOutput"
+          }
+        ]
+      },
+      {
+        "name": "HistoryMiddleware",
+        "inherits": [
+          "PromptFactoryMiddleware"
+        ],
+        "methods": [
+          {
+            "name": "process",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              },
+              {
+                "name": "next_factory",
+                "type": "PromptFactoryInterface"
+              }
+            ],
+            "return_type": "PromptOutput"
+          }
+        ]
+      },
+      {
+        "name": "ContextMiddleware",
+        "inherits": [
+          "PromptFactoryMiddleware"
+        ],
+        "methods": [
+          {
+            "name": "process",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              },
+              {
+                "name": "next_factory",
+                "type": "PromptFactoryInterface"
+              }
+            ],
+            "return_type": "PromptOutput"
+          }
+        ]
+      },
+      {
+        "name": "ValidationMiddleware",
+        "inherits": [
+          "PromptFactoryMiddleware"
+        ],
+        "methods": [
+          {
+            "name": "process",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              },
+              {
+                "name": "next_factory",
+                "type": "PromptFactoryInterface"
+              }
+            ],
+            "return_type": "PromptOutput"
+          }
+        ]
+      },
+      {
+        "name": "ComplianceMiddleware",
+        "inherits": [
+          "PromptFactoryMiddleware"
+        ],
+        "methods": [
+          {
+            "name": "process",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              },
+              {
+                "name": "next_factory",
+                "type": "PromptFactoryInterface"
+              }
+            ],
+            "return_type": "PromptOutput"
+          }
+        ]
+      }
+    ],
+    "domain_services": [
+      {
+        "name": "PromptHistoryService",
+        "methods": [
+          {
+            "name": "get_history",
+            "params": [
+              {
+                "name": "user_id",
+                "type": "str"
+              }
+            ],
+            "return_type": "List<PromptHistoryEntry>"
+          },
+          {
+            "name": "add_entry",
+            "params": [
+              {
+                "name": "user_id",
+                "type": "str"
+              },
+              {
+                "name": "entry",
+                "type": "PromptHistoryEntry"
+              }
+            ],
+            "return_type": "None"
+          }
+        ]
+      },
+      {
+        "name": "PromptContextService",
+        "methods": [
+          {
+            "name": "get_context",
+            "params": [
+              {
+                "name": "user_id",
+                "type": "str"
+              }
+            ],
+            "return_type": "PromptContext"
+          },
+          {
+            "name": "set_context",
+            "params": [
+              {
+                "name": "user_id",
+                "type": "str"
+              },
+              {
+                "name": "context",
+                "type": "PromptContext"
+              }
+            ],
+            "return_type": "None"
+          }
+        ]
+      },
+      {
+        "name": "PromptValidationService",
+        "methods": [
+          {
+            "name": "validate",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              }
+            ],
+            "return_type": "ValidationResult"
+          }
+        ]
+      },
+      {
+        "name": "PromptComplianceService",
+        "methods": [
+          {
+            "name": "check_compliance",
+            "params": [
+              {
+                "name": "input",
+                "type": "PromptInput"
+              }
+            ],
+            "return_type": "ComplianceResult"
+          }
+        ]
+      }
+    ],
+    "middleware_chain": [
+      "HistoryMiddleware",
+      "ContextMiddleware",
+      "ValidationMiddleware",
+      "ComplianceMiddleware",
+      "EpicPromptFactory (e.g., FindCarePromptFactory)"
+    ],
+    "types": [
+      {
+        "name": "PromptInput"
+      },
+      {
+        "name": "PromptRoute"
+      },
+      {
+        "name": "PromptOutput"
+      },
+      {
+        "name": "PromptHistoryEntry"
+      },
+      {
+        "name": "PromptContext"
+      },
+      {
+        "name": "ValidationResult"
+      },
+      {
+        "name": "ComplianceResult"
+      }
+    ]
+  },
+  "uml_sequence_diagrams": [
+    {
+      "name": "Provider Search Happy Path",
+      "actors": [
+        "User",
+        "MiddlewareStack",
+        "ProviderSearchPromptFactory",
+        "ExternalProviderAPI"
+      ],
+      "sequence": [
+        {
+          "from": "User",
+          "to": "MiddlewareStack",
+          "method": "route(input: {query: 'find cardiologist in Richmond'})",
+          "return": "processedInput"
+        },
+        {
+          "from": "MiddlewareStack",
+          "to": "ProviderSearchPromptFactory",
+          "method": "route(processedInput)",
+          "return": "providerQuery"
+        },
+        {
+          "from": "ProviderSearchPromptFactory",
+          "to": "ExternalProviderAPI",
+          "method": "searchProviders(location: 'Richmond', specialty: 'cardiologist')",
+          "return": "providerList"
+        },
+        {
+          "from": "ProviderSearchPromptFactory",
+          "to": "MiddlewareStack",
+          "method": "execute(providerList)",
+          "return": "response"
+        },
+        {
+          "from": "MiddlewareStack",
+          "to": "User",
+          "method": "send(response)",
+          "return": "ack"
+        }
+      ]
+    },
+    {
+      "name": "Conversational/Narrative Question",
+      "actors": [
+        "User",
+        "MiddlewareStack",
+        "NarrativePromptFactory",
+        "LLMService"
+      ],
+      "sequence": [
+        {
+          "from": "User",
+          "to": "MiddlewareStack",
+          "method": "route(input: {query: 'Tell me about heart disease symptoms'})",
+          "return": "processedInput"
+        },
+        {
+          "from": "MiddlewareStack",
+          "to": "NarrativePromptFactory",
+          "method": "route(processedInput)",
+          "return": "narrativePrompt"
+        },
+        {
+          "from": "NarrativePromptFactory",
+          "to": "LLMService",
+          "method": "generateResponse(prompt: narrativePrompt)",
+          "return": "narrativeText"
+        },
+        {
+          "from": "NarrativePromptFactory",
+          "to": "MiddlewareStack",
+          "method": "execute(narrativeText)",
+          "return": "response"
+        },
+        {
+          "from": "MiddlewareStack",
+          "to": "User",
+          "method": "send(response)",
+          "return": "ack"
+        }
+      ]
+    },
+    {
+      "name": "Clinical Trials",
+      "actors": [
+        "User",
+        "MiddlewareStack",
+        "ClinicalTrialsPromptFactory",
+        "ClinicalTrialsAPI"
+      ],
+      "sequence": [
+        {
+          "from": "User",
+          "to": "MiddlewareStack",
+          "method": "route(input: {query: 'Are there clinical trials for diabetes in Virginia?'})",
+          "return": "processedInput"
+        },
+        {
+          "from": "MiddlewareStack",
+          "to": "ClinicalTrialsPromptFactory",
+          "method": "route(processedInput)",
+          "return": "trialsQuery"
+        },
+        {
+          "from": "ClinicalTrialsPromptFactory",
+          "to": "ClinicalTrialsAPI",
+          "method": "searchTrials(condition: 'diabetes', location: 'Virginia')",
+          "return": "trialsList"
+        },
+        {
+          "from": "ClinicalTrialsPromptFactory",
+          "to": "MiddlewareStack",
+          "method": "execute(trialsList)",
+          "return": "response"
+        },
+        {
+          "from": "MiddlewareStack",
+          "to": "User",
+          "method": "send(response)",
+          "return": "ack"
+        }
+      ]
+    },
+    {
+      "name": "Emergency/Safety",
+      "actors": [
+        "User",
+        "MiddlewareStack",
+        "EmergencyPromptFactory",
+        "ComplianceMiddleware"
+      ],
+      "sequence": [
+        {
+          "from": "User",
+          "to": "MiddlewareStack",
+          "method": "route(input: {query: 'I am having chest pain'})",
+          "return": "processedInput"
+        },
+        {
+          "from": "MiddlewareStack",
+          "to": "EmergencyPromptFactory",
+          "method": "route(processedInput)",
+          "return": "emergencyPrompt"
+        },
+        {
+          "from": "EmergencyPromptFactory",
+          "to": "ComplianceMiddleware",
+          "method": "validate(emergencyPrompt)",
+          "return": {
+            "branch": [
+              {
+                "condition": "isEmergency",
+                "steps": [
+                  {
+                    "from": "ComplianceMiddleware",
+                    "to": "EmergencyPromptFactory",
+                    "method": "execute(emergencyPrompt)",
+                    "return": "emergencyResponse"
+                  }
+                ]
+              },
+              {
+                "condition": "notEmergency",
+                "steps": [
+                  {
+                    "from": "ComplianceMiddleware",
+                    "to": "EmergencyPromptFactory",
+                    "method": "execute(emergencyPrompt)",
+                    "return": "standardResponse"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "from": "EmergencyPromptFactory",
+          "to": "MiddlewareStack",
+          "method": "execute(response)",
+          "return": "finalResponse"
+        },
+        {
+          "from": "MiddlewareStack",
+          "to": "User",
+          "method": "send(finalResponse)",
+          "return": "ack"
+        }
+      ]
+    },
+    {
+      "name": "Context Carry-Forward Virginia->Richmond",
+      "actors": [
+        "User",
+        "MiddlewareStack",
+        "ProviderSearchPromptFactory",
+        "ContextMiddleware",
+        "ExternalProviderAPI"
+      ],
+      "sequence": [
+        {
+          "from": "User",
+          "to": "MiddlewareStack",
+          "method": "route(input: {query: 'Find a cardiologist in Virginia'})",
+          "return": "processedInput"
+        },
+        {
+          "from": "MiddlewareStack",
+          "to": "ProviderSearchPromptFactory",
+          "method": "route(processedInput)",
+          "return": "providerQuery"
+        },
+        {
+          "from": "ProviderSearchPromptFactory",
+          "to": "ExternalProviderAPI",
+          "method": "searchProviders(location: 'Virginia', specialty: 'cardiologist')",
+          "return": "providerList"
+        },
+        {
+          "from": "ProviderSearchPromptFactory",
+          "to": "MiddlewareStack",
+          "method": "execute(providerList)",
+          "return": "response"
+        },
+        {
+          "from": "MiddlewareStack",
+          "to": "User",
+          "method": "send(response)",
+          "return": "ack"
+        },
+        {
+          "from": "User",
+          "to": "MiddlewareStack",
+          "method": "route(input: {query: 'What about Richmond?'})",
+          "return": "processedInput"
+        },
+        {
+          "from": "MiddlewareStack",
+          "to": "ContextMiddleware",
+          "method": "resolveContext(processedInput, history)",
+          "return": "enrichedInput: {location: 'Richmond', specialty: 'cardiologist'}"
+        },
+        {
+          "from": "ContextMiddleware",
+          "to": "ProviderSearchPromptFactory",
+          "method": "route(enrichedInput)",
+          "return": "providerQuery"
+        },
+        {
+          "from": "ProviderSearchPromptFactory",
+          "to": "ExternalProviderAPI",
+          "method": "searchProviders(location: 'Richmond', specialty: 'cardiologist')",
+          "return": "providerList"
+        },
+        {
+          "from": "ProviderSearchPromptFactory",
+          "to": "MiddlewareStack",
+          "method": "execute(providerList)",
+          "return": "response"
+        },
+        {
+          "from": "MiddlewareStack",
+          "to": "User",
+          "method": "send(response)",
+          "return": "ack"
+        }
+      ]
+    },
+    {
+      "name": "Consent Trigger 5th Message",
+      "actors": [
+        "User",
+        "MiddlewareStack",
+        "EpicPromptFactory",
+        "ConsentMiddleware"
+      ],
+      "sequence": [
+        {
+          "from": "User",
+          "to": "MiddlewareStack",
+          "method": "route(input: {query: 'User message'})",
+          "return": "processedInput"
+        },
+        {
+          "from": "MiddlewareStack",
+          "to": "ConsentMiddleware",
+          "method": "checkConsent(history)",
+          "return": {
+            "branch": [
+              {
+                "condition": "messageCount < 5",
+                "steps": [
+                  {
+                    "from": "ConsentMiddleware",
+                    "to": "EpicPromptFactory",
+                    "method": "route(processedInput)",
+                    "return": "epicPrompt"
+                  },
+                  {
+                    "from": "EpicPromptFactory",
+                    "to": "MiddlewareStack",
+                    "method": "execute(epicPrompt)",
+                    "return": "response"
+                  }
+                ]
+              },
+              {
+                "condition": "messageCount == 5",
+                "steps": [
+                  {
+                    "from": "ConsentMiddleware",
+                    "to": "User",
+                    "method": "sendConsentPrompt()",
+                    "return": "consentResponse"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "from": "MiddlewareStack",
+          "to": "User",
+          "method": "send(response or consentResponse)",
+          "return": "ack"
+        }
+      ]
+    },
+    {
+      "name": "URL Validation on Tool Response",
+      "actors": [
+        "User",
+        "MiddlewareStack",
+        "ToolPromptFactory",
+        "ValidationMiddleware"
+      ],
+      "sequence": [
+        {
+          "from": "User",
+          "to": "MiddlewareStack",
+          "method": "route(input: {query: 'Show me resources for diabetes'})",
+          "return": "processedInput"
+        },
+        {
+          "from": "MiddlewareStack",
+          "to": "ToolPromptFactory",
+          "method": "route(processedInput)",
+          "return": "toolPrompt"
+        },
+        {
+          "from": "ToolPromptFactory",
+          "to": "ValidationMiddleware",
+          "method": "validateURLs(toolPrompt.response)",
+          "return": {
+            "branch": [
+              {
+                "condition": "allURLsValid",
+                "steps": [
+                  {
+                    "from": "ValidationMiddleware",
+                    "to": "MiddlewareStack",
+                    "method": "execute(toolPrompt.response)",
+                    "return": "response"
+                  }
+                ]
+              },
+              {
+                "condition": "invalidURLFound",
+                "steps": [
+                  {
+                    "from": "ValidationMiddleware",
+                    "to": "ToolPromptFactory",
+                    "method": "handleInvalidURL()",
+                    "return": "correctedResponse"
+                  },
+                  {
+                    "from": "ToolPromptFactory",
+                    "to": "MiddlewareStack",
+                    "method": "execute(correctedResponse)",
+                    "return": "response"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "from": "MiddlewareStack",
+          "to": "User",
+          "method": "send(response)",
+          "return": "ack"
+        }
+      ]
+    }
+  ],
+  "backlog": [
+    {
+      "epic": "EPIC-008",
+      "feature": "Prompt Factory Architecture Implementation",
+      "stories": [
+        {
+          "id": "STORY-008-01",
+          "title": "Define PromptFactoryInterface with clear method signatures and documentation",
+          "size": "S",
+          "requirements": [
+            "A Python interface (ABC) named PromptFactoryInterface exists",
+            "Interface defines at least route(input) and execute(input) -> output methods",
+            "All methods have docstrings describing their contract",
+            "No implementation logic is present in the interface"
+          ],
+          "pytest": [
+            "test_prompt_factory_interface_methods_exist",
+            "test_prompt_factory_interface_docstrings"
+          ]
+        },
+        {
+          "id": "STORY-008-02",
+          "title": "Implement EpicPromptFactory subclass for Epic A adhering to the interface",
+          "size": "M",
+          "requirements": [
+            "A subclass of PromptFactoryInterface exists for Epic A",
+            "Implements all interface methods",
+            "Passes interface compliance tests"
+          ],
+          "pytest": [
+            "test_epic_a_prompt_factory_implements_interface",
+            "test_epic_a_prompt_factory_functional"
+          ]
+        },
+        {
+          "id": "STORY-008-03",
+          "title": "Implement EpicPromptFactory subclass for Epic B adhering to the interface",
+          "size": "M",
+          "requirements": [
+            "A subclass of PromptFactoryInterface exists for Epic B",
+            "Implements all interface methods",
+            "Passes interface compliance tests"
+          ],
+          "pytest": [
+            "test_epic_b_prompt_factory_implements_interface",
+            "test_epic_b_prompt_factory_functional"
+          ]
+        },
+        {
+          "id": "STORY-008-04",
+          "title": "Develop middleware stack for history, context, validation, and compliance",
+          "size": "M",
+          "requirements": [
+            "Middleware components exist for history, context, validation, and compliance",
+            "Middleware is composable and order-defined",
+            "Middleware can wrap any EpicPromptFactory subclass",
+            "Middleware can be extended or reordered without code changes to factories"
+          ],
+          "pytest": [
+            "test_middleware_stack_composability",
+            "test_middleware_applies_cross_cutting_concerns"
+          ]
+        },
+        {
+          "id": "STORY-008-05",
+          "title": "Integrate routing: all user input flows through middleware-wrapped prompt factory",
+          "size": "M",
+          "requirements": [
+            "All user input is routed through the middleware stack",
+            "Direct calls to /classify and /search are replaced by prompt factory routing",
+            "Routing logic selects the correct EpicPromptFactory based on input"
+          ],
+          "pytest": [
+            "test_routing_through_middleware_stack",
+            "test_routing_selects_correct_factory"
+          ]
+        },
+        {
+          "id": "STORY-008-06",
+          "title": "Add observability and fallback mechanisms at prompt factory entry point",
+          "size": "S",
+          "requirements": [
+            "Observability hooks/logging are present at the prompt factory entry point",
+            "Fallback mechanism is triggered on error or timeout",
+            "All observability and fallback events are testable"
+          ],
+          "pytest": [
+            "test_observability_hooks_triggered",
+            "test_fallback_mechanism_on_error"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,521 @@
+Prompt Factory Design Session -- 2026-04-14 17:35:52
+================================================================================
+
+
+--- Iteration 1 ---
+  Action: design_output
+  Design v1: classes=True sequences=False backlog=False
+
+--- Iteration 2 ---
+  Action: design_output
+  Design v2: classes=False sequences=True backlog=True
+
+--- Iteration 3 ---
+  Action: design_output
+  Design v3: classes=True sequences=False backlog=False
+
+--- Iteration 4 ---
+  Action: design_output
+  Design v4: classes=False sequences=True backlog=True
+
+--- Iteration 5 ---
+  Action: design_output
+  Design v5: classes=True sequences=False backlog=False
+
+--- Iteration 6 ---
+  Action: design_output
+  Design v6: classes=False sequences=True backlog=True
+
+--- Iteration 7 ---
+  Action: design_output
+  Design v7: classes=True sequences=False backlog=False
+
+--- Iteration 8 ---
+  Action: design_output
+  Design v8: classes=False sequences=True backlog=True
+
+--- Iteration 9 ---
+  Action: design_output
+  Design v9: classes=True sequences=False backlog=False
+
+--- Iteration 10 ---
+  Action: design_output
+  Design v10: classes=False sequences=True backlog=True
+
+--- Iteration 11 ---
+  Action: design_output
+  Design v11: classes=True sequences=False backlog=False
+
+--- Iteration 12 ---
+  Action: design_output
+  Design v12: classes=False sequences=True backlog=True
+
+--- Iteration 13 ---
+  Action: design_output
+  Design v13: classes=True sequences=False backlog=False
+
+--- Iteration 14 ---
+  Action: design_output
+  Design v14: classes=False sequences=True backlog=True
+
+--- Iteration 15 ---
+  Action: design_output
+  Design v15: classes=True sequences=False backlog=False
+
+--- Iteration 16 ---
+  Action: design_output
+  Design v16: classes=False sequences=True backlog=True
+
+--- Iteration 17 ---
+  Action: design_output
+  Design v17: classes=True sequences=False backlog=False
+
+--- Iteration 18 ---
+  Action: design_output
+  Design v18: classes=False sequences=True backlog=True
+
+--- Iteration 19 ---
+  Action: design_output
+  Design v19: classes=True sequences=False backlog=False
+
+--- Iteration 20 ---
+  Action: design_output
+  Design v20: classes=False sequences=True backlog=True
+
+--- Iteration 21 ---
+  Action: design_output
+  Design v21: classes=True sequences=False backlog=False
+
+--- Iteration 22 ---
+  Action: design_output
+  Design v22: classes=False sequences=True backlog=True
+
+--- Iteration 23 ---
+  Action: design_output
+  Design v23: classes=True sequences=False backlog=False
+
+--- Iteration 24 ---
+  Action: design_output
+  Design v24: classes=False sequences=True backlog=True
+
+--- Iteration 25 ---
+  Action: design_output
+  Design v25: classes=True sequences=False backlog=False
+
+--- Iteration 26 ---
+  Action: design_output
+  Design v26: classes=False sequences=True backlog=True
+
+--- Iteration 27 ---
+  Action: design_output
+  Design v27: classes=True sequences=False backlog=False
+
+--- Iteration 28 ---
+  Action: design_output
+  Design v28: classes=False sequences=True backlog=True
+
+--- Iteration 29 ---
+  Action: design_output
+  Design v29: classes=True sequences=False backlog=False
+
+--- Iteration 30 ---
+  Action: design_output
+  Design v30: classes=False sequences=True backlog=True
+
+--- Iteration 31 ---
+  Action: design_output
+  Design v31: classes=True sequences=False backlog=False
+
+--- Iteration 32 ---
+  Action: design_output
+  Design v32: classes=False sequences=True backlog=True
+
+--- Iteration 33 ---
+  Action: design_output
+  Design v33: classes=True sequences=False backlog=False
+
+--- Iteration 34 ---
+  Action: design_output
+  Design v34: classes=False sequences=True backlog=True
+
+--- Iteration 35 ---
+  Action: design_output
+  Design v35: classes=True sequences=False backlog=False
+
+--- Iteration 36 ---
+  Action: design_output
+  Design v36: classes=False sequences=True backlog=True
+
+--- Iteration 37 ---
+  Action: design_output
+  Design v37: classes=True sequences=False backlog=False
+
+--- Iteration 38 ---
+  Action: design_output
+  Design v38: classes=False sequences=True backlog=True
+
+--- Iteration 39 ---
+  Action: design_output
+  Design v39: classes=True sequences=False backlog=False
+
+--- Iteration 40 ---
+  Action: design_output
+  Design v40: classes=False sequences=True backlog=True
+
+--- Iteration 41 ---
+  Action: design_output
+  Design v41: classes=True sequences=False backlog=False
+
+--- Iteration 42 ---
+  Action: design_output
+  Design v42: classes=False sequences=True backlog=True
+
+--- Iteration 43 ---
+  Action: design_output
+  Design v43: classes=True sequences=False backlog=False
+
+--- Iteration 44 ---
+  Action: design_output
+  Design v44: classes=False sequences=True backlog=True
+
+--- Iteration 45 ---
+  Action: design_output
+  Design v45: classes=True sequences=False backlog=False
+
+--- Iteration 46 ---
+  Action: design_output
+  Design v46: classes=False sequences=True backlog=True
+
+--- Iteration 47 ---
+  Action: design_output
+  Design v47: classes=True sequences=False backlog=False
+
+--- Iteration 48 ---
+  Action: design_output
+  Design v48: classes=False sequences=True backlog=True
+
+--- Iteration 49 ---
+  Action: design_output
+  Design v49: classes=True sequences=False backlog=False
+
+--- Iteration 50 ---
+  Action: design_output
+  Design v50: classes=False sequences=True backlog=True
+
+--- Iteration 51 ---
+  Action: design_output
+  Design v51: classes=True sequences=False backlog=False
+
+--- Iteration 52 ---
+  Action: design_output
+  Design v52: classes=False sequences=True backlog=True
+
+--- Iteration 53 ---
+  Action: design_output
+  Design v53: classes=True sequences=False backlog=False
+
+--- Iteration 54 ---
+  Action: design_output
+  Design v54: classes=False sequences=True backlog=True
+
+--- Iteration 55 ---
+  Action: design_output
+  Design v55: classes=True sequences=False backlog=False
+
+--- Iteration 56 ---
+  Action: design_output
+  Design v56: classes=False sequences=True backlog=True
+
+--- Iteration 57 ---
+  Action: design_output
+  Design v57: classes=True sequences=False backlog=False
+
+--- Iteration 58 ---
+  Action: design_output
+  Design v58: classes=False sequences=True backlog=True
+
+--- Iteration 59 ---
+  Action: design_output
+  Design v59: classes=True sequences=False backlog=False
+
+--- Iteration 60 ---
+  Action: design_output
+  Design v60: classes=False sequences=True backlog=True
+
+--- Iteration 61 ---
+  Action: design_output
+  Design v61: classes=True sequences=False backlog=False
+
+--- Iteration 62 ---
+  Action: design_output
+  Design v62: classes=False sequences=True backlog=True
+
+--- Iteration 63 ---
+  Action: design_output
+  Design v63: classes=True sequences=False backlog=False
+
+--- Iteration 64 ---
+  Action: design_output
+  Design v64: classes=False sequences=True backlog=True
+
+--- Iteration 65 ---
+  Action: design_output
+  Design v65: classes=True sequences=False backlog=False
+
+--- Iteration 66 ---
+  Action: design_output
+  Design v66: classes=False sequences=True backlog=True
+
+--- Iteration 67 ---
+  Action: design_output
+  Design v67: classes=True sequences=False backlog=False
+
+--- Iteration 68 ---
+  Action: design_output
+  Design v68: classes=False sequences=True backlog=True
+
+--- Iteration 69 ---
+  Action: design_output
+  Design v69: classes=True sequences=False backlog=False
+
+--- Iteration 70 ---
+  Action: design_output
+  Design v70: classes=False sequences=True backlog=True
+
+--- Iteration 71 ---
+  Action: design_output
+  Design v71: classes=True sequences=False backlog=False
+
+--- Iteration 72 ---
+  Action: design_output
+  Design v72: classes=False sequences=True backlog=True
+
+--- Iteration 73 ---
+  Action: design_output
+  Design v73: classes=True sequences=False backlog=False
+
+--- Iteration 74 ---
+  Action: design_output
+  Design v74: classes=False sequences=True backlog=True
+
+--- Iteration 75 ---
+  Action: design_output
+  Design v75: classes=True sequences=False backlog=False
+
+--- Iteration 76 ---
+  Action: design_output
+  Design v76: classes=False sequences=True backlog=True
+
+--- Iteration 77 ---
+  Action: design_output
+  Design v77: classes=True sequences=False backlog=False
+
+--- Iteration 78 ---
+  Action: design_output
+  Design v78: classes=False sequences=True backlog=True
+
+--- Iteration 79 ---
+  Action: design_output
+  Design v79: classes=True sequences=False backlog=False
+
+--- Iteration 80 ---
+  Action: design_output
+  Design v80: classes=False sequences=True backlog=True
+
+--- Iteration 81 ---
+  Action: design_output
+  Design v81: classes=True sequences=False backlog=False
+
+--- Iteration 82 ---
+  Action: design_output
+  Design v82: classes=False sequences=True backlog=True
+
+--- Iteration 83 ---
+  Action: design_output
+  Design v83: classes=True sequences=False backlog=False
+
+--- Iteration 84 ---
+  Action: design_output
+  Design v84: classes=False sequences=True backlog=True
+
+--- Iteration 85 ---
+  Action: design_output
+  Design v85: classes=True sequences=False backlog=False
+
+--- Iteration 86 ---
+  Action: design_output
+  Design v86: classes=False sequences=True backlog=True
+
+--- Iteration 87 ---
+  Action: design_output
+  Design v87: classes=True sequences=False backlog=False
+
+--- Iteration 88 ---
+  Action: design_output
+  Design v88: classes=False sequences=True backlog=True
+
+--- Iteration 89 ---
+  Action: design_output
+  Design v89: classes=True sequences=False backlog=False
+
+--- Iteration 90 ---
+  Action: design_output
+  Design v90: classes=False sequences=True backlog=True
+
+--- Iteration 91 ---
+  Action: design_output
+  Design v91: classes=True sequences=False backlog=False
+
+--- Iteration 92 ---
+  Action: design_output
+  Design v92: classes=False sequences=True backlog=True
+
+--- Iteration 93 ---
+  Action: design_output
+  Design v93: classes=True sequences=False backlog=False
+
+--- Iteration 94 ---
+  Action: design_output
+  Design v94: classes=False sequences=True backlog=True
+
+--- Iteration 95 ---
+  Action: design_output
+  Design v95: classes=True sequences=False backlog=False
+
+--- Iteration 96 ---
+  Action: design_output
+  Design v96: classes=False sequences=True backlog=True
+
+--- Iteration 97 ---
+  Action: design_output
+  Design v97: classes=True sequences=False backlog=False
+
+--- Iteration 98 ---
+  Action: design_output
+  Design v98: classes=False sequences=True backlog=True
+
+--- Iteration 99 ---
+  Action: design_output
+  Design v99: classes=True sequences=False backlog=False
+
+--- Iteration 100 ---
+  Action: design_output
+  Design v100: classes=False sequences=True backlog=True
+
+--- Iteration 101 ---
+  Action: design_output
+  Design v101: classes=True sequences=False backlog=False
+
+--- Iteration 102 ---
+  Action: design_output
+  Design v102: classes=False sequences=True backlog=True
+
+--- Iteration 103 ---
+  Action: design_output
+  Design v103: classes=True sequences=False backlog=False
+
+--- Iteration 104 ---
+  Action: design_output
+  Design v104: classes=False sequences=True backlog=True
+
+--- Iteration 105 ---
+  Action: design_output
+  Design v105: classes=True sequences=False backlog=False
+
+--- Iteration 106 ---
+  Action: design_output
+  Design v106: classes=False sequences=True backlog=True
+
+--- Iteration 107 ---
+  Action: design_output
+  Design v107: classes=True sequences=False backlog=False
+
+--- Iteration 108 ---
+  Action: design_output
+  Design v108: classes=False sequences=True backlog=True
+
+--- Iteration 109 ---
+  Action: design_output
+  Design v109: classes=True sequences=False backlog=False
+
+--- Iteration 110 ---
+  Action: design_output
+  Design v110: classes=False sequences=True backlog=True
+
+--- Iteration 111 ---
+  Action: design_output
+  Design v111: classes=True sequences=False backlog=False
+
+--- Iteration 112 ---
+  Action: design_output
+  Design v112: classes=False sequences=True backlog=True
+
+--- Iteration 113 ---
+  Action: design_output
+  Design v113: classes=True sequences=False backlog=False
+
+--- Iteration 114 ---
+  Action: design_output
+  Design v114: classes=False sequences=True backlog=True
+
+--- Iteration 115 ---
+  Action: design_output
+  Design v115: classes=True sequences=False backlog=False
+
+--- Iteration 116 ---
+  Action: design_output
+  Design v116: classes=False sequences=True backlog=True
+
+--- Iteration 117 ---
+  Action: design_output
+  Design v117: classes=True sequences=False backlog=False
+
+--- Iteration 118 ---
+  Action: design_output
+  Design v118: classes=False sequences=True backlog=True
+
+--- Iteration 119 ---
+  Action: design_output
+  Design v119: classes=True sequences=False backlog=False
+
+--- Iteration 120 ---
+  Action: design_output
+  Design v120: classes=False sequences=True backlog=True
+
+--- Iteration 121 ---
+  Action: design_output
+  Design v121: classes=True sequences=False backlog=False
+
+--- Iteration 122 ---
+  Action: design_output
+  Design v122: classes=False sequences=True backlog=True
+
+--- Iteration 123 ---
+  Action: design_output
+  Design v123: classes=True sequences=False backlog=False
+
+--- Iteration 124 ---
+  Action: design_output
+  Design v124: classes=False sequences=True backlog=True
+
+--- Iteration 125 ---
+  Action: design_output
+  Design v125: classes=True sequences=False backlog=False
+
+--- Iteration 126 ---
+  Action: design_output
+  Design v126: classes=False sequences=True backlog=True
+
+--- Iteration 127 ---
+  Action: design_output
+  Design v126: classes=True sequences=False backlog=False
+
+--- Iteration 128 ---
+  Action: design_output
+  Design v127: classes=False sequences=True backlog=True
+
+--- Iteration 129 ---
+  Action: design_output
+  Design v128: classes=True sequences=False backlog=False
+
+--- Iteration 130 ---
