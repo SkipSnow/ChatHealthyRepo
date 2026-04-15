@@ -1,0 +1,57 @@
+@startuml
+title 5.4 Emergency/Safety Detection
+skinparam shadowing false
+skinparam defaultFontSize 10
+
+actor User
+participant "FindCareApp" as UI
+participant "PromptDispatcher" as Dispatcher
+participant "SafetyMiddleware" as SafeMW
+participant "SafetyService" as SS
+database "MongoDB" as DB
+
+User -> UI: "I'm having chest pain\nand can't breathe"
+UI -> Dispatcher: dispatch(PromptInput)
+
+Dispatcher -> SafeMW: process(input, next)
+
+SafeMW -> SS: is_ip_locked(ip)
+SS -> DB: query emergency_incidents\n{ip, expires_at > now, unlocked != true}
+DB --> SS: null (not locked)
+SS --> SafeMW: false
+
+SafeMW -> SS: is_emergency(message)
+note right: Safe prefix check:\n"I'm having" — NOT a safe prefix\n→ proceed to AI classifier
+
+SS -> SS: GPT-4.1-mini classifier
+note right: System prompt:\n"Three gates: body location,\nacute onset, life-threat.\nAll three must be YES.\nConfidence >= 0.80"
+note right #FF9999: body_location: chest\nacute_onset: yes ("having")\nlife_threat: yes ("can't breathe")\nconfidence: 0.95\n→ EMERGENCY
+
+SS --> SafeMW: true
+
+SafeMW -> SS: lock_ip(ip, trigger_message,\nchat_history)
+SS -> DB: upsert emergency_incidents\n{ip, locked_at: now,\nexpires_at: now + 1hr,\ntrigger_message, chat_history}
+DB --> SS: ok
+SS --> SafeMW: true
+
+SafeMW --> Dispatcher: PromptOutput(\n  emergency=true,\n  text="Call 911 or go to the\n  nearest emergency room\n  immediately. Do not wait.\n  This chat has been suspended.")
+
+note over SafeMW: Middleware SHORT-CIRCUITS.\nNo epic facade is called.\nNo further middleware runs.
+
+Dispatcher --> UI: PromptOutput(emergency=true)
+UI -> UI: render emergency response
+UI -> UI: disable input
+UI -> User: Emergency message displayed.\nChat suspended.
+
+== Admin Unlock (later) ==
+
+User -> UI: "admin_unlock_key_xyz123"
+UI -> Dispatcher: dispatch(PromptInput)
+Dispatcher -> SafeMW: process(input, next)
+SafeMW -> SS: try_admin_unlock(message, ip)
+SS -> DB: update {ip: ip}\n  set {unlocked: true}
+SS --> SafeMW: true
+SafeMW --> Dispatcher: PromptOutput(\n  text="Session unlocked.")
+Dispatcher --> UI: session restored
+
+@enduml
