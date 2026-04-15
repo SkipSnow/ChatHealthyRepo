@@ -2842,6 +2842,25 @@
       "resolution_status": "fixing",
       "next_action": "Fix _parse_datetime to always return naive datetimes.",
       "orphan": false
+    },
+    {
+      "id": "BUG-LOG-002",
+      "rule": "BUG: C# Windows service Worker.cs does not kill child Python process on stop or crash. Process.Start() launches Python but WaitForExitAsync cancellation does not terminate the child. Every service restart leaves a zombie Python process running the old code. 10 zombies found during session.",
+      "incident": "10 zombie Python processes found under Services after multiple service restarts. Each running old buggy code.",
+      "date": "2026-04-15",
+      "ch_matrix_id": "b2f04aff-4b78-42f0-b882-ba7c3bb339d4",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "req_id": "BRAIN-CONVERSATION-LOG-REQ-T011",
+      "story_id": "BRAIN-CONVERSATION-LOG",
+      "type": "high",
+      "reason": "C# service does not kill child Python process on stop/crash. Zombies accumulate.",
+      "resolution_status": "ist_testing",
+      "next_action": "Kill existing zombies, restart service, verify single Python process.",
+      "orphan": false
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
