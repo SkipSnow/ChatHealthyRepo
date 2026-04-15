@@ -4,14 +4,23 @@
 # EPIC-8 Safety: SAFETY-UNLOCK-001 tests
 # REQ-001: Admin unlock with shared secret
 # REQ-002: Unlock code is case-insensitive
+#
+# AUDIT FIX 2026-04-15:
+#   - 5 tests REMOVED that extracted the key from the service and did
+#     assertIn(key.lower(), message.lower()) — testing Python string ops,
+#     not the actual try_admin_unlock method.
+#   - Replaced with tests that call the REAL try_admin_unlock method.
+#   - test_code_check_in_service KEPT (source inspection, already valid).
+#   - try_admin_unlock requires a DB to return True (it updates MongoDB),
+#     so we use a mock DB to verify the method reaches the update call.
 
 import os
 import sys
+import inspect
 import unittest
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from dotenv import load_dotenv
-load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "Code", ".env"))
 
 
 class TestAdminUnlock(unittest.TestCase):
@@ -20,62 +29,82 @@ class TestAdminUnlock(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         from domain.shared.safety.safety_service import SafetyService
-        cls.service = SafetyService(
-            get_db_fn=lambda: None,
+        cls.SafetyService = SafetyService
+
+    def _make_service(self, key="unlock$123", db_fn=None):
+        """Create a SafetyService with a mock DB that supports unlock."""
+        if db_fn is None:
+            mock_db = MagicMock()
+            mock_collection = MagicMock()
+            mock_collection.update_one.return_value = MagicMock(modified_count=1)
+            mock_db.__getitem__ = MagicMock(return_value={"emergency_incidents": mock_collection})
+            # Make dict-style access work: db[env_Safety][emergency_incidents]
+            safety_db = MagicMock()
+            safety_db.__getitem__ = MagicMock(return_value=mock_collection)
+            mock_db.__getitem__ = MagicMock(return_value=safety_db)
+            db_fn = lambda: mock_db
+        return self.SafetyService(
+            get_db_fn=db_fn,
             env_prefix="dev",
             emergency_keywords=[],
-            admin_unlock_key="unlock$123",
+            admin_unlock_key=key,
         )
 
     # ── REQ-001: Unlock with correct code ──
 
-    def test_correct_code_returns_true_format(self):
-        """Admin unlock key present in message should attempt unlock."""
-        # Without DB, try_admin_unlock returns False (no DB to update),
-        # but the key check itself passes. Test the key matching logic directly.
-        key = self.service._admin_unlock_key
-        message = f"please {key} now"
-        self.assertIn(key.lower(), message.lower())
+    def test_correct_code_calls_try_admin_unlock(self):
+        """try_admin_unlock with correct key in message returns True."""
+        service = self._make_service(key="unlock$123")
+        result = service.try_admin_unlock("please unlock$123 now", "127.0.0.1")
+        self.assertTrue(result)
 
-    def test_wrong_code_does_not_match(self):
-        """Wrong code should not match."""
-        key = self.service._admin_unlock_key
-        message = "please wrongcode now"
-        self.assertNotIn(key.lower(), message.lower())
+    def test_wrong_code_returns_false(self):
+        """try_admin_unlock with wrong key returns False."""
+        service = self._make_service(key="unlock$123")
+        result = service.try_admin_unlock("please wrongcode now", "127.0.0.1")
+        self.assertFalse(result)
+
+    def test_empty_key_returns_false(self):
+        """try_admin_unlock with empty admin key always returns False."""
+        service = self._make_service(key="")
+        result = service.try_admin_unlock("anything", "127.0.0.1")
+        self.assertFalse(result)
 
     # ── REQ-002: Case-insensitive ──
 
-    def test_case_insensitive_lowercase(self):
-        """'unlock$123' must match."""
-        key = self.service._admin_unlock_key
-        message = "unlock$123"
-        self.assertIn(key.lower(), message.lower())
-
     def test_case_insensitive_uppercase(self):
-        """'UNLOCK$123' must match."""
-        key = self.service._admin_unlock_key
-        message = "UNLOCK$123"
-        self.assertIn(key.lower(), message.lower())
+        """'UNLOCK$123' matches key 'unlock$123' via try_admin_unlock."""
+        service = self._make_service(key="unlock$123")
+        result = service.try_admin_unlock("UNLOCK$123", "127.0.0.1")
+        self.assertTrue(result)
 
     def test_case_insensitive_mixed(self):
-        """'Unlock$123' must match."""
-        key = self.service._admin_unlock_key
-        message = "Unlock$123"
-        self.assertIn(key.lower(), message.lower())
+        """'Unlock$123' matches key 'unlock$123' via try_admin_unlock."""
+        service = self._make_service(key="unlock$123")
+        result = service.try_admin_unlock("Unlock$123", "127.0.0.1")
+        self.assertTrue(result)
 
     def test_case_insensitive_in_sentence(self):
-        """Code embedded in a sentence, mixed case, must match."""
-        key = self.service._admin_unlock_key
-        message = "Hey can you UNLOCK$123 this for me"
-        self.assertIn(key.lower(), message.lower())
+        """Key embedded in a sentence, mixed case, via try_admin_unlock."""
+        service = self._make_service(key="unlock$123")
+        result = service.try_admin_unlock("Hey can you UNLOCK$123 this for me", "127.0.0.1")
+        self.assertTrue(result)
+
+    # ── Source inspection ──
 
     def test_code_check_in_service(self):
         """Verify the actual service code does case-insensitive comparison."""
-        import inspect
-        from domain.shared.safety.safety_service import SafetyService
-        source = inspect.getsource(SafetyService.try_admin_unlock)
+        source = inspect.getsource(self.SafetyService.try_admin_unlock)
         self.assertIn(".lower()", source,
                       "try_admin_unlock must use .lower() for case-insensitive comparison")
+
+    # ── No DB returns False ──
+
+    def test_no_db_returns_false(self):
+        """try_admin_unlock returns False when DB is unavailable."""
+        service = self._make_service(key="unlock$123", db_fn=lambda: None)
+        result = service.try_admin_unlock("unlock$123", "127.0.0.1")
+        self.assertFalse(result)
 
 
 if __name__ == "__main__":
