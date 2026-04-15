@@ -45893,9 +45893,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_quality_gates.py::test_min_row_count_fail",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -45914,9 +45914,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_quality_gates.py::test_min_row_count_pass",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -45935,9 +45935,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_quality_gates.py::test_null_check_fail",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -45956,9 +45956,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_quality_gates.py::test_null_check_pass",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46007,9 +46007,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_error_alerting.py::test_alert_on_fatal_error",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46028,9 +46028,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_error_alerting.py::test_alert_logs_to_mongodb",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46049,9 +46049,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_error_alerting.py::test_bell_stop",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46100,9 +46100,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_schema_drift.py::test_drift_detected",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46121,9 +46121,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_schema_drift.py::test_no_drift",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46142,9 +46142,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_schema_drift.py::test_store_fingerprint",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46163,9 +46163,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_schema_drift.py::test_allow_drift_override",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46214,9 +46214,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_idempotency.py::test_output_exists",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46235,9 +46235,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_idempotency.py::test_no_output",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46256,9 +46256,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_idempotency.py::test_insufficient_count",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46307,9 +46307,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_compliance.py::test_no_raw_requests_get",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46328,9 +46328,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_compliance.py::test_no_readall",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46349,9 +46349,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_compliance.py::test_no_hardcoded_urls",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46370,9 +46370,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_compliance.py::test_quality_gate_imported",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46391,9 +46391,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_compliance.py::test_fatal_alert_imported",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -49260,9 +49260,10 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_devops_boot_and_scanner::TestREQ003_BootClassStructure",
+                      "pytest_type": "unit",
+                      "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -49278,9 +49279,10 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_devops_boot_and_scanner::TestREQ004_InformClaude",
+                      "pytest_type": "unit",
+                      "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -49296,9 +49298,10 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_devops_boot_and_scanner::TestREQ005_LegacyFilesDeleted",
+                      "pytest_type": "integration",
+                      "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -49314,9 +49317,10 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_devops_boot_and_scanner::TestREQ006_ClaudeMdContent",
+                      "pytest_type": "integration",
+                      "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -49332,9 +49336,10 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_devops_boot_and_scanner::TestREQ007_NoSessionStartHook",
+                      "pytest_type": "integration",
+                      "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -49350,9 +49355,10 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_devops_boot_and_scanner::TestREQ008_BootOncePerSession",
+                      "pytest_type": "unit",
+                      "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -49368,9 +49374,10 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_devops_boot_and_scanner::TestREQ009_SessionEndClearsFlag",
+                      "pytest_type": "unit",
+                      "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -49386,9 +49393,10 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_devops_boot_and_scanner::TestREQ010_ModeSelectionDirective",
+                      "pytest_type": "unit",
+                      "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -49404,9 +49412,10 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_devops_boot_and_scanner::TestREQ011_OrphanTablePresentation",
+                      "pytest_type": "unit",
+                      "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -50918,421 +50927,434 @@
               "requirements": [
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B001",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
                   "requirement": "All visible user and assistant text MUST be stored verbatim. No truncation, no summarization. Thinking indicators excluded.",
+                  "source": "Boss",
                   "priority": "must-have",
-                  "status": "in_progress",
-                  "type": "business",
-                  "realized_by": [
-                    "Python 3.11"
-                  ],
-                  "orphan": true,
+                  "status": "not_started",
+                  "approval": "proposed",
+                  "ch_matrix_id": "80a0d288-c3fc-48d9-9047-c19302b8f6da",
+                  "realized_by": [],
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B002",
-                  "requirement": "Each record MUST have timestamp_pst (PST, 0.1 second precision) and timestamp_utc. Timestamps do not have to be unique — Claude and the operator may speak at the same time. However each record MUST be recognizably unique via CH_KEY{GUID}.",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "Each record MUST have a PST timestamp (0.1 second precision), a UTC timestamp, and a globally unique key. Records do not have to be unique by timestamp.",
+                  "source": "Boss",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "business",
-                  "realized_by": [
-                    "Python 3.11"
-                  ],
-                  "orphan": true,
+                  "approval": "proposed",
+                  "ch_matrix_id": "22759920-9f3a-47d0-90ab-b6b8a670b88e",
+                  "realized_by": [],
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B003",
-                  "requirement": "Every cycle, ALL utterances MUST be archived to MongoDB. Records already in MongoDB MUST be skipped. MongoDB is the permanent record.",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "ALL utterances MUST be durably captured and archived to MongoDB. MongoDB is the permanent record. Zero utterance loss is the target. The system MUST NOT silently drop events.",
+                  "source": "Boss",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "business",
-                  "realized_by": [
-                    "Python 3.11",
-                    "MongoDB Atlas"
-                  ],
-                  "orphan": true,
+                  "approval": "proposed",
+                  "ch_matrix_id": "9c835524-145f-467b-b1db-1983a8a58c53",
+                  "realized_by": [],
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B004",
-                  "requirement": "Sensitive keys (API keys, connection strings, passwords, credentials) MUST NEVER be written to MongoDB. These values MUST be redacted with [Sensitive content redacted]. Profanity in utterance content MUST be redacted with [expletive redacted].",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "Sensitive keys (API keys, connection strings, passwords, credentials) MUST NEVER be written to MongoDB. These values MUST be redacted with [Sensitive content redacted]. Profanity MUST be redacted with [expletive redacted].",
+                  "source": "Boss",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "business",
-                  "realized_by": [
-                    "Python 3.11"
-                  ],
-                  "orphan": true,
+                  "approval": "proposed",
+                  "ch_matrix_id": "0c3198e9-4807-4ff9-9eb0-b44afb15cb4b",
+                  "realized_by": [],
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B005",
-                  "requirement": "After archiving, the local file MUST be trimmed to the last 24 hours.",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "Utterances older than 24 hours MUST be removed from local storage after they have been archived to MongoDB.",
+                  "source": "Boss",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "business",
-                  "realized_by": [
-                    "Python 3.11"
-                  ],
-                  "orphan": true,
+                  "approval": "proposed",
+                  "ch_matrix_id": "5c7ac6a0-724c-432f-a29c-fda2ab50a56d",
+                  "realized_by": [],
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B006",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
                   "requirement": "Every action on the log MUST be recorded with who, what, and when.",
+                  "source": "Boss",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "business",
-                  "realized_by": [
-                    "Python 3.11"
-                  ],
-                  "orphan": true,
+                  "approval": "proposed",
+                  "ch_matrix_id": "0d19c5d0-2921-4946-a4d6-bf1b20ecbbf9",
+                  "realized_by": [],
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B007",
-                  "requirement": "Cycle frequency depends on working_mode in version.json: idiot = prompt operator before running, unattended = every 1 hour, normal = every 2 hours. Service starts on boot.",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "The conversation log service MUST start automatically on system boot without operator intervention.",
+                  "source": "Boss",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "business",
-                  "realized_by": [
-                    "Python 3.11",
-                    "C# .NET"
-                  ],
-                  "orphan": true,
+                  "approval": "proposed",
+                  "ch_matrix_id": "d0909def-221d-4a95-be79-21d868e26af2",
+                  "realized_by": [],
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B008",
-                  "requirement": "If MongoDB is unavailable, records MUST be queued and retried next cycle.",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "If MongoDB is unavailable, utterances MUST be retained durably and archived when MongoDB becomes available. No utterance may be lost due to a downstream outage.",
+                  "source": "Boss",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "business",
-                  "realized_by": [
-                    "Python 3.11",
-                    "MongoDB Atlas"
-                  ],
-                  "orphan": true,
+                  "approval": "proposed",
+                  "ch_matrix_id": "a01abfad-b573-4c35-9bb0-4874335adec1",
+                  "realized_by": [],
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B009",
-                  "requirement": "If a job fails, the human operator MUST be informed as soon as they appear after an absence, or immediately via a screen prompt if they are present. The notification MUST include what failed and why.",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "If the service fails, the human operator MUST be informed as soon as they appear after an absence, or immediately if they are present. The notification MUST include what failed and why.",
+                  "source": "Boss",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "business",
-                  "realized_by": [
-                    "Python 3.11"
-                  ],
-                  "orphan": true,
+                  "approval": "proposed",
+                  "ch_matrix_id": "67f20906-31e3-4e1c-99dc-e29deb9b3474",
+                  "realized_by": [],
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-B010",
-                  "requirement": "The human user MUST be able to invoke the service at any time by restarting it. The service timer MUST reset to within 10 seconds of when the user restarts the service.",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "The human user MUST be able to restart the service at any time. The service MUST be fully operational within 10 seconds of restart.",
+                  "source": "Boss",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "business",
-                  "realized_by": [
-                    "C# .NET",
-                    "Python 3.11"
-                  ],
-                  "orphan": true,
+                  "approval": "proposed",
+                  "ch_matrix_id": "2fc59c47-5993-4026-aad2-3c8688f4f837",
+                  "realized_by": [],
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T001",
-                  "requirement": "conversation_log.json MUST comply with its JSON schema at all times. The header MUST include a schema_address field.",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "The Claude Code hook MUST capture each utterance and POST the raw payload to a localhost HTTP sidecar. The hook MUST complete in under 100ms. The hook MUST NOT parse, redact, transform, or write to any file. If the sidecar is unreachable, the hook MUST append to a local emergency fallback log and return.",
+                  "source": "Boss + Perplexity architecture review",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "technical",
+                  "approval": "proposed",
+                  "ch_matrix_id": "6789fbeb-9633-4a9c-ae9f-76883b7cddc6",
                   "realized_by": [
-                    "Python 3.11"
+                    "Apache Kafka (Docker)",
+                    "Python 3.11 (FastAPI sidecar + consumer)",
+                    "C# .NET 10 (Windows service supervisor)"
                   ],
-                  "orphan": true,
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T002",
-                  "requirement": "The service runs as a Windows service (ChatHealthyClaudeLogMgmt).",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "A persistent Python/FastAPI sidecar (PID 1) MUST maintain a warm Apache Kafka producer connection. It MUST accept HTTP POST requests from the hook, enqueue the raw payload to Kafka, and return HTTP 202 immediately. It MUST NOT do any processing beyond enqueue.",
+                  "source": "Boss + Perplexity architecture review",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "technical",
+                  "approval": "proposed",
+                  "ch_matrix_id": "80918833-3e63-4875-b93a-bcf302f8b26b",
                   "realized_by": [
-                    "C# .NET",
-                    "Python 3.11"
+                    "Apache Kafka (Docker)",
+                    "Python 3.11 (FastAPI sidecar + consumer)",
+                    "C# .NET 10 (Windows service supervisor)"
                   ],
-                  "orphan": true,
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T003",
-                  "requirement": "Each record MUST have a CH_KEY{GUID} as the unique key in MongoDB.",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "A persistent Python consumer (PID 2) MUST read from the Kafka topic, perform GPT-4.1-mini redaction (B004), assign a unique key (CH_KEY_ followed by a generated GUID), add timestamps (B002), and archive to MongoDB. It MUST use manual commit only after successful MongoDB write. If it crashes mid-processing, Kafka MUST redeliver the message (at-least-once delivery).",
+                  "source": "Boss + Perplexity architecture review",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "technical",
+                  "approval": "proposed",
+                  "ch_matrix_id": "51762f8d-6db6-46e6-805d-4ffd9467681e",
                   "realized_by": [
-                    "Python 3.11",
-                    "MongoDB Atlas"
+                    "Apache Kafka (Docker)",
+                    "Python 3.11 (FastAPI sidecar + consumer)",
+                    "C# .NET 10 (Windows service supervisor)"
                   ],
-                  "orphan": true,
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T004",
-                  "requirement": "The order of records in MongoDB is not deterministic.",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "Apache Kafka MUST run in a Docker container on the local machine. The Kafka broker MUST use KRaft mode (no ZooKeeper). The topic MUST retain messages for 24 hours. A single partition is sufficient.",
+                  "source": "Boss + Perplexity architecture review",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "technical",
+                  "approval": "proposed",
+                  "ch_matrix_id": "e7d98840-26a4-4915-9bcc-a6775fb203d3",
                   "realized_by": [
-                    "MongoDB Atlas"
+                    "Apache Kafka (Docker)",
+                    "Python 3.11 (FastAPI sidecar + consumer)",
+                    "C# .NET 10 (Windows service supervisor)"
                   ],
-                  "orphan": true,
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T005",
-                  "requirement": "Before inserting, query MongoDB for the most recent timestamp_pst. Only insert records newer than that value.",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "The C# Windows service (ChatHealthyClaudeLogMgmt) MUST be a supervisor only. It MUST start the Docker Kafka container if not running, start the sidecar (PID 1), start the consumer (PID 2), monitor both, and restart them if they die. It MUST kill child processes on service stop (no zombies). It MUST NOT contain any business logic.",
+                  "source": "Boss + Perplexity architecture review",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "technical",
+                  "approval": "proposed",
+                  "ch_matrix_id": "b9506e33-defc-495c-bf38-c9279713229c",
                   "realized_by": [
-                    "Python 3.11",
-                    "MongoDB Atlas"
+                    "Apache Kafka (Docker)",
+                    "Python 3.11 (FastAPI sidecar + consumer)",
+                    "C# .NET 10 (Windows service supervisor)"
                   ],
-                  "orphan": true,
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T006",
-                  "requirement": "All writes by Cursor to conversation_log.json MUST acquire a file lock, preventing the service from opening the log. The service MUST retry reading the log every 5s for up to 10 minutes. When the service reads, it MUST first lock the file (preventing Cursor access), copy the file, then release the lock. The service MUST complete lock-copy-release within a 2 second SLA. Cursor MUST retry failed writes due to file locks every 2 seconds. No records may be lost.",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "The C# Windows service MUST be configured for AUTO_START so it runs on system boot without operator intervention.",
+                  "source": "Boss + Perplexity architecture review",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "technical",
+                  "approval": "proposed",
+                  "ch_matrix_id": "f27f936a-b030-4cd9-a9ed-135ba38eb1f8",
                   "realized_by": [
-                    "Python 3.11"
+                    "Apache Kafka (Docker)",
+                    "Python 3.11 (FastAPI sidecar + consumer)",
+                    "C# .NET 10 (Windows service supervisor)"
                   ],
-                  "orphan": true,
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T007",
-                  "requirement": "Errors MUST be written to errors.json.",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "Errors MUST be written to errors.json with timestamp, source, and error message.",
+                  "source": "Boss + Perplexity architecture review",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "technical",
+                  "approval": "proposed",
+                  "ch_matrix_id": "c15cc7b8-d3e8-4486-97a2-375dce2190a0",
                   "realized_by": [
-                    "Python 3.11"
+                    "Apache Kafka (Docker)",
+                    "Python 3.11 (FastAPI sidecar + consumer)",
+                    "C# .NET 10 (Windows service supervisor)"
                   ],
-                  "orphan": true,
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T008",
-                  "requirement": "The service MUST inject a service utterance recording job ID, counts, and timestamp.",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "MongoDB connection string MUST be read from Code/.env. All MongoDB communication MUST use TLS 1.2+. Every record written to MongoDB MUST include build number, framework version, and product version from version.json.",
+                  "source": "Boss + Perplexity architecture review",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "technical",
+                  "approval": "proposed",
+                  "ch_matrix_id": "b440dcad-f792-4612-ab62-40666600f5ac",
                   "realized_by": [
-                    "Python 3.11"
+                    "Apache Kafka (Docker)",
+                    "Python 3.11 (FastAPI sidecar + consumer)",
+                    "C# .NET 10 (Windows service supervisor)"
                   ],
-                  "orphan": true,
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T009",
-                  "requirement": "MongoDB connection string MUST be read from Code/.env. All MongoDB communication MUST use TLS 1.2+. Every record written to MongoDB MUST include: job number, build number, framework number, and version number.",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "Apache Kafka is licensed under Apache 2.0. This dependency is approved for commercial use and investor IP due diligence. No SSPL, RSALv2, or proprietary-licensed queue technology may be used.",
+                  "source": "Boss + Perplexity architecture review",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "technical",
+                  "approval": "proposed",
+                  "ch_matrix_id": "88490892-894a-4c22-9ba4-9dfb7a5c57fb",
                   "realized_by": [
-                    "Python 3.11",
-                    "MongoDB Atlas"
+                    "Apache Kafka (Docker)",
+                    "Python 3.11 (FastAPI sidecar + consumer)",
+                    "C# .NET 10 (Windows service supervisor)"
                   ],
-                  "orphan": true,
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-T010",
-                  "requirement": "working_mode MUST be an element in version.json under current. Valid values: idiot, normal, unattended.",
+                  "story_id": "BRAIN-CONVERSATION-LOG",
+                  "requirement": "conversation_log.json schema MUST be defined in schema.json and validated by the pre-commit scanner. The schema_address field MUST be present in the file header.",
+                  "source": "Boss + Perplexity architecture review",
                   "priority": "must-have",
                   "status": "not_started",
-                  "type": "technical",
+                  "approval": "proposed",
+                  "ch_matrix_id": "1dc7dcff-e4b0-411f-bfbb-ed77c8b85cf2",
                   "realized_by": [
-                    "Python 3.11"
+                    "Apache Kafka (Docker)",
+                    "Python 3.11 (FastAPI sidecar + consumer)",
+                    "C# .NET 10 (Windows service supervisor)"
                   ],
-                  "orphan": true,
+                  "orphan": false,
                   "pytests": [
                     {
                       "pytest_id": "ORPHAN",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
-                },
-                {
-                  "req_id": "BRAIN-CONVERSATION-LOG-REQ-T011",
-                  "requirement": "No code may do anything beyond realizing these requirements. The C# Windows service wrapper MUST NOT contain any business logic. The C# service MUST call a main entry point. The main MUST NOT contain business logic — it MUST construct a class that has a run method, and call that method.",
-                  "priority": "must-have",
-                  "status": "not_started",
-                  "type": "technical",
-                  "realized_by": [
-                    "C# .NET",
-                    "Python 3.11"
-                  ],
-                  "orphan": true,
-                  "pytests": [
-                    {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
-                    }
-                  ],
-                  "approval": "proposed"
+                  ]
                 },
                 {
                   "req_id": "BRAIN-CONVERSATION-LOG-REQ-012",
                   "story_id": "BRAIN-CONVERSATION-LOG",
-                  "requirement": "conversation_log.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                  "requirement": "conversation_log.json needs to be reviewed by Boss and Claude for possible rationalization.",
                   "source": "Boss",
                   "priority": "must-have",
-                  "status": "not_started",
+                  "status": "done",
+                  "approval": "approved",
                   "resolution_status": "fixed",
-                  "ch_matrix_id": "f3c747ac-a23d-4cb5-a596-a47704d49b1e",
+                  "ch_matrix_id": "e398b00b-88af-4458-bc23-e989022c4b67",
                   "realized_by": [
                     "Boss review",
                     "Claude analysis"
@@ -51344,8 +51366,7 @@
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
-                  ],
-                  "approval": "proposed"
+                  ]
                 }
               ],
               "orphan": false,
@@ -53103,9 +53124,10 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_devops_boot_and_scanner::TestREQ001_OrphanBugScan",
+                      "pytest_type": "unit",
+                      "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -53121,9 +53143,10 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_devops_boot_and_scanner::TestREQ002_OrphanScanFailOpen",
+                      "pytest_type": "unit",
+                      "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -53249,9 +53272,10 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_devops_boot_and_scanner::TestScanJsonREQ002_CVConstrainedFields",
+                      "pytest_type": "unit",
+                      "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                      "orphan": false
                     }
                   ],
                   "approval": "approved"
