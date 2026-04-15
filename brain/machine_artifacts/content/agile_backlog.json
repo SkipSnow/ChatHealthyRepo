@@ -41043,9 +41043,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_dq_compliance_report.py::test_backlog_file_exists_and_parses",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -41059,9 +41059,14 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_dq_compliance_report.py::test_hierarchy_walk_produces_all_levels",
+                      "pytest_type": "unit",
+                      "orphan": false
+                    },
+                    {
+                      "pytest_id": "test_dq_compliance_report.py::test_hierarchy_levels_have_counts",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -41075,9 +41080,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_dq_compliance_report.py::test_actionable_orphan_definition",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -41091,9 +41096,14 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_dq_compliance_report.py::test_epic_orphan_is_management_container",
+                      "pytest_type": "unit",
+                      "orphan": false
+                    },
+                    {
+                      "pytest_id": "test_dq_compliance_report.py::test_epic_orphan_features_treated_as_actionable",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -41107,9 +41117,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_dq_compliance_report.py::test_bugs_have_orphan_boolean",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -41123,9 +41133,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_dq_compliance_report.py::test_every_level_has_orphan_boolean",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -41139,9 +41149,14 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_dq_compliance_report.py::test_pytest_is_child_of_requirement",
+                      "pytest_type": "unit",
+                      "orphan": false
+                    },
+                    {
+                      "pytest_id": "test_dq_compliance_report.py::test_pytest_children_have_required_fields",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -41155,9 +41170,14 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_dq_compliance_report.py::test_bugs_has_schema_address",
+                      "pytest_type": "unit",
+                      "orphan": false
+                    },
+                    {
+                      "pytest_id": "test_dq_compliance_report.py::test_bugs_schema_defined_in_schema",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -41171,9 +41191,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_dq_compliance_report.py::test_report_table_can_be_generated",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -41409,9 +41429,14 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_findcare_ui_requirements.py::test_drag_drop_code_infrastructure",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
+                    },
+                    {
+                      "pytest_id": "test_findcare_ui_requirements.py::test_drag_drop_live_dom",
+                      "pytest_type": "playwright",
+                      "orphan": false
                     }
                   ],
                   "approval": "approved"
@@ -41509,9 +41534,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_findcare_ui_requirements.py::test_only_selected_sent_to_evaluate_care",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -42076,9 +42101,14 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_findcare_ui_requirements.py::test_specialty_list_scrollable_gui_manager",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
+                    },
+                    {
+                      "pytest_id": "test_findcare_ui_requirements.py::test_specialty_list_scrollable_findcare_app",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -42094,9 +42124,14 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_findcare_ui_requirements.py::test_toggle_all_button_in_gui_manager",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
+                    },
+                    {
+                      "pytest_id": "test_findcare_ui_requirements.py::test_toggle_all_button_in_findcare_app",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -42311,9 +42346,14 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_findcare_requirements.py::test_summary_uses_specialty_searched",
+                      "pytest_type": "unit",
+                      "orphan": false
+                    },
+                    {
+                      "pytest_id": "test_findcare_requirements.py::test_summary_falls_back_to_results_without_specialty",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "approved"
@@ -43064,9 +43104,14 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_pipeline_orchestrator.py::test_orchestrator_has_try_except_with_release",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
+                    },
+                    {
+                      "pytest_id": "test_pipeline_orchestrator.py::test_orchestrator_finally_releases_reservation",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
                     }
                   ],
                   "approval": "approved"
@@ -44882,9 +44927,14 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_findcare_requirements.py::test_search_results_include_can_prescribe_in_specialty_options",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
+                    },
+                    {
+                      "pytest_id": "test_findcare_requirements.py::test_classify_endpoint_returns_can_prescribe",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -44912,9 +44962,14 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_findcare_requirements.py::test_evaluate_care_facade_exists",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
+                    },
+                    {
+                      "pytest_id": "test_findcare_requirements.py::test_can_prescribe_available_for_evaluate_care",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46442,9 +46497,14 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_pipeline_orchestrator.py::test_copy_to_frontend_verifies_parity",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
+                    },
+                    {
+                      "pytest_id": "test_pipeline_orchestrator.py::test_copy_to_frontend_returns_parity_flag",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46463,9 +46523,14 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_pipeline_orchestrator.py::test_verify_parity_checks_per_state",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
+                    },
+                    {
+                      "pytest_id": "test_pipeline_orchestrator.py::test_verify_parity_compares_both_clusters",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46603,9 +46668,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_traceability.py::test_all_requirements_have_tests",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46624,9 +46689,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_traceability.py::test_test_files_exist",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -46645,9 +46710,9 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_traceability.py::test_matrix_valid_json",
+                      "pytest_type": "unit",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -47374,9 +47439,14 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_findcare_ui_requirements.py::test_control_frame_7_percent_in_html",
+                      "pytest_type": "static_analysis",
+                      "orphan": false
+                    },
+                    {
+                      "pytest_id": "test_findcare_ui_requirements.py::test_control_frame_7_percent_live",
+                      "pytest_type": "playwright",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"
@@ -51385,7 +51455,7 @@
                   "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
+                      "pytest_id": "test_findcare_requirements.py::test_conversation_log_rationalization",
                       "pytest_type": "ORPHAN",
                       "orphan": true
                     }
