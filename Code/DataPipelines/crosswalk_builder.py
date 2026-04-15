@@ -300,71 +300,72 @@ def rxclass_get_indications(molecule_name: str) -> list[dict]:
     return indications
 
 
-# ── UMLS Integration (COMMENTED OUT) ─────────────────────────────────────
+# ── UMLS Integration ────────────────────────────────────────────────────
 #
-# Requires UMLS license — pending application. Enable when license received.
+# UMLS license approved 2026-04-15. API key in .env as UMLS_API_KEY.
 #
 # UMLS bridges indication text (from drug labels) to ICD-10-CM codes via
 # the UMLS Metathesaurus. Key APIs:
 #   - /search/current?string={indication} — find CUI for indication text
 #   - /content/current/CUI/{cui}/atoms?sabs=ICD10CM — get ICD-10-CM codes
-#
-# def umls_get_icd10(indication_text: str, api_key: str = None) -> list[str]:
-#     """Map an indication string to ICD-10-CM codes via UMLS Metathesaurus.
-#
-#     Uses the UMLS REST API with a valid API key (requires UMLS license).
-#
-#     Args:
-#         indication_text: Clinical indication string (e.g. "Essential Hypertension")
-#         api_key: UMLS API key. Defaults to UMLS_API_KEY env var.
-#
-#     Returns:
-#         List of ICD-10-CM codes (e.g. ["I10", "I11.9"])
-#     """
-#     api_key = api_key or os.environ.get("UMLS_API_KEY")
-#     if not api_key:
-#         _log.warning("UMLS_API_KEY not set — cannot map indications to ICD-10")
-#         return []
-#
-#     base = "https://uts-ws.nlm.nih.gov/rest"
-#
-#     # Step 1: Search for CUI
-#     try:
-#         resp = requests.get(
-#             f"{base}/search/current",
-#             params={"string": indication_text, "apiKey": api_key},
-#             timeout=15,
-#         )
-#         resp.raise_for_status()
-#         results = resp.json().get("result", {}).get("results", [])
-#         if not results:
-#             return []
-#         cui = results[0].get("ui", "")
-#     except Exception as e:
-#         _log.warning("UMLS search failed for '%s': %s", indication_text, e)
-#         return []
-#
-#     # Step 2: Get ICD-10-CM atoms for this CUI
-#     try:
-#         resp = requests.get(
-#             f"{base}/content/current/CUI/{cui}/atoms",
-#             params={"sabs": "ICD10CM", "apiKey": api_key},
-#             timeout=15,
-#         )
-#         resp.raise_for_status()
-#         atoms = resp.json().get("result", [])
-#         codes = []
-#         for atom in atoms:
-#             code = atom.get("code", "")
-#             # Extract code from URI if needed
-#             if "/" in code:
-#                 code = code.rsplit("/", 1)[-1]
-#             if code:
-#                 codes.append(code)
-#         return sorted(set(codes))
-#     except Exception as e:
-#         _log.warning("UMLS ICD-10 lookup failed for CUI %s: %s", cui, e)
-#         return []
+
+
+def umls_get_icd10(indication_text: str, api_key: str = None) -> list[str]:
+    """Map an indication string to ICD-10-CM codes via UMLS Metathesaurus.
+
+    Uses the UMLS REST API with a valid API key (requires UMLS license).
+
+    Args:
+        indication_text: Clinical indication string (e.g. "Essential Hypertension")
+        api_key: UMLS API key. Defaults to UMLS_API_KEY env var.
+
+    Returns:
+        List of ICD-10-CM codes (e.g. ["I10", "I11.9"])
+    """
+    api_key = api_key or os.environ.get("UMLS_API_KEY")
+    if not api_key:
+        _log.warning("UMLS_API_KEY not set — cannot map indications to ICD-10")
+        return []
+
+    base = "https://uts-ws.nlm.nih.gov/rest"
+
+    # Step 1: Search for CUI
+    try:
+        resp = requests.get(
+            f"{base}/search/current",
+            params={"string": indication_text, "apiKey": api_key},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        results = resp.json().get("result", {}).get("results", [])
+        if not results:
+            return []
+        cui = results[0].get("ui", "")
+    except Exception as e:
+        _log.warning("UMLS search failed for '%s': %s", indication_text, e)
+        return []
+
+    # Step 2: Get ICD-10-CM atoms for this CUI
+    try:
+        resp = requests.get(
+            f"{base}/content/current/CUI/{cui}/atoms",
+            params={"sabs": "ICD10CM", "apiKey": api_key},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        atoms = resp.json().get("result", [])
+        codes = []
+        for atom in atoms:
+            code = atom.get("code", "")
+            # Extract code from URI if needed
+            if "/" in code:
+                code = code.rsplit("/", 1)[-1]
+            if code:
+                codes.append(code)
+        return sorted(set(codes))
+    except Exception as e:
+        _log.warning("UMLS ICD-10 lookup failed for CUI %s: %s", cui, e)
+        return []
 
 
 # ── Crosswalk Cache ──────────────────────────────────────────────────────
@@ -403,7 +404,7 @@ def build_crosswalk(molecule_name: str, env_prefix: str = "dev") -> dict:
       1. Check drug_crosswalk_cache (MongoDB)
       2. Normalize via RxNorm (brand/generic -> ingredient RXCUI)
       3. Look up indications via DrugCentral
-      4. (Future) Bridge to ICD-10-CM via UMLS
+      4. Bridge to ICD-10-CM via UMLS (licensed 2026-04-15)
       5. Cache the result
 
     Returns:
@@ -450,14 +451,13 @@ def build_crosswalk(molecule_name: str, env_prefix: str = "dev") -> dict:
     if not indications:
         indications = drugcentral_get_indications(ingredient_name)
 
-    # 4. UMLS bridging (commented out — requires license)
-    # When UMLS is licensed, use it to fill ICD-10 codes for indications
+    # 4. UMLS bridging — fill ICD-10 codes for indications
     # that RxClass returned without a match in _MESH_TO_ICD10.
-    #
-    # for ind in indications:
-    #     if not ind.get("icd10_cm"):
-    #         ind["icd10_cm"] = umls_get_icd10(ind["indication"])
-    #         ind["source"] = "umls"
+    for ind in indications:
+        if not ind.get("icd10_cm"):
+            ind["icd10_cm"] = umls_get_icd10(ind["indication"])
+            if ind["icd10_cm"]:
+                ind["source"] = "umls"
 
     # 5. Build result
     crosswalk = {
