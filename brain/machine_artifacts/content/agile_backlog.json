@@ -40966,6 +40966,28 @@
                       "orphan": true
                     }
                   ]
+                },
+                {
+                  "req_id": "IDX-003-REQ-003",
+                  "story_id": "IDX-003",
+                  "requirement": "After all pipeline jobs that move data to a collection (incremental or full load), the pipeline must know which indexes to build or maintain on that collection. If an index exists but is wrong (different definition), drop and rebuild it. If an index exists and is correct, accept it. If an index is missing, build it. The pipeline must wait for all indexes to reach READY status before releasing the reservation in the cluster lifecycle manager. This ensures the cluster can be paused with all indexes configured, live, and correct when it resumes.",
+                  "source": "Boss",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "label": "BUG-PIPE-007",
+                  "ch_matrix_id": "3d20df8f-f1bc-4e16-bd81-a16da87feba8",
+                  "realized_by": [
+                    "Azure Durable Functions (Python 3.12)",
+                    "MongoDB Atlas"
+                  ],
+                  "orphan": false,
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "ORPHAN",
+                      "orphan": true
+                    }
+                  ]
                 }
               ],
               "ch_matrix_id": "21c00a22-d039-4aa7-b1f8-1cde5862dd28",
@@ -50027,6 +50049,26 @@
                   "requirement": "The scanner validates v4-032: every plural-named field in every brain JSON must be an array. Every array member must conform to the singular-named schema. The scanner reads the schema to discover plural/singular pairs and validates the data against them. Implementation may be AI scan or code scan.",
                   "priority": "must-have",
                   "status": "open",
+                  "realized_by": [
+                    "Python 3.11 (pre_deploy_rule_check.py)"
+                  ],
+                  "orphan": false,
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "ORPHAN",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "ARCH-SCAN-JSON-REQ-002",
+                  "story_id": "ARCH-SCAN-JSON",
+                  "requirement": "The JSON scanner must validate all brain JSON fields that are constrained by a controlled vocabulary (constrained_by in schema.json). For each constrained field, the scanner must read the allowed values from the referenced CV in controlled_vocabularies.json and reject the file if any record contains a value not in the CV. The scanner must run as a pre-commit gate and block check-in of any brain JSON that fails CV validation. This applies to all CV-constrained fields including but not limited to bugs.json resolution_status (CV-009) and type (CV-008).",
+                  "source": "Boss",
+                  "priority": "must-have",
+                  "status": "accepted",
+                  "ch_matrix_id": "e5c147a5-4561-45f1-8193-eb604b15bd00",
                   "realized_by": [
                     "Python 3.11 (pre_deploy_rule_check.py)"
                   ],

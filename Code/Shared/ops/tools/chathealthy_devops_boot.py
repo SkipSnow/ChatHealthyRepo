@@ -621,6 +621,7 @@ class chathealthy_devops_boot:
         "design": "check_design",
         "engineering_rules": "check_engineering_rules",
         "emergency_keywords": "check_emergency_keywords",
+        "errors": None,  # Runtime error log from Windows service — not a constraint source
         "external_audits": "check_external_audits",
         "governance": "check_governance",
         "legal": "check_legal",

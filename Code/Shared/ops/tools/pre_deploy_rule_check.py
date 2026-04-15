@@ -225,25 +225,54 @@ def enforce_backlog_schema(rule_id, enforcement):
 
 
 def enforce_bugs_schema(rule_id, enforcement):
-    """Validate bugs.json against bugs_schema in schema.json."""
+    """Validate bugs.json against bugs_schema in schema.json.
+    ARCH-SCAN-JSON-REQ-002: Validates CV-constrained fields against controlled vocabularies."""
     violations = []
     bugs_path = os.path.join(REPO_ROOT, "brain", "machine_artifacts", "content", "bugs.json")
     schema_path = os.path.join(REPO_ROOT, "brain", "machine_artifacts", "content", "schema.json")
+    cv_path = os.path.join(REPO_ROOT, "brain", "machine_artifacts", "content", "controlled_vocabularies.json")
     try:
         with open(schema_path, "r", encoding="utf-8") as f:
             schema = json.load(f)
         with open(bugs_path, "r", encoding="utf-8") as f:
             bugs = json.load(f)
+        with open(cv_path, "r", encoding="utf-8") as f:
+            cv_data = json.load(f)
     except (json.JSONDecodeError, FileNotFoundError) as e:
         violations.append(f"{rule_id}: {e}")
         return violations
+
+    # Build CV lookup: CV-008 -> [values], CV-009 -> [values]
+    cv_lookup = {}
+    for cv in cv_data.get("vocabularies", []):
+        cv_id = cv.get("vocabulary_id", "")
+        if cv_id:
+            cv_lookup[cv_id] = [m.get("value") for m in cv.get("members", []) if m.get("value")]
 
     bug_fields = schema.get("collections", {}).get("bugs", {}).get("record_schema", {}).get("fields", {})
     for bug in bugs.get("bugs", []):
         bid = bug.get("id", "?")
         for fname, fdef in bug_fields.items():
+            # Required field check
             if fdef.get("required") and fname not in bug and fdef.get("default") is None:
                 violations.append(f"{rule_id}: bug:{bid} missing required field '{fname}'")
+            # CV-constrained field check (ARCH-SCAN-JSON-REQ-002)
+            if fname in bug:
+                val = bug[fname]
+                # Check possible_values from schema
+                possible = fdef.get("possible_values", [])
+                if possible and val and isinstance(val, str) and val not in possible:
+                    violations.append(
+                        f"{rule_id}: bug:{bid} '{fname}' value '{val}' not in schema possible_values {possible}"
+                    )
+                # Check constrained_by CV
+                cv_id = fdef.get("constrained_by", "")
+                if cv_id and cv_id in cv_lookup:
+                    cv_values = cv_lookup[cv_id]
+                    if cv_values and val and isinstance(val, str) and val not in cv_values:
+                        violations.append(
+                            f"{rule_id}: bug:{bid} '{fname}' value '{val}' not in {cv_id} {cv_values}"
+                        )
     return violations
 
 

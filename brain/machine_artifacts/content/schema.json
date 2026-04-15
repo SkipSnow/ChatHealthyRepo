@@ -106,11 +106,20 @@
             "required": true,
             "constrained_by": "CV-009",
             "possible_values": [
+              "new",
               "in_analysis",
               "fixing",
+              "ist_working",
+              "ist_testing",
+              "failed_ist_testing",
+              "uat_pending",
+              "uat_testing",
+              "failed_uat_testing",
               "testing",
               "tested_passed",
+              "fixed",
               "deferred",
+              "removed",
               "closed_reqs_reorganized"
             ]
           },

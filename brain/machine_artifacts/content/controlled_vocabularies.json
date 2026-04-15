@@ -652,6 +652,56 @@
           "value": "closed_reqs_reorganized",
           "definition": "Bug closed because the requirement it referenced was renumbered or reorganized. The bug is no longer valid against the new requirement structure.",
           "ch_matrix_id": "b2000001-0000-4000-c000-000000000005"
+        },
+        {
+          "value": "new",
+          "definition": "Bug newly reported. Not yet triaged or investigated.",
+          "ch_matrix_id": "b2000001-0000-4000-c000-000000000006"
+        },
+        {
+          "value": "ist_working",
+          "definition": "Internal system testing in progress. Developer is actively working on and testing the fix.",
+          "ch_matrix_id": "b2000001-0000-4000-c000-000000000007"
+        },
+        {
+          "value": "ist_testing",
+          "definition": "Fix complete. Internal system testing underway to verify the fix.",
+          "ch_matrix_id": "b2000001-0000-4000-c000-000000000008"
+        },
+        {
+          "value": "uat_testing",
+          "definition": "IST passed. User acceptance testing underway with Boss.",
+          "ch_matrix_id": "b2000001-0000-4000-c000-000000000009"
+        },
+        {
+          "value": "uat_pending",
+          "definition": "Fix ready for UAT but Boss has not yet started testing.",
+          "ch_matrix_id": "b2000001-0000-4000-c000-000000000010"
+        },
+        {
+          "value": "failed_ist_testing",
+          "definition": "Fix failed internal system testing. Returned to fixing.",
+          "ch_matrix_id": "b2000001-0000-4000-c000-000000000011"
+        },
+        {
+          "value": "failed_uat_testing",
+          "definition": "Fix failed user acceptance testing. Returned to fixing.",
+          "ch_matrix_id": "b2000001-0000-4000-c000-000000000012"
+        },
+        {
+          "value": "deferred",
+          "definition": "Bug acknowledged but intentionally deferred. Will be addressed in a future sprint.",
+          "ch_matrix_id": "b2000001-0000-4000-c000-000000000015"
+        },
+        {
+          "value": "removed",
+          "definition": "Bug removed from tracking. No longer applicable.",
+          "ch_matrix_id": "b2000001-0000-4000-c000-000000000013"
+        },
+        {
+          "value": "fixed",
+          "definition": "Bug fix verified and confirmed complete.",
+          "ch_matrix_id": "b2000001-0000-4000-c000-000000000014"
         }
       ],
       "invoked_by": {
