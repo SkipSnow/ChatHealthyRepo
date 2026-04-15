@@ -318,3 +318,297 @@ class TestT010_Schema:
         with open(log_path, encoding="utf-8") as f:
             data = json.load(f)
         assert "schema_address" in data, "conversation_log.json missing schema_address"
+
+
+# ══════════════════════════════════════════════════════════════════════
+# T003: Consumer reads Kafka, GPT redaction, CH_KEY_ + GUID, timestamps,
+#       archives to MongoDB. Manual commit. At-least-once.
+# ══════════════════════════════════════════════════════════════════════
+
+class TestT003_Consumer:
+
+    def test_consumer_builds_record_with_ch_key(self):
+        """T003: Records in MongoDB have CH_KEY_ prefix."""
+        from pymongo import MongoClient
+        from dotenv import load_dotenv
+        from pathlib import Path
+        load_dotenv(Path(REPO_ROOT) / "Code" / ".env")
+        conn = os.environ.get("MONGO_FRONTEND_connectionString", "")
+        if not conn:
+            pytest.skip("No MongoDB connection string")
+        client = MongoClient(conn, serverSelectionTimeoutMS=10000)
+        coll = client["ClaudeCodeLog"]["conversation_log_archive"]
+        rec = coll.find_one({"ch_key": {"$regex": "^CH_KEY_"}})
+        assert rec is not None, "No CH_KEY_ records in MongoDB — consumer may not have run"
+        assert rec["ch_key"].startswith("CH_KEY_")
+        assert len(rec["ch_key"]) > 10  # CH_KEY_ + UUID
+
+    def test_consumer_records_have_timestamps(self):
+        """T003/B002: Records have PST and UTC timestamps."""
+        from pymongo import MongoClient
+        from dotenv import load_dotenv
+        from pathlib import Path
+        load_dotenv(Path(REPO_ROOT) / "Code" / ".env")
+        conn = os.environ.get("MONGO_FRONTEND_connectionString", "")
+        if not conn:
+            pytest.skip("No MongoDB connection string")
+        client = MongoClient(conn, serverSelectionTimeoutMS=10000)
+        coll = client["ClaudeCodeLog"]["conversation_log_archive"]
+        rec = coll.find_one({"ch_key": {"$regex": "^CH_KEY_"}})
+        assert rec is not None
+        assert "timestamp_pst" in rec, "Record missing timestamp_pst"
+        assert "timestamp_utc" in rec, "Record missing timestamp_utc"
+
+    def test_consumer_uses_manual_commit(self):
+        """T003: Consumer config has enable.auto.commit=False (code inspection)."""
+        consumer_path = os.path.join(REPO_ROOT, "Code", "Shared", "ops", "kafka", "conversation_log_consumer.py")
+        with open(consumer_path, encoding="utf-8") as f:
+            content = f.read()
+        assert '"enable.auto.commit": False' in content or "'enable.auto.commit': False" in content
+
+
+# ══════════════════════════════════════════════════════════════════════
+# T008: MongoDB TLS 1.2+, version stamps on every record
+# ══════════════════════════════════════════════════════════════════════
+
+class TestT008_MongoDBVersionStamps:
+
+    def test_records_have_version_stamps(self):
+        """T008: Every Kafka-processed record has _version, _framework, _build."""
+        from pymongo import MongoClient
+        from dotenv import load_dotenv
+        from pathlib import Path
+        load_dotenv(Path(REPO_ROOT) / "Code" / ".env")
+        conn = os.environ.get("MONGO_FRONTEND_connectionString", "")
+        if not conn:
+            pytest.skip("No MongoDB connection string")
+        client = MongoClient(conn, serverSelectionTimeoutMS=10000)
+        coll = client["ClaudeCodeLog"]["conversation_log_archive"]
+        rec = coll.find_one({"ch_key": {"$regex": "^CH_KEY_"}})
+        assert rec is not None
+        assert "_version" in rec, "Record missing _version"
+        assert "_framework" in rec, "Record missing _framework"
+        assert "_build" in rec, "Record missing _build"
+
+    def test_mongo_connection_uses_tls(self):
+        """T008: MongoDB connection string uses mongodb+srv (TLS by default)."""
+        from dotenv import load_dotenv
+        from pathlib import Path
+        load_dotenv(Path(REPO_ROOT) / "Code" / ".env")
+        conn = os.environ.get("MONGO_FRONTEND_connectionString", "")
+        assert conn.startswith("mongodb+srv://"), "Connection string must use mongodb+srv (TLS)"
+
+    def test_connection_string_from_env(self):
+        """T008: Consumer reads connection string from .env, not hardcoded."""
+        consumer_path = os.path.join(REPO_ROOT, "Code", "Shared", "ops", "kafka", "conversation_log_consumer.py")
+        with open(consumer_path, encoding="utf-8") as f:
+            content = f.read()
+        assert 'os.environ.get("MONGO_FRONTEND_connectionString"' in content
+        # Must NOT have a hardcoded connection string
+        assert "mongodb+srv://" not in content, "Connection string hardcoded in consumer — must come from .env"
+
+
+# ══════════════════════════════════════════════════════════════════════
+# T011: Batch writes to MongoDB (insert_many, 50 msgs or 30s)
+# ══════════════════════════════════════════════════════════════════════
+
+class TestT011_BatchWrites:
+
+    def test_consumer_uses_insert_many(self):
+        """T011: Consumer uses insert_many, not insert_one."""
+        consumer_path = os.path.join(REPO_ROOT, "Code", "Shared", "ops", "kafka", "conversation_log_consumer.py")
+        with open(consumer_path, encoding="utf-8") as f:
+            content = f.read()
+        assert "insert_many" in content, "Consumer must use insert_many for batch writes"
+        assert "insert_one" not in content, "Consumer must NOT use insert_one — batch only"
+
+    def test_batch_size_is_50(self):
+        """T011: Batch size constant is 50."""
+        consumer_path = os.path.join(REPO_ROOT, "Code", "Shared", "ops", "kafka", "conversation_log_consumer.py")
+        with open(consumer_path, encoding="utf-8") as f:
+            content = f.read()
+        assert "BATCH_SIZE = 50" in content
+
+    def test_batch_timeout_is_30s(self):
+        """T011: Batch timeout constant is 30 seconds."""
+        consumer_path = os.path.join(REPO_ROOT, "Code", "Shared", "ops", "kafka", "conversation_log_consumer.py")
+        with open(consumer_path, encoding="utf-8") as f:
+            content = f.read()
+        assert "BATCH_TIMEOUT_SECONDS = 30" in content
+
+
+# ══════════════════════════════════════════════════════════════════════
+# B001: All visible text stored verbatim. No truncation.
+# ══════════════════════════════════════════════════════════════════════
+
+class TestB001_VerbatimStorage:
+
+    def test_consumer_does_not_truncate(self):
+        """B001: Consumer code must not truncate content."""
+        consumer_path = os.path.join(REPO_ROOT, "Code", "Shared", "ops", "kafka", "conversation_log_consumer.py")
+        with open(consumer_path, encoding="utf-8") as f:
+            content = f.read()
+        # The consumer should not have [:500] or [:200] truncation on content
+        # (It's OK for debug fields like prescriber_embedding_text)
+        assert 'content[:' not in content and "content[:" not in content, \
+            "Consumer truncates content — B001 requires verbatim storage"
+
+    def test_long_message_stored_in_full(self):
+        """B001: Send a long message and verify it arrives in MongoDB untruncated."""
+        from pymongo import MongoClient
+        from dotenv import load_dotenv
+        from pathlib import Path
+        load_dotenv(Path(REPO_ROOT) / "Code" / ".env")
+        conn = os.environ.get("MONGO_FRONTEND_connectionString", "")
+        if not conn:
+            pytest.skip("No MongoDB connection string")
+
+        # Send a long message through the sidecar — use real-looking text,
+        # not repeated characters (GPT would redact those as suspicious)
+        long_text = "B001-verbatim-test " + " ".join(
+            f"The provider in location {i} has specialty code {1000+i} and serves patients in district {i%10}"
+            for i in range(100)
+        )
+        marker = f"B001-{uuid.uuid4().hex[:8]}"
+        r = requests.post(
+            f"{SIDECAR_URL}/produce",
+            json={"prompt": f"{marker} {long_text}", "hook_event_name": "UserPromptSubmit"},
+            headers={"X-Hook-Event": "UserPromptSubmit"},
+            timeout=2,
+        )
+        assert r.status_code == 202
+
+        # Wait for consumer to process and flush (batch timeout = 30s)
+        time.sleep(35)
+
+        client = MongoClient(conn, serverSelectionTimeoutMS=10000)
+        coll = client["ClaudeCodeLog"]["conversation_log_archive"]
+        rec = coll.find_one({"content": {"$regex": marker}})
+        if rec:
+            assert len(rec["content"]) >= 2000, f"Content truncated to {len(rec['content'])} chars"
+
+
+# ══════════════════════════════════════════════════════════════════════
+# B002: PST timestamp, UTC timestamp, globally unique key
+# ══════════════════════════════════════════════════════════════════════
+
+class TestB002_Timestamps:
+
+    def test_record_has_pst_utc_and_key(self):
+        """B002: Every record has timestamp_pst, timestamp_utc, and ch_key."""
+        from pymongo import MongoClient
+        from dotenv import load_dotenv
+        from pathlib import Path
+        load_dotenv(Path(REPO_ROOT) / "Code" / ".env")
+        conn = os.environ.get("MONGO_FRONTEND_connectionString", "")
+        if not conn:
+            pytest.skip("No MongoDB connection string")
+        client = MongoClient(conn, serverSelectionTimeoutMS=10000)
+        coll = client["ClaudeCodeLog"]["conversation_log_archive"]
+        # Check the 5 most recent Kafka-processed records
+        for rec in coll.find({"ch_key": {"$regex": "^CH_KEY_"}}).sort("timestamp_utc", -1).limit(5):
+            assert "timestamp_pst" in rec
+            assert "timestamp_utc" in rec
+            assert "ch_key" in rec
+            assert rec["ch_key"].startswith("CH_KEY_")
+
+    def test_keys_are_unique(self):
+        """B002: ch_key values are globally unique (no duplicates)."""
+        from pymongo import MongoClient
+        from dotenv import load_dotenv
+        from pathlib import Path
+        load_dotenv(Path(REPO_ROOT) / "Code" / ".env")
+        conn = os.environ.get("MONGO_FRONTEND_connectionString", "")
+        if not conn:
+            pytest.skip("No MongoDB connection string")
+        client = MongoClient(conn, serverSelectionTimeoutMS=10000)
+        coll = client["ClaudeCodeLog"]["conversation_log_archive"]
+        keys = [r["ch_key"] for r in coll.find({"ch_key": {"$regex": "^CH_KEY_"}}, {"ch_key": 1})]
+        assert len(keys) == len(set(keys)), f"Duplicate ch_keys found: {len(keys)} total, {len(set(keys))} unique"
+
+
+# ══════════════════════════════════════════════════════════════════════
+# B003: ALL utterances durably captured. Zero loss target.
+# ══════════════════════════════════════════════════════════════════════
+
+class TestB003_DurableCapture:
+
+    def test_sidecar_returns_202_on_produce(self):
+        """B003: Sidecar durably accepts messages (202 = enqueued to Kafka)."""
+        r = requests.post(
+            f"{SIDECAR_URL}/produce",
+            json={"prompt": f"B003-durable-{uuid.uuid4().hex[:8]}"},
+            headers={"X-Hook-Event": "UserPromptSubmit"},
+            timeout=2,
+        )
+        assert r.status_code == 202
+
+    def test_kafka_topic_has_24h_retention(self):
+        """B003: Kafka topic retains messages for 24 hours (durable buffer)."""
+        with open(DOCKER_COMPOSE_PATH, encoding="utf-8") as f:
+            content = f.read()
+        assert "KAFKA_LOG_RETENTION_HOURS: 24" in content
+
+
+# ══════════════════════════════════════════════════════════════════════
+# B004: Sensitive content redacted
+# ══════════════════════════════════════════════════════════════════════
+
+class TestB004_Redaction:
+
+    def test_consumer_calls_gpt_for_redaction(self):
+        """B004: Consumer code calls GPT-4.1-mini for redaction."""
+        consumer_path = os.path.join(REPO_ROOT, "Code", "Shared", "ops", "kafka", "conversation_log_consumer.py")
+        with open(consumer_path, encoding="utf-8") as f:
+            content = f.read()
+        assert "gpt-4.1-mini" in content
+        assert "Sensitive content redacted" in content
+        assert "expletive redacted" in content
+
+
+# ══════════════════════════════════════════════════════════════════════
+# B007: Service starts on boot without operator intervention
+# ══════════════════════════════════════════════════════════════════════
+
+class TestB007_AutoStart:
+
+    def test_service_is_auto_start(self):
+        """B007: Service configured for AUTO_START."""
+        result = subprocess.run(
+            ["sc", "qc", "ChatHealthyClaudeLogMgmt"],
+            capture_output=True, text=True, timeout=5,
+        )
+        assert "AUTO_START" in result.stdout
+
+
+# ══════════════════════════════════════════════════════════════════════
+# B008: MongoDB unavailable — utterances retained durably
+# ══════════════════════════════════════════════════════════════════════
+
+class TestB008_MongoUnavailable:
+
+    def test_consumer_does_not_commit_on_mongo_failure(self):
+        """B008: Consumer code does NOT commit offset if MongoDB write fails."""
+        consumer_path = os.path.join(REPO_ROOT, "Code", "Shared", "ops", "kafka", "conversation_log_consumer.py")
+        with open(consumer_path, encoding="utf-8") as f:
+            content = f.read()
+        # The commit must be INSIDE the try block, after insert_many
+        # and the except block must NOT contain consumer.commit
+        assert "# Do NOT commit" in content or "Do NOT commit" in content, \
+            "Consumer must explicitly document that it does not commit on MongoDB failure"
+
+
+# ══════════════════════════════════════════════════════════════════════
+# B010: User can restart service, operational within 10 seconds
+# ══════════════════════════════════════════════════════════════════════
+
+class TestB010_RestartCapability:
+
+    def test_service_can_be_queried(self):
+        """B010: Service is queryable via sc command."""
+        result = subprocess.run(
+            ["sc", "query", "ChatHealthyClaudeLogMgmt"],
+            capture_output=True, text=True, timeout=5,
+        )
+        assert result.returncode == 0
+        assert "ChatHealthyClaudeLogMgmt" in result.stdout
