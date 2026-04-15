@@ -1,0 +1,72 @@
+[
+  {
+    "timestamp": "2026-04-14T11:22:04.875715+00:00",
+    "source": "ChatHealthyClaudeLogManagementWindowsService",
+    "error": "Parity check failed: schema violations: [\"utterance:926 missing 'userId'\", \"utterance:927 missing 'userId'\", \"utterance:928 missing 'userId'\", \"utterance:929 missing 'userId'\", \"utterance:930 missing 'userId'\", \"utterance:931 missing 'userId'\", \"utterance:932 missing 'userId'\", \"utterance:933 missing 'userId'\", \"utterance:934 missing 'userId'\", \"utterance:935 missing 'userId'\", \"utterance:936 missing 'userId'\", \"utterance:937 missing 'userId'\", \"utterance:938 missing 'userId'\", \"utterance:939 missing 'userId'\", \"utterance:940 missing 'userId'\", \"utterance:941 missing 'userId'\", \"utterance:942 missing 'userId'\"]"
+  },
+  {
+    "timestamp": "2026-04-14T11:55:35.798519+00:00",
+    "source": "ChatHealthyClaudeLogManagementWindowsService",
+    "error": "Cycle crashed: can't compare offset-naive and offset-aware datetimes"
+  },
+  {
+    "timestamp": "2026-04-14T11:58:16.686852+00:00",
+    "source": "ChatHealthyClaudeLogManagementWindowsService",
+    "error": "Cycle crashed: can't compare offset-naive and offset-aware datetimes"
+  },
+  {
+    "timestamp": "2026-04-14T14:44:42.786290+00:00",
+    "source": "ChatHealthyClaudeLogManagementWindowsService",
+    "error": "Agent returned status 500: Failed to stream response: 400 Client Error: Bad Request for url: https://api.anthropic.com/v1/sessions/sesn_011Ca3qqEEwFk7NgSEJMq6cm/stream"
+  },
+  {
+    "timestamp": "2026-04-14T14:45:10.100506+00:00",
+    "source": "ChatHealthyClaudeLogManagementWindowsService",
+    "error": "Agent returned status 500: Failed to stream response: 400 Client Error: Bad Request for url: https://api.anthropic.com/v1/sessions/sesn_011Ca3qsFF1jCHLTXBNkHVVD/stream"
+  },
+  {
+    "timestamp": "2026-04-14T14:47:38.581365+00:00",
+    "source": "ChatHealthyClaudeLogManagementWindowsService",
+    "error": "Agent returned status 500: Failed to create session: 400 Client Error: Bad Request for url: https://api.anthropic.com/v1/sessions"
+  },
+  {
+    "timestamp": "2026-04-14T14:57:43.625938+00:00",
+    "source": "ChatHealthyClaudeLogManagementWindowsService",
+    "error": "Agent returned status 500: Failed to stream response: HTTPSConnectionPool(host='api.anthropic.com', port=443): Read timed out."
+  },
+  {
+    "timestamp": "2026-04-14T15:13:43.170748+00:00",
+    "source": "ChatHealthyClaudeLogManagementWindowsService",
+    "error": "Agent returned status 500: Failed to stream response: HTTPSConnectionPool(host='api.anthropic.com', port=443): Read timed out."
+  },
+  {
+    "timestamp": "2026-04-14T15:21:24.653015+00:00",
+    "source": "ChatHealthyClaudeLogManagementWindowsService",
+    "error": "Agent returned status 500: Failed to stream response: HTTPSConnectionPool(host='api.anthropic.com', port=443): Read timed out."
+  },
+  {
+    "timestamp": "2026-04-14T15:21:30.688646+00:00",
+    "source": "ChatHealthyClaudeLogManagementWindowsService",
+    "error": "Agent returned status 500: Failed to send message: 400 Client Error: Bad Request for url: https://api.anthropic.com/v1/sessions/sesn_011Ca3te24VztprQpPYuqPge/events"
+  },
+  {
+    "timestamp": "2026-04-14T15:29:30.272279+00:00",
+    "source": "ChatHealthyClaudeLogManagementWindowsService",
+    "error": "Agent returned status 500: Failed to stream response: Response ended prematurely"
+  },
+  {
+    "timestamp": "2026-04-14T15:36:22.801380+00:00",
+    "source": "ChatHealthyClaudeLogManagementWindowsService",
+    "error": "Agent returned status 500: Failed to stream response: Response ended prematurely"
+  },
+  {
+    "timestamp": "2026-04-14T15:48:00.248397+00:00",
+    "source": "ChatHealthyClaudeLogManagementWindowsService",
+    "error": "Agent returned status 500: Failed to stream response: Response ended prematurely"
+  },
+  {
+    "timestamp": "2026-04-14T16:03:19.256378+00:00",
+    "source": "ChatHealthyClaudeLogManagementWindowsService",
+    "error": "Agent returned status 500: Agent error: {'message': 'An internal service error occurred.', 'type': 'unknown_error'}"
+  }
+]
