@@ -210,14 +210,14 @@
         "qa",
         "prod"
       ],
-      "status": "open",
+      "status": "testing",
       "risk_acceptance_id": null,
-      "req_id": "ORPHAN_BUG",
+      "req_id": "PIPE-LC-015",
       "type": "medium",
       "reason": "Cluster lifecycle reservations stored on the managed cluster. The pipeline management data (_System.cluster_lifecycle) is on the pipeline cluster — the cluster being managed. This creates chicken-and-",
-      "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "resolution_status": "testing",
+      "story_id": "PIPE-LC-015",
+      "orphan": false
     },
     {
       "id": "BUG-PIPE-004",
@@ -273,14 +273,14 @@
         "qa",
         "prod"
       ],
-      "status": "open",
+      "status": "testing",
       "risk_acceptance_id": null,
-      "req_id": "ORPHAN_BUG",
+      "req_id": "PIPE-ID-001",
       "type": "medium",
       "reason": "Load workers insert duplicate NPI records. 70,000 duplicates found. Same worker_id, same record_id — exact duplicate rows. Root cause: bulk_write batch flushed twice, or worker retried after partial s",
-      "resolution_status": "tested_passed",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "resolution_status": "testing",
+      "story_id": "PIPE-ID-001",
+      "orphan": false
     },
     {
       "id": "BUG-PIPE-007",
@@ -296,12 +296,12 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "req_id": "ORPHAN_BUG",
+      "req_id": "IDX-003-REQ-003",
       "type": "medium",
       "reason": "ensure_postload_indexes_activity fails with DuplicateKeyError on load_record_unique index. Root cause TBD — drop() should clear indexes, but post-load index creation finds duplicate load_id + record_i",
-      "resolution_status": "in_analysis",
-      "story_id": "ORPHAN",
-      "orphan": true
+      "resolution_status": "failed_ist_testing",
+      "story_id": "IDX-003",
+      "orphan": false
     },
     {
       "id": "BUG-ROADMAP-001",
@@ -656,7 +656,6 @@
     },
     {
       "bug_id": "BUG-001",
-      "severity": "HIGH",
       "requirement": "R19",
       "title": "Timeout behavior not enforced or not testable",
       "expected": "Requests exceeding 30 seconds should return HTTP 504 and trigger retry guidance",
@@ -683,7 +682,6 @@
     },
     {
       "bug_id": "BUG-002",
-      "severity": "CRITICAL",
       "requirement": "R35",
       "title": "Pipeline cluster did not return 503 when expected paused",
       "expected": "Query against paused pipeline cluster should return HTTP 503 with error='cluster_unavailable' and authorization message",
@@ -711,7 +709,6 @@
     {
       "id": "BUG-DATA-001",
       "rule": "SHOW STOPPER: Frontend data insufficient to allow application to work with Delaware data. Missing vector search indexes (provider_vector_index, specialty_vector_index), missing npi unique index, missing state index. Data exists but is not searchable.",
-      "severity": "SHOW STOPPER",
       "environments": [
         "local",
         "dev",
@@ -740,7 +737,6 @@
     {
       "id": "BUG-PIPE-010",
       "rule": "SHOW STOPPER: Quality pipeline ships provider_quality to frontend without embeddings. 25,591 DE records have zero prescriber_embedding on both pipeline and frontend clusters. The embedding step (Step 6) in prescriber_pipeline_manager.py either never ran or failed silently for DE. Pipeline must not copy provider_quality to frontend until embeddings are complete. v4-025 violation: pipeline is not idempotent — partial data shipped as complete.",
-      "severity": "SHOW STOPPER",
       "environments": [
         "local",
         "dev",
@@ -852,27 +848,6 @@
       "orphan": true
     },
     {
-      "id": "BUG-PIPE-008",
-      "rule": "BUG CRITICAL: CopyToFrontEnd orchestrator never calls _create_specialty_vector_index() after copying SpecialtyMetaData. Function exists (copy_to_frontend.py:196-221) but is dead code. Frontend health check reports degraded. FindCare specialty search broken on frontend.",
-      "incident": "Health check returns degraded. specialty_vector_index missing.",
-      "date": "2026-04-10",
-      "environment": [
-        "local",
-        "dev",
-        "qa",
-        "prod"
-      ],
-      "status": "open",
-      "risk_acceptance_id": null,
-      "ch_matrix_id": "b0000008-0000-4000-e000-000000000008",
-      "req_id": "FC-PIPE-COPY-001-REQ-002",
-      "type": "medium",
-      "reason": "BUG CRITICAL: CopyToFrontEnd orchestrator never calls _create_specialty_vector_index() after copying SpecialtyMetaData. Function exists (copy_to_frontend.py:196-221) but is dead code. Frontend health",
-      "resolution_status": "tested_passed",
-      "story_id": "ORPHAN",
-      "orphan": true
-    },
-    {
       "id": "BUG-PIPE-009",
       "rule": "BUG: SpecialtyMetaData has no vector search index on pipeline cluster. load_specialty_data.py generates embeddings but never creates the vector index.",
       "incident": "Audit of load_specialty_data.py — embedding field present but no create_search_index call.",
@@ -925,7 +900,6 @@
       "status": "closed",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000011-0000-4000-e000-000000000011",
-      "severity": "SHOW STOPPER — ALPHA RELEASE BLOCKER",
       "resolution": "Not a bug — tokens display correctly. Smoke test had stale selectors and per-test page isolation. Fixed smoke test to use shared page fixture. UAT passed by Skip with screenshots 2026-04-10.",
       "resolution_status": "tested_passed",
       "req_id": "FC-EVAL-001-REQ-005",
@@ -2805,6 +2779,28 @@
       "type": "show_stopper",
       "reason": "Boot failure prevents Claude Code from operating. Violates fail-open requirement.",
       "resolution_status": "deferred",
+      "orphan": false
+    },
+    {
+      "id": "BUG-SCAN-001",
+      "rule": "BUG CRITICAL: Brain JSON files with CV-constrained fields (e.g. bugs.json resolution_status, type) are not validated against controlled vocabularies at check-in. Invalid values like 'fail' can be written to resolution_status without any gate catching the violation. The JSON scanner (pre-commit) must validate all CV-constrained fields against their controlled vocabulary and block check-in on violation.",
+      "incident": "BUG-PIPE-007 was assigned resolution_status='fail' which is not in CV-009. No scanner or pre-commit hook caught the invalid value.",
+      "date": "2026-04-15",
+      "ch_matrix_id": "20deb844-8520-4f93-a0cb-670c76c56c0f",
+      "environment": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "req_id": "ARCH-SCAN-JSON-REQ-002",
+      "story_id": "ARCH-SCAN-JSON",
+      "type": "critical",
+      "reason": "No pre-commit validation of CV-constrained fields in brain JSONs. Invalid values pass unchecked into the brain.",
+      "resolution_status": "new",
+      "next_action": "Implement CV validation in JSON scanner and wire into pre-commit hook.",
       "orphan": false
     }
   ],
