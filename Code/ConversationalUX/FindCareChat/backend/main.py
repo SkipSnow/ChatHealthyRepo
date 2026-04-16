@@ -700,145 +700,64 @@ def _strip_redundant_summary(text: str, total_count: int, page_count: int) -> st
 
 
 # ---------------------------------------------------------------------------
-# Chat loop
+# LangGraph chat orchestration — replaces the sequential chat loop
 # ---------------------------------------------------------------------------
+import sys as _sys
+_sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared"))
+from llm_client import chat as llm_chat
+from domain.find_care.provider_search_service import FindCareService as _FindCareServiceRef
+
+from application.chat_graph import build_graph
+
+_CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4.1")
+
+_chat_graph = build_graph(
+    safety_service=_safety_service,
+    url_guardian=_url_guardian,
+    prompt_maker=_prompt_maker,
+    tool_router=_tool_router,
+    anthropic_tools=anthropic_tools,
+    llm_chat_fn=llm_chat,
+    extract_search_term_fn=_extract_user_search_term,
+    strip_redundant_summary_fn=_strip_redundant_summary,
+    build_summary_message_fn=_FindCareServiceRef._build_summary_message,
+    format_chat_history_fn=_format_chat_history,
+    debug_logger=_debug_logger,
+    emergency_response=EMERGENCY_RESPONSE,
+    chat_model=_CHAT_MODEL,
+)
+
 async def _chat_inner(body: ChatRequest, request: Request):
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
         request.client.host if request.client else "unknown")
 
-    if _safety_service.try_admin_unlock(body.message, ip):
-        return ChatResponse(response="Session unlocked.")
-    if _safety_service.is_ip_locked(ip):
-        return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
-    if _safety_service.is_emergency(body.message):
-        full_history = list(body.history) + [{"role": "user", "content": body.message}]
-        _safety_service.lock_ip(ip, trigger_message=body.message, history=full_history)
-        return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
+    result = _chat_graph.invoke({
+        "user_message": body.message,
+        "history": body.history,
+        "ip": ip,
+    })
 
-    # Model from config — single source of truth
-    import sys as _sys
-    _sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared"))
-    from llm_client import chat as llm_chat
+    final = result.get("final_response", {})
 
-    _CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4.1")
-
-    user_msg_count = sum(1 for m in body.history if m.get("role") == "user")
-    system = _system_prompt(follow_up_check=user_msg_count > 0 and user_msg_count % 5 == 0)
-    messages = list(body.history) + [{"role": "user", "content": body.message}]
-    total_in = total_out = 0
-
-    _log.info("CHAT model=%s call=initial msgs=%d", _CHAT_MODEL, len(messages))
-    response = llm_chat(_CHAT_MODEL, messages, tools=anthropic_tools, system=system, max_tokens=4096)
-    total_in  += response.get("usage", {}).get("input_tokens", 0)
-    total_out += response.get("usage", {}).get("output_tokens", 0)
-
-    loop_iter = 0
-    last_provider_result = None
-    last_trials_result = None
-
-    while response.get("stop_reason") in ("tool_calls", "tool_use"):
-        tool_calls = response.get("tool_calls", [])
-        if not tool_calls:
-            break
-        tool_results = _tool_router.handle_normalized_tool_calls(tool_calls, messages, _format_chat_history)
-
-        # Capture tool results for system summary
-        for i, tc in enumerate(tool_calls):
-            tc_name = tc["function"]["name"]
-            if tc_name == "find_providers":
-                try:
-                    last_provider_result = json.loads(tool_results[i]["content"])
-                except (json.JSONDecodeError, KeyError, IndexError):
-                    pass
-            elif tc_name == "search_clinical_trials":
-                try:
-                    last_trials_result = json.loads(tool_results[i]["content"])
-                except (json.JSONDecodeError, KeyError, IndexError):
-                    pass
-
-        # Append assistant message with tool calls
-        assistant_msg = {"role": "assistant", "content": response.get("content", "")}
-        if tool_calls:
-            assistant_msg["tool_calls"] = [
-                {"id": tc["id"], "type": "function", "function": tc["function"]}
-                for tc in tool_calls
-            ]
-        messages.append(assistant_msg)
-        # Append tool results
-        for tr in tool_results:
-            messages.append(tr)
-
-        loop_iter += 1
-        _log.info("CHAT tool_loop iter=%d tools=%s", loop_iter, [tc["function"]["name"] for tc in tool_calls])
-        response = llm_chat(_CHAT_MODEL, messages, tools=anthropic_tools, system=system, max_tokens=4096)
-        total_in  += response.get("usage", {}).get("input_tokens", 0)
-        total_out += response.get("usage", {}).get("output_tokens", 0)
-
-    text = response.get("content", "")
-    text = _url_guardian.guard_text(text)
-    text = re.sub(r'(?<!\[)Skip Snow on LinkedIn(?!\])',
-                  '[Skip Snow on LinkedIn](https://linkedin.com/in/skipsnow)', text)
-
-    # Build pagination metadata if find_providers returned results
+    # Build typed response models from graph output
     pagination = None
-    if last_provider_result and isinstance(last_provider_result, dict):
-        total_count = last_provider_result.get("total_count", 0)
-        if total_count > 0:
-            # GOV-011-STD-002: extract user's colloquial search term, not full message
-            from domain.find_care.provider_search_service import FindCareService
-            user_term = _extract_user_search_term(body.message)
-            user_summary = FindCareService._build_summary_message(
-                has_more=last_provider_result.get("has_more", False),
-                total_count=total_count,
-                page_count=last_provider_result.get("count", 0),
-                specialty_searched=user_term,
-                specialization_options=last_provider_result.get("specialization_options"),
-                state=last_provider_result.get("state", ""),
-                city=(last_provider_result.get("search_params") or {}).get("city", ""),
-                county=(last_provider_result.get("search_params") or {}).get("county", ""),
-            )
-            pagination = PaginationMeta(
-                has_more=last_provider_result.get("has_more", False),
-                first_npi=last_provider_result.get("first_npi"),
-                last_npi=last_provider_result.get("last_npi"),
-                count=last_provider_result.get("count", 0),
-                total_count=total_count,
-                page_start=last_provider_result.get("page_start", 1),
-                page_end=last_provider_result.get("page_end", 0),
-                search_params=last_provider_result.get("search_params"),
-                specialization_options=last_provider_result.get("specialization_options"),
-                summary_message=user_summary,
-            )
+    if final.get("pagination"):
+        p = final["pagination"]
+        pagination = PaginationMeta(**p)
 
-    # Build trials metadata if search_clinical_trials returned results
     trials_meta = None
-    if last_trials_result and isinstance(last_trials_result, dict):
-        trial_list = last_trials_result.get("trials", [])
-        if trial_list:
-            trial_count = len(trial_list)
-            has_travel = any(t.get("travel_info") for t in trial_list)
-            user_msg = _extract_user_search_term(body.message)
-            # URL-safe condition from first trial's NCT ID page
-            first_url = trial_list[0].get("url", "https://clinicaltrials.gov")
-            parts = [f"Found {trial_count} recruiting trial{'s' if trial_count != 1 else ''} for '{user_msg}'."]
-            if has_travel:
-                parts.append(" Travel times included.")
-            parts.append(f" [View all on ClinicalTrials.gov](https://clinicaltrials.gov/search?cond={_requests_lib.utils.quote(user_msg)}&aggFilters=status:rec)")
-            trials_meta = TrialsMeta(
-                trial_count=trial_count,
-                condition=user_msg,
-                summary_message="".join(parts),
-            )
+    if final.get("trials"):
+        t = final["trials"]
+        trials_meta = TrialsMeta(**t)
 
-    # GOV-011-STD-001: Strip redundant summary from LLM response when system summary exists
-    if pagination and pagination.summary_message and text:
-        text = _strip_redundant_summary(text, pagination.total_count, pagination.count)
-
-    _log.info("CHAT complete tokens_in=%d tokens_out=%d pagination=%s trials=%s",
-              total_in, total_out, bool(pagination), bool(trials_meta))
-    _debug_logger.log_chat(ip, body.message, len(body.history), loop_iter, total_in, total_out, text, None)
-    return ChatResponse(response=text, tokens_in=total_in, tokens_out=total_out,
-                        pagination=pagination, trials=trials_meta)
+    return ChatResponse(
+        response=final.get("response"),
+        emergency=final.get("emergency", False),
+        tokens_in=final.get("tokens_in"),
+        tokens_out=final.get("tokens_out"),
+        pagination=pagination,
+        trials=trials_meta,
+    )
 
 # ---------------------------------------------------------------------------
 # Static files
