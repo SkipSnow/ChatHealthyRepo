@@ -3016,6 +3016,77 @@
       "source": "Boss found via manual testing 2026-04-17",
       "next_action": "fix Playwright step 22 then fix code",
       "orphan": false
+    },
+    {
+      "id": "BUG-SEC-006",
+      "rule": "BUG: Smoke test steps 15 and 27 assert TLS 1.2+ version only, not mutual-authentication enforcement. The test opens a socket with a client cert loaded into the SSL context and asserts the negotiated TLS version. A server that accepts TLS 1.2+ WITHOUT requiring a client cert would also pass — the negative-path (connection rejected when no client cert presented) is not tested. SEC-HTTPS-001-REQ-009 and REQ-010 both require mutual authentication; the current test does not prove mutual authentication is enforced in any environment.",
+      "incident": "Identified 2026-04-17 during deploy-script investigation. Step naming 'test_mtls_evaluatecare_tls12' / 'test_mtls_shared_services_tls12' and the mapped requirements both say mutual authentication; test code checks only transport encryption version. Local appears configured for mTLS via Caddy (:8081/:8082 with require_and_verify) but the test does not prove enforcement.",
+      "date": "2026-04-17",
+      "environment": [
+        "local",
+        "dev"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "c11bac2e-6d09-4d2f-b310-4193e8b61e0b",
+      "req_id": "SEC-HTTPS-001-REQ-009",
+      "type": "medium",
+      "reason": "Positive-path only: cert presented → connection works. Negative-path missing: cert absent → connection should be rejected. Without negative-path assertion we cannot claim mutual-auth enforcement, only that TLS is up.",
+      "reproduce": [
+        "Open Code/deploy/localSmokeTestPyTest.py, read TestStep15.test_mtls_evaluatecare_tls12 and TestStep27.test_mtls_shared_services_tls12.",
+        "Observe the only assertion is `assert tls_ver in ('TLSv1.2', 'TLSv1.3')` — TLS version check.",
+        "Remove the `ctx.load_cert_chain(...)` line temporarily and rerun against local; the test still passes if the server doesn't require the cert, proving the test does not verify enforcement.",
+        "Roll back the test change."
+      ],
+      "expected": "Test verifies BOTH positive path (client-cert presented → connection accepted) AND negative path (client-cert absent → connection rejected with ssl.SSLError or socket error). Both must pass for the test to claim mutual-auth enforcement.",
+      "actual": "Only positive path is tested. Negative path is not. Mutual authentication enforcement is unverified in all environments that run this smoke.",
+      "remediation": [
+        "Add TestStep15b (e.g., test_evalcare_rejects_without_client_cert) that attempts socket connection WITHOUT ctx.load_cert_chain and asserts the handshake fails.",
+        "Add matching TestStep27b for SharedServices.",
+        "Both the existing positive and the new negative tests must pass for mTLS enforcement to be claimed.",
+        "Keep tests hardcoded to localhost:8001/8002 for now; env-parameterization of the mTLS steps is a separate refactor."
+      ],
+      "how_to_verify_fix": "Run smoke: the new negative tests pass against a server that does require client certs, and fail (correctly) against one that doesn't. Together the pair proves mutual-auth enforcement.",
+      "story_id": "SEC-HTTPS-001",
+      "resolution_status": "new",
+      "orphan": false
+    },
+    {
+      "id": "BUG-SEC-007",
+      "rule": "BUG: Dev session tokens are missing the nonce entirely. Local emits the full-form token with both a nonce and a GUID (two distinct components). Dev emits what appears to be a GUID-only token (observed as `CH_{32-hex-chars}` in the session verification panel on every service handoff). Without a nonce, SEC-HTTPS-001-REQ-012's replay-protection guarantee (nonce regenerated fresh per inter-service call, NIST 800-53 SC-23) is absent on dev. The display correctly renders 'no nonce'; the root cause is the minter (or its inputs) differing between local and dev builds.",
+      "incident": "Skip identified 2026-04-17 via manual testing of dev after deploy_app_dev.sh completed. Session verification panel shows: Signed token: none, Nonce: CH_{GUID-format}, GUID: (empty), Verified: FAILED ✗. Local works; dev does not. Same behavior on every handoff (FindCare, EvaluateCare, SharedServices).",
+      "date": "2026-04-17",
+      "environment": [
+        "dev"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "fdbc3755-3487-412d-a555-b81963d1d362",
+      "req_id": "SEC-HTTPS-001-REQ-012",
+      "type": "high",
+      "reason": "Local emits full tokens, dev emits partial tokens. Code path differs between the two deployments. Skip's hypothesis: either (a) the code base deployed to dev is not identical to local, or (b) a Python dependency the minter needs is missing from the HF container's requirements file. Investigate which.",
+      "reproduce": [
+        "bash Code/deploy/deploy_app_dev.sh  (ensures dev is on current HEAD)",
+        "Open https://dev.chathealthy.ai in a browser.",
+        "Search 'find me a bone doctor in DE', press Send; wait for provider list.",
+        "Click a provider's select ↓ and then Evaluate.",
+        "Observe right-panel SESSION VERIFICATION: Signed token = none; Nonce field shows a 32-hex-char GUID-format value; GUID field is empty; Verified: FAILED.",
+        "Return to FindCare by changing a left-panel filter; same mislabel on the return token.",
+        "Click the banner Shared Services button; same mislabel on the SharedServices handoff."
+      ],
+      "expected": "Dev emits the same token shape as local. Per REQ-012: stable GUID for session lifetime, fresh nonce per inter-service call, presented in both panels identically (REQ-013). Panel shows Nonce populated, GUID populated, Verified: YES.",
+      "actual": "Dev token has no nonce component. Same effect on all three components (FindCare, EvaluateCare, SharedServices).",
+      "remediation": [
+        "Read Code/Shared/session_token.py and every code path that mints tokens, tracing what runs on HF vs local.",
+        "Diff the HF Dockerfile + requirements.txt vs the local environment — verify no module or dependency is missing that the minter needs.",
+        "Inventory which files are copied by deploy-findcare-backend.yml vs what deploy_localhost.sh uses — mismatch is Skip's primary hypothesis for why the same codebase behaves differently.",
+        "Fix the minter (or its packaging) so dev emits the full token format. Do NOT fix this by teaching the display parser to read short tokens; that would mask the security regression.",
+        "Add a smoke-test assertion that the token emitted by each environment is well-formed (len >= 68, parseable into nonce + guid)."
+      ],
+      "how_to_verify_fix": "After fix is deployed to dev: re-run smoke (SMOKE_TEST_ENV=dev); smoke steps that reference token format (17, 18, 19, 24, and handoff variants) go from FAILED to PASSED. Manual check in browser after handoff: Signed token populated (or 'unsigned' if BUG-SEC-002 is still unresolved), Nonce populated with fresh value, GUID matches across both panels, Verified: YES.",
+      "story_id": "SEC-HTTPS-001",
+      "resolution_status": "new",
+      "orphan": false
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
