@@ -50,16 +50,14 @@ function checkSecurityViolation(resp: Response, url: string): void {
 }
 
 // ── Session token ────────────────────────────────────────────────
+// No client-side fallback. If the server cannot mint a signed token the
+// flow MUST fail — synthesizing a CH_{uuid} placeholder here is the kind
+// of silent security regression that masked BUG-SEC-007.
 let _sessionToken: any = null
 async function getSessionToken(): Promise<any> {
-  // Nonce MUST be fresh on every call — not cached, not replayable
-  try {
-    const resp = await fetch(`${API_URL}/session`)
-    checkSecurityViolation(resp, `${API_URL}/session`)
-    _sessionToken = await resp.json()
-  } catch {
-    _sessionToken = { origin: 'FindCare', token: `CH_${crypto.randomUUID()}`, signed: false }
-  }
+  const resp = await fetch(`${API_URL}/session`)
+  checkSecurityViolation(resp, `${API_URL}/session`)
+  _sessionToken = await resp.json()
   return _sessionToken
 }
 

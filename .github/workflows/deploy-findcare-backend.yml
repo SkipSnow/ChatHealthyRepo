@@ -53,13 +53,6 @@ jobs:
           pip install pymongo python-dotenv
           python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare
 
-      - name: Bump build counter
-        env:
-          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
-        run: |
-          pip install pymongo python-dotenv
-          python Code/Shared/ops/bump_build.py --env ${{ steps.space.outputs.env }}
-
       - name: Build React frontend
         uses: actions/setup-node@v4
         with:
@@ -83,7 +76,10 @@ jobs:
           echo "Target Space: SkipSnow/${HF_SPACE}"
           git clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/${HF_SPACE} hf_space
 
+          # Preserve README.md (HF Space config frontmatter)
+          cp hf_space/README.md /tmp/hf_readme.md 2>/dev/null || true
           find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
+          cp /tmp/hf_readme.md hf_space/README.md 2>/dev/null || true
 
           # Backend code
           rsync -av \
@@ -99,7 +95,6 @@ jobs:
           for f in Code/Shared/*.py; do cp "$f" hf_space/; done
 
           # PKI certs deferred to Beta (BUG-SEC-002) — HF doesn't support mTLS
-          # Session token signing uses unsigned fallback on HF until Beta
 
           # Brain artifacts needed at runtime
           mkdir -p hf_space/brain/machine_artifacts/content

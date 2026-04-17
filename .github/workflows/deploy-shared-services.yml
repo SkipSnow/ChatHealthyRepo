@@ -49,12 +49,6 @@ jobs:
           pip install pymongo python-dotenv
           python Code/Shared/ops/tools/pre_deploy_rule_check.py shared
 
-      - name: Bump build counter
-        env:
-          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
-        run: |
-          python Code/Shared/ops/bump_build.py --env ${{ steps.space.outputs.env }}
-
       - name: Push to HuggingFace Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -77,6 +71,9 @@ jobs:
             --exclude='__pycache__' \
             --exclude='*.pyc' \
             Code/shared_services/ hf_space/
+
+          # Shared utilities — session_token.py etc. at root so `from session_token import ...` works
+          for f in Code/Shared/*.py; do cp "$f" hf_space/; done
 
           cd hf_space
           git add .
