@@ -1,6 +1,7 @@
 name: Deploy Shared Services to HuggingFace
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - dev
