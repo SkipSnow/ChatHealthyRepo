@@ -1,4 +1,5 @@
 {
+  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "collection": "agile_backlog",
   "governance_attribute_id": "ch_governance_record_id_efd2ec19-5b64-4a27-a745-e9d4d3260c69",
   "version": "1.0",
@@ -39949,25 +39950,6 @@
               "status": "not_started",
               "requirements": [
                 {
-                  "req_id": "DEVOPS-QA-001-REQ-001",
-                  "requirement": "Renderer reads qa_report JSON from brain and produces formatted HTML page",
-                  "priority": "must-have",
-                  "status": "not_started",
-                  "ch_matrix_id": "0ae50736-914b-48fc-94d7-43d1a7ee3178",
-                  "realized_by": [
-                    "Python 3.11 (docx generation)"
-                  ],
-                  "orphan": false,
-                  "pytests": [
-                    {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
-                    }
-                  ],
-                  "approval": "proposed"
-                },
-                {
                   "req_id": "DEVOPS-QA-001-REQ-002",
                   "requirement": "Report scoped by epic — shows only features for the specified release",
                   "priority": "must-have",
@@ -53201,7 +53183,7 @@
               "requirements": [
                 {
                   "req_id": "BRAIN-SCHEMA-REQ-001",
-                  "requirement": "schema.json MUST be controlled by a JSON schema. The file MUST be in strict compliance with that schema at all times.",
+                  "requirement": "All ChatHealthy JSON content files MUST reference a published schema on chathealthy.ai/schemas/{env}/ via a $schema field. All ChatHealthy JSON schema files MUST reference the JSON Schema spec at https://json-schema.org/draft/2020-12/schema — not the ChatHealthy website. Schemas define the spec. Content references the schema. On each check-in each JSON content file MUST be validated against its schema. All schemas MUST be published on ChatHealthy's static web site in the directory /schemas/{env}/. Third-party JSON files (e.g. VS Code, npm, .NET, Anthropic) are exempt.",
                   "priority": "must-have",
                   "status": "done",
                   "realized_by": [
@@ -53240,6 +53222,21 @@
                     }
                   ],
                   "approval": "proposed"
+                },
+                {
+                  "req_id": "BRAIN-SCHEMA-REQ-003",
+                  "requirement": "A relaxed schema with no field-level constraints is allowed as a temporary placeholder. Any ChatHealthy JSON file that does not yet have a specific schema MUST reference this relaxed schema. The relaxed schema MUST be published alongside all other schemas at chathealthy.ai/schemas/{env}/. No ChatHealthy JSON file may exist without a $schema reference.",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "unit",
+                      "orphan": true
+                    }
+                  ]
                 }
               ],
               "orphan": false,

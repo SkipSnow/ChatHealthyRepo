@@ -1,4 +1,5 @@
 {
+  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "collection": "governance",
   "governance_attribute_id": "ch_governance_record_id_cf95f1eb-fe7d-45fb-bc26-f971ea20b45d",
   "description": "Governance records: sign-offs, corporate cadence, and policies. Policies is a child of governance. Operating rules in engineering_rules.json. Risk acceptances in risk_acceptance.json.",

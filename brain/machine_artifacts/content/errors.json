@@ -68,5 +68,15 @@
     "timestamp": "2026-04-14T16:03:19.256378+00:00",
     "source": "ChatHealthyClaudeLogManagementWindowsService",
     "error": "Agent returned status 500: Agent error: {'message': 'An internal service error occurred.', 'type': 'unknown_error'}"
+  },
+  {
+    "timestamp": "2026-04-16T18:20:00.898588+00:00",
+    "source": "ConversationLogConsumer",
+    "error": "MongoDB batch write failed: No replica set members match selector \"Primary()\", Timeout: 10.0s, Topology Description: <TopologyDescription id: 69e12846f160c8323c16d87a, topology_type: ReplicaSetNoPrimary, servers: [<ServerDescription ('chathealthyfrontend-shard-00-00.mdwahg.mongodb.net', 27017) server_type: RSSecondary, rtt: 0.09399999999732246>, <ServerDescription ('chathealthyfrontend-shard-00-01.mdwahg.mongodb.net', 27017) server_type: Unknown, rtt: None>, <ServerDescription ('chathealthyfront"
+  },
+  {
+    "timestamp": "2026-04-16T18:21:27.419808+00:00",
+    "source": "ConversationLogConsumer",
+    "error": "MongoDB batch write failed: No replica set members match selector \"Primary()\", Timeout: 10.0s, Topology Description: <TopologyDescription id: 69e1289c6c71b4aaaaedaaea, topology_type: ReplicaSetNoPrimary, servers: [<ServerDescription ('chathealthyfrontend-shard-00-00.mdwahg.mongodb.net', 27017) server_type: RSSecondary, rtt: 0.09400000000023284>, <ServerDescription ('chathealthyfrontend-shard-00-01.mdwahg.mongodb.net', 27017) server_type: Unknown, rtt: None>, <ServerDescription ('chathealthyfront"
   }
 ]

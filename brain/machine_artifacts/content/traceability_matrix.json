@@ -1,4 +1,5 @@
 {
+  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "_record_id": "traceability_matrix",
   "governance_attribute_id": "ch_governance_record_id_fd48f1eb-8943-4070-bbb7-293a00628dfc",
   "title": "Pipeline v4 Requirement-to-Test Traceability Matrix",

@@ -1,4 +1,5 @@
 {
+  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "collection": "controlled_vocabularies",
   "governance_attribute_id": "ch_governance_record_id_47cd0b46-1dbd-4dd6-924b-96ea0e1be369",
   "description": "Governed controlled vocabularies used across the ChatHealthy.ai system. Each vocabulary has a definition, members with definitions, and implementation traceability. Engineering rules (engineering_rules.json, Version 5) are the authoritative standard per GOV-007 (Engineering Rules Are Standards). Vocabularies that duplicate v4 rules have been removed.",

@@ -1,4 +1,5 @@
 {
+  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "collection": "work_log",
   "governance_attribute_id": "ch_governance_record_id_a8636fbe-fa52-4c49-9439-c7b3ca24b637",
   "record_count": 13,
