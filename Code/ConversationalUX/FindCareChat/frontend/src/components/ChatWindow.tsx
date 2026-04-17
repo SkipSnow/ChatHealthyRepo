@@ -29,15 +29,13 @@ const LOADING_MESSAGE: Message = {
 
 // Session token — fetched from FindCare backend, signed with x509 cert.
 // Client carries the opaque signed blob, passes it on cross-component calls.
+// No client-side fallback: a failed /session call MUST surface as an error,
+// never a CH_{uuid} placeholder (that was the third layer of BUG-SEC-007).
 let _sessionToken: any = null
 async function getSessionToken(apiUrl: string) {
   if (_sessionToken) return _sessionToken
-  try {
-    const resp = await fetch(`${apiUrl}/session`)
-    _sessionToken = await resp.json()
-  } catch {
-    _sessionToken = { origin: 'FindCare', token: `CH_${crypto.randomUUID()}`, signed: false }
-  }
+  const resp = await fetch(`${apiUrl}/session`)
+  _sessionToken = await resp.json()
   return _sessionToken
 }
 

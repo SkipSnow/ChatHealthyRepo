@@ -243,6 +243,9 @@ def _startup_security_verification():
         _sys.exit(77)
     try:
         _probe = generate_session_token("FindCare")
+    except FileNotFoundError as _fnf:
+        _log.error("STARTUP ABEND exit=78 primitive=session_token reason=missing_key: %s", _fnf)
+        _sys.exit(78)
     except PermissionError as _perm:
         _log.error("STARTUP ABEND exit=77 primitive=session_token reason=permission_on_key: %s", _perm)
         _sys.exit(77)

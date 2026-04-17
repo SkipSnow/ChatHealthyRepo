@@ -54,17 +54,13 @@ def generate_session_token(origin: str = "FindCare") -> dict:
     token = f"CH{created_stamp}{created_stamp}{guid}"
     created = datetime.now(timezone.utc).isoformat()
 
-    # Load private key for signing
     key_path = os.path.join(CERTS_DIR, f"{origin.lower()}.key")
     if not os.path.exists(key_path):
-        # No cert — return unsigned (local dev without certs)
-        return {
-            "origin": origin,
-            "token": token,
-            "signature": None,
-            "created_at": created,
-            "signed": False,
-        }
+        raise FileNotFoundError(
+            f"session-token signing key not found: {key_path}. "
+            f"A session token cannot be issued without a signing key. "
+            f"Per SEC-HTTPS-001-REQ-014 the server MUST exit rather than serve unsigned tokens."
+        )
 
     with open(key_path, "rb") as f:
         private_key = serialization.load_pem_private_key(f.read(), password=None)
