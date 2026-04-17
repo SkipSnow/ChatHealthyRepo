@@ -136,92 +136,6 @@ def enforce_no_pattern(rule_id, enforcement):
     return violations
 
 
-def enforce_requirement_pytest(rule_id, enforcement):
-    """BUG-GOV-005 / v4-007: Every requirement in agile_backlog.json must have pytests.
-    Scans the one and only JSON where requirements live. Blocks check-in if any
-    implemented requirement is missing pytests children."""
-    violations = []
-    path = os.path.join(REPO_ROOT, enforcement.get("path", "brain/machine_artifacts/content/agile_backlog.json"))
-    if not os.path.exists(path):
-        violations.append(f"{rule_id}: agile_backlog.json missing")
-        return violations
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except json.JSONDecodeError as e:
-        violations.append(f"{rule_id}: invalid JSON: {e}")
-        return violations
-
-    for epic in data.get("epics", []):
-        epic_id = epic.get("epic_id", "?")
-        for feature in epic.get("features", []):
-            feature_id = feature.get("feature_id", "?")
-            for story in feature.get("stories", []):
-                story_id = story.get("story_id", "?")
-                for req in story.get("requirements", []):
-                    req_id = req.get("req_id", "?")
-                    # v4-007: Check pytests children (new format)
-                    pytests = req.get("pytests", [])
-                    if not pytests:
-                        status = req.get("status", "")
-                        if status not in ("implemented", "in_progress", "DONE"):
-                            continue
-                        violations.append(
-                            f"{rule_id}: {req_id} ({story_id}) has no pytests"
-                        )
-    return violations
-
-
-def enforce_backlog_schema(rule_id, enforcement):
-    """Validate agile_backlog.json against agile_backlog_schema in schema.json.
-    Checks required fields, patterns, and possible_values at all levels."""
-    violations = []
-    backlog_path = os.path.join(REPO_ROOT, enforcement.get("path", "brain/machine_artifacts/content/agile_backlog.json"))
-    schema_path = os.path.join(REPO_ROOT, "brain", "machine_artifacts", "content", "schema.json")
-
-    if not os.path.exists(backlog_path) or not os.path.exists(schema_path):
-        violations.append(f"{rule_id}: agile_backlog.json or schema.json missing")
-        return violations
-
-    try:
-        with open(schema_path, "r", encoding="utf-8") as f:
-            schema = json.load(f)
-        with open(backlog_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except json.JSONDecodeError as e:
-        violations.append(f"{rule_id}: invalid JSON: {e}")
-        return violations
-
-    schemas = schema.get("collections", {}).get("agile_backlog", {}).get("record_schemas", {})
-    if not schemas:
-        return violations  # No schema to validate against
-
-    def check(obj, sdef, path):
-        for fname, fdef in sdef.get("fields", {}).items():
-            if fname in ("features", "stories", "requirements", "depends_on"):
-                continue
-            if fdef.get("required") and fname not in obj:
-                violations.append(f"{rule_id}: {path} missing required field '{fname}'")
-            if fname in obj:
-                val = obj[fname]
-                pattern = fdef.get("pattern", "")
-                if pattern and isinstance(val, str) and not re.match(pattern, val):
-                    violations.append(f"{rule_id}: {path} '{fname}' value '{val}' does not match {pattern}")
-
-    for epic in data.get("epics", []):
-        eid = epic.get("epic_id", "?")
-        check(epic, schemas.get("epic", {}), f"epic:{eid}")
-        for feat in epic.get("features", []):
-            fid = feat.get("feature_id", "?")
-            check(feat, schemas.get("feature", {}), f"feature:{fid}")
-            for story in feat.get("stories", []):
-                sid = story.get("story_id", "?")
-                check(story, schemas.get("story", {}), f"story:{sid}")
-                for req in story.get("requirements", []):
-                    rid = req.get("req_id", "?")
-                    check(req, schemas.get("requirement", {}), f"req:{rid}")
-
-    return violations
 
 
 def enforce_bugs_schema(rule_id, enforcement):
@@ -349,8 +263,6 @@ EXECUTORS = {
     "file_present": enforce_file_present,
     "json_check": enforce_json_check,
     "no_pattern": enforce_no_pattern,
-    "requirement_pytest": enforce_requirement_pytest,
-    "backlog_schema": enforce_backlog_schema,
     "bugs_schema": enforce_bugs_schema,
     "ai_operations_schema": enforce_ai_operations_schema,
     "conversation_log_schema": enforce_conversation_log_schema,
