@@ -26,23 +26,31 @@ CERTS_DIR = os.environ.get("CERTS_DIR",
     os.path.join(os.path.dirname(__file__), "..", "Code", "Shared", "ops", "certs"))
 
 
+# Session GUID — created once per process, reused for all tokens.
+# The GUID is the session identity. The nonce (timestamps) proves freshness.
+_session_guid: str | None = None
+
+
 def generate_session_token(origin: str = "FindCare") -> dict:
     """Generate a new session token and sign it with the origin's private key.
 
-    Token format: CH{last_used:17}{created:17}{guid:32} = 68 chars, no delimiters.
-    The token IS the nonce — created_stamp (volatile) + guid (unique) satisfy:
-      - Uniqueness: guid is random per session
-      - Freshness: last_used stamp updated on keepalive
-      - Non-replayable: created + guid are signed, can't be forged
+    Token format: CH{nonce:17}{created:17}{guid:32} = 68 chars, no delimiters.
+      - GUID: same for the entire session (process lifetime). Identifies the session.
+      - Nonce (timestamps): fresh on every call. Proves freshness, prevents replay.
+      - Signature: signs origin + nonce + guid with private key.
 
     Returns {origin, token, signature, created_at} — pass entire dict to client.
     """
+    global _session_guid
+    if _session_guid is None:
+        _session_guid = uuid.uuid4().hex
+
     now = datetime.now(timezone.utc)
     ms = str(now.microsecond)[:3].zfill(3)
     created_stamp = now.strftime('%m%d%Y%H%M%S') + ms
-    guid = uuid.uuid4().hex
-    # Format: CH{last_used}{created}{guid} — no delimiters, obscured
-    # Only created + guid are signed. Last_used is mutable (session keepalive).
+    guid = _session_guid
+    # Format: CH{nonce}{created}{guid} — no delimiters, obscured
+    # Nonce changes every call. GUID stays the same for the session.
     token = f"CH{created_stamp}{created_stamp}{guid}"
     created = datetime.now(timezone.utc).isoformat()
 
@@ -123,6 +131,12 @@ def verify_session_token(session: dict, expected_origin: str = "FindCare") -> bo
             padding.PKCS1v15(),
             hashes.SHA256(),
         )
+        # Update the last_used nonce in the token to prove processing time
+        now = datetime.now(timezone.utc)
+        ms = str(now.microsecond)[:3].zfill(3)
+        last_used_stamp = now.strftime('%m%d%Y%H%M%S') + ms
+        session["token"] = f"CH{last_used_stamp}{created_stamp}{guid}"
+        session["last_used"] = now.isoformat()
         return True
     except Exception:
         return False
