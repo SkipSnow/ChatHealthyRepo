@@ -3087,6 +3087,156 @@
       "story_id": "SEC-HTTPS-001",
       "resolution_status": "new",
       "orphan": false
+    },
+    {
+      "id": "BUG-DEVOPS-008",
+      "rule": "Bug: deploy workflow bumps version.json build number on every run, making 'deploy the same commit to local and dev' produce two different build numbers. Accommodation: remove the bump-build step from all three HF deploy workflows; build numbers only change via a dedicated release flow per DEVOPS-DEPLOY-001-REQ-016.",
+      "incident": "Pre-session version.json was at build 951. After a single push cycle it landed at 961 (10 bumps), with workflows and commit hooks both incrementing.",
+      "reproduction": "(1) note current build in version.json; (2) push any change to origin/dev; (3) observe workflow runs; (4) re-read version.json — build has increased.",
+      "accommodation": "The 'Bump build counter' step in deploy-findcare-backend.yml, deploy-evaluatecare-backend.yml, and deploy-shared-services.yml MUST be absent. No workflow may invoke Code/Shared/ops/bump_build.py.",
+      "date": "2026-04-17",
+      "ch_matrix_id": "efe8a262-5275-4e4b-89e4-24861cc0be3a",
+      "environment": [
+        "local",
+        "dev"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "next_action": "Commit the workflow edits (already in staged working tree).",
+      "req_id": "DEVOPS-DEPLOY-001-REQ-016",
+      "type": "high",
+      "reason": "Deploys incrementing build number break apples-to-apples comparison between environments.",
+      "resolution_status": "in_fix",
+      "story_id": "DEVOPS-DEPLOY-001",
+      "orphan": false
+    },
+    {
+      "id": "BUG-DEVOPS-009",
+      "rule": "Bug: .git/hooks/post-commit bumps version.json build on every local commit, making even same-commit deploys diverge. Accommodation: neutralize the hook (exit 0 only) so commits don't rewrite version.json.",
+      "incident": "Committing 5a8d5ba surfaced 'Build: 962' in the hook output immediately after the scanner success line; version.json went 961 → 962 in working tree.",
+      "reproduction": "make any commit on this repo; observe the post-commit hook output includes 'Build: N+1' and version.json is modified in the working tree.",
+      "accommodation": "The post-commit hook MUST exit 0 without modifying version.json. Build changes MUST come only from an explicit release flow per DEVOPS-DEPLOY-001-REQ-016.",
+      "date": "2026-04-17",
+      "ch_matrix_id": "d96835b9-e77d-4893-a903-f373a563c181",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "next_action": "Hook already neutered in working tree; needs persistence story across machines.",
+      "req_id": "DEVOPS-DEPLOY-001-REQ-016",
+      "type": "high",
+      "reason": "Per-commit bump guarantees local and origin/dev disagree on build.",
+      "resolution_status": "in_fix",
+      "story_id": "DEVOPS-DEPLOY-001",
+      "orphan": false
+    },
+    {
+      "id": "BUG-DEVOPS-010",
+      "rule": "Bug: deploy_localhost.sh runs backends under the ambient Python venv, so hand-installed packages mask missing requirements.txt entries. HF containers build fresh from requirements.txt and fail on those same missing deps. Accommodation: a parallel deploy_localhost_docker.sh builds each backend image from its Dockerfile + requirements.txt and runs it in a container, identical to HF's build path.",
+      "incident": "BUG-SEC-007 (nonce missing on dev) traced back to 'cryptography' not being in FindCare's requirements.txt. Local was fine because the library was present in the ambient venv; HF was broken because its pip install followed requirements.txt literally.",
+      "reproduction": "(1) install a package into the local venv but omit it from a backend's requirements.txt; (2) run deploy_localhost.sh — local works; (3) push and deploy to HF — HF fails ImportError at startup.",
+      "accommodation": "Local deploy MUST go through Docker per DEVOPS-LOCAL-B014. Every import used at runtime MUST be declared in the backend's requirements.txt; no ambient-venv cheats.",
+      "date": "2026-04-17",
+      "ch_matrix_id": "6cfbc251-2e15-42c7-b37c-0581ddc0736e",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "next_action": "deploy_localhost_docker.sh is staged; needs smoke-test integration (TLS terminator).",
+      "req_id": "DEVOPS-LOCAL-B014",
+      "type": "critical",
+      "reason": "Root cause of apples-to-oranges between local and dev deploys.",
+      "resolution_status": "in_fix",
+      "story_id": "DEVOPS-DEPLOY-LOCAL",
+      "orphan": false
+    },
+    {
+      "id": "BUG-DEVOPS-011",
+      "rule": "Bug: /health endpoints do not expose the deployed commit SHA, so there is no rollback label. Accommodation: /health MUST include a 'commit' field sourced from COMMIT_SHA env var or .commit_sha file written at deploy time.",
+      "incident": "After deploying 5a8d5ba to dev, FindCare /health still reported commit='?'. No way to verify from /health which commit is running.",
+      "reproduction": "GET /health on any of the three backends. Observe no 'commit' field or the literal value '?'.",
+      "accommodation": "FindCare/EvalCare/SharedSvc /health MUST return a 'commit' field per DEVOPS-DEPLOY-001-REQ-017. Deploy workflows and local Docker deploy MUST supply the SHA.",
+      "date": "2026-04-17",
+      "ch_matrix_id": "70a378f7-4c85-43a5-8110-e8ac1a2e824d",
+      "environment": [
+        "local",
+        "dev"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "next_action": "Code changes staged; commit blocked until req-017 is approved.",
+      "req_id": "DEVOPS-DEPLOY-001-REQ-017",
+      "type": "high",
+      "reason": "Without SHA in /health there is no way to label a deploy for rollback.",
+      "resolution_status": "in_fix",
+      "story_id": "DEVOPS-DEPLOY-001",
+      "orphan": false
+    },
+    {
+      "id": "BUG-DEVOPS-006",
+      "rule": "Bug: FindCare deploy workflow wipes the HF Space README.md on every push, because the 'find -delete' step runs before any rsync and no README preservation exists. Accommodation: cp README.md to /tmp, delete, cp back — mirroring the pattern already used in EvalCare and SharedServices workflows.",
+      "incident": "Comparing deploy-findcare-backend.yml to the other two workflows showed the FindCare workflow lacked the README preservation block. Each deploy silently removed the HF Space config frontmatter.",
+      "reproduction": "(1) set README.md content on the FindCare HF Space; (2) trigger the FindCare deploy workflow; (3) observe the Space README.md is wiped or replaced.",
+      "accommodation": "The FindCare workflow MUST include a README-preservation block identical in intent to the one in EvalCare and SharedServices workflows, satisfying DEVOPS-DEPLOY-001-REQ-019.",
+      "date": "2026-04-17",
+      "ch_matrix_id": "0da71f9c-8ea9-498c-9624-dfc9ab54fa2d",
+      "environment": [
+        "dev"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "next_action": "Workflow edit already staged in working tree.",
+      "req_id": "DEVOPS-DEPLOY-001-REQ-019",
+      "type": "medium",
+      "reason": "HF Space config loss leads to runtime misconfiguration on Space rebuild.",
+      "resolution_status": "in_fix",
+      "story_id": "DEVOPS-DEPLOY-001",
+      "orphan": false
+    },
+    {
+      "id": "BUG-DEVOPS-007",
+      "rule": "Bug: Playwright smoke test runs without verifying that the compared environments are on the same commit. If dev lags local by any commit, smoke can pass while silently comparing apples to oranges. Accommodation: smoke MUST gate on equal /health commit SHAs per DEVOPS-DEPLOY-001-REQ-018.",
+      "incident": "Today's session ran smoke against dev while dev was at build 490 and local tip was several commits ahead. Smoke would have returned a confusing mix of infrastructure failures and real regressions without being able to distinguish them.",
+      "reproduction": "(1) deploy commit X to local; (2) leave dev on commit Y where Y != X; (3) run smoke; (4) smoke returns pass/fail without noting the SHA drift.",
+      "accommodation": "Add a step to localSmokeTestPyTest.py that reads /health commit on each target env and fails immediately if they differ.",
+      "date": "2026-04-17",
+      "ch_matrix_id": "5f9a3265-c506-4754-b85f-88d0f4f257b3",
+      "environment": [
+        "local",
+        "dev"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "next_action": "Smoke SHA-gate to be written once DEVOPS-DEPLOY-001-REQ-018 is approved.",
+      "req_id": "DEVOPS-DEPLOY-001-REQ-018",
+      "type": "high",
+      "reason": "Cross-env smoke parity claims are unsound without SHA equality.",
+      "resolution_status": "not_started",
+      "story_id": "DEVOPS-DEPLOY-001",
+      "orphan": false
+    },
+    {
+      "id": "BUG-SEC-008",
+      "rule": "Bug: FindCare on HF cannot issue signed session tokens because the signing private key (findcare.key) is not distributed to HF Spaces. The prior silent fallbacks masked this as 'signed:false' or 'CH_{uuid}'. Accommodation: store base64-PEM in HF Space Secret FINDCARE_SIGNING_KEY_PEM; main.py decodes and writes to CERTS_DIR at startup, before SEC-HTTPS-001-REQ-014 startup check.",
+      "incident": "On HF dev before BUG-SEC-007 fix, /session returned CH_<uuid> 35-char placeholder. Root cause was import failure of cryptography AND absence of findcare.key in the Space — no mechanism exists to place it there.",
+      "reproduction": "(1) deploy current FindCare code to HF dev without setting the HF secret; (2) startup check abends exit 78 with 'missing_key'; (3) /session is unreachable.",
+      "accommodation": "Set FINDCARE_SIGNING_KEY_PEM as an HF Space Secret on the dev Space (base64 of Code/Shared/ops/certs/findcare.key). main.py bootstrap reads the secret and writes the key to /tmp/ch_certs. CERTS_DIR is set accordingly. Startup check then passes and /session returns signed:true.",
+      "date": "2026-04-17",
+      "ch_matrix_id": "5b2a115f-cb06-40c2-8b64-b0131aef8b01",
+      "environment": [
+        "dev"
+      ],
+      "status": "open",
+      "risk_acceptance_id": null,
+      "next_action": "Code bootstrap is staged; commit blocked until SEC-HTTPS-001-REQ-015 is approved, then set the HF secret and redeploy FindCare.",
+      "req_id": "SEC-HTTPS-001-REQ-015",
+      "type": "critical",
+      "reason": "Without a cert distribution mechanism for HF, the zero-fallback policy (SEC-HTTPS-001-REQ-014) blocks FindCare from serving at all on dev.",
+      "resolution_status": "in_fix",
+      "story_id": "SEC-HTTPS-001",
+      "orphan": false
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
