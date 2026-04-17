@@ -43535,6 +43535,23 @@
                             ]
                           },
                           "approval": "proposed"
+                        },
+                        {
+                          "req_id": "TEST-SIM-001-REQ-016",
+                          "requirement": "The /transfer/to-findcare API MUST accept a RestoreState boolean parameter (default false). When RestoreState is false, FindCare MUST reset to the welcome/splash screen with the cursor automatically focused in the chat input. When RestoreState is true, FindCare MUST restore the previous application state (search results, selected providers, filter settings). Alpha deliverable.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN",
+                                "pytest_type": "playwright",
+                                "orphan": true
+                              }
+                            ]
+                          }
                         }
                       ]
                     },
@@ -54741,6 +54758,23 @@
                               }
                             ]
                           }
+                        },
+                        {
+                          "req_id": "DEVOPS-LOCAL-B013",
+                          "requirement": "The deploy script MUST correctly report Playwright smoke test pass/fail status. When piping pytest output through tee, the script MUST use PIPESTATUS[0] (not $?) to capture the pytest exit code, not the tee exit code. The script MUST report SMOKE TEST FAILED when any pytest step fails.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN",
+                                "pytest_type": "analysis",
+                                "orphan": true
+                              }
+                            ]
+                          }
                         }
                       ]
                     },
@@ -54826,6 +54860,23 @@
                         {
                           "req_id": "DEVOPS-BANNER-B005",
                           "requirement": "The center panel MUST display \"Shared Services\" and \"is still unimplemented.\" when SharedServices has control.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN",
+                                "pytest_type": "playwright",
+                                "orphan": true
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "DEVOPS-BANNER-B006",
+                          "requirement": "The environment banner MUST contain a button for each of the three services: FindCare, EvaluateCare, and SharedServices. The active service button MUST be visually cold (greyed out, disabled). The other two service buttons MUST be hot (clickable, styled). Clicking a hot button transfers page control to that service. This provides navigation and state visibility in one glance.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,

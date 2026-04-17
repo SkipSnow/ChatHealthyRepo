@@ -84,6 +84,7 @@ export default function FindCareApp() {
   const questionRef = useRef('')
   const specialtyMapRef = useRef<Record<string, string>>({})
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Fetch welcome message on mount
   useEffect(() => {
@@ -107,6 +108,16 @@ export default function FindCareApp() {
     function handleMessage(event: MessageEvent) {
       const msg = event.data
       if (!msg || typeof msg !== 'object') return
+
+      // BUG-UX-022/023: RestoreState=false — reset to welcome, focus input
+      if (msg.type === 'gui:reset') {
+        setPhase('welcome')
+        setQuestion('')
+        setInput('')
+        setError('')
+        selection.flushGarbage()
+        setTimeout(() => inputRef.current?.focus(), 100)
+      }
 
       if (msg.type === 'gui:event') {
         if (msg.action === 'filter-apply' && searchParamsRef.current) {
@@ -277,40 +288,45 @@ export default function FindCareApp() {
     ).join('')
 
     const html = `
-      <div data-filter-panel style="display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:#fff;">
-        <div style="padding:8px 10px;border-bottom:2px solid #0b7a75;background:#f8fffe;">
-          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 0;">
-            <div style="flex:0 0 auto;padding-right:8px;border-right:1px solid #d8e2e1;">
-              <div style="font-size:10px;font-weight:700;color:#0b7a75;text-transform:uppercase;white-space:nowrap;">Filter by specialty</div>
+      <div data-filter-panel style="display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:#fff;height:100%;">
+        <table style="width:100%;height:100%;border-collapse:collapse;table-layout:fixed;">
+          <tr><td style="height:auto;vertical-align:top;padding:0;">
+            <div style="padding:8px 10px;border-bottom:2px solid #0b7a75;background:#f8fffe;">
+              <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 0;">
+                <div style="flex:0 0 auto;padding-right:8px;border-right:1px solid #d8e2e1;">
+                  <div style="font-size:10px;font-weight:700;color:#0b7a75;text-transform:uppercase;white-space:nowrap;">Filter by specialty</div>
+                </div>
+                <div style="flex:0 0 auto;padding:0 8px;border-right:1px solid #d8e2e1;text-align:center;">
+                  <div style="font-size:8px;color:#6b7280;text-transform:uppercase;white-space:nowrap;">All possible</div>
+                  <div style="font-size:13px;font-weight:700;color:#1f2937;">${allCount}</div>
+                </div>
+                <div style="flex:0 0 auto;padding:0 8px;border-right:1px solid #d8e2e1;text-align:center;">
+                  <div style="font-size:8px;color:#6b7280;text-transform:uppercase;white-space:nowrap;">Prescribers</div>
+                  <div style="font-size:13px;font-weight:700;color:#1f2937;" id="filterFilteredCount">${prescCount}</div>
+                </div>
+                <div style="flex:0 0 auto;padding:0 8px;border-right:1px solid #d8e2e1;text-align:center;">
+                  <div style="font-size:8px;color:#6b7280;text-transform:uppercase;white-space:nowrap;">Your choices</div>
+                  <div style="font-size:13px;font-weight:700;color:#0b7a75;" id="filterShowing">${prescCount}</div>
+                </div>
+                <div style="flex:0 0 auto;padding-left:8px;display:flex;flex-direction:column;gap:3px;">
+                  <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;">
+                    <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="prescribers" checked
+                      style="accent-color:#0b7a75;width:13px;height:13px;" /> Prescribers
+                  </label>
+                  <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;">
+                    <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="homeopathic"
+                      style="accent-color:#0b7a75;width:13px;height:13px;" /> Homeopathic
+                  </label>
+                </div>
+              </div>
             </div>
-            <div style="flex:0 0 auto;padding:0 8px;border-right:1px solid #d8e2e1;text-align:center;">
-              <div style="font-size:8px;color:#6b7280;text-transform:uppercase;white-space:nowrap;">All possible</div>
-              <div style="font-size:13px;font-weight:700;color:#1f2937;">${allCount}</div>
+            <div style="padding:3px 10px;border-bottom:1px solid #e5e7eb;background:#fafafa;">
+              <button data-gui-action="toggle-all" style="background:none;border:1px solid #0b7a75;border-radius:3px;padding:2px 8px;font-size:10px;color:#0b7a75;cursor:pointer;font-weight:600;">Uncheck All</button>
             </div>
-            <div style="flex:0 0 auto;padding:0 8px;border-right:1px solid #d8e2e1;text-align:center;">
-              <div style="font-size:8px;color:#6b7280;text-transform:uppercase;white-space:nowrap;">Prescribers</div>
-              <div style="font-size:13px;font-weight:700;color:#1f2937;" id="filterFilteredCount">${prescCount}</div>
-            </div>
-            <div style="flex:0 0 auto;padding:0 8px;border-right:1px solid #d8e2e1;text-align:center;">
-              <div style="font-size:8px;color:#6b7280;text-transform:uppercase;white-space:nowrap;">Your choices</div>
-              <div style="font-size:13px;font-weight:700;color:#0b7a75;" id="filterShowing">${prescCount}</div>
-            </div>
-            <div style="flex:0 0 auto;padding-left:8px;display:flex;flex-direction:column;gap:3px;">
-              <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;">
-                <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="prescribers" checked
-                  style="accent-color:#0b7a75;width:13px;height:13px;" /> Prescribers
-              </label>
-              <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;">
-                <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="homeopathic"
-                  style="accent-color:#0b7a75;width:13px;height:13px;" /> Homeopathic
-              </label>
-            </div>
-          </div>
-        </div>
-        <div style="padding:3px 10px;border-bottom:1px solid #e5e7eb;background:#fafafa;">
-          <button data-gui-action="toggle-all" style="background:none;border:1px solid #0b7a75;border-radius:3px;padding:2px 8px;font-size:10px;color:#0b7a75;cursor:pointer;font-weight:600;">Uncheck All</button>
-        </div>
-        <div style="max-height:288px;overflow-y:auto;overflow-x:hidden;">${items}</div>
+          </td></tr>
+          <tr><td style="height:33%;overflow:hidden;vertical-align:top;"><div style="height:100%;overflow-y:auto;overflow-x:hidden;">${items}</div></td></tr>
+          <tr><td id="guiSessionCell" style="height:auto;vertical-align:top;padding:4px 8px;border-top:1px solid #e5e7eb;"></td></tr>
+        </table>
         <div style="padding:6px 8px;border-top:1px solid #d8e2e1;">
           <button data-gui-action="filter-apply" style="width:100%;padding:5px;border-radius:4px;border:none;background:linear-gradient(180deg,#0b9a94,#0b7a75);color:#fff;font-size:11px;font-weight:600;cursor:pointer;">Apply Filter</button>
         </div>
@@ -347,6 +363,11 @@ export default function FindCareApp() {
         question,
         session_token: data.session_token || null,
       })
+
+      // Update left panel with verified token (new nonce from EvaluateCare)
+      if (data.session_token) {
+        sendToParent('gui:session-display', { session_token: data.session_token })
+      }
     } catch (err: any) {
       alert(`EvaluateCare error: ${err.message}`)
     }
@@ -499,6 +520,7 @@ export default function FindCareApp() {
         background: '#fff',
       }}>
         <input
+          ref={inputRef}
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder="Type a message..."

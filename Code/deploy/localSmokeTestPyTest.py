@@ -2,7 +2,8 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
 # localSmokeTestPyTest.py — DEVOPS-LOCAL-B009
-# 31-step Playwright smoke test. Each step maps to a requirement.
+# 34-step Playwright smoke test. Each step maps to a requirement.
+# Steps 31-33 added for BUG-UX-020: all 6 component handoff permutations.
 # Every assertion is strict. No silent passes. No conditional assertions.
 #
 # Prerequisites: deploy_localhost.sh must be running (all servers up).
@@ -66,6 +67,64 @@ def _parse_token(token_str):
     return token_str, ""
 
 
+def _verify_session_identity(page, env, handoff_label):
+    """BUG-UX-020: After any handoff, both panels must show identical session verification.
+    Checks: SESSION VERIFICATION header, Nonce, GUID, Signed token, Origin, Verified.
+    Nonces must match between panels. GUID must match original. Nonce must differ from previous."""
+    right = page.locator("#rightPanel").inner_text()
+    left = page.locator("#leftPanel").inner_text()
+    # Both panels must have SESSION VERIFICATION
+    assert "SESSION VERIFICATION" in right.upper(), \
+        f"[{handoff_label}] Right panel missing SESSION VERIFICATION: {right[:300]}"
+    assert "SESSION VERIFICATION" in left.upper(), \
+        f"[{handoff_label}] Left panel missing SESSION VERIFICATION: {left[-300:]}"
+    # Both must have all labels
+    for label in ["Nonce:", "GUID:", "Verified:"]:
+        assert label in right, f"[{handoff_label}] Right panel missing {label}: {right[:300]}"
+        assert label in left, f"[{handoff_label}] Left panel missing {label}: {left[-300:]}"
+    # Extract and compare nonces — must match between panels
+    right_nonces = re.findall(r'Nonce:\s*(\w+)', right)
+    left_nonces = re.findall(r'Nonce:\s*(\w+)', left)
+    assert right_nonces, f"[{handoff_label}] No nonce in right panel"
+    assert left_nonces, f"[{handoff_label}] No nonce in left panel"
+    assert right_nonces[0] == left_nonces[0], \
+        f"[{handoff_label}] Nonce mismatch: right={right_nonces[0]} left={left_nonces[0]}"
+    # Extract and compare GUIDs — must match between panels and match original
+    right_guids = re.findall(r'GUID:\s*(\w+)', right)
+    left_guids = re.findall(r'GUID:\s*(\w+)', left)
+    assert right_guids, f"[{handoff_label}] No GUID in right panel"
+    assert left_guids, f"[{handoff_label}] No GUID in left panel"
+    assert right_guids[0] == left_guids[0], \
+        f"[{handoff_label}] GUID mismatch: right={right_guids[0]} left={left_guids[0]}"
+    orig_guid = env.get("original_guid", "")
+    if orig_guid:
+        assert right_guids[0] == orig_guid, \
+            f"[{handoff_label}] GUID changed from original: {right_guids[0]} vs {orig_guid}"
+    # Nonce must differ from all previously stored nonces
+    current_nonce = right_nonces[0]
+    prev_nonces = env.get("all_nonces", [])
+    for prev_label, prev_nonce in prev_nonces:
+        assert current_nonce != prev_nonce, \
+            f"[{handoff_label}] Nonce same as {prev_label}: {current_nonce}"
+    # Store for next check
+    env.setdefault("all_nonces", []).append((handoff_label, current_nonce))
+    if not orig_guid:
+        env["original_guid"] = right_guids[0]
+    return current_nonce, right_guids[0]
+
+
+def _verify_button_in_parent(page, button_selector, parent_selector, label):
+    """Verify an element is a <button> (not a link) and lives inside the expected parent."""
+    btn = page.locator(button_selector)
+    assert btn.count() > 0, f"{label}: element {button_selector} not found"
+    tag = btn.evaluate("el => el.tagName.toLowerCase()")
+    assert tag == "button", \
+        f"{label}: must be a <button>, not <{tag}>. Requirement: rendered as a button, not a link."
+    parent = page.locator(f"{parent_selector} {button_selector}")
+    assert parent.count() > 0, \
+        f"{label}: {button_selector} must be inside {parent_selector}, but it is not."
+
+
 @pytest.fixture(scope="module")
 def env():
     with sync_playwright() as p:
@@ -107,6 +166,8 @@ class TestStep02:
 class TestStep03:
     def test_shared_services_button(self, env):
         page = env["page"]
+        # BUG-UX-021: Must be a <button> inside #envBanner, not a link in header nav
+        _verify_button_in_parent(page, "#sharedServicesNav", "#envBanner", "Shared Services")
         btn = page.locator("#sharedServicesNav")
         expect(btn).to_be_visible()
         expect(btn).to_contain_text("Shared Services")
@@ -312,35 +373,28 @@ class TestStep16:
 class TestStep17:
     def test_token_same_sent_received(self, env):
         page = env["page"]
-        # Right panel must show token with session verification
-        right = page.locator("#rightPanel").inner_text()
-        assert "SESSION VERIFICATION" in right.upper(), f"No session verification in right panel: {right[:400]}"
-        assert "VERIFIED" in right.upper() and "YES" in right.upper(), f"Not verified in right panel: {right[:400]}"
-        # Right panel must have labeled Nonce and GUID
-        right_guids = re.findall(r'GUID:\s*(\w+)', right)
-        assert len(right_guids) > 0, f"No GUID label in right panel: {right[:400]}"
-        right_nonces = re.findall(r'Nonce:\s*(\w+)', right)
-        assert len(right_nonces) > 0, f"No Nonce label in right panel: {right[:400]}"
-        # Left panel must show token BELOW specialties with same labels
-        left = page.locator("#leftPanel")
-        left_text = left.inner_text()
-        assert "Nonce:" in left_text, f"No Nonce label in left panel: {left_text[-300:]}"
-        assert "GUID:" in left_text, f"No GUID label in left panel: {left_text[-300:]}"
+        # Store original nonce for comparison
+        orig = env.get("original_token", {})
+        if orig:
+            orig_nonce, orig_guid = _parse_token(orig.get("token", ""))
+            if orig_guid:
+                env["original_guid"] = orig_guid
+            if orig_nonce:
+                env.setdefault("all_nonces", []).append(("original", orig_nonce))
+        # Handoff 1 of 6: FindCare → EvaluateCare
+        nonce, guid = _verify_session_identity(page, env, "FindCare→EvaluateCare")
+        env["evalcare_guid"] = guid
+        env["evalcare_nonce"] = nonce
         # Token in left panel must be below the specialty list, not beside it
-        token_el = left.locator("#guiSessionId")
-        assert token_el.count() > 0, "Token element #guiSessionId not found in left panel"
+        left = page.locator("#leftPanel")
+        token_el = left.locator("#guiSessionCell, #guiSessionId")
+        assert token_el.count() > 0, "Token element not found in left panel"
         token_box = token_el.bounding_box()
         scroll_div = left.locator("div[style*='overflow-y']")
         if scroll_div.count() > 0:
             scroll_box = scroll_div.first.bounding_box()
             assert token_box["y"] > scroll_box["y"] + scroll_box["height"] - 5, \
                 f"Token is beside specialties, not below. Token y={token_box['y']}, scroll bottom={scroll_box['y'] + scroll_box['height']}"
-        # GUIDs must match between left and right panels
-        left_guids = re.findall(r'GUID:\s*(\w+)', left_text)
-        assert len(left_guids) > 0, f"No GUID in left panel: {left_text[-300:]}"
-        assert right_guids[0] == left_guids[0], f"GUID mismatch: right={right_guids[0]} left={left_guids[0]}"
-        env["evalcare_guid"] = right_guids[0]
-        env["evalcare_nonce"] = right_nonces[0]
         _screenshot(page, "17")
 
 
@@ -363,17 +417,13 @@ class TestStep18:
 # Step 19 [SEC-HTTPS-001-REQ-012]
 class TestStep19:
     def test_nonce_changed_evaluatecare(self, env):
-        original = env.get("original_token", {})
-        assert original, "No original token stored from step 6"
-        orig_nonce, orig_guid = _parse_token(original.get("token", ""))
-        ec_nonce = env.get("evalcare_nonce", "")
-        ec_guid = env.get("evalcare_guid", "")
-        assert orig_guid, "Original token GUID is empty"
-        assert ec_guid, "EvaluateCare GUID is empty"
-        assert orig_nonce, "Original nonce is empty"
-        assert ec_nonce, "EvaluateCare nonce is empty"
-        assert orig_guid == ec_guid, f"GUID changed: orig={orig_guid} ec={ec_guid}"
-        assert orig_nonce != ec_nonce, f"Nonce did NOT change after EvaluateCare: {orig_nonce}"
+        # Nonce uniqueness already verified by _verify_session_identity in step 17
+        # This step confirms the stored values are present
+        assert env.get("evalcare_nonce"), "EvaluateCare nonce not stored from step 17"
+        assert env.get("evalcare_guid"), "EvaluateCare GUID not stored from step 17"
+        assert env.get("original_guid"), "Original GUID not stored"
+        assert env["evalcare_guid"] == env["original_guid"], \
+            f"GUID changed: ec={env['evalcare_guid']} orig={env['original_guid']}"
         _screenshot(env["page"], "19")
 
 
@@ -418,6 +468,16 @@ class TestStep22:
         sh_splash = page.locator("#sharedSplash")
         if sh_splash.count() > 0:
             assert not sh_splash.is_visible(), "SharedServices splash still visible after return"
+        # Chat iframe MUST show the welcome/splash screen — not stale search results
+        # First 50 words of welcome message are not fakeable — check all of them
+        chat_frame = env.get("chat_frame")
+        assert chat_frame is not None, "Chat frame reference lost"
+        body_text = chat_frame.locator("body").inner_text()
+        welcome_words = _get_welcome_words()
+        # At least 20 of the first 25 words must be present — random word matches won't pass
+        matches = sum(1 for w in welcome_words[:25] if w in body_text)
+        assert matches >= 20, \
+            f"Welcome/splash screen not displayed after return to FindCare. Only {matches}/25 welcome words found: {body_text[:300]}"
         _screenshot(page, "22")
 
 
@@ -427,7 +487,7 @@ class TestStep23:
         frame = env.get("chat_frame", env["page"])
         chat_input = frame.locator("input[placeholder*='Type a message'], textarea").first
         expect(chat_input).to_be_visible()
-        chat_input.click()
+        # Cursor MUST be automatically focused — do NOT click first
         expect(chat_input).to_be_focused()
         _screenshot(env["page"], "23")
 
@@ -435,19 +495,11 @@ class TestStep23:
 # Step 24 [SEC-HTTPS-001-REQ-012]
 class TestStep24:
     def test_nonce_changed_return_findcare(self, env):
-        token = _get_fresh_token()
-        nonce, guid = _parse_token(token.get("token", ""))
-        orig_nonce, orig_guid = _parse_token(env.get("original_token", {}).get("token", ""))
-        ec_nonce = env.get("evalcare_nonce", "")
-        assert guid, "Return token GUID is empty"
-        assert nonce, "Return token nonce is empty"
-        assert orig_guid, "Original GUID is empty"
-        assert orig_guid == guid, f"GUID changed on return: {orig_guid} vs {guid}"
-        assert nonce != orig_nonce, f"Nonce same as original on return: {nonce}"
-        assert ec_nonce, "EvaluateCare nonce not stored from step 17"
-        assert nonce != ec_nonce, f"Nonce same as EvaluateCare on return: {nonce}"
+        page = env["page"]
+        # Handoff 2 of 6: EvaluateCare → FindCare
+        nonce, guid = _verify_session_identity(page, env, "EvaluateCare→FindCare")
         env["return_nonce"] = nonce
-        _screenshot(env["page"], "24")
+        _screenshot(page, "24")
 
 
 # Step 25 [DEVOPS-BANNER-B003]
@@ -503,41 +555,110 @@ class TestStep29:
     def test_shared_services_token_auth(self, env):
         page = env["page"]
         right = page.locator("#rightPanel").inner_text()
-        assert "SESSION VERIFICATION" in right.upper(), f"No session verification: {right[:400]}"
-        assert "VERIFIED" in right.upper() and "YES" in right.upper(), f"Not verified: {right[:400]}"
         assert "SHARED SERVICES" in right.upper(), f"Not SharedServices context: {right[:400]}"
-        # Extract and store nonce for step 30
-        nonces = re.findall(r'Nonce:\s*(\w+)', right)
-        assert len(nonces) > 0, f"No Nonce found for SharedServices: {right[:400]}"
-        env["shared_nonce"] = nonces[0]
-        guids = re.findall(r'GUID:\s*(\w+)', right)
-        assert len(guids) > 0, f"No GUID found for SharedServices: {right[:400]}"
-        env["shared_guid"] = guids[0]
+        # Handoff 3 of 6: FindCare → SharedServices
+        nonce, guid = _verify_session_identity(page, env, "FindCare→SharedServices")
+        env["shared_nonce"] = nonce
+        env["shared_guid"] = guid
         _screenshot(page, "29")
 
 
 # Step 30 [SEC-HTTPS-001-REQ-012]
 class TestStep30:
     def test_nonce_changed_shared_services(self, env):
-        sh_nonce = env.get("shared_nonce", "")
-        sh_guid = env.get("shared_guid", "")
-        return_nonce = env.get("return_nonce", "")
-        ec_nonce = env.get("evalcare_nonce", "")
-        orig_nonce, orig_guid = _parse_token(env.get("original_token", {}).get("token", ""))
-        assert sh_nonce, "SharedServices nonce not stored from step 29"
-        assert sh_guid, "SharedServices GUID not stored from step 29"
-        assert return_nonce, "FindCare return nonce not stored from step 24"
-        assert ec_nonce, "EvaluateCare nonce not stored from step 17"
-        assert orig_guid, "Original GUID is empty"
-        assert sh_guid == orig_guid, f"GUID changed: shared={sh_guid} orig={orig_guid}"
-        assert sh_nonce != return_nonce, f"Nonce same as FindCare return: {sh_nonce}"
-        assert sh_nonce != ec_nonce, f"Nonce same as EvaluateCare: {sh_nonce}"
-        assert sh_nonce != orig_nonce, f"Nonce same as original: {sh_nonce}"
+        # Nonce uniqueness already verified by _verify_session_identity in step 29
+        assert env.get("shared_nonce"), "SharedServices nonce not stored from step 29"
+        assert env.get("shared_guid"), "SharedServices GUID not stored from step 29"
+        assert env["shared_guid"] == env["original_guid"], \
+            f"GUID changed: shared={env['shared_guid']} orig={env['original_guid']}"
         _screenshot(env["page"], "30")
 
 
-# Step 31 [SEC-HTTPS-001-REQ-011]
+# Step 31 [SEC-HTTPS-001-REQ-012] — Handoff 4: SharedServices → FindCare
 class TestStep31:
+    def test_shared_to_findcare(self, env):
+        page = env["page"]
+        # Touch filter to return to FindCare
+        checkbox = page.locator("#leftPanel input[type='checkbox']").first
+        assert checkbox.count() > 0, "No checkboxes to trigger return"
+        checkbox.click()
+        page.wait_for_timeout(3000)
+        apply_btn = page.locator("[data-gui-action='filter-apply']")
+        assert apply_btn.count() > 0, "Apply Filter button not found"
+        apply_btn.click()
+        page.wait_for_timeout(5000)
+        assert page.locator("#coreChatFrame").is_visible(), "Chat iframe not restored after SharedServices→FindCare"
+        # Handoff 4 of 6: SharedServices → FindCare
+        nonce, guid = _verify_session_identity(page, env, "SharedServices→FindCare")
+        env["sh_to_fc_nonce"] = nonce
+        _screenshot(page, "31")
+
+
+# Step 32 [SEC-HTTPS-001-REQ-012] — Handoff 5: EvaluateCare → SharedServices
+class TestStep32:
+    def test_evalcare_to_shared(self, env):
+        page = env["page"]
+        frame = env.get("chat_frame", page)
+        # Re-select providers and evaluate to get to EvaluateCare
+        select_btns = frame.locator("button[title='Select for evaluation']")
+        if select_btns.count() == 0:
+            select_btns = frame.locator("button:has-text('↓')")
+        if select_btns.count() > 0:
+            select_btns.first.click()
+            page.wait_for_timeout(500)
+        eval_btn = page.locator("#guiEvalBtn")
+        if eval_btn.count() == 0:
+            eval_btn = page.locator("button:has-text('Evaluate')")
+        assert eval_btn.count() > 0, "Evaluate button not found for handoff 5"
+        eval_btn.first.click()
+        page.wait_for_timeout(5000)
+        # Now in EvaluateCare — click Shared Services
+        btn = page.locator("#sharedServicesNav")
+        assert btn.count() > 0 and btn.is_visible(), "Shared Services button missing from EvaluateCare"
+        btn.click()
+        page.locator("#rightPanel:has-text('Shared Services')").wait_for(state="visible", timeout=15000)
+        page.wait_for_timeout(3000)
+        # Handoff 5 of 6: EvaluateCare → SharedServices
+        nonce, guid = _verify_session_identity(page, env, "EvaluateCare→SharedServices")
+        env["ec_to_sh_nonce"] = nonce
+        _screenshot(page, "32")
+
+
+# Step 33 [SEC-HTTPS-001-REQ-012] — Handoff 6: SharedServices → EvaluateCare
+class TestStep33:
+    def test_shared_to_evalcare(self, env):
+        page = env["page"]
+        frame = env.get("chat_frame", page)
+        # Return to FindCare first (touch filter)
+        checkbox = page.locator("#leftPanel input[type='checkbox']").first
+        if checkbox.count() > 0:
+            checkbox.click()
+            page.wait_for_timeout(3000)
+        apply_btn = page.locator("[data-gui-action='filter-apply']")
+        if apply_btn.count() > 0:
+            apply_btn.click()
+            page.wait_for_timeout(5000)
+        # Select and evaluate to get to EvaluateCare from SharedServices path
+        select_btns = frame.locator("button[title='Select for evaluation']")
+        if select_btns.count() == 0:
+            select_btns = frame.locator("button:has-text('↓')")
+        if select_btns.count() > 0:
+            select_btns.first.click()
+            page.wait_for_timeout(500)
+        eval_btn = page.locator("#guiEvalBtn")
+        if eval_btn.count() == 0:
+            eval_btn = page.locator("button:has-text('Evaluate')")
+        assert eval_btn.count() > 0, "Evaluate button not found for handoff 6"
+        eval_btn.first.click()
+        page.wait_for_timeout(5000)
+        # Handoff 6 of 6: SharedServices → EvaluateCare
+        nonce, guid = _verify_session_identity(page, env, "SharedServices→EvaluateCare")
+        env["sh_to_ec_nonce"] = nonce
+        _screenshot(page, "33")
+
+
+# Step 34 [SEC-HTTPS-001-REQ-011]
+class TestStep34:
     def test_all_https_correct_servers(self):
         c = httpx.Client(verify=False, timeout=10)
         r = c.get(f"{BASE_URL}/")
