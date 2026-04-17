@@ -174,20 +174,57 @@ def is_schema_exempt(filepath):
     return False
 
 
+def _resolve_schema_locally(schema_url):
+    """Map a published schema URL to a local file in Website/schemas/."""
+    # https://dev.chathealthy.ai/schemas/dev/foo.json -> Website/schemas/dev/foo.json
+    for env in ("dev", "qa", "prod"):
+        prefix = f"https://{'' if env == 'prod' else env + '.'}chathealthy.ai/schemas/{env}/"
+        if schema_url.startswith(prefix):
+            filename = schema_url[len(prefix):]
+            local_path = os.path.join("Website", "schemas", env, filename)
+            if os.path.exists(local_path):
+                return local_path
+    return None
+
+
 def scan_json_schema(filepath):
-    """BRAIN-SCHEMA-REQ-001: Every ChatHealthy JSON file must have a $schema reference."""
+    """BRAIN-SCHEMA-REQ-001: Every ChatHealthy JSON file must have a $schema reference
+    and must validate against that schema."""
     try:
         with open(filepath, encoding="utf-8") as f:
             data = json.load(f)
         if not isinstance(data, dict):
-            return None  # Arrays and primitives are not required to have $schema
+            return f"Top-level must be an object, not {type(data).__name__}"
         if "$schema" not in data and "schema_address" not in data:
             return f"Missing $schema field"
+
+        schema_url = data.get("$schema", "")
+
+        # Schema files point to json-schema.org — they ARE schemas, not content
+        if "json-schema.org" in schema_url:
+            return None  # Schema file — validated by the spec, not by us
+
+        # Content files point to our published schemas — resolve locally
+        local_schema = _resolve_schema_locally(schema_url)
+        if not local_schema:
+            return f"Schema not found locally: {schema_url}"
+
+        # Validate content against schema
+        try:
+            import jsonschema
+            with open(local_schema, encoding="utf-8") as sf:
+                schema = json.load(sf)
+            jsonschema.validate(data, schema)
+        except ImportError:
+            pass  # jsonschema not installed — skip validation
+        except jsonschema.ValidationError as e:
+            return f"Schema validation failed: {e.message[:200]}"
+
         return None
     except json.JSONDecodeError as e:
         return f"Invalid JSON: {e}"
-    except Exception:
-        return None
+    except Exception as e:
+        return f"Error: {e}"
 
 
 def collect_files_from_dir(directory, recurse):
