@@ -40319,6 +40319,24 @@
                             ]
                           },
                           "ch_matrix_id": "43427c57-ce88-4b66-bee9-e209df534a04"
+                        },
+                        {
+                          "req_id": "SEC-HTTPS-001-REQ-015",
+                          "requirement": "The FindCare session-token signing private key (findcare.key) MUST be stored as an HF Space Secret named FINDCARE_SIGNING_KEY_PEM containing the base64-encoded PEM bytes. On startup the FindCare backend MUST decode this secret and write it to a runtime directory whose path is set as CERTS_DIR. The private key MUST NOT be committed to source control or checked into the HF Space git repository.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "6c021588-c56a-4a44-a00f-045bc59c2c06"
                         }
                       ]
                     },
@@ -54526,6 +54544,78 @@
                               }
                             ]
                           }
+                        },
+                        {
+                          "req_id": "DEVOPS-DEPLOY-001-REQ-016",
+                          "requirement": "No git operation (commit, push, or workflow-triggered deploy) may change the build number stored at brain/machine_artifacts/content/version.json. Build numbers MUST change only via a dedicated release-cut flow invoked explicitly by Boss. Deploying the same commit SHA to two environments MUST produce the same build number in each environment.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "f1a24ccf-7e6f-4148-88ad-1ec89a80653a"
+                        },
+                        {
+                          "req_id": "DEVOPS-DEPLOY-001-REQ-017",
+                          "requirement": "Every backend service (FindCare, EvaluateCare, SharedServices) MUST include in its /health response a 'commit' field containing the 12-char short git SHA of the deployed source. The value MUST be supplied by the deploy pipeline as an env var (COMMIT_SHA) or a file (.commit_sha) that ships with the code. If the SHA is unavailable the field MUST be the literal string '?'.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "405a0513-8e4a-460f-b089-368214edec2f"
+                        },
+                        {
+                          "req_id": "DEVOPS-DEPLOY-001-REQ-018",
+                          "requirement": "The Playwright smoke test MUST read the 'commit' field from /health on each environment being compared. If the commit SHAs differ the test MUST fail with a message naming both SHAs. The test MUST NOT report success when two environments are running different source code.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "92118d91-ca76-4964-9fc5-0b0d1f6ca674"
+                        },
+                        {
+                          "req_id": "DEVOPS-DEPLOY-001-REQ-019",
+                          "requirement": "Every HuggingFace Space deploy workflow MUST preserve the target Space's README.md across the push. README.md carries the HF Space frontmatter configuration (sdk, python_version, license) and MUST NOT be wiped. If README.md is missing after a deploy, the deploy is in violation.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "c34dcc71-947a-48e2-a679-c68d33478159"
                         }
                       ]
                     },
@@ -54793,6 +54883,24 @@
                               }
                             ]
                           }
+                        },
+                        {
+                          "req_id": "DEVOPS-LOCAL-B014",
+                          "requirement": "The local deploy script MUST build each backend (FindCare, EvaluateCare, SharedServices) as a Docker image from that backend's Dockerfile and requirements.txt, and run each backend as a container. The local runtime MUST NOT import any Python package that is not installed by the container's pip install. This guarantees the local dependency tree is identical to the HuggingFace container runtime.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "0396710a-7123-433b-b76c-03f347bbdfbe"
                         }
                       ]
                     },
