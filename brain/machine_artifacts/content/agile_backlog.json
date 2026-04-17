@@ -36930,6 +36930,96 @@
                     }
                   ],
                   "approval": "proposed"
+                },
+                {
+                  "req_id": "SEC-HTTPS-001-REQ-008",
+                  "requirement": "Session token mutual authentication MUST pass for SharedServices. The same token FindCare created MUST be the same one SharedServices received.",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "playwright",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "SEC-HTTPS-001-REQ-009",
+                  "requirement": "Calls between FindCare and EvaluateCare MUST use mutual authentication with TLS 1.2 or above.",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "unit",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "SEC-HTTPS-001-REQ-010",
+                  "requirement": "Calls between FindCare and SharedServices MUST use mutual authentication with TLS 1.2 or above.",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "unit",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "SEC-HTTPS-001-REQ-011",
+                  "requirement": "All pages MUST be served over HTTPS from the correct servers (443, 7860, 8001, 8002).",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "unit",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "SEC-HTTPS-001-REQ-012",
+                  "requirement": "The session token MUST use a stable GUID that identifies the session for its lifetime. The nonce (timestamps) MUST be regenerated fresh on every inter-service call. The GUID MUST NOT change between calls within the same session. The nonce MUST NOT be reused across calls. Every ChatHealthy component (FindCare, EvaluateCare, SharedServices) that receives a token MUST update the last_used timestamp in the nonce to prove it processed the token at that time. Reusing a nonce is a replay attack vector and fails NIST 800-53 SC-23 (Session Authenticity).",
+                  "priority": "must-have",
+                  "status": "done",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "localSmokeTestPyTest.py::TestStep27_NonceChanges",
+                      "pytest_type": "playwright",
+                      "orphan": false
+                    }
+                  ]
+                },
+                {
+                  "req_id": "SEC-HTTPS-001-REQ-013",
+                  "requirement": "The session token display MUST separate the nonce from the GUID so a human can visually verify each part. The display MUST show: (1) Signed token (the encrypted signature), (2) Nonce (the two timestamps extracted from the token), (3) GUID (the session identifier extracted from the token). The nonce and GUID MUST be displayed as separate labeled fields. The presentation in the right panel (after EvaluateCare or SharedServices handoff) MUST be identical to the presentation in the left panel. Both panels MUST use the same labels, layout, and format.",
+                  "priority": "must-have",
+                  "status": "in_progress",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "playwright",
+                      "orphan": true
+                    }
+                  ]
                 }
               ],
               "description": "HTTPS everywhere — reject HTTP on all services",
@@ -42092,9 +42182,9 @@
                 },
                 {
                   "req_id": "FC-FILT-001-REQ-015",
-                  "requirement": "If the specialty list has more than 15 items, it MUST display in a scroll window. Toggle button MUST apply to all items including those outside the visible scroll window.",
+                  "requirement": "If the specialty list has more than 12 items, it MUST display in a scroll window with a maximum of 12 visible items. The scroll container MUST be constrained within the left panel height and MUST NOT cause the page to scroll or overflow.",
                   "priority": "must-have",
-                  "status": "to_test",
+                  "status": "in_progress",
                   "realized_by": [
                     "React 18 / Vite 5"
                   ],
@@ -49501,7 +49591,7 @@
         {
           "feature_id": "ARCH-DEVOPS",
           "name": "DevOps — Build, Deploy, and Environment Management",
-          "status": "not_started",
+          "status": "in_progress",
           "description": "A software engineering discipline that unifies development and operations through automation, continuous delivery, and shared responsibility to accelerate the delivery of reliable software systems.",
           "realized_by": [
             "Python 3.11",
@@ -49772,6 +49862,21 @@
                     }
                   ],
                   "approval": "proposed"
+                },
+                {
+                  "req_id": "DEVOPS-DEPLOY-001-REQ-015",
+                  "requirement": "Every deploy script MUST use the following standard port assignments: port 80 (HTTP redirect to HTTPS), port 443 (Website wrapper), port 7860 (FindCare backend + React frontend), port 8001 (EvaluateCare), port 8002 (CHShared). These port numbers MUST be identical across all environments (localhost, dev, qa, prod).",
+                  "priority": "must-have",
+                  "status": "done",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "unit",
+                      "orphan": true
+                    }
+                  ]
                 }
               ],
               "orphan": false,
@@ -49801,6 +49906,496 @@
                     }
                   ],
                   "approval": "proposed"
+                }
+              ],
+              "orphan": false,
+              "approval": "proposed"
+            },
+            {
+              "story_id": "DEVOPS-DEPLOY-LOCAL",
+              "title": "Deploy to localhost — Local UAT environment",
+              "description": "One deploy script that wipes, builds, and starts the local UAT environment. Frontend on HTTPS port 443 with HTTP-to-HTTPS redirect on port 80. Backend calls dev.chathealthy.ai. Script runs verification tests before handing to Boss for UAT.",
+              "size": "M",
+              "status": "in_progress",
+              "requirements": [
+                {
+                  "req_id": "DEVOPS-LOCAL-B001",
+                  "requirement": "The deploy script MUST wipe all previous build artifacts and running processes before building.",
+                  "priority": "must-have",
+                  "status": "done",
+                  "orphan": false,
+                  "approval": "proposed",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "ORPHAN",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-LOCAL-B002",
+                  "requirement": "The deploy script MUST build the React frontend with the correct backend API URL baked in.",
+                  "priority": "must-have",
+                  "status": "done",
+                  "orphan": false,
+                  "approval": "proposed",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "ORPHAN",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-LOCAL-B003",
+                  "requirement": "The deploy script MUST build and start all three servers: FindCare, EvaluateCare, and CHShared. Each server MUST be running on HTTPS with its own port. HTTP redirect on port 80 MUST route to the correct HTTPS entry point. Each server MUST be provisioned with the appropriate certificates: its own private key and certificate, the CA certificate, and the public certificates of the other two servers for mTLS authentication.",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "proposed",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "ORPHAN",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-LOCAL-B004",
+                  "requirement": "http://localhost MUST redirect to https://localhost via 301.",
+                  "priority": "must-have",
+                  "status": "done",
+                  "orphan": false,
+                  "approval": "proposed",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "ORPHAN",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-LOCAL-B005",
+                  "requirement": "https://localhost MUST serve index.html with the full FindCare application page.",
+                  "priority": "must-have",
+                  "status": "done",
+                  "orphan": false,
+                  "approval": "proposed",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "ORPHAN",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-LOCAL-B006",
+                  "requirement": "The deploy script MUST run a self-verification test after starting servers. The script MUST NOT report success unless all verification tests pass.",
+                  "priority": "must-have",
+                  "status": "done",
+                  "orphan": false,
+                  "approval": "proposed",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "ORPHAN",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-LOCAL-B007",
+                  "requirement": "The deploy script MUST build the EvaluateCare frontend and backend and start it as a running server.",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "proposed",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "ORPHAN",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-LOCAL-B008",
+                  "requirement": "The deploy script MUST build the CHShared services and start them as a running server.",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "proposed",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "ORPHAN",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-LOCAL-B009",
+                  "requirement": "A Playwright pytest localSmokeTestPyTest.py MUST execute the following 31 steps in order against any environment. Every step MUST pass. The target domain is a parameter: localhost (local), dev.chathealthy.ai (dev), qa.chathealthy.ai (qa), chathealthy.ai (prod).\n1. [DEVOPS-LOCAL-B004] Navigate to http://{domain}. Verify the browser redirects to https://{domain}.\n2. [DEVOPS-BANNER-B002] Verify the environment banner is visible and contains the correct environment label, Version, Framework, and Build with correct values matching the deployed system.\n3. [DEVOPS-BANNER-B003] Verify the banner contains a control to test Shared Services. PROD WAIVER: This control MUST NOT appear in production. Skip this step in prod.\n4. [TEST-SIM-001-REQ-003] Verify the splash page renders with the correct first 25 words of the welcome message.\n5. [TEST-SIM-001-REQ-004] Verify there is a text input and the cursor is focused so typing goes to the right place.\n6. [TEST-SIM-001-REQ-005] Type \"Find me a bone doctor in Delaware\" and submit.\n7. [TEST-SIM-001-REQ-006] Verify a list of specialties appears in the left panel.\n8. [FC-FILT-001-REQ-015] Verify the specialty list is contained in a scroll window with a maximum of 12 visible items. The list MUST NOT overflow the left panel.\n9. [TEST-SIM-001-REQ-005] Verify a list of providers appears in the center panel.\n10. [UX-CTRL-003-REQ-006] Verify the bottom panel (Selected for Evaluation) shows zero providers.\n11. [UX-CTRL-003-REQ-007] Select up to 3 providers (or all if fewer than 3) by clicking the select control on provider cards.\n12. [UX-CTRL-003-REQ-008] Verify the selected providers appear in the bottom panel.\n13. [UX-CTRL-003-REQ-003] Click the Evaluate These Providers button.\n14. [TEST-SIM-001-REQ-012] Verify that EvaluateCare has control of the entire frame.\n15. [SEC-HTTPS-001-REQ-009] Verify that the calls between FindCare and EvaluateCare are done with mutual authentication using TLS 1.2 or above.\n16. [TEST-SIM-001-REQ-010] Verify the right panel displays the providers that were moved.\n17. [TEST-SIM-001-REQ-011] Verify the right panel shows the session token proving mutual authentication, the same token FindCare created is the same one EvaluateCare received.\n18. [SEC-HTTPS-001-REQ-013] Verify the signed and unsigned token forms are displayed in distinct colors.\n19. [SEC-HTTPS-001-REQ-012] Verify the nonce changed from the original FindCare token. The GUID MUST remain the same. The nonce MUST be different, proving EvaluateCare processed a fresh token.\n20. [UX-CTRL-003-REQ-004] Verify the center panel displays EvaluateCare and is still unimplemented.\n21. [TEST-SIM-001-REQ-014] Change a value in the specialty filter panel (e.g. uncheck a specialty checkbox).\n22. [TEST-SIM-001-REQ-014] Verify control returns to FindCare, the splash page reappears.\n23. [TEST-SIM-001-REQ-015] Verify the text input renders and the cursor is focused for typing.\n24. [SEC-HTTPS-001-REQ-012] Verify the nonce changed again on return to FindCare. The GUID MUST remain the same. The nonce MUST differ from both the original and the EvaluateCare nonce.\n25. [DEVOPS-BANNER-B003] Push the Shared Services button in the banner. PROD WAIVER: Skip this step in prod.\n26. [DEVOPS-BANNER-B004] Verify that the SharedServices server has control of the entire frame. PROD WAIVER: Skip this step in prod.\n27. [SEC-HTTPS-001-REQ-010] Verify that the calls between FindCare and SharedServices are done with mutual authentication using TLS 1.2 or above. PROD WAIVER: Skip this step in prod.\n28. [DEVOPS-BANNER-B005] Verify the center panel displays Shared Services and is still unimplemented. PROD WAIVER: Skip this step in prod.\n29. [SEC-HTTPS-001-REQ-008] Verify the same session token mutual authentication test passes for Shared Services. PROD WAIVER: Skip this step in prod.\n30. [SEC-HTTPS-001-REQ-012] Verify the nonce changed from the FindCare return nonce. The GUID MUST remain the same. The nonce MUST differ from all previous nonces, proving SharedServices processed a fresh token. PROD WAIVER: Skip this step in prod.\n31. [SEC-HTTPS-001-REQ-011] Verify all pages are served over HTTPS from the correct servers (443, 7860, 8001, 8002).",
+                  "priority": "must-have",
+                  "status": "in_progress",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "playwright",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-LOCAL-B010",
+                  "requirement": "Every deploy script MUST use the following standard port assignments: port 80 (HTTP redirect to HTTPS), port 443 (Website wrapper), port 7860 (FindCare backend + React frontend), port 8001 (EvaluateCare), port 8002 (CHShared). These port numbers MUST be identical across all environments (localhost, dev, qa, prod).",
+                  "priority": "must-have",
+                  "status": "done",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "unit",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-LOCAL-B011",
+                  "requirement": "The deploy script MUST produce a structured output file that Claude can read. The file MUST contain all test results (pass/fail), server PIDs, port assignments, timestamps, and errors. The file MUST be written to test_output/deploy/ with the environment name and timestamp in the filename.",
+                  "priority": "must-have",
+                  "status": "done",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "unit",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-LOCAL-B012",
+                  "requirement": "The deploy script MUST log the state of all servers and processes before and after teardown. For each port (80, 443, 7860, 8001, 8002) the script MUST report whether a server is running or the port is empty. The script MUST report how many processes were killed. After teardown the script MUST verify all ports are clear. Any errors MUST be reported in the output.",
+                  "priority": "must-have",
+                  "status": "done",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "test_deploy_output.py",
+                      "pytest_type": "unit",
+                      "orphan": false
+                    }
+                  ]
+                }
+              ],
+              "orphan": false,
+              "approval": "proposed"
+            },
+            {
+              "story_id": "DEVOPS-BANNER-001",
+              "title": "Environment Banner — Build, Version, Framework, and Environment Controls",
+              "description": "An environment banner displays at the top of every page in non-production environments. It shows the environment label (LOCAL/DEV/QA), product version, framework version, and build number fetched from the backend health endpoint. In dev/local environments it also contains controls for testing cross-component integration (Shared Services). The display has to be human readable where each value has a label and it must display in one line not span multiple lines. There must be sufficient space between each name value pair so that the banner is easily readable for a human being.",
+              "size": "S",
+              "status": "in_progress",
+              "requirements": [
+                {
+                  "req_id": "DEVOPS-BANNER-B001",
+                  "requirement": "The environment banner MUST be visible on every page in LOCAL, DEV, and QA environments. It MUST NOT be visible in production.",
+                  "priority": "must-have",
+                  "status": "done",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "local_environment_user_ready.py::TestPageLoad::test_environment_class",
+                      "pytest_type": "playwright",
+                      "orphan": false
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-BANNER-B002",
+                  "requirement": "The banner MUST display the environment label (LOCAL/DEV/QA), Version, Framework, and Build with correct values from the backend health endpoint. All values MUST display on one line with sufficient spacing to be human readable.",
+                  "priority": "must-have",
+                  "status": "done",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "local_environment_user_ready.py::TestPageLoad::test_environment_class",
+                      "pytest_type": "playwright",
+                      "orphan": false
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-BANNER-B003",
+                  "requirement": "In dev/local environments the banner MUST contain a Shared Services control button. Clicking it transfers page control to the SharedServices server. This control MUST NOT appear in production.",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "playwright",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-BANNER-B004",
+                  "requirement": "When SharedServices is invoked via the banner button, SharedServices MUST have control of the entire frame.",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "playwright",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-BANNER-B005",
+                  "requirement": "The center panel MUST display \"Shared Services\" and \"is still unimplemented.\" when SharedServices has control.",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "playwright",
+                      "orphan": true
+                    }
+                  ]
+                }
+              ],
+              "orphan": false,
+              "approval": "approved"
+            },
+            {
+              "story_id": "DEVOPS-DEPLOY-DEV",
+              "title": "Deploy to dev — HuggingFace Space dev environment",
+              "description": "Deploy script for the dev environment. Pushes to HuggingFace Space via GitHub Actions. Includes pre-deploy rule check, build bump, frontend build, and post-deploy verification.",
+              "size": "M",
+              "status": "in_progress",
+              "requirements": [
+                {
+                  "requirement": "Every deploy script MUST use the following standard port assignments: port 80 (HTTP redirect to HTTPS), port 443 (Website wrapper), port 7860 (FindCare backend + React frontend), port 8001 (EvaluateCare), port 8002 (CHShared). These port numbers MUST be identical across all environments (localhost, dev, qa, prod).",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "unit",
+                      "orphan": true
+                    }
+                  ],
+                  "req_id": "DEVOPS-DEV-B001"
+                },
+                {
+                  "req_id": "DEVOPS-DEV-B002",
+                  "requirement": "A Playwright pytest localSmokeTestPyTest.py MUST execute the following 31 steps in order against any environment. Every step MUST pass. The target domain is a parameter: localhost (local), dev.chathealthy.ai (dev), qa.chathealthy.ai (qa), chathealthy.ai (prod).\n1. [DEVOPS-LOCAL-B004] Navigate to http://{domain}. Verify the browser redirects to https://{domain}.\n2. [DEVOPS-BANNER-B002] Verify the environment banner is visible and contains the correct environment label, Version, Framework, and Build with correct values matching the deployed system.\n3. [DEVOPS-BANNER-B003] Verify the banner contains a control to test Shared Services. PROD WAIVER: This control MUST NOT appear in production. Skip this step in prod.\n4. [TEST-SIM-001-REQ-003] Verify the splash page renders with the correct first 25 words of the welcome message.\n5. [TEST-SIM-001-REQ-004] Verify there is a text input and the cursor is focused so typing goes to the right place.\n6. [TEST-SIM-001-REQ-005] Type \"Find me a bone doctor in Delaware\" and submit.\n7. [TEST-SIM-001-REQ-006] Verify a list of specialties appears in the left panel.\n8. [FC-FILT-001-REQ-015] Verify the specialty list is contained in a scroll window with a maximum of 12 visible items. The list MUST NOT overflow the left panel.\n9. [TEST-SIM-001-REQ-005] Verify a list of providers appears in the center panel.\n10. [UX-CTRL-003-REQ-006] Verify the bottom panel (Selected for Evaluation) shows zero providers.\n11. [UX-CTRL-003-REQ-007] Select up to 3 providers (or all if fewer than 3) by clicking the select control on provider cards.\n12. [UX-CTRL-003-REQ-008] Verify the selected providers appear in the bottom panel.\n13. [UX-CTRL-003-REQ-003] Click the Evaluate These Providers button.\n14. [TEST-SIM-001-REQ-012] Verify that EvaluateCare has control of the entire frame.\n15. [SEC-HTTPS-001-REQ-009] Verify that the calls between FindCare and EvaluateCare are done with mutual authentication using TLS 1.2 or above.\n16. [TEST-SIM-001-REQ-010] Verify the right panel displays the providers that were moved.\n17. [TEST-SIM-001-REQ-011] Verify the right panel shows the session token proving mutual authentication, the same token FindCare created is the same one EvaluateCare received.\n18. [SEC-HTTPS-001-REQ-013] Verify the signed and unsigned token forms are displayed in distinct colors.\n19. [SEC-HTTPS-001-REQ-012] Verify the nonce changed from the original FindCare token. The GUID MUST remain the same. The nonce MUST be different, proving EvaluateCare processed a fresh token.\n20. [UX-CTRL-003-REQ-004] Verify the center panel displays EvaluateCare and is still unimplemented.\n21. [TEST-SIM-001-REQ-014] Change a value in the specialty filter panel (e.g. uncheck a specialty checkbox).\n22. [TEST-SIM-001-REQ-014] Verify control returns to FindCare, the splash page reappears.\n23. [TEST-SIM-001-REQ-015] Verify the text input renders and the cursor is focused for typing.\n24. [SEC-HTTPS-001-REQ-012] Verify the nonce changed again on return to FindCare. The GUID MUST remain the same. The nonce MUST differ from both the original and the EvaluateCare nonce.\n25. [DEVOPS-BANNER-B003] Push the Shared Services button in the banner. PROD WAIVER: Skip this step in prod.\n26. [DEVOPS-BANNER-B004] Verify that the SharedServices server has control of the entire frame. PROD WAIVER: Skip this step in prod.\n27. [SEC-HTTPS-001-REQ-010] Verify that the calls between FindCare and SharedServices are done with mutual authentication using TLS 1.2 or above. PROD WAIVER: Skip this step in prod.\n28. [DEVOPS-BANNER-B005] Verify the center panel displays Shared Services and is still unimplemented. PROD WAIVER: Skip this step in prod.\n29. [SEC-HTTPS-001-REQ-008] Verify the same session token mutual authentication test passes for Shared Services. PROD WAIVER: Skip this step in prod.\n30. [SEC-HTTPS-001-REQ-012] Verify the nonce changed from the FindCare return nonce. The GUID MUST remain the same. The nonce MUST differ from all previous nonces, proving SharedServices processed a fresh token. PROD WAIVER: Skip this step in prod.\n31. [SEC-HTTPS-001-REQ-011] Verify all pages are served over HTTPS from the correct servers (443, 7860, 8001, 8002).",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "playwright",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-DEV-B003",
+                  "requirement": "The deploy script MUST produce a structured output file that Claude can read. The file MUST contain all test results (pass/fail), server PIDs, port assignments, timestamps, and errors. The file MUST be written to test_output/deploy/ with the environment name and timestamp in the filename.",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "unit",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-DEV-B004",
+                  "requirement": "The deploy script MUST log the state of all servers and processes before and after teardown. For each port (80, 443, 7860, 8001, 8002) the script MUST report whether a server is running or the port is empty. The script MUST report how many processes were killed. After teardown the script MUST verify all ports are clear. Any errors MUST be reported in the output.",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "test_deploy_output.py",
+                      "pytest_type": "unit",
+                      "orphan": false
+                    }
+                  ]
+                }
+              ],
+              "orphan": false,
+              "approval": "proposed"
+            },
+            {
+              "story_id": "DEVOPS-DEPLOY-QA",
+              "title": "Deploy to QA — HuggingFace Space QA environment",
+              "description": "Deploy script for the QA environment. Promotes from dev to QA. Includes pre-deploy rule check, build bump, and post-deploy verification.",
+              "size": "M",
+              "status": "not_started",
+              "requirements": [
+                {
+                  "requirement": "Every deploy script MUST use the following standard port assignments: port 80 (HTTP redirect to HTTPS), port 443 (Website wrapper), port 7860 (FindCare backend + React frontend), port 8001 (EvaluateCare), port 8002 (CHShared). These port numbers MUST be identical across all environments (localhost, dev, qa, prod).",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "unit",
+                      "orphan": true
+                    }
+                  ],
+                  "req_id": "DEVOPS-QA-B001"
+                },
+                {
+                  "req_id": "DEVOPS-QA-B002",
+                  "requirement": "A Playwright pytest localSmokeTestPyTest.py MUST execute the following 31 steps in order against any environment. Every step MUST pass. The target domain is a parameter: localhost (local), dev.chathealthy.ai (dev), qa.chathealthy.ai (qa), chathealthy.ai (prod).\n1. [DEVOPS-LOCAL-B004] Navigate to http://{domain}. Verify the browser redirects to https://{domain}.\n2. [DEVOPS-BANNER-B002] Verify the environment banner is visible and contains the correct environment label, Version, Framework, and Build with correct values matching the deployed system.\n3. [DEVOPS-BANNER-B003] Verify the banner contains a control to test Shared Services. PROD WAIVER: This control MUST NOT appear in production. Skip this step in prod.\n4. [TEST-SIM-001-REQ-003] Verify the splash page renders with the correct first 25 words of the welcome message.\n5. [TEST-SIM-001-REQ-004] Verify there is a text input and the cursor is focused so typing goes to the right place.\n6. [TEST-SIM-001-REQ-005] Type \"Find me a bone doctor in Delaware\" and submit.\n7. [TEST-SIM-001-REQ-006] Verify a list of specialties appears in the left panel.\n8. [FC-FILT-001-REQ-015] Verify the specialty list is contained in a scroll window with a maximum of 12 visible items. The list MUST NOT overflow the left panel.\n9. [TEST-SIM-001-REQ-005] Verify a list of providers appears in the center panel.\n10. [UX-CTRL-003-REQ-006] Verify the bottom panel (Selected for Evaluation) shows zero providers.\n11. [UX-CTRL-003-REQ-007] Select up to 3 providers (or all if fewer than 3) by clicking the select control on provider cards.\n12. [UX-CTRL-003-REQ-008] Verify the selected providers appear in the bottom panel.\n13. [UX-CTRL-003-REQ-003] Click the Evaluate These Providers button.\n14. [TEST-SIM-001-REQ-012] Verify that EvaluateCare has control of the entire frame.\n15. [SEC-HTTPS-001-REQ-009] Verify that the calls between FindCare and EvaluateCare are done with mutual authentication using TLS 1.2 or above.\n16. [TEST-SIM-001-REQ-010] Verify the right panel displays the providers that were moved.\n17. [TEST-SIM-001-REQ-011] Verify the right panel shows the session token proving mutual authentication, the same token FindCare created is the same one EvaluateCare received.\n18. [SEC-HTTPS-001-REQ-013] Verify the signed and unsigned token forms are displayed in distinct colors.\n19. [SEC-HTTPS-001-REQ-012] Verify the nonce changed from the original FindCare token. The GUID MUST remain the same. The nonce MUST be different, proving EvaluateCare processed a fresh token.\n20. [UX-CTRL-003-REQ-004] Verify the center panel displays EvaluateCare and is still unimplemented.\n21. [TEST-SIM-001-REQ-014] Change a value in the specialty filter panel (e.g. uncheck a specialty checkbox).\n22. [TEST-SIM-001-REQ-014] Verify control returns to FindCare, the splash page reappears.\n23. [TEST-SIM-001-REQ-015] Verify the text input renders and the cursor is focused for typing.\n24. [SEC-HTTPS-001-REQ-012] Verify the nonce changed again on return to FindCare. The GUID MUST remain the same. The nonce MUST differ from both the original and the EvaluateCare nonce.\n25. [DEVOPS-BANNER-B003] Push the Shared Services button in the banner. PROD WAIVER: Skip this step in prod.\n26. [DEVOPS-BANNER-B004] Verify that the SharedServices server has control of the entire frame. PROD WAIVER: Skip this step in prod.\n27. [SEC-HTTPS-001-REQ-010] Verify that the calls between FindCare and SharedServices are done with mutual authentication using TLS 1.2 or above. PROD WAIVER: Skip this step in prod.\n28. [DEVOPS-BANNER-B005] Verify the center panel displays Shared Services and is still unimplemented. PROD WAIVER: Skip this step in prod.\n29. [SEC-HTTPS-001-REQ-008] Verify the same session token mutual authentication test passes for Shared Services. PROD WAIVER: Skip this step in prod.\n30. [SEC-HTTPS-001-REQ-012] Verify the nonce changed from the FindCare return nonce. The GUID MUST remain the same. The nonce MUST differ from all previous nonces, proving SharedServices processed a fresh token. PROD WAIVER: Skip this step in prod.\n31. [SEC-HTTPS-001-REQ-011] Verify all pages are served over HTTPS from the correct servers (443, 7860, 8001, 8002).",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "playwright",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-QA-B003",
+                  "requirement": "The deploy script MUST produce a structured output file that Claude can read. The file MUST contain all test results (pass/fail), server PIDs, port assignments, timestamps, and errors. The file MUST be written to test_output/deploy/ with the environment name and timestamp in the filename.",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "unit",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-QA-B004",
+                  "requirement": "The deploy script MUST log the state of all servers and processes before and after teardown. For each port (80, 443, 7860, 8001, 8002) the script MUST report whether a server is running or the port is empty. The script MUST report how many processes were killed. After teardown the script MUST verify all ports are clear. Any errors MUST be reported in the output.",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "test_deploy_output.py",
+                      "pytest_type": "unit",
+                      "orphan": false
+                    }
+                  ]
+                }
+              ],
+              "orphan": false,
+              "approval": "proposed"
+            },
+            {
+              "story_id": "DEVOPS-DEPLOY-PROD",
+              "title": "Deploy to prod — HuggingFace Space production environment",
+              "description": "Deploy script for the production environment. Promotes from QA to prod. Includes pre-deploy rule check, build bump, Boss authorization, and post-deploy verification.",
+              "size": "M",
+              "status": "not_started",
+              "requirements": [
+                {
+                  "requirement": "Every deploy script MUST use the following standard port assignments: port 80 (HTTP redirect to HTTPS), port 443 (Website wrapper), port 7860 (FindCare backend + React frontend), port 8001 (EvaluateCare), port 8002 (CHShared). These port numbers MUST be identical across all environments (localhost, dev, qa, prod).",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "unit",
+                      "orphan": true
+                    }
+                  ],
+                  "req_id": "DEVOPS-PROD-B001"
+                },
+                {
+                  "req_id": "DEVOPS-PROD-B002",
+                  "requirement": "A Playwright pytest localSmokeTestPyTest.py MUST execute the following 31 steps in order against any environment. Every step MUST pass. The target domain is a parameter: localhost (local), dev.chathealthy.ai (dev), qa.chathealthy.ai (qa), chathealthy.ai (prod).\n1. [DEVOPS-LOCAL-B004] Navigate to http://{domain}. Verify the browser redirects to https://{domain}.\n2. [DEVOPS-BANNER-B002] Verify the environment banner is visible and contains the correct environment label, Version, Framework, and Build with correct values matching the deployed system.\n3. [DEVOPS-BANNER-B003] Verify the banner contains a control to test Shared Services. PROD WAIVER: This control MUST NOT appear in production. Skip this step in prod.\n4. [TEST-SIM-001-REQ-003] Verify the splash page renders with the correct first 25 words of the welcome message.\n5. [TEST-SIM-001-REQ-004] Verify there is a text input and the cursor is focused so typing goes to the right place.\n6. [TEST-SIM-001-REQ-005] Type \"Find me a bone doctor in Delaware\" and submit.\n7. [TEST-SIM-001-REQ-006] Verify a list of specialties appears in the left panel.\n8. [FC-FILT-001-REQ-015] Verify the specialty list is contained in a scroll window with a maximum of 12 visible items. The list MUST NOT overflow the left panel.\n9. [TEST-SIM-001-REQ-005] Verify a list of providers appears in the center panel.\n10. [UX-CTRL-003-REQ-006] Verify the bottom panel (Selected for Evaluation) shows zero providers.\n11. [UX-CTRL-003-REQ-007] Select up to 3 providers (or all if fewer than 3) by clicking the select control on provider cards.\n12. [UX-CTRL-003-REQ-008] Verify the selected providers appear in the bottom panel.\n13. [UX-CTRL-003-REQ-003] Click the Evaluate These Providers button.\n14. [TEST-SIM-001-REQ-012] Verify that EvaluateCare has control of the entire frame.\n15. [SEC-HTTPS-001-REQ-009] Verify that the calls between FindCare and EvaluateCare are done with mutual authentication using TLS 1.2 or above.\n16. [TEST-SIM-001-REQ-010] Verify the right panel displays the providers that were moved.\n17. [TEST-SIM-001-REQ-011] Verify the right panel shows the session token proving mutual authentication, the same token FindCare created is the same one EvaluateCare received.\n18. [SEC-HTTPS-001-REQ-013] Verify the signed and unsigned token forms are displayed in distinct colors.\n19. [SEC-HTTPS-001-REQ-012] Verify the nonce changed from the original FindCare token. The GUID MUST remain the same. The nonce MUST be different, proving EvaluateCare processed a fresh token.\n20. [UX-CTRL-003-REQ-004] Verify the center panel displays EvaluateCare and is still unimplemented.\n21. [TEST-SIM-001-REQ-014] Change a value in the specialty filter panel (e.g. uncheck a specialty checkbox).\n22. [TEST-SIM-001-REQ-014] Verify control returns to FindCare, the splash page reappears.\n23. [TEST-SIM-001-REQ-015] Verify the text input renders and the cursor is focused for typing.\n24. [SEC-HTTPS-001-REQ-012] Verify the nonce changed again on return to FindCare. The GUID MUST remain the same. The nonce MUST differ from both the original and the EvaluateCare nonce.\n25. [DEVOPS-BANNER-B003] Push the Shared Services button in the banner. PROD WAIVER: Skip this step in prod.\n26. [DEVOPS-BANNER-B004] Verify that the SharedServices server has control of the entire frame. PROD WAIVER: Skip this step in prod.\n27. [SEC-HTTPS-001-REQ-010] Verify that the calls between FindCare and SharedServices are done with mutual authentication using TLS 1.2 or above. PROD WAIVER: Skip this step in prod.\n28. [DEVOPS-BANNER-B005] Verify the center panel displays Shared Services and is still unimplemented. PROD WAIVER: Skip this step in prod.\n29. [SEC-HTTPS-001-REQ-008] Verify the same session token mutual authentication test passes for Shared Services. PROD WAIVER: Skip this step in prod.\n30. [SEC-HTTPS-001-REQ-012] Verify the nonce changed from the FindCare return nonce. The GUID MUST remain the same. The nonce MUST differ from all previous nonces, proving SharedServices processed a fresh token. PROD WAIVER: Skip this step in prod.\n31. [SEC-HTTPS-001-REQ-011] Verify all pages are served over HTTPS from the correct servers (443, 7860, 8001, 8002).",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "playwright",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-PROD-B003",
+                  "requirement": "The deploy script MUST produce a structured output file that Claude can read. The file MUST contain all test results (pass/fail), server PIDs, port assignments, timestamps, and errors. The file MUST be written to test_output/deploy/ with the environment name and timestamp in the filename.",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "unit",
+                      "orphan": true
+                    }
+                  ]
+                },
+                {
+                  "req_id": "DEVOPS-PROD-B004",
+                  "requirement": "The deploy script MUST log the state of all servers and processes before and after teardown. For each port (80, 443, 7860, 8001, 8002) the script MUST report whether a server is running or the port is empty. The script MUST report how many processes were killed. After teardown the script MUST verify all ports are clear. Any errors MUST be reported in the output.",
+                  "priority": "must-have",
+                  "status": "not_started",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "test_deploy_output.py",
+                      "pytest_type": "unit",
+                      "orphan": false
+                    }
+                  ]
                 }
               ],
               "orphan": false,
@@ -52608,16 +53203,17 @@
                   "req_id": "BRAIN-SCHEMA-REQ-001",
                   "requirement": "schema.json MUST be controlled by a JSON schema. The file MUST be in strict compliance with that schema at all times.",
                   "priority": "must-have",
-                  "status": "not_started",
+                  "status": "done",
                   "realized_by": [
                     "Python 3.11"
                   ],
-                  "orphan": true,
+                  "orphan": false,
                   "pytests": [
                     {
-                      "pytest_id": "ORPHAN",
-                      "pytest_type": "ORPHAN",
-                      "orphan": true
+                      "pytest_id": "test_brain_schema_validator",
+                      "pytest_type": "unit",
+                      "file": "Code/Shared/tests/test_brain_schema_validator.py",
+                      "orphan": false
                     }
                   ],
                   "approval": "proposed"

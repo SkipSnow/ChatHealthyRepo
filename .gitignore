@@ -85,3 +85,4 @@ migrate_dev_to_qa.py
 Code/CSharp/**/bin/
 Code/CSharp/**/obj/
 Code/CSharp/**/build/
+brain/machine_artifacts/.iteration_cache/

@@ -293,10 +293,21 @@ class ClassifyRequest(BaseModel):
     message: str
 
 @app.post("/classify")
-async def classify(body: ClassifyRequest):
+async def classify(body: ClassifyRequest, request: Request):
     """FC-FILT-001-REQ-001: AI vector search for specialties.
     Replaces the GPT classify call with embedding + vector search.
     Returns specialty codes ranked by cosine similarity + location extracted by simple parsing."""
+
+    # BUG-SAFETY-001: Safety gate — emergency detection must run on every user input,
+    # regardless of which endpoint the frontend calls.
+    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
+        request.client.host if request.client else "unknown")
+    if _safety_service.is_ip_locked(ip):
+        return {"emergency": True, "response": EMERGENCY_RESPONSE}
+    if _safety_service.is_emergency(body.message):
+        full_history = [{"role": "user", "content": body.message}]
+        _safety_service.lock_ip(ip, trigger_message=body.message, history=full_history)
+        return {"emergency": True, "response": EMERGENCY_RESPONSE}
 
     # Vector search for specialties
     result = _specialty_service.find_specialty_codes(body.message)
@@ -498,7 +509,7 @@ def health():
     env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
     idx_check = _check_indexes()
     status = "ok" if idx_check["status"] == "ok" else "degraded"
-    # Version info from version.json — single source of truth
+    # Version info from version.json for version/framework
     _version_info = {}
     try:
         import json as _json
@@ -508,6 +519,17 @@ def health():
             _vpath = os.path.join(os.path.dirname(__file__), "brain", "machine_artifacts", "content", "version.json")
         if os.path.exists(_vpath):
             _version_info = _json.loads(open(_vpath, encoding="utf-8").read()).get("current", {})
+    except Exception:
+        pass
+    # BUG-DEVOPS-001 fix: build number from MongoDB (authoritative source,
+    # written by bump_build.py in CI). Fall back to version.json if DB unavailable.
+    _build = _version_info.get("build", "?")
+    try:
+        db = _get_db()
+        if db:
+            counter = db[f"{_ENV_PREFIX}_System"]["build_counter"].find_one({"_id": "build"})
+            if counter and "number" in counter:
+                _build = counter["number"]
     except Exception:
         pass
     # Get git commit hash for build identification
@@ -520,7 +542,7 @@ def health():
         pass
     result = {"status": status, "db": "connected" if _get_db() else "unavailable",
               "env": env_label,
-              "build": _version_info.get("build", "?"),
+              "build": _build,
               "version": _version_info.get("version", "?"),
               "framework": _version_info.get("framework", "?"),
               "commit": _commit}
@@ -556,13 +578,23 @@ class EvaluateRequest(BaseModel):
 def evaluate_splash():
     """Proxy splash call to EvaluateCare service. Transfers page ownership to EvaluateCare."""
     import requests as _req
-    evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8081")
+    evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8001")
+    certs_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
     _log.info("CONTROL TRANSFER: FindCare → EvaluateCare (user clicked Evaluate)")
+    req_kwargs = {"timeout": 5}
+    if not os.getenv("SPACE_ID"):
+        findcare_crt = os.path.join(certs_dir, "findcare.crt")
+        findcare_key = os.path.join(certs_dir, "findcare.key")
+        ca_crt = os.path.join(certs_dir, "ca.crt")
+        if os.path.exists(findcare_crt) and os.path.exists(findcare_key):
+            req_kwargs["cert"] = (findcare_crt, findcare_key)
+        if os.path.exists(ca_crt):
+            req_kwargs["verify"] = ca_crt
     try:
-        resp = _req.get(f"{evalcare_url}/splash", timeout=5)
+        resp = _req.get(f"{evalcare_url}/splash", **req_kwargs)
         return resp.json()
-    except Exception:
-        _log.error("CONTROL TRANSFER FAILED: EvaluateCare unreachable at %s", evalcare_url)
+    except Exception as e:
+        _log.error("CONTROL TRANSFER FAILED: EvaluateCare unreachable at %s: %s", evalcare_url, e)
         return {"html": '<div style="text-align:center;padding:20px;"><div style="font-size:24px;font-weight:700;color:#1f2937;">EvaluateCare</div><div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">Service unavailable</div></div>'}
 
 @app.post("/transfer/to-findcare")
@@ -571,10 +603,20 @@ def transfer_to_findcare():
     Called when user interacts with filter while in EvaluateCare mode.
     Proxies through EvaluateCare first so both services log the transfer."""
     import requests as _req
-    evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8081")
+    evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8001")
+    certs_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
     _log.info("CONTROL TRANSFER: FindCare has taken ownership of the page (from EvaluateCare)")
+    req_kwargs = {"timeout": 5}
+    if not os.getenv("SPACE_ID"):
+        ca_crt = os.path.join(certs_dir, "ca.crt")
+        findcare_crt = os.path.join(certs_dir, "findcare.crt")
+        findcare_key = os.path.join(certs_dir, "findcare.key")
+        if os.path.exists(findcare_crt) and os.path.exists(findcare_key):
+            req_kwargs["cert"] = (findcare_crt, findcare_key)
+        if os.path.exists(ca_crt):
+            req_kwargs["verify"] = ca_crt
     try:
-        _req.post(f"{evalcare_url}/transfer/to-findcare", timeout=5)
+        _req.post(f"{evalcare_url}/transfer/to-findcare", **req_kwargs)
     except Exception:
         _log.warning("Could not notify EvaluateCare of transfer")
     return {"owner": "findcare", "splash": WELCOME_MESSAGE}
@@ -615,6 +657,54 @@ def evaluate_proxy(body: EvaluateRequest):
         return resp.json()
     except Exception as e:
         _log.error("EvaluateCare proxy failed: %s", e)
+        return {"status": "error", "error": str(e)}
+
+# ── Shared Services proxy — FindCare backend → CHShared over mTLS ──
+@app.get("/shared/splash")
+def shared_splash():
+    """Proxy splash call to SharedServices. Transfers page ownership."""
+    import requests as _req
+    shared_url = os.getenv("SHARED_SERVICES_URL", "https://localhost:8002")
+    certs_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
+    _log.info("CONTROL TRANSFER: FindCare → SharedServices (user clicked Shared Services)")
+    req_kwargs = {"timeout": 5}
+    if not os.getenv("SPACE_ID"):
+        findcare_crt = os.path.join(certs_dir, "findcare.crt")
+        findcare_key = os.path.join(certs_dir, "findcare.key")
+        ca_crt = os.path.join(certs_dir, "ca.crt")
+        if os.path.exists(findcare_crt) and os.path.exists(findcare_key):
+            req_kwargs["cert"] = (findcare_crt, findcare_key)
+        if os.path.exists(ca_crt):
+            req_kwargs["verify"] = ca_crt
+    try:
+        resp = _req.get(f"{shared_url}/splash", **req_kwargs)
+        return resp.json()
+    except Exception:
+        _log.error("CONTROL TRANSFER FAILED: SharedServices unreachable at %s", shared_url)
+        return {"html": '<div style="text-align:center;padding:20px;"><div style="font-size:24px;font-weight:700;color:#1f2937;">Shared Services</div><div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">Service unavailable</div></div>'}
+
+@app.post("/shared/verify-token")
+def shared_verify_token(body: EvaluateRequest):
+    """Proxy token verification to SharedServices over mTLS."""
+    import requests as _req
+    shared_url = os.getenv("SHARED_SERVICES_URL", "https://localhost:8002")
+    certs_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
+    req_kwargs = {"timeout": 10}
+    if not os.getenv("SPACE_ID"):
+        findcare_crt = os.path.join(certs_dir, "findcare.crt")
+        findcare_key = os.path.join(certs_dir, "findcare.key")
+        ca_crt = os.path.join(certs_dir, "ca.crt")
+        if os.path.exists(findcare_crt) and os.path.exists(findcare_key):
+            req_kwargs["cert"] = (findcare_crt, findcare_key)
+        if os.path.exists(ca_crt):
+            req_kwargs["verify"] = ca_crt
+    try:
+        resp = _req.post(f"{shared_url}/verify-token",
+                         json={"session_token": body.session_token},
+                         **req_kwargs)
+        return resp.json()
+    except Exception as e:
+        _log.error("SharedServices verify-token failed: %s", e)
         return {"status": "error", "error": str(e)}
 
 @app.post("/chat", response_model=ChatResponse)

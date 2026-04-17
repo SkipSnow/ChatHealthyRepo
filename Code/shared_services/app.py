@@ -48,6 +48,53 @@ app.add_middleware(
 def health():
     return {"status": "ok", "service": "shared_services", "version": "0.1.4"}
 
+# ── Splash + Control Transfer (mirrors EvaluateCare pattern) ──
+@app.get("/splash")
+def splash():
+    _log.info("CONTROL TRANSFER: SharedServices has taken ownership of the page")
+    return {"html": '<div style="text-align:center;padding:20px;">'
+            '<div style="font-size:24px;font-weight:700;color:#1f2937;">Shared Services</div>'
+            '<div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">is still unimplemented.</div>'
+            '</div>'}
+
+@app.post("/transfer/to-findcare")
+def transfer_to_findcare():
+    """SharedServices releases page ownership back to FindCare."""
+    _log.info("CONTROL TRANSFER: SharedServices → FindCare")
+    return {"owner": "findcare", "reason": "filter_interaction"}
+
+# ── Token Verification (mirrors EvaluateCare pattern) ──────
+from pydantic import BaseModel as _BaseModel
+from typing import Optional as _Optional
+
+class VerifyTokenRequest(_BaseModel):
+    session_token: _Optional[dict] = None
+
+@app.post("/verify-token")
+def verify_token(body: VerifyTokenRequest):
+    """Verify a session token from FindCare. Proves mutual authentication."""
+    token_valid = False
+    token_origin = "unknown"
+    if body.session_token:
+        try:
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "Shared"))
+            os.environ.setdefault("CERTS_DIR", os.path.join(os.path.dirname(__file__), "..", "Shared", "ops", "certs"))
+            from session_token import verify_session_token
+            token_valid = verify_session_token(body.session_token, "FindCare")
+            token_origin = body.session_token.get("origin", "unknown")
+            _log.info("Token verification: origin=%s valid=%s", token_origin, token_valid)
+        except Exception as e:
+            _log.warning("Token verification failed: %s", e)
+    return {
+        "status": "verified" if token_valid else "failed",
+        "session_token": {
+            "token_received": body.session_token.get("token", "") if body.session_token else "",
+            "signature_received": (body.session_token.get("signature", "") or "")[:40] + "..." if body.session_token and body.session_token.get("signature") else "none",
+            "origin": body.session_token.get("origin", "") if body.session_token else "",
+            "verified": token_valid,
+        },
+    }
+
 # ── SecretManager (local mode) ─────────────────────────────
 @app.get("/secrets/{key}")
 def get_secret(key: str):

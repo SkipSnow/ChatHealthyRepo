@@ -56,11 +56,12 @@
       width: 20%;
       transition: width 0.3s ease;
       overflow: hidden;
-      max-height: 100%;
+      height: 100%;
     }
     .side-panel.filter-active {
       overflow-y: auto;
       overflow-x: hidden;
+      height: 100%;
     }
 
     .side-panel.expanded {
@@ -566,6 +567,7 @@
       <nav class="header-nav">
         <button type="button" class="nav-coming-soon" data-tip="You are already home">Home</button>
         <button type="button" onclick="openPanel('products.html','Products &amp; Services')">Products &amp; Services</button>
+        <button type="button" id="sharedServicesNav" style="display:none" onclick="openSharedServices()">Shared Services</button>
         <button type="button" id="qaReportNav" style="display:none" onclick="openQAReport()">QA Report</button>
       </nav>
 
@@ -629,7 +631,7 @@
         // Fetch build/version from backend (same URL as iframe)
         var healthUrl;
         if (isLocal) {
-          healthUrl = '/api/health';  // Same origin — Caddy proxies to :8000
+          healthUrl = '/health';  // Website server proxies to FindCare :7860
         } else {
           var org = 'skipsnow';
           var base = 'chathealthyspace';
@@ -728,7 +730,7 @@
       // Build iframe URL from environment — single source of truth
       var src;
       if (isLocal) {
-        src = 'https://localhost:3000';  // Caddy HTTPS proxy to Vite :5173
+        src = 'https://localhost:7860';  // FindCare backend serves React static files
       } else {
         var org = 'skipsnow';
         var base = 'chathealthyspace';
@@ -736,13 +738,87 @@
         src = 'https://' + org + '-' + spaceName + '.hf.space';
       }
 
-      // QA Report — dev/QA only
+      // QA Report + Shared Services — dev/local only
       if (env !== 'prod') {
         document.getElementById('qaReportNav').style.display = '';
+      }
+      if (env === 'local' || env === 'dev') {
+        document.getElementById('sharedServicesNav').style.display = '';
       }
       window._hfBaseUrl = src;
       window.openQAReport = function() {
         openPanel(src + '/qa-report', 'QA Report — v0.1.4');
+      };
+      window.openSharedServices = function() {
+        // Transfer control to SharedServices (mirrors EvaluateCare pattern)
+        window._pageOwner = 'sharedservices';
+        var chatFrame = document.getElementById('coreChatFrame');
+        var apiBase = src;
+
+        // Get session token from left panel for mutual auth verification
+        var sessionEl = document.getElementById('guiSessionId');
+        var sessionToken = sessionEl ? sessionEl.textContent : '';
+
+        fetch(apiBase + '/shared/splash')
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            chatFrame.style.display = 'none';
+            // Hide EvaluateCare splash if visible
+            var ecSplash = document.getElementById('evalcareSplash');
+            if (ecSplash) ecSplash.style.display = 'none';
+            var centerArea = chatFrame.parentElement;
+            var splashDiv = document.getElementById('sharedSplash');
+            if (!splashDiv) {
+              splashDiv = document.createElement('div');
+              splashDiv.id = 'sharedSplash';
+              splashDiv.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#fff;';
+              centerArea.appendChild(splashDiv);
+            }
+            splashDiv.style.display = 'flex';
+            splashDiv.innerHTML = d.html || '';
+          })
+          .catch(function() {
+            chatFrame.style.display = 'none';
+            var centerArea = chatFrame.parentElement;
+            var splashDiv = document.getElementById('sharedSplash');
+            if (!splashDiv) {
+              splashDiv = document.createElement('div');
+              splashDiv.id = 'sharedSplash';
+              splashDiv.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#fff;';
+              centerArea.appendChild(splashDiv);
+            }
+            splashDiv.style.display = 'flex';
+            splashDiv.innerHTML = '<div style="text-align:center;padding:20px;color:#6b7280;">Shared Services unavailable</div>';
+          });
+
+        // Send session token to SharedServices for mutual auth verification
+        fetch(apiBase + '/session')
+          .then(function(r) { return r.json(); })
+          .then(function(token) {
+            return fetch(apiBase + '/shared/verify-token', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({session_token: token})
+            });
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(result) {
+            // Paint result in right panel via postMessage to parent
+            var rightPanel = document.getElementById('rightPanel');
+            if (rightPanel && result.session_token) {
+              var st = result.session_token;
+              rightPanel.style.alignItems = 'stretch';
+              rightPanel.style.justifyContent = 'flex-start';
+              rightPanel.style.flexDirection = 'column';
+              rightPanel.style.overflow = 'auto';
+              rightPanel.innerHTML = '<div style="padding:8px 10px;border-bottom:2px solid #0b7a75;background:#f0fffe;">'
+                + '<div style="font-size:11px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Shared Services</div>'
+                + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">Mutual authentication test</div>'
+                + '</div>'
+                + window.buildTokenDisplayHtml(st);
+            }
+          })
+          .catch(function(e) { console.error('SharedServices token verify failed:', e); });
       };
 
       // Retry loading iframe — wait 3s between attempts, max 10 tries
@@ -767,8 +843,29 @@
     (function() {
       var frame = document.getElementById('guiControlFrame');
       var chatFrame = document.getElementById('coreChatFrame');
-      // Page ownership: 'findcare' or 'evaluatecare'
-      var pageOwner = 'findcare';
+      // Page ownership: 'findcare', 'evaluatecare', or 'sharedservices'
+      if (!window._pageOwner) window._pageOwner = 'findcare';
+
+      // SEC-HTTPS-001-REQ-013: Parse token into nonce and GUID, build display HTML
+      // Defined on window so all IIFEs can access it
+      window.buildTokenDisplayHtml = function(st) {
+        var token = st.token_received || '';
+        // Token format: CH{nonce:17}{created:17}{guid:32} = 68 chars
+        var nonce = token.length >= 36 ? token.substring(2, 36) : token;
+        var guid = token.length >= 68 ? token.substring(36) : '';
+        return '<div style="padding:8px 10px;border-top:2px solid #0b7a75;background:#f0fffe;margin-top:4px;">'
+          + '<div style="font-size:10px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Session Verification</div>'
+          + '<div style="font-size:9px;color:#374151;margin-top:4px;word-break:break-all;">'
+          + '<b style="color:#6366f1;">Signed token:</b> <span style="color:#6366f1;">' + (st.signature_received || 'none') + '</span></div>'
+          + '<div style="font-size:9px;color:#374151;margin-top:2px;word-break:break-all;">'
+          + '<b style="color:#d97706;">Nonce:</b> <span style="color:#d97706;">' + nonce + '</span></div>'
+          + '<div style="font-size:9px;color:#374151;margin-top:2px;word-break:break-all;">'
+          + '<b style="color:#0b7a75;">GUID:</b> <span style="color:#0b7a75;">' + guid + '</span></div>'
+          + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
+          + '<b>Origin:</b> ' + (st.origin || 'unknown')
+          + ' &middot; <b>Verified:</b> <span style="color:' + (st.verified ? '#059669' : '#dc2626') + ';font-weight:700;">' + (st.verified ? 'YES ✓' : 'FAILED ✗') + '</span></div>'
+          + '</div>';
+      }
 
       window.addEventListener('message', function(event) {
         if (!chatFrame || !chatFrame.contentWindow) return;
@@ -872,7 +969,7 @@
               } else {
                 // Hot click — send to evaluate
                 // Transfer control to EvaluateCare
-                pageOwner = 'evaluatecare';
+                window._pageOwner = 'evaluatecare';
                 var chatSrc = chatFrame.src || '';
                 var apiBase = chatSrc.replace(/\/static\/.*$/, '').replace(/\/$/, '');
                 if (!apiBase) apiBase = '';
@@ -948,21 +1045,22 @@
               var tag = el.tagName.toLowerCase();
               if (el.getAttribute('data-gui-action') === 'filter-apply') {
                 el.addEventListener('click', function() {
-                  // If EvaluateCare owns the page, transfer back to FindCare
-                  if (pageOwner === 'evaluatecare') {
-                    pageOwner = 'findcare';
+                  // If EvaluateCare or SharedServices owns the page, transfer back to FindCare
+                  if (window._pageOwner === 'evaluatecare' || window._pageOwner === 'sharedservices') {
+                    window._pageOwner = 'findcare';
                     var chatSrc2 = chatFrame.src || '';
                     var apiBase2 = chatSrc2.replace(/\/static\/.*$/, '').replace(/\/$/, '');
                     if (!apiBase2) apiBase2 = '';
                     fetch(apiBase2 + '/transfer/to-findcare', { method: 'POST' })
                       .then(function(r) { return r.json(); })
                       .then(function(d) {
-                        // Paint FindCare splash in center panel
-                        var splashDiv = document.getElementById('evalcareSplash');
-                        if (splashDiv) {
-                          splashDiv.innerHTML = d.splash || '';
-                          splashDiv.style.display = 'flex';
-                        }
+                        // Hide EvaluateCare and SharedServices splash divs
+                        var ecSplash = document.getElementById('evalcareSplash');
+                        if (ecSplash) ecSplash.style.display = 'none';
+                        var shSplash = document.getElementById('sharedSplash');
+                        if (shSplash) shSplash.style.display = 'none';
+                        // Restore chat iframe
+                        chatFrame.style.display = '';
                       });
                     return;
                   }
@@ -1038,20 +1136,20 @@
               }
               if (el.getAttribute('data-gui-action') === 'filter-provider-type') {
                 el.addEventListener('change', function() {
-                  // If EvaluateCare owns the page, transfer back to FindCare
-                  if (pageOwner === 'evaluatecare') {
-                    pageOwner = 'findcare';
+                  // If EvaluateCare or SharedServices owns the page, transfer back to FindCare
+                  if (window._pageOwner === 'evaluatecare' || window._pageOwner === 'sharedservices') {
+                    window._pageOwner = 'findcare';
                     var chatSrc3 = chatFrame.src || '';
                     var apiBase3 = chatSrc3.replace(/\/static\/.*$/, '').replace(/\/$/, '');
                     if (!apiBase3) apiBase3 = '';
                     fetch(apiBase3 + '/transfer/to-findcare', { method: 'POST' })
                       .then(function(r) { return r.json(); })
                       .then(function(d) {
-                        var splashDiv = document.getElementById('evalcareSplash');
-                        if (splashDiv) {
-                          splashDiv.innerHTML = d.splash || '';
-                          splashDiv.style.display = 'flex';
-                        }
+                        var ecSplash = document.getElementById('evalcareSplash');
+                        if (ecSplash) ecSplash.style.display = 'none';
+                        var shSplash = document.getElementById('sharedSplash');
+                        if (shSplash) shSplash.style.display = 'none';
+                        chatFrame.style.display = '';
                       });
                     return;
                   }
@@ -1159,20 +1257,10 @@
                 + '<div style="font-size:10px;color:#9ca3af;">NPI: ' + (p.npi || '') + '</div>'
                 + '</div>';
             }).join('');
-            // Session token verification display
+            // Session token verification display — SEC-HTTPS-001-REQ-013
             var tokenHtml = '';
             if (msg.session_token) {
-              var st = msg.session_token;
-              tokenHtml = '<div style="padding:8px 10px;border-top:2px solid #0b7a75;background:#f0fffe;margin-top:4px;">'
-                + '<div style="font-size:10px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Session Verification</div>'
-                + '<div style="font-size:9px;color:#374151;margin-top:4px;word-break:break-all;">'
-                + '<b>Signed token:</b> ' + (st.signature_received || 'none') + '</div>'
-                + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
-                + '<b>Decrypted GUID:</b> ' + (st.token_received || 'none') + '</div>'
-                + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
-                + '<b>Origin:</b> ' + (st.origin || 'unknown')
-                + ' &middot; <b>Verified:</b> <span style="color:' + (st.verified ? '#059669' : '#dc2626') + ';font-weight:700;">' + (st.verified ? 'YES ✓' : 'FAILED ✗') + '</span></div>'
-                + '</div>';
+              tokenHtml = buildTokenDisplayHtml(msg.session_token);
             }
             rightPanel.style.alignItems = 'stretch';
             rightPanel.style.justifyContent = 'flex-start';
@@ -1187,16 +1275,35 @@
           }
         }
 
-        // Session GUID display below evaluate button in left panel
+        // SharedServices result — render in right panel (mirrors EvaluateCare pattern)
+        if (msg.type === 'gui:shared-result') {
+          var rightPanel = document.getElementById('rightPanel');
+          if (rightPanel) {
+            // SEC-HTTPS-001-REQ-013: Use shared token display function
+            var tokenHtml = '';
+            if (msg.session_token) {
+              tokenHtml = buildTokenDisplayHtml(msg.session_token);
+            }
+            rightPanel.style.alignItems = 'stretch';
+            rightPanel.style.justifyContent = 'flex-start';
+            rightPanel.style.flexDirection = 'column';
+            rightPanel.style.overflow = 'auto';
+            rightPanel.innerHTML = '<div style="padding:8px 10px;border-bottom:2px solid #0b7a75;background:#f0fffe;">'
+              + '<div style="font-size:11px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Shared Services</div>'
+              + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">Mutual authentication test</div>'
+              + '</div>'
+              + tokenHtml;
+          }
+        }
+
+        // Session GUID display in left panel — below the filter list
         if (msg.type === 'gui:session-display') {
           var sessionEl = document.getElementById('guiSessionId');
           if (!sessionEl) {
-            var evalBtn = leftPanel.querySelector('[data-gui-action="evaluate-providers"]');
-            if (evalBtn && evalBtn.parentElement) {
-              evalBtn.parentElement.insertAdjacentHTML('beforeend',
-                '<div id="guiSessionId" style="font-size:8px;color:#9ca3af;font-family:monospace;margin-top:4px;word-break:break-all;text-align:center;"></div>');
-              sessionEl = document.getElementById('guiSessionId');
-            }
+            // Insert at the bottom of the left panel
+            leftPanel.insertAdjacentHTML('beforeend',
+              '<div id="guiSessionId" style="font-size:8px;color:#9ca3af;font-family:monospace;margin-top:4px;padding:4px 8px;word-break:break-all;text-align:center;border-top:1px solid #e5e7eb;"></div>');
+            sessionEl = document.getElementById('guiSessionId');
           }
           if (sessionEl) sessionEl.textContent = msg.token;
         }
