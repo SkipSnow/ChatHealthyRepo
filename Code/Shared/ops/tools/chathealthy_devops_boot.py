@@ -836,9 +836,10 @@ class chathealthy_devops_boot:
                 return [f"Budget: ${budget['daily_limit']}/day"]
             return []
 
-        # Agile backlog
+        # Agile backlog — pipeline schema per v4-032: epics.epic
         if json_stem == "agile_backlog":
-            return [f"EPIC: {e.get('name', '')} ({e.get('status', '')})" for e in data.get("epics", []) if e.get("name")]
+            epics = data.get("epics", {}).get("epic", [])
+            return [f"EPIC: {e.get('name', '')} ({e.get('status', '')})" for e in epics if isinstance(e, dict) and e.get("name")]
 
         # Default — no extractable constraints
         return []
