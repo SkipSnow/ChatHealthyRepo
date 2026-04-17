@@ -50382,6 +50382,32 @@
               ],
               "orphan": false,
               "approval": "proposed"
+            },
+            {
+              "story_id": "DEVOPS-CLOUDFLARE-001",
+              "title": "Cloudflare Pages Configuration",
+              "description": "Configuration of Cloudflare Pages for the ChatHealthy.ai static website. HTTP-to-HTTPS redirect is handled by SEC-HTTPS-001-REQ-002.",
+              "size": "S",
+              "status": "not_started",
+              "requirements": [
+                {
+                  "req_id": "DEVOPS-CF-B001",
+                  "requirement": "Requests to non-existent paths on chathealthy.ai MUST return HTTP 404. The server MUST NOT redirect or serve index.html for unknown paths.",
+                  "priority": "must-have",
+                  "status": "deferred",
+                  "orphan": false,
+                  "approval": "approved",
+                  "pytests": [
+                    {
+                      "pytest_id": "ORPHAN",
+                      "pytest_type": "unit",
+                      "orphan": true
+                    }
+                  ]
+                }
+              ],
+              "orphan": false,
+              "approval": "approved"
             }
           ],
           "orphan": false,

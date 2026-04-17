@@ -592,6 +592,16 @@
       "rule": "Every story MUST separate its requirements into Business requirements (B-prefix) and Technical requirements (T-prefix). Business requirements describe WHAT the system must do from the user or business perspective. They MUST NOT reference specific technologies, frameworks, file formats, APIs, or implementation patterns. Technical requirements describe HOW the system realizes the business requirements. They reference specific technologies, architectures, and implementation decisions. When the technical architecture changes, only T-requirements are rewritten. B-requirements are the contract with the business and MUST remain stable across implementation changes.",
       "source": "Boss directive — conversation log rationalization 2026-04-15",
       "ch_matrix_id": "448f5cfd-be53-4b1d-aff8-4bed287a2a59"
+    },
+    {
+      "id": "v4-036",
+      "title": "No scanner bypass without Boss risk acceptance",
+      "rule": "Claude MUST NEVER use --no-verify or any other mechanism to bypass the pre-commit or pre-push scanner without explicit risk acceptance from Boss. If the scanner blocks a commit, Claude MUST fix the violation or escalate to Boss. Boss must explicitly authorize any bypass and a risk acceptance record must be created.",
+      "type": "standard",
+      "date": "2026-04-16",
+      "source": "Boss",
+      "ch_matrix_id": "",
+      "enforcement": []
     }
   ],
   "ch_matrix_id": "1f343049-b0e0-46e2-9c19-33c138e9ab46"

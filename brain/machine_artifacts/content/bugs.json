@@ -1223,11 +1223,11 @@
       "status": "open",
       "risk_acceptance_id": null,
       "ch_matrix_id": "b0000026-0000-4000-e000-000000000026",
-      "req_id": "SEC-HTTPS-001-REQ-001",
+      "req_id": "DEVOPS-CF-B001",
       "type": "medium",
       "reason": "Dev HuggingFace servers not tested or configured for HTTPS enforcement. SEC-HTTPS-001 tested only on local. HF spaces use HF-provided TLS but server-side CORS, 426 rejection, and scan_http.py have not",
-      "resolution_status": "in_analysis",
-      "story_id": "SEC-HTTPS-001",
+      "resolution_status": "deferred",
+      "story_id": "DEVOPS-CLOUDFLARE-001",
       "orphan": false
     },
     {
@@ -3007,6 +3007,31 @@
       "success_criteria_to_close": "Every inter-service call from FindCare to EvaluateCare and SharedServices presents findcare.crt/findcare.key and verifies against ca.crt. No plain HTTPS calls without client cert.",
       "ch_matrix_id": "",
       "story_id": "SEC-HTTPS-001",
+      "orphan": false
+    },
+    {
+      "id": "BUG-SEC-004",
+      "req_id": "DEVOPS-CF-B001",
+      "rule": "BUG: Cloudflare Pages returns 200 with index.html for all unknown paths instead of 404. The schema scanner cannot distinguish between a real schema URL and a non-existent one because every fetch returns 200. This defeats schema validation — the scanner thinks every $schema URL is valid.",
+      "description": "Cloudflare returns 200 for non-existent paths. Scanner cannot detect missing schemas.",
+      "reason": "Cloudflare Pages default SPA behavior serves index.html for all routes.",
+      "type": "high",
+      "date": "2026-04-16",
+      "discovery_date": "2026-04-16",
+      "status": "open",
+      "resolution_status": "deferred",
+      "next_action": "Configure Cloudflare Pages to return 404 for unknown paths, or add Content-Type validation in scanner to reject HTML responses when expecting JSON.",
+      "environments": [
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "source": "Boss",
+      "risk_acceptance_id": null,
+      "pytest_id": "",
+      "success_criteria_to_close": "A request to a non-existent schema URL returns either a real 404 or the scanner detects the response is HTML (not JSON) and rejects it.",
+      "ch_matrix_id": "",
+      "story_id": "DEVOPS-CLOUDFLARE-001",
       "orphan": false
     }
   ],
