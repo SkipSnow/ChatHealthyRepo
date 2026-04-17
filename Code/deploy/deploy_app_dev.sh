@@ -23,9 +23,11 @@
 #   DEVOPS-DEV-B004          (log state of each endpoint before + after)
 #
 # Usage:
-#   bash Code/deploy/deploy_app_dev.sh               # push + wait + verify (smoke skipped)
-#   bash Code/deploy/deploy_app_dev.sh --run-smoke   # also run Playwright smoke (currently broken vs dev)
-#   bash Code/deploy/deploy_app_dev.sh --verify-only # no push; just probe endpoint state
+#   bash Code/deploy/deploy_app_dev.sh               # push + force-deploy all 4 + verify + smoke
+#   bash Code/deploy/deploy_app_dev.sh --skip-smoke  # skip the Playwright smoke phase
+#   bash Code/deploy/deploy_app_dev.sh --skip-build  # skip local React build (CI still builds)
+#   bash Code/deploy/deploy_app_dev.sh --push-only   # push current HEAD but don't force-deploy workflows
+#   bash Code/deploy/deploy_app_dev.sh --verify-only # no push, no deploy; just probe endpoint state
 
 set -euo pipefail
 
@@ -55,14 +57,24 @@ mkdir -p "$OUT_DIR"
 SKIP_SMOKE=0   # default: smoke runs — required by DEVOPS-DEV-B002
 VERIFY_ONLY=0
 SKIP_BUILD=0   # default: build React per REQ-011
+PUSH_ONLY=0    # default: force-deploy all 4 components via gh workflow run
 for arg in "$@"; do
     case "$arg" in
         --skip-smoke) SKIP_SMOKE=1 ;;
         --verify-only) VERIFY_ONLY=1 ;;
         --skip-build) SKIP_BUILD=1 ;;
+        --push-only) PUSH_ONLY=1 ;;
         *) echo "Unknown flag: $arg" >&2; exit 2 ;;
     esac
 done
+
+# Workflow file manifest — every deploy targets ALL of these unless --push-only
+WORKFLOWS=(
+    "deploy-findcare-website-dev.yml:website"
+    "deploy-findcare-backend.yml:findcare"
+    "deploy-evaluatecare-backend.yml:evalcare"
+    "deploy-shared-services.yml:shared"
+)
 
 # ── Output state (accumulated across phases, emitted as JSON at end) ──────
 
@@ -151,6 +163,10 @@ finish() {
     STATE[exit_code]="$?"
     write_output_json
     log "Output written: $OUT_JSON"
+    if [ "$SKIP_SMOKE" -eq 0 ] && [ "$VERIFY_ONLY" -eq 0 ]; then
+        log "Smoke log:      $OUT_DIR/dev-$TS-smoke.log"
+    fi
+    log "Final state: ${STATE[overall]:-unknown} (phase ${STATE[phase_current]:-?})"
 }
 trap finish EXIT
 
@@ -258,105 +274,111 @@ fi
 STATE[phase_current]="push"
 log "Pushing to origin/$BRANCH..."
 
-push_ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-if ! git push origin "$BRANCH"; then
-    log "FAIL: git push errored."
-    STATE[overall]="push_fail"
-    exit 1
+if ! git push origin "$BRANCH" >/dev/null 2>&1; then
+    # push failed but maybe already up-to-date — retry verbose to expose reason
+    if ! git push origin "$BRANCH"; then
+        log "FAIL: git push errored."
+        STATE[overall]="push_fail"
+        exit 1
+    fi
 fi
 log "Pushed."
 
-# ── Phase 5: Wait for all triggered workflows ─────────────────────────────
-# DEVOPS-DEPLOY-001-REQ-009
+# ── Phase 5: Force-deploy all 4 components + wait for each ────────────────
+# DEVOPS-DEPLOY-001-REQ-009. No dependence on path-filter-triggered runs —
+# every invocation force-dispatches every workflow so the four HF / Cloudflare
+# targets are always on the just-pushed dev HEAD. This closes the
+# "no workflows triggered because the change was in a non-matched path"
+# drift that silently leaves dev stale.
 
-STATE[phase_current]="workflows_wait"
-log "Waiting for GitHub Actions workflows triggered by the push..."
-log "  (push_ts=$push_ts — checking any run created >= this)"
+if [ "$PUSH_ONLY" -eq 1 ]; then
+    log "--push-only: skipping force-deploy phase. Path-filter-triggered runs (if any) are not waited on."
+    STATE[workflows_completed]="skipped_push_only"
+else
+    STATE[phase_current]="dispatch"
+    declare -A RUN_IDS
+    for entry in "${WORKFLOWS[@]}"; do
+        wf="${entry%%:*}"
+        short="${entry##*:}"
+        log "Dispatching $short ($wf)..."
+        gh workflow run "$wf" --ref "$BRANCH" >/dev/null 2>&1 || {
+            log "FAIL: gh workflow run $wf errored."
+            STATE[overall]="dispatch_fail_$short"
+            exit 1
+        }
+    done
+    # GH takes a beat to register the new runs
+    sleep 8
+    for entry in "${WORKFLOWS[@]}"; do
+        wf="${entry%%:*}"
+        short="${entry##*:}"
+        rid=$(gh run list --workflow "$wf" --branch "$BRANCH" --event workflow_dispatch \
+                 --limit 1 --json databaseId --jq '.[0].databaseId' 2>/dev/null || echo "")
+        if [ -z "$rid" ]; then
+            log "FAIL: could not find newly-dispatched run id for $short."
+            STATE[overall]="dispatch_id_missing_$short"
+            exit 1
+        fi
+        RUN_IDS[$short]="$rid"
+        log "  $short → run $rid"
+    done
 
-# Give GH a few seconds to register
-sleep 6
-
-deadline=$(( $(date +%s) + 1500 ))   # 25-minute overall cap
-completed_runs=""
-failed_runs=""
-
-while :; do
-    now=$(date +%s)
-    if [ $now -gt $deadline ]; then
-        log "TIMEOUT: workflows did not all complete within 25 minutes."
-        STATE[overall]="workflow_timeout"
-        exit 1
-    fi
-
-    # Recent runs on dev since the push
-    runs_json=$(gh run list --branch "$BRANCH" --limit 20 \
-                --json databaseId,status,conclusion,name,createdAt,event 2>/dev/null || echo "[]")
-
-    mapfile -t pending < <(python - <<PY
-import json, sys
-from datetime import datetime, timezone
-push_ts = "$push_ts"
-push_dt = datetime.strptime(push_ts, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-runs = json.loads('''$runs_json''' or '[]')
-for r in runs:
-    try:
-        created = datetime.strptime(r["createdAt"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
-    except Exception:
-        continue
-    if created < push_dt:
-        continue
-    # Only care about push-event runs (workflow_dispatch manual runs handled separately)
-    if r.get("event") != "push":
-        continue
-    status = r.get("status","")
-    concl  = r.get("conclusion") or ""
-    if status != "completed":
-        print(f"PENDING|{r['databaseId']}|{status}|{r['name']}")
-    else:
-        print(f"DONE|{r['databaseId']}|{concl}|{r['name']}")
-PY
-)
-
-    pending_count=0
-    for line in "${pending[@]}"; do
-        [ -z "$line" ] && continue
-        state=$(echo "$line" | cut -d'|' -f1)
-        rid=$(echo "$line" | cut -d'|' -f2)
-        concl=$(echo "$line" | cut -d'|' -f3)
-        name=$(echo "$line" | cut -d'|' -f4)
-        if [ "$state" = "PENDING" ]; then
-            pending_count=$((pending_count+1))
-        else
-            # DONE
-            if ! echo "$completed_runs" | grep -q "$rid"; then
-                completed_runs="$completed_runs $rid:$concl:$name"
-                log "  [$concl] $name (run $rid)"
+    STATE[phase_current]="workflows_wait"
+    log "Waiting for 4 workflow runs to complete (25-min cap)..."
+    deadline=$(( $(date +%s) + 1500 ))
+    completed_runs=""
+    failed_runs=""
+    pending_shorts="website findcare evalcare shared"
+    while [ -n "$(echo $pending_shorts | xargs)" ]; do
+        if [ $(date +%s) -gt $deadline ]; then
+            log "TIMEOUT: not all 4 workflows completed in 25 min. Still pending: $pending_shorts"
+            STATE[overall]="workflow_timeout"
+            STATE[workflows_completed]="$completed_runs"
+            STATE[workflows_failed]="$failed_runs"
+            exit 1
+        fi
+        still_pending=""
+        for short in $pending_shorts; do
+            rid=${RUN_IDS[$short]}
+            line=$(gh run view "$rid" --json status,conclusion --jq '"\(.status)/\(.conclusion // "—")"' 2>/dev/null || echo "error/—")
+            status="${line%%/*}"
+            concl="${line##*/}"
+            if [ "$status" = "completed" ]; then
+                completed_runs="$completed_runs $short:$concl:$rid"
+                log "  [$concl] $short (run $rid)"
                 if [ "$concl" != "success" ] && [ "$concl" != "skipped" ]; then
-                    failed_runs="$failed_runs $rid:$concl:$name"
+                    failed_runs="$failed_runs $short:$concl:$rid"
                 fi
+            else
+                still_pending="$still_pending $short"
             fi
+        done
+        pending_shorts=$(echo $still_pending | xargs)
+        if [ -n "$pending_shorts" ]; then
+            sleep 15
         fi
     done
 
-    if [ $pending_count -eq 0 ]; then
-        # Either all runs complete, or no runs were triggered (path filter didn't match)
-        if [ -z "$completed_runs" ]; then
-            log "NOTE: No workflows triggered by the push (path filters did not match any changed file)."
-            log "      Dev deploy skipped for all components."
-        fi
-        break
+    STATE[workflows_completed]="$(echo $completed_runs | xargs)"
+    STATE[workflows_failed]="$(echo $failed_runs | xargs)"
+
+    if [ -n "$failed_runs" ]; then
+        log "FAIL: one or more workflows failed:$failed_runs"
+        # Surface the diagnostic for each failing run so Boss doesn't have to hunt.
+        for entry in $failed_runs; do
+            short="${entry%%:*}"
+            rest="${entry#*:}"
+            concl="${rest%%:*}"
+            rid="${rest##*:}"
+            log ""
+            log "───── Failed workflow: $short ($concl, run $rid) ─────"
+            gh run view "$rid" --log-failed 2>&1 | tail -40 | sed 's/^/  /'
+            log "───── End $short ─────"
+        done
+        STATE[overall]="workflow_failed"
+        exit 1
     fi
-    log "  $pending_count workflow(s) still running..."
-    sleep 15
-done
-
-STATE[workflows_completed]="$(echo "$completed_runs" | xargs echo)"
-STATE[workflows_failed]="$(echo "$failed_runs" | xargs echo)"
-
-if [ -n "$failed_runs" ]; then
-    log "FAIL: one or more workflows failed: $failed_runs"
-    STATE[overall]="workflow_failed"
-    exit 1
+    log "All 4 workflows succeeded."
 fi
 
 # ── Phase 6: Endpoint verification (DEVOPS-001-REQ-009 / DEV-B004) ───────
@@ -401,6 +423,21 @@ case "${STATE[findcare_db]}" in
 esac
 
 if [ "$verify_fail" -eq 1 ]; then
+    # Dump the full /health bodies for each unhealthy endpoint so the
+    # diagnostic is in the deploy log, not behind another curl.
+    log ""
+    log "───── Failed endpoint bodies ─────"
+    for pair in "website:$WEBSITE_URL" "findcare:$FINDCARE_URL/health" "evalcare:$EVALCARE_URL/health" "shared:$SHARED_URL/health"; do
+        short="${pair%%:*}"
+        url="${pair#*:}"
+        var="${short}_after"
+        code=${STATE[$var]:-?}
+        if [ "$code" != "200" ]; then
+            log "  $short [$code] $url"
+            curl -sk -m 10 "$url" 2>&1 | head -20 | sed 's/^/    /'
+        fi
+    done
+    log "───── End endpoint dump ─────"
     STATE[overall]="endpoint_verify_fail"
     exit 1
 fi
@@ -423,21 +460,37 @@ if [ "$SKIP_SMOKE" -eq 0 ]; then
     log ""
 
     log "Running Playwright smoke test vs dev..."
+    # Warn if local servers are up — mTLS smoke steps 15/27 hit localhost
+    # sockets by design and produce false positives against dev if local is
+    # still serving. Script only warns; does not kill (Boss-owned decision).
+    if curl -sk -o /dev/null -m 3 "https://localhost:8001/health" 2>/dev/null; then
+        log "WARN: local EvaluateCare (:8001) is responding. Smoke steps 15/27"
+        log "      hardcode localhost and will report PASS against local, not dev."
+    fi
+
     if SMOKE_TEST_ENV="dev" \
            python -m pytest Code/deploy/localSmokeTestPyTest.py -v 2>&1 \
-           | tee "$OUT_DIR/dev-$TS-smoke.log"; then
+           | tee "$OUT_DIR/dev-$TS-smoke.log" >/dev/null; then
+        :  # keep going so the summary-line parser below produces the tally either way
+    fi
+    # Parse pytest's canonical summary line: "N failed, M passed in …"
+    # — accurate regardless of mid-stream counts.
+    summary_line=$(grep -E "^=.*passed|^=.*failed" "$OUT_DIR/dev-$TS-smoke.log" | tail -1)
+    pass_count=$(echo "$summary_line" | grep -oE "[0-9]+ passed" | grep -oE "[0-9]+" || echo 0)
+    fail_count=$(echo "$summary_line" | grep -oE "[0-9]+ failed" | grep -oE "[0-9]+" || echo 0)
+    STATE[smoke_pass]="$pass_count"
+    STATE[smoke_fail]="$fail_count"
+    if [ "${fail_count:-0}" -eq 0 ] && [ "${pass_count:-0}" -gt 0 ]; then
         STATE[smoke_status]="passed"
-        log "Smoke test: PASSED (100%)"
+        log "Smoke test: $pass_count PASSED (100%)"
     else
-        # Pipefail reveals the true pytest exit; tally pass/fail from log
         STATE[smoke_status]="failed_with_known_bugs"
-        pass_count=$(grep -cE "PASSED \[" "$OUT_DIR/dev-$TS-smoke.log" || true)
-        fail_count=$(grep -cE "FAILED \[" "$OUT_DIR/dev-$TS-smoke.log" || true)
         log "Smoke test: $pass_count PASSED, $fail_count FAILED (known-bugs state)."
-        log "Details: $OUT_DIR/dev-$TS-smoke.log"
+        # Print the failing test names inline so the diagnostic is in the deploy log.
+        log "───── Failing smoke tests ─────"
+        grep -E "^FAILED " "$OUT_DIR/dev-$TS-smoke.log" | sed 's/^/  /'
+        log "───── Full log: $OUT_DIR/dev-$TS-smoke.log ─────"
         # Non-fatal: deploy is valid per the 'working with known bugs' label.
-        STATE[smoke_pass]="$pass_count"
-        STATE[smoke_fail]="$fail_count"
     fi
 else
     STATE[smoke_status]="skipped_by_flag"
