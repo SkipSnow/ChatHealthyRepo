@@ -182,17 +182,29 @@ class TestStep08:
     def test_specialty_scroll_max_12(self, env):
         page = env["page"]
         left = page.locator("#leftPanel")
-        total = left.locator("input[type='checkbox']").count()
-        if total > 12:
-            # The scroll container must exist and constrain visible items
-            scroll_div = left.locator("div[style*='overflow-y']")
-            assert scroll_div.count() > 0, "No scroll container found for specialty list"
-            box = scroll_div.first.bounding_box()
-            assert box is not None, "Scroll container has no bounding box"
-            panel_box = left.bounding_box()
-            assert panel_box is not None, "Left panel has no bounding box"
-            assert box["height"] <= panel_box["height"], \
-                f"Scroll container ({box['height']}px) overflows panel ({panel_box['height']}px)"
+        left_text = left.inner_text()
+        # Read the Prescribers count from the filter header
+        prescriber_match = re.search(r'PRESCRIBERS\s*(\d+)', left_text.upper())
+        assert prescriber_match, f"Prescribers count not found in left panel: {left_text[:200]}"
+        prescriber_count = int(prescriber_match.group(1))
+        env["prescriber_count"] = prescriber_count
+        assert prescriber_count > 12, f"Only {prescriber_count} prescribers — need >12 to test scroll"
+        # Count visible checkboxes in the left panel viewport
+        checkboxes = left.locator("input[type='checkbox']")
+        total_cb = checkboxes.count()
+        panel_box = left.bounding_box()
+        assert panel_box is not None, "Left panel has no bounding box"
+        visible_count = 0
+        for i in range(total_cb):
+            cb_box = checkboxes.nth(i).bounding_box()
+            if cb_box and cb_box["y"] >= panel_box["y"] and cb_box["y"] + cb_box["height"] <= panel_box["y"] + panel_box["height"]:
+                visible_count += 1
+        # Subtract 2 for the Prescribers and Homeopathic toggle checkboxes
+        specialty_visible = max(visible_count - 2, 0)
+        assert specialty_visible <= 12, \
+            f"BUG-UX-017: {specialty_visible} specialties visible without scrolling. Prescribers: {prescriber_count}. Max 12 required."
+        assert specialty_visible > 0, "No specialties visible"
+        _screenshot(page, "08")
         _screenshot(page, "08")
 
 
@@ -300,38 +312,51 @@ class TestStep16:
 class TestStep17:
     def test_token_same_sent_received(self, env):
         page = env["page"]
+        # Right panel must show token with session verification
         right = page.locator("#rightPanel").inner_text()
-        assert "SESSION VERIFICATION" in right.upper(), f"No session verification: {right[:400]}"
-        assert "VERIFIED" in right.upper() and "YES" in right.upper(), f"Not verified: {right[:400]}"
-        # Extract GUID from right panel and compare with left panel token
-        guids = re.findall(r'GUID:\s*(\w+)', right)
-        assert len(guids) > 0, f"No GUID found in right panel: {right[:400]}"
-        # The GUID in the right panel must match the session GUID
-        left = page.locator("#leftPanel").inner_text()
-        left_tokens = re.findall(r'CH\w{30,}', left)
-        assert len(left_tokens) > 0, f"No session token found in left panel: {left[:300]}"
-        left_guid = left_tokens[0][-32:]
-        assert guids[0] == left_guid, f"GUID mismatch: right={guids[0]} left={left_guid}"
-        env["evalcare_guid"] = guids[0]
-        nonces = re.findall(r'Nonce:\s*(\w+)', right)
-        assert len(nonces) > 0, f"No Nonce found in right panel: {right[:400]}"
-        env["evalcare_nonce"] = nonces[0]
+        assert "SESSION VERIFICATION" in right.upper(), f"No session verification in right panel: {right[:400]}"
+        assert "VERIFIED" in right.upper() and "YES" in right.upper(), f"Not verified in right panel: {right[:400]}"
+        # Right panel must have labeled Nonce and GUID
+        right_guids = re.findall(r'GUID:\s*(\w+)', right)
+        assert len(right_guids) > 0, f"No GUID label in right panel: {right[:400]}"
+        right_nonces = re.findall(r'Nonce:\s*(\w+)', right)
+        assert len(right_nonces) > 0, f"No Nonce label in right panel: {right[:400]}"
+        # Left panel must show token BELOW specialties with same labels
+        left = page.locator("#leftPanel")
+        left_text = left.inner_text()
+        assert "Nonce:" in left_text, f"No Nonce label in left panel: {left_text[-300:]}"
+        assert "GUID:" in left_text, f"No GUID label in left panel: {left_text[-300:]}"
+        # Token in left panel must be below the specialty list, not beside it
+        token_el = left.locator("#guiSessionId")
+        assert token_el.count() > 0, "Token element #guiSessionId not found in left panel"
+        token_box = token_el.bounding_box()
+        scroll_div = left.locator("div[style*='overflow-y']")
+        if scroll_div.count() > 0:
+            scroll_box = scroll_div.first.bounding_box()
+            assert token_box["y"] > scroll_box["y"] + scroll_box["height"] - 5, \
+                f"Token is beside specialties, not below. Token y={token_box['y']}, scroll bottom={scroll_box['y'] + scroll_box['height']}"
+        # GUIDs must match between left and right panels
+        left_guids = re.findall(r'GUID:\s*(\w+)', left_text)
+        assert len(left_guids) > 0, f"No GUID in left panel: {left_text[-300:]}"
+        assert right_guids[0] == left_guids[0], f"GUID mismatch: right={right_guids[0]} left={left_guids[0]}"
+        env["evalcare_guid"] = right_guids[0]
+        env["evalcare_nonce"] = right_nonces[0]
+        _screenshot(page, "17")
 
 
 # Step 18 [SEC-HTTPS-001-REQ-013]
 class TestStep18:
     def test_token_distinct_colors(self, env):
         page = env["page"]
+        # Right panel must have distinct colors
         right = page.locator("#rightPanel")
-        # Signed token label in indigo (#6366f1)
-        signed_el = right.locator("[style*='6366f1']")
-        # Nonce label in amber (#d97706)
-        nonce_el = right.locator("[style*='d97706']")
-        # GUID label in teal (#0b7a75)
-        guid_el = right.locator("[style*='0b7a75']")
-        assert signed_el.count() > 0, "Signed token not in distinct color (indigo)"
-        assert nonce_el.count() > 0, "Nonce not in distinct color (amber)"
-        assert guid_el.count() > 0, "GUID not in distinct color (teal)"
+        assert right.locator("[style*='6366f1']").count() > 0, "Right panel: Signed token not in indigo"
+        assert right.locator("[style*='d97706']").count() > 0, "Right panel: Nonce not in amber"
+        assert right.locator("[style*='0b7a75']").count() > 0, "Right panel: GUID not in teal"
+        # Left panel must have identical distinct colors
+        left = page.locator("#leftPanel")
+        assert left.locator("[style*='d97706']").count() > 0, "Left panel: Nonce not in amber — must be identical to right panel"
+        assert left.locator("[style*='0b7a75']").count() > 0, "Left panel: GUID not in teal — must be identical to right panel"
         _screenshot(page, "18")
 
 
