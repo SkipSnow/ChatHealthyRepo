@@ -306,10 +306,10 @@ echo "=========================================="
 # ── Step 7: Playwright smoke test (B009) ─────────────────────
 if [ "$FAIL" -eq 0 ]; then
     echo ""
-    echo "[7/8] Running Playwright smoke test (31 steps)..."
+    echo "[7/8] Running Playwright smoke test (34 steps)..."
     cd "$REPO_ROOT"
     python -m pytest Code/deploy/localSmokeTestPyTest.py -v 2>&1 | tee -a "$OUTPUT_FILE"
-    SMOKE_EXIT=$?
+    SMOKE_EXIT=${PIPESTATUS[0]}
     if [ "$SMOKE_EXIT" -eq 0 ]; then
         echo ""
         echo "=========================================="

@@ -59,9 +59,10 @@
       height: 100%;
     }
     .side-panel.filter-active {
-      overflow-y: auto;
-      overflow-x: hidden;
+      overflow: hidden;
       height: 100%;
+      display: flex;
+      flex-direction: column;
     }
 
     .side-panel.expanded {
@@ -567,7 +568,6 @@
       <nav class="header-nav">
         <button type="button" class="nav-coming-soon" data-tip="You are already home">Home</button>
         <button type="button" onclick="openPanel('products.html','Products &amp; Services')">Products &amp; Services</button>
-        <button type="button" id="sharedServicesNav" style="display:none" onclick="openSharedServices()">Shared Services</button>
         <button type="button" id="qaReportNav" style="display:none" onclick="openQAReport()">QA Report</button>
       </nav>
 
@@ -643,7 +643,8 @@
             + '<span style="margin-right:12px;">Version: ' + (d.version || '?') + '</span>'
             + '<span style="margin-right:12px;">Framework: ' + (d.framework || '?') + '</span>'
             + '<span style="margin-right:12px;">Build: ' + (d.build || '?') + '</span>'
-            + '<span>Commit: ' + (d.commit || '?').substring(0,7) + '</span>';
+            + '<span style="margin-right:12px;">Commit: ' + (d.commit || '?').substring(0,7) + '</span>'
+            + '<button type="button" id="sharedServicesNav" style="margin-left:12px;background:#fff;color:#d97706;border:1px solid #fff;border-radius:3px;padding:2px 8px;font-size:11px;font-weight:600;cursor:pointer;" onclick="openSharedServices()">Shared Services</button>';
         }).catch(function() {});
       }
     })();
@@ -742,9 +743,8 @@
       if (env !== 'prod') {
         document.getElementById('qaReportNav').style.display = '';
       }
-      if (env === 'local' || env === 'dev') {
-        document.getElementById('sharedServicesNav').style.display = '';
-      }
+      // sharedServicesNav button lives inside #envBanner — visible when banner is visible
+      // No separate show/hide needed (BUG-UX-021)
       window._hfBaseUrl = src;
       window.openQAReport = function() {
         openPanel(src + '/qa-report', 'QA Report — v0.1.4');
@@ -816,6 +816,11 @@
                 + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">Mutual authentication test</div>'
                 + '</div>'
                 + window.buildTokenDisplayHtml(st);
+              // BUG-UX-020: Update left panel with identical session verification
+              var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
+              if (sessionEl) {
+                sessionEl.innerHTML = window.buildTokenDisplayHtml(st);
+              }
             }
           })
           .catch(function(e) { console.error('SharedServices token verify failed:', e); });
@@ -1061,6 +1066,19 @@
                         if (shSplash) shSplash.style.display = 'none';
                         // Restore chat iframe
                         chatFrame.style.display = '';
+                        // BUG-UX-022/023: RestoreState=false — reset FindCare to welcome, focus input
+                        chatFrame.contentWindow.postMessage({type: 'gui:reset'}, '*');
+                        // BUG-UX-020: Fetch fresh token and update both panels identically
+                        fetch(apiBase2 + '/session')
+                          .then(function(r2) { return r2.json(); })
+                          .then(function(token) {
+                            var st = {token_received: token.token, origin: 'FindCare', verified: true};
+                            var html = window.buildTokenDisplayHtml(st);
+                            var rightPanel2 = document.getElementById('rightPanel');
+                            if (rightPanel2) rightPanel2.innerHTML = html;
+                            var sessionEl2 = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
+                            if (sessionEl2) sessionEl2.innerHTML = html;
+                          });
                       });
                     return;
                   }
@@ -1150,6 +1168,19 @@
                         var shSplash = document.getElementById('sharedSplash');
                         if (shSplash) shSplash.style.display = 'none';
                         chatFrame.style.display = '';
+                        // BUG-UX-022/023: RestoreState=false — reset FindCare to welcome, focus input
+                        chatFrame.contentWindow.postMessage({type: 'gui:reset'}, '*');
+                        // BUG-UX-020: Fetch fresh token and update both panels identically
+                        fetch(apiBase3 + '/session')
+                          .then(function(r2) { return r2.json(); })
+                          .then(function(token) {
+                            var st = {token_received: token.token, origin: 'FindCare', verified: true};
+                            var html = window.buildTokenDisplayHtml(st);
+                            var rightPanel3 = document.getElementById('rightPanel');
+                            if (rightPanel3) rightPanel3.innerHTML = html;
+                            var sessionEl3 = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
+                            if (sessionEl3) sessionEl3.innerHTML = html;
+                          });
                       });
                     return;
                   }
@@ -1272,6 +1303,13 @@
               + '</div>'
               + '<div style="overflow-y:auto;flex:1;">' + rows + '</div>'
               + tokenHtml;
+            // BUG-UX-020: Update left panel with identical session verification
+            if (msg.session_token) {
+              var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
+              if (sessionEl) {
+                sessionEl.innerHTML = buildTokenDisplayHtml(msg.session_token);
+              }
+            }
           }
         }
 
@@ -1296,16 +1334,36 @@
           }
         }
 
-        // Session GUID display in left panel — below the filter list
+        // Session token display in left panel — in table cell below specialties
+        // BUG-UX-015: Must be below specialties, not beside
+        // BUG-UX-016: Must use identical display as right panel — buildTokenDisplayHtml
         if (msg.type === 'gui:session-display') {
-          var sessionEl = document.getElementById('guiSessionId');
+          var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
           if (!sessionEl) {
-            // Insert at the bottom of the left panel
             leftPanel.insertAdjacentHTML('beforeend',
-              '<div id="guiSessionId" style="font-size:8px;color:#9ca3af;font-family:monospace;margin-top:4px;padding:4px 8px;word-break:break-all;text-align:center;border-top:1px solid #e5e7eb;"></div>');
+              '<div id="guiSessionId" style="padding:4px 8px;border-top:1px solid #e5e7eb;"></div>');
             sessionEl = document.getElementById('guiSessionId');
           }
-          if (sessionEl) sessionEl.textContent = msg.token;
+          if (sessionEl) {
+            if (msg.session_token && typeof msg.session_token === 'object') {
+              // Full verified token — use identical display function
+              sessionEl.innerHTML = window.buildTokenDisplayHtml(msg.session_token);
+            } else {
+              // Initial raw token string (pre-verify) — build pending display
+              var token = msg.token || '';
+              var nonce = token.length >= 36 ? token.substring(2, 36) : token;
+              var guid = token.length >= 68 ? token.substring(36) : '';
+              sessionEl.innerHTML = '<div style="padding:8px 10px;border-top:2px solid #0b7a75;background:#f0fffe;margin-top:4px;">'
+                + '<div style="font-size:10px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Session Verification</div>'
+                + '<div style="font-size:9px;color:#374151;margin-top:4px;word-break:break-all;">'
+                + '<b style="color:#d97706;">Nonce:</b> <span style="color:#d97706;">' + nonce + '</span></div>'
+                + '<div style="font-size:9px;color:#374151;margin-top:2px;word-break:break-all;">'
+                + '<b style="color:#0b7a75;">GUID:</b> <span style="color:#0b7a75;">' + guid + '</span></div>'
+                + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
+                + '<b>Verified:</b> <span style="color:#6b7280;">Pending...</span></div>'
+                + '</div>';
+            }
+          }
         }
 
         if (msg.type === 'gui:event' && msg.action === 'highlight-filter') {
