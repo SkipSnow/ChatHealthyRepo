@@ -1,6 +1,7 @@
 name: Deploy EvaluateCare Backend to HuggingFace
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - dev
