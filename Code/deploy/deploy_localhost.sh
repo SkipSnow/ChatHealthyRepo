@@ -303,9 +303,29 @@ else
 fi
 echo "=========================================="
 
-# ── Step 7: Keep running ─────────────────────────────────────
+# ── Step 7: Playwright smoke test (B009) ─────────────────────
 if [ "$FAIL" -eq 0 ]; then
     echo ""
-    echo "[7/7] Servers running. Press Ctrl+C to stop."
+    echo "[7/8] Running Playwright smoke test (31 steps)..."
+    cd "$REPO_ROOT"
+    python -m pytest Code/deploy/localSmokeTestPyTest.py -v 2>&1 | tee -a "$OUTPUT_FILE"
+    SMOKE_EXIT=$?
+    if [ "$SMOKE_EXIT" -eq 0 ]; then
+        echo ""
+        echo "=========================================="
+        echo "  SMOKE TEST PASSED"
+        echo "  Ready for Boss UAT at http://localhost"
+        echo "=========================================="
+    else
+        echo ""
+        echo "=========================================="
+        echo "  SMOKE TEST FAILED"
+        echo "  Fix before UAT."
+        echo "=========================================="
+    fi
+
+    # ── Step 8: Keep running ─────────────────────────────────
+    echo ""
+    echo "[8/8] Servers running. Press Ctrl+C to stop."
     wait
 fi
