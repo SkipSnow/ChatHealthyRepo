@@ -138,6 +138,13 @@ def _check_json_schema(filepath):
             return "Missing $schema field"
         schema_url = data.get("$schema", "")
         if "json-schema.org" in schema_url:
+            try:
+                import jsonschema
+                jsonschema.Draft202012Validator.check_schema(data)
+            except ImportError:
+                pass
+            except jsonschema.SchemaError as e:
+                return f"Invalid schema: {e.message[:200]}"
             return None
         schema = _fetch_schema(schema_url)
         if schema is None:
