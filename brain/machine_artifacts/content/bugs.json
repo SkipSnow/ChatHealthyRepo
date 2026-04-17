@@ -2659,7 +2659,7 @@
       "date": "2026-04-12",
       "discovery_date": "2026-04-12",
       "status": "open",
-      "resolution_status": "fix_implemented",
+      "resolution_status": "fixed",
       "next_action": "Boss to verify build number on dev.chathealthy.ai/health after next deploy",
       "environments": [
         "dev",
@@ -2737,7 +2737,7 @@
       "req_id": "DEVOPS-DEPLOY-001-REQ-014",
       "type": "show_stopper",
       "reason": "GPT promotion gate from dev to QA does not exist. No code enforces GPT authority over promotion.",
-      "resolution_status": "fix_implemented",
+      "resolution_status": "fixed",
       "story_id": "DEVOPS-DEPLOY-001",
       "orphan": false
     },
@@ -2891,7 +2891,7 @@
       "date": "2026-04-16",
       "discovery_date": "2026-04-16",
       "status": "open",
-      "resolution_status": "fix_in_progress",
+      "resolution_status": "fixing",
       "next_action": "Add safety gate to /classify endpoint",
       "environments": [
         "dev",
@@ -2942,7 +2942,7 @@
       "date": "2026-04-16",
       "discovery_date": "2026-04-16",
       "status": "open",
-      "resolution_status": "fix_in_progress",
+      "resolution_status": "fixing",
       "next_action": "Add output file to deploy script",
       "environments": [
         "local",
@@ -2968,7 +2968,7 @@
       "date": "2026-04-16",
       "discovery_date": "2026-04-16",
       "status": "open",
-      "resolution_status": "fix_implemented",
+      "resolution_status": "fixed",
       "next_action": "Verify splash shows is still unimplemented after redeploy",
       "environments": [
         "local",
@@ -2992,7 +2992,7 @@
       "date": "2026-04-16",
       "discovery_date": "2026-04-16",
       "status": "open",
-      "resolution_status": "fix_implemented",
+      "resolution_status": "fixed",
       "next_action": "Verify mTLS on all proxy calls after redeploy",
       "environments": [
         "local",
