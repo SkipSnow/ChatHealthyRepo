@@ -40301,6 +40301,24 @@
                               }
                             ]
                           }
+                        },
+                        {
+                          "req_id": "SEC-HTTPS-001-REQ-014",
+                          "requirement": "On startup every server MUST exercise each security primitive it uses (session-token generation, signature signing and verification, credential redaction, mTLS handshake, key decryption, authentication check). If any exercise fails the process MUST exit with a non-zero code. A server MUST NOT serve any request after a failed startup exercise. Exit codes: 78 (configuration failure — missing library, missing cert, missing env var, malformed primitive output), 77 (permission denied on cert or key file), 70 (unexpected internal error). Stderr MUST name the primitive that failed.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "43427c57-ce88-4b66-bee9-e209df534a04"
                         }
                       ]
                     },

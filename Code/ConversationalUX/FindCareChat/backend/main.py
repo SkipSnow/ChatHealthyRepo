@@ -218,6 +218,46 @@ import time as _time_mod
 
 app = FastAPI(title="ChatHealthy FindCare API")
 
+# ── SEC-HTTPS-001-REQ-014: startup security-primitive verification ──
+# /session depends on session_token.generate_session_token producing a
+# well-formed (68-char, "CH"-prefixed) token. If the primitive cannot
+# initialize here, serving MUST NOT continue. Exit codes per sysexits.h:
+#   78 (EX_CONFIG)    — missing library, missing config, malformed output
+#   77 (EX_NOPERM)    — permission denied on cert/key
+#   70 (EX_SOFTWARE)  — unexpected internal error
+# The underscore check guards against regression to the old silent-fallback
+# placeholder CH_{uuid} (BUG-SEC-007).
+def _startup_security_verification():
+    import sys as _sys
+    _local_shared = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared")
+    if _local_shared not in _sys.path:
+        _sys.path.insert(0, _local_shared)
+    os.environ.setdefault("CERTS_DIR", os.path.join(_local_shared, "ops", "certs"))
+    try:
+        from session_token import generate_session_token
+    except ImportError as _imp:
+        _log.error("STARTUP ABEND exit=78 primitive=session_token reason=import_failed: %s", _imp)
+        _sys.exit(78)
+    except PermissionError as _perm:
+        _log.error("STARTUP ABEND exit=77 primitive=session_token reason=permission: %s", _perm)
+        _sys.exit(77)
+    try:
+        _probe = generate_session_token("FindCare")
+    except PermissionError as _perm:
+        _log.error("STARTUP ABEND exit=77 primitive=session_token reason=permission_on_key: %s", _perm)
+        _sys.exit(77)
+    except Exception as _exc:
+        _log.error("STARTUP ABEND exit=70 primitive=session_token reason=generator_raised: %s", _exc)
+        _sys.exit(70)
+    _tok = (_probe or {}).get("token", "")
+    if not _tok.startswith("CH") or len(_tok) < 68 or "_" in _tok:
+        _log.error("STARTUP ABEND exit=78 primitive=session_token reason=malformed_token: %r", _probe)
+        _sys.exit(78)
+    _log.info("startup security check PASSED — session_token OK (len=%d signed=%s)",
+              len(_tok), (_probe or {}).get("signed"))
+
+_startup_security_verification()
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start = _time_mod.time()
@@ -555,18 +595,27 @@ def health():
 @app.get("/session")
 def get_session():
     """Generate a signed session token for this browser session.
-    Client stores it in memory, passes it on cross-component calls."""
-    try:
-        import sys as _sys
-        _sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared"))
-        os.environ.setdefault("CERTS_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs"))
-        from session_token import generate_session_token
-        token = generate_session_token("FindCare")
-        return token
-    except Exception as e:
-        _log.warning("Session token generation failed: %s — returning unsigned", e)
-        import uuid
-        return {"origin": "FindCare", "token": f"CH_{uuid.uuid4().hex}", "signature": None, "signed": False}
+    Client stores it in memory, passes it on cross-component calls.
+
+    NO FALLBACK. Session token generation is a security primitive — if it
+    fails, the caller must NOT proceed with a placeholder. Any failure
+    propagates to a 500 so the client sees the problem and halts instead
+    of running with a token that has no nonce and no signature. See
+    BUG-SEC-007 (dev tokens missing nonce) and feedback_no_security_fallbacks.
+    """
+    import sys as _sys
+    # Local layout: Shared/ is three levels up from backend/.
+    # HF layout: session_token.py is copied flat into the hf_space root,
+    # which is already on the Python path, so the sys.path.insert below
+    # is a no-op there and the import resolves from the root. Either way,
+    # the import MUST succeed — if it doesn't, something is wrong and the
+    # caller needs to know.
+    _local_shared = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared")
+    if _local_shared not in _sys.path:
+        _sys.path.insert(0, _local_shared)
+    os.environ.setdefault("CERTS_DIR", os.path.join(_local_shared, "ops", "certs"))
+    from session_token import generate_session_token
+    return generate_session_token("FindCare")
 
 # ── Evaluate proxy — FindCare backend → EvaluateCare over mTLS ──
 class EvaluateRequest(BaseModel):
