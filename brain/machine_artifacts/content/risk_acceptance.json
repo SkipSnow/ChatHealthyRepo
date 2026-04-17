@@ -1,4 +1,5 @@
 {
+  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "collection": "risk_acceptance",
   "governance_attribute_id": "ch_governance_record_id_c9cd5c58-a51a-4708-a1f2-6abd2a103fcf",
   "description": "Formal risk acceptance register. Every deviation from policy or operating rules requires a signed risk acceptance from Skip Snow recorded here. Referenced by GOV-007 (Engineering Rules Are Standards), v4-004 (Operating Modes), and v4-006 (Deploy Authority).",

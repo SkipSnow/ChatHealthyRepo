@@ -1,4 +1,5 @@
 {
+  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "collection": "engineering_rules",
   "governance_attribute_id": "ch_governance_record_id_8294cb85-08c6-41b5-8bef-d79190df12f6",
   "description": "Authoritative engineering rules for ChatHealthy.ai. Single source of truth. Combines operating standards (v4-series) and incident-driven lessons (DR-series). No deviation without signed risk acceptance from Skip Snow.",

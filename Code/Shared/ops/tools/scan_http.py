@@ -15,6 +15,7 @@
 #
 # Exit 0 = clean. Exit 1 = violations. Exit 2 = bad arguments.
 
+import json
 import os
 import re
 import subprocess
@@ -46,33 +47,46 @@ ALLOWED_PATTERNS = [
 # This file defines TARGET and regex patterns — excuse lines that are definitions
 SELF_PATTERN_LINE = "TARGET"
 
-# Patterns to skip (test files, logs, caches)
+# SEC-HTTPS-001-REQ-004 scope: production code only.
+# Exempt from HTTP URL scanning:
+#   - All .json files (governance artifacts, config, schemas — not production code)
+#   - All pytest files (test_*, conftest.py — DevOps code, not production endpoints)
+#   - All business documents (brain/BusinessArtifacts/)
+HTTP_EXEMPT_PATTERNS = [
+    r"\.json$",                           # All JSON files
+    r"test_",                             # Pytest files
+    r"conftest\.py",                      # Pytest config
+    r"brain/BusinessArtifacts/",          # Business documents
+]
+
+# General skip patterns (not scanned by any rule)
 SKIP_PATTERNS = [
-    r"test_",
-    r"conftest\.py",
     r"__pycache__",
     r"\.pyc$",
     r"node_modules",
     r"\.venv",
-    r"conversation_log\.json",
-    r"pipeline_v3_compliance_log",
-    r"pipeline_v3_iteration_log",
-    r"pipeline_v4_design_iterations",
-    r"work_log\.json",
-    r"findcare-code-package\.json",
 ]
 
 SCAN_EXTENSIONS = {".py", ".tsx", ".ts", ".js", ".jsx", ".html", ".json", ".yml", ".yaml", ".cfg", ".toml"}
 
 
 def should_skip(filepath):
-    basename = os.path.basename(filepath)
+    """Skip files that no rule should scan."""
     for pattern in SKIP_PATTERNS:
         if re.search(pattern, filepath):
             return True
     _, ext = os.path.splitext(filepath)
     if ext and ext not in SCAN_EXTENSIONS:
         return True
+    return False
+
+
+def is_http_exempt(filepath):
+    """SEC-HTTPS-001-REQ-004: HTTP URL rule only applies to production code.
+    JSON files, pytests, and business documents are exempt."""
+    for pattern in HTTP_EXEMPT_PATTERNS:
+        if re.search(pattern, filepath):
+            return True
     return False
 
 
@@ -135,6 +149,47 @@ def get_all_tracked_files():
         return []
 
 
+# BRAIN-SCHEMA-REQ-001: JSON files exempt from schema validation (third-party owned)
+SCHEMA_EXEMPT_PATTERNS = [
+    r"\.claude/",                         # Anthropic
+    r"\.vscode/",                         # VS Code / Microsoft
+    r"package\.json$",                    # npm
+    r"package-lock\.json$",              # npm lock
+    r"tsconfig\.json$",                   # TypeScript
+    r"host\.json$",                       # Azure Functions
+    r"appsettings.*\.json$",              # .NET config
+    r"launchSettings\.json$",             # .NET launch config
+    r"node_modules",
+    r"__pycache__",
+    r"\.iteration_cache/",               # Gitignored iteration cache
+    r"brain/BusinessArtifacts/Audits/",  # Business audit documents (exempt per Boss)
+]
+
+
+def is_schema_exempt(filepath):
+    """BRAIN-SCHEMA-REQ-001: Third-party JSON files are exempt from schema validation."""
+    for pattern in SCHEMA_EXEMPT_PATTERNS:
+        if re.search(pattern, filepath):
+            return True
+    return False
+
+
+def scan_json_schema(filepath):
+    """BRAIN-SCHEMA-REQ-001: Every ChatHealthy JSON file must have a $schema reference."""
+    try:
+        with open(filepath, encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            return None  # Arrays and primitives are not required to have $schema
+        if "$schema" not in data and "schema_address" not in data:
+            return f"Missing $schema field"
+        return None
+    except json.JSONDecodeError as e:
+        return f"Invalid JSON: {e}"
+    except Exception:
+        return None
+
+
 def collect_files_from_dir(directory, recurse):
     files = []
     if recurse:
@@ -150,28 +205,59 @@ def collect_files_from_dir(directory, recurse):
 
 
 def scan_files(files, label):
-    total_violations = 0
-    details = []
+    # SEC-HTTPS-001-REQ-004: HTTP URL scan
+    http_violations = 0
+    http_details = []
 
     for filepath in files:
         if should_skip(filepath):
             continue
-        violations = scan_file(filepath)
-        if violations:
-            total_violations += len(violations)
-            for line_num, url, line_text in violations:
-                details.append(f"  {filepath}:{line_num}: {url}")
+        if not is_http_exempt(filepath):
+            violations = scan_file(filepath)
+            if violations:
+                http_violations += len(violations)
+                for line_num, url, line_text in violations:
+                    http_details.append(f"  {filepath}:{line_num}: {url}")
 
-    if total_violations > 0:
-        print(f"SEC-HTTPS-001-REQ-004 VIOLATION: {total_violations} insecure HTTP URLs in {label}:")
-        for d in details:
+    # BRAIN-SCHEMA-REQ-001: JSON schema validation
+    schema_violations = 0
+    schema_details = []
+
+    for filepath in files:
+        if not filepath.endswith(".json"):
+            continue
+        if is_schema_exempt(filepath):
+            continue
+        error = scan_json_schema(filepath)
+        if error:
+            schema_violations += 1
+            schema_details.append(f"  {filepath}: {error}")
+
+    # Report HTTP results
+    exit_code = 0
+    if http_violations > 0:
+        print(f"SEC-HTTPS-001-REQ-004 VIOLATION: {http_violations} insecure HTTP URLs in {label}:")
+        for d in http_details:
             print(d)
         print(f"\nv4-029: No HTTP URLs in production code.")
         print(f"Allowed: {', '.join(ALLOWED_HOSTS)} for /index.html redirect only.")
-        return 1
+        exit_code = 1
     else:
         print(f"SEC-HTTPS-001-REQ-004 PASS: 0 insecure HTTP URLs in {len(files)} {label} files.")
-        return 0
+
+    # Report schema results
+    if schema_violations > 0:
+        print(f"\nBRAIN-SCHEMA-REQ-001 VIOLATION: {schema_violations} JSON files missing $schema:")
+        for d in schema_details:
+            print(d)
+        print(f"\nEvery ChatHealthy JSON file must reference a schema via $schema or schema_address.")
+        exit_code = 1
+    else:
+        json_count = sum(1 for f in files if f.endswith(".json") and not is_schema_exempt(f))
+        if json_count > 0:
+            print(f"BRAIN-SCHEMA-REQ-001 PASS: {json_count} JSON files have schema references.")
+
+    return exit_code
 
 
 def main():

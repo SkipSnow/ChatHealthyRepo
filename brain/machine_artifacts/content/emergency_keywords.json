@@ -1,4 +1,5 @@
 {
+  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "title": "Emergency Detection Keywords",
   "governance_attribute_id": "ch_governance_record_id_0b0fdfd2-43f5-49ad-babd-9f3c4b93ee54",
   "version": "2.0",
