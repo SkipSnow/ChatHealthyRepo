@@ -54455,7 +54455,7 @@
                         },
                         {
                           "req_id": "DEVOPS-DEPLOY-001-REQ-014",
-                          "requirement": "Promotion from dev to QA MUST be gated by a GPT evaluation in pre_deploy_rule_check.py. GPT has the sole authority to block promotion. Boss cannot override this block. This is the only authority GPT has in the governance system.",
+                          "requirement": "Promotion from dev to QA MUST be gated by a GPT evaluation in preCommitScan.py. GPT has the sole authority to block promotion. Boss cannot override this block. This is the only authority GPT has in the governance system.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "type": "technical",
@@ -58892,7 +58892,7 @@
                       "requirement": [
                         {
                           "req_id": "SEC-HTTPS-001-REQ-005",
-                          "requirement": "Standalone scan_http.py scans staged or specified files for insecure HTTP URLs. Accepts --staged, --all, file list, or directory with --recurse. Dies ungracefully on bad arguments.",
+                          "requirement": "Standalone preCommitScan.py scans staged or specified files for insecure HTTP URLs. Accepts --staged, --all, file list, or directory with --recurse. Dies ungracefully on bad arguments.",
                           "priority": "must-have",
                           "status": "done",
                           "realized_by": [
@@ -58912,7 +58912,7 @@
                         },
                         {
                           "req_id": "SEC-HTTPS-001-REQ-006",
-                          "requirement": "Pre-commit hook (CHECK 10) calls scan_http.py --staged and blocks commit if insecure HTTP URLs found in staged files.",
+                          "requirement": "Pre-commit hook (CHECK 10) calls preCommitScan.py --staged and blocks commit if insecure HTTP URLs found in staged files.",
                           "priority": "must-have",
                           "status": "done",
                           "realized_by": [
@@ -58945,7 +58945,7 @@
                       "requirement": [
                         {
                           "req_id": "PIPE-TR-002-REQ-001",
-                          "requirement": "pre_deploy_rule_check.py must validate pytest_ids as an array (minimum 1 member) for every implemented requirement. Must support legacy pytest_id string fallback. Scanner passes with zero violations.",
+                          "requirement": "preCommitScan.py must validate pytest_ids as an array (minimum 1 member) for every implemented requirement. Must support legacy pytest_id string fallback. Scanner passes with zero violations.",
                           "priority": "must-have",
                           "status": "done",
                           "ch_matrix_id": "a7b2e4c1-3f8d-4a9e-b5c2-1d6e8f0a7b3c",
@@ -58957,7 +58957,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "pre_deploy_rule_check.py passes with zero violations",
+                                "pytest_id": "preCommitScan.py passes with zero violations",
                                 "pytest_type": "ordinary",
                                 "orphan": false
                               }
