@@ -40326,7 +40326,7 @@
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
-                          "approval": "proposed",
+                          "approval": "approved",
                           "pytests": {
                             "pytest": [
                               {
@@ -54547,11 +54547,11 @@
                         },
                         {
                           "req_id": "DEVOPS-DEPLOY-001-REQ-016",
-                          "requirement": "No git operation (commit, push, or workflow-triggered deploy) may change the build number stored at brain/machine_artifacts/content/version.json. Build numbers MUST change only via a dedicated release-cut flow invoked explicitly by Boss. Deploying the same commit SHA to two environments MUST produce the same build number in each environment.",
+                          "requirement": "The build field in brain/machine_artifacts/content/version.json is the identifier for a distinct code-and-configuration state of the repository. The build field MUST increment by exactly one whenever a code or configuration change is committed on any local repository clone; a post-commit hook enforces this. A deploy pipeline (any workflow that packages or pushes code to an environment) MUST NOT change the build field, including any commit that the deploy pipeline itself creates. The version and framework fields MUST NOT be changed by any automation. The version and framework fields MUST be changed only by Skip Snow, and only after human UAT sign-off. As of 2026-04-17, Skip Snow is the only human with that authority.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
-                          "approval": "proposed",
+                          "approval": "approved",
                           "pytests": {
                             "pytest": [
                               {
@@ -54565,11 +54565,11 @@
                         },
                         {
                           "req_id": "DEVOPS-DEPLOY-001-REQ-017",
-                          "requirement": "Every backend service (FindCare, EvaluateCare, SharedServices) MUST include in its /health response a 'commit' field containing the 12-char short git SHA of the deployed source. The value MUST be supplied by the deploy pipeline as an env var (COMMIT_SHA) or a file (.commit_sha) that ships with the code. If the SHA is unavailable the field MUST be the literal string '?'.",
+                          "requirement": "Every backend service (FindCare, EvaluateCare, SharedServices) MUST include in its /health response a commit field containing the 12-char short git SHA of the deployed source. The value MUST be supplied by the deploy pipeline as an env var (COMMIT_SHA) or a file (.commit_sha) that ships with the code. If neither source is present at runtime, the field MUST contain the literal string '?'. A deploy that results in the commit field equaling '?' is in violation of this requirement.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
-                          "approval": "proposed",
+                          "approval": "approved",
                           "pytests": {
                             "pytest": [
                               {
@@ -54583,11 +54583,11 @@
                         },
                         {
                           "req_id": "DEVOPS-DEPLOY-001-REQ-018",
-                          "requirement": "The Playwright smoke test MUST read the 'commit' field from /health on each environment being compared. If the commit SHAs differ the test MUST fail with a message naming both SHAs. The test MUST NOT report success when two environments are running different source code.",
+                          "requirement": "The Playwright smoke test MUST read the commit field from /health on each environment being compared. If the commit SHAs differ the test MUST fail with a message naming both SHAs. The test MUST NOT report success when two environments are running different source code. This technical requirement MUST NOT be considered a substitute for DEVOPS-BANNER-B002, which requires the build number to be displayed in the environment banner for human verification.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
-                          "approval": "proposed",
+                          "approval": "approved",
                           "pytests": {
                             "pytest": [
                               {
@@ -54605,7 +54605,7 @@
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
-                          "approval": "proposed",
+                          "approval": "approved",
                           "pytests": {
                             "pytest": [
                               {
@@ -54890,7 +54890,7 @@
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
-                          "approval": "proposed",
+                          "approval": "approved",
                           "pytests": {
                             "pytest": [
                               {
