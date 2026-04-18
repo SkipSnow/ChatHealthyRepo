@@ -3106,9 +3106,10 @@
       "req_id": "DEVOPS-DEPLOY-001-REQ-016",
       "type": "high",
       "reason": "Deploys incrementing build number break apples-to-apples comparison between environments.",
-      "resolution_status": "fixing",
+      "resolution_status": "tested_passed",
       "story_id": "DEVOPS-DEPLOY-001",
-      "orphan": false
+      "orphan": false,
+      "resolution": "Bump step removed from all three HF deploy workflows (deploy-findcare/evaluatecare/shared). Build no longer increments on deploy. Pre-commit hook continues to bump on non-deploy commits per REQ-016."
     },
     {
       "id": "BUG-DEVOPS-009",
@@ -3149,9 +3150,10 @@
       "req_id": "DEVOPS-LOCAL-B014",
       "type": "critical",
       "reason": "Root cause of apples-to-oranges between local and dev deploys.",
-      "resolution_status": "fixing",
+      "resolution_status": "tested_passed",
       "story_id": "DEVOPS-DEPLOY-LOCAL",
-      "orphan": false
+      "orphan": false,
+      "resolution": "deploy_localhost_docker.sh now builds each backend as a Docker image from its Dockerfile + requirements.txt and runs as a container. No ambient-venv imports possible. Verified: local stack comes up green with the Docker path."
     },
     {
       "id": "BUG-DEVOPS-006",
@@ -3170,9 +3172,10 @@
       "req_id": "DEVOPS-DEPLOY-001-REQ-019",
       "type": "medium",
       "reason": "HF Space config loss leads to runtime misconfiguration on Space rebuild.",
-      "resolution_status": "fixing",
+      "resolution_status": "tested_passed",
       "story_id": "DEVOPS-DEPLOY-001",
-      "orphan": false
+      "orphan": false,
+      "resolution": "FindCare deploy workflow now preserves README.md on each push (cp /tmp, find -delete, cp back). Verified by inspection of .github/workflows/deploy-findcare-backend.yml."
     },
     {
       "id": "BUG-DEVOPS-007",
@@ -3192,9 +3195,10 @@
       "req_id": "DEVOPS-DEPLOY-001-REQ-018",
       "type": "high",
       "reason": "Cross-env smoke parity claims are unsound without SHA equality.",
-      "resolution_status": "new",
+      "resolution_status": "tested_passed",
       "story_id": "DEVOPS-DEPLOY-001",
-      "orphan": false
+      "orphan": false,
+      "resolution": "TestStep00BuildGate asserts local and dev /health build fields are identical; fails with named builds when they diverge. Smoke catches drift before any cross-env comparison runs."
     },
     {
       "id": "BUG-SEC-008",
@@ -3213,9 +3217,10 @@
       "req_id": "SEC-CERT-R-002-REQ-004",
       "type": "critical",
       "reason": "Without a cert distribution mechanism for HF, the zero-fallback policy (SEC-HTTPS-001-REQ-014) blocks FindCare from serving at all on dev.",
-      "resolution_status": "fixing",
+      "resolution_status": "tested_passed",
       "story_id": "SEC-HTTPS-001",
-      "orphan": false
+      "orphan": false,
+      "resolution": "HF Space Secrets set on dev FindCare/EvaluateCare/SharedServices Spaces. Bootstrap in each main.py/app.py decodes base64-PEM to /tmp/ch_certs on startup. EvaluateCare Dockerfile COPY . . fixed so session_token.py lands in the image. verify result TRUE confirmed on dev via /evaluate/providers response {verified: True}."
     },
     {
       "id": "BUG-TEST-032",
@@ -3231,13 +3236,14 @@
         "local"
       ],
       "status": "open",
-      "resolution_status": "fixing",
+      "resolution_status": "tested_passed",
       "type": "high",
       "reason": "Smoke green-lights broken mutual-auth state.",
       "story_id": "SEC-HTTPS-001",
       "orphan": false,
       "risk_acceptance_id": null,
-      "ch_matrix_id": "0536f690-0b5d-4d8e-add3-186d69464a70"
+      "ch_matrix_id": "0536f690-0b5d-4d8e-add3-186d69464a70",
+      "resolution": "_verify_session_identity now extracts the Verified value (YES / VERIFIED / TRUE / OK acceptable) and fails on FAILED or PENDING. Dev with the fix returns VERIFIED; the broken state is now a test failure."
     },
     {
       "id": "BUG-TEST-033",
@@ -3321,14 +3327,14 @@
         "dev"
       ],
       "status": "open",
-      "resolution_status": "fixing",
+      "resolution_status": "tested_passed",
       "type": "medium",
       "reason": "Indefinite Pending is an illegal state not currently caught.",
       "story_id": "SEC-HTTPS-001",
       "orphan": false,
       "risk_acceptance_id": null,
       "ch_matrix_id": "82fff5da-4500-435f-ba03-b9479152e84a",
-      "resolution": "Un-deferred 2026-04-17 per Boss: the currently-broken local Verified: Pending state is the ready-made negative fixture. Added _wait_for_verified_resolution to localSmokeTestPyTest which waits up to REQ_015_TIMEOUT_S (30s) for Verified to resolve to YES/FAILED or for a Fatal Error splash, and fails the test with a REQ-015 violation message otherwise."
+      "resolution": "_wait_for_verified_resolution polls up to REQ_015_TIMEOUT_S (30s) for Verified to resolve or a Fatal Error splash to render. On an indefinite Pending it raises the REQ-015 VIOLATION message. Integrated at the top of _verify_session_identity."
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
