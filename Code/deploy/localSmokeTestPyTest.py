@@ -621,7 +621,7 @@ class TestStep26:
         _screenshot(page, "26")
 
 
-# Step 27 [SEC-HTTPS-001-REQ-010]
+# Step 27 [SEC-HTTPS-001-REQ-009]
 class TestStep27:
     def test_mtls_shared_services_tls12(self):
         ctx = ssl.create_default_context(cafile=os.path.join(CERTS_DIR, "ca.crt"))
