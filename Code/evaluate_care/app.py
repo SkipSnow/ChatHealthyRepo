@@ -90,6 +90,39 @@ app.add_middleware(
 _engine = ScoringEngine()
 
 # ── Debug back door (enabled only when DEBUG=1) ─────────────
+@app.post("/debug/verify-live")
+def debug_verify_live(body: dict):
+    """Runs verify_session_token on a posted token and returns structured
+    diagnostic. Gated by DEBUG=1."""
+    if os.getenv("DEBUG", "false").lower() not in ("1", "true", "yes"):
+        return {"disabled": "DEBUG not set"}
+    import traceback
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    result = {"verified": None, "error": None, "details": {}}
+    try:
+        from session_token import verify_session_token, CERTS_DIR as MODULE_CERTS_DIR
+        runtime_certs_dir = os.environ.get("CERTS_DIR", "<unset>")
+        cert_path = os.path.join(runtime_certs_dir, "findcare.crt")
+        result["details"]["module_CERTS_DIR"] = MODULE_CERTS_DIR
+        result["details"]["runtime_CERTS_DIR"] = runtime_certs_dir
+        result["details"]["cert_path"] = cert_path
+        result["details"]["cert_exists"] = os.path.exists(cert_path)
+        if os.path.exists(cert_path):
+            result["details"]["cert_size"] = os.path.getsize(cert_path)
+            with open(cert_path, "rb") as f:
+                head = f.read(30)
+            result["details"]["cert_head"] = head.decode("ascii", errors="replace")
+        result["details"]["token_signed"] = body.get("signed")
+        result["details"]["token_origin"] = body.get("origin")
+        result["details"]["token_len"] = len(body.get("token", ""))
+        result["details"]["sig_len"] = len(body.get("signature", ""))
+        result["verified"] = verify_session_token(body, "FindCare")
+    except Exception as e:
+        result["error"] = f"{type(e).__name__}: {e}"
+        result["tb"] = traceback.format_exc()
+    return result
+
+
 @app.get("/debug/bootstrap")
 def debug_bootstrap():
     """Back door for mTLS/cert audit. Gated by DEBUG=1 env var so prod
