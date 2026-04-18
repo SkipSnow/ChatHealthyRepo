@@ -40322,11 +40322,11 @@
                         },
                         {
                           "req_id": "SEC-HTTPS-001-REQ-015",
-                          "requirement": "The FindCare session-token signing private key (findcare.key) MUST be stored as an HF Space Secret named FINDCARE_SIGNING_KEY_PEM containing the base64-encoded PEM bytes. On startup the FindCare backend MUST decode this secret and write it to a runtime directory whose path is set as CERTS_DIR. The private key MUST NOT be committed to source control or checked into the HF Space git repository.",
+                          "requirement": "REJECTED 2026-04-17 — duplicate of SEC-CERT-R-002-REQ-004 (Private key is stored in HF Space Secrets, never in code or git). findcare.key serves both session-token signing (OAuth AS pattern) and Key Vault x509 auth from a single physical key file; the distribution requirement is the same and need not be stated twice.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
-                          "approval": "approved",
+                          "approval": "rejected",
                           "pytests": {
                             "pytest": [
                               {
@@ -54565,11 +54565,11 @@
                         },
                         {
                           "req_id": "DEVOPS-DEPLOY-001-REQ-017",
-                          "requirement": "Every backend service (FindCare, EvaluateCare, SharedServices) MUST include in its /health response a commit field containing the 12-char short git SHA of the deployed source. The value MUST be supplied by the deploy pipeline as an env var (COMMIT_SHA) or a file (.commit_sha) that ships with the code. If neither source is present at runtime, the field MUST contain the literal string '?'. A deploy that results in the commit field equaling '?' is in violation of this requirement.",
+                          "requirement": "REJECTED 2026-04-17 — the build field already required by DEVOPS-DEPLOY-001-REQ-016 identifies a distinct code-and-configuration state and is the human-readable rollback label. Adding a commit SHA to /health was gold-plating that Boss explicitly removed from scope.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
-                          "approval": "approved",
+                          "approval": "rejected",
                           "pytests": {
                             "pytest": [
                               {
@@ -54583,7 +54583,7 @@
                         },
                         {
                           "req_id": "DEVOPS-DEPLOY-001-REQ-018",
-                          "requirement": "The Playwright smoke test MUST read the commit field from /health on each environment being compared. If the commit SHAs differ the test MUST fail with a message naming both SHAs. The test MUST NOT report success when two environments are running different source code. This technical requirement MUST NOT be considered a substitute for DEVOPS-BANNER-B002, which requires the build number to be displayed in the environment banner for human verification.",
+                          "requirement": "The Playwright smoke test MUST read the build field from /health on each environment being compared. If the build numbers differ the test MUST fail with a message naming both builds. The test MUST NOT report success when two environments are running different code or configuration. This technical requirement MUST NOT be considered a substitute for DEVOPS-BANNER-B002, which requires the build number to be displayed in the environment banner for human verification.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,

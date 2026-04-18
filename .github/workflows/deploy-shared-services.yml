@@ -75,9 +75,6 @@ jobs:
           # Shared utilities — session_token.py etc. at root so `from session_token import ...` works
           for f in Code/Shared/*.py; do cp "$f" hf_space/; done
 
-          # Rollback label — the GitHub commit SHA of this deploy
-          echo "${{ github.sha }}" > hf_space/.commit_sha
-
           cd hf_space
           git add .
           if git diff --staged --quiet; then

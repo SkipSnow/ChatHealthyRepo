@@ -74,11 +74,6 @@ echo "[3/6] Assembling staging dirs..."
 rm -rf "$STAGE_ROOT"
 mkdir -p "$STAGE_ROOT"
 
-# Rollback label — git SHA stamped into each staging dir so /health can show
-# what commit is running. Parallels what the GitHub deploy workflows write.
-COMMIT_SHA="$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
-echo "  commit label: $COMMIT_SHA"
-
 # Helper: copy a tree then scrub excludes (cp lacks --exclude; rsync not on Windows git-bash)
 scrub_excludes() {
     local dir="$1"
@@ -113,7 +108,6 @@ fi
 # ops/ (uat_report)
 mkdir -p "$FC_STAGE/ops"
 cp "$REPO_ROOT/Code/Shared/ops/uat_report.py" "$FC_STAGE/ops/" 2>/dev/null || true
-echo "$COMMIT_SHA" > "$FC_STAGE/.commit_sha"
 echo "  findcare staged: $(du -sh "$FC_STAGE" | awk '{print $1}')"
 
 # EvaluateCare — mirrors deploy-evaluatecare-backend.yml
@@ -131,7 +125,6 @@ rm -f "$EC_STAGE/evaluate_care/app.py" \
 rm -rf "$EC_STAGE/evaluate_care/tests"
 scrub_excludes "$EC_STAGE"
 for f in "$REPO_ROOT/Code/Shared/"*.py; do cp "$f" "$EC_STAGE/"; done
-echo "$COMMIT_SHA" > "$EC_STAGE/.commit_sha"
 echo "  evalcare staged: $(du -sh "$EC_STAGE" | awk '{print $1}')"
 
 # SharedServices — mirrors deploy-shared-services.yml
@@ -140,7 +133,6 @@ mkdir -p "$SS_STAGE"
 cp -r "$REPO_ROOT/Code/shared_services/." "$SS_STAGE/"
 scrub_excludes "$SS_STAGE"
 for f in "$REPO_ROOT/Code/Shared/"*.py; do cp "$f" "$SS_STAGE/"; done
-echo "$COMMIT_SHA" > "$SS_STAGE/.commit_sha"
 echo "  sharedsvc staged: $(du -sh "$SS_STAGE" | awk '{print $1}')"
 
 # ── Build ─────────────────────────────────────────────────
