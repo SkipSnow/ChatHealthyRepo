@@ -227,8 +227,52 @@ app = FastAPI(title="ChatHealthy FindCare API")
 #   70 (EX_SOFTWARE)  — unexpected internal error
 # The underscore check guards against regression to the old silent-fallback
 # placeholder CH_{uuid} (BUG-SEC-007).
+def _bootstrap_certs_from_env():
+    """Write PKI material from env vars to a runtime dir and point CERTS_DIR at it.
+
+    HF Spaces don't support bind-mounted cert directories. The deploy pipeline
+    stores the signing key and public cert as HF Space secrets (base64-encoded
+    PEM). On startup we decode them to /tmp/ch_certs and set CERTS_DIR.
+
+    If none of the env vars are present (e.g. local dev, local Docker with a
+    bind-mounted /certs), the function is a no-op — the caller's CERTS_DIR
+    resolution remains in effect. Malformed PEM content raises, which the
+    startup check turns into an exit-78 abend per SEC-HTTPS-001-REQ-014.
+    """
+    import base64
+    runtime_dir = "/tmp/ch_certs"
+    mapping = {
+        "FINDCARE_SIGNING_KEY_PEM":  "findcare.key",
+        "FINDCARE_CERT_PEM":         "findcare.crt",
+        "CA_CERT_PEM":               "ca.crt",
+    }
+    wrote = []
+    for env_var, filename in mapping.items():
+        b64 = os.environ.get(env_var)
+        if not b64:
+            continue
+        try:
+            pem_bytes = base64.b64decode(b64.strip())
+        except Exception as _exc:
+            _log.error("STARTUP: %s is present but not valid base64: %s", env_var, _exc)
+            raise
+        os.makedirs(runtime_dir, exist_ok=True)
+        path = os.path.join(runtime_dir, filename)
+        with open(path, "wb") as f:
+            f.write(pem_bytes)
+        try:
+            os.chmod(path, 0o600)
+        except Exception:
+            pass
+        wrote.append(filename)
+    if wrote:
+        os.environ["CERTS_DIR"] = runtime_dir
+        _log.info("startup bootstrap: wrote %s to %s (CERTS_DIR=%s)",
+                  ",".join(wrote), runtime_dir, runtime_dir)
+
 def _startup_security_verification():
     import sys as _sys
+    _bootstrap_certs_from_env()
     _local_shared = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared")
     if _local_shared not in _sys.path:
         _sys.path.insert(0, _local_shared)
@@ -575,14 +619,24 @@ def health():
                 _build = counter["number"]
     except Exception:
         pass
-    # Get git commit hash for build identification
-    _commit = "?"
-    try:
-        import subprocess
-        _commit = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"],
-            cwd=os.path.dirname(__file__), timeout=2, stderr=subprocess.DEVNULL).decode().strip()
-    except Exception:
-        pass
+    # Rollback label priority: env var (set by deploy workflow / local Docker) →
+    # .commit_sha file written alongside the app during deploy → git rev-parse
+    # when a developer runs outside a container. Every deploy MUST produce one
+    # of these so Boss can identify what's running for rollback.
+    _commit = os.getenv("COMMIT_SHA", "")
+    if not _commit:
+        try:
+            _commit = open(os.path.join(os.path.dirname(__file__), ".commit_sha")).read().strip()
+        except Exception:
+            pass
+    if not _commit:
+        try:
+            import subprocess
+            _commit = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"],
+                cwd=os.path.dirname(__file__), timeout=2, stderr=subprocess.DEVNULL).decode().strip()
+        except Exception:
+            _commit = "?"
+    _commit = (_commit or "?")[:12]
     result = {"status": status, "db": "connected" if _get_db() else "unavailable",
               "env": env_label,
               "build": _build,
