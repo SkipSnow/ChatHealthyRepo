@@ -223,4 +223,5 @@ if __name__ == "__main__":
     if ssl_cert and ssl_key and os.path.exists(ssl_cert) and os.path.exists(ssl_key):
         kwargs["ssl_certfile"] = ssl_cert
         kwargs["ssl_keyfile"] = ssl_key
+        # mTLS enforcement deferred per BUG-SEC-002 (browser-facing port).
     uvicorn.run(app, **kwargs)
