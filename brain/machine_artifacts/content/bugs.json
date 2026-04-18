@@ -3216,6 +3216,115 @@
       "resolution_status": "fixing",
       "story_id": "SEC-HTTPS-001",
       "orphan": false
+    },
+    {
+      "id": "BUG-TEST-032",
+      "req_id": "SEC-HTTPS-001-REQ-009",
+      "title": "Smoke does not assert Verified == VERIFIED in session panel",
+      "rule": "Bug: localSmokeTestPyTest _verify_session_identity only checked that 'Verified:' label existed. It did not assert the value was VERIFIED. Dev was able to show 'Verified: FAILED' and pass smoke. Accommodation: helper now parses the Verified value and asserts == VERIFIED.",
+      "incident": "Boss UAT 2026-04-17: dev session panel shows 'Verified: FAILED' but smoke step 17 still passed.",
+      "reproduction": "Run SMOKE_TEST_ENV=dev pytest; step 17 passes despite Verified: FAILED in UI.",
+      "accommodation": "Added assertion in _verify_session_identity: Verified value MUST equal 'VERIFIED' (case-insensitive) on both panels.",
+      "date": "2026-04-17",
+      "environment": [
+        "dev",
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "type": "high",
+      "reason": "Smoke green-lights broken mutual-auth state.",
+      "story_id": "SEC-HTTPS-001",
+      "orphan": false,
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "0536f690-0b5d-4d8e-add3-186d69464a70"
+    },
+    {
+      "id": "BUG-TEST-033",
+      "req_id": "FINDCARE-UX-002",
+      "title": "Smoke does not assert 4-cell reactive-percentage layout of left panel",
+      "rule": "Bug: smoke step 8 verified 'max 12 visible items' but did not verify the panel is actually a 4-cell table with reactive percentage heights 18/40/20/22, nor did it forbid pixel values. Panel can drift from spec and still pass. Accommodation: step 8 now checks cell count, each cell's reactive % height, and forbids pixel heights.",
+      "incident": "Boss UAT 2026-04-17: scroll bar not properly placed inside cell 2 of a 4-cell layout.",
+      "reproduction": "Run smoke; step 8 passes even though the left panel is not a 4-cell 18/40/20/22 table.",
+      "accommodation": "Step 8 now asserts table has 4 tr>td cells with height:18%/40%/20%/22% respectively and no pixel heights.",
+      "date": "2026-04-17",
+      "environment": [
+        "dev",
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "type": "high",
+      "reason": "UX spec drifts silently without test enforcement.",
+      "story_id": "FC-FILT-001",
+      "orphan": false,
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "b114382f-72ea-4cde-993b-083cbdd3d4fa"
+    },
+    {
+      "id": "BUG-TEST-034",
+      "req_id": "FC-FILT-001-REQ-013",
+      "title": "Smoke does not assert Uncheck All placement inside cell 1 (green header)",
+      "rule": "Bug: smoke did not check that the Uncheck All / Check All toggle lives inside cell 1 of the left-panel 4-cell layout. Current code renders Uncheck All in a gray strip below the green header, violating FC-FILT-001-REQ-013. Accommodation: step 8 now checks the [data-gui-action='toggle-all'] element's parent chain includes cell 1.",
+      "incident": "Boss UAT 2026-04-17: Uncheck All rendered below the green header, not inside it.",
+      "reproduction": "Open local or dev; inspect left-panel DOM; toggle-all button is outside the green-header td.",
+      "accommodation": "Step 8 now asserts cells.nth(0).locator([data-gui-action=toggle-all]).count() > 0.",
+      "date": "2026-04-17",
+      "environment": [
+        "dev",
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "type": "medium",
+      "reason": "Header layout regression not caught by smoke.",
+      "story_id": "FC-FILT-001",
+      "orphan": false,
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "9b6e23ce-07a7-4466-bff2-5c668e7eef13"
+    },
+    {
+      "id": "BUG-TEST-035",
+      "req_id": "SEC-HTTPS-001-REQ-013",
+      "title": "Smoke does not assert all 5 SESSION VERIFICATION fields present",
+      "rule": "Bug: _verify_session_identity only checked Nonce/GUID/Verified labels. It did not assert 'Signed token:' or 'Origin:' labels were present. Local panel missing Signed token + Origin still passed. Accommodation: helper now checks all 5 labels (Signed token, Nonce, GUID, Origin, Verified) on both panels.",
+      "incident": "Boss UAT 2026-04-17: local SESSION VERIFICATION panel missing Signed token and Origin rows; dev has them.",
+      "reproduction": "Open https://localhost, do a search, observe SV panel lacks 'Signed token:' and 'Origin:' lines.",
+      "accommodation": "Helper now loops [Signed token:, Nonce:, GUID:, Origin:, Verified:] on right and left inner_text.",
+      "date": "2026-04-17",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "fixing",
+      "type": "high",
+      "reason": "Missing fields = verification state not displayable.",
+      "story_id": "SEC-HTTPS-001",
+      "orphan": false,
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "3aeca152-263a-4a6e-8c7c-fb4bee9a1d9a"
+    },
+    {
+      "id": "BUG-TEST-036",
+      "req_id": "SEC-HTTPS-001-REQ-015",
+      "title": "Smoke does not assert Fatal Error splash on 30s verification timeout",
+      "rule": "Bug: no smoke step induces a verification failure or timeout and asserts the UI renders a 'Fatal Error' splash within 30 seconds. Without this, the Pending-forever state cannot be caught. Accommodation: add a negative-path step that forces a missing/invalid cert condition and asserts the splash + Verified: FAILED appear within the configured timeout.",
+      "incident": "Boss UAT 2026-04-17: local Verified: Pending persists indefinitely.",
+      "reproduction": "Stop EvaluateCare verify path; observe UI shows Pending forever with no Fatal Error splash.",
+      "accommodation": "Add a smoke step that sets up a cert-absent EvaluateCare condition, triggers a handoff, and asserts the Fatal Error splash and Verified: FAILED render inside 30s.",
+      "date": "2026-04-17",
+      "environment": [
+        "local",
+        "dev"
+      ],
+      "status": "open",
+      "resolution_status": "new",
+      "type": "medium",
+      "reason": "Indefinite Pending is an illegal state not currently caught.",
+      "story_id": "SEC-HTTPS-001",
+      "orphan": false,
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "82fff5da-4500-435f-ba03-b9479152e84a"
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
