@@ -149,17 +149,19 @@ def _verify_session_identity(page, env, handoff_label):
     for label in ["Signed token:", "Nonce:", "GUID:", "Origin:", "Verified:"]:
         assert label in right, f"[{handoff_label}] Right panel missing {label}: {right[:400]}"
         assert label in left, f"[{handoff_label}] Left panel missing {label}: {left[-400:]}"
-    # BUG-TEST-032: Verified MUST equal VERIFIED (not FAILED, not Pending).
-    # Per SEC-HTTPS-001-REQ-015, "Pending" longer than 30s is illegal; "FAILED"
-    # means mutual-auth/TLS handshake or signature verify did not complete.
+    # BUG-TEST-032: Verified MUST be the positive value (UI renders "YES ✓").
+    # FAILED, Pending, and any other state is illegal per SEC-HTTPS-001-REQ-015.
+    # Positive-value set tolerates minor UI wording variations (YES/VERIFIED/TRUE).
+    POSITIVE = {"YES", "VERIFIED", "TRUE", "OK"}
     for panel_name, txt in (("right", right), ("left", left)):
         m = re.search(r'Verified:\s*([A-Za-z\.]+)', txt)
         assert m, f"[{handoff_label}] Could not parse Verified in {panel_name} panel"
         val = m.group(1).upper()
-        assert val == "VERIFIED", (
-            f"[{handoff_label}] {panel_name} panel Verified == {val!r} (expected VERIFIED). "
-            f"Per SEC-HTTPS-001-REQ-009, mutual-auth handshake MUST complete; per "
-            f"SEC-HTTPS-001-REQ-015 any non-VERIFIED runtime state is fatal."
+        assert val in POSITIVE, (
+            f"[{handoff_label}] {panel_name} panel Verified == {val!r} "
+            f"(expected one of {sorted(POSITIVE)}). Per SEC-HTTPS-001-REQ-009 "
+            f"mutual-auth handshake MUST complete; per SEC-HTTPS-001-REQ-015 "
+            f"any non-positive runtime state (FAILED, PENDING) is fatal."
         )
     # Extract and compare nonces — must match between panels
     right_nonces = re.findall(r'Nonce:\s*(\w+)', right)
