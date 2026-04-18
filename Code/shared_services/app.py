@@ -85,9 +85,44 @@ app.add_middleware(
 )
 
 # ── Health ──────────────────────────────────────────────────
+
+_ENV_PREFIX = os.getenv("ENV_PREFIX", "dev")
+_MONGO_CLIENT = None
+
+def _mongo():
+    global _MONGO_CLIENT
+    if _MONGO_CLIENT is not None:
+        return _MONGO_CLIENT
+    uri = os.environ.get("MONGO_FRONTEND_connectionString")
+    if not uri:
+        return None
+    try:
+        from pymongo import MongoClient
+        _MONGO_CLIENT = MongoClient(uri, serverSelectionTimeoutMS=5000)
+        return _MONGO_CLIENT
+    except Exception as e:
+        _log.warning("shared_services /health: MongoClient init failed: %s", e)
+        return None
+
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "shared_services", "version": "0.1.4"}
+    # DEVOPS-DEPLOY-001-REQ-016: read build/version/framework from
+    # {ENV_PREFIX}_System.version._id='current'.
+    _build = "?"; _version_str = "?"; _framework_str = "?"
+    db_status = "unavailable"
+    c = _mongo()
+    if c is not None:
+        try:
+            doc = c[f"{_ENV_PREFIX}_System"]["version"].find_one({"_id": "current"}) or {}
+            _build = doc.get("build", "?")
+            _version_str = doc.get("version", "?")
+            _framework_str = doc.get("framework", "?")
+            db_status = "connected"
+        except Exception as e:
+            _log.warning("shared_services /health: MongoDB read failed: %s", e)
+    return {"status": "ok", "service": "shared_services",
+            "db": db_status, "env": _ENV_PREFIX,
+            "build": _build, "version": _version_str, "framework": _framework_str}
 
 # ── Splash + Control Transfer (mirrors EvaluateCare pattern) ──
 @app.get("/splash")

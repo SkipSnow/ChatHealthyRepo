@@ -145,7 +145,7 @@ _prompt_maker = PromptSystemMaker(brain_dir=_brain_dir, env_prefix=_ENV_PREFIX)
 EMERGENCY_KEYWORDS = _prompt_maker.load_emergency_keywords()
 anthropic_tools = _prompt_maker.load_tool_definitions()
 WELCOME_MESSAGE = PromptSystemMaker.build_welcome_message()
-# Build number comes from version.json only — single source of truth
+# Build/version/framework: live from MongoDB per DEVOPS-DEPLOY-001-REQ-016
 
 _ME_DIR = os.getenv("ME_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "me")
 if not os.path.isdir(_ME_DIR):
@@ -596,28 +596,25 @@ def health():
     env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
     idx_check = _check_indexes()
     status = "ok" if idx_check["status"] == "ok" else "degraded"
-    # Version info from version.json for version/framework
-    _version_info = {}
-    try:
-        import json as _json
-        # Try repo path first, then HF flat path
-        _vpath = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "brain", "machine_artifacts", "content", "version.json")
-        if not os.path.exists(_vpath):
-            _vpath = os.path.join(os.path.dirname(__file__), "brain", "machine_artifacts", "content", "version.json")
-        if os.path.exists(_vpath):
-            _version_info = _json.loads(open(_vpath, encoding="utf-8").read()).get("current", {})
-    except Exception:
-        pass
-    # DEVOPS-DEPLOY-001-REQ-016 (ratified by Boss in main.py:148 comment):
-    # version.json is the single source of truth for the build number. No DB
-    # override — two environments on the same version.json build MUST be
-    # running identical code and configuration.
-    _build = _version_info.get("build", "?")
-    result = {"status": status, "db": "connected" if _get_db() else "unavailable",
+    # DEVOPS-DEPLOY-001-REQ-016: build, version, framework read from
+    # {ENV_PREFIX}_System.version._id='current' — single source of truth.
+    _build = "?"
+    _version_str = "?"
+    _framework_str = "?"
+    db = _get_db()
+    if db is not None:
+        try:
+            doc = db[f"{_ENV_PREFIX}_System"]["version"].find_one({"_id": "current"}) or {}
+            _build = doc.get("build", "?")
+            _version_str = doc.get("version", "?")
+            _framework_str = doc.get("framework", "?")
+        except Exception as _exc:
+            _log.warning("/health: MongoDB read for build/version/framework failed: %s", _exc)
+    result = {"status": status, "db": "connected" if db is not None else "unavailable",
               "env": env_label,
               "build": _build,
-              "version": _version_info.get("version", "?"),
-              "framework": _version_info.get("framework", "?")}
+              "version": _version_str,
+              "framework": _framework_str}
     if idx_check.get("missing"):
         result["missing_indexes"] = idx_check["missing"]
         _log.error("HEALTH CHECK: missing indexes — %s", idx_check["missing"])
