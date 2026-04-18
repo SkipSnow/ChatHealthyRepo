@@ -660,7 +660,7 @@ def evaluate_splash():
     """Proxy splash call to EvaluateCare service. Transfers page ownership to EvaluateCare."""
     import requests as _req
     evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8001")
-    certs_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
+    certs_dir = os.environ.get("CERTS_DIR") or os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
     _log.info("CONTROL TRANSFER: FindCare → EvaluateCare (user clicked Evaluate)")
     req_kwargs = {"timeout": 5}
     if not os.getenv("SPACE_ID"):
@@ -685,7 +685,7 @@ def transfer_to_findcare():
     Proxies through EvaluateCare first so both services log the transfer."""
     import requests as _req
     evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8001")
-    certs_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
+    certs_dir = os.environ.get("CERTS_DIR") or os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
     _log.info("CONTROL TRANSFER: FindCare has taken ownership of the page (from EvaluateCare)")
     req_kwargs = {"timeout": 5}
     if not os.getenv("SPACE_ID"):
@@ -713,7 +713,7 @@ def evaluate_proxy(body: EvaluateRequest):
     # Local: HTTPS via Caddy mTLS :8081
     # HF: HTTPS via HF space URL (set as HF Secret)
     evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8081")
-    certs_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
+    certs_dir = os.environ.get("CERTS_DIR") or os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
 
     req_kwargs = {"timeout": 15}
     if not os.getenv("SPACE_ID"):
@@ -746,7 +746,7 @@ def shared_splash():
     """Proxy splash call to SharedServices. Transfers page ownership."""
     import requests as _req
     shared_url = os.getenv("SHARED_SERVICES_URL", "https://localhost:8002")
-    certs_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
+    certs_dir = os.environ.get("CERTS_DIR") or os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
     _log.info("CONTROL TRANSFER: FindCare → SharedServices (user clicked Shared Services)")
     req_kwargs = {"timeout": 5}
     if not os.getenv("SPACE_ID"):
@@ -769,7 +769,7 @@ def shared_verify_token(body: EvaluateRequest):
     """Proxy token verification to SharedServices over mTLS."""
     import requests as _req
     shared_url = os.getenv("SHARED_SERVICES_URL", "https://localhost:8002")
-    certs_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
+    certs_dir = os.environ.get("CERTS_DIR") or os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
     req_kwargs = {"timeout": 10}
     if not os.getenv("SPACE_ID"):
         findcare_crt = os.path.join(certs_dir, "findcare.crt")
