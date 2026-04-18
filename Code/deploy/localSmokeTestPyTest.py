@@ -335,7 +335,7 @@ class TestStep07:
         _screenshot(page, "07")
 
 
-# Step 8 [FC-FILT-001-REQ-015]
+# Step 8 [FINDCARE-UX-002]
 class TestStep08:
     def test_specialty_scroll_max_12(self, env):
         page = env["page"]

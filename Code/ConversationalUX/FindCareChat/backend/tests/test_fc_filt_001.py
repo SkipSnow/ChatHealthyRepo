@@ -524,17 +524,17 @@ class TestREQ014_ApplyFilterFull:
 # REQ-015: Scroll window at 15+ items, toggle applies to all
 # ============================================================================
 
-class TestREQ015_ScrollWindow:
-    """FC-FILT-001-REQ-015: Scroll window at 15+ items, toggle works outside scroll."""
+class TestUX002_ScrollWindow:
+    """FINDCARE-UX-002: Scroll window at 12+ items, max 12 visible in cell 2."""
 
     def test_many_results_have_scroll(self, page: Page):
-        """When more than 15 specialties, the list must be in a scroll container."""
+        """When more than 12 specialties, the list must be in a scroll container."""
         frame = _search_and_wait(page, SEARCH_QUERY)
 
         filter_items = _find_in_any_frame(page, "[data-gui-action='filter-toggle']")
         count = filter_items.count()
-        if count <= 15:
-            pytest.skip(f"Only {count} specialties — need >15 to test scroll")
+        if count <= 12:
+            pytest.skip(f"Only {count} specialties — need >12 to test scroll")
 
         # The container should have overflow-y: auto or scroll
         panel = _find_in_any_frame(page, "[data-filter-panel]")
