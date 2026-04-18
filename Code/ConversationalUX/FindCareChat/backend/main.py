@@ -608,17 +608,11 @@ def health():
             _version_info = _json.loads(open(_vpath, encoding="utf-8").read()).get("current", {})
     except Exception:
         pass
-    # BUG-DEVOPS-001 fix: build number from MongoDB (authoritative source,
-    # written by bump_build.py in CI). Fall back to version.json if DB unavailable.
+    # DEVOPS-DEPLOY-001-REQ-016: version.json is THE identifier for a distinct
+    # code-and-configuration state. No secondary authoritative source (no DB
+    # override). Two environments on the same build value MUST be running
+    # identical code and configuration.
     _build = _version_info.get("build", "?")
-    try:
-        db = _get_db()
-        if db:
-            counter = db[f"{_ENV_PREFIX}_System"]["build_counter"].find_one({"_id": "build"})
-            if counter and "number" in counter:
-                _build = counter["number"]
-    except Exception:
-        pass
     result = {"status": status, "db": "connected" if _get_db() else "unavailable",
               "env": env_label,
               "build": _build,
