@@ -948,4 +948,10 @@ if os.path.isdir(_static_dir):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "7860")))
+    kwargs = {"host": "0.0.0.0", "port": int(os.getenv("PORT", "7860"))}
+    ssl_cert = os.getenv("SSL_CERTFILE")
+    ssl_key = os.getenv("SSL_KEYFILE")
+    if ssl_cert and ssl_key and os.path.exists(ssl_cert) and os.path.exists(ssl_key):
+        kwargs["ssl_certfile"] = ssl_cert
+        kwargs["ssl_keyfile"] = ssl_key
+    uvicorn.run(app, **kwargs)

@@ -110,4 +110,10 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", "8002"))
     _log.info("Shared Services starting on port %d", port)
-    uvicorn.run("app:app", host="0.0.0.0", port=port)
+    kwargs = {"host": "0.0.0.0", "port": port}
+    ssl_cert = os.getenv("SSL_CERTFILE")
+    ssl_key = os.getenv("SSL_KEYFILE")
+    if ssl_cert and ssl_key and os.path.exists(ssl_cert) and os.path.exists(ssl_key):
+        kwargs["ssl_certfile"] = ssl_cert
+        kwargs["ssl_keyfile"] = ssl_key
+    uvicorn.run(app, **kwargs)

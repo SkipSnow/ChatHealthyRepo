@@ -198,6 +198,34 @@ def env():
         browser.close()
 
 
+# Step 0 [DEVOPS-DEPLOY-001-REQ-018]: cross-environment build-gate.
+# Proves that local and dev are running the same code + configuration before
+# any further comparison is attempted. Independent of SMOKE_TEST_ENV — always
+# runs local-vs-dev. If builds differ, the rest of the smoke would compare
+# apples-to-oranges and produce meaningless signals.
+class TestStep00BuildGate:
+    def test_local_and_dev_have_identical_build(self):
+        local_url = "https://localhost:7860/health"
+        dev_url = "https://skipsnow-dev-chathealthyspace.hf.space/health"
+        c = httpx.Client(verify=False, timeout=15)
+        try:
+            local = c.get(local_url).json()
+            dev = c.get(dev_url).json()
+        finally:
+            c.close()
+        local_build = local.get("build")
+        dev_build = dev.get("build")
+        assert local_build == dev_build, (
+            f"DEVOPS-DEPLOY-001-REQ-018 VIOLATION: build mismatch across "
+            f"environments.\n  local {local_url}: build={local_build}\n  "
+            f"dev   {dev_url}: build={dev_build}\n"
+            f"Per DEVOPS-DEPLOY-001-REQ-016 two environments on the same "
+            f"build MUST be running identical code and configuration; "
+            f"different builds means different code or configuration."
+        )
+        print(f"\n[BUILD GATE PASS] local = dev = build {local_build}")
+
+
 # Step 1 [DEVOPS-LOCAL-B004]
 class TestStep01:
     def test_http_redirects_to_https(self, env):
