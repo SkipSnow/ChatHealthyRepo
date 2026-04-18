@@ -643,8 +643,8 @@
             + '<span style="margin-right:12px;">Version: ' + (d.version || '?') + '</span>'
             + '<span style="margin-right:12px;">Framework: ' + (d.framework || '?') + '</span>'
             + '<span style="margin-right:12px;">Build: ' + (d.build || '?') + '</span>'
-            + '<span style="margin-right:12px;">Commit: ' + (d.commit || '?').substring(0,7) + '</span>'
-            + '<button type="button" id="sharedServicesNav" style="margin-left:12px;background:#fff;color:#d97706;border:1px solid #fff;border-radius:3px;padding:2px 8px;font-size:11px;font-weight:600;cursor:pointer;" onclick="openSharedServices()">Shared Services</button>';
+            + '<span id="serviceButtons"></span>';
+          if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
         }).catch(function() {});
       }
     })();
@@ -749,9 +749,130 @@
       window.openQAReport = function() {
         openPanel(src + '/qa-report', 'QA Report — v0.1.4');
       };
+      // DEVOPS-BANNER-B006: 3-button banner with hot/cold states.
+      // The service that owns the page renders cold (disabled + tooltip).
+      // Called after window._pageOwner changes, and once on initial paint.
+      window.renderBannerButtons = function() {
+        var span = document.getElementById('serviceButtons');
+        if (!span) return;
+        var owner = window._pageOwner || 'findcare';
+        var services = [
+          { key: 'findcare',       name: 'FindCare',       color: '#0b7a75', handler: 'window.gotoFindCare()' },
+          { key: 'evaluatecare',   name: 'EvaluateCare',   color: '#d97706', handler: 'window.gotoEvaluateCare()' },
+          { key: 'sharedservices', name: 'SharedServices', color: '#6366f1', handler: 'window.gotoSharedServices()' }
+        ];
+        var html = '';
+        services.forEach(function(s) {
+          var isActive = (owner === s.key);
+          var style = isActive
+            ? 'margin-left:8px;background:#d1d5db;color:#6b7280;border:1px solid #d1d5db;border-radius:3px;padding:2px 8px;font-size:11px;font-weight:600;cursor:not-allowed;opacity:0.75;'
+            : 'margin-left:8px;background:#fff;color:' + s.color + ';border:1px solid #fff;border-radius:3px;padding:2px 8px;font-size:11px;font-weight:600;cursor:pointer;';
+          html += '<button type="button" data-service="' + s.key + '" '
+            + (isActive ? 'disabled title="You are in the ' + s.name + ' server" ' : ('onclick="' + s.handler + '" '))
+            + 'style="' + style + '">'
+            + s.name
+            + '</button>';
+        });
+        span.innerHTML = html;
+      };
+
+      // Banner button: always-visible explicit return-to-FindCare action.
+      // Replaces the old Apply-Filter-in-EvalCare-mode overloading, which
+      // didn't reliably reset phase + focus input (BUG-UX-022/023 workaround
+      // approved by Boss 2026-04-18).
+      window.gotoFindCare = function() { window.returnToFindCare(); };
+      window.gotoSharedServices = function() { window.openSharedServices(); };
+      window.gotoEvaluateCare = function() {
+        // DEVOPS-BANNER-B006: banner-initiated handoff to EvaluateCare.
+        // Mirrors openSharedServices but hits /evaluate/* via FindCare proxy.
+        window._pageOwner = 'evaluatecare';
+        if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
+        var chatFrame = document.getElementById('coreChatFrame');
+        var apiBase = window._hfBaseUrl || '';
+        fetch(apiBase + '/evaluate/splash')
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            chatFrame.style.display = 'none';
+            var shSplash = document.getElementById('sharedSplash');
+            if (shSplash) shSplash.style.display = 'none';
+            var centerArea = chatFrame.parentElement;
+            var splashDiv = document.getElementById('evalcareSplash');
+            if (!splashDiv) {
+              splashDiv = document.createElement('div');
+              splashDiv.id = 'evalcareSplash';
+              splashDiv.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#fff;';
+              centerArea.appendChild(splashDiv);
+            }
+            splashDiv.style.display = 'flex';
+            splashDiv.innerHTML = d.html || '';
+          })
+          .catch(function() {});
+        fetch(apiBase + '/session')
+          .then(function(r) { return r.json(); })
+          .then(function(token) {
+            return fetch(apiBase + '/evaluate/verify-token', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({session_token: token})
+            });
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(result) {
+            var rightPanel = document.getElementById('rightPanel');
+            if (rightPanel && result && result.session_token) {
+              var st = result.session_token;
+              rightPanel.style.alignItems = 'stretch';
+              rightPanel.style.justifyContent = 'flex-start';
+              rightPanel.style.flexDirection = 'column';
+              rightPanel.style.overflow = 'auto';
+              rightPanel.innerHTML = '<div style="padding:8px 10px;border-bottom:2px solid #d97706;background:#fff7ed;">'
+                + '<div style="font-size:11px;font-weight:700;color:#d97706;text-transform:uppercase;">EvaluateCare</div>'
+                + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">Mutual authentication test</div>'
+                + '</div>'
+                + window.buildTokenDisplayHtml(st);
+              var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
+              if (sessionEl) sessionEl.innerHTML = window.buildTokenDisplayHtml(st);
+            }
+          })
+          .catch(function(e) { console.error('EvaluateCare banner handoff failed:', e); });
+      };
+
+      window.returnToFindCare = function() {
+        var chatFrame = document.getElementById('coreChatFrame');
+        var apiBase = window._hfBaseUrl || '';
+        // Always run the return flow so the UI resets even when pageOwner
+        // is already findcare (covers stale-results cleanup).
+        window._pageOwner = 'findcare';
+        if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
+        fetch(apiBase + '/transfer/to-findcare', { method: 'POST' })
+          .then(function(r) { return r.json(); })
+          .catch(function() { return {}; })
+          .then(function() {
+            var ecSplash = document.getElementById('evalcareSplash');
+            if (ecSplash) ecSplash.style.display = 'none';
+            var shSplash = document.getElementById('sharedSplash');
+            if (shSplash) shSplash.style.display = 'none';
+            chatFrame.style.display = '';
+            chatFrame.contentWindow.postMessage({type: 'gui:reset'}, '*');
+            // Fetch fresh token and repaint both panels
+            return fetch(apiBase + '/session');
+          })
+          .then(function(r) { return r && r.json ? r.json() : null; })
+          .then(function(token) {
+            if (!token) return;
+            var st = {token_received: token.token, origin: 'FindCare', verified: true};
+            var html = window.buildTokenDisplayHtml(st);
+            var rightPanel = document.getElementById('rightPanel');
+            if (rightPanel) rightPanel.innerHTML = html;
+            var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
+            if (sessionEl) sessionEl.innerHTML = html;
+          });
+      };
+
       window.openSharedServices = function() {
         // Transfer control to SharedServices (mirrors EvaluateCare pattern)
         window._pageOwner = 'sharedservices';
+        if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
         var chatFrame = document.getElementById('coreChatFrame');
         var apiBase = src;
 
@@ -975,6 +1096,7 @@
                 // Hot click — send to evaluate
                 // Transfer control to EvaluateCare
                 window._pageOwner = 'evaluatecare';
+                if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
                 var chatSrc = chatFrame.src || '';
                 var apiBase = chatSrc.replace(/\/static\/.*$/, '').replace(/\/$/, '');
                 if (!apiBase) apiBase = '';

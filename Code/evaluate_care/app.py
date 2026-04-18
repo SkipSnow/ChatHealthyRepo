@@ -203,6 +203,38 @@ def transfer_to_findcare():
     _log.info("CONTROL TRANSFER: EvaluateCare → FindCare (user touched filter)")
     return {"owner": "findcare", "reason": "filter_interaction"}
 
+# ── Token Verification (DEVOPS-BANNER-B006 / SEC-HTTPS-001-REQ-013) ─────
+from pydantic import BaseModel as _BaseModel
+from typing import Optional as _Optional
+
+class _VerifyTokenRequest(_BaseModel):
+    session_token: _Optional[dict] = None
+
+@app.post("/verify-token")
+def verify_token(body: _VerifyTokenRequest):
+    """Verify a session token from FindCare. Proves mutual authentication.
+    Mirrors SharedServices /verify-token pattern."""
+    token_valid = False
+    if body.session_token:
+        try:
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "Shared"))
+            os.environ.setdefault("CERTS_DIR", os.path.join(os.path.dirname(__file__), "..", "Shared", "ops", "certs"))
+            from session_token import verify_session_token
+            token_valid = verify_session_token(body.session_token, "FindCare")
+            _log.info("EvalCare token verification: origin=%s valid=%s",
+                      body.session_token.get("origin", "unknown"), token_valid)
+        except Exception as e:
+            _log.warning("EvalCare token verification failed: %s", e)
+    return {
+        "status": "verified" if token_valid else "failed",
+        "session_token": {
+            "token_received": body.session_token.get("token", "") if body.session_token else "",
+            "signature_received": (body.session_token.get("signature", "") or "")[:40] + "..." if body.session_token and body.session_token.get("signature") else "none",
+            "origin": body.session_token.get("origin", "") if body.session_token else "",
+            "verified": token_valid,
+        },
+    }
+
 # ── Provider Scoring ────────────────────────────────────────
 
 class ScoreProviderRequest(BaseModel):

@@ -3335,6 +3335,28 @@
       "risk_acceptance_id": null,
       "ch_matrix_id": "82fff5da-4500-435f-ba03-b9479152e84a",
       "resolution": "_wait_for_verified_resolution polls up to REQ_015_TIMEOUT_S (30s) for Verified to resolve or a Fatal Error splash to render. On an indefinite Pending it raises the REQ-015 VIOLATION message. Integrated at the top of _verify_session_identity."
+    },
+    {
+      "id": "BUG-UX-024",
+      "req_id": "FC-EVAL-001-REQ-002",
+      "title": "Evaluate Providers button persists on welcome/splash when RestoreState=false",
+      "rule": "Bug: the 'Evaluate N Providers' button continues to render after control returns to FindCare with RestoreState=false. When RestoreState=false the page resets to the welcome/splash state — no providers list, no selected-for-evaluation list — so the Evaluate Providers button MUST NOT be present in that view. It is currently still painted because the selection count / button visibility is not cleared by the reset path.",
+      "incident": "Boss UAT 2026-04-18: after a full search → select 2 → Evaluate → banner return flow, the orange 'Evaluate 2 Providers' button is still visible on the welcome/splash screen.",
+      "reproduction": "(1) Open the site; (2) search 'Find me a bone doctor in Delaware'; (3) select 2 providers; (4) click Evaluate These Providers; (5) from the banner click FindCare (or otherwise return via /transfer/to-findcare with RestoreState=false); (6) observe the orange 'Evaluate 2 Providers' button still visible over the welcome splash.",
+      "accommodation": "The RestoreState=false path MUST clear the FindCare selection state and suppress the Evaluate Providers button whenever FindCare is in the welcome/splash phase. Required fix touches the /transfer/to-findcare facade consumer and the React state that gates the Evaluate button visibility.",
+      "date": "2026-04-18",
+      "environment": [
+        "local"
+      ],
+      "status": "open",
+      "resolution_status": "new",
+      "type": "medium",
+      "reason": "Stale UI after reset contradicts RestoreState=false semantics (FC-EVAL-001-REQ-002 cold-when-no-providers), and misleads the user about available actions.",
+      "story_id": "FC-EVAL-001",
+      "orphan": false,
+      "risk_acceptance_id": null,
+      "ch_matrix_id": "c2d7f491-86b2-4a1f-9d6a-0f3e7b5c2a18",
+      "resolution": null
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
