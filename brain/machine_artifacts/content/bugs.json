@@ -3154,29 +3154,6 @@
       "orphan": false
     },
     {
-      "id": "BUG-DEVOPS-011",
-      "rule": "Bug: /health endpoints do not expose the deployed commit SHA, so there is no rollback label. Accommodation: /health MUST include a 'commit' field sourced from COMMIT_SHA env var or .commit_sha file written at deploy time.",
-      "incident": "After deploying 5a8d5ba to dev, FindCare /health still reported commit='?'. No way to verify from /health which commit is running.",
-      "reproduction": "GET /health on any of the three backends. Observe no 'commit' field or the literal value '?'.",
-      "accommodation": "FindCare/EvalCare/SharedSvc /health MUST return a 'commit' field per DEVOPS-DEPLOY-001-REQ-017. Deploy workflows and local Docker deploy MUST supply the SHA.",
-      "date": "2026-04-17",
-      "ch_matrix_id": "70a378f7-4c85-43a5-8110-e8ac1a2e824d",
-      "environment": [
-        "local",
-        "dev"
-      ],
-      "status": "closed",
-      "risk_acceptance_id": null,
-      "next_action": "Code changes staged; commit blocked until req-017 is approved.",
-      "req_id": "DEVOPS-DEPLOY-001-REQ-017",
-      "type": "high",
-      "reason": "Without SHA in /health there is no way to label a deploy for rollback.",
-      "resolution_status": "removed",
-      "story_id": "DEVOPS-DEPLOY-001",
-      "orphan": false,
-      "resolution": "Not a bug. DEVOPS-DEPLOY-001-REQ-017 was rejected 2026-04-17 as gold-plating; the build field (REQ-016) serves the rollback-label purpose. /health does not need a commit SHA."
-    },
-    {
       "id": "BUG-DEVOPS-006",
       "rule": "Bug: FindCare deploy workflow wipes the HF Space README.md on every push, because the 'find -delete' step runs before any rsync and no README preservation exists. Accommodation: cp README.md to /tmp, delete, cp back — mirroring the pattern already used in EvalCare and SharedServices workflows.",
       "incident": "Comparing deploy-findcare-backend.yml to the other two workflows showed the FindCare workflow lacked the README preservation block. Each deploy silently removed the HF Space config frontmatter.",
@@ -3232,7 +3209,7 @@
       ],
       "status": "open",
       "risk_acceptance_id": null,
-      "next_action": "Code bootstrap is staged; commit blocked until SEC-HTTPS-001-REQ-015 is approved, then set the HF secret and redeploy FindCare.",
+      "next_action": "HF secret set, FindCare redeployed. Bootstrap reads FINDCARE_SIGNING_KEY_PEM from HF Space Secret per SEC-CERT-R-002-REQ-004.",
       "req_id": "SEC-CERT-R-002-REQ-004",
       "type": "critical",
       "reason": "Without a cert distribution mechanism for HF, the zero-fallback policy (SEC-HTTPS-001-REQ-014) blocks FindCare from serving at all on dev.",

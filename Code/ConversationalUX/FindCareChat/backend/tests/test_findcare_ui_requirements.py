@@ -5,7 +5,7 @@
 
 FC-SELECT-001-REQ-002: Drag and drop provider from top to bottom list
 FC-SELECT-001-REQ-007: Only selected providers (bottom list) sent to EvaluateCare
-FC-FILT-001-REQ-015: Specialty list >15 items displays in scroll window
+FINDCARE-UX-002: Specialty list >15 items displays in scroll window
 FC-FILT-001-REQ-016: Toggle label reads 'Uncheck All' / 'Check All' based on majority
 UX-FRAME-001-REQ-004: Control frame is 7% of center column height
 
@@ -90,18 +90,18 @@ def test_only_selected_sent_to_evaluate_care():
     )
 
 
-# ── FC-FILT-001-REQ-015 ───────────────────────────────────────────────────
-# Specialty list >15 items must display in scroll window
+# ── FINDCARE-UX-002 ───────────────────────────────────────────────────
+# Specialty list must display with max 12 visible items in cell 2 (40% of left panel)
 
 def test_specialty_list_scrollable_gui_manager():
-    """FC-FILT-001-REQ-015: GUIManager filter panel has scroll container."""
+    """FINDCARE-UX-002: GUIManager filter panel has scroll container."""
     src = _read("GUIManager.tsx")
     assert "max-height:" in src, "Filter panel must set max-height for scroll"
     assert "overflow-y:auto" in src, "Filter panel must use overflow-y:auto"
 
 
 def test_specialty_list_scrollable_findcare_app():
-    """FC-FILT-001-REQ-015: FindCareApp filter panel has scroll container."""
+    """FINDCARE-UX-002: FindCareApp filter panel has scroll container."""
     src = _read("FindCareApp.tsx")
     assert "max-height:" in src, "FindCareApp filter panel must set max-height"
     assert "overflow-y:auto" in src, "FindCareApp filter panel must use overflow-y:auto"
