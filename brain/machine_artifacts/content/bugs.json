@@ -3121,15 +3121,16 @@
       "environment": [
         "local"
       ],
-      "status": "open",
+      "status": "closed",
       "risk_acceptance_id": null,
       "next_action": "Hook already neutered in working tree; needs persistence story across machines.",
       "req_id": "DEVOPS-DEPLOY-001-REQ-016",
       "type": "high",
       "reason": "Per-commit bump guarantees local and origin/dev disagree on build.",
-      "resolution_status": "in_fix",
+      "resolution_status": "not_a_bug",
       "story_id": "DEVOPS-DEPLOY-001",
-      "orphan": false
+      "orphan": false,
+      "resolution": "Not a bug under DEVOPS-DEPLOY-001-REQ-016 (approved 2026-04-17). The post-commit hook incrementing build on each code-or-config commit is the correct enforcement mechanism. Claude's earlier neutering of the hook was incorrect and will be reverted."
     },
     {
       "id": "BUG-DEVOPS-010",
