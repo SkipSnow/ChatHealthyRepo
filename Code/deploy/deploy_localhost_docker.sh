@@ -46,13 +46,17 @@ echo "  ChatHealthy local Docker deploy"
 echo "=========================================="
 
 # ── Teardown ───────────────────────────────────────────────
-echo "[1/6] Teardown existing containers..."
+echo "[1/6] Teardown existing containers + host python..."
 for c in "${CONTAINERS[@]}"; do
     if docker ps -a --format '{{.Names}}' | grep -qx "$c"; then
         docker rm -f "$c" >/dev/null
         echo "  removed $c"
     fi
 done
+# Kill any prior host python processes (website wrapper from a previous run).
+# Docker daemon + containers are not python.exe on the host, so this is safe
+# for the containers we just re-created.
+taskkill //F //IM python.exe >/dev/null 2>&1 || true
 
 if [ "$TEARDOWN_ONLY" = "1" ]; then
     echo "  teardown complete. exit."
@@ -177,6 +181,8 @@ echo "  certs mount: $CERTS_DIR_HOST_DOCKER -> $CERTS_MOUNT"
 HOST_ALIAS="host.docker.internal"
 EXTRA_HOST_FLAG="--add-host=host.docker.internal:host-gateway"
 
+# SSL env: each container terminates TLS inside using its own cert (findcare.crt,
+# evalcare.crt, shared.crt) and corresponding key. Satisfies DEVOPS-LOCAL-B003.
 docker run -d --name ch-evalcare \
     -p 8001:7860 \
     -v "$CERTS_DIR_HOST_DOCKER:$CERTS_MOUNT:ro" \
@@ -184,9 +190,11 @@ docker run -d --name ch-evalcare \
     -e "CERTS_DIR=$CERTS_MOUNT" \
     -e PORT=7860 \
     -e ENV_PREFIX=dev \
+    -e "SSL_CERTFILE=$CERTS_MOUNT/evalcare.crt" \
+    -e "SSL_KEYFILE=$CERTS_MOUNT/evalcare.key" \
     $EXTRA_HOST_FLAG \
-    ch-evalcare >/dev/null
-echo "  ch-evalcare  on :8001"
+    ch-evalcare python app.py >/dev/null
+echo "  ch-evalcare  on :8001 (HTTPS)"
 
 docker run -d --name ch-sharedsvc \
     -p 8002:7860 \
@@ -195,9 +203,11 @@ docker run -d --name ch-sharedsvc \
     -e "CERTS_DIR=$CERTS_MOUNT" \
     -e PORT=7860 \
     -e ENV_PREFIX=dev \
+    -e "SSL_CERTFILE=$CERTS_MOUNT/shared.crt" \
+    -e "SSL_KEYFILE=$CERTS_MOUNT/shared.key" \
     $EXTRA_HOST_FLAG \
-    ch-sharedsvc >/dev/null
-echo "  ch-sharedsvc on :8002"
+    ch-sharedsvc python app.py >/dev/null
+echo "  ch-sharedsvc on :8002 (HTTPS)"
 
 docker run -d --name ch-findcare \
     -p 7860:7860 \
@@ -206,11 +216,13 @@ docker run -d --name ch-findcare \
     -e "CERTS_DIR=$CERTS_MOUNT" \
     -e PORT=7860 \
     -e ENV_PREFIX=dev \
-    -e EVALCARE_URL="http://$HOST_ALIAS:8001" \
-    -e SHARED_SERVICES_URL="http://$HOST_ALIAS:8002" \
+    -e "SSL_CERTFILE=$CERTS_MOUNT/findcare.crt" \
+    -e "SSL_KEYFILE=$CERTS_MOUNT/findcare.key" \
+    -e EVALCARE_URL="https://$HOST_ALIAS:8001" \
+    -e SHARED_SERVICES_URL="https://$HOST_ALIAS:8002" \
     $EXTRA_HOST_FLAG \
     ch-findcare >/dev/null
-echo "  ch-findcare  on :7860"
+echo "  ch-findcare  on :7860 (HTTPS)"
 
 # ── Verify ─────────────────────────────────────────────────
 echo "[6/6] Waiting for health..."
@@ -218,7 +230,7 @@ FAIL=0
 for i in $(seq 1 60); do
     ALL_UP=1
     for p in 7860 8001 8002; do
-        curl -s -o /dev/null -w '' "http://localhost:$p/health" || ALL_UP=0
+        curl -sk -o /dev/null -w '' "https://localhost:$p/health" || ALL_UP=0
     done
     [ "$ALL_UP" = "1" ] && break
     sleep 1
@@ -226,7 +238,7 @@ done
 
 for p_name in "7860:findcare" "8001:evalcare" "8002:shared_services"; do
     port="${p_name%:*}"; name="${p_name#*:}"
-    body=$(curl -s "http://localhost:$port/health" || true)
+    body=$(curl -sk "https://localhost:$port/health" || true)
     if echo "$body" | grep -q '"status":"ok"'; then
         echo "  PASS :$port $name — $body"
     else
@@ -238,18 +250,47 @@ for p_name in "7860:findcare" "8001:evalcare" "8002:shared_services"; do
     fi
 done
 
-if [ "$FAIL" = "0" ]; then
-    echo ""
-    echo "=========================================="
-    echo "  All three backends up in Docker."
-    echo "  FindCare   http://localhost:7860/health"
-    echo "  EvalCare   http://localhost:8001/health"
-    echo "  SharedSvc  http://localhost:8002/health"
-    echo "=========================================="
-else
+if [ "$FAIL" != "0" ]; then
     echo ""
     echo "=========================================="
     echo "  FAILURES — see logs above."
     echo "=========================================="
     exit 1
 fi
+
+# ── Start website wrapper (port 443) on host ──────────────
+# B014 scopes Docker to the 3 backends; website wrapper is separate.
+# _start_website.py also serves the :80 HTTP→HTTPS redirect.
+echo "[7/7] Starting website wrapper on :443 (host python)..."
+WEBSITE_DIR="$REPO_ROOT/Website"
+if command -v cygpath >/dev/null 2>&1; then
+    CERTS_WIN="$(cygpath -w "$CERTS_DIR_HOST")"
+    WEBSITE_WIN="$(cygpath -w "$WEBSITE_DIR")"
+else
+    CERTS_WIN="$CERTS_DIR_HOST"
+    WEBSITE_WIN="$WEBSITE_DIR"
+fi
+
+python "$REPO_ROOT/Code/deploy/_start_website.py" "$CERTS_WIN" "$WEBSITE_WIN" \
+    > "$STAGE_ROOT/website.log" 2>&1 &
+WEBSITE_PID=$!
+echo "  website PID=$WEBSITE_PID (log: $STAGE_ROOT/website.log)"
+
+# Wait for :443
+for i in $(seq 1 30); do
+    if curl -sk -o /dev/null -w '' "https://localhost/" 2>/dev/null; then
+        echo "  website up."
+        break
+    fi
+    sleep 1
+done
+
+echo ""
+echo "=========================================="
+echo "  Stack up."
+echo "  FindCare   https://localhost:7860/health"
+echo "  EvalCare   https://localhost:8001/health"
+echo "  SharedSvc  https://localhost:8002/health"
+echo "  Website    https://localhost/"
+echo "  HTTP redirect http://localhost -> https://localhost"
+echo "=========================================="
