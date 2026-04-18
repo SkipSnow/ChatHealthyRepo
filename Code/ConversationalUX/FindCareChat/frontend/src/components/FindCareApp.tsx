@@ -285,11 +285,21 @@ export default function FindCareApp() {
       </div>`
     ).join('')
 
+    // FINDCARE-UX-002: 4-cell reactive-percentage layout using flexbox (reliable
+    // % heights, unlike table tr/td). Pixel heights MUST NOT be used. Cells:
+    //   cell 1 (header) 18%, cell 2 (specialty scroll, max 12 visible) 40%,
+    //   cell 3 (Apply button) 20%, cell 4 (session-verification placeholder) 22%.
+    // Cell 2 max-height in em provides the 12-item cap independent of panel
+    // height, while flex-basis 40% keeps it reactive. Cell 2 height and scroll
+    // position MUST NOT shift when cell 4 populates.
     const html = `
       <div data-filter-panel style="display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:#fff;height:100%;">
-        <table style="width:100%;height:100%;border-collapse:collapse;table-layout:fixed;">
-          <tr><td style="height:auto;vertical-align:top;padding:0;">
-            <div style="padding:8px 10px;border-bottom:2px solid #0b7a75;background:#f8fffe;">
+          <div data-cell="1" style="flex:0 0 18%;overflow:hidden;">
+            <div style="padding:8px 10px;border-bottom:2px solid #0b7a75;background:#f8fffe;height:100%;box-sizing:border-box;">
+              <!-- FC-FILT-001-REQ-013: 7 elements in order inside cell 1 (green header):
+                   (1) Filter by specialty label, (2) All possible, (3) Prescribers count,
+                   (4) Your choices, (5) Uncheck All toggle, (6) Prescribers checkbox,
+                   (7) Homeopathic checkbox. Uncheck All sits to the LEFT of the checkbox column. -->
               <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 0;">
                 <div style="flex:0 0 auto;padding-right:8px;border-right:1px solid #d8e2e1;">
                   <div style="font-size:10px;font-weight:700;color:#0b7a75;text-transform:uppercase;white-space:nowrap;">Filter by specialty</div>
@@ -306,6 +316,10 @@ export default function FindCareApp() {
                   <div style="font-size:8px;color:#6b7280;text-transform:uppercase;white-space:nowrap;">Your choices</div>
                   <div style="font-size:13px;font-weight:700;color:#0b7a75;" id="filterShowing">${prescCount}</div>
                 </div>
+                <div style="flex:0 0 auto;padding:0 8px;border-right:1px solid #d8e2e1;display:flex;align-items:center;">
+                  <button data-gui-action="toggle-all"
+                    style="background:#fff;border:1px solid #0b7a75;border-radius:3px;padding:3px 10px;font-size:10px;color:#0b7a75;cursor:pointer;font-weight:600;white-space:nowrap;">Uncheck All</button>
+                </div>
                 <div style="flex:0 0 auto;padding-left:8px;display:flex;flex-direction:column;gap:3px;">
                   <label style="font-size:10px;color:#1f2937;display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;">
                     <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="prescribers" checked
@@ -318,16 +332,12 @@ export default function FindCareApp() {
                 </div>
               </div>
             </div>
-            <div style="padding:3px 10px;border-bottom:1px solid #e5e7eb;background:#fafafa;">
-              <button data-gui-action="toggle-all" style="background:none;border:1px solid #0b7a75;border-radius:3px;padding:2px 8px;font-size:10px;color:#0b7a75;cursor:pointer;font-weight:600;">Uncheck All</button>
-            </div>
-          </td></tr>
-          <tr><td style="height:33%;overflow:hidden;vertical-align:top;"><div style="height:100%;overflow-y:auto;overflow-x:hidden;">${items}</div></td></tr>
-          <tr><td id="guiSessionCell" style="height:auto;vertical-align:top;padding:4px 8px;border-top:1px solid #e5e7eb;"></td></tr>
-        </table>
-        <div style="padding:6px 8px;border-top:1px solid #d8e2e1;">
-          <button data-gui-action="filter-apply" style="width:100%;padding:5px;border-radius:4px;border:none;background:linear-gradient(180deg,#0b9a94,#0b7a75);color:#fff;font-size:11px;font-weight:600;cursor:pointer;">Apply Filter</button>
-        </div>
+          </div>
+          <div data-cell="2" style="flex:0 0 40%;max-height:22em;overflow-y:auto;overflow-x:hidden;">${items}</div>
+          <div data-cell="3" style="flex:0 0 20%;padding:6px 8px;border-top:1px solid #d8e2e1;box-sizing:border-box;overflow:hidden;">
+            <button data-gui-action="filter-apply" style="width:100%;padding:5px;border-radius:4px;border:none;background:linear-gradient(180deg,#0b9a94,#0b7a75);color:#fff;font-size:11px;font-weight:600;cursor:pointer;">Apply Filter</button>
+          </div>
+          <div data-cell="4" id="guiSessionCell" style="flex:0 0 22%;padding:4px 8px;border-top:1px solid #e5e7eb;box-sizing:border-box;overflow:hidden;"></div>
       </div>`
 
     sendToParent('gui:filter', { html, searchParams: JSON.stringify(params), applyInitialFilter: true, homeopathicGeneralists: homeoGeneralists || [] })
