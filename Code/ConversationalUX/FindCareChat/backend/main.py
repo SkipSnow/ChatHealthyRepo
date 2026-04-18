@@ -785,6 +785,31 @@ def shared_verify_token(body: EvaluateRequest):
         _log.error("SharedServices verify-token failed: %s", e)
         return {"status": "error", "error": str(e)}
 
+@app.post("/evaluate/verify-token")
+def evaluate_verify_token(body: EvaluateRequest):
+    """Proxy token verification to EvaluateCare over mTLS — mirrors /shared/verify-token.
+    Used by the DEVOPS-BANNER-B006 EvaluateCare button to populate the security panel."""
+    import requests as _req
+    evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8001")
+    certs_dir = os.environ.get("CERTS_DIR") or os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
+    req_kwargs = {"timeout": 10}
+    if not os.getenv("SPACE_ID"):
+        findcare_crt = os.path.join(certs_dir, "findcare.crt")
+        findcare_key = os.path.join(certs_dir, "findcare.key")
+        ca_crt = os.path.join(certs_dir, "ca.crt")
+        if os.path.exists(findcare_crt) and os.path.exists(findcare_key):
+            req_kwargs["cert"] = (findcare_crt, findcare_key)
+        if os.path.exists(ca_crt):
+            req_kwargs["verify"] = ca_crt
+    try:
+        resp = _req.post(f"{evalcare_url}/verify-token",
+                         json={"session_token": body.session_token},
+                         **req_kwargs)
+        return resp.json()
+    except Exception as e:
+        _log.error("EvaluateCare verify-token failed: %s", e)
+        return {"status": "error", "error": str(e)}
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, request: Request):
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
