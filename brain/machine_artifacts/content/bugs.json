@@ -3253,13 +3253,14 @@
         "local"
       ],
       "status": "open",
-      "resolution_status": "fixing",
+      "resolution_status": "tested_passed",
       "type": "high",
       "reason": "UX spec drifts silently without test enforcement.",
       "story_id": "FC-FILT-001",
       "orphan": false,
       "risk_acceptance_id": null,
-      "ch_matrix_id": "b114382f-72ea-4cde-993b-083cbdd3d4fa"
+      "ch_matrix_id": "b114382f-72ea-4cde-993b-083cbdd3d4fa",
+      "resolution": "Cell 4-layout assertion passes on local with flex[data-cell] at 18/40/20/22% reactive heights."
     },
     {
       "id": "BUG-TEST-034",
@@ -3275,13 +3276,14 @@
         "local"
       ],
       "status": "open",
-      "resolution_status": "fixing",
+      "resolution_status": "tested_passed",
       "type": "medium",
       "reason": "Header layout regression not caught by smoke.",
       "story_id": "FC-FILT-001",
       "orphan": false,
       "risk_acceptance_id": null,
-      "ch_matrix_id": "9b6e23ce-07a7-4466-bff2-5c668e7eef13"
+      "ch_matrix_id": "9b6e23ce-07a7-4466-bff2-5c668e7eef13",
+      "resolution": "Uncheck All now lives inside [data-cell=\"1\"]; assertion passes on local."
     },
     {
       "id": "BUG-TEST-035",
@@ -3296,13 +3298,14 @@
         "local"
       ],
       "status": "open",
-      "resolution_status": "fixing",
+      "resolution_status": "tested_passed",
       "type": "high",
       "reason": "Missing fields = verification state not displayable.",
       "story_id": "SEC-HTTPS-001",
       "orphan": false,
       "risk_acceptance_id": null,
-      "ch_matrix_id": "3aeca152-263a-4a6e-8c7c-fb4bee9a1d9a"
+      "ch_matrix_id": "3aeca152-263a-4a6e-8c7c-fb4bee9a1d9a",
+      "resolution": "All 5 SV labels (Signed token, Nonce, GUID, Origin, Verified) present in right panel; screen arrangement signed off by Boss 2026-04-17."
     },
     {
       "id": "BUG-TEST-036",
@@ -3318,14 +3321,14 @@
         "dev"
       ],
       "status": "open",
-      "resolution_status": "deferred",
+      "resolution_status": "fixing",
       "type": "medium",
       "reason": "Indefinite Pending is an illegal state not currently caught.",
       "story_id": "SEC-HTTPS-001",
       "orphan": false,
       "risk_acceptance_id": null,
       "ch_matrix_id": "82fff5da-4500-435f-ba03-b9479152e84a",
-      "resolution": "Deferred 2026-04-17 by Boss. The negative-path smoke step that forces a cert-absent condition and asserts Fatal Error splash + Verified: FAILED within 30s is not a pre-alpha priority. The underlying requirement (SEC-HTTPS-001-REQ-015) is still approved and must be met; this bug only defers adding the pytest assertion that would enforce it."
+      "resolution": "Un-deferred 2026-04-17 per Boss: the currently-broken local Verified: Pending state is the ready-made negative fixture. Added _wait_for_verified_resolution to localSmokeTestPyTest which waits up to REQ_015_TIMEOUT_S (30s) for Verified to resolve to YES/FAILED or for a Fatal Error splash, and fails the test with a REQ-015 violation message otherwise."
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

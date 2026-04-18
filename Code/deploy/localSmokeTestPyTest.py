@@ -129,6 +129,38 @@ def _parse_token(token_str):
     return token_str, ""
 
 
+REQ_015_TIMEOUT_S = 30  # SEC-HTTPS-001-REQ-015 configurable timeout.
+
+
+def _wait_for_verified_resolution(page, handoff_label, timeout_s=REQ_015_TIMEOUT_S):
+    """BUG-TEST-036 (SEC-HTTPS-001-REQ-015): after a handoff, the Verified value
+    in the session verification panel MUST resolve to a definitive positive or
+    negative state (YES / VERIFIED / FAILED) within `timeout_s`. If it does
+    not, a Fatal Error splash MUST appear in the center panel. Indefinite
+    'Pending' is illegal."""
+    import time as _t
+    POSITIVE = {"YES", "VERIFIED", "TRUE", "OK"}
+    NEGATIVE = {"FAILED", "FAIL", "NO"}
+    t0 = _t.time()
+    while _t.time() - t0 < timeout_s:
+        right = page.locator("#rightPanel").inner_text()
+        m = re.search(r'Verified:\s*([A-Za-z\.]+)', right)
+        val = (m.group(1).upper() if m else "")
+        if val in POSITIVE or val in NEGATIVE:
+            return val
+        # Fatal Error splash acceptable alternative resolution
+        body = page.inner_text("body").upper()
+        if "FATAL ERROR" in body:
+            return "FATAL_ERROR"
+        _t.sleep(1)
+    elapsed = round(_t.time() - t0)
+    raise AssertionError(
+        f"[{handoff_label}] SEC-HTTPS-001-REQ-015 VIOLATION: "
+        f"Verified did not resolve to YES / FAILED within {elapsed}s and no "
+        f"'Fatal Error' splash rendered. Indefinite Pending is an illegal state."
+    )
+
+
 def _verify_session_identity(page, env, handoff_label):
     """After any handoff, both panels must show identical session verification.
     Checks: SESSION VERIFICATION header, all 5 labeled fields (Signed token,
@@ -137,7 +169,11 @@ def _verify_session_identity(page, env, handoff_label):
     Nonce must differ from previous.
 
     BUG-TEST-032 (SEC-HTTPS-001-REQ-009): assert Verified == VERIFIED.
-    BUG-TEST-035 (SEC-HTTPS-001-REQ-013): assert all 5 SV fields present."""
+    BUG-TEST-035 (SEC-HTTPS-001-REQ-013): assert all 5 SV fields present.
+    BUG-TEST-036 (SEC-HTTPS-001-REQ-015): wait up to 30s for Verified to
+      resolve out of Pending before asserting its value."""
+    # BUG-TEST-036: bounded wait for Verified to leave the transient Pending state.
+    _wait_for_verified_resolution(page, handoff_label)
     right = page.locator("#rightPanel").inner_text()
     left = page.locator("#leftPanel").inner_text()
     # Both panels must have SESSION VERIFICATION
