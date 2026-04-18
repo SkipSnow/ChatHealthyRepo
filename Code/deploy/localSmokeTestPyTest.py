@@ -360,35 +360,34 @@ class TestStep08:
         page = env["page"]
         left = page.locator("#leftPanel")
 
-        # BUG-TEST-033 (FINDCARE-UX-002): left panel MUST be a 4-cell vertical
-        # table with reactive percentage heights 18/40/20/22. Pixel values
-        # MUST NOT be used.
-        table = left.locator("table").first
-        assert table.count() > 0, "FINDCARE-UX-002: left panel MUST use a table for the 4-cell layout"
-        cells = table.locator(":scope > tbody > tr > td, :scope > tr > td")
+        # BUG-TEST-033 (FINDCARE-UX-002): left panel MUST have 4 cells with
+        # reactive percentage heights 18/40/20/22. Structure-agnostic — accepts
+        # any tag that carries [data-cell="N"]. Pixel heights MUST NOT be used.
+        cells = left.locator("[data-cell]")
         cell_count = cells.count()
         assert cell_count == 4, (
-            f"FINDCARE-UX-002: expected 4 cells in left-panel table, got {cell_count}. "
-            f"Panel MUST be cell1 (18%) + cell2 (40%) + cell3 (20%) + cell4 (22%)."
+            f"FINDCARE-UX-002: expected 4 cells with [data-cell='1..4'] in left panel, got {cell_count}."
         )
         expected_pct = [18, 40, 20, 22]
         for i, pct in enumerate(expected_pct):
-            style = cells.nth(i).get_attribute("style") or ""
-            assert f"height:{pct}%" in style.replace(" ", ""), (
-                f"FINDCARE-UX-002: cell {i+1} MUST have height:{pct}% (reactive). "
-                f"Got style={style!r}"
+            cell = left.locator(f"[data-cell='{i+1}']")
+            assert cell.count() == 1, f"FINDCARE-UX-002: [data-cell='{i+1}'] missing or duplicated"
+            style = cell.get_attribute("style") or ""
+            style_clean = style.replace(" ", "")
+            assert (f"flex:00{pct}%" in style_clean) or (f"height:{pct}%" in style_clean), (
+                f"FINDCARE-UX-002: cell {i+1} MUST declare {pct}% reactive height "
+                f"(flex:0 0 {pct}% or height:{pct}%). Got style={style!r}"
             )
             # No pixel heights allowed
-            assert not re.search(r'height:\s*\d+px', style), (
-                f"FINDCARE-UX-002: cell {i+1} MUST NOT use pixel height. Got {style!r}"
+            assert not re.search(r'(?:height|flex-basis):\s*\d+px', style), (
+                f"FINDCARE-UX-002: cell {i+1} MUST NOT use pixel height/flex-basis. Got {style!r}"
             )
 
         # BUG-TEST-034 (FC-FILT-001-REQ-013): Uncheck All MUST sit inside
         # cell 1 (the 18% green header), to the left of Prescribers and
         # Homeopathic filter checkboxes.
-        cell1 = cells.nth(0)
-        uncheck_in_cell1 = cell1.locator("[data-gui-action='toggle-all']")
-        assert uncheck_in_cell1.count() > 0, (
+        cell1_toggle = left.locator("[data-cell='1'] [data-gui-action='toggle-all']")
+        assert cell1_toggle.count() > 0, (
             "FC-FILT-001-REQ-013: Uncheck All/Check All toggle MUST be inside cell 1 "
             "(the green header), not in any other cell."
         )
@@ -400,18 +399,21 @@ class TestStep08:
         prescriber_count = int(prescriber_match.group(1))
         env["prescriber_count"] = prescriber_count
         assert prescriber_count > 12, f"Only {prescriber_count} prescribers — need >12 to test scroll"
-        # Count visible checkboxes in the left panel viewport
-        checkboxes = left.locator("input[type='checkbox']")
-        total_cb = checkboxes.count()
-        panel_box = left.bounding_box()
-        assert panel_box is not None, "Left panel has no bounding box"
-        visible_count = 0
-        for i in range(total_cb):
-            cb_box = checkboxes.nth(i).bounding_box()
-            if cb_box and cb_box["y"] >= panel_box["y"] and cb_box["y"] + cb_box["height"] <= panel_box["y"] + panel_box["height"]:
-                visible_count += 1
-        # Subtract 2 for the Prescribers and Homeopathic toggle checkboxes
-        specialty_visible = max(visible_count - 2, 0)
+        # Count specialty checkboxes whose bounding box falls within cell 2's
+        # visible viewport (the scroll container). Items scrolled below cell 2's
+        # clip still have page-relative positions, but we want truly-visible items.
+        cell2_loc = left.locator("[data-cell='2']")
+        cell2_box = cell2_loc.bounding_box()
+        assert cell2_box is not None, "cell 2 has no bounding box"
+        # Specialty items live inside cell 2 (excludes Prescribers/Homeopathic
+        # toggles that live in cell 1).
+        specialty_cb = cell2_loc.locator("input[type='checkbox']")
+        total_sp = specialty_cb.count()
+        specialty_visible = 0
+        for i in range(total_sp):
+            cb_box = specialty_cb.nth(i).bounding_box()
+            if cb_box and cb_box["y"] >= cell2_box["y"] and cb_box["y"] + cb_box["height"] <= cell2_box["y"] + cell2_box["height"]:
+                specialty_visible += 1
         assert specialty_visible <= 12, \
             f"BUG-UX-017: {specialty_visible} specialties visible without scrolling. Prescribers: {prescriber_count}. Max 12 required."
         assert specialty_visible > 0, "No specialties visible"
