@@ -44,9 +44,19 @@ app.add_middleware(
 )
 
 # ── Health ──────────────────────────────────────────────────
+def _commit_label():
+    c = os.getenv("COMMIT_SHA", "")
+    if not c:
+        try:
+            c = open(os.path.join(os.path.dirname(__file__), ".commit_sha")).read().strip()
+        except Exception:
+            c = "?"
+    return (c or "?")[:12]
+
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "shared_services", "version": "0.1.4"}
+    return {"status": "ok", "service": "shared_services", "version": "0.1.4",
+            "commit": _commit_label()}
 
 # ── Splash + Control Transfer (mirrors EvaluateCare pattern) ──
 @app.get("/splash")
