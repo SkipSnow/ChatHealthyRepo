@@ -3106,7 +3106,7 @@
       "req_id": "DEVOPS-DEPLOY-001-REQ-016",
       "type": "high",
       "reason": "Deploys incrementing build number break apples-to-apples comparison between environments.",
-      "resolution_status": "in_fix",
+      "resolution_status": "fixing",
       "story_id": "DEVOPS-DEPLOY-001",
       "orphan": false
     },
@@ -3127,7 +3127,7 @@
       "req_id": "DEVOPS-DEPLOY-001-REQ-016",
       "type": "high",
       "reason": "Per-commit bump guarantees local and origin/dev disagree on build.",
-      "resolution_status": "not_a_bug",
+      "resolution_status": "removed",
       "story_id": "DEVOPS-DEPLOY-001",
       "orphan": false,
       "resolution": "Not a bug under DEVOPS-DEPLOY-001-REQ-016 (approved 2026-04-17). The post-commit hook incrementing build on each code-or-config commit is the correct enforcement mechanism. Claude's earlier neutering of the hook was incorrect and will be reverted."
@@ -3149,7 +3149,7 @@
       "req_id": "DEVOPS-LOCAL-B014",
       "type": "critical",
       "reason": "Root cause of apples-to-oranges between local and dev deploys.",
-      "resolution_status": "in_fix",
+      "resolution_status": "fixing",
       "story_id": "DEVOPS-DEPLOY-LOCAL",
       "orphan": false
     },
@@ -3171,7 +3171,7 @@
       "req_id": "DEVOPS-DEPLOY-001-REQ-017",
       "type": "high",
       "reason": "Without SHA in /health there is no way to label a deploy for rollback.",
-      "resolution_status": "not_a_bug",
+      "resolution_status": "removed",
       "story_id": "DEVOPS-DEPLOY-001",
       "orphan": false,
       "resolution": "Not a bug. DEVOPS-DEPLOY-001-REQ-017 was rejected 2026-04-17 as gold-plating; the build field (REQ-016) serves the rollback-label purpose. /health does not need a commit SHA."
@@ -3193,7 +3193,7 @@
       "req_id": "DEVOPS-DEPLOY-001-REQ-019",
       "type": "medium",
       "reason": "HF Space config loss leads to runtime misconfiguration on Space rebuild.",
-      "resolution_status": "in_fix",
+      "resolution_status": "fixing",
       "story_id": "DEVOPS-DEPLOY-001",
       "orphan": false
     },
@@ -3215,7 +3215,7 @@
       "req_id": "DEVOPS-DEPLOY-001-REQ-018",
       "type": "high",
       "reason": "Cross-env smoke parity claims are unsound without SHA equality.",
-      "resolution_status": "not_started",
+      "resolution_status": "new",
       "story_id": "DEVOPS-DEPLOY-001",
       "orphan": false
     },
@@ -3236,7 +3236,7 @@
       "req_id": "SEC-CERT-R-002-REQ-004",
       "type": "critical",
       "reason": "Without a cert distribution mechanism for HF, the zero-fallback policy (SEC-HTTPS-001-REQ-014) blocks FindCare from serving at all on dev.",
-      "resolution_status": "in_fix",
+      "resolution_status": "fixing",
       "story_id": "SEC-HTTPS-001",
       "orphan": false
     }
