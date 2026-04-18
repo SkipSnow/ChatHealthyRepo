@@ -174,12 +174,12 @@ else
 fi
 echo "  certs mount: $CERTS_DIR_HOST_DOCKER -> $CERTS_MOUNT"
 
-# Cross-service URLs — containers reach the host via host.docker.internal.
-# Docker Desktop (Windows + macOS) wires this alias automatically.
-# On bare Linux docker, --add-host=host.docker.internal:host-gateway is needed;
-# Docker Desktop accepts the flag harmlessly, so pass it unconditionally.
+# Cross-service URLs — certs have SANs for findcare.local/evalcare.local/
+# shared.local (plus localhost and 127.0.0.1). Add *.local aliases to each
+# container's hosts file pointing at host-gateway so TLS hostname verify
+# succeeds when one service calls another via the host port-forward.
 HOST_ALIAS="host.docker.internal"
-EXTRA_HOST_FLAG="--add-host=host.docker.internal:host-gateway"
+EXTRA_HOST_FLAG="--add-host=host.docker.internal:host-gateway --add-host=findcare.local:host-gateway --add-host=evalcare.local:host-gateway --add-host=shared.local:host-gateway"
 
 # SSL env: each container terminates TLS inside using its own cert (findcare.crt,
 # evalcare.crt, shared.crt) and corresponding key. Satisfies DEVOPS-LOCAL-B003.
@@ -218,8 +218,8 @@ docker run -d --name ch-findcare \
     -e ENV_PREFIX=dev \
     -e "SSL_CERTFILE=$CERTS_MOUNT/findcare.crt" \
     -e "SSL_KEYFILE=$CERTS_MOUNT/findcare.key" \
-    -e EVALCARE_URL="https://$HOST_ALIAS:8001" \
-    -e SHARED_SERVICES_URL="https://$HOST_ALIAS:8002" \
+    -e EVALCARE_URL="https://evalcare.local:8001" \
+    -e SHARED_SERVICES_URL="https://shared.local:8002" \
     $EXTRA_HOST_FLAG \
     ch-findcare >/dev/null
 echo "  ch-findcare  on :7860 (HTTPS)"
