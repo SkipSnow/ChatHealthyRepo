@@ -24,6 +24,47 @@ from fastapi import Request
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 _log = logging.getLogger("evaluate_care")
 
+
+def _bootstrap_certs_from_env():
+    """SEC-HTTPS-001-REQ-016: decode PEM certs from HF Space Secrets into a
+    runtime directory so session_token.verify_session_token (which needs
+    findcare.crt) can find them on HF. No-op locally where /certs is bind-
+    mounted and CERTS_DIR is already set."""
+    import base64
+    runtime_dir = "/tmp/ch_certs"
+    mapping = {
+        "FINDCARE_CERT_PEM": "findcare.crt",
+        "EVALCARE_CERT_PEM": "evalcare.crt",
+        "EVALCARE_SIGNING_KEY_PEM": "evalcare.key",
+        "CA_CERT_PEM":       "ca.crt",
+    }
+    wrote = []
+    for env_var, filename in mapping.items():
+        b64 = os.environ.get(env_var)
+        if not b64:
+            continue
+        try:
+            pem = base64.b64decode(b64.strip())
+        except Exception as e:
+            _log.error("STARTUP: %s not valid base64: %s", env_var, e)
+            raise
+        os.makedirs(runtime_dir, exist_ok=True)
+        path = os.path.join(runtime_dir, filename)
+        with open(path, "wb") as f:
+            f.write(pem)
+        try:
+            os.chmod(path, 0o600)
+        except Exception:
+            pass
+        wrote.append(filename)
+    if wrote:
+        os.environ["CERTS_DIR"] = runtime_dir
+        _log.info("startup bootstrap: wrote %s to %s (CERTS_DIR=%s)",
+                  ",".join(wrote), runtime_dir, runtime_dir)
+
+
+_bootstrap_certs_from_env()
+
 app = FastAPI(title="ChatHealthy.ai EvaluateCare", version="0.1.4")
 
 @app.middleware("http")
