@@ -3318,13 +3318,14 @@
         "dev"
       ],
       "status": "open",
-      "resolution_status": "new",
+      "resolution_status": "deferred",
       "type": "medium",
       "reason": "Indefinite Pending is an illegal state not currently caught.",
       "story_id": "SEC-HTTPS-001",
       "orphan": false,
       "risk_acceptance_id": null,
-      "ch_matrix_id": "82fff5da-4500-435f-ba03-b9479152e84a"
+      "ch_matrix_id": "82fff5da-4500-435f-ba03-b9479152e84a",
+      "resolution": "Deferred 2026-04-17 by Boss. The negative-path smoke step that forces a cert-absent condition and asserts Fatal Error splash + Verified: FAILED within 30s is not a pre-alpha priority. The underlying requirement (SEC-HTTPS-001-REQ-015) is still approved and must be met; this bug only defers adding the pytest assertion that would enforce it."
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
