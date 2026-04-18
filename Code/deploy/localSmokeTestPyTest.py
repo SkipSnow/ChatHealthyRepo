@@ -130,9 +130,14 @@ def _parse_token(token_str):
 
 
 def _verify_session_identity(page, env, handoff_label):
-    """BUG-UX-020: After any handoff, both panels must show identical session verification.
-    Checks: SESSION VERIFICATION header, Nonce, GUID, Signed token, Origin, Verified.
-    Nonces must match between panels. GUID must match original. Nonce must differ from previous."""
+    """After any handoff, both panels must show identical session verification.
+    Checks: SESSION VERIFICATION header, all 5 labeled fields (Signed token,
+    Nonce, GUID, Origin, Verified), Verified value == VERIFIED.
+    Nonces must match between panels. GUID must match original.
+    Nonce must differ from previous.
+
+    BUG-TEST-032 (SEC-HTTPS-001-REQ-009): assert Verified == VERIFIED.
+    BUG-TEST-035 (SEC-HTTPS-001-REQ-013): assert all 5 SV fields present."""
     right = page.locator("#rightPanel").inner_text()
     left = page.locator("#leftPanel").inner_text()
     # Both panels must have SESSION VERIFICATION
@@ -140,10 +145,22 @@ def _verify_session_identity(page, env, handoff_label):
         f"[{handoff_label}] Right panel missing SESSION VERIFICATION: {right[:300]}"
     assert "SESSION VERIFICATION" in left.upper(), \
         f"[{handoff_label}] Left panel missing SESSION VERIFICATION: {left[-300:]}"
-    # Both must have all labels
-    for label in ["Nonce:", "GUID:", "Verified:"]:
-        assert label in right, f"[{handoff_label}] Right panel missing {label}: {right[:300]}"
-        assert label in left, f"[{handoff_label}] Left panel missing {label}: {left[-300:]}"
+    # BUG-TEST-035: all 5 SV labels must be present in both panels
+    for label in ["Signed token:", "Nonce:", "GUID:", "Origin:", "Verified:"]:
+        assert label in right, f"[{handoff_label}] Right panel missing {label}: {right[:400]}"
+        assert label in left, f"[{handoff_label}] Left panel missing {label}: {left[-400:]}"
+    # BUG-TEST-032: Verified MUST equal VERIFIED (not FAILED, not Pending).
+    # Per SEC-HTTPS-001-REQ-015, "Pending" longer than 30s is illegal; "FAILED"
+    # means mutual-auth/TLS handshake or signature verify did not complete.
+    for panel_name, txt in (("right", right), ("left", left)):
+        m = re.search(r'Verified:\s*([A-Za-z\.]+)', txt)
+        assert m, f"[{handoff_label}] Could not parse Verified in {panel_name} panel"
+        val = m.group(1).upper()
+        assert val == "VERIFIED", (
+            f"[{handoff_label}] {panel_name} panel Verified == {val!r} (expected VERIFIED). "
+            f"Per SEC-HTTPS-001-REQ-009, mutual-auth handshake MUST complete; per "
+            f"SEC-HTTPS-001-REQ-015 any non-VERIFIED runtime state is fatal."
+        )
     # Extract and compare nonces — must match between panels
     right_nonces = re.findall(r'Nonce:\s*(\w+)', right)
     left_nonces = re.findall(r'Nonce:\s*(\w+)', left)
@@ -340,6 +357,40 @@ class TestStep08:
     def test_specialty_scroll_max_12(self, env):
         page = env["page"]
         left = page.locator("#leftPanel")
+
+        # BUG-TEST-033 (FINDCARE-UX-002): left panel MUST be a 4-cell vertical
+        # table with reactive percentage heights 18/40/20/22. Pixel values
+        # MUST NOT be used.
+        table = left.locator("table").first
+        assert table.count() > 0, "FINDCARE-UX-002: left panel MUST use a table for the 4-cell layout"
+        cells = table.locator(":scope > tbody > tr > td, :scope > tr > td")
+        cell_count = cells.count()
+        assert cell_count == 4, (
+            f"FINDCARE-UX-002: expected 4 cells in left-panel table, got {cell_count}. "
+            f"Panel MUST be cell1 (18%) + cell2 (40%) + cell3 (20%) + cell4 (22%)."
+        )
+        expected_pct = [18, 40, 20, 22]
+        for i, pct in enumerate(expected_pct):
+            style = cells.nth(i).get_attribute("style") or ""
+            assert f"height:{pct}%" in style.replace(" ", ""), (
+                f"FINDCARE-UX-002: cell {i+1} MUST have height:{pct}% (reactive). "
+                f"Got style={style!r}"
+            )
+            # No pixel heights allowed
+            assert not re.search(r'height:\s*\d+px', style), (
+                f"FINDCARE-UX-002: cell {i+1} MUST NOT use pixel height. Got {style!r}"
+            )
+
+        # BUG-TEST-034 (FC-FILT-001-REQ-013): Uncheck All MUST sit inside
+        # cell 1 (the 18% green header), to the left of Prescribers and
+        # Homeopathic filter checkboxes.
+        cell1 = cells.nth(0)
+        uncheck_in_cell1 = cell1.locator("[data-gui-action='toggle-all']")
+        assert uncheck_in_cell1.count() > 0, (
+            "FC-FILT-001-REQ-013: Uncheck All/Check All toggle MUST be inside cell 1 "
+            "(the green header), not in any other cell."
+        )
+
         left_text = left.inner_text()
         # Read the Prescribers count from the filter header
         prescriber_match = re.search(r'PRESCRIBERS\s*(\d+)', left_text.upper())
