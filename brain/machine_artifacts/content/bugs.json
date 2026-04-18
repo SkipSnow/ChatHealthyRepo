@@ -3165,15 +3165,16 @@
         "local",
         "dev"
       ],
-      "status": "open",
+      "status": "closed",
       "risk_acceptance_id": null,
       "next_action": "Code changes staged; commit blocked until req-017 is approved.",
       "req_id": "DEVOPS-DEPLOY-001-REQ-017",
       "type": "high",
       "reason": "Without SHA in /health there is no way to label a deploy for rollback.",
-      "resolution_status": "in_fix",
+      "resolution_status": "not_a_bug",
       "story_id": "DEVOPS-DEPLOY-001",
-      "orphan": false
+      "orphan": false,
+      "resolution": "Not a bug. DEVOPS-DEPLOY-001-REQ-017 was rejected 2026-04-17 as gold-plating; the build field (REQ-016) serves the rollback-label purpose. /health does not need a commit SHA."
     },
     {
       "id": "BUG-DEVOPS-006",
@@ -3198,7 +3199,7 @@
     },
     {
       "id": "BUG-DEVOPS-007",
-      "rule": "Bug: Playwright smoke test runs without verifying that the compared environments are on the same commit. If dev lags local by any commit, smoke can pass while silently comparing apples to oranges. Accommodation: smoke MUST gate on equal /health commit SHAs per DEVOPS-DEPLOY-001-REQ-018.",
+      "rule": "Bug: Playwright smoke test runs without verifying the compared environments are on the same build. Accommodation: smoke MUST read the build field from /health on each environment and fail when they differ, per DEVOPS-DEPLOY-001-REQ-018 (build-number gate).",
       "incident": "Today's session ran smoke against dev while dev was at build 490 and local tip was several commits ahead. Smoke would have returned a confusing mix of infrastructure failures and real regressions without being able to distinguish them.",
       "reproduction": "(1) deploy commit X to local; (2) leave dev on commit Y where Y != X; (3) run smoke; (4) smoke returns pass/fail without noting the SHA drift.",
       "accommodation": "Add a step to localSmokeTestPyTest.py that reads /health commit on each target env and fails immediately if they differ.",
@@ -3220,7 +3221,7 @@
     },
     {
       "id": "BUG-SEC-008",
-      "rule": "Bug: FindCare on HF cannot issue signed session tokens because the signing private key (findcare.key) is not distributed to HF Spaces. The prior silent fallbacks masked this as 'signed:false' or 'CH_{uuid}'. Accommodation: store base64-PEM in HF Space Secret FINDCARE_SIGNING_KEY_PEM; main.py decodes and writes to CERTS_DIR at startup, before SEC-HTTPS-001-REQ-014 startup check.",
+      "rule": "Bug: FindCare on HF cannot use findcare.key because the key is not distributed to HF Spaces. Accommodation: store base64-PEM as HF Space Secret (implementation detail); main.py startup bootstrap decodes and writes to CERTS_DIR before the security check runs. This satisfies SEC-CERT-R-002-REQ-004: private key in HF Space Secret, never in git.",
       "incident": "On HF dev before BUG-SEC-007 fix, /session returned CH_<uuid> 35-char placeholder. Root cause was import failure of cryptography AND absence of findcare.key in the Space — no mechanism exists to place it there.",
       "reproduction": "(1) deploy current FindCare code to HF dev without setting the HF secret; (2) startup check abends exit 78 with 'missing_key'; (3) /session is unreachable.",
       "accommodation": "Set FINDCARE_SIGNING_KEY_PEM as an HF Space Secret on the dev Space (base64 of Code/Shared/ops/certs/findcare.key). main.py bootstrap reads the secret and writes the key to /tmp/ch_certs. CERTS_DIR is set accordingly. Startup check then passes and /session returns signed:true.",
@@ -3232,7 +3233,7 @@
       "status": "open",
       "risk_acceptance_id": null,
       "next_action": "Code bootstrap is staged; commit blocked until SEC-HTTPS-001-REQ-015 is approved, then set the HF secret and redeploy FindCare.",
-      "req_id": "SEC-HTTPS-001-REQ-015",
+      "req_id": "SEC-CERT-R-002-REQ-004",
       "type": "critical",
       "reason": "Without a cert distribution mechanism for HF, the zero-fallback policy (SEC-HTTPS-001-REQ-014) blocks FindCare from serving at all on dev.",
       "resolution_status": "in_fix",

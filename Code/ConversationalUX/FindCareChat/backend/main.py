@@ -619,30 +619,11 @@ def health():
                 _build = counter["number"]
     except Exception:
         pass
-    # Rollback label priority: env var (set by deploy workflow / local Docker) →
-    # .commit_sha file written alongside the app during deploy → git rev-parse
-    # when a developer runs outside a container. Every deploy MUST produce one
-    # of these so Boss can identify what's running for rollback.
-    _commit = os.getenv("COMMIT_SHA", "")
-    if not _commit:
-        try:
-            _commit = open(os.path.join(os.path.dirname(__file__), ".commit_sha")).read().strip()
-        except Exception:
-            pass
-    if not _commit:
-        try:
-            import subprocess
-            _commit = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"],
-                cwd=os.path.dirname(__file__), timeout=2, stderr=subprocess.DEVNULL).decode().strip()
-        except Exception:
-            _commit = "?"
-    _commit = (_commit or "?")[:12]
     result = {"status": status, "db": "connected" if _get_db() else "unavailable",
               "env": env_label,
               "build": _build,
               "version": _version_info.get("version", "?"),
-              "framework": _version_info.get("framework", "?"),
-              "commit": _commit}
+              "framework": _version_info.get("framework", "?")}
     if idx_check.get("missing"):
         result["missing_indexes"] = idx_check["missing"]
         _log.error("HEALTH CHECK: missing indexes — %s", idx_check["missing"])
