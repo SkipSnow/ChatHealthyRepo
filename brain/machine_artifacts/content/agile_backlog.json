@@ -54337,6 +54337,18 @@
                           },
                           "ch_matrix_id": "",
                           "approval": "proposed"
+                        },
+                        {
+                          "req_id": "ARCH-DEVOPS-BOOT-001-REQ-018",
+                          "requirement": "The Claude Code boot sequence MUST execute 100% from artifacts resident in this project's git repository. No dependency on files outside the repository (user home directory, global Claude Code configuration, machine-level config, external URLs fetched at boot time) is permitted for the boot path. A clean clone of the repository, opened in Claude Code on any machine, MUST boot deterministically to the same governance state as any other. External services (LLM APIs, Cloudflare-hosted schemas, cloud billing dashboards) MAY be contacted after the boot sequence completes, but the boot sequence itself MUST NOT require them.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "realized_by": [],
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": []
+                          },
+                          "approval": "approved"
                         }
                       ]
                     },
