@@ -63,200 +63,127 @@
     "bugs": {
       "path": "brain/machine_artifacts/content/bugs.json",
       "purpose": "All system bugs. Source of truth for defect tracking. Constrained by CV-008 (bug_type) and CV-009 (bug_resolution_status).",
-      "record_schema": {
-        "title": "bugs_schema",
-        "description": "This ChatHealthy Brain Schema documents all bugs in all environments with their statuses. It is an integral part in ChatHealthy's ability to both track bugs and do full or partial regression testing.",
-        "fields": {
-          "id": {
-            "type": "string",
-            "required": true,
-            "description": "Unique bug identifier (e.g. BUG-DATA-001)"
-          },
-          "req_id": {
-            "type": "string",
-            "required": true,
-            "description": "Reference to the agile_backlog requirement this bug is associated with (e.g. FC-SELECT-001-REQ-002). Every bug must trace to a requirement."
-          },
-          "story_id": {
-            "type": "string",
-            "required": true,
-            "description": "Reference to the agile_backlog story this bug is associated with. Every bug must trace to a story."
-          },
-          "type": {
-            "type": "string",
-            "required": true,
-            "constrained_by": "CV-008",
-            "possible_values": [
-              "show_stopper",
-              "critical",
-              "high",
-              "medium",
-              "low",
-              "not_a_bug",
-              "resolved"
-            ]
-          },
-          "reason": {
-            "type": "string",
-            "required": true,
-            "max_length": 200,
-            "description": "Free text description of the bug"
-          },
-          "resolution_status": {
-            "type": "string",
-            "required": true,
-            "constrained_by": "CV-009",
-            "possible_values": [
-              "new",
-              "in_analysis",
-              "fixing",
-              "ist_working",
-              "ist_testing",
-              "failed_ist_testing",
-              "uat_pending",
-              "uat_testing",
-              "failed_uat_testing",
-              "testing",
-              "tested_passed",
-              "fixed",
-              "deferred",
-              "removed",
-              "closed_reqs_reorganized"
-            ]
-          },
-          "pytest_id": {
-            "type": "string",
-            "required_when": "resolution_status in (testing, tested_passed)",
-            "description": "Reference to the pytest that validates the fix"
-          },
-          "pytest_success_criteria": {
-            "type": "string",
-            "required_when": "resolution_status in (testing, tested_passed)",
-            "source": "pytest record",
-            "description": "Success criteria from the pytest record — mandatory, not freetext"
-          },
-          "environment": {
-            "type": "array",
-            "items": "string",
-            "constrained_by": "CV-010",
-            "description": "Environments where this bug exists"
-          },
-          "severity": {
-            "type": "string",
-            "constrained_by": "CV-008",
-            "description": "Legacy field — use type instead"
-          },
-          "date": {
-            "type": "string",
-            "format": "date",
-            "description": "Date bug was logged"
-          },
-          "discovery_date": {
-            "type": "string",
-            "format": "date",
-            "description": "Date bug was discovered"
-          },
-          "due_date": {
-            "type": "string",
-            "format": "date",
-            "description": "Date bug must be resolved by"
-          },
-          "next_action": {
-            "type": "string",
-            "default": "analysis",
-            "description": "Next action to take"
-          },
-          "status": {
-            "type": "string",
-            "description": "Legacy field — use resolution_status instead"
-          },
-          "success_criteria_to_close": {
-            "type": "string",
-            "description": "What must be true to close this bug"
-          },
-          "ch_matrix_id": {
-            "type": "string",
-            "required": true,
-            "description": "Unique governance matrix record ID"
-          },
-          "risk_acceptance_id": {
-            "type": "string",
-            "required": true,
-            "default": null,
-            "description": "Reference to risk_acceptance.json entry. Null until Boss authorizes. Pydantic object checks this — if not null, fix is authorized. If null, escalate."
-          },
-          "rule": {
-            "type": "string",
-            "description": "The rule or assertion that was violated"
-          },
-          "incident": {
-            "type": "string",
-            "description": "Description of the incident that triggered the bug"
-          },
-          "resolution": {
-            "type": "string",
-            "description": "How the bug was resolved"
-          },
-          "description": {
-            "type": "string",
-            "description": "Detailed description of the bug"
-          },
-          "title": {
-            "type": "string",
-            "description": "Short title for the bug"
-          },
-          "bug_id": {
-            "type": "string",
-            "description": "Legacy field — use id instead"
-          },
-          "impact": {
-            "type": "string",
-            "description": "Impact of the bug on the system or user"
-          },
-          "expected": {
-            "type": "string",
-            "description": "Expected behavior"
-          },
-          "actual": {
-            "type": "string",
-            "description": "Actual behavior observed"
-          },
-          "fix": {
-            "type": "string",
-            "description": "Description of the fix applied"
-          },
-          "reproduction": {
-            "type": "string",
-            "description": "Steps to reproduce the bug"
-          },
-          "root_cause": {
-            "type": "string",
-            "description": "Root cause analysis"
-          },
-          "source": {
-            "type": "string",
-            "description": "Where the bug was discovered"
-          },
-          "requirement": {
-            "type": "string",
-            "description": "The requirement text associated with this bug"
-          },
-          "acceptance_criteria": {
-            "type": "string",
-            "description": "Acceptance criteria for closing the bug"
-          },
-          "environments": {
-            "type": "array",
-            "items": "string",
-            "description": "Legacy field — use environment instead"
-          },
-          "orphan": {
-            "type": "boolean",
-            "required": true,
-            "description": "True if this bug does not trace to a real story/requirement."
-          }
+      "bug": [
+        {
+          "name": "bugid",
+          "type": "string",
+          "required": true,
+          "description": "Unique bug identifier (e.g. BUG-DATA-001)."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "description": "Short title for the bug",
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "description": "Detailed description of the bug",
+          "required": true
+        },
+        {
+          "name": "environments",
+          "type": "array",
+          "items": "string",
+          "description": "Environments where this bug exists; must contain at least one member (default 'dev').",
+          "required": true,
+          "constrained_by": "CV-010"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "constrained_by": "CV-009",
+          "possible_values": [
+            "new",
+            "in_analysis",
+            "fixing",
+            "ist_working",
+            "ist_testing",
+            "failed_ist_testing",
+            "uat_pending",
+            "uat_testing",
+            "failed_uat_testing",
+            "testing",
+            "tested_passed",
+            "fixed",
+            "deferred",
+            "removed",
+            "closed_reqs_reorganized"
+          ]
+        },
+        {
+          "name": "severity",
+          "type": "string",
+          "constrained_by": "CV-008",
+          "description": "Legacy field — use type instead"
+        },
+        {
+          "name": "req_id",
+          "type": "string",
+          "required": true,
+          "description": "Reference to the agile_backlog requirement this bug is associated with (e.g. FC-SELECT-001-REQ-002). Every bug must trace to a requirement."
+        },
+        {
+          "name": "story_id",
+          "type": "string",
+          "required": true,
+          "description": "Reference to the agile_backlog story this bug is associated with. Every bug must trace to a story."
+        },
+        {
+          "name": "pytest_id",
+          "type": "string",
+          "description": "Reference to the pytest that validates the fix",
+          "required": true
+        },
+        {
+          "name": "pytest_success_criteria",
+          "type": "array",
+          "source": "pytest record",
+          "description": "Success criteria from the pytest record — mandatory, not freetext",
+          "items": "string",
+          "required": false
+        },
+        {
+          "name": "discovery_date",
+          "type": "string",
+          "format": "date",
+          "description": "Date bug was discovered",
+          "required": true
+        },
+        {
+          "name": "due_date",
+          "type": "string",
+          "format": "date",
+          "description": "Date bug must be resolved by",
+          "required": true
+        },
+        {
+          "name": "fix",
+          "type": "string",
+          "description": "Description of the fix applied"
+        },
+        {
+          "name": "reproduction",
+          "type": "string",
+          "description": "Steps to reproduce the bug",
+          "required": true
+        },
+        {
+          "name": "orphan",
+          "type": "boolean",
+          "required": true,
+          "description": "True if this bug does not trace to a real story/requirement."
+        },
+        {
+          "name": "next_action",
+          "type": "array",
+          "default": "analysis",
+          "description": "Next action to take",
+          "items": "string"
         }
-      },
+      ],
       "produces_artifact": false,
       "biz_artifact_folder": null,
       "schema_status": "enforced"
