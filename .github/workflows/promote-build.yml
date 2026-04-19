@@ -63,7 +63,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: pip install pymongo python-dotenv
+        run: pip install -r Code/Shared/ops/tools/requirements.txt
 
       - name: Increment build counter on target
         if: inputs.dry_run == false

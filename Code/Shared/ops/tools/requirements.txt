@@ -1,0 +1,7 @@
+# Runtime dependencies for the rule scanners and brain validators in
+# Code/Shared/ops/tools/. Workflows that run these tools (pre-commit /
+# pre-push / pre-deploy) MUST install from this file rather than ad-hoc
+# pip-install lines, so the dependency set stays consistent.
+pymongo
+python-dotenv
+jsonschema

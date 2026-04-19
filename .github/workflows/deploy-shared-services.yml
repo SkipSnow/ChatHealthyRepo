@@ -46,7 +46,7 @@ jobs:
 
       - name: Pre-deploy rule check (v4-017)
         run: |
-          pip install pymongo python-dotenv
+          pip install -r Code/Shared/ops/tools/requirements.txt
           python Code/Shared/ops/tools/pre_deploy_rule_check.py shared
 
       - name: Push to HuggingFace Space
