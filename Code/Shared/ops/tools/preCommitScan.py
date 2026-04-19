@@ -558,6 +558,68 @@ def get_all_tracked_files():
         return []
 
 
+# ── Pre-push scope helpers (BUG-SCANNER-OVERSCOPE-001) ──────────
+
+
+def _changed_files_for_push():
+    """Return the set of repo-relative file paths that this push will
+    deliver to the remote (i.e. files in commits ahead of @{upstream}).
+    Returns None if upstream is unknown — caller falls back to full scan."""
+    try:
+        upstream = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "@{upstream}"],
+            capture_output=True, text=True, timeout=5, cwd=REPO_ROOT)
+        if upstream.returncode != 0:
+            return None
+        result = subprocess.run(
+            ["git", "diff", "--name-only", f"{upstream.stdout.strip()}..HEAD"],
+            capture_output=True, text=True, timeout=10, cwd=REPO_ROOT)
+        if result.returncode != 0:
+            return None
+        return {ln.strip() for ln in result.stdout.splitlines() if ln.strip()}
+    except Exception:
+        return None
+
+
+# Implicit target files for enforcement types that hardcode their target
+# rather than declaring it in the rule's enforcement entry. Keeps the
+# scope filter accurate without forcing every rule to spell out its path.
+_IMPLICIT_TARGET_FILES = {
+    "bugs_schema": ["brain/machine_artifacts/content/bugs.json"],
+    "backlog_schema": ["brain/machine_artifacts/content/agile_backlog.json"],
+    "ai_operations_schema": ["brain/machine_artifacts/content/ai_operations.json"],
+    "conversation_log_schema": ["brain/machine_artifacts/content/schema.json"],
+}
+
+
+def _enforcement_in_scope(enf: dict, changed_files: set) -> bool:
+    """True if the enforcement entry's scope intersects with the changed
+    files. Path comes from explicit fields in the enforcement entry OR
+    from the per-type implicit-target mapping above. If neither is known
+    the scope is unknown and we run conservatively."""
+    if not changed_files:
+        return False
+    paths = []
+    for k in ("scan_dir", "path"):
+        v = enf.get(k)
+        if isinstance(v, str):
+            paths.append(v)
+    for k in ("scan_dirs", "paths"):
+        v = enf.get(k)
+        if isinstance(v, list):
+            paths.extend(p for p in v if isinstance(p, str))
+    enf_type = enf.get("type", "")
+    if not paths and enf_type in _IMPLICIT_TARGET_FILES:
+        paths.extend(_IMPLICIT_TARGET_FILES[enf_type])
+    if not paths:
+        return True
+    for cf in changed_files:
+        for p in paths:
+            if cf == p or cf.startswith(p.rstrip("/") + "/"):
+                return True
+    return False
+
+
 # ── Main ─────────────────────────────────────────────────────────
 
 def main():
@@ -576,9 +638,24 @@ def main():
         return scan_files(files)
 
     if mode == "all":
-        # Full pre-push scan: engineering rules + file scan
+        # Pre-push scan, scoped to files affected by the about-to-push commits.
+        # Per BUG-SCANNER-OVERSCOPE-001: pre-existing violations in unchanged
+        # files MUST NOT block a push that does not modify them.
         print("Pre-deploy rule check for: all")
         print("=" * 60)
+
+        # Determine the changed-file set for this push by diffing against
+        # the upstream branch. If we cannot determine it, fall back to
+        # the conservative full-scan behavior (so we never silently
+        # under-validate).
+        changed_files = _changed_files_for_push()
+        if changed_files is None:
+            print("WARN: could not determine changed-file set for push; "
+                  "running full scan (conservative).")
+            scope_filter_active = False
+        else:
+            print(f"Pre-push scope: {len(changed_files)} changed file(s)")
+            scope_filter_active = True
 
         # Load engineering rules (new shape: rules.rule[]; backward-compat
         # path also accepts old shape: rules[] for safety during transition).
@@ -596,6 +673,7 @@ def main():
         all_violations = []
         checked = 0
         skipped = 0
+        out_of_scope = 0
 
         for rule in all_rules:
             rule_id = rule.get("id", "unknown")
@@ -622,6 +700,11 @@ def main():
                         print(f"WARN: {rule_id}: unknown enforcement type '{enf_type}'")
                     skipped += 1
                     continue
+                # Scope filter: skip executor if its scope doesn't intersect
+                # with the files this push is touching.
+                if scope_filter_active and not _enforcement_in_scope(enf, changed_files):
+                    out_of_scope += 1
+                    continue
                 violations = executor(rule_id, enf)
                 checked += 1
                 if violations:
@@ -631,6 +714,8 @@ def main():
                     all_violations.extend(violations)
                 else:
                     print(f"PASS: {rule_id} ({enf_type})")
+        if scope_filter_active:
+            print(f"Out-of-scope (not validated, push doesn't touch them): {out_of_scope}")
 
         # File scan (HTTP + schema) on staged files
         staged = get_staged_files()

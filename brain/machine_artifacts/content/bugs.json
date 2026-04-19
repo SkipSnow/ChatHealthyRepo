@@ -3695,6 +3695,190 @@
       "next_action": [
         "Wrap get_secret in a real LangGraph StateGraph; route the handler body through graph.invoke()."
       ]
+    },
+    {
+      "bugid": "BUG-PRIME-RULE-UNENFORCED-001",
+      "title": "Prime rule (no misrepresentation) lives only in CLAUDE.md, has no runtime enforcement point",
+      "description": "Claude does not obey the prime objective in CLAUDE.md. The rule lives only in CLAUDE.md, has no entry in engineering_rules.json, and no hook enforcement. This work fixes that gap.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "new",
+      "severity": "high",
+      "req_id": "ARCH-CONSTRAINTS-PRIME-RULE-001-REQ-T001",
+      "story_id": "ARCH-CONSTRAINTS-PRIME-RULE-001",
+      "pytest_id": "TBD-prime-rule-enforcement-tests",
+      "pytest_success_criteria": [
+        "engineering_rules.json contains a rule entry whose text matches the prime rule from CLAUDE.md verbatim",
+        "That rule entry has at least two enforcement entries: prompt_verify_directive (UserPromptSubmit) and response_claim_audit (Stop)",
+        "AnthropicsClaudeCodeHookManager implements enforce_prompt_verify_directive and enforce_response_claim_audit",
+        "Pytest for prompt_verify_directive: feeding a high-risk prompt injects the verification directive; feeding a benign prompt does not",
+        "Pytest for response_claim_audit: a response with definitive external-system claims AND no Read/Grep/Bash/WebFetch tool calls this turn produces a violation record",
+        "CLAUDE.md no longer contains the prime-rule preamble; it points to the rule ID instead"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-04-26",
+      "fix": "",
+      "reproduction": "1) grep 'misrepresent' brain/machine_artifacts/content/engineering_rules.json \u2014 currently returns no matches. 2) grep 'misrepresent' CLAUDE.md \u2014 returns the preamble. 3) Inspect .claude/settings.json hook commands \u2014 none reference a prime-rule executor.",
+      "orphan": false,
+      "next_action": [
+        "Draft + approve requirements (ARCH-PRIME-RULE-ENFORCEMENT-001-REQ-B001 / -T001).",
+        "Implement per the agreed punch list (rule entry, rename, executors, pytests, deploy)."
+      ]
+    },
+    {
+      "bugid": "BUG-BACKLOG-SCHEMA-UNENFORCED-001",
+      "title": "v4-007 backlog_schema enforcement type declared in engineering_rules.json but no executor implemented",
+      "description": "engineering_rules.json declares v4-007 with enforcement type 'backlog_schema' pointing at brain/machine_artifacts/content/agile_backlog.json. The pre-deploy scanner (pre_deploy_rule_check.py) and pre-commit scanner (preCommitScan.py) both have NO 'enforce_backlog_schema' function. Both scanners emit WARN: unknown enforcement type 'backlog_schema' and silently skip. Result: every commit and push for the lifetime of this rule has bypassed agile_backlog schema validation, allowing schema violations (e.g. duplicate epic_id values) to accumulate undetected. Closes when both scanners implement enforce_backlog_schema AND that executor catches the existing violations AND the file is repaired to pass.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "new",
+      "severity": "high",
+      "req_id": "ARCH-SCAN-JSON-REQ-003",
+      "story_id": "ARCH-SCAN-JSON",
+      "pytest_id": "TBD-backlog-schema-executor-test",
+      "pytest_success_criteria": [
+        "pre_deploy_rule_check.py EXECUTORS dict contains a 'backlog_schema' entry pointing to enforce_backlog_schema",
+        "preCommitScan.py EXECUTORS dict contains a 'backlog_schema' entry pointing to enforce_backlog_schema",
+        "Both scanners report PASS: v4-007 (backlog_schema) on a clean agile_backlog.json",
+        "Both scanners report FAIL: v4-007 (backlog_schema) on a backlog with duplicate epic_id, feature_id, story_id, or req_id",
+        "Both scanners catch JSON Schema violations in agile_backlog.json against ChatHealthyAgileBacklogSchema.json"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-04-19",
+      "fix": "",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep backlog_schema. Currently shows: WARN: v4-007: unknown enforcement type 'backlog_schema'. Expected after fix: PASS or FAIL: v4-007 (backlog_schema) with concrete violations listed.",
+      "orphan": false,
+      "next_action": [
+        "Implement enforce_backlog_schema in both scanners.",
+        "Run it against agile_backlog.json and surface all violations.",
+        "Repair agile_backlog.json until validator is green."
+      ]
+    },
+    {
+      "bugid": "BUG-RULES-NO-REQ-TRACE-001",
+      "title": "61 engineering rules in engineering_rules.json have no requirement trace (orphan rules)",
+      "description": "Every rule in brain/machine_artifacts/content/engineering_rules.json MUST carry a 'req_id' field per ARCH-SCAN-JSON-REQ-004. Audit on 2026-04-19 found 61 rules in the file, ZERO of which carry a req_id field. All are orphans. The full list with file:line references is in 'next_action'. Closes when every listed rule has been updated with a req_id pointing at an approved agile_backlog requirement, the schema makes req_id required on each rule, AND the scanner enforces it. Severity intent (per v4-041): dev=low, qa=critical, prod=show_stopper.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "deferred",
+      "severity": "low",
+      "req_id": "ARCH-SCAN-JSON-REQ-004",
+      "story_id": "ARCH-SCAN-JSON",
+      "pytest_id": "TBD-rules-have-req-trace",
+      "pytest_success_criteria": [
+        "Every rule object in engineering_rules.json has a non-empty 'req_id' field",
+        "engineering_rules schema marks 'req_id' as required on each rule",
+        "Generic published_schema_validation executor surfaces zero violations against engineering_rules.json"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-31",
+      "fix": "",
+      "reproduction": "python -c \"import json; r=json.load(open('brain/machine_artifacts/content/engineering_rules.json'))['rules']; print(sum(1 for x in r if not x.get('req_id')), 'orphan rules of', len(r))\"  Currently prints: 61 orphan rules of 61.",
+      "orphan": false,
+      "next_action": [
+        "  - v4-000 at brain\\machine_artifacts\\content\\engineering_rules.json:15",
+        "  - v4-001 at brain\\machine_artifacts\\content\\engineering_rules.json:24",
+        "  - v4-002 at brain\\machine_artifacts\\content\\engineering_rules.json:48",
+        "  - v4-003 at brain\\machine_artifacts\\content\\engineering_rules.json:56",
+        "  - v4-004 at brain\\machine_artifacts\\content\\engineering_rules.json:64",
+        "  - v4-005 at brain\\machine_artifacts\\content\\engineering_rules.json:72",
+        "  - v4-006 at brain\\machine_artifacts\\content\\engineering_rules.json:80",
+        "  - v4-007 at brain\\machine_artifacts\\content\\engineering_rules.json:88",
+        "  - v4-008 at brain\\machine_artifacts\\content\\engineering_rules.json:116",
+        "  - v4-009 at brain\\machine_artifacts\\content\\engineering_rules.json:130",
+        "  - v4-010 at brain\\machine_artifacts\\content\\engineering_rules.json:138",
+        "  - v4-011 at brain\\machine_artifacts\\content\\engineering_rules.json:146",
+        "  - v4-012 at brain\\machine_artifacts\\content\\engineering_rules.json:154",
+        "  - v4-013 at brain\\machine_artifacts\\content\\engineering_rules.json:162",
+        "  - v4-014 at brain\\machine_artifacts\\content\\engineering_rules.json:170",
+        "  - v4-015 at brain\\machine_artifacts\\content\\engineering_rules.json:178",
+        "  - v4-016 at brain\\machine_artifacts\\content\\engineering_rules.json:186",
+        "  - v4-017 at brain\\machine_artifacts\\content\\engineering_rules.json:194",
+        "  - v4-018 at brain\\machine_artifacts\\content\\engineering_rules.json:202",
+        "  - v4-019 at brain\\machine_artifacts\\content\\engineering_rules.json:210",
+        "  - v4-020 at brain\\machine_artifacts\\content\\engineering_rules.json:218",
+        "  - v4-021 at brain\\machine_artifacts\\content\\engineering_rules.json:226",
+        "  - v4-022 at brain\\machine_artifacts\\content\\engineering_rules.json:234",
+        "  - v4-024 at brain\\machine_artifacts\\content\\engineering_rules.json:248",
+        "  - v4-023 at brain\\machine_artifacts\\content\\engineering_rules.json:256",
+        "  - v4-025 at brain\\machine_artifacts\\content\\engineering_rules.json:264",
+        "  - v4-026 at brain\\machine_artifacts\\content\\engineering_rules.json:272",
+        "  - v4-027 at brain\\machine_artifacts\\content\\engineering_rules.json:280",
+        "  - v4-028 at brain\\machine_artifacts\\content\\engineering_rules.json:288",
+        "  - v4-029 at brain\\machine_artifacts\\content\\engineering_rules.json:297",
+        "  - v4-030 at brain\\machine_artifacts\\content\\engineering_rules.json:306",
+        "  - v4-031 at brain\\machine_artifacts\\content\\engineering_rules.json:314",
+        "  - v4-032 at brain\\machine_artifacts\\content\\engineering_rules.json:322",
+        "  - v4-033 at brain\\machine_artifacts\\content\\engineering_rules.json:330",
+        "  - DR-004 at brain\\machine_artifacts\\content\\engineering_rules.json:338",
+        "  - DR-006 at brain\\machine_artifacts\\content\\engineering_rules.json:347",
+        "  - DR-008 at brain\\machine_artifacts\\content\\engineering_rules.json:366",
+        "  - DR-009 at brain\\machine_artifacts\\content\\engineering_rules.json:390",
+        "  - DR-010 at brain\\machine_artifacts\\content\\engineering_rules.json:399",
+        "  - DR-011 at brain\\machine_artifacts\\content\\engineering_rules.json:408",
+        "  - DR-012 at brain\\machine_artifacts\\content\\engineering_rules.json:417",
+        "  - DR-013 at brain\\machine_artifacts\\content\\engineering_rules.json:426",
+        "  - DR-016 at brain\\machine_artifacts\\content\\engineering_rules.json:435",
+        "  - DR-019 at brain\\machine_artifacts\\content\\engineering_rules.json:444",
+        "  - DR-020 at brain\\machine_artifacts\\content\\engineering_rules.json:453",
+        "  - DR-021 at brain\\machine_artifacts\\content\\engineering_rules.json:462",
+        "  - DR-022 at brain\\machine_artifacts\\content\\engineering_rules.json:471",
+        "  - DR-023 at brain\\machine_artifacts\\content\\engineering_rules.json:489",
+        "  - DR-024 at brain\\machine_artifacts\\content\\engineering_rules.json:508",
+        "  - DR-025 at brain\\machine_artifacts\\content\\engineering_rules.json:517",
+        "  - DR-026 at brain\\machine_artifacts\\content\\engineering_rules.json:526",
+        "  - v4-034 at brain\\machine_artifacts\\content\\engineering_rules.json:541",
+        "  - v4-035 at brain\\machine_artifacts\\content\\engineering_rules.json:549",
+        "  - v4-036 at brain\\machine_artifacts\\content\\engineering_rules.json:554",
+        "  - v4-037 at brain\\machine_artifacts\\content\\engineering_rules.json:563",
+        "  - v4-038 at brain\\machine_artifacts\\content\\engineering_rules.json:572",
+        "  - v4-040 at brain\\machine_artifacts\\content\\engineering_rules.json:581",
+        "  - v4-039 at brain\\machine_artifacts\\content\\engineering_rules.json:590",
+        "  - v4-041 at brain\\machine_artifacts\\content\\engineering_rules.json:599",
+        "  - v4-042 at brain\\machine_artifacts\\content\\engineering_rules.json:608",
+        "  - v4-043 at brain\\machine_artifacts\\content\\engineering_rules.json:617"
+      ]
+    },
+    {
+      "bugid": "BUG-SCANNER-OVERSCOPE-001",
+      "title": "Pre-push scanner validates files unrelated to the push, blocking schema-only pushes on pre-existing data violations",
+      "description": "preCommitScan.py 'all' mode (called by .git/hooks/pre-push) runs every rule executor against every governed JSON regardless of what files are actually being pushed. Result: a schema-only commit cannot be pushed when an unrelated data file (e.g. agile_backlog.json) carries pre-existing schema violations. The defect is overscope: validation should be limited to files affected by the about-to-push commits (or at minimum should fail only when the push INTRODUCES new violations). Closes when preCommitScan.py 'all' mode scopes its scan to changed files only, verified by a successful schemas-only push while agile_backlog.json still carries pre-existing duplicate-id violations.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "new",
+      "severity": "high",
+      "req_id": "Orphan",
+      "story_id": "ARCH-SCAN-JSON",
+      "pytest_id": "TBD-scanner-scope-test",
+      "pytest_success_criteria": [
+        "Pushing a commit that touches only Website/schemas/dev/*.json scans only those files at pre-push",
+        "Pre-existing violations in agile_backlog.json do NOT block a push that does not modify agile_backlog.json",
+        "Modifying agile_backlog.json still triggers the agile_backlog validators"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-04-20",
+      "fix": "",
+      "reproduction": "1) Make a schema-only edit (e.g. Website/schemas/dev/EngineeringRulesSchema.json). 2) Commit. 3) git push origin dev -> blocked by 129 violations in agile_backlog.json that are unrelated to the schema commit.",
+      "orphan": false,
+      "next_action": [
+        "preCommitScan.py 'all' mode: derive changed-file list via 'git diff origin/<branch>..HEAD --name-only', then scope each rule executor to operate only on files in that list."
+      ]
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
